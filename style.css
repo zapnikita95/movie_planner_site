@@ -898,6 +898,17 @@ section {
 }
 
 /* --- Cards --- */
+/* Непросмотренные, Сериалы, Последние оценки: карточки на всю ширину экрана */
+#unwatched-list.cards-list,
+#series-list.cards-list,
+#ratings-list.cards-list {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  box-sizing: border-box;
+  padding-left: 20px;
+  padding-right: 20px;
+}
 .cards-list {
   display: flex;
   flex-direction: column;
@@ -970,6 +981,7 @@ section {
   align-self: end;
   justify-self: end;
   margin-top: 0;
+  width: auto;
 }
 .card .btn-small {
   white-space: nowrap;
