@@ -432,8 +432,7 @@
 
   function loadUnwatched() {
     api('/api/site/unwatched').then((data) => {
-      if (!data.success) return;
-      unwatchedItems = Array.isArray(data.items) ? data.items : [];
+      unwatchedItems = Array.isArray(data && data.items) ? data.items : [];
       const sortSelect = document.getElementById('unwatched-sort');
       if (sortSelect && !sortSelect.dataset.bound) {
         sortSelect.dataset.bound = '1';
@@ -445,6 +444,7 @@
       if (sortSelect) sortSelect.value = unwatchedSortMode;
       renderUnwatchedList();
     }).catch(() => {
+      unwatchedItems = [];
       renderUnwatchedList();
     });
   }
@@ -477,12 +477,12 @@
   }
 
   function loadRatings() {
+    const el = document.getElementById('ratings-list');
+    if (!el) return;
     api('/api/site/ratings').then((data) => {
-      if (!data.success) return;
-      const el = document.getElementById('ratings-list');
-      if (!el) return;
-      el.innerHTML = (data.items && data.items.length)
-        ? data.items.map((r) => {
+      const items = Array.isArray(data && data.items) ? data.items : [];
+      el.innerHTML = items.length
+        ? items.map((r) => {
             const link = filmDeepLink(r.kp_id, false);
             const year = r.year ? ` (${r.year})` : '';
             const poster = posterUrl(r.kp_id);
@@ -504,6 +504,8 @@
               </div>`;
           }).join('')
         : '<p class="empty-hint">Нет оценок.</p>';
+    }).catch(() => {
+      el.innerHTML = '<p class="empty-hint">Не удалось загрузить оценки.</p>';
     });
   }
 
