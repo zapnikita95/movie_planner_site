@@ -339,28 +339,28 @@
       const homeEl = document.getElementById('plans-home-list');
       const cinemaEl = document.getElementById('plans-cinema-list');
       const plansTodayEl = document.getElementById('plans-today');
-      const renderPlan = (p, options) => {
-        const isToday = options && options.today;
+      const renderPlan = (p) => {
         const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
         const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
         const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
         const typeLabel = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
         const link = filmDeepLink(p.kp_id, p.is_series);
         const poster = posterUrl(p.kp_id);
-        const titleMaxCh = isToday ? 40 : 20;
-        const titleHtml = wrapTitleHtml(p.title, titleMaxCh);
+        const titleSafe = escapeHtml(p.title || '');
         return `
-          <div class="card plan-card ${isToday ? 'plan-card-today' : ''}">
+          <div class="card plan-card">
             <div class="card-poster-wrap">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
             </div>
-            <div class="plan-date">
-              <span class="plan-date-line">📅 ${escapeHtml(dateLine)}</span>
-              <span class="plan-time-line">${escapeHtml(timeLine)}</span>
+            <div class="plan-info">
+              <div class="plan-meta">
+                <span class="plan-date-line">📅 ${escapeHtml(dateLine)}</span>
+                <span class="plan-time-line">${escapeHtml(timeLine)}</span>
+                <span class="plan-type">${typeLabel}</span>
+              </div>
+              <div class="plan-title">🎬 ${titleSafe}</div>
             </div>
-            <div class="plan-title">🎬 ${titleHtml}</div>
-            <div class="plan-type">${typeLabel}</div>
             <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в Telegram</a>
           </div>`;
       };
@@ -374,20 +374,20 @@
           html += '</div>';
           homeEl.innerHTML = html;
         } else {
-          homeEl.innerHTML = data.home.map((p) => renderPlan(p, { today: false })).join('');
+          homeEl.innerHTML = data.home.map(renderPlan).join('');
         }
       }
       if (cinemaEl) {
         if (cinemaEmpty) {
           cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры в Боте</a></div>';
         } else {
-          cinemaEl.innerHTML = data.cinema.map((p) => renderPlan(p, { today: false })).join('');
+          cinemaEl.innerHTML = data.cinema.map(renderPlan).join('');
         }
       }
       const all = [...(data.home || []), ...(data.cinema || [])].slice(0, 3);
       const todayWrap = document.getElementById('plans-today-wrap');
       if (todayWrap) todayWrap.classList.toggle('hidden', !all.length);
-      if (plansTodayEl) plansTodayEl.innerHTML = all.length ? all.map((p) => renderPlan(p, { today: true })).join('') : '';
+      if (plansTodayEl) plansTodayEl.innerHTML = all.length ? all.map(renderPlan).join('') : '';
     });
   }
 
@@ -424,6 +424,7 @@
       return;
     }
     let list = unwatchedItems.slice();
+    if (unwatchedSortMode === 'date_old') list.reverse();
     if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
     if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
     el.innerHTML = list.map(renderUnwatchedCard).join('');
@@ -432,7 +433,7 @@
   function loadUnwatched() {
     api('/api/site/unwatched').then((data) => {
       if (!data.success) return;
-      unwatchedItems = data.items || [];
+      unwatchedItems = Array.isArray(data.items) ? data.items : [];
       const sortSelect = document.getElementById('unwatched-sort');
       if (sortSelect && !sortSelect.dataset.bound) {
         sortSelect.dataset.bound = '1';
@@ -442,6 +443,8 @@
         });
       }
       if (sortSelect) sortSelect.value = unwatchedSortMode;
+      renderUnwatchedList();
+    }).catch(() => {
       renderUnwatchedList();
     });
   }
