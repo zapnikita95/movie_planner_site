@@ -800,7 +800,7 @@ section {
   text-align: center;
   box-sizing: border-box;
   white-space: nowrap;
-  justify-self: end;
+  justify-self: start;
 }
 @media (max-width: 600px) {
   .plan-card {
