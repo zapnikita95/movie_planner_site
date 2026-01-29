@@ -372,6 +372,20 @@ section {
     transform: translateY(-3px);
 }
 
+.social-link-vc {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0;
+}
+.social-link-vc img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    display: block;
+}
+.social-link-vc:hover {
+    background: #fff;
+}
+
 .footer-bottom {
     text-align: center;
     padding-top: 30px;
