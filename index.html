@@ -180,11 +180,11 @@
     <main id="cabinet-readonly" class="hidden cabinet">
         <div class="container">
             <div class="cabinet-nav">
-                <button type="button" class="cabinet-nav-btn active" data-section="plans">📋 Планы</button>
-                <button type="button" class="cabinet-nav-btn" data-section="unwatched">🎬 Непросмотренные</button>
-                <button type="button" class="cabinet-nav-btn" data-section="series">📺 Сериалы</button>
-                <button type="button" class="cabinet-nav-btn" data-section="ratings">⭐ Последние оценки</button>
-                <button type="button" class="cabinet-nav-btn" data-section="about">ℹ️ О проекте</button>
+                <button type="button" class="cabinet-nav-btn active" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Последние оценки</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
             <div class="cabinet-sections">
@@ -206,21 +206,31 @@
                     </div>
                 </section>
                 <section id="section-unwatched" class="cabinet-section hidden">
-                    <h2 class="section-title">🎬 Непросмотренные</h2>
+                    <div class="section-unwatched-header">
+                        <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">Непросмотренные</span></h2>
+                        <div class="unwatched-toolbar">
+                            <label for="unwatched-sort">Сортировка:</label>
+                            <select id="unwatched-sort" class="unwatched-sort-select" aria-label="Сортировка непросмотренных">
+                                <option value="date">по дате добавления</option>
+                                <option value="az">от А к Я</option>
+                                <option value="za">от Я к А</option>
+                            </select>
+                        </div>
+                    </div>
                     <p class="cabinet-hint">Просмотр с компа. Управление — только в Telegram.</p>
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
-                    <h2 class="section-title">📺 Сериалы</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
                     <p class="cabinet-hint">Прогресс и управление — в Telegram.</p>
                     <div id="series-list" class="cards-list"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title">⭐ Последние оценки</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
                     <div id="ratings-list" class="cards-list"></div>
                 </section>
                 <section id="section-about" class="cabinet-section hidden cabinet-about">
-                    <h2 class="section-title">ℹ️ О проекте</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">ℹ️</span><span class="section-title-text">О проекте</span></h2>
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">
@@ -259,11 +269,11 @@
         <div class="container">
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="onboard-main">Главная</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-plans">📋 Планы</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched">🎬 Непросмотренные</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-series">📺 Сериалы</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-ratings">⭐ Оценки</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-about">ℹ️ О проекте</button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link-onboard" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
             <div class="cabinet-sections onboarding-sections">
@@ -299,27 +309,27 @@
                     <p class="cabinet-onboard-note">💡 Это онбординг — начните с бота или расширения, и здесь появятся ваши фильмы.</p>
                 </section>
                 <section id="section-onboard-plans" class="cabinet-section hidden">
-                    <h2 class="section-title">📋 Планы</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
                     <p class="onboard-empty-hint">Планов пока нет. Добавьте фильм в боте и запланируйте просмотр — тогда он появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-unwatched" class="cabinet-section hidden">
-                    <h2 class="section-title">🎬 Непросмотренные</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">Непросмотренные</span></h2>
                     <p class="onboard-empty-hint">Добавьте первый фильм в боте (поиск или ссылка с Кинопоиска/IMDb) или через расширение — он появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-series" class="cabinet-section hidden">
-                    <h2 class="section-title">📺 Сериалы</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
                     <p class="onboard-empty-hint">Добавьте сериал в боте — здесь будет отображаться прогресс просмотра.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title">⭐ Последние оценки</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
                     <p class="onboard-empty-hint">После просмотра поставьте оценку в боте — она появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-about" class="cabinet-section hidden cabinet-about">
-                    <h2 class="section-title">ℹ️ О проекте</h2>
+                    <h2 class="section-title"><span class="section-title-emoji">ℹ️</span><span class="section-title-text">О проекте</span></h2>
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">

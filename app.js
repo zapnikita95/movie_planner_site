@@ -306,6 +306,32 @@
     }).catch(() => {});
   }
 
+  // Перенос названия: до maxCh символов в строке, слово целиком; если слово длиннее — разбить
+  function wrapTitleHtml(title, maxCh) {
+    if (!title) return '';
+    const safe = escapeHtml(title);
+    if (safe.length <= maxCh) return safe;
+    const parts = [];
+    let rest = safe;
+    while (rest.length > 0) {
+      if (rest.length <= maxCh) {
+        parts.push(rest);
+        break;
+      }
+      const chunk = rest.slice(0, maxCh);
+      const lastSpace = chunk.lastIndexOf(' ');
+      const breakAt = lastSpace >= 0 ? lastSpace + 1 : maxCh;
+      const word = rest.slice(0, breakAt);
+      if (word.length > maxCh) {
+        for (let i = 0; i < word.length; i += maxCh) parts.push(word.slice(i, i + maxCh));
+      } else {
+        parts.push(word);
+      }
+      rest = rest.slice(word.length);
+    }
+    return parts.map((p) => '<span class="plan-title-line">' + p + '</span>').join('');
+  }
+
   // ——— Загрузка данных кабинета ———
   function loadPlans() {
     api('/api/site/plans').then((data) => {
@@ -313,20 +339,27 @@
       const homeEl = document.getElementById('plans-home-list');
       const cinemaEl = document.getElementById('plans-cinema-list');
       const plansTodayEl = document.getElementById('plans-today');
-      const renderPlan = (p) => {
+      const renderPlan = (p, options) => {
+        const isToday = options && options.today;
         const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
-        const dateStr = dt ? dt.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+        const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
         const typeLabel = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
         const link = filmDeepLink(p.kp_id, p.is_series);
         const poster = posterUrl(p.kp_id);
+        const titleMaxCh = isToday ? 40 : 20;
+        const titleHtml = wrapTitleHtml(p.title, titleMaxCh);
         return `
-          <div class="card plan-card">
+          <div class="card plan-card ${isToday ? 'plan-card-today' : ''}">
             <div class="card-poster-wrap">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
             </div>
-            <div class="plan-date">📅 ${dateStr}</div>
-            <div class="plan-title">🎬 ${escapeHtml(p.title)}</div>
+            <div class="plan-date">
+              <span class="plan-date-line">📅 ${escapeHtml(dateLine)}</span>
+              <span class="plan-time-line">${escapeHtml(timeLine)}</span>
+            </div>
+            <div class="plan-title">🎬 ${titleHtml}</div>
             <div class="plan-type">${typeLabel}</div>
             <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в Telegram</a>
           </div>`;
@@ -341,47 +374,75 @@
           html += '</div>';
           homeEl.innerHTML = html;
         } else {
-          homeEl.innerHTML = data.home.map(renderPlan).join('');
+          homeEl.innerHTML = data.home.map((p) => renderPlan(p, { today: false })).join('');
         }
       }
       if (cinemaEl) {
         if (cinemaEmpty) {
           cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры в Боте</a></div>';
         } else {
-          cinemaEl.innerHTML = data.cinema.map(renderPlan).join('');
+          cinemaEl.innerHTML = data.cinema.map((p) => renderPlan(p, { today: false })).join('');
         }
       }
       const all = [...(data.home || []), ...(data.cinema || [])].slice(0, 3);
       const todayWrap = document.getElementById('plans-today-wrap');
       if (todayWrap) todayWrap.classList.toggle('hidden', !all.length);
-      if (plansTodayEl) plansTodayEl.innerHTML = all.length ? all.map(renderPlan).join('') : '';
+      if (plansTodayEl) plansTodayEl.innerHTML = all.length ? all.map((p) => renderPlan(p, { today: true })).join('') : '';
     });
+  }
+
+  let unwatchedItems = [];
+  let unwatchedSortMode = 'date';
+
+  function renderUnwatchedCard(m) {
+    const link = filmDeepLink(m.kp_id, m.is_series);
+    const year = m.year ? ` (${m.year})` : '';
+    const poster = posterUrl(m.kp_id);
+    const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
+    const desc = (m.description || '').trim();
+    const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
+    return `
+      <div class="card film-card">
+        <div class="card-poster-wrap">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
+        </div>
+        <div class="film-info">
+          <div class="film-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
+          ${descHtml}
+          <div class="film-status">Статус: В базе</div>
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>
+        </div>
+      </div>`;
+  }
+
+  function renderUnwatchedList() {
+    const el = document.getElementById('unwatched-list');
+    if (!el) return;
+    if (!unwatchedItems.length) {
+      el.innerHTML = '<p class="empty-hint">Нет непросмотренных. Добавьте фильмы в боте.</p>';
+      return;
+    }
+    let list = unwatchedItems.slice();
+    if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
+    if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
+    el.innerHTML = list.map(renderUnwatchedCard).join('');
   }
 
   function loadUnwatched() {
     api('/api/site/unwatched').then((data) => {
       if (!data.success) return;
-      const el = document.getElementById('unwatched-list');
-      if (!el) return;
-      el.innerHTML = (data.items && data.items.length)
-        ? data.items.map((m) => {
-            const link = filmDeepLink(m.kp_id, m.is_series);
-            const year = m.year ? ` (${m.year})` : '';
-            const poster = posterUrl(m.kp_id);
-            return `
-              <div class="card film-card">
-                <div class="card-poster-wrap">
-                  ${poster ? '<img src="' + poster + '" alt="" class="card-poster" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-                  <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
-                </div>
-                <div class="film-info">
-                  <div class="film-title">${escapeHtml(m.title)}${year}</div>
-                  <div class="film-status">Статус: В базе</div>
-                  <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>
-                </div>
-              </div>`;
-          }).join('')
-        : '<p class="empty-hint">Нет непросмотренных. Добавьте фильмы в боте.</p>';
+      unwatchedItems = data.items || [];
+      const sortSelect = document.getElementById('unwatched-sort');
+      if (sortSelect && !sortSelect.dataset.bound) {
+        sortSelect.dataset.bound = '1';
+        sortSelect.addEventListener('change', () => {
+          unwatchedSortMode = sortSelect.value;
+          renderUnwatchedList();
+        });
+      }
+      if (sortSelect) sortSelect.value = unwatchedSortMode;
+      renderUnwatchedList();
     });
   }
 
@@ -422,6 +483,9 @@
             const link = filmDeepLink(r.kp_id, false);
             const year = r.year ? ` (${r.year})` : '';
             const poster = posterUrl(r.kp_id);
+            const ratingKpStr = r.rating_kp != null ? ' · КП: ' + Number(r.rating_kp).toFixed(1) : '';
+            const desc = (r.description || '').trim();
+            const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
             return `
               <div class="card film-card">
                 <div class="card-poster-wrap">
@@ -429,7 +493,8 @@
                   <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
                 </div>
                 <div class="film-info">
-                  <div class="film-title">${escapeHtml(r.title)}${year}</div>
+                  <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
+                  ${descHtml}
                   <div class="film-status">⭐ ${r.rating}</div>
                   <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в боте</a>
                 </div>
