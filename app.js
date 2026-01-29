@@ -9,22 +9,61 @@
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
   const BOT_CODE_LINK = 'https://t.me/movie_planner_bot?start=code';
-  const EXTENSION_LINK = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol';
+  const BOT_SEARCH_LINK = BOT_LINK + '?start=search';
+  const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
+  const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
+  let cabinetHasData = false;
 
   function posterUrl(kpId) {
     if (!kpId) return '';
     return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
   }
 
-  const STORAGE_TOKEN = 'mp_site_token';
+  const STORAGE_SESSIONS = 'mp_site_sessions';
+  const STORAGE_ACTIVE = 'mp_site_active_chat_id';
+  const MAX_PERSONAL = 2;
+  const MAX_GROUP = 2;
 
-  function getToken() {
-    return localStorage.getItem(STORAGE_TOKEN);
+  function getSessions() {
+    try {
+      const raw = localStorage.getItem(STORAGE_SESSIONS);
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
   }
 
-  function setToken(token) {
-    if (token) localStorage.setItem(STORAGE_TOKEN, token);
-    else localStorage.removeItem(STORAGE_TOKEN);
+  function setSessions(sessions) {
+    localStorage.setItem(STORAGE_SESSIONS, JSON.stringify(sessions));
+  }
+
+  function getActiveChatId() {
+    return localStorage.getItem(STORAGE_ACTIVE);
+  }
+
+  function setActiveChatId(chatId) {
+    if (chatId != null && chatId !== '') localStorage.setItem(STORAGE_ACTIVE, String(chatId));
+    else localStorage.removeItem(STORAGE_ACTIVE);
+  }
+
+  function getToken() {
+    const sessions = getSessions();
+    const active = getActiveChatId();
+    const session = sessions.find((s) => String(s.chat_id) === String(active));
+    return session ? session.token : null;
+  }
+
+  function removeSessionByToken(token) {
+    const sessions = getSessions();
+    const removed = sessions.find((s) => s.token === token);
+    const active = getActiveChatId();
+    const wasActive = removed && String(removed.chat_id) === String(active);
+    const next = sessions.filter((s) => s.token !== token);
+    setSessions(next);
+    if (wasActive) {
+      if (next.length) setActiveChatId(next[0].chat_id);
+      else setActiveChatId(null);
+    }
   }
 
   function api(url, options = {}) {
@@ -32,9 +71,9 @@
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
     return fetch(API_BASE + url, { ...options, headers }).then((r) => {
-      if (r.status === 401) {
-        setToken(null);
-        window.dispatchEvent(new CustomEvent('mp:logout'));
+      if (r.status === 401 && token) {
+        removeSessionByToken(token);
+        if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       }
       return r.json().catch(() => ({}));
     });
@@ -49,25 +88,95 @@
     return BOT_START_LINK;
   }
 
-  // ——— UI: шапка, модалка входа, переключение контента ———
+  // ——— UI: шапка, выпадающее меню аккаунтов ———
+  function closeAccountDropdown() {
+    const dd = document.getElementById('header-account-dropdown');
+    if (dd) dd.classList.add('hidden');
+  }
+
+  function openAccountDropdown() {
+    const dd = document.getElementById('header-account-dropdown');
+    if (!dd) return;
+    const sessions = getSessions();
+    const activeId = getActiveChatId();
+    const personalCount = sessions.filter((s) => s.is_personal).length;
+    const groupCount = sessions.filter((s) => !s.is_personal).length;
+    const canAddPersonal = personalCount < MAX_PERSONAL;
+    const canAddGroup = groupCount < MAX_GROUP;
+    const canAdd = sessions.length < MAX_PERSONAL + MAX_GROUP && (canAddPersonal || canAddGroup);
+
+    let html = '';
+    if (sessions.length) {
+      html += '<div class="header-dropdown-title">Текущие входы</div>';
+      sessions.forEach((s) => {
+        const isActive = String(s.chat_id) === String(activeId);
+        const typeLabel = s.is_personal ? 'личный' : 'группа';
+        const name = escapeHtml(s.name || 'Кабинет');
+        html += '<div class="header-dropdown-account' + (isActive ? ' is-active' : '') + '" data-chat-id="' + escapeHtml(String(s.chat_id)) + '">';
+        html += '<span class="header-dropdown-account-name">' + name + '<span class="header-dropdown-account-type">(' + typeLabel + ')</span></span>';
+        html += '<button type="button" class="header-dropdown-account-remove" data-chat-id="' + escapeHtml(String(s.chat_id)) + '" aria-label="Выйти">×</button>';
+        html += '</div>';
+      });
+      html += '<div class="header-dropdown-divider"></div>';
+    }
+    html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>+ Добавить вход</button>';
+    dd.innerHTML = html;
+
+    dd.querySelectorAll('.header-dropdown-account').forEach((el) => {
+      const chatId = el.getAttribute('data-chat-id');
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('header-dropdown-account-remove')) return;
+        setActiveChatId(chatId);
+        closeAccountDropdown();
+        loadMeAndShowCabinet();
+      });
+    });
+    dd.querySelectorAll('.header-dropdown-account-remove').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const chatId = btn.getAttribute('data-chat-id');
+        const sessions = getSessions().filter((s) => String(s.chat_id) !== String(chatId));
+        const wasActive = String(getActiveChatId()) === String(chatId);
+        setSessions(sessions);
+        if (sessions.length) {
+          if (wasActive) {
+            setActiveChatId(sessions[0].chat_id);
+            loadMeAndShowCabinet();
+          }
+        } else {
+          setActiveChatId(null);
+          renderHeader(null);
+          showScreen('landing');
+        }
+        closeAccountDropdown();
+      });
+    });
+    const addBtn = dd.querySelector('[data-action="add-account"]');
+    if (addBtn && canAdd) {
+      addBtn.addEventListener('click', () => {
+        closeAccountDropdown();
+        document.getElementById('login-modal')?.classList.remove('hidden');
+      });
+    }
+    dd.classList.remove('hidden');
+  }
+
   function renderHeader(me) {
     const header = document.getElementById('site-header');
     if (!header) return;
     const loginBtn = header.querySelector('[data-action="login"]');
-    const cabinetBtn = header.querySelector('[data-action="cabinet-name"]');
-    const logoutBtn = header.querySelector('[data-action="logout"]');
+    const userWrap = document.getElementById('header-user-wrap');
+    const cabinetBtn = document.getElementById('header-cabinet-name');
     if (me && me.name) {
       if (loginBtn) loginBtn.classList.add('hidden');
-      if (cabinetBtn) {
-        cabinetBtn.textContent = me.name;
-        cabinetBtn.classList.remove('hidden');
-      }
-      if (logoutBtn) logoutBtn.classList.remove('hidden');
+      if (userWrap) userWrap.classList.remove('hidden');
+      if (cabinetBtn) cabinetBtn.textContent = me.name;
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
-      if (cabinetBtn) cabinetBtn.classList.add('hidden');
-      if (logoutBtn) logoutBtn.classList.add('hidden');
+      if (userWrap) userWrap.classList.add('hidden');
+      if (cabinetBtn) cabinetBtn.textContent = '';
     }
+    closeAccountDropdown();
   }
 
   function showScreen(screenId) {
@@ -126,7 +235,31 @@
         if (status) { status.textContent = 'Проверка...'; status.className = 'login-status'; }
         const data = await api('/api/site/validate', { method: 'POST', body: JSON.stringify({ code: code }) });
         if (data.success && data.token) {
-          setToken(data.token);
+          const sessions = getSessions();
+          const isPersonal = !!data.is_personal;
+          const chatId = String(data.chat_id);
+          const existing = sessions.find((s) => String(s.chat_id) === chatId);
+          if (existing) {
+            existing.token = data.token;
+            existing.name = data.name;
+            existing.has_data = data.has_data;
+            existing.is_personal = isPersonal;
+            setSessions(sessions);
+          } else {
+            const personalCount = sessions.filter((s) => s.is_personal).length;
+            const groupCount = sessions.filter((s) => !s.is_personal).length;
+            if (isPersonal && personalCount >= MAX_PERSONAL) {
+              if (status) { status.textContent = 'Максимум 2 личных кабинета'; status.className = 'login-status error'; }
+              return;
+            }
+            if (!isPersonal && groupCount >= MAX_GROUP) {
+              if (status) { status.textContent = 'Максимум 2 групповых кабинета'; status.className = 'login-status error'; }
+              return;
+            }
+            sessions.push({ chat_id: chatId, token: data.token, name: data.name, has_data: data.has_data, is_personal: isPersonal });
+            setSessions(sessions);
+          }
+          setActiveChatId(chatId);
           if (status) { status.textContent = 'Успешно!'; status.className = 'login-status success'; }
           setTimeout(() => {
             modal.classList.add('hidden');
@@ -146,7 +279,9 @@
         renderHeader(null);
         return;
       }
+      cabinetHasData = !!me.has_data;
       renderHeader(me);
+      loadExtensionConfig();
       if (me.has_data) {
         showScreen('cabinet-readonly');
         loadPlans();
@@ -157,6 +292,18 @@
         showScreen('cabinet-onboarding');
       }
     });
+  }
+
+  function loadExtensionConfig() {
+    fetch(API_BASE + '/api/site/config').then((r) => r.json()).then((data) => {
+      if (!data.success || !data.chromeExtensionUrl) return;
+      const ua = navigator.userAgent || '';
+      const isOpera = /opr|opera/i.test(ua) || (navigator.browser && navigator.browser.opera);
+      const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
+      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard').forEach((a) => {
+        if (a) { a.href = url; a.classList.remove('hidden'); }
+      });
+    }).catch(() => {});
   }
 
   // ——— Загрузка данных кабинета ———
@@ -184,8 +331,26 @@
             <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в Telegram</a>
           </div>`;
       };
-      if (homeEl) homeEl.innerHTML = (data.home && data.home.length) ? data.home.map(renderPlan).join('') : '<p class="empty-hint">Нет планов просмотра дома.</p>';
-      if (cinemaEl) cinemaEl.innerHTML = (data.cinema && data.cinema.length) ? data.cinema.map(renderPlan).join('') : '<p class="empty-hint">Нет планов в кино.</p>';
+      const homeEmpty = !data.home || !data.home.length;
+      const cinemaEmpty = !data.cinema || !data.cinema.length;
+      if (homeEl) {
+        if (homeEmpty) {
+          let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
+          html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы в Боте</a>';
+          if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм из базы</a>';
+          html += '</div>';
+          homeEl.innerHTML = html;
+        } else {
+          homeEl.innerHTML = data.home.map(renderPlan).join('');
+        }
+      }
+      if (cinemaEl) {
+        if (cinemaEmpty) {
+          cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры в Боте</a></div>';
+        } else {
+          cinemaEl.innerHTML = data.cinema.map(renderPlan).join('');
+        }
+      }
       const all = [...(data.home || []), ...(data.cinema || [])].slice(0, 3);
       const todayWrap = document.getElementById('plans-today-wrap');
       if (todayWrap) todayWrap.classList.toggle('hidden', !all.length);
@@ -299,18 +464,57 @@
       btn.addEventListener('click', () => showSection(btn.getAttribute('data-section')));
     });
 
-    document.querySelectorAll('[data-action="logout"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        setToken(null);
-        renderHeader(null);
-        showScreen('landing');
+    const cabinetName = document.getElementById('header-cabinet-name');
+    const userWrap = document.getElementById('header-user-wrap');
+    if (cabinetName) {
+      cabinetName.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dd = document.getElementById('header-account-dropdown');
+        if (dd && dd.classList.contains('hidden')) openAccountDropdown();
+        else closeAccountDropdown();
       });
+    }
+    document.addEventListener('click', (e) => {
+      if (userWrap && !userWrap.contains(e.target)) closeAccountDropdown();
     });
 
     window.addEventListener('mp:logout', () => {
       renderHeader(null);
       showScreen('landing');
     });
+
+    // Миграция: старый одиночный токен -> одна сессия в списке
+    const oldToken = localStorage.getItem('mp_site_token');
+    if (!getToken() && oldToken) {
+      const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + oldToken };
+      fetch(API_BASE + '/api/site/me', { headers })
+        .then((r) => r.json().catch(() => ({})))
+        .then((me) => {
+          if (me.success && me.chat_id != null) {
+            const session = {
+              chat_id: String(me.chat_id),
+              token: oldToken,
+              name: me.name,
+              has_data: !!me.has_data,
+              is_personal: !!me.is_personal
+            };
+            setSessions([session]);
+            setActiveChatId(session.chat_id);
+            localStorage.removeItem('mp_site_token');
+            loadMeAndShowCabinet();
+          } else {
+            localStorage.removeItem('mp_site_token');
+            showScreen('landing');
+            renderHeader(null);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('mp_site_token');
+          showScreen('landing');
+          renderHeader(null);
+        });
+      return;
+    }
 
     if (getToken()) {
       loadMeAndShowCabinet();

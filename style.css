@@ -389,13 +389,133 @@ section {
   align-items: center;
   gap: 12px;
 }
+.header-user-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.header-user-wrap.hidden {
+  display: none !important;
+}
 .header-cabinet {
   font-weight: 500;
   color: var(--text-dark);
   text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: inline-block;
 }
 .header-cabinet:hover {
   color: var(--primary-color);
+  background: var(--bg-light);
+}
+.header-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 280px;
+  background: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  padding: 8px 0;
+  z-index: 50;
+}
+.header-dropdown.hidden {
+  display: none !important;
+}
+.header-dropdown-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px 6px;
+}
+.header-dropdown-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 15px;
+  color: var(--text-dark);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.header-dropdown-account:hover {
+  background: var(--bg-light);
+}
+.header-dropdown-account.is-active {
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+.header-dropdown-account-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-dropdown-account-type {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-left: 6px;
+}
+.header-dropdown-account-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.header-dropdown-account-remove:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+.header-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 6px 0;
+}
+.header-dropdown-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: var(--primary-color);
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+}
+.header-dropdown-add:hover {
+  background: rgba(102, 126, 234, 0.08);
+}
+.header-dropdown-add:disabled,
+.header-dropdown-add.disabled {
+  color: var(--text-light);
+  cursor: not-allowed;
+}
+.header-dropdown-add:disabled:hover,
+.header-dropdown-add.disabled:hover {
+  background: none;
 }
 .hidden {
   display: none !important;
@@ -505,10 +625,18 @@ section {
 .cabinet-nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 12px;
+}
+.cabinet-nav-extension {
+  margin-left: auto;
+  text-decoration: none;
+}
+.cabinet-nav-extension.hidden {
+  display: none !important;
 }
 .cabinet-nav-btn {
   padding: 10px 16px;
@@ -544,6 +672,72 @@ section {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+}
+/* Планы: ровная сетка — колонки фиксированы */
+.plan-card {
+  display: grid;
+  grid-template-columns: 60px 1fr minmax(120px, 1fr) 100px 160px;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+.plan-card .card-poster-wrap {
+  grid-row: 1 / -1;
+  width: 60px;
+  height: 90px;
+}
+.plan-card .plan-date {
+  grid-column: 2;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-gray);
+}
+.plan-card .plan-title {
+  grid-column: 3;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  min-width: 0;
+}
+.plan-card .plan-type {
+  grid-column: 4;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-gray);
+  white-space: nowrap;
+}
+.plan-card .btn-small {
+  grid-column: 5;
+  grid-row: 1 / -1;
+  margin: 0;
+  width: 160px;
+  min-width: 160px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.plans-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.plans-empty-actions .btn {
+  margin: 0;
+}
+@media (max-width: 768px) {
+  .plan-card {
+    grid-template-columns: 50px 1fr 140px;
+    grid-template-rows: auto auto auto;
+  }
+  .plan-card .card-poster-wrap { grid-column: 1; grid-row: 1 / -1; width: 50px; height: 75px; }
+  .plan-card .plan-date { grid-column: 2; }
+  .plan-card .plan-title { grid-column: 2; }
+  .plan-card .plan-type { grid-column: 2; }
+  .plan-card .btn-small { grid-column: 3; grid-row: 1 / -1; width: 140px; min-width: 140px; }
 }
 .cabinet-hint {
   font-size: 14px;
@@ -650,11 +844,29 @@ section {
 .cabinet-about .section-title {
   margin-bottom: 20px;
 }
+.about-project-block {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+.about-project-block .about-photo-wrap {
+  flex-shrink: 0;
+  margin: 0;
+}
+.about-project-block .about-photo {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--border-color);
+}
 .about-project-text {
   font-size: 16px;
   line-height: 1.7;
   color: var(--text-gray);
-  margin-bottom: 28px;
+  flex: 1;
+  min-width: 0;
 }
 .about-project-text p {
   margin-bottom: 12px;
