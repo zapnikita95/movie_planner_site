@@ -702,8 +702,9 @@ section {
 }
 .plans-today-list,
 .plans-split .cards-list {
-  max-width: 560px;
-  width: 100%;
+  width: 560px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .plans-today-list {
   display: flex;
@@ -712,10 +713,11 @@ section {
 }
 .plans-today-list .plan-card,
 .plans-split .plan-card {
-  width: 100%;
+  width: 100% !important;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 /* Планы: постер | дата+формат сверху, название снизу | кнопка по одной вертикали */
 .plan-card {
@@ -768,6 +770,8 @@ section {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 .plan-card .plan-meta {
   display: flex;
