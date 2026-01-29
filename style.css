@@ -683,10 +683,10 @@ section {
   opacity: 1;
 }
 .cabinet-nav-btn-emoji {
-  margin-right: 0.25em;
+  margin-right: 0.4em;
 }
 .section-title-emoji {
-  margin-right: 0.15em;
+  margin-right: 0.4em;
 }
 .cabinet-subtitle {
   font-size: 18px;
@@ -898,6 +898,9 @@ section {
 }
 
 /* --- Cards --- */
+.cabinet-section .cards-list {
+  max-width: 560px;
+}
 .cards-list {
   display: flex;
   flex-direction: column;
@@ -954,6 +957,22 @@ section {
 .film-info {
   flex: 1;
   min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 8px 16px;
+  align-items: start;
+}
+.film-info > .film-title,
+.film-info > .film-description,
+.film-info > .film-status {
+  grid-column: 1;
+}
+.film-info > .btn-small {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: end;
+  justify-self: end;
+  margin-top: 0;
 }
 .film-title {
   font-size: 17px;

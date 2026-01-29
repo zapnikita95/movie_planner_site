@@ -499,7 +499,7 @@
                   <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
                   ${descHtml}
                   <div class="film-status">⭐ ${r.rating}</div>
-                  <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в боте</a>
+                  <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>
                 </div>
               </div>`;
           }).join('')
