@@ -823,6 +823,53 @@ section {
     padding: 6px 10px;
   }
 }
+
+/* Мобильная версия: вся карточка открывает Telegram, кнопка скрыта */
+@media (max-width: 768px) {
+  .plan-card {
+    position: relative;
+  }
+  .plan-card .btn-small {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: 0;
+    line-height: 0;
+    color: transparent;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    min-width: 0;
+  }
+  .card.film-card,
+  .card.series-card {
+    position: relative;
+  }
+  .card.film-card .btn-small,
+  .card.series-card .btn-small {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: 0;
+    line-height: 0;
+    color: transparent;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    min-width: 0;
+  }
+}
+
 .plans-empty-actions {
   display: flex;
   flex-wrap: wrap;
