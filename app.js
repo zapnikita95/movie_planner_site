@@ -348,7 +348,7 @@
         const poster = posterUrl(p.kp_id);
         const titleSafe = escapeHtml(p.title || '');
         return `
-          <div class="card plan-card">
+          <a href="${link}" target="_blank" rel="noopener" class="card plan-card">
             <div class="card-poster-wrap">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
@@ -361,8 +361,8 @@
               </div>
               <div class="plan-title">🎬 ${titleSafe}</div>
             </div>
-            <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Открыть в Telegram</a>
-          </div>`;
+            <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+          </a>`;
       };
       const homeEmpty = !data.home || !data.home.length;
       const cinemaEmpty = !data.cinema || !data.cinema.length;
@@ -585,6 +585,9 @@
         });
       return;
     }
+
+    const footerYearEl = document.getElementById('footer-year');
+    if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
 
     if (getToken()) {
       loadMeAndShowCabinet();
