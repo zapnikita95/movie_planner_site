@@ -970,6 +970,18 @@ section {
   border-radius: 12px;
   border: 1px solid var(--border-color);
 }
+a.card.film-card,
+a.card.series-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+a.card.film-card:hover,
+a.card.series-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(102, 126, 234, 0.35);
+}
 .card-poster-wrap {
   flex-shrink: 0;
   width: 80px;
@@ -1012,27 +1024,14 @@ section {
 .film-info {
   flex: 1;
   min-width: 0;
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 8px 16px;
-  align-items: start;
-}
-.film-info > .film-title,
-.film-info > .film-description,
-.film-info > .film-status {
-  grid-column: 1;
-}
-.film-info > .btn-small {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  align-self: end;
-  justify-self: end;
-  margin-top: 0;
-  width: auto;
-  min-width: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
 }
 .card .btn-small {
   white-space: nowrap;
+  margin-top: 4px;
 }
 .film-title {
   font-size: 17px;
