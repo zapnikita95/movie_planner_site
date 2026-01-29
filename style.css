@@ -790,7 +790,7 @@ section {
 .plan-card .btn-small {
   margin: 0;
   width: auto;
-  min-width: 0;
+  min-width: max-content;
   text-align: center;
   box-sizing: border-box;
   white-space: nowrap;
@@ -982,6 +982,7 @@ section {
   justify-self: end;
   margin-top: 0;
   width: auto;
+  min-width: max-content;
 }
 .card .btn-small {
   white-space: nowrap;
