@@ -392,6 +392,29 @@
 
   let unwatchedItems = [];
   let unwatchedSortMode = 'date';
+  let seriesItems = [];
+  let ratingsItems = [];
+
+  function sectionSearchQuery(section) {
+    const el = document.getElementById('section-search-' + section);
+    return (el && el.value || '').trim().toLowerCase();
+  }
+
+  function filterByTitle(items, query, titleKey) {
+    if (!query) return items.slice();
+    const key = titleKey || 'title';
+    const filtered = items.filter((item) => {
+      const t = (item[key] || '').toLowerCase();
+      return t.includes(query);
+    });
+    return filtered.sort((a, b) => {
+      const ta = (a[key] || '').toLowerCase();
+      const tb = (b[key] || '').toLowerCase();
+      const ia = ta.indexOf(query);
+      const ib = tb.indexOf(query);
+      return ia - ib;
+    });
+  }
 
   function renderUnwatchedCard(m) {
     const link = filmDeepLink(m.kp_id, m.is_series);
@@ -422,11 +445,14 @@
       el.innerHTML = '<p class="empty-hint">Нет непросмотренных. Добавьте фильмы в боте.</p>';
       return;
     }
-    let list = unwatchedItems.slice();
-    if (unwatchedSortMode === 'date_old') list.reverse();
-    if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
-    if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
-    el.innerHTML = list.map(renderUnwatchedCard).join('');
+    const query = sectionSearchQuery('unwatched');
+    let list = filterByTitle(unwatchedItems, query);
+    if (!query) {
+      if (unwatchedSortMode === 'date_old') list.reverse();
+      if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
+      if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
+    }
+    el.innerHTML = list.length ? list.map(renderUnwatchedCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
   }
 
   function loadUnwatched() {
@@ -441,6 +467,7 @@
         });
       }
       if (sortSelect) sortSelect.value = unwatchedSortMode;
+      bindSectionSearchOnce('unwatched', renderUnwatchedList);
       renderUnwatchedList();
     }).catch(() => {
       unwatchedItems = [];
@@ -448,61 +475,92 @@
     });
   }
 
+  function renderSeriesCard(s) {
+    const link = filmDeepLink(s.kp_id, true);
+    const progress = s.progress ? `Прогресс: ${s.progress}` : 'Не начат';
+    const poster = posterUrl(s.kp_id);
+    return `
+      <a href="${link}" target="_blank" rel="noopener" class="card series-card">
+        <div class="card-poster-wrap">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
+        </div>
+        <div class="film-info">
+          <div class="film-title">${escapeHtml(s.title)}</div>
+          <div class="film-status">${progress}</div>
+          <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+        </div>
+      </a>`;
+  }
+
+  function renderSeriesList() {
+    const el = document.getElementById('series-list');
+    if (!el) return;
+    if (!seriesItems.length) {
+      el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте.</p>';
+      return;
+    }
+    const list = filterByTitle(seriesItems, sectionSearchQuery('series'));
+    el.innerHTML = list.length ? list.map(renderSeriesCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+  }
+
   function loadSeries() {
     api('/api/site/series').then((data) => {
       if (!data.success) return;
-      const el = document.getElementById('series-list');
-      if (!el) return;
-      el.innerHTML = (data.items && data.items.length)
-        ? data.items.map((s) => {
-            const link = filmDeepLink(s.kp_id, true);
-            const progress = s.progress ? `Прогресс: ${s.progress}` : 'Не начат';
-            const poster = posterUrl(s.kp_id);
-            return `
-              <a href="${link}" target="_blank" rel="noopener" class="card series-card">
-                <div class="card-poster-wrap">
-                  ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-                  <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
-                </div>
-                <div class="film-info">
-                  <div class="film-title">${escapeHtml(s.title)}</div>
-                  <div class="film-status">${progress}</div>
-                  <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
-                </div>
-              </a>`;
-          }).join('')
-        : '<p class="empty-hint">Нет сериалов. Добавьте в боте.</p>';
+      seriesItems = Array.isArray(data.items) ? data.items : [];
+      bindSectionSearchOnce('series', renderSeriesList);
+      renderSeriesList();
     });
+  }
+
+  function renderRatingsCard(r) {
+    const link = filmDeepLink(r.kp_id, false);
+    const year = r.year ? ` (${r.year})` : '';
+    const poster = posterUrl(r.kp_id);
+    const ratingKpStr = r.rating_kp != null ? ' · КП: ' + Number(r.rating_kp).toFixed(1) : '';
+    const desc = (r.description || '').trim();
+    const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
+    return `
+      <a href="${link}" target="_blank" rel="noopener" class="card film-card">
+        <div class="card-poster-wrap">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
+        </div>
+        <div class="film-info">
+          <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
+          ${descHtml}
+          <div class="film-status">⭐ ${r.rating}</div>
+          <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+        </div>
+      </a>`;
+  }
+
+  function renderRatingsList() {
+    const el = document.getElementById('ratings-list');
+    if (!el) return;
+    if (!ratingsItems.length) {
+      el.innerHTML = '<p class="empty-hint">Нет оценок.</p>';
+      return;
+    }
+    const list = filterByTitle(ratingsItems, sectionSearchQuery('ratings'));
+    el.innerHTML = list.length ? list.map(renderRatingsCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+  }
+
+  const sectionSearchBound = {};
+  function bindSectionSearchOnce(section, onInput) {
+    if (sectionSearchBound[section]) return;
+    sectionSearchBound[section] = true;
+    const input = document.getElementById('section-search-' + section);
+    if (input) input.addEventListener('input', onInput);
   }
 
   function loadRatings() {
     const el = document.getElementById('ratings-list');
     if (!el) return;
     api('/api/site/ratings').then((data) => {
-      const items = Array.isArray(data && data.items) ? data.items : [];
-      el.innerHTML = items.length
-        ? items.map((r) => {
-            const link = filmDeepLink(r.kp_id, false);
-            const year = r.year ? ` (${r.year})` : '';
-            const poster = posterUrl(r.kp_id);
-            const ratingKpStr = r.rating_kp != null ? ' · КП: ' + Number(r.rating_kp).toFixed(1) : '';
-            const desc = (r.description || '').trim();
-            const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
-            return `
-              <a href="${link}" target="_blank" rel="noopener" class="card film-card">
-                <div class="card-poster-wrap">
-                  ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-                  <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
-                </div>
-                <div class="film-info">
-                  <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
-                  ${descHtml}
-                  <div class="film-status">⭐ ${r.rating}</div>
-                  <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
-                </div>
-              </a>`;
-          }).join('')
-        : '<p class="empty-hint">Нет оценок.</p>';
+      ratingsItems = Array.isArray(data && data.items) ? data.items : [];
+      bindSectionSearchOnce('ratings', renderRatingsList);
+      renderRatingsList();
     }).catch(() => {
       el.innerHTML = '<p class="empty-hint">Не удалось загрузить оценки.</p>';
     });

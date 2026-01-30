@@ -217,17 +217,24 @@
                                 <option value="za">от Я к А</option>
                             </select>
                         </div>
+                        <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                     </div>
                     <p class="cabinet-hint">Просмотр с компа. Управление — только в Telegram.</p>
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
+                    <div class="section-title-row">
+                        <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
+                        <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                    </div>
                     <p class="cabinet-hint">Прогресс и управление — в Telegram.</p>
                     <div id="series-list" class="cards-list"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
+                    <div class="section-title-row">
+                        <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
+                        <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Последние оценки" autocomplete="off">
+                    </div>
                     <div id="ratings-list" class="cards-list"></div>
                 </section>
                 <section id="section-about" class="cabinet-section hidden cabinet-about">
