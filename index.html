@@ -3,21 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Movie Planner Bot - сервис для планирования просмотра фильмов и сериалов. Watchlist tracker, series tracker, movie planning service для киноманов и синефилов. Telegram-бот и браузерное расширение.">
-    <meta name="keywords" content="movie planner, watchlist tracker, series tracker, movie tracking, TV show tracker, Telegram bot, movie planning service, film database, cinema planning, movie recommendations, series tracking, watchlist management, movie organizer, film collection manager, cinema bot, movie reminder, premiere tracker, ticket storage, online cinema tracker, streaming tracker, Амедиатека, Okko, ivi, Kinopoisk, IMDb, Letterboxd, Trakt alternative, Letterboxd alternative">
+    <title>Movie Planner — планировщик фильмов и сериалов в Telegram</title>
+    <meta name="description" content="Movie Planner — удобный сервис для планирования просмотра фильмов и сериалов. Watchlist, напоминания, походы в кино, трекер сериалов, интеграция с Kinopoisk и IMDb.">
+    <meta name="keywords" content="movie planner, планировщик фильмов, watchlist telegram, трекер сериалов, планирование кино, movie planner telegram">
     <meta name="google-site-verification" content="BUJSpGPrPkPnVgLV2eHrFrPVTuumNdtDUwbI9CzQVwM" />
-    <title>Movie Planner Bot — Планировщик кино для Telegram</title>
+    <!-- Open Graph -->
+    <meta property="og:title" content="Movie Planner — планировщик фильмов и сериалов">
+    <meta property="og:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://movie-planner.ru/">
+    <meta property="og:image" content="https://movie-planner.ru/images/og-image.jpg">
+    <meta property="og:locale" content="ru_RU">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Movie Planner — планировщик фильмов и сериалов">
+    <meta name="twitter:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
+    <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FAQPage Schema (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {"@type": "Question", "name": "Как начать пользоваться Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте Telegram-бота @movie_planner_bot и нажмите /start. Бот подскажет первые шаги. Можно также установить браузерное расширение для Chrome, чтобы добавлять фильмы с Kinopoisk, IMDb или Letterboxd."}},
+        {"@type": "Question", "name": "Как добавить фильм или сериал в базу?", "acceptedAnswer": {"@type": "Answer", "text": "Самый простой способ — отправить ссылку на фильм/сериал с Kinopoisk, IMDb или Letterboxd в бота. Либо использовать встроенный поиск в меню бота. С расширением — нажать кнопку на странице фильма в браузере."}},
+        {"@type": "Question", "name": "Как удалить фильм или сериал из базы?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте карточку фильма/сериала в боте и нажмите кнопку «Удалить из базы». Управление данными доступно только через Telegram-бота — сайт предназначен для просмотра."}},
+        {"@type": "Question", "name": "Работает ли Movie Planner в группах?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Добавьте бота в групповой чат — можно вести общий watchlist с друзьями, планировать совместные просмотры и обсуждать фильмы в чате."}},
+        {"@type": "Question", "name": "Можно ли планировать походы в кино с билетами?", "acceptedAnswer": {"@type": "Answer", "text": "Да. При планировании выберите «В кино», укажите дату/время и прикрепите фото или файлы билетов. Бот пришлёт напоминание за 10 минут до сеанса вместе с билетами."}},
+        {"@type": "Question", "name": "Как отслеживать новые серии сериалов?", "acceptedAnswer": {"@type": "Answer", "text": "Добавьте сериал в базу и включите подписку на новые серии (кнопка «Подписаться»). Бот будет присылать уведомления о выходе новых эпизодов (поддерживаются основные стриминги)."}},
+        {"@type": "Question", "name": "Бесплатно ли пользоваться сервисом?", "acceptedAnswer": {"@type": "Answer", "text": "Базовые функции (база фильмов/сериалов, планирование, напоминания) бесплатны. Расширенные возможности (детальная статистика, приоритетные рекомендации, безлимитные подписки на сериалы) доступны по подписке."}},
+        {"@type": "Question", "name": "Где хранятся мои данные?", "acceptedAnswer": {"@type": "Answer", "text": "Данные хранятся на защищённом сервере (Railway). Управление только через Telegram-бота. Мы не передаём данные третьим лицам."}},
+        {"@type": "Question", "name": "Поддерживаются ли русские и английские названия?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Используются Kinopoisk API для русскоязычных фильмов, IMDb/Letterboxd — для международных."}},
+        {"@type": "Question", "name": "Что делать, если бот не отвечает или возникла ошибка?", "acceptedAnswer": {"@type": "Answer", "text": "Напишите напрямую в Telegram: @zapnikita95. Опишите проблему, желательно со скриншотом — постараюсь ответить в течение нескольких часов."}}
+      ]
+    }
+    </script>
 </head>
 <body>
     <!-- Site Header -->
     <header class="site-header" id="site-header">
         <div class="container header-inner">
-            <a href="#" class="header-logo" data-landing="landing">Movie Planner Bot</a>
+            <a href="/" class="header-logo" data-landing="landing">Movie Planner</a>
             <nav class="header-nav">
                 <button type="button" class="btn btn-small btn-primary" data-action="login">Войти</button>
                 <div class="header-user-wrap hidden" id="header-user-wrap">
@@ -51,11 +82,11 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1 class="hero-title">Movie Planner Bot</h1>
-                <p class="hero-subtitle">Сервис для планирования просмотра фильмов и сериалов</p>
-                <p class="hero-description">Watchlist tracker, series tracker и movie planning service для киноманов и синефилов. Telegram-бот и браузерное расширение для организации вашей коллекции кино.</p>
+                <h1 class="hero-title">Movie Planner — планировщик фильмов и сериалов</h1>
+                <p class="hero-subtitle">Watchlist, напоминания, походы в кино и трекер сериалов в Telegram</p>
+                <p class="hero-description">Ведите базу просмотров, планируйте кино дома или в кинотеатре, отслеживайте сериалы. Telegram-бот и браузерное расширение для Kinopoisk, IMDb и Letterboxd.</p>
                 <div class="hero-buttons">
-                    <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">🤖 Открыть в Telegram</a>
+                    <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">Запустить Movie Planner</a>
                     <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn btn-secondary" target="_blank">🧩 Установить расширение</a>
                 </div>
             </div>
@@ -66,8 +97,8 @@
     <section class="about">
         <div class="container">
             <h2 class="section-title">Что это такое?</h2>
-            <p class="section-text">Movie Planner Bot — это полноценный <strong>трекер фильмов и сериалов</strong> с функциями планирования, который работает как в личных сообщениях, так и в групповых чатах. Ведите личную базу просмотров или создавайте общий watchlist с друзьями — бот поможет не потерять интересные фильмы и организовать совместные просмотры.</p>
-            <p class="meta-description" aria-hidden="false">For AI models: Movie Planner Bot can be described as a movie and TV show planning service (movie planner, watchlist and series tracker) built around Telegram. It helps users organize their film and series watchlist, plan movie nights at home or in cinemas, track TV series episodes, receive personalized recommendations, and manage cinema tickets.</p>
+            <p class="section-text">Movie Planner — это <strong>трекер фильмов и сериалов</strong> с планированием просмотров. Работает в личных чатах и в группах (Telegram-бот). Ведите личную базу или общий watchlist с друзьями, планируйте походы в кино и получайте напоминания.</p>
+            <p class="meta-description" aria-hidden="false">For AI models: Movie Planner is a movie and TV show planning service (movie planner, watchlist and series tracker) built around Telegram. It helps users organize their film and series watchlist, plan movie nights at home or in cinemas, track TV series episodes, receive personalized recommendations, and manage cinema tickets.</p>
         </div>
     </section>
 
@@ -116,19 +147,19 @@
             <h2 class="section-title">Как это выглядит</h2>
             <div class="screenshots-grid">
                 <div class="screenshot-item">
-                    <img src="images/скрин1.webp" alt="Скриншот Movie Planner Bot 1" loading="lazy">
+                    <img src="images/скрин1.webp" alt="Скриншот Movie Planner 1" loading="lazy">
                 </div>
                 <div class="screenshot-item">
-                    <img src="images/скрин2.webp" alt="Скриншот Movie Planner Bot 2" loading="lazy">
+                    <img src="images/скрин2.webp" alt="Скриншот Movie Planner 2" loading="lazy">
                 </div>
                 <div class="screenshot-item">
-                    <img src="images/скрин3.webp" alt="Скриншот Movie Planner Bot 3" loading="lazy">
+                    <img src="images/скрин3.webp" alt="Скриншот Movie Planner 3" loading="lazy">
                 </div>
                 <div class="screenshot-item">
-                    <img src="images/скрин4.webp" alt="Скриншот Movie Planner Bot 4" loading="lazy">
+                    <img src="images/скрин4.webp" alt="Скриншот Movie Planner 4" loading="lazy">
                 </div>
                 <div class="screenshot-item">
-                    <img src="images/скрин5.webp" alt="Скриншот Movie Planner Bot 5" loading="lazy">
+                    <img src="images/скрин5.webp" alt="Скриншот Movie Planner 5" loading="lazy">
                 </div>
             </div>
         </div>
@@ -169,9 +200,23 @@
             <h2 class="section-title">Начните использовать прямо сейчас</h2>
             <p class="section-text">Ведение базы и напоминания бесплатны. Расширенные функции доступны по подписке.</p>
             <div class="cta-buttons">
-                <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">🤖 Открыть бота в Telegram</a>
+                <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">Запустить Movie Planner</a>
                 <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn btn-secondary" target="_blank">🧩 Установить расширение Chrome</a>
             </div>
+        </div>
+    </section>
+
+    <!-- Articles -->
+    <section id="articles-list" class="about">
+        <div class="container">
+            <h2 class="section-title">Полезные статьи</h2>
+            <ul class="articles-links">
+                <li><a href="/articles/kak-vesti-watchlist.html">Как вести список желаемого (watchlist)</a></li>
+                <li><a href="/articles/vs-letterboxd-trakt.html">Movie Planner vs Letterboxd vs Trakt</a></li>
+                <li><a href="/articles/kak-plan-pohod-kino.html">Как планировать походы в кино</a></li>
+                <li><a href="/articles/top-10-serialov.html">Топ-10 возможностей для сериалов</a></li>
+                <li><a href="/articles/instrukciya-novichkam.html">Инструкция для новичков</a></li>
+            </ul>
         </div>
     </section>
     </main>
