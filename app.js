@@ -216,13 +216,12 @@
   function bindLogin() {
     const modal = document.getElementById('login-modal');
     const openBtn = document.querySelector('[data-action="login"]');
-    const closeBtn = document.querySelector('[data-action="close-login"]');
+    const closeElements = document.querySelectorAll('[data-action="close-login"]');
     const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
 
     if (openBtn) openBtn.addEventListener('click', () => modal && modal.classList.remove('hidden'));
-    if (closeBtn) closeBtn.addEventListener('click', () => modal && modal.classList.add('hidden'));
-    modal && modal.querySelector('.modal-backdrop') && modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
+    closeElements.forEach((el) => el.addEventListener('click', () => modal && modal.classList.add('hidden')));
 
     if (form) {
       form.addEventListener('submit', async (e) => {
