@@ -129,6 +129,12 @@ section {
     flex-wrap: wrap;
     gap: 0.15em;
 }
+/* В кабинете заголовки разделов выравниваем влево одинаково */
+.cabinet .section-title,
+.cabinet-section .section-title {
+    text-align: left;
+    justify-content: flex-start;
+}
 .section-title:not(:has(.section-title-text)) {
     background: var(--primary-gradient);
     -webkit-background-clip: text;
@@ -708,10 +714,10 @@ section {
   opacity: 1;
 }
 .cabinet-nav-btn-emoji {
-  margin-right: 0.4em;
+  margin-right: 0.5em;
 }
 .section-title-emoji {
-  margin-right: 0.4em;
+  margin-right: 0.5em;
 }
 .cabinet-subtitle {
   font-size: 18px;
@@ -944,6 +950,56 @@ section {
 }
 .section-unwatched-header .section-title {
   margin-bottom: 0;
+}
+/* Строка поиска в разделах Непросмотренные, Сериалы, Оценки */
+.section-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0;
+}
+.section-title-row .section-title {
+  margin-bottom: 0;
+}
+.section-search {
+  width: 200px;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-white);
+  color: var(--text-dark);
+  outline: none;
+}
+.section-search::placeholder {
+  color: var(--text-light);
+}
+.section-search:focus {
+  border-color: var(--primary-color);
+}
+.section-unwatched-header .section-search {
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .section-title-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .section-title-row .section-search {
+    width: 100%;
+    order: 2;
+  }
+  .section-unwatched-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .section-unwatched-header .section-search {
+    width: 100%;
+    order: 2;
+  }
 }
 .unwatched-toolbar {
   display: flex;
