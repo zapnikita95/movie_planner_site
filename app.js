@@ -41,6 +41,12 @@
     return localStorage.getItem(STORAGE_ACTIVE);
   }
 
+  function getActiveSession() {
+    const sessions = getSessions();
+    const active = getActiveChatId();
+    return sessions.find((s) => String(s.chat_id) === String(active)) || null;
+  }
+
   function setActiveChatId(chatId) {
     if (chatId != null && chatId !== '') localStorage.setItem(STORAGE_ACTIVE, String(chatId));
     else localStorage.removeItem(STORAGE_ACTIVE);
@@ -79,9 +85,14 @@
     });
   }
 
-  function filmDeepLink(kpId, isSeries) {
-    const type = isSeries ? 'series' : 'film';
-    return `${BOT_LINK}?start=view_${type}_${kpId}`;
+  function filmDeepLink(filmId, kpId, isSeries) {
+    const chatId = getActiveChatId();
+    const session = getActiveSession();
+    const isPersonal = session ? session.is_personal : true;
+    if (isPersonal === false && chatId) {
+      return `${BOT_LINK}?start=g${chatId}_${filmId}`;
+    }
+    return `${BOT_LINK}?start=view_film_${filmId}`;
   }
 
   function planDeepLink() {
@@ -343,7 +354,7 @@
         const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
         const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
         const typeLabel = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
-        const link = filmDeepLink(p.kp_id, p.is_series);
+        const link = filmDeepLink(p.film_id, p.kp_id, p.is_series);
         const poster = posterUrl(p.kp_id);
         const titleSafe = escapeHtml(p.title || '');
         return `
@@ -417,7 +428,7 @@
   }
 
   function renderUnwatchedCard(m) {
-    const link = filmDeepLink(m.kp_id, m.is_series);
+    const link = filmDeepLink(m.film_id, m.kp_id, m.is_series);
     const year = m.year ? ` (${m.year})` : '';
     const poster = posterUrl(m.kp_id);
     const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
@@ -476,7 +487,7 @@
   }
 
   function renderSeriesCard(s) {
-    const link = filmDeepLink(s.kp_id, true);
+    const link = filmDeepLink(s.film_id, s.kp_id, true);
     const progress = s.progress ? `Прогресс: ${s.progress}` : 'Не начат';
     const poster = posterUrl(s.kp_id);
     return `
@@ -514,7 +525,7 @@
   }
 
   function renderRatingsCard(r) {
-    const link = filmDeepLink(r.kp_id, false);
+    const link = filmDeepLink(r.film_id, r.kp_id, false);
     const year = r.year ? ` (${r.year})` : '';
     const poster = posterUrl(r.kp_id);
     const ratingKpStr = r.rating_kp != null ? ' · КП: ' + Number(r.rating_kp).toFixed(1) : '';
