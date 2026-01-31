@@ -178,21 +178,55 @@ section {
     background: var(--bg-light);
 }
 
-.articles-links {
-    list-style: none;
-    max-width: 600px;
-    margin: 0 auto;
+/* Articles section — карточки в стиле сайта */
+.articles-section {
+    background: var(--bg-light);
 }
-.articles-links li {
-    margin-bottom: 10px;
+.articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 32px;
 }
-.articles-links a {
-    color: var(--primary-color);
+.article-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
     text-decoration: none;
-    font-size: 18px;
+    color: inherit;
+    transition: all 0.3s ease;
 }
-.articles-links a:hover {
-    text-decoration: underline;
+.article-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: rgba(102, 126, 234, 0.35);
+}
+.article-card-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+.article-card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+    line-height: 1.35;
+}
+.article-card-desc {
+    font-size: 14px;
+    color: var(--text-gray);
+    line-height: 1.4;
+}
+
+/* Public FAQ — стили наследуются от .faq-block */
+#faq-public .faq-block {
+    max-width: 720px;
+    margin: 0 auto;
 }
 
 /* Article page content */
