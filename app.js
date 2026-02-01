@@ -446,7 +446,7 @@
       <div class="card film-card">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
           <div class="card-poster-wrap">
-            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
             <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
           </div>
           <div class="film-info">
@@ -510,7 +510,7 @@
       <div class="card series-card">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
           <div class="card-poster-wrap">
-            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
             <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
           </div>
           <div class="film-info">
@@ -552,19 +552,27 @@
     const desc = (r.description || '').trim();
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const raterStr = (r.rater_username && r.rater_username.trim()) ? ' · ' + escapeHtml(r.rater_username.trim()) : '';
+    const streamingUrl = (r.online_link || '').trim();
+    const streamingBtn = streamingUrl
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
+      : '';
     return `
-      <a href="${link}" target="_blank" rel="noopener" class="card film-card">
-        <div class="card-poster-wrap">
-          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
+      <div class="card film-card">
+        <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
+          <div class="card-poster-wrap">
+            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+            <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
+          </div>
+          <div class="film-info">
+            <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
+            ${descHtml}
+            <div class="film-status">⭐ ${r.rating}${raterStr}</div>
+          </div>
+        </a>
+        <div class="film-buttons">
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
         </div>
-        <div class="film-info">
-          <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
-          ${descHtml}
-          <div class="film-status">⭐ ${r.rating}${raterStr}</div>
-          <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
-        </div>
-      </a>`;
+      </div>`;
   }
 
   function renderRatingsList() {
