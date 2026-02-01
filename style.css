@@ -491,6 +491,29 @@ section {
     background: rgba(255,255,255,0.3);
 }
 
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 80px;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    z-index: 2;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.lightbox-nav:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.lightbox-prev { left: 12px; }
+.lightbox-next { right: 12px; }
+
 .lightbox-content {
     position: relative;
     max-width: 95vw;

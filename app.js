@@ -611,6 +611,8 @@
   }
 
   // ——— Инициализация ———
+  var carouselData = {}; // { carouselId: { goTo, getIdx, total } }
+
   function initCarousels() {
     document.querySelectorAll('.carousel[data-carousel]').forEach((carouselEl) => {
       const id = carouselEl.getAttribute('data-carousel');
@@ -626,7 +628,7 @@
         idx = Math.max(0, Math.min(i, total - 1));
         track.style.transform = 'translateX(-' + idx * 100 + '%)';
         if (dotsEl) {
-          dotsEl.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+          dotsEl.querySelectorAll('.dot').forEach((d, di) => d.classList.toggle('active', di === idx));
         }
       }
       function renderDots() {
@@ -643,6 +645,20 @@
       renderDots();
       if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); goTo(idx - 1); });
       if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); goTo(idx + 1); });
+
+      // Swipe support
+      let touchStartX = 0, touchEndX = 0;
+      carouselEl.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+      carouselEl.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        var diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 40) {
+          if (diff > 0) goTo(idx + 1);
+          else goTo(idx - 1);
+        }
+      }, { passive: true });
+
+      carouselData[id] = { goTo: goTo, getIdx: function() { return idx; }, total: total, slides: slides };
     });
   }
 
@@ -651,27 +667,94 @@
     const lbImg = document.getElementById('lightbox-img');
     const backdrop = lb && lb.querySelector('.lightbox-backdrop');
     const closeBtn = lb && lb.querySelector('.lightbox-close');
+    const content = lb && lb.querySelector('.lightbox-content');
+    const prevBtn = lb && lb.querySelector('.lightbox-prev');
+    const nextBtn = lb && lb.querySelector('.lightbox-next');
     if (!lb || !lbImg) return;
+
+    var currentCarouselId = null;
+    var currentIdx = 0;
+    var allImages = [];
+
+    function showImage(i) {
+      if (i < 0 || i >= allImages.length) return;
+      currentIdx = i;
+      lbImg.src = allImages[i].src;
+      lbImg.alt = allImages[i].alt || '';
+      lbImg.classList.remove('zoomed', 'zoomed-2');
+      // Sync carousel
+      if (currentCarouselId && carouselData[currentCarouselId]) {
+        carouselData[currentCarouselId].goTo(i);
+      }
+    }
+
+    function prevImage() { showImage(currentIdx - 1); }
+    function nextImage() { showImage(currentIdx + 1); }
+
     document.querySelectorAll('.carousel-img').forEach((img) => {
       img.addEventListener('click', (e) => {
         e.stopPropagation();
-        lbImg.src = img.src;
-        lbImg.alt = img.alt || '';
-        lbImg.classList.remove('zoomed');
+        // Find which carousel this image belongs to
+        var carouselEl = img.closest('.carousel[data-carousel]');
+        if (carouselEl) {
+          currentCarouselId = carouselEl.getAttribute('data-carousel');
+          var slides = carouselEl.querySelectorAll('.carousel-img');
+          allImages = Array.from(slides);
+          currentIdx = allImages.indexOf(img);
+        } else {
+          currentCarouselId = null;
+          allImages = [img];
+          currentIdx = 0;
+        }
+        showImage(currentIdx);
         lb.classList.remove('hidden');
         lb.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
       });
     });
+
     function close() {
       lb.classList.add('hidden');
       lb.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
     }
+
+    // Click on left/right side of lightbox content navigates
+    if (content) {
+      content.addEventListener('click', (e) => {
+        if (e.target === lbImg) return; // handled separately
+        var rect = content.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        if (x < rect.width * 0.25 && currentIdx > 0) {
+          prevImage();
+        } else if (x > rect.width * 0.75 && currentIdx < allImages.length - 1) {
+          nextImage();
+        } else {
+          close();
+        }
+      });
+    }
+
     if (backdrop) backdrop.addEventListener('click', close);
     if (closeBtn) closeBtn.addEventListener('click', close);
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prevImage(); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); nextImage(); });
+
     lbImg.addEventListener('click', (e) => {
       e.stopPropagation();
+      var rect = lbImg.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      // If not zoomed, clicking sides navigates
+      if (!lbImg.classList.contains('zoomed') && !lbImg.classList.contains('zoomed-2')) {
+        if (x < rect.width * 0.25 && currentIdx > 0) {
+          prevImage();
+          return;
+        } else if (x > rect.width * 0.75 && currentIdx < allImages.length - 1) {
+          nextImage();
+          return;
+        }
+      }
+      // Otherwise toggle zoom
       if (lbImg.classList.contains('zoomed-2')) {
         lbImg.classList.remove('zoomed', 'zoomed-2');
       } else if (lbImg.classList.contains('zoomed')) {
@@ -681,10 +764,23 @@
         lbImg.classList.add('zoomed');
       }
     });
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && lb && !lb.classList.contains('hidden')) {
-        close();
+
+    // Swipe support in lightbox
+    let lbTouchStartX = 0;
+    lb.addEventListener('touchstart', (e) => { lbTouchStartX = e.changedTouches[0].screenX; }, { passive: true });
+    lb.addEventListener('touchend', (e) => {
+      var diff = lbTouchStartX - e.changedTouches[0].screenX;
+      if (Math.abs(diff) > 40) {
+        if (diff > 0) nextImage();
+        else prevImage();
       }
+    }, { passive: true });
+
+    document.addEventListener('keydown', function(e) {
+      if (lb.classList.contains('hidden')) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') nextImage();
     });
   }
 
