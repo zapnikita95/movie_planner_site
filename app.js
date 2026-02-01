@@ -438,6 +438,10 @@
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()">Просмотр на стриминге ⏯️</a>'
       : '';
+    const progressStatus = m.is_series
+      ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
+      : '';
+    const progressHtml = progressStatus ? '<div class="film-status">' + progressStatus + '</div>' : '';
     return `
       <div class="card film-card">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
@@ -448,6 +452,7 @@
           <div class="film-info">
             <div class="film-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
             ${descHtml}
+            ${progressHtml}
           </div>
         </a>
         <div class="film-buttons">
