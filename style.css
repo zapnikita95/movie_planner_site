@@ -1219,7 +1219,9 @@ section {
     display: grid;
     grid-template-areas: "poster info" "poster buttons";
     grid-template-columns: 100px 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: 1fr auto;
+    height: 182px;
+    min-height: 182px;
     align-items: start;
   }
   .card.film-card .film-card-main,
@@ -1250,7 +1252,8 @@ section {
     grid-area: buttons;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 0;
+    align-self: end;
     width: 100%;
   }
   .card.film-card .film-buttons .btn-small,
@@ -1393,8 +1396,8 @@ section {
 .film-description {
   font-size: 14px;
   color: var(--text-gray);
-  margin-bottom: 6px;
-  line-height: 1.4;
+  margin-bottom: 0;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1440,6 +1443,39 @@ section {
   border: 1px solid var(--border-color);
   min-width: 0;
   max-width: 100%;
+}
+/* Карточки фильмов/сериалов: сетка, фикс. высота (постер 144px + padding), кнопки всегда на одном уровне */
+.card.film-card,
+.card.series-card {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas: "poster info" "poster buttons";
+  height: 176px;
+  min-height: 176px;
+  align-items: start;
+}
+.card.film-card .film-card-main,
+.card.series-card .film-card-main {
+  display: contents;
+}
+.card.film-card .card-poster-wrap,
+.card.series-card .card-poster-wrap {
+  grid-area: poster;
+  grid-row: 1 / -1;
+  align-self: start;
+}
+.card.film-card .film-info,
+.card.series-card .film-info {
+  grid-area: info;
+  min-height: 0;
+  overflow: hidden;
+}
+.card.film-card .film-buttons,
+.card.series-card .film-buttons {
+  grid-area: buttons;
+  align-self: end;
+  margin-top: 0;
 }
 a.card.film-card,
 a.card.series-card,
@@ -1523,7 +1559,7 @@ a.card.plan-card:hover,
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   align-items: flex-start;
 }
 .card .btn-small {
@@ -1533,17 +1569,22 @@ a.card.plan-card:hover,
 .film-title {
   font-size: 17px;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   color: var(--text-dark);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
 }
 .film-status,
 .plan-date,
 .plan-type {
   font-size: 14px;
   color: var(--text-gray);
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 .plan-title {
   font-size: 16px;
