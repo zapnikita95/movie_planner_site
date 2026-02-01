@@ -146,26 +146,69 @@
         </div>
     </section>
 
-    <!-- Screenshots Section -->
+    <!-- Screenshots Section - Carousels -->
     <section class="screenshots">
         <div class="container">
             <h2 class="section-title">Как это выглядит</h2>
-            <div class="screenshots-grid">
-                <div class="screenshot-item">
-                    <img src="images/скрин1.webp" alt="Скриншот Movie Planner 1" loading="lazy">
+            <!-- Carousel 1: Telegram-Бот -->
+            <div class="carousel-block">
+                <h3 class="carousel-title">Telegram-Бот</h3>
+                <div class="carousel" data-carousel="bot">
+                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
+                    <div class="carousel-viewport">
+                        <div class="carousel-track">
+                            <div class="carousel-slide"><img src="images/carousel-bot-01.webp" alt="Скриншот бота 1" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-02.webp" alt="Скриншот бота 2" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-03.webp" alt="Скриншот бота 3" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-04.png" alt="Напоминание" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-05.png" alt="Планирование" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-06.png" alt="Кинотеатр: бот ждёт билет" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-07.png" alt="Кинотеатр: бот получил билет" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-bot-08.png" alt="Оценка фильма в группе" loading="lazy"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
                 </div>
-                <div class="screenshot-item">
-                    <img src="images/скрин2.webp" alt="Скриншот Movie Planner 2" loading="lazy">
+                <div class="carousel-dots" data-carousel="bot"></div>
+            </div>
+            <!-- Carousel 2: Расширение для браузера -->
+            <div class="carousel-block">
+                <h3 class="carousel-title">Расширение для браузера</h3>
+                <div class="carousel" data-carousel="ext">
+                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
+                    <div class="carousel-viewport">
+                        <div class="carousel-track">
+                            <div class="carousel-slide"><img src="images/carousel-ext-01.png" alt="Стриминг: добавить сериал" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-02.png" alt="Стриминг: сериал" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-03.png" alt="Стриминг: серия" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-04.png" alt="Просмотренная серия" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-05.png" alt="Клик по расширению при непросмотренной серии" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-06.png" alt="Оценка просмотренного фильма" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-07.png" alt="Кинотеатр: поиск" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-08.png" alt="Кинотеатр: билет" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-ext-09.png" alt="Кинотеатр: планирование" loading="lazy"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
                 </div>
-                <div class="screenshot-item">
-                    <img src="images/скрин3.webp" alt="Скриншот Movie Planner 3" loading="lazy">
+                <div class="carousel-dots" data-carousel="ext"></div>
+            </div>
+            <!-- Carousel 3: Личный кабинет -->
+            <div class="carousel-block">
+                <h3 class="carousel-title">Личный кабинет</h3>
+                <div class="carousel" data-carousel="cab">
+                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
+                    <div class="carousel-viewport">
+                        <div class="carousel-track">
+                            <div class="carousel-slide"><img src="images/carousel-cab-01.png" alt="Планы в личном кабинете" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-cab-02.png" alt="Непросмотренные серии" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-cab-03.png" alt="Сериалы в личном кабинете" loading="lazy"></div>
+                            <div class="carousel-slide"><img src="images/carousel-cab-04.png" alt="Групповые оценки" loading="lazy"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
                 </div>
-                <div class="screenshot-item">
-                    <img src="images/скрин4.webp" alt="Скриншот Movie Planner 4" loading="lazy">
-                </div>
-                <div class="screenshot-item">
-                    <img src="images/скрин5.webp" alt="Скриншот Movie Planner 5" loading="lazy">
-                </div>
+                <div class="carousel-dots" data-carousel="cab"></div>
             </div>
         </div>
     </section>

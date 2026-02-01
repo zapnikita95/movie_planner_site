@@ -330,36 +330,93 @@ section {
     color: var(--text-gray);
 }
 
-/* Screenshots Section */
+/* Screenshots Section - Carousels */
 .screenshots {
     background: var(--bg-light);
 }
 
-.screenshots-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 30px;
-    margin-top: 50px;
+.carousel-block {
+    margin-bottom: 48px;
 }
 
-.screenshot-item {
-    border-radius: 20px;
+.carousel-block:last-child {
+    margin-bottom: 0;
+}
+
+.carousel-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-align: center;
+    color: var(--text-dark);
+}
+
+.carousel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.carousel-viewport {
+    flex: 1;
     overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-    background: white;
 }
 
-.screenshot-item:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-hover);
+.carousel-track {
+    display: flex;
+    transition: transform 0.35s ease;
 }
 
-.screenshot-item img {
+.carousel-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+}
+
+.carousel-slide img {
     width: 100%;
     height: auto;
     display: block;
-    border-radius: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.carousel-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color);
+    background: white;
+    color: var(--primary-color);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.carousel-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.carousel-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.carousel-dots .dot.active {
+    background: var(--primary-color);
 }
 
 /* How It Works Section */
@@ -1498,7 +1555,6 @@ a.card.plan-card:hover,
     }
     
     .features-grid,
-    .screenshots-grid,
     .steps {
         grid-template-columns: 1fr;
     }

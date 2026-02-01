@@ -611,9 +611,45 @@
   }
 
   // ——— Инициализация ———
+  function initCarousels() {
+    document.querySelectorAll('.carousel[data-carousel]').forEach((carouselEl) => {
+      const id = carouselEl.getAttribute('data-carousel');
+      const track = carouselEl.querySelector('.carousel-track');
+      const slides = carouselEl.querySelectorAll('.carousel-slide');
+      const prevBtn = carouselEl.querySelector('.carousel-btn-prev');
+      const nextBtn = carouselEl.querySelector('.carousel-btn-next');
+      const dotsEl = document.querySelector('.carousel-dots[data-carousel="' + id + '"]');
+      const total = slides.length;
+      let idx = 0;
+      if (!track || !total) return;
+      function goTo(i) {
+        idx = Math.max(0, Math.min(i, total - 1));
+        track.style.transform = 'translateX(-' + idx * 100 + '%)';
+        if (dotsEl) {
+          dotsEl.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+        }
+      }
+      function renderDots() {
+        if (!dotsEl) return;
+        dotsEl.innerHTML = '';
+        for (let i = 0; i < total; i++) {
+          const dot = document.createElement('span');
+          dot.className = 'dot' + (i === 0 ? ' active' : '');
+          dot.setAttribute('aria-label', 'Слайд ' + (i + 1));
+          dot.addEventListener('click', () => goTo(i));
+          dotsEl.appendChild(dot);
+        }
+      }
+      renderDots();
+      if (prevBtn) prevBtn.addEventListener('click', () => goTo(idx - 1));
+      if (nextBtn) nextBtn.addEventListener('click', () => goTo(idx + 1));
+    });
+  }
+
   function init() {
     bindLogin();
     bindFaq();
+    initCarousels();
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => showSection(btn.getAttribute('data-section')));
