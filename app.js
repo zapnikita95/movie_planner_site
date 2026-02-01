@@ -436,7 +436,7 @@
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const streamingUrl = (m.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()">Просмотр на стриминге ⏯️</a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
       : '';
     const progressStatus = m.is_series
       ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
@@ -456,7 +456,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -504,7 +504,7 @@
     const poster = posterUrl(s.kp_id);
     const streamingUrl = (s.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()">Просмотр на стриминге ⏯️</a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
       : '';
     return `
       <div class="card series-card">
@@ -519,7 +519,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
         </div>
       </div>`;
   }
