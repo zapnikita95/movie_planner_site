@@ -641,8 +641,50 @@
         }
       }
       renderDots();
-      if (prevBtn) prevBtn.addEventListener('click', () => goTo(idx - 1));
-      if (nextBtn) nextBtn.addEventListener('click', () => goTo(idx + 1));
+      if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); goTo(idx - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); goTo(idx + 1); });
+    });
+  }
+
+  function initLightbox() {
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    const backdrop = lb && lb.querySelector('.lightbox-backdrop');
+    const closeBtn = lb && lb.querySelector('.lightbox-close');
+    if (!lb || !lbImg) return;
+    document.querySelectorAll('.carousel-img').forEach((img) => {
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lbImg.src = img.src;
+        lbImg.alt = img.alt || '';
+        lbImg.classList.remove('zoomed');
+        lb.classList.remove('hidden');
+        lb.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    function close() {
+      lb.classList.add('hidden');
+      lb.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+    if (backdrop) backdrop.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    lbImg.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (lbImg.classList.contains('zoomed-2')) {
+        lbImg.classList.remove('zoomed', 'zoomed-2');
+      } else if (lbImg.classList.contains('zoomed')) {
+        lbImg.classList.remove('zoomed');
+        lbImg.classList.add('zoomed-2');
+      } else {
+        lbImg.classList.add('zoomed');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && lb && !lb.classList.contains('hidden')) {
+        close();
+      }
     });
   }
 
@@ -650,6 +692,7 @@
     bindLogin();
     bindFaq();
     initCarousels();
+    initLightbox();
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => showSection(btn.getAttribute('data-section')));
