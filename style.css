@@ -1216,12 +1216,19 @@ section {
   .card.film-card,
   .card.series-card {
     position: relative;
+    flex-direction: column;
+  }
+  .card.film-card .film-card-main,
+  .card.series-card .film-card-main {
+    width: 100%;
+    min-width: 0;
   }
   .card.film-card .film-buttons,
   .card.series-card .film-buttons {
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 10px;
+    width: 100%;
   }
   .card.film-card .film-buttons .btn-small,
   .card.series-card .film-buttons .btn-small {
@@ -1505,6 +1512,8 @@ a.card.plan-card:hover,
   font-weight: 600;
   margin-bottom: 4px;
   color: var(--text-dark);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .film-status,
 .plan-date,
