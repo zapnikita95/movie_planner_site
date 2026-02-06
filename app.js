@@ -400,8 +400,8 @@
       if (homeEl) {
         if (homeEmpty) {
           let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
-          html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы в Боте</a>';
-          if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм из базы</a>';
+          html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>';
+          if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>';
           html += '</div>';
           homeEl.innerHTML = html;
         } else {
@@ -410,7 +410,7 @@
       }
       if (cinemaEl) {
         if (cinemaEmpty) {
-          cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры в Боте</a></div>';
+          cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры</a></div>';
         } else {
           cinemaEl.innerHTML = data.cinema.map(renderPlan).join('');
         }
