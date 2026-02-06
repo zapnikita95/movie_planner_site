@@ -5,20 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Как вести список желаемого в Movie Planner</title>
     <meta name="description" content="Как добавлять фильмы и сериалы в watchlist Movie Planner, отмечать просмотренное, работать с личным и групповым списком.">
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../style-v2.css">
+<link rel="icon" href="../images/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <header class="site-header" id="site-header">
-        <div class="container header-inner">
-            <a href="/" class="header-logo">Movie Planner</a>
-            <nav class="header-nav">
-                <a href="/" class="btn btn-small btn-primary">На главную</a>
-            </nav>
-        </div>
+  <div class="content-wrapper subpage-wrapper">
+    <header class="site-header-subpage">
+      <div class="header-content">
+        <a href="/" class="logo"><img src="../images/icon48.png" alt="Movie Planner">Movie Planner</a>
+        <a href="/" class="btn btn-small btn-primary">На главную</a>
+      </div>
     </header>
-
-    <main class="container">
+    <main class="container subpage-main">
         <section class="article-content">
             <h1>Как вести список желаемого (watchlist) в Movie Planner</h1>
             <p class="date">30 января 2026</p>
@@ -69,10 +68,11 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 Movie Planner. Все права защищены.</p>
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
             </div>
         </div>
     </footer>
-
+  </div>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 </body>
 </html>

@@ -102,7 +102,7 @@
   // ——— UI: шапка, выпадающее меню аккаунтов ———
   function closeAccountDropdown() {
     const dd = document.getElementById('header-account-dropdown');
-    if (dd) dd.classList.add('hidden');
+    if (dd) { dd.classList.add('hidden'); dd.classList.remove('open'); }
   }
 
   function openAccountDropdown() {
@@ -131,6 +131,10 @@
       html += '<div class="header-dropdown-divider"></div>';
     }
     html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>+ Добавить вход</button>';
+    if (sessions.length) {
+      html += '<div class="header-dropdown-divider"></div>';
+      html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти из всех</button>';
+    }
     dd.innerHTML = html;
 
     dd.querySelectorAll('.header-dropdown-account').forEach((el) => {
@@ -169,7 +173,18 @@
         document.getElementById('login-modal')?.classList.remove('hidden');
       });
     }
+    const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
+    if (logoutAllBtn) {
+      logoutAllBtn.addEventListener('click', () => {
+        setSessions([]);
+        setActiveChatId(null);
+        closeAccountDropdown();
+        renderHeader(null);
+        showScreen('landing');
+      });
+    }
     dd.classList.remove('hidden');
+    dd.classList.add('open');
   }
 
   function renderHeader(me) {
@@ -181,11 +196,17 @@
     if (me && me.name) {
       if (loginBtn) loginBtn.classList.add('hidden');
       if (userWrap) userWrap.classList.remove('hidden');
-      if (cabinetBtn) cabinetBtn.textContent = me.name;
+      if (cabinetBtn) {
+        const session = getActiveSession();
+        const isPersonal = me.is_personal !== undefined ? me.is_personal : (session ? session.is_personal : true);
+        const badge = isPersonal ? 'личный' : 'группа';
+        const badgeClass = isPersonal ? 'personal' : 'group';
+        cabinetBtn.innerHTML = '<span class="account-name">' + escapeHtml(me.name) + '</span><span class="account-badge ' + badgeClass + '">' + badge + '</span><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="margin-left:4px"><path d="M2 4l4 4 4-4"/></svg>';
+      }
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
       if (userWrap) userWrap.classList.add('hidden');
-      if (cabinetBtn) cabinetBtn.textContent = '';
+      if (cabinetBtn) cabinetBtn.innerHTML = '';
     }
     closeAccountDropdown();
   }
@@ -436,7 +457,7 @@
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const streamingUrl = (m.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
       : '';
     const progressStatus = m.is_series
       ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
@@ -456,7 +477,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -504,7 +525,7 @@
     const poster = posterUrl(s.kp_id);
     const streamingUrl = (s.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
       : '';
     return `
       <div class="card series-card">
@@ -519,7 +540,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -554,7 +575,7 @@
     const raterStr = (r.rater_username && r.rater_username.trim()) ? ' · ' + escapeHtml(r.rater_username.trim()) : '';
     const streamingUrl = (r.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге </span>⏯️</a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
       : '';
     return `
       <div class="card film-card">
@@ -570,7 +591,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary btn-tg"><span class="btn-tg-full">Продолжить в Telegram</span><span class="btn-tg-short">В Telegram</span></a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -860,6 +881,40 @@
 
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
+
+    // Parallax background emojis
+    const parallaxBg = document.getElementById('parallaxBg');
+    if (parallaxBg) {
+      const emojis = ['🍿', '🎬', '🎞️', '🎥', '🎫', '⭐', '🎭'];
+      for (let i = 0; i < 30; i++) {
+        const el = document.createElement('div');
+        el.className = 'parallax-emoji';
+        el.textContent = emojis[i % emojis.length];
+        const size = 18 + Math.random() * 27;
+        const left = Math.random() * 100;
+        const top = Math.random() * 200;
+        const speed = 0.02 + Math.random() * 0.06;
+        const opacity = 0.06 + Math.random() * 0.09;
+        el.style.cssText = 'font-size:' + size + 'px; left:' + left + '%; top:' + top + '%; opacity:' + opacity + ';';
+        parallaxBg.appendChild(el);
+        el._parallaxSpeed = speed;
+        el._parallaxBaseTop = top;
+      }
+      const items = parallaxBg.querySelectorAll('.parallax-emoji');
+      window.addEventListener('scroll', function () {
+        const y = window.scrollY;
+        items.forEach(function (item) {
+          const s = item._parallaxSpeed || 0.04;
+          item.style.transform = 'translateY(' + (-y * s) + 'px)';
+        });
+      }, { passive: true });
+    }
+
+    // Opera: показывать «Установить расширение Opera» вместо Chrome
+    const isOpera = /opr|opera/i.test(navigator.userAgent);
+    document.querySelectorAll('.ext-btn-text').forEach(function (el) {
+      el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
+    });
 
     if (getToken()) {
       loadMeAndShowCabinet();

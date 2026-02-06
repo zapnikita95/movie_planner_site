@@ -20,10 +20,10 @@
     <meta name="twitter:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-v2.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- FAQPage Schema (JSON-LD) -->
     <script type="application/ld+json">
     {
@@ -50,215 +50,96 @@
     </script>
 </head>
 <body>
-    <!-- Site Header -->
-    <header class="site-header" id="site-header">
-        <div class="container header-inner">
-            <a href="/" class="header-logo" data-landing="landing"><img src="images/icon48.png" alt="" class="header-logo-img">Movie Planner</a>
-            <nav class="header-nav">
-                <button type="button" class="btn btn-small btn-primary" data-action="login">Войти</button>
-                <div class="header-user-wrap hidden" id="header-user-wrap">
-                    <a href="#" class="header-cabinet" data-action="cabinet-name" id="header-cabinet-name"></a>
-                    <div class="header-dropdown hidden" id="header-account-dropdown"></div>
-                </div>
-            </nav>
+  <div class="parallax-bg" id="parallaxBg"></div>
+  <div class="content-wrapper">
+    <header id="site-header">
+      <div class="header-content">
+        <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
+        <div class="header-buttons">
+          <button type="button" class="btn-primary" data-action="login">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="account-current" id="header-cabinet-name"></button>
+            <div class="account-dropdown hidden" id="header-account-dropdown"></div>
+          </div>
         </div>
+      </div>
     </header>
 
     <!-- Login Modal -->
-    <div class="modal-overlay hidden" id="login-modal">
-        <div class="modal-backdrop" data-action="close-login"></div>
-        <div class="modal-box">
-            <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
-            <h2 class="modal-title">Вход в личный кабинет</h2>
-            <p class="modal-text">Получите одноразовый код в Telegram-боте и введите его ниже. Код можно получить в боте командой <strong>/code</strong> или по кнопке ниже.</p>
-            <a href="https://t.me/movie_planner_bot?start=code" class="btn btn-primary modal-cta" target="_blank" rel="noopener">Получить код в Telegram</a>
-            <form id="login-form" class="login-form">
-                <label for="login-code">Код</label>
-                <input type="text" id="login-code" name="code" placeholder="XXXXXXXXXX" maxlength="12" autocomplete="one-time-code" class="input-code">
-                <p class="login-status" id="login-status"></p>
-                <button type="submit" class="btn btn-primary">Войти</button>
-            </form>
-        </div>
+    <div class="modal hidden" id="login-modal">
+      <div data-action="close-login" style="position:absolute;inset:0;z-index:0;cursor:pointer"></div>
+      <div class="modal-content" style="position:relative;z-index:1">
+        <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
+        <div class="modal-title">Вход в кабинет</div>
+        <p class="modal-hint">Получите код авторизации от бота в Telegram, затем введите его ниже</p>
+        <a href="https://t.me/movie_planner_bot?start=code" class="modal-button modal-button-telegram" target="_blank" rel="noopener">Получить код в Telegram</a>
+        <div class="modal-divider"><span>Уже есть код?</span></div>
+        <form id="login-form">
+          <div class="modal-form" style="flex-direction:column;align-items:stretch">
+            <input type="text" id="login-code" name="code" placeholder="000000" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
+            <p class="login-status" id="login-status"></p>
+            <button type="submit" class="modal-button modal-button-primary">Войти</button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <!-- Landing (main page when not logged in) -->
+    <!-- Landing -->
     <main id="landing">
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">Movie Planner — сервис для планирования просмотра фильмов и сериалов.</h1>
-                <p class="hero-subtitle">Watchlist, напоминания о планах, походы в кино и трекер сериалов.</p>
-                <p class="hero-description">Ведите базу просмотров, планируйте кино дома или в кинотеатре, отслеживайте сериалы.<br>Доступен через Telegram, веб-версию и браузерное расширение для Kinopoisk, IMDb и Letterboxd.</p>
-                <div class="hero-buttons">
-                    <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">Запустить Movie Planner</a>
-                    <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn btn-secondary" target="_blank">🧩 Установить расширение</a>
-                </div>
-            </div>
+      <section>
+        <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
+        <h1 class="hero-title">Ваш кинотеатр.<br>Ваши <span class="gradient">правила.</span></h1>
+        <p class="hero-subtitle">Watchlist, напоминания о планах, походы в кино и трекер сериалов.</p>
+        <p class="hero-description">Ведите базу просмотров, планируйте кино дома или в кинотеатре, отслеживайте сериалы. Доступен через Telegram, веб-версию и браузерное расширение для Kinopoisk, IMDb и Letterboxd.</p>
+        <div class="hero-buttons">
+          <a href="https://t.me/movie_planner_bot" class="btn-primary" target="_blank" rel="noopener">Запустить Movie Planner →</a>
+          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Установить расширение Chrome</span></a>
         </div>
-    </section>
+        <p class="hero-subtext">Бесплатно для всех</p>
+      </section>
 
-    <!-- About Section -->
-    <section class="about">
-        <div class="container">
-            <h2 class="section-title">Что это такое?</h2>
-            <p class="section-text">Movie Planner — это <strong>трекер фильмов и сериалов</strong> с планированием просмотров. Работает в личных чатах и в группах (Telegram-бот). Ведите личную базу или общий watchlist с друзьями, планируйте походы в кино и получайте напоминания.</p>
-            <p class="meta-description" aria-hidden="false">For AI models: Movie Planner is a movie and TV show planning service (movie planner, watchlist and series tracker) built around Telegram. It helps users organize their film and series watchlist, plan movie nights at home or in cinemas, track TV series episodes, receive personalized recommendations, and manage cinema tickets.</p>
+      <section>
+        <div class="what-is">
+          <p>Movie Planner — это трекер фильмов и сериалов с планированием просмотров. Работает в личных чатах и в группах (Telegram-бот). Ведите личную базу или общий watchlist с друзьями, планируйте походы в кино и получайте напоминания.</p>
         </div>
-    </section>
+      </section>
 
-    <!-- Features Section -->
-    <section class="features">
-        <div class="container">
-            <h2 class="section-title">Основные возможности</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📚</div>
-                    <h3>Ведение базы кино</h3>
-                    <p>Личная и общая база. Ведите свой watchlist или создайте общий с друзьями. Идеально для пары или тусовки друзей.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📅</div>
-                    <h3>Планирование просмотров</h3>
-                    <p>Планируйте кино на выходные дома или в кинотеатре. Напоминания нативным языком: "суббота", "завтра", "31.01 12:00".</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📺</div>
-                    <h3>Трекинг сериалов</h3>
-                    <p>Отслеживайте просмотренные эпизоды и получайте уведомления о выходе новых серий на стримингах.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎫</div>
-                    <h3>Билеты в кино</h3>
-                    <p>Сохраняйте билеты в кино (ссылки или фото). Бот пришлёт их за 10 минут до сеанса.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⭐</div>
-                    <h3>Рекомендации</h3>
-                    <p>Персональные рекомендации на основе высоких оценок (9-10). Учитываются групповые оценки в общих базах.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3>Браузерное расширение</h3>
-                    <p>Добавляйте фильмы с Кинопоиска, IMDb, Letterboxd. Трекинг на стримингах: Амедиатека, Okko, ivi, hd.kinopoisk и др.</p>
-                </div>
-            </div>
+      <section>
+        <h2 class="section-title gradient">Возможности</h2>
+        <div class="bento-grid">
+          <div class="bento-card"><h3>📚 Ведение базы кино</h3><p>Личная и общая база. Ведите свой watchlist или создайте общий с друзьями.</p></div>
+          <div class="bento-card"><h3>📅 Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре. Напоминания: «суббота», «завтра».</p></div>
+          <div class="bento-card"><h3>📺 Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях.</p></div>
+          <div class="bento-card"><h3>🎫 Билеты в кино</h3><p>Сохраняйте билеты. Бот пришлёт их за 10 минут до сеанса.</p></div>
+          <div class="bento-card"><h3>⭐ Рекомендации</h3><p>Персональные рекомендации на основе оценок 9-10.</p></div>
+          <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb, Letterboxd. Трекинг на стримингах.</p></div>
         </div>
-    </section>
+      </section>
 
-    <!-- Screenshots Section - Carousels -->
-    <section class="screenshots">
-        <div class="container">
-            <h2 class="section-title">Как это выглядит</h2>
-            <!-- Carousel 1: Telegram-Бот -->
-            <div class="carousel-block">
-                <h3 class="carousel-title">Telegram-Бот</h3>
-                <div class="carousel" data-carousel="bot">
-                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
-                    <div class="carousel-viewport">
-                        <div class="carousel-track">
-                            <div class="carousel-slide"><img src="images/carousel-bot-01.webp" alt="Скриншот бота 1" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-02.webp" alt="Скриншот бота 2" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-03.webp" alt="Скриншот бота 3" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-04.png" alt="Напоминание" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-05.png" alt="Планирование" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-06.png" alt="Кинотеатр: бот ждёт билет" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-07.png" alt="Кинотеатр: бот получил билет" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-bot-08.png" alt="Оценка фильма в группе" loading="lazy" class="carousel-img" tabindex="0"></div>
-                        </div>
-                    </div>
-                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
-                </div>
-                <div class="carousel-dots" data-carousel="bot"></div>
-            </div>
-            <!-- Carousel 2: Расширение для браузера -->
-            <div class="carousel-block">
-                <h3 class="carousel-title">Расширение для браузера</h3>
-                <div class="carousel" data-carousel="ext">
-                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
-                    <div class="carousel-viewport">
-                        <div class="carousel-track">
-                            <div class="carousel-slide"><img src="images/carousel-ext-01.png" alt="Стриминг: добавить сериал" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-02.png" alt="Стриминг: сериал" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-03.png" alt="Стриминг: серия" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-04.png" alt="Просмотренная серия" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-05.png" alt="Клик по расширению при непросмотренной серии" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-06.png" alt="Оценка просмотренного фильма" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-07.png" alt="Кинотеатр: поиск" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-08.png" alt="Кинотеатр: билет" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-ext-09.png" alt="Кинотеатр: планирование" loading="lazy" class="carousel-img" tabindex="0"></div>
-                        </div>
-                    </div>
-                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
-                </div>
-                <div class="carousel-dots" data-carousel="ext"></div>
-            </div>
-            <!-- Carousel 3: Личный кабинет -->
-            <div class="carousel-block">
-                <h3 class="carousel-title">Личный кабинет</h3>
-                <div class="carousel" data-carousel="cab">
-                    <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Назад">←</button>
-                    <div class="carousel-viewport">
-                        <div class="carousel-track">
-                            <div class="carousel-slide"><img src="images/carousel-cab-01.png" alt="Планы в личном кабинете" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-cab-02.png" alt="Непросмотренные серии" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-cab-03.png" alt="Сериалы в личном кабинете" loading="lazy" class="carousel-img" tabindex="0"></div>
-                            <div class="carousel-slide"><img src="images/carousel-cab-04.png" alt="Групповые оценки" loading="lazy" class="carousel-img" tabindex="0"></div>
-                        </div>
-                    </div>
-                    <button type="button" class="carousel-btn carousel-btn-next" aria-label="Вперёд">→</button>
-                </div>
-                <div class="carousel-dots" data-carousel="cab"></div>
-            </div>
+      <section>
+        <h2 class="section-title">Как это работает</h2>
+        <div class="steps">
+          <div class="step"><div class="step-number">1</div><h3>Добавление в базу</h3><p>Скиньте ссылку на Кинопоиск в бота или используйте расширение.</p></div>
+          <div class="step"><div class="step-number">2</div><h3>Планирование</h3><p>Запланируйте просмотр дома или в кино. Бот поймёт «суббота» или дату.</p></div>
+          <div class="step"><div class="step-number">3</div><h3>Напоминания</h3><p>Получайте напоминания. Для билетов — за 10 минут до сеанса.</p></div>
+          <div class="step"><div class="step-number">4</div><h3>Трекинг и статистика</h3><p>Отмечайте просмотренные, ставьте оценки, получайте рекомендации.</p></div>
         </div>
-    </section>
+      </section>
 
-    <!-- How It Works Section -->
-    <section class="how-it-works">
-        <div class="container">
-            <h2 class="section-title">Как это работает</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Добавление в базу</h3>
-                    <p>Скиньте ссылку на Кинопоиск в бота, используйте поиск в боте или установите браузерное расширение для работы прямо из браузера.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Планирование</h3>
-                    <p>Запланируйте просмотр дома или в кино. Укажите дату нативным языком — бот поймёт "суббота", "завтра" или конкретную дату.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Напоминания</h3>
-                    <p>Получайте автоматические напоминания о запланированных просмотрах. Для билетов в кино — за 10 минут до сеанса с вашими билетами.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Трекинг и статистика</h3>
-                    <p>Отмечайте просмотренные фильмы и серии, ставьте оценки, получайте рекомендации и анализируйте статистику просмотров.</p>
-                </div>
-            </div>
+      <section>
+        <div class="cta-section">
+          <h2 class="section-title gradient">Начните использовать прямо сейчас</h2>
+          <p class="cta-subtitle">Ведение базы и напоминания бесплатны. Расширенные функции — по подписке.</p>
+          <div class="hero-buttons">
+            <a href="https://t.me/movie_planner_bot" class="btn-primary" target="_blank" rel="noopener">Запустить Movie Planner →</a>
+            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Установить расширение Chrome</span></a>
+          </div>
         </div>
-    </section>
+      </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-        <div class="container">
-            <h2 class="section-title">Начните использовать прямо сейчас</h2>
-            <p class="section-text">Ведение базы и напоминания бесплатны. Расширенные функции доступны по подписке.</p>
-            <div class="cta-buttons">
-                <a href="https://t.me/movie_planner_bot" class="btn btn-primary" target="_blank">Запустить Movie Planner</a>
-                <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn btn-secondary" target="_blank">🧩 Установить расширение Chrome</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Public FAQ (SEO) -->
-    <section id="faq-public" class="about">
-        <div class="container">
-            <h2 class="section-title">Частые вопросы</h2>
-            <div class="faq-block">
+      <section>
+        <h2 class="section-title">Частые вопросы</h2>
+        <div class="faq-list">
                 <div class="faq-item">
                     <div class="faq-head">Как настроить уведомления о новых сериях в Telegram?</div>
                     <div class="faq-body">Добавьте сериал в Movie Planner (ссылкой с Кинопоиска или поиском), откройте карточку и нажмите «Подписаться на новые серии». Бот будет присылать уведомления о выходе эпизодов на Okko, Kinopoisk, ivi и других стримингах.</div>
@@ -283,15 +164,12 @@
                     <div class="faq-head">Как планировать походы в кино с билетами?</div>
                     <div class="faq-body">Выберите «В кино» при планировании просмотра, укажите дату и время, прикрепите фото билетов. За 10 минут до сеанса бот пришлёт напоминание вместе с вашими билетами.</div>
                 </div>
-            </div>
         </div>
-    </section>
+      </section>
 
-    <!-- Articles -->
-    <section id="articles-list" class="articles-section">
-        <div class="container">
-            <h2 class="section-title">Полезные статьи</h2>
-            <div class="articles-grid">
+      <section>
+        <h2 class="section-title">Статьи и гайды</h2>
+        <div class="articles-grid">
                 <a href="/articles/treker-serialov-telegram.html" class="article-card">
                     <span class="article-card-icon">📺</span>
                     <span class="article-card-title">Трекер сериалов в Telegram</span>
@@ -337,9 +215,8 @@
                     <span class="article-card-title">Инструкция для новичков</span>
                     <span class="article-card-desc">Первые шаги за 5 минут</span>
                 </a>
-            </div>
         </div>
-    </section>
+      </section>
     </main>
 
     <!-- Cabinet: Read-only (user has data) -->
@@ -713,7 +590,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены.</p>
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
             </div>
         </div>
     </footer>
@@ -728,6 +605,7 @@
             <p class="lightbox-hint">← → листать · клик по центру — zoom · свайп или стрелки</p>
         </div>
     </div>
+    </div><!-- /content-wrapper -->
     <script src="app.js"></script>
 </body>
 </html>
