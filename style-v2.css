@@ -2082,10 +2082,96 @@ body.in-public-stats .footer-extension-cabinet {
   cursor: pointer; text-decoration: none; transition: all 0.25s;
 }
 .badges-more:hover { background: rgba(155,77,255,0.15); transform: translateY(-1px); }
+
+/* Achievement panel (Все ачивки) */
+.ach-panel {
+  display: none;
+  background: var(--bg-surface, #131318);
+  border: 1px solid var(--border-color-alt, rgba(255,255,255,0.08));
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 28px;
+  animation: achPanelSlide 0.3s ease;
+}
+.ach-panel.open { display: block; }
+@keyframes achPanelSlide {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ach-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.ach-panel-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+.ach-panel-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-surface-alt, #1a1a22);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.ach-panel-close:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.15); }
+.ach-panel-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.ach-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.ach-panel-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--bg-surface-alt, #1a1a22);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+.ach-panel-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-1px); }
+.ach-panel-card.locked { opacity: 0.35; }
+.ach-panel-card.earned { border-color: rgba(251,191,36,0.2); }
+.ach-panel-icon { font-size: 24px; flex-shrink: 0; }
+.ach-panel-info { flex: 1; min-width: 0; }
+.ach-panel-name { font-weight: 700; font-size: 13px; }
+.ach-panel-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+.ach-panel-rarity {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 2px 8px; border-radius: 50px;
+  flex-shrink: 0;
+}
+.ach-panel-rarity.r-common { background: rgba(107,107,118,0.15); color: var(--text-muted); }
+.ach-panel-rarity.r-rare { background: rgba(0,212,255,0.12); color: #00d4ff; }
+.ach-panel-rarity.r-epic { background: rgba(155,77,255,0.12); color: #9b4dff; }
+.ach-panel-rarity.r-legendary { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.ach-panel-progress {
+  height: 4px; background: var(--bg-main, #09090b);
+  border-radius: 2px; margin-top: 6px; overflow: hidden;
+}
+.ach-panel-progress-fill { height: 100%; border-radius: 2px; }
+.ach-panel-filter-btn {
+  font-size: 13px; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  transition: all 0.2s;
+}
+.ach-panel-filter-btn:hover { color: var(--text-primary); }
+
 @media (max-width: 768px) {
   .stats-profile-top { flex-direction: column; text-align: center; align-items: center; }
   .stats-profile-badges { justify-content: center; }
   .stats-profile-meta { justify-content: center; }
+  .ach-panel-grid { grid-template-columns: 1fr; }
 }
 
 /* Public stats page (share link) */

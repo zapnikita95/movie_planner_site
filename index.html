@@ -258,6 +258,22 @@
           </div>
           <div id="public-stats-personal-wrap" class="hidden">
             <div id="public-stats-profile-personal" class="stats-profile hidden"></div>
+            <div id="public-stats-ach-panel" class="ach-panel" aria-hidden="true">
+              <div class="ach-panel-header">
+                <div class="ach-panel-title">🏅 Все ачивки</div>
+                <button type="button" class="ach-panel-close" id="ach-panel-close-btn">✕</button>
+              </div>
+              <div class="ach-panel-filters">
+                <div id="ach-panel-count" style="font-size:13px;color:var(--text-muted);">Получено: <span style="color:var(--amber);font-weight:700;">0</span> / 0</div>
+                <div style="display:flex;gap:8px;">
+                  <span class="ach-panel-filter-btn ach-panel-rarity r-common" data-filter="all">Все</span>
+                  <span class="ach-panel-filter-btn ach-panel-rarity r-rare" data-filter="rare">Редкие</span>
+                  <span class="ach-panel-filter-btn ach-panel-rarity r-epic" data-filter="epic">Эпические</span>
+                  <span class="ach-panel-filter-btn ach-panel-rarity r-legendary" data-filter="legendary">Легендарные</span>
+                </div>
+              </div>
+              <div class="ach-panel-grid" id="ach-panel-grid"></div>
+            </div>
             <div id="public-stats-personal-summary" class="stats-summary"></div>
             <div class="stats-grid">
               <div id="public-stats-personal-top" class="stats-block"></div>
