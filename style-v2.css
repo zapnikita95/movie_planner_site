@@ -2129,6 +2129,19 @@ body.in-public-stats .footer-extension-cabinet {
 }
 .ach-panel-filters .ach-panel-filter-btn { flex-shrink: 0; }
 .ach-panel-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.ach-panel-category { }
+.ach-panel-category-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.ach-panel-category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
@@ -2174,7 +2187,7 @@ body.in-public-stats .footer-extension-cabinet {
   .stats-profile-top { flex-direction: column; text-align: center; align-items: center; }
   .stats-profile-badges { justify-content: center; }
   .stats-profile-meta { justify-content: center; }
-  .ach-panel-grid { grid-template-columns: 1fr; }
+  .ach-panel-category-grid { grid-template-columns: 1fr; }
 }
 
 /* Public stats page (share link) */

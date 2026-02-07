@@ -1366,6 +1366,23 @@
     bindAchPanel(ctx);
   }
 
+  const ACH_CATEGORIES = {
+    'films_': '🎬 Киноман',
+    'ratings_': '⭐ Критик',
+    'cinema_': '🎟️ Кинозритель',
+    'series_completed_': '📺 Сериалы',
+    'series_ep_': '🔥 Серии',
+    'genres_': '🌈 Всеядный',
+    'plans_': '📅 Планировщик'
+  };
+  function getAchCategory(achId) {
+    if (!achId) return null;
+    for (const prefix in ACH_CATEGORIES) {
+      if (achId.startsWith(prefix)) return ACH_CATEGORIES[prefix];
+    }
+    return '🏆 Особые';
+  }
+
   function renderAchPanel(achievements, filterRarity, ctx) {
     ctx = ctx || {};
     const gridId = ctx.achGridId || 'ach-panel-grid';
@@ -1394,13 +1411,31 @@
       if (r === 'epic') return '•••';
       return '★';
     };
-    grid.innerHTML = list.map((a) => {
+    const renderCard = function (a) {
       const rarity = a.rarity || 'common';
       const cls = a.earned ? 'earned' : 'locked';
       const progressPct = getProgressPct(a);
       const progressHtml = (!a.earned && progressPct > 0) ? '<div class="ach-panel-progress"><div class="ach-panel-progress-fill" style="width:' + progressPct + '%;background:' + progressColor(rarity) + '"></div></div>' : '';
       return '<div class="ach-panel-card ' + cls + '"><div class="ach-panel-icon">' + (a.icon || '🏅') + '</div><div class="ach-panel-info"><div class="ach-panel-name">' + escapeHtml(a.name || '') + '</div><div class="ach-panel-desc">' + escapeHtml(a.description || '') + '</div>' + progressHtml + '</div><span class="ach-panel-rarity r-' + rarity + '">' + rarityDot(rarity) + '</span></div>';
-    }).join('');
+    };
+    const byCategory = {};
+    list.forEach(function (a) {
+      const cat = getAchCategory(a.id) || 'Прочее';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(a);
+    });
+    const categoryOrder = ['🎬 Киноман', '⭐ Критик', '🎟️ Кинозритель', '📺 Сериалы', '🔥 Серии', '🌈 Всеядный', '📅 Планировщик', '🏆 Особые'];
+    let html = '';
+    categoryOrder.forEach(function (cat) {
+      const items = byCategory[cat];
+      if (!items || !items.length) return;
+      html += '<div class="ach-panel-category"><div class="ach-panel-category-title">' + escapeHtml(cat) + '</div><div class="ach-panel-category-grid">' + items.map(renderCard).join('') + '</div></div>';
+    });
+    const uncategorized = Object.keys(byCategory).filter(function (c) { return categoryOrder.indexOf(c) === -1; });
+    uncategorized.forEach(function (cat) {
+      html += '<div class="ach-panel-category"><div class="ach-panel-category-title">' + escapeHtml(cat) + '</div><div class="ach-panel-category-grid">' + byCategory[cat].map(renderCard).join('') + '</div></div>';
+    });
+    grid.innerHTML = html || list.map(renderCard).join('');
   }
 
   function toggleAchPanel(panelId) {
