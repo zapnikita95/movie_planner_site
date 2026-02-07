@@ -703,6 +703,7 @@
   function initStatsSelectors() {
     const monthEl = document.getElementById('stats-month');
     const yearEl = document.getElementById('stats-year');
+    const debugLink = document.getElementById('stats-debug-link');
     if (!monthEl || !yearEl) return;
     const now = new Date();
     const curMonth = now.getMonth() + 1;
@@ -715,6 +716,22 @@
       monthEl._bound = yearEl._bound = true;
       monthEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
       yearEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
+    }
+    if (debugLink && !debugLink._bound) {
+      debugLink._bound = true;
+      debugLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        const m = parseInt(monthEl.value, 10);
+        const y = parseInt(yearEl.value, 10);
+        api('/api/site/stats/debug?month=' + m + '&year=' + y)
+          .then((r) => {
+            if (r && r.debug) {
+              console.log('[Stats Debug]', r.debug);
+              alert('Debug: ' + JSON.stringify(r.debug, null, 2));
+            }
+          })
+          .catch(() => alert('Ошибка загрузки debug'));
+      });
     }
   }
 
@@ -744,6 +761,10 @@
         if (!data || !data.success) {
           if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
           return;
+        }
+        if (data.debug_available) {
+          const dl = document.getElementById('stats-debug-link');
+          if (dl) { dl.classList.remove('hidden'); }
         }
         if (isGroup) {
           renderGroupStats(data);
@@ -1152,17 +1173,30 @@
       blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🏅 Ачивки месяца</div><div class="stats-achievements-grid">' + achCards + '</div></div>');
     }
 
-    // Heatmap
+    // Heatmap: цвет по отношению к средней активности группы
     const heatKeys = Object.keys(heatmap).filter((k) => k !== '...' && !isNaN(parseInt(k, 10)));
     if (heatKeys.length && members.length) {
       const dayCount = parseInt(period.month, 10) ? new Date(period.year, period.month, 0).getDate() : 31;
+      let totalSum = 0;
+      for (let d = 1; d <= dayCount; d++) {
+        const dayData = heatmap[String(d)] || {};
+        members.forEach((m) => { totalSum += dayData[String(m.user_id)] ?? 0; });
+      }
+      const numCells = dayCount * members.length;
+      const avg = numCells > 0 ? totalSum / numCells : 0.001;
       let cols = '';
       for (let d = 1; d <= dayCount; d++) {
         const dayData = heatmap[String(d)] || {};
         let cells = '';
         members.forEach((m) => {
           const v = dayData[String(m.user_id)] ?? 0;
-          const lvl = v === 0 ? '' : v === 1 ? 'l1' : v === 2 ? 'l2' : v >= 3 ? 'l4' : 'l3';
+          let lvl = '';
+          if (v > 0) {
+            if (v <= avg) lvl = 'l1';
+            else if (v <= avg * 1.5) lvl = 'l2';
+            else if (v <= avg * 2.5) lvl = 'l3';
+            else lvl = 'l4';
+          }
           cells += '<div class="stats-heatmap-cell ' + lvl + '" title="' + escapeHtml(m.first_name || '') + ': ' + v + ' (день ' + d + ')"></div>';
         });
         cols += '<div class="stats-heatmap-col"><div class="stats-heatmap-day">' + d + '</div>' + cells + '</div>';
@@ -1229,7 +1263,7 @@
       { val: s.series_watched || 0, label: 'Сериалов' },
       { val: s.episodes_watched || 0, label: 'Серий' },
       { val: s.cinema_visits || 0, label: 'Походов в кино' },
-      { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.series_watched || 0), label: 'Всего просмотров' },
+      { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0), label: 'Всего просмотров' },
       { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
     ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
   }

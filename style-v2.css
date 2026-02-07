@@ -86,11 +86,11 @@
 .film-description { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 .btn { padding: 10px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; }
 .btn-small { padding: 10px 16px; font-size: 13px; }
-.cabinet-nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); }
-.cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); overflow-x: auto; padding-bottom: 4px; }
+.cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
 .cabinet-nav-btn.active { color: #ff2d7b; border-bottom-color: #ff2d7b; }
-.cabinet-nav-extension { margin-left: auto; }
+.cabinet-nav-extension { margin-left: auto; flex-shrink: 0; align-self: center; }
 #cabinet-readonly, #cabinet-onboarding { display: none; padding: 40px 24px; max-width: 1200px; margin: 0 auto; }
 #cabinet-readonly:not(.hidden), #cabinet-onboarding:not(.hidden) { display: block; }
 .cabinet-sections { max-width: 1200px; margin: 0 auto; }
@@ -1682,6 +1682,8 @@ footer {
 /* Stats section */
 .stats-month-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
 .stats-month-selector label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.stats-debug-link { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.stats-debug-link:hover { color: var(--primary-color); }
 .stats-month-select, .stats-year-select { padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
 .stats-loading, .stats-error { margin-bottom: 20px; color: var(--text-muted); }
 .stats-error { color: #ff4444; }
@@ -1819,19 +1821,24 @@ footer {
 .stats-achievement-holder { font-size: 11px; color: #fbbf24; font-weight: 600; margin-top: 6px; }
 .stats-achievement-locked { color: var(--text-muted); }
 
-.stats-heatmap-wrap { overflow-x: auto; }
-.stats-heatmap { display: flex; gap: 3px; }
-.stats-heatmap-col { display: flex; flex-direction: column; gap: 3px; }
-.stats-heatmap-day { font-size: 9px; color: var(--text-muted); text-align: center; margin-bottom: 2px; }
-.stats-heatmap-cell { width: 16px; height: 16px; border-radius: 3px; background: var(--bg-surface-alt, #1a1a22); transition: all 0.2s; }
-.stats-heatmap-cell:hover { transform: scale(1.4); z-index: 1; position: relative; }
+.stats-heatmap-wrap { overflow-x: auto; padding: 16px 0; min-height: 140px; }
+.stats-heatmap { display: flex; gap: 6px; }
+.stats-heatmap-col { display: flex; flex-direction: column; gap: 6px; }
+.stats-heatmap-day { font-size: 10px; color: var(--text-muted); text-align: center; margin-bottom: 4px; }
+.stats-heatmap-cell { width: 24px; height: 24px; min-width: 24px; min-height: 24px; border-radius: 4px; background: var(--bg-surface-alt, #1a1a22); transition: all 0.2s; }
+.stats-heatmap-cell:hover { transform: scale(1.3); z-index: 1; position: relative; }
 .stats-heatmap-cell.l1 { background: rgba(155, 77, 255, 0.2); }
 .stats-heatmap-cell.l2 { background: rgba(155, 77, 255, 0.4); }
 .stats-heatmap-cell.l3 { background: rgba(155, 77, 255, 0.6); }
 .stats-heatmap-cell.l4 { background: rgba(155, 77, 255, 0.85); }
 .stats-heatmap-legend { display: flex; gap: 8px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted); }
 .stats-heatmap-legend span { display: flex; align-items: center; gap: 4px; }
-.stats-heatmap-legend-bar { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.stats-heatmap-legend-bar { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--text-muted); }
+@media (max-width: 600px) {
+  .stats-heatmap-cell { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
+  .stats-heatmap { gap: 4px; }
+  .stats-heatmap-col { gap: 4px; }
+}
 
 /* Public stats page (share link) */
 #public-stats { padding: 32px 0 80px; min-height: 100vh; }

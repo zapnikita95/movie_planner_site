@@ -261,7 +261,7 @@
                 <button type="button" class="cabinet-nav-btn active" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Последние оценки</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
@@ -311,8 +311,8 @@
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
                     <div class="section-title-row">
-                        <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
-                        <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Последние оценки" autocomplete="off">
+                        <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Оценки</span></h2>
+                        <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
                     </div>
                     <p class="cabinet-hint">В личном кабинете вы можете посмотреть список последних оценок. Для остальных действий выберите фильм или сериал, и вы будете перенаправлены в Telegram.</p>
                     <div id="ratings-toolbar" class="section-ratings-toolbar" style="display:none">
@@ -329,6 +329,7 @@
                         <label>Период:</label>
                         <select id="stats-month" class="stats-month-select" aria-label="Месяц"></select>
                         <select id="stats-year" class="stats-year-select" aria-label="Год"></select>
+                        <a href="#" id="stats-debug-link" class="stats-debug-link hidden" title="Сырые данные для отладки (в консоль)">🐛 Debug</a>
                     </div>
                     <div id="stats-loading" class="stats-loading hidden">Загрузка…</div>
                     <div id="stats-error" class="stats-error hidden"></div>
@@ -523,7 +524,7 @@
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Последние оценки</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Оценки</span></h2>
                     <p class="onboard-empty-hint">После просмотра поставьте оценку в боте — она появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
