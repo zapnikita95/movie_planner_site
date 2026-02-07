@@ -565,6 +565,14 @@
     });
   }
 
+  function formatRatedDate(ratedAt) {
+    if (!ratedAt) return '';
+    try {
+      const d = new Date(ratedAt);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (_) { return ''; }
+  }
+
   function renderRatingsCard(r) {
     const link = filmDeepLink(r.film_id, r.kp_id, false);
     const year = r.year ? ` (${r.year})` : '';
@@ -573,6 +581,8 @@
     const desc = (r.description || '').trim();
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const raterStr = (r.rater_username && r.rater_username.trim()) ? ' · ' + escapeHtml(r.rater_username.trim()) : '';
+    const ratedDateStr = formatRatedDate(r.rated_at);
+    const ratedDateHtml = ratedDateStr ? '<div class="film-rated-date">Оценено ' + escapeHtml(ratedDateStr) + '</div>' : '';
     const streamingUrl = (r.online_link || '').trim();
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
@@ -588,6 +598,7 @@
             <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
             ${descHtml}
             <div class="film-status">⭐ ${r.rating}${raterStr}</div>
+            ${ratedDateHtml}
           </div>
         </a>
         <div class="film-buttons">
@@ -596,15 +607,20 @@
       </div>`;
   }
 
+  let ratingsMemberFilter = '';
+
   function renderRatingsList() {
     const el = document.getElementById('ratings-list');
     if (!el) return;
-    if (!ratingsItems.length) {
-      el.innerHTML = '<p class="empty-hint">Нет оценок.</p>';
+    let list = filterByTitle(ratingsItems, sectionSearchQuery('ratings'));
+    if (ratingsMemberFilter) {
+      list = list.filter((r) => (r.rater_username || '').trim() === ratingsMemberFilter);
+    }
+    if (!list.length) {
+      el.innerHTML = '<p class="empty-hint">' + (ratingsItems.length ? 'Ничего не найдено' : 'Нет оценок.') + '</p>';
       return;
     }
-    const list = filterByTitle(ratingsItems, sectionSearchQuery('ratings'));
-    el.innerHTML = list.length ? list.map(renderRatingsCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+    el.innerHTML = list.map(renderRatingsCard).join('');
   }
 
   const sectionSearchBound = {};
@@ -618,12 +634,41 @@
   function loadRatings() {
     const el = document.getElementById('ratings-list');
     if (!el) return;
+    ratingsMemberFilter = '';
     api('/api/site/ratings').then((data) => {
       ratingsItems = Array.isArray(data && data.items) ? data.items : [];
       bindSectionSearchOnce('ratings', renderRatingsList);
+      const session = getActiveSession();
+      const isGroup = session && !session.is_personal;
+      const toolbar = document.getElementById('ratings-toolbar');
+      const memberSelect = document.getElementById('ratings-member-filter');
+      if (toolbar && memberSelect && isGroup) {
+        const raters = [];
+        const seen = {};
+        ratingsItems.forEach((r) => {
+          const u = (r.rater_username || '').trim();
+          if (u && !seen[u]) { seen[u] = true; raters.push(u); }
+        });
+        raters.sort();
+        if (raters.length) {
+          toolbar.style.display = 'flex';
+          memberSelect.innerHTML = '<option value="">Все</option>' + raters.map((u) => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
+          if (!memberSelect._bound) {
+            memberSelect._bound = true;
+            memberSelect.addEventListener('change', () => {
+              ratingsMemberFilter = (memberSelect.value || '').trim();
+              renderRatingsList();
+            });
+          }
+        } else {
+          toolbar.style.display = 'none';
+        }
+      } else if (toolbar) {
+        toolbar.style.display = 'none';
+      }
       renderRatingsList();
     }).catch(() => {
-      el.innerHTML = '<p class="empty-hint">Не удалось загрузить оценки.</p>';
+      if (el) el.innerHTML = '<p class="empty-hint">Не удалось загрузить оценки.</p>';
     });
   }
 
@@ -632,6 +677,369 @@
     const div = document.createElement('div');
     div.textContent = s;
     return div.innerHTML;
+  }
+
+  // ——— Статистика ———
+  const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+  function initStatsSelectors() {
+    const monthEl = document.getElementById('stats-month');
+    const yearEl = document.getElementById('stats-year');
+    if (!monthEl || !yearEl) return;
+    const now = new Date();
+    const curMonth = now.getMonth() + 1;
+    const curYear = now.getFullYear();
+    monthEl.innerHTML = MONTH_NAMES.map((name, i) => '<option value="' + (i + 1) + '"' + (i + 1 === curMonth ? ' selected' : '') + '>' + name + '</option>').join('');
+    const years = [];
+    for (let y = curYear; y >= curYear - 3; y--) years.push(y);
+    yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
+    if (!monthEl._bound) {
+      monthEl._bound = yearEl._bound = true;
+      monthEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
+      yearEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
+    }
+  }
+
+  function loadStats(month, year) {
+    const loading = document.getElementById('stats-loading');
+    const error = document.getElementById('stats-error');
+    const content = document.getElementById('stats-content');
+    const personalWrap = document.getElementById('stats-personal-wrap');
+    const groupWrap = document.getElementById('stats-group-wrap');
+    const session = getActiveSession();
+    const isGroup = session && !session.is_personal;
+
+    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (error) { error.classList.add('hidden'); error.textContent = ''; }
+    if (content) content.style.visibility = 'hidden';
+    if (personalWrap) personalWrap.classList.toggle('hidden', !!isGroup);
+    if (groupWrap) groupWrap.classList.toggle('hidden', !isGroup);
+
+    const m = month || new Date().getMonth() + 1;
+    const y = year || new Date().getFullYear();
+    const url = isGroup ? '/api/site/group-stats?month=' + m + '&year=' + y : '/api/site/stats?month=' + m + '&year=' + y;
+
+    api(url)
+      .then((data) => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (!data || !data.success) {
+          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          return;
+        }
+        if (isGroup) {
+          renderGroupStats(data);
+        } else {
+          renderStatsSummary(data.summary);
+          renderStatsTopFilms(data.top_films || []);
+          renderStatsRatingBreakdown(data.rating_breakdown || {});
+          renderStatsPlatforms(data.platforms || []);
+          renderStatsWatched(data.watched || []);
+        }
+      })
+      .catch(() => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
+      });
+  }
+
+  // ——— Group stats ———
+  function memberById(members, userId) {
+    if (!members || !Array.isArray(members)) return null;
+    const id = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return members.find((m) => (m.user_id === id || String(m.user_id) === String(userId))) || null;
+  }
+
+  function groupAvatar(member, size) {
+    if (!member) return '';
+    const color = member.avatar_color || '#9b4dff';
+    const initial = (member.first_name || member.username || '?')[0].toUpperCase();
+    const cls = size ? 'avatar avatar-' + size : 'avatar';
+    return '<div class="' + cls + '" style="background:' + escapeHtml(color) + '" title="' + escapeHtml(member.first_name || '') + '">' + escapeHtml(initial) + '</div>';
+  }
+
+  function ratingColor(r) {
+    if (r >= 8) return 'var(--stats-green, #34d399)';
+    if (r >= 6) return 'var(--stats-amber, #fbbf24)';
+    return 'var(--stats-pink, #ff2d7b)';
+  }
+
+  function renderGroupStats(data) {
+    const members = data.members || [];
+    const group = data.group || {};
+    const period = data.period || {};
+    const summary = data.summary || {};
+    const mvp = data.mvp || {};
+    const topFilms = data.top_films || [];
+    const ratingBreakdown = data.rating_breakdown || {};
+    const leaderboard = data.leaderboard || {};
+    const controversial = data.controversial || [];
+    const compatibility = data.compatibility || [];
+    const genres = data.genres || [];
+    const achievements = data.achievements || [];
+    const heatmap = data.activity_heatmap || {};
+
+    // Header
+    const headerEl = document.getElementById('stats-group-header');
+    if (headerEl) {
+      const slug = group.public_slug;
+      const shareUrl = slug ? (window.location.origin + '/g/' + slug + '/stats') : '';
+      headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(group.title || 'Группа') + '</span></h3>' +
+        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' +
+        (shareUrl ? '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' : '');
+      headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
+        const u = this.getAttribute('data-url');
+        if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
+      });
+    }
+
+    // Summary cards
+    const summaryEl = document.getElementById('stats-group-summary');
+    if (summaryEl) {
+      const cards = [
+        { val: summary.group_films ?? 0, label: 'Фильмов на группу', cls: 'stat-card-pink' },
+        { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple' },
+        { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan' },
+        { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green' },
+        { val: summary.active_members ?? 0, label: 'Активных участников', cls: 'stat-card-amber' }
+      ];
+      summaryEl.innerHTML = cards.map((c) => '<div class="stat-card ' + c.cls + '"><div class="stat-card-icon">' + (c.cls.includes('pink') ? '🎬' : c.cls.includes('purple') ? '⭐' : c.cls.includes('cyan') ? '🎥' : c.cls.includes('green') ? '📺' : '👥') + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>').join('');
+    }
+
+    // MVP
+    const mvpEl = document.getElementById('stats-group-mvp');
+    if (mvpEl && mvp.user_id != null) {
+      const mvpMember = memberById(members, mvp.user_id);
+      const reasonLabels = { most_active: 'Больше всех смотрел и оценивал', most_ratings: 'Лидер по оценкам', most_cinema: 'Больше всех в кино', most_series: 'Больше всех серий' };
+      mvpEl.innerHTML = '<div class="stats-mvp-card"><div class="stats-mvp-crown">👑</div><div class="stats-mvp-title">Киноман месяца</div>' +
+        groupAvatar(mvpMember, 'xl') +
+        '<div class="stats-mvp-name">' + escapeHtml(mvpMember ? (mvpMember.first_name || mvpMember.username || 'Участник') : '') + '</div>' +
+        '<div class="stats-mvp-meta">' + escapeHtml(mvpMember && mvpMember.username ? mvpMember.username : '') + ' · ' + escapeHtml(reasonLabels[mvp.reason] || mvp.reason || '') + '</div>' +
+        '<div class="stats-mvp-stats">' +
+        '<div class="stats-mvp-stat"><span class="stats-mvp-stat-val">' + (mvp.films ?? 0) + '</span><span class="stats-mvp-stat-lbl">просмотров</span></div>' +
+        '<div class="stats-mvp-stat"><span class="stats-mvp-stat-val">' + (mvp.ratings ?? 0) + '</span><span class="stats-mvp-stat-lbl">оценок</span></div>' +
+        '<div class="stats-mvp-stat"><span class="stats-mvp-stat-val">' + (mvp.avg_rating != null ? Number(mvp.avg_rating).toFixed(1) : '—') + '</span><span class="stats-mvp-stat-lbl">средняя</span></div>' +
+        '</div></div>';
+    } else {
+      if (mvpEl) mvpEl.innerHTML = '';
+    }
+
+    // Grid blocks
+    const gridEl = document.getElementById('stats-group-grid');
+    if (!gridEl) return;
+
+    const blocks = [];
+
+    // Top films
+    if (topFilms.length) {
+      blocks.push('<div class="stats-block"><div class="stats-block-title">🏆 Топ фильмов группы</div><p class="stats-block-sub">По средней оценке участников</p>' +
+        topFilms.slice(0, 10).map((f, i) => {
+          const ratedBy = f.rated_by || [];
+          const voters = ratedBy.map((r) => {
+            const m = memberById(members, r.user_id);
+            return '<span class="stats-top-chip">' + groupAvatar(m, 'sm') + '<span style="color:' + ratingColor(r.rating) + '">' + r.rating + '</span></span>';
+          }).join('');
+          return '<div class="top-film-row"><div class="top-film-rank">' + (i + 1) + '</div>' +
+            '<img src="' + posterUrl(f.kp_id) + '" alt="" class="top-film-poster" loading="lazy" onerror="this.style.display=\'none\'">' +
+            '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div><div class="stats-top-voters">' + voters + '</div></div>' +
+            '<div class="top-film-avg"><span style="color:' + ratingColor(f.avg_rating) + '">' + (f.avg_rating != null ? Number(f.avg_rating).toFixed(1) : '—') + '</span><div class="top-film-avg-sub">средняя</div></div></div>';
+        }).join('') + '</div>');
+    }
+
+    // Rating breakdown
+    const maxRb = Math.max(1, ...Object.values(ratingBreakdown).map(Number));
+    const totalRb = Object.entries(ratingBreakdown).reduce((s, [k, v]) => s + parseInt(k, 10) * Number(v), 0);
+    const countRb = Object.values(ratingBreakdown).reduce((s, v) => s + Number(v), 0);
+    const avgRb = countRb > 0 ? (totalRb / countRb).toFixed(1) : '—';
+    const bars = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((r) => {
+      const c = ratingBreakdown[r] ?? 0;
+      const pct = maxRb ? (c / maxRb) * 100 : 0;
+      return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;background:hsl(' + ((r - 1) * 12) + ',80%,55%)">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
+    }).join('');
+    blocks.push('<div class="stats-block"><div class="stats-block-title">📊 Распределение оценок группы</div><p class="stats-block-sub">Средняя группы: <span style="color:' + ratingColor(+avgRb) + ';font-weight:700">' + avgRb + '</span></p>' + bars + '</div>');
+
+    // Leaderboard
+    const lb = leaderboard;
+    const lbTabs = ['watched', 'ratings', 'avg_rating', 'cinema'];
+    const lbLabels = { watched: 'Просмотры', ratings: 'Оценки', avg_rating: 'Средняя', cinema: 'Кинотеатр' };
+    const lbData = {};
+    lbTabs.forEach((key) => {
+      const arr = lb[key] || [];
+      lbData[key] = arr;
+    });
+    const maxW = Math.max(1, ...(lb.watched || []).map((x) => x.count));
+    const maxR = Math.max(1, ...(lb.ratings || []).map((x) => x.count));
+    const maxA = Math.max(0.1, ...(lb.avg_rating || []).map((x) => x.value));
+    const maxC = Math.max(1, ...(lb.cinema || []).map((x) => x.count));
+    function lbRows(items, valueKey, maxVal, suffix) {
+      return (items || []).map((item, i) => {
+        const m = memberById(members, item.user_id);
+        const val = item[valueKey];
+        const pct = maxVal ? (val / maxVal) * 100 : 0;
+        const color = m && m.avatar_color ? m.avatar_color : '#9b4dff';
+        return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || 'Участник') : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value">' + val + suffix + '</div></div>';
+      }).join('');
+    }
+    blocks.push('<div class="stats-block"><div class="stats-block-title">🏆 Лидерборд</div><div class="stats-lb-tabs">' +
+      '<button type="button" class="stats-lb-tab active" data-lb="watched">Просмотры</button>' +
+      '<button type="button" class="stats-lb-tab" data-lb="ratings">Оценки</button>' +
+      '<button type="button" class="stats-lb-tab" data-lb="avg_rating">Средняя</button>' +
+      '<button type="button" class="stats-lb-tab" data-lb="cinema">Кинотеатр</button></div>' +
+      '<div id="lb-watched" class="stats-lb-content">' + lbRows(lb.watched, 'count', maxW, '') + '</div>' +
+      '<div id="lb-ratings" class="stats-lb-content hidden">' + lbRows(lb.ratings, 'count', maxR, '') + '</div>' +
+      '<div id="lb-avg_rating" class="stats-lb-content hidden">' + lbRows(lb.avg_rating, 'value', maxA, '') + '</div>' +
+      '<div id="lb-cinema" class="stats-lb-content hidden">' + lbRows(lb.cinema, 'count', maxC, '') + '</div></div>');
+
+    // Controversial
+    if (controversial.length) {
+      blocks.push('<div class="stats-block"><div class="stats-block-title">🔥 Спорные фильмы</div><p class="stats-block-sub">Самый большой разброс оценок</p>' +
+        controversial.slice(0, 5).map((f) => {
+          const rats = (f.ratings || []).map((r) => {
+            const m = memberById(members, r.user_id);
+            return '<span class="stats-contro-chip">' + groupAvatar(m, 'sm') + '<span style="color:' + ratingColor(r.rating) + '">' + r.rating + '</span></span>';
+          }).join('');
+          return '<div class="stats-contro-row"><img src="' + posterUrl(f.kp_id) + '" alt="" class="stats-contro-poster" loading="lazy" onerror="this.style.background=\'var(--bg-surface-alt)\'"><div class="stats-contro-info"><div class="stats-contro-title">' + escapeHtml(f.title || '') + ' <span class="stats-contro-year">(' + (f.year || '') + ')</span></div><div class="stats-contro-ratings">' + rats + '</div></div><div class="stats-contro-spread">Δ' + (f.spread ?? 0) + '<div class="stats-contro-spread-lbl">разброс</div></div></div>';
+        }).join('') + '</div>');
+    }
+
+    // Compatibility
+    if (compatibility.length) {
+      const compatCards = compatibility.map((c) => {
+        const pair = c.pair || [];
+        const m1 = memberById(members, pair[0]);
+        const m2 = memberById(members, pair[1]);
+        const pct = c.pct ?? 0;
+        const color = pct >= 80 ? 'var(--stats-green)' : pct >= 60 ? 'var(--stats-amber)' : 'var(--stats-pink)';
+        const r = 34;
+        const circ = 2 * Math.PI * r;
+        const offset = circ * (1 - pct / 100);
+        return '<div class="stats-compat-card"><div class="stats-compat-avatars">' + groupAvatar(m1) + groupAvatar(m2) + '</div><div class="stats-compat-ring"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="' + r + '" fill="none" stroke="var(--bg-surface-alt)" stroke-width="6"/><circle cx="40" cy="40" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="6" stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/></svg><div class="stats-compat-value">' + pct + '%</div></div><div class="stats-compat-label">' + escapeHtml((m1 ? m1.first_name : '') + ' & ' + (m2 ? m2.first_name : '')) + ' · ' + (c.common_films ?? 0) + ' общих</div></div>';
+      }).join('');
+      blocks.push('<div class="stats-block"><div class="stats-block-title">💕 Совпадение вкусов</div><div class="stats-compat-grid">' + compatCards + '</div></div>');
+    }
+
+    // Genres
+    if (genres.length) {
+      const memberOrder = members.map((m) => m.user_id);
+      const maxG = Math.max(1, ...genres.flatMap((g) => (g.by_member || []).map((bm) => bm.count || 0)));
+      const genreRows = genres.slice(0, 8).map((g) => {
+        const byMember = g.by_member || [];
+        const bars = memberOrder.map((uid) => {
+          const bm = byMember.find((x) => String(x.user_id) === String(uid));
+          const cnt = bm ? (bm.count || 0) : 0;
+          const m = memberById(members, uid);
+          const pct = maxG ? (cnt / maxG) * 100 : 0;
+          return '<div class="stats-genre-bar-line"><div class="stats-genre-bar-user">' + (m ? (m.first_name || '?')[0] : '') + '</div><div class="stats-genre-bar-track"><div class="stats-genre-bar-fill" style="width:' + pct + '%;background:' + (m && m.avatar_color ? m.avatar_color : '#9b4dff') + '">' + (cnt > 0 ? cnt : '') + '</div></div></div>';
+        }).join('');
+        return '<div class="stats-genre-row"><div class="stats-genre-label">' + escapeHtml(g.genre || '') + '</div><div class="stats-genre-bars">' + bars + '</div></div>';
+      }).join('');
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🎭 Жанры: кто что смотрит</div><div class="stats-genre-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || m.username || '') + '</span>').join('') + '</div>' + genreRows + '</div>');
+    }
+
+    // Achievements
+    if (achievements.length) {
+      const achCards = achievements.map((a) => {
+        const holder = a.holder_user_id != null ? memberById(members, a.holder_user_id) : null;
+        const cls = a.earned ? 'earned' : '';
+        return '<div class="stats-achievement ' + cls + '"><div class="stats-achievement-icon">' + (a.icon || '🏅') + '</div><div class="stats-achievement-name">' + escapeHtml(a.name || '') + '</div><div class="stats-achievement-desc">' + escapeHtml(a.description || '') + '</div>' + (holder ? '<div class="stats-achievement-holder">' + escapeHtml(holder.first_name || holder.username || '') + '</div>' : '<div class="stats-achievement-holder stats-achievement-locked">Не получена</div>') + '</div>';
+      }).join('');
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🏅 Ачивки месяца</div><div class="stats-achievements-grid">' + achCards + '</div></div>');
+    }
+
+    // Heatmap
+    const heatKeys = Object.keys(heatmap).filter((k) => k !== '...' && !isNaN(parseInt(k, 10)));
+    if (heatKeys.length && members.length) {
+      const dayCount = parseInt(period.month, 10) ? new Date(period.year, period.month, 0).getDate() : 31;
+      let cols = '';
+      for (let d = 1; d <= dayCount; d++) {
+        const dayData = heatmap[String(d)] || {};
+        let cells = '';
+        members.forEach((m) => {
+          const v = dayData[String(m.user_id)] ?? 0;
+          const lvl = v === 0 ? '' : v === 1 ? 'l1' : v === 2 ? 'l2' : v >= 3 ? 'l4' : 'l3';
+          cells += '<div class="stats-heatmap-cell ' + lvl + '" title="' + escapeHtml(m.first_name || '') + ': ' + v + ' (день ' + d + ')"></div>';
+        });
+        cols += '<div class="stats-heatmap-col"><div class="stats-heatmap-day">' + d + '</div>' + cells + '</div>';
+      }
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📅 Активность по дням</div><div class="stats-heatmap-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || '') + '</span>').join('') + '</div><div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
+    }
+
+    gridEl.innerHTML = blocks.join('');
+
+    // Leaderboard tab switch
+    gridEl.querySelectorAll('.stats-lb-tab').forEach((tab) => {
+      tab.addEventListener('click', function () {
+        const key = this.getAttribute('data-lb');
+        if (!key) return;
+        gridEl.querySelectorAll('.stats-lb-tab').forEach((t) => t.classList.remove('active'));
+        this.classList.add('active');
+        gridEl.querySelectorAll('.stats-lb-content').forEach((c) => c.classList.add('hidden'));
+        const content = document.getElementById('lb-' + key);
+        if (content) content.classList.remove('hidden');
+      });
+    });
+  }
+
+  function renderStatsSummary(s) {
+    const el = document.getElementById('stats-summary');
+    if (!el || !s) return;
+    el.innerHTML = [
+      { val: s.films_watched || 0, label: 'Фильмов' },
+      { val: s.series_watched || 0, label: 'Сериалов' },
+      { val: s.episodes_watched || 0, label: 'Серий' },
+      { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.series_watched || 0), label: 'Всего просмотров' },
+      { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
+    ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
+  }
+
+  function renderStatsTopFilms(list) {
+    const el = document.getElementById('stats-top-films');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div>' + list.slice(0, 10).map((f, i) => {
+      const poster = posterUrl(f.kp_id);
+      return '<div class="top-film-row"><span class="top-film-rank">' + (i + 1) + '</span>' +
+        (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div></div>' +
+        '<span class="top-film-rating">⭐ ' + (f.rating != null ? f.rating : '—') + '</span></div>';
+    }).join('');
+  }
+
+  function renderStatsRatingBreakdown(rb) {
+    const el = document.getElementById('stats-rating-breakdown');
+    if (!el) return;
+    const max = Math.max(1, ...Object.values(rb).map(Number));
+    const rows = [];
+    for (let i = 10; i >= 1; i--) {
+      const c = rb[i] != null ? Number(rb[i]) : 0;
+      const pct = max ? (c / max) * 100 : 0;
+      rows.push('<div class="rating-bar-row"><span class="rating-bar-label">' + i + '</span><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%"></div></div><span>' + c + '</span></div>');
+    }
+    el.innerHTML = '<div class="stats-block-title">📊 Оценки</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
+  }
+
+  function renderStatsPlatforms(list) {
+    const el = document.getElementById('stats-platforms');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="stats-block-title">📺 Платформы</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    el.innerHTML = '<div class="stats-block-title">📺 Платформы</div>' + list.map((p) =>
+      '<div class="platform-row"><span>' + escapeHtml(p.platform || '') + '</span><span>' + (p.count != null ? p.count : 0) + '</span></div>'
+    ).join('');
+  }
+
+  function renderStatsWatched(list) {
+    const el = document.getElementById('stats-watched');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div>' + list.map((w) => {
+      const poster = posterUrl(w.kp_id);
+      const typeLabel = w.type === 'series' ? 'Сериал' : 'Фильм';
+      const dateStr = w.date ? new Date(w.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      return '<div class="watched-row">' +
+        (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(w.title || '') + '</div><div class="top-film-meta">' + escapeHtml(typeLabel + (dateStr ? ' · ' + dateStr : '') + (w.rating != null ? ' · ⭐ ' + w.rating : '')) + '</div></div></div>';
+    }).join('');
   }
 
   // ——— FAQ аккордеон ———
@@ -824,7 +1232,17 @@
     initLightbox();
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
-      btn.addEventListener('click', () => showSection(btn.getAttribute('data-section')));
+      btn.addEventListener('click', () => {
+        const sectionId = btn.getAttribute('data-section');
+        showSection(sectionId);
+        if (sectionId === 'stats') {
+          initStatsSelectors();
+          const monthEl = document.getElementById('stats-month');
+          const yearEl = document.getElementById('stats-year');
+          const now = new Date();
+          loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+        }
+      });
     });
 
     const cabinetName = document.getElementById('header-cabinet-name');

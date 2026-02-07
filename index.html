@@ -227,6 +227,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Последние оценки</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
@@ -279,7 +280,42 @@
                         <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Последние оценки" autocomplete="off">
                     </div>
                     <p class="cabinet-hint">В личном кабинете вы можете посмотреть список последних оценок. Для остальных действий выберите фильм или сериал, и вы будете перенаправлены в Telegram.</p>
+                    <div id="ratings-toolbar" class="section-ratings-toolbar" style="display:none">
+                        <label for="ratings-member-filter">Участник:</label>
+                        <select id="ratings-member-filter" class="ratings-member-select" aria-label="Фильтр по участнику">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
                     <div id="ratings-list" class="cards-list"></div>
+                </section>
+                <section id="section-stats" class="cabinet-section hidden">
+                    <h2 class="section-title"><span class="section-title-emoji">📊</span><span class="section-title-text">Статистика</span></h2>
+                    <div class="stats-month-selector">
+                        <label>Период:</label>
+                        <select id="stats-month" class="stats-month-select" aria-label="Месяц"></select>
+                        <select id="stats-year" class="stats-year-select" aria-label="Год"></select>
+                    </div>
+                    <div id="stats-loading" class="stats-loading hidden">Загрузка…</div>
+                    <div id="stats-error" class="stats-error hidden"></div>
+                    <div id="stats-content" class="stats-content">
+                        <!-- Personal stats -->
+                        <div id="stats-personal-wrap">
+                            <div id="stats-summary" class="stats-summary"></div>
+                            <div class="stats-grid">
+                                <div id="stats-top-films" class="stats-block"></div>
+                                <div id="stats-rating-breakdown" class="stats-block"></div>
+                                <div id="stats-platforms" class="stats-block stats-block-full"></div>
+                                <div id="stats-watched" class="stats-block stats-block-full"></div>
+                            </div>
+                        </div>
+                        <!-- Group stats (shown when session is group) -->
+                        <div id="stats-group-wrap" class="hidden">
+                            <div class="stats-group-header" id="stats-group-header"></div>
+                            <div id="stats-group-summary" class="stats-summary stats-group-summary"></div>
+                            <div id="stats-group-mvp"></div>
+                            <div class="stats-grid stats-group-grid" id="stats-group-grid"></div>
+                        </div>
+                    </div>
                 </section>
                 <section id="section-about" class="cabinet-section hidden cabinet-about">
                     <h2 class="section-title"><span class="section-title-emoji">ℹ️</span><span class="section-title-text">О проекте</span></h2>
