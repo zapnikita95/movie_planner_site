@@ -1894,10 +1894,16 @@ footer {
 
 @media (max-width: 768px) {
   .stats-compat-grid { grid-template-columns: 1fr; }
-  .stats-group-header { flex-direction: column; }
+  .stats-group-header { flex-direction: column; flex-wrap: wrap; }
+  .stats-group-header-inner { min-width: 0; max-width: 100%; }
+  .stats-group-title { font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .stats-group-name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+  .stats-group-share { min-width: 0; max-width: 100%; }
+  .stats-group-share-url { min-width: 0; }
   .stats-achievements-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-  .stats-group-title { font-size: 18px; }
-  .stats-grid, .stats-group-grid { min-width: 0; }
-  .stats-block { min-width: 0; overflow: hidden; }
-  #section-stats .stats-content, #section-stats .stats-group-grid { overflow-x: hidden; }
+  .stats-grid, .stats-group-grid { min-width: 0; grid-template-columns: 1fr; }
+  .stats-block { min-width: 0; max-width: 100%; overflow: hidden; box-sizing: border-box; }
+  .rating-bar-row { min-width: 0; }
+  .rating-bar-track { min-width: 0; }
+  #section-stats, #section-stats .stats-content, #section-stats .stats-group-grid { overflow-x: hidden; max-width: 100%; }
 }

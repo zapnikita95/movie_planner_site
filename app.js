@@ -814,9 +814,9 @@
     let decoded = pathPart || '';
     try { decoded = decodeURIComponent(pathPart || ''); } catch (_) {}
     const gMatch = decoded.match(/^\/g\/([^/]+)\/stats/);
-    if (gMatch) return { type: 'group', slug: gMatch[1], month, year };
+    if (gMatch) { try { return { type: 'group', slug: decodeURIComponent(gMatch[1]), month, year }; } catch (_) { return { type: 'group', slug: gMatch[1], month, year }; } }
     const uMatch = decoded.match(/^\/u\/([^/]+)\/stats/);
-    if (uMatch) return { type: 'user', slug: uMatch[1], month, year };
+    if (uMatch) return { type: 'user', slug: decodeURIComponent(uMatch[1]), month, year };
     return null;
   }
 
@@ -868,7 +868,7 @@
     const years = [];
     for (let y = curYear; y >= curYear - 3; y--) years.push(y);
     yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
-    const base = type === 'user' ? '#/u/' + slug + '/stats' : '#/g/' + slug + '/stats';
+    const base = type === 'user' ? '#/u/' + encodeURIComponent(slug) + '/stats' : '#/g/' + encodeURIComponent(slug) + '/stats';
     if (!monthEl._publicBound) {
       monthEl._publicBound = yearEl._publicBound = true;
       const onChange = () => {
@@ -980,7 +980,7 @@
     // Header (and share URL / enable button in cabinet)
     if (headerEl) {
       const slug = group.public_slug;
-      const shareUrl = slug ? (window.location.origin + '/#/g/' + slug + '/stats') : '';
+      const shareUrl = slug ? (window.location.origin + '/#/g/' + encodeURIComponent(slug) + '/stats') : '';
       const isCabinet = !ctx || !ctx.lbPrefix || ctx.lbPrefix !== 'public-lb';
       let shareHtml = '';
       if (shareUrl) {
@@ -988,7 +988,7 @@
       } else if (isCabinet) {
         shareHtml = '<div class="stats-group-share"><span class="stats-personal-share-note">Поделиться: </span><button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
       }
-      const groupTitle = (group.title || 'Группа').length > 45 ? (group.title || 'Группа').slice(0, 42) + '…' : (group.title || 'Группа');
+      const groupTitle = (group.title || 'Группа').length > 35 ? (group.title || 'Группа').slice(0, 32) + '…' : (group.title || 'Группа');
       headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(groupTitle) + '</span></h3>' +
         '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
