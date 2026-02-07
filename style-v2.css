@@ -1856,14 +1856,14 @@ footer {
 .stats-genre-legend span { display: flex; align-items: center; gap: 6px; }
 
 .stats-achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-.stats-achievement { position: relative; background: var(--bg-surface-alt, #1a1a22); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; text-align: center; transition: all 0.3s; }
+.stats-achievement { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; overflow: hidden; background: var(--bg-surface-alt, #1a1a22); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; text-align: center; transition: all 0.3s; box-sizing: border-box; }
 .stats-achievement:hover { transform: translateY(-2px); }
 .stats-achievement.earned { border-color: rgba(251, 191, 36, 0.3); }
 .stats-achievement.earned::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(251,191,36,0.06) 0%, transparent 70%); border-radius: 14px; pointer-events: none; }
-.stats-achievement-icon { font-size: 32px; margin-bottom: 8px; }
-.stats-achievement-name { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
-.stats-achievement-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
-.stats-achievement-holder { font-size: 11px; color: #fbbf24; font-weight: 600; margin-top: 6px; }
+.stats-achievement-icon { font-size: 32px; margin-bottom: 8px; flex-shrink: 0; }
+.stats-achievement-name { width: 100%; font-size: 12px; font-weight: 700; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-word; }
+.stats-achievement-desc { width: 100%; font-size: 11px; color: var(--text-muted); line-height: 1.3; overflow-wrap: break-word; word-break: break-word; }
+.stats-achievement-holder { width: 100%; font-size: 11px; color: #fbbf24; font-weight: 600; margin-top: 6px; overflow-wrap: break-word; word-break: break-word; }
 .stats-achievement-locked { color: var(--text-muted); }
 
 .stats-heatmap-wrap { overflow-x: auto; padding: 16px 0; min-height: 140px; }
@@ -1909,7 +1909,7 @@ footer {
   .stats-group-name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
   .stats-group-share { min-width: 0; max-width: 100%; }
   .stats-group-share-url { min-width: 0; }
-  .stats-achievements-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .stats-achievements-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .stats-grid, .stats-group-grid { min-width: 0; grid-template-columns: 1fr; }
   .stats-block { min-width: 0; max-width: 100%; overflow: hidden; box-sizing: border-box; }
   .rating-bar-row { min-width: 0; }
