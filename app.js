@@ -810,8 +810,17 @@
         if (isGroup) {
           renderGroupStats(data);
         } else {
+          renderStatsProfilePersonal(data, {
+            profileElId: 'stats-profile-personal',
+            achGridId: 'stats-ach-panel-grid',
+            achCountId: 'stats-ach-panel-count',
+            achPanelId: 'stats-ach-panel',
+            allBtnId: 'stats-ach-all-btn',
+            closeBtnId: 'stats-ach-panel-close-btn',
+            achievementsKey: '_cabinetAchievements'
+          });
           renderStatsPersonalShare(data.share_url, data.share_views);
-          renderStatsSummary(data.summary);
+          renderStatsSummary(data.summary, 'stats-summary', 'personal');
           renderStatsTopFilms(data.top_films || [], undefined, data.period);
           renderStatsRatingBreakdown(data.rating_breakdown || {});
           renderStatsPlatforms(data.platforms || []);
@@ -954,8 +963,16 @@
         if (subtitle) subtitle.textContent = 'Статистика: ' + (user.name || slug);
         if (groupWrap) groupWrap.classList.add('hidden');
         if (personalWrap) personalWrap.classList.remove('hidden');
-        renderPublicStatsProfilePersonal(data);
-        renderStatsSummary(data.summary, 'public-stats-personal-summary');
+        renderStatsProfilePersonal(data, {
+          profileElId: 'public-stats-profile-personal',
+          achGridId: 'ach-panel-grid',
+          achCountId: 'ach-panel-count',
+          achPanelId: 'public-stats-ach-panel',
+          allBtnId: 'public-ach-all-btn',
+          closeBtnId: 'ach-panel-close-btn',
+          achievementsKey: '_publicAchievements'
+        });
+        renderStatsSummary(data.summary, 'public-stats-personal-summary', 'personal');
         renderStatsTopFilms(data.top_films || [], 'public-stats-personal-top', data.period);
         renderStatsRatingBreakdown(data.rating_breakdown || {}, 'public-stats-personal-rating');
         renderStatsPlatforms(data.platforms || [], 'public-stats-personal-platforms');
@@ -1310,8 +1327,11 @@
     return 'с ' + month + ' ' + m[1];
   }
 
-  function renderPublicStatsProfilePersonal(data) {
-    const el = document.getElementById('public-stats-profile-personal');
+  function renderStatsProfilePersonal(data, ctx) {
+    ctx = ctx || {};
+    const profileElId = ctx.profileElId || 'public-stats-profile-personal';
+    const allBtnId = ctx.allBtnId || 'public-ach-all-btn';
+    const el = document.getElementById(profileElId);
     if (!el) return;
     const profile = data.user_profile || {};
     const user = data.user || {};
@@ -1333,17 +1353,21 @@
       return '<div class="badge-mini ' + rarity + '"><span class="badge-mini-icon">' + (a.icon || '🏅') + '</span><span class="badge-mini-name">' + escapeHtml(a.name || '') + '</span><div class="badge-tip"><strong>' + (a.icon || '') + ' ' + escapeHtml(a.name || '') + '</strong> ' + escapeHtml(a.description || '') + '</div></div>';
     }).join('');
     if (remaining > 0) badgesHtml += '<span class="badges-more" role="button" tabindex="0">+' + remaining + ' ещё</span>';
-    badgesHtml += '<span class="badges-more" role="button" tabindex="0" style="margin-left:auto;" id="public-ach-all-btn">🏅 Все ачивки</span>';
+    badgesHtml += '<span class="badges-more" role="button" tabindex="0" style="margin-left:auto;" id="' + escapeHtml(allBtnId) + '">🏅 Все ачивки</span>';
     el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div><div class="stats-profile-badges">' + badgesHtml + '</div>';
     el.classList.remove('hidden');
-    window._publicAchievements = achievements;
-    renderPublicAchPanel(achievements, null);
-    bindPublicAchPanel();
+    const achievementsKey = ctx.achievementsKey || '_publicAchievements';
+    window[achievementsKey] = achievements;
+    renderAchPanel(achievements, null, ctx);
+    bindAchPanel(ctx);
   }
 
-  function renderPublicAchPanel(achievements, filterRarity) {
-    const grid = document.getElementById('ach-panel-grid');
-    const countEl = document.getElementById('ach-panel-count');
+  function renderAchPanel(achievements, filterRarity, ctx) {
+    ctx = ctx || {};
+    const gridId = ctx.achGridId || 'ach-panel-grid';
+    const countId = ctx.achCountId || 'ach-panel-count';
+    const grid = document.getElementById(gridId);
+    const countEl = document.getElementById(countId);
     if (!grid) return;
     const list = Array.isArray(achievements) ? (filterRarity ? achievements.filter((a) => (a.rarity || 'common') === filterRarity) : achievements) : [];
     const earnedCount = (achievements || []).filter((a) => a.earned).length;
@@ -1375,32 +1399,44 @@
     }).join('');
   }
 
-  function togglePublicAchPanel() {
-    const panel = document.getElementById('public-stats-ach-panel');
+  function toggleAchPanel(panelId) {
+    const panel = document.getElementById(panelId || 'public-stats-ach-panel');
     if (!panel) return;
     panel.classList.toggle('open');
     panel.setAttribute('aria-hidden', panel.classList.contains('open') ? 'false' : 'true');
     if (panel.classList.contains('open')) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function bindPublicAchPanel() {
-    const allBtn = document.getElementById('public-ach-all-btn');
-    const closeBtn = document.getElementById('ach-panel-close-btn');
-    const filters = document.querySelectorAll('.ach-panel-filter-btn[data-filter]');
+  function bindAchPanel(ctx) {
+    ctx = ctx || {};
+    const allBtnId = ctx.allBtnId || 'public-ach-all-btn';
+    const closeBtnId = ctx.closeBtnId || 'ach-panel-close-btn';
+    const panelId = ctx.achPanelId || 'public-stats-ach-panel';
+    const achievementsKey = ctx.achievementsKey || '_publicAchievements';
+    const allBtn = document.getElementById(allBtnId);
+    const closeBtn = document.getElementById(closeBtnId);
+    const panel = document.getElementById(panelId);
+    const filters = panel ? panel.querySelectorAll('.ach-panel-filter-btn[data-filter]') : [];
     const click = function (el, fn) {
       if (!el) return;
       el.addEventListener('click', fn);
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
     };
-    click(allBtn, togglePublicAchPanel);
-    click(closeBtn, togglePublicAchPanel);
-    document.querySelectorAll('.stats-profile-badges .badges-more').forEach(function (b) {
-      if (b.id !== 'public-ach-all-btn') { click(b, togglePublicAchPanel); }
-    });
+    const toggleFn = function () {
+      toggleAchPanel(panelId);
+    };
+    click(allBtn, toggleFn);
+    click(closeBtn, toggleFn);
+    const profileEl = document.getElementById(ctx.profileElId || 'public-stats-profile-personal');
+    if (profileEl) {
+      profileEl.querySelectorAll('.stats-profile-badges .badges-more').forEach(function (b) {
+        if (b.id !== allBtnId) { click(b, toggleFn); }
+      });
+    }
     filters.forEach(function (f) {
       const filter = f.getAttribute('data-filter');
       click(f, function () {
-        renderPublicAchPanel(window._publicAchievements || [], filter === 'all' ? null : filter);
+        renderAchPanel(window[achievementsKey] || [], filter === 'all' ? null : filter, ctx);
       });
     });
   }
@@ -1472,17 +1508,31 @@
     }
   }
 
-  function renderStatsSummary(s, elId) {
+  function renderStatsSummary(s, elId, style) {
     const el = document.getElementById(elId || 'stats-summary');
     if (!el || !s) return;
-    el.innerHTML = [
-      { val: s.films_watched || 0, label: 'Фильмов' },
-      { val: s.series_watched || 0, label: 'Сериалов' },
-      { val: s.episodes_watched || 0, label: 'Серий' },
-      { val: s.cinema_visits || 0, label: 'Походов в кино' },
-      { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0), label: 'Всего просмотров' },
-      { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
-    ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
+    if (style === 'personal') {
+      const total = s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0);
+      const cards = [
+        { val: s.films_watched || 0, label: 'Фильмов', cls: 'stat-card-pink', icon: '🎬' },
+        { val: (s.series_watched || 0) + ' / ' + (s.episodes_watched || 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: '📺' },
+        { val: s.cinema_visits || 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: '🎥' },
+        { val: total, label: 'Всего просмотров', cls: 'stat-card-purple', icon: '📊' },
+        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка', cls: 'stat-card-amber', icon: '⭐' }
+      ];
+      el.innerHTML = cards.map((c) => '<div class="stat-card ' + c.cls + '"><div class="stat-card-icon">' + c.icon + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>').join('');
+      el.classList.add('stats-group-summary');
+    } else {
+      el.classList.remove('stats-group-summary');
+      el.innerHTML = [
+        { val: s.films_watched || 0, label: 'Фильмов' },
+        { val: s.series_watched || 0, label: 'Сериалов' },
+        { val: s.episodes_watched || 0, label: 'Серий' },
+        { val: s.cinema_visits || 0, label: 'Походов в кино' },
+        { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0), label: 'Всего просмотров' },
+        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
+      ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
+    }
   }
 
   function renderStatsTopFilms(list, elId, period) {
