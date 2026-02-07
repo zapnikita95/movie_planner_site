@@ -1992,7 +1992,7 @@ body.in-public-stats .footer-extension-cabinet {
 .stats-achievement.earned { border-color: rgba(251, 191, 36, 0.3); }
 .stats-achievement.earned::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(251,191,36,0.06) 0%, transparent 70%); border-radius: 14px; pointer-events: none; }
 .stats-achievement-icon { font-size: 32px; margin-bottom: 8px; flex-shrink: 0; }
-.stats-achievement-name { width: 100%; font-size: 12px; font-weight: 700; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-word; }
+.stats-achievement-name { width: 100%; font-size: 11px; font-weight: 700; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-word; }
 .stats-achievement-desc { width: 100%; font-size: 11px; color: var(--text-muted); line-height: 1.3; overflow-wrap: break-word; word-break: break-word; }
 .stats-achievement-holder { width: 100%; font-size: 11px; color: #fbbf24; font-weight: 600; margin-top: 6px; overflow-wrap: break-word; word-break: break-word; }
 .stats-achievement-locked { color: var(--text-muted); }
