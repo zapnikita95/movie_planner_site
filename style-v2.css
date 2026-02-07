@@ -410,8 +410,12 @@ section {
   margin-bottom: 20px;
   position: relative;
   z-index: 1;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .what-is-v2-title .gradient-text {
+  display: inline-block;
+  max-width: 100%;
   background: linear-gradient(135deg, #ff2d7b, #9b4dff, #00d4ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -455,8 +459,21 @@ section {
 .what-is-v2-feature .feat-icon { font-size: 18px; }
 @media (max-width: 768px) {
   .what-is-v2 { padding: 40px 24px; margin: 40px auto; }
-  .what-is-v2-features { gap: 10px; }
-  .what-is-v2-feature { font-size: 13px; padding: 6px 12px; }
+  .what-is-v2-features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+    max-width: 100%;
+  }
+  .what-is-v2-feature {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-width: 0;
+    justify-content: center;
+    text-align: center;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
 }
 
 .section-title {
