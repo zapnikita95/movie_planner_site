@@ -1076,7 +1076,7 @@
     // Summary cards
     if (summaryEl) {
       const cards = [
-        { val: summary.group_films ?? 0, label: 'Фильмов на группу', cls: 'stat-card-pink' },
+        { val: summary.group_films ?? 0, label: 'Просмотренных фильмов', cls: 'stat-card-pink' },
         { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple' },
         { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan' },
         { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green' },
