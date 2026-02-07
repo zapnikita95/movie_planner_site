@@ -93,6 +93,7 @@
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
 .cabinet-nav-btn.active { color: #ff2d7b; border-bottom-color: #ff2d7b; }
 .cabinet-nav-extension { margin-left: auto; flex-shrink: 0; align-self: center; }
+.cabinet-nav-extension:hover { transform: none; }
 @media (max-width: 768px) { .cabinet-nav-extension { display: none !important; } }
 #cabinet-readonly, #cabinet-onboarding { display: none; padding: 40px 24px; max-width: 1200px; margin: 0 auto; }
 #cabinet-readonly:not(.hidden), #cabinet-onboarding:not(.hidden) { display: block; }

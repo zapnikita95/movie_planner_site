@@ -1315,19 +1315,39 @@
     });
   }
 
+  function formatMemberSince(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return '';
+    const m = dateStr.match(/^(\d{4})-(\d{2})/);
+    if (!m) return dateStr;
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const month = months[parseInt(m[2], 10) - 1] || m[2];
+    return 'с ' + month + ' ' + m[1];
+  }
+
   function renderPublicStatsProfilePersonal(data) {
     const el = document.getElementById('public-stats-profile-personal');
     if (!el) return;
+    const profile = data.user_profile || {};
     const user = data.user || {};
-    const s = data.summary || {};
-    const name = user.name || user.username || 'Пользователь';
+    const achievements = data.achievements || [];
+    const name = profile.first_name || user.name || ('@' + (profile.username || user.username || '').replace(/^@/, '')) || 'Пользователь';
     const initial = (name[0] || '?').toUpperCase();
+    const since = formatMemberSince(profile.member_since);
     const meta = [
-      s.films_watched ? '🎬 ' + s.films_watched + ' фильмов' : null,
-      s.series_watched ? '📺 ' + s.series_watched + ' сериалов' : null,
-      s.avg_rating != null ? '⭐ ' + Number(s.avg_rating).toFixed(1) + ' средняя' : null
+      profile.total_films_alltime != null ? '🎬 ' + profile.total_films_alltime + ' фильмов' : null,
+      profile.total_series_alltime != null ? '📺 ' + profile.total_series_alltime + ' сериалов' : null,
+      profile.avg_rating_alltime != null ? '⭐ ' + Number(profile.avg_rating_alltime).toFixed(1) + ' средняя' : null,
+      since ? '📅 ' + since : null
     ].filter(Boolean).join(' · ');
-    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div>';
+    const earned = achievements.filter((a) => a.earned);
+    const show = earned.slice(0, 5);
+    const remaining = earned.length - show.length;
+    let badgesHtml = show.map((a) => {
+      const rarity = (a.rarity || 'common');
+      return '<div class="badge-mini ' + rarity + '"><span class="badge-mini-icon">' + (a.icon || '🏅') + '</span><span class="badge-mini-name">' + escapeHtml(a.name || '') + '</span><div class="badge-tip"><strong>' + (a.icon || '') + ' ' + escapeHtml(a.name || '') + '</strong> ' + escapeHtml(a.description || '') + '</div></div>';
+    }).join('');
+    if (remaining > 0) badgesHtml += '<span class="badges-more">+' + remaining + ' ещё</span>';
+    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div>' + (badgesHtml ? '<div class="stats-profile-badges">' + badgesHtml + '</div>' : '');
     el.classList.remove('hidden');
   }
 
