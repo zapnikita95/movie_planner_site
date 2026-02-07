@@ -795,7 +795,11 @@
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
         if (!data || !data.success) {
-          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          if (error) {
+            error.classList.remove('hidden');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
+            error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
+          }
           return;
         }
         if (data.debug_available) {
@@ -852,7 +856,11 @@
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
         if (!data || !data.success) {
-          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          if (error) {
+            error.classList.remove('hidden');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
+            error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
+          }
           return;
         }
         const group = data.group || {};
@@ -933,7 +941,11 @@
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
         if (!data || !data.success) {
-          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          if (error) {
+            error.classList.remove('hidden');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
+            error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
+          }
           return;
         }
         const user = data.user || {};
