@@ -810,9 +810,11 @@
     const params = new URLSearchParams(h.split('?')[1] || '');
     const month = parseInt(params.get('m'), 10) || new Date().getMonth() + 1;
     const year = parseInt(params.get('y'), 10) || new Date().getFullYear();
-    const gMatch = pathPart.match(/^\/g\/([a-zA-Z0-9_.-]+)\/stats/);
+    let decoded = pathPart || '';
+    try { decoded = decodeURIComponent(pathPart || ''); } catch (_) {}
+    const gMatch = decoded.match(/^\/g\/([^/]+)\/stats/);
     if (gMatch) return { type: 'group', slug: gMatch[1], month, year };
-    const uMatch = pathPart.match(/^\/u\/([a-zA-Z0-9_.-]+)\/stats/);
+    const uMatch = decoded.match(/^\/u\/([^/]+)\/stats/);
     if (uMatch) return { type: 'user', slug: uMatch[1], month, year };
     return null;
   }
@@ -985,7 +987,8 @@
       } else if (isCabinet) {
         shareHtml = '<div class="stats-group-share"><span class="stats-personal-share-note">Поделиться: </span><button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
       }
-      headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(group.title || 'Группа') + '</span></h3>' +
+      const groupTitle = (group.title || 'Группа').length > 45 ? (group.title || 'Группа').slice(0, 42) + '…' : (group.title || 'Группа');
+      headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(groupTitle) + '</span></h3>' +
         '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');

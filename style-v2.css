@@ -1740,17 +1740,18 @@ footer {
 .film-rated-date { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
 /* Group stats */
-.stats-group-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-.stats-group-header-inner { flex: 1; min-width: 0; }
-.stats-group-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.stats-group-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; min-width: 0; }
+.stats-group-header-inner { flex: 1; min-width: 0; overflow: hidden; }
+.stats-group-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; word-break: break-word; }
 .stats-group-name { background: linear-gradient(135deg, #ff2d7b, #9b4dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .stats-group-meta { font-size: 14px; color: var(--text-muted); }
 .stats-personal-share { margin-bottom: 24px; }
 .stats-personal-share-note { font-size: 14px; color: var(--text-muted); }
 .stats-personal-share-note a { color: #ff2d7b; text-decoration: none; }
 .stats-personal-share-note a:hover { text-decoration: underline; }
-.stats-group-share { display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border: 1px solid var(--border-color-alt, rgba(255,255,255,0.08)); border-radius: 12px; padding: 8px 12px 8px 16px; font-size: 13px; color: var(--text-muted); }
-.stats-group-share-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-group-share { display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border: 1px solid var(--border-color-alt, rgba(255,255,255,0.08)); border-radius: 12px; padding: 8px 12px 8px 16px; font-size: 13px; color: var(--text-muted); min-width: 0; }
+.stats-group-share-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.stats-group-copy-btn { flex-shrink: 0; }
 .stats-group-copy-btn { padding: 6px 14px; border-radius: 8px; background: linear-gradient(135deg, #ff2d7b, #9b4dff); color: white; border: none; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; }
 
 .stat-card-pink .stat-card-value { color: #ff2d7b; }
@@ -1887,4 +1888,8 @@ footer {
   .stats-compat-grid { grid-template-columns: 1fr; }
   .stats-group-header { flex-direction: column; }
   .stats-achievements-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .stats-group-title { font-size: 18px; }
+  .stats-grid, .stats-group-grid { min-width: 0; }
+  .stats-block { min-width: 0; overflow: hidden; }
+  #section-stats .stats-content, #section-stats .stats-group-grid { overflow-x: hidden; }
 }
