@@ -226,6 +226,7 @@
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
     document.body.classList.toggle('in-cabinet', screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
+    document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
   }
 
   function showSection(sectionId) {

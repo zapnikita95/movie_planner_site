@@ -715,21 +715,27 @@ footer {
   position: relative;
   z-index: 1;
 }
+@media (max-width: 768px) {
+  footer { padding: 32px 24px; margin-top: 24px; }
+  .footer-bottom { padding-top: 20px; }
+}
 
 .footer-content {
   max-width: 1200px;
   margin: 0 auto;
 }
 .footer-extension-cabinet { display: none; }
+body.in-public-stats .footer-extension-cabinet {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.footer-extension-cabinet a { white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 768px) {
   body.in-cabinet .footer-extension-cabinet {
     display: flex;
     align-items: center;
     margin-bottom: 24px;
-  }
-  body.in-cabinet .footer-extension-cabinet a {
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 }
 
@@ -2084,6 +2090,9 @@ footer {
 
 /* Public stats page (share link) */
 #public-stats { padding: 32px 0 80px; min-height: 100vh; }
+@media (max-width: 768px) {
+  #public-stats { padding: 24px 0 32px; min-height: auto; }
+}
 #public-stats .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 .public-stats-header-wrap {
   max-width: 1200px;
