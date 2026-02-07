@@ -91,6 +91,7 @@
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
 .cabinet-nav-btn.active { color: #ff2d7b; border-bottom-color: #ff2d7b; }
 .cabinet-nav-extension { margin-left: auto; flex-shrink: 0; align-self: center; }
+@media (max-width: 768px) { .cabinet-nav-extension { display: none !important; } }
 #cabinet-readonly, #cabinet-onboarding { display: none; padding: 40px 24px; max-width: 1200px; margin: 0 auto; }
 #cabinet-readonly:not(.hidden), #cabinet-onboarding:not(.hidden) { display: block; }
 .cabinet-sections { max-width: 1200px; margin: 0 auto; }
@@ -600,6 +601,13 @@ footer {
 .footer-content {
   max-width: 1200px;
   margin: 0 auto;
+}
+.footer-extension-cabinet { display: none; }
+@media (max-width: 768px) {
+  body.in-cabinet .footer-extension-cabinet {
+    display: block;
+    margin-bottom: 24px;
+  }
 }
 
 .footer-sections {

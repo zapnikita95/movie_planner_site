@@ -225,6 +225,7 @@
     if (header) header.classList.toggle('hidden', screenId === 'public-stats');
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
+    document.body.classList.toggle('in-cabinet', screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
   }
 
   function showSection(sectionId) {
@@ -347,7 +348,7 @@
       const ua = navigator.userAgent || '';
       const isOpera = /opr|opera/i.test(ua) || (navigator.browser && navigator.browser.opera);
       const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
-      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard').forEach((a) => {
+      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link').forEach((a) => {
         if (a) { a.href = url; a.classList.remove('hidden'); }
       });
     }).catch(() => {});
