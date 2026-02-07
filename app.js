@@ -989,6 +989,9 @@
   function showPublicStatsView(parsed) {
     if (!parsed || !parsed.slug) return;
     showScreen('public-stats');
+    loadExtensionConfig();
+    const footerExt = document.getElementById('cabinet-footer-extension-link');
+    if (footerExt) { footerExt.classList.remove('hidden'); }
     initPublicStatsSelectors(parsed.slug, parsed.month, parsed.year, parsed.type);
     if (parsed.type === 'user') {
       loadPublicUserStats(parsed.slug, parsed.month, parsed.year);
