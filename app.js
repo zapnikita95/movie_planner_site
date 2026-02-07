@@ -943,12 +943,20 @@
     return members.find((m) => (m.user_id === id || String(m.user_id) === String(userId))) || null;
   }
 
+  function memberInitial(member) {
+    if (!member) return '?';
+    let name = member.first_name || member.username || '';
+    if (name && name[0] === '@') name = name.slice(1);
+    return (name || '?')[0].toUpperCase();
+  }
+
   function groupAvatar(member, size) {
     if (!member) return '';
     const color = member.avatar_color || '#9b4dff';
-    const initial = (member.first_name || member.username || '?')[0].toUpperCase();
+    const initial = memberInitial(member);
     const cls = size ? 'avatar avatar-' + size : 'avatar';
-    return '<div class="' + cls + '" style="background:' + escapeHtml(color) + '" title="' + escapeHtml(member.first_name || '') + '">' + escapeHtml(initial) + '</div>';
+    const titleStr = member.first_name || member.username || '';
+    return '<div class="' + cls + '" style="background:' + escapeHtml(color) + '" title="' + escapeHtml(titleStr) + '">' + escapeHtml(initial) + '</div>';
   }
 
   function ratingColor(r) {
@@ -1178,7 +1186,7 @@
           const cnt = bm ? (bm.count || 0) : 0;
           const m = memberById(members, uid);
           const pct = maxG ? (cnt / maxG) * 100 : 0;
-          return '<div class="stats-genre-bar-line"><div class="stats-genre-bar-user">' + (m ? (m.first_name || '?')[0] : '') + '</div><div class="stats-genre-bar-track"><div class="stats-genre-bar-fill" style="width:' + pct + '%;background:' + (m && m.avatar_color ? m.avatar_color : '#9b4dff') + '">' + (cnt > 0 ? cnt : '') + '</div></div></div>';
+          return '<div class="stats-genre-bar-line"><div class="stats-genre-bar-user">' + (m ? memberInitial(m) : '') + '</div><div class="stats-genre-bar-track"><div class="stats-genre-bar-fill" style="width:' + pct + '%;background:' + (m && m.avatar_color ? m.avatar_color : '#9b4dff') + '">' + (cnt > 0 ? cnt : '') + '</div></div></div>';
         }).join('');
         return '<div class="stats-genre-row"><div class="stats-genre-label">' + escapeHtml(g.genre || '') + '</div><div class="stats-genre-bars">' + bars + '</div></div>';
       }).join('');
