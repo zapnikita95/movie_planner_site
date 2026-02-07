@@ -1151,7 +1151,8 @@
     const bars = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((r) => {
       const c = ratingBreakdown[r] ?? 0;
       const pct = maxRb ? (c / maxRb) * 100 : 0;
-      return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;background:hsl(' + ((r - 1) * 12) + ',80%,55%)">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
+      const bgStyle = c > 0 ? 'background:hsl(' + ((r - 1) * 12) + ',80%,55%)' : '';
+      return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + bgStyle + '">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
     }).join('');
     blocks.push('<div class="stats-block"><div class="stats-block-title">📊 Распределение оценок группы</div><p class="stats-block-sub">Средняя группы: <span style="color:' + ratingColor(+avgRb) + ';font-weight:700">' + avgRb + '</span></p>' + bars + '</div>');
 
@@ -1293,11 +1294,11 @@
             else if (v <= avg * 2.5) lvl = 'l3';
             else lvl = 'l4';
           }
-          cells += '<div class="stats-heatmap-cell ' + lvl + '" title="' + escapeHtml(m.first_name || '') + ': ' + v + ' (день ' + d + ')"></div>';
+          cells += '<div class="stats-heatmap-cell ' + lvl + '" title="День ' + d + ': ' + v + '"></div>';
         });
         cols += '<div class="stats-heatmap-col"><div class="stats-heatmap-day">' + d + '</div>' + cells + '</div>';
       }
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📅 Активность по дням</div><div class="stats-heatmap-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || '') + '</span>').join('') + '</div><div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📅 Активность группы по дням</div><div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
     }
 
     // Watched list
@@ -1581,9 +1582,9 @@
     for (let i = 10; i >= 1; i--) {
       const c = rb[i] != null ? Number(rb[i]) : 0;
       const pct = max ? (c / max) * 100 : 0;
-      const bg = RATING_HSL[i] || 'hsl(60,80%,55%)';
+      const bg = c > 0 ? (RATING_HSL[i] || 'hsl(60,80%,55%)') : '';
       const fillInner = c > 0 ? String(c) : '';
-      rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;background:' + bg + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
+      rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + (bg ? 'background:' + bg : '') + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
     }
     el.innerHTML = '<div class="stats-block-title">📊 Распределение оценок</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
   }
