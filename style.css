@@ -1128,7 +1128,7 @@ section {
 /* Планы: постер | дата+формат сверху, название снизу | кнопка по одной вертикали */
 .plan-card {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr) 200px;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
   gap: 12px 16px;
   align-items: center;
   padding: 12px 14px;
@@ -1203,10 +1203,19 @@ section {
   overflow-wrap: break-word;
   word-break: break-word;
 }
-.plan-card .btn-small {
+.plan-card .plan-card-buttons {
+  display: flex;
+  justify-content: flex-start;
+  padding: 8px 0 0;
+  align-self: center;
+}
+.plan-card .plan-card-buttons .btn-small {
   margin: 0;
   width: auto;
   min-width: max-content;
+  max-width: 100%;
+  padding: 8px 16px;
+  font-size: 13px;
   text-align: center;
   box-sizing: border-box;
   white-space: nowrap;
@@ -1228,7 +1237,7 @@ section {
     max-width: 80px;
     max-height: 120px;
   }
-  .plan-card .btn-small {
+  .plan-card .plan-card-buttons .btn-small {
     font-size: 12px;
     padding: 6px 10px;
   }
@@ -1251,7 +1260,7 @@ section {
     position: relative;
     grid-template-columns: 70px minmax(0, 1fr);
   }
-  .plan-card .btn-small {
+  .plan-card .plan-card-buttons .btn-small {
     position: absolute;
     inset: 0;
     z-index: 1;

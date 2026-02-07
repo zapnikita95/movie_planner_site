@@ -408,7 +408,9 @@
               </div>
               <div class="plan-title">🎬 ${titleSafe}</div>
             </div>
-            <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+            <div class="plan-card-buttons">
+              <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+            </div>
           </a>`;
       };
       const homeEmpty = !data.home || !data.home.length;
