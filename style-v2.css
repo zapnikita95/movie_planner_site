@@ -1731,6 +1731,15 @@ footer {
 .rating-bar-track { flex: 1; height: 24px; background: var(--bg-surface-alt); border-radius: 6px; overflow: hidden; }
 .rating-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 700; color: white; transition: width 0.6s ease; }
 .platform-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+.watched-block-wrap { }
+.watched-list-collapsed .watched-item:nth-child(n+17) { display: none; }
+@media (max-width: 768px) {
+  .watched-list-collapsed .watched-item:nth-child(n+8) { display: none; }
+}
+.watched-expand-wrap { margin-top: 16px; }
+.watched-expand-btn { padding: 10px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--bg-surface-alt, #1a1a22); color: var(--text-primary); border: 1px solid var(--border-color); font-family: inherit; transition: all 0.2s; }
+.watched-expand-btn:hover { border-color: #ff2d7b; color: #ff2d7b; }
+
 .watched-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .watched-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--bg-surface-alt, #1a1a22); border: 1px solid var(--border-color); border-radius: 14px; transition: all 0.2s; }
 .watched-item:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }

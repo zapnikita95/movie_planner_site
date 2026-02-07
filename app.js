@@ -1234,7 +1234,12 @@
       blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📅 Активность по дням</div><div class="stats-heatmap-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || '') + '</span>').join('') + '</div><div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
     }
 
+    // Watched list
+    const watched = data.watched || [];
+    blocks.push('<div class="stats-block stats-block-full">' + buildWatchedBlockHtml(watched, period) + '</div>');
+
     gridEl.innerHTML = blocks.join('');
+    bindWatchedExpand(gridEl);
 
     // Leaderboard tab switch
     gridEl.querySelectorAll('.stats-lb-tab').forEach((tab) => {
@@ -1370,12 +1375,10 @@
     ).join('');
   }
 
-  function renderStatsWatched(list, elId, period) {
-    const el = document.getElementById(elId || 'stats-watched');
-    if (!el) return;
+  function buildWatchedBlockHtml(list, period) {
     const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
     const title = monthLabel ? '📋 Всё просмотренное за ' + monthLabel : '📋 Просмотренное';
-    if (!list.length) { el.innerHTML = '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    if (!list.length) return '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>';
     const itemsHtml = list.map((w) => {
       const poster = posterUrl(w.kp_id);
       const dateObj = w.date ? new Date(w.date + 'T12:00:00') : null;
@@ -1390,7 +1393,34 @@
         '<div class="watched-info"><div class="watched-name">' + escapeHtml(w.title || '') + '</div><div class="watched-meta">' + escapeHtml(metaStr) + '</div></div>' +
         '<span class="watched-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + '</span></div>';
     }).join('');
-    el.innerHTML = '<div class="stats-block-title">' + title + '</div><div class="watched-list">' + itemsHtml + '</div>';
+    const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+    const visibleCount = isMobile ? 7 : 16;
+    const restCount = Math.max(0, list.length - visibleCount);
+    const collapsedClass = restCount > 0 ? ' watched-list-collapsed' : '';
+    let expandHtml = '';
+    if (restCount > 0) {
+      expandHtml = '<div class="watched-expand-wrap"><button type="button" class="watched-expand-btn">Развернуть ещё ' + restCount + '</button></div>';
+    }
+    return '<div class="stats-block-title">' + title + '</div><div class="watched-block-wrap' + collapsedClass + '"><div class="watched-list">' + itemsHtml + '</div>' + expandHtml + '</div>';
+  }
+
+  function bindWatchedExpand(container) {
+    if (!container) return;
+    container.querySelectorAll('.watched-expand-btn').forEach(function (btn) {
+      if (btn._bound) return;
+      btn._bound = true;
+      btn.addEventListener('click', function () {
+        const wrap = this.closest('.watched-block-wrap');
+        if (wrap) { wrap.classList.remove('watched-list-collapsed'); this.parentElement?.remove(); }
+      });
+    });
+  }
+
+  function renderStatsWatched(list, elId, period) {
+    const el = document.getElementById(elId || 'stats-watched');
+    if (!el) return;
+    el.innerHTML = buildWatchedBlockHtml(list, period);
+    bindWatchedExpand(el);
   }
 
   // ——— FAQ аккордеон ———
