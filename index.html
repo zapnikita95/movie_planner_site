@@ -325,10 +325,9 @@
                 </section>
                 <section id="section-stats" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji">📊</span><span class="section-title-text">Статистика</span></h2>
-                    <div class="stats-month-selector">
-                        <label>Период:</label>
-                        <select id="stats-month" class="stats-month-select" aria-label="Месяц"></select>
-                        <select id="stats-year" class="stats-year-select" aria-label="Год"></select>
+                    <div class="stats-month-selector month-selector">
+                        <select id="stats-year" class="year-select" aria-label="Год"></select>
+                        <div class="month-pills" id="stats-month-pills"></div>
                         <a href="#" id="stats-debug-link" class="stats-debug-link hidden" title="Сырые данные для отладки (в консоль)">🐛 Debug</a>
                     </div>
                     <div id="stats-loading" class="stats-loading hidden">Загрузка…</div>

@@ -333,7 +333,7 @@
           const monthEl = document.getElementById('stats-month');
           const yearEl = document.getElementById('stats-year');
           const now = new Date();
-          loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
         }
       } else {
         showScreen('cabinet-onboarding');
@@ -700,29 +700,47 @@
   // ——— Статистика ———
   const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
+  const MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+
   function initStatsSelectors() {
-    const monthEl = document.getElementById('stats-month');
     const yearEl = document.getElementById('stats-year');
+    const pillsEl = document.getElementById('stats-month-pills');
     const debugLink = document.getElementById('stats-debug-link');
-    if (!monthEl || !yearEl) return;
+    if (!yearEl || !pillsEl) return;
     const now = new Date();
     const curMonth = now.getMonth() + 1;
     const curYear = now.getFullYear();
-    monthEl.innerHTML = MONTH_NAMES.map((name, i) => '<option value="' + (i + 1) + '"' + (i + 1 === curMonth ? ' selected' : '') + '>' + name + '</option>').join('');
     const years = [];
     for (let y = curYear; y >= curYear - 3; y--) years.push(y);
     yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
-    if (!monthEl._bound) {
-      monthEl._bound = yearEl._bound = true;
-      monthEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
-      yearEl.addEventListener('change', () => loadStats(parseInt(monthEl.value, 10), parseInt(yearEl.value, 10)));
+    pillsEl.innerHTML = MONTH_SHORT.map((name, i) => '<button type="button" class="month-pill' + (i + 1 === curMonth ? ' active' : '') + '" data-month="' + (i + 1) + '">' + name + '</button>').join('');
+    function getMonthYear() {
+      const active = pillsEl.querySelector('.month-pill.active');
+      const m = active ? parseInt(active.getAttribute('data-month'), 10) : curMonth;
+      const y = parseInt(yearEl.value, 10);
+      return { m, y };
     }
+    if (!pillsEl._bound) {
+      pillsEl._bound = yearEl._bound = true;
+      pillsEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.month-pill');
+        if (!btn) return;
+        pillsEl.querySelectorAll('.month-pill').forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        const { m, y } = getMonthYear();
+        loadStats(m, y);
+      });
+      yearEl.addEventListener('change', () => {
+        const { m, y } = getMonthYear();
+        loadStats(m, y);
+      });
+    }
+    window._getStatsMonthYear = getMonthYear;
     if (debugLink && !debugLink._bound) {
       debugLink._bound = true;
       debugLink.addEventListener('click', function (e) {
         e.preventDefault();
-        const m = parseInt(monthEl.value, 10);
-        const y = parseInt(yearEl.value, 10);
+        const { m, y } = getMonthYear();
         api('/api/site/stats/debug?month=' + m + '&year=' + y)
           .then((r) => {
             if (r && r.debug) {
@@ -771,11 +789,11 @@
         } else {
           renderStatsPersonalShare(data.share_url);
           renderStatsSummary(data.summary);
-          renderStatsTopFilms(data.top_films || []);
+          renderStatsTopFilms(data.top_films || [], undefined, data.period);
           renderStatsRatingBreakdown(data.rating_breakdown || {});
           renderStatsPlatforms(data.platforms || []);
           renderStatsCinema(data.cinema || []);
-          renderStatsWatched(data.watched || []);
+          renderStatsWatched(data.watched || [], undefined, data.period);
         }
       })
       .catch(() => {
@@ -889,11 +907,11 @@
         if (groupWrap) groupWrap.classList.add('hidden');
         if (personalWrap) personalWrap.classList.remove('hidden');
         renderStatsSummary(data.summary, 'public-stats-personal-summary');
-        renderStatsTopFilms(data.top_films || [], 'public-stats-personal-top');
+        renderStatsTopFilms(data.top_films || [], 'public-stats-personal-top', data.period);
         renderStatsRatingBreakdown(data.rating_breakdown || {}, 'public-stats-personal-rating');
         renderStatsPlatforms(data.platforms || [], 'public-stats-personal-platforms');
         renderStatsCinema(data.cinema || [], 'public-stats-personal-cinema');
-        renderStatsWatched(data.watched || [], 'public-stats-personal-watched');
+        renderStatsWatched(data.watched || [], 'public-stats-personal-watched', data.period);
       })
       .catch(() => {
         if (loading) loading.classList.add('hidden');
@@ -983,7 +1001,7 @@
               const monthEl = document.getElementById('stats-month');
               const yearEl = document.getElementById('stats-year');
               const now = new Date();
-              loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+              (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
             } else {
               btn.disabled = false;
               btn.textContent = 'Включить публичную ссылку';
@@ -1244,7 +1262,7 @@
               const monthEl = document.getElementById('stats-month');
               const yearEl = document.getElementById('stats-year');
               const now = new Date();
-              loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+              (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
             } else {
               this.disabled = false;
               this.textContent = 'Включить публичную ссылку';
@@ -1268,19 +1286,41 @@
     ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
   }
 
-  function renderStatsTopFilms(list, elId) {
+  function renderStatsTopFilms(list, elId, period) {
     const el = document.getElementById(elId || 'stats-top-films');
     if (!el) return;
     if (!list.length) { el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
-    el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div>' + list.slice(0, 10).map((f, i) => {
+    const VISIBLE = 5;
+    const full = list.slice(0, 10);
+    const visible = full.slice(0, VISIBLE);
+    const hasMore = full.length > VISIBLE;
+    let html = '<div class="stats-block-title">🏆 Топ оценок</div>';
+    html += visible.map((f, i) => {
       const poster = posterUrl(f.kp_id);
       return '<div class="top-film-row"><span class="top-film-rank">' + (i + 1) + '</span>' +
         (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
         '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div></div>' +
         '<span class="top-film-rating">⭐ ' + (f.rating != null ? f.rating : '—') + '</span></div>';
     }).join('');
+    if (hasMore) {
+      const rest = full.slice(VISIBLE);
+      html += '<div class="top-films-expand-wrap"><button type="button" class="top-films-expand-btn">Развернуть ещё ' + rest.length + '</button>';
+      html += '<div class="top-films-rest hidden">' + rest.map((f, i) => {
+        const poster = posterUrl(f.kp_id);
+        return '<div class="top-film-row"><span class="top-film-rank">' + (VISIBLE + i + 1) + '</span>' +
+          (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div></div>' +
+          '<span class="top-film-rating">⭐ ' + (f.rating != null ? f.rating : '—') + '</span></div>';
+      }).join('') + '</div></div>';
+    }
+    el.innerHTML = html;
+    el.querySelector('.top-films-expand-btn')?.addEventListener('click', function () {
+      const rest = el.querySelector('.top-films-rest');
+      if (rest) { rest.classList.remove('hidden'); this.remove(); }
+    });
   }
 
+  const RATING_HSL = { 10: 'hsl(108,80%,55%)', 9: 'hsl(96,80%,55%)', 8: 'hsl(84,80%,55%)', 7: 'hsl(72,80%,55%)', 6: 'hsl(60,80%,55%)', 5: 'hsl(48,80%,55%)', 4: 'hsl(36,80%,55%)', 3: 'hsl(24,80%,55%)', 2: 'hsl(12,80%,55%)', 1: 'hsl(0,80%,55%)' };
   function renderStatsRatingBreakdown(rb, elId) {
     const el = document.getElementById(elId || 'stats-rating-breakdown');
     if (!el) return;
@@ -1289,9 +1329,11 @@
     for (let i = 10; i >= 1; i--) {
       const c = rb[i] != null ? Number(rb[i]) : 0;
       const pct = max ? (c / max) * 100 : 0;
-      rows.push('<div class="rating-bar-row"><span class="rating-bar-label">' + i + '</span><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%"></div></div><span>' + c + '</span></div>');
+      const bg = RATING_HSL[i] || 'hsl(60,80%,55%)';
+      const fillInner = c > 0 ? String(c) : '';
+      rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;background:' + bg + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
     }
-    el.innerHTML = '<div class="stats-block-title">📊 Оценки</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
+    el.innerHTML = '<div class="stats-block-title">📊 Распределение оценок</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
   }
 
   function renderStatsCinema(list, elId) {
@@ -1316,18 +1358,27 @@
     ).join('');
   }
 
-  function renderStatsWatched(list, elId) {
+  function renderStatsWatched(list, elId, period) {
     const el = document.getElementById(elId || 'stats-watched');
     if (!el) return;
-    if (!list.length) { el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
-    el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div>' + list.map((w) => {
+    const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
+    const title = monthLabel ? '📋 Всё просмотренное за ' + monthLabel : '📋 Просмотренное';
+    if (!list.length) { el.innerHTML = '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    const itemsHtml = list.map((w) => {
       const poster = posterUrl(w.kp_id);
-      const typeLabel = w.type === 'series' ? 'Сериал' : 'Фильм';
-      const dateStr = w.date ? new Date(w.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-      return '<div class="watched-row">' +
-        (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
-        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(w.title || '') + '</div><div class="top-film-meta">' + escapeHtml(typeLabel + (dateStr ? ' · ' + dateStr : '') + (w.rating != null ? ' · ⭐ ' + w.rating : '')) + '</div></div></div>';
+      const dateObj = w.date ? new Date(w.date + 'T12:00:00') : null;
+      const metaDate = dateObj ? (dateObj.getDate() + ' ' + MONTH_SHORT[(dateObj.getMonth())].toLowerCase()) : '';
+      const metaStr = metaDate + (w.rating != null ? ' · ⭐ ' + w.rating : '');
+      let badgeCls = 'badge-film';
+      let badgeLabel = 'Фильм';
+      if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
+      else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = 'Сериал'; }
+      return '<div class="watched-item">' +
+        (poster ? '<img src="' + poster + '" alt="' + escapeHtml(w.title || '') + '" class="watched-poster" loading="lazy" onerror="this.style.background=\'var(--bg-surface-alt)\'">' : '<div class="watched-poster"></div>') +
+        '<div class="watched-info"><div class="watched-name">' + escapeHtml(w.title || '') + '</div><div class="watched-meta">' + escapeHtml(metaStr) + '</div></div>' +
+        '<span class="watched-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + '</span></div>';
     }).join('');
+    el.innerHTML = '<div class="stats-block-title">' + title + '</div><div class="watched-list">' + itemsHtml + '</div>';
   }
 
   // ——— FAQ аккордеон ———
@@ -1547,7 +1598,7 @@
           const monthEl = document.getElementById('stats-month');
           const yearEl = document.getElementById('stats-year');
           const now = new Date();
-          loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
         }
       });
     });
