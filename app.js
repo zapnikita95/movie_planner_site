@@ -936,6 +936,7 @@
     if (groupWrap) groupWrap.classList.add('hidden');
     if (personalWrap) personalWrap.classList.add('hidden');
     if (subtitle) subtitle.textContent = 'Статистика';
+    document.getElementById('public-stats-ach-panel')?.classList.remove('open');
 
     apiPublic('/api/site/stats/public/' + encodeURIComponent(slug) + '?month=' + (month || new Date().getMonth() + 1) + '&year=' + (year || new Date().getFullYear()))
       .then((data) => {
@@ -1192,22 +1193,6 @@
       blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🎥 Походы в кино</div>' + cinemaHtml + '</div>');
     }
 
-    // Watched (всё просмотренное за месяц)
-    const watchedList = data.watched || [];
-    if (watchedList.length) {
-      const watchedHtml = watchedList.map((w) => {
-        const poster = posterUrl(w.kp_id);
-        const typeLabel = w.type === 'series' ? 'Сериал' : 'Фильм';
-        const dateStr = w.date ? new Date(w.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-        const m = w.user_id != null ? memberById(members, w.user_id) : null;
-        const byWho = m ? ' · ' + (m.first_name || m.username || '') : '';
-        return '<div class="watched-row">' +
-          (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
-          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(w.title || '') + '</div><div class="top-film-meta">' + escapeHtml(typeLabel + (dateStr ? ' · ' + dateStr : '') + (w.rating != null ? ' · ⭐ ' + w.rating : '') + byWho) + '</div></div></div>';
-      }).join('');
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📋 Всё просмотренное за месяц</div>' + watchedHtml + '</div>');
-    }
-
     // Controversial
     if (controversial.length) {
       blocks.push('<div class="stats-block"><div class="stats-block-title">🔥 Спорные фильмы</div><p class="stats-block-sub">Самый большой разброс оценок</p>' +
@@ -1347,9 +1332,77 @@
       const rarity = (a.rarity || 'common');
       return '<div class="badge-mini ' + rarity + '"><span class="badge-mini-icon">' + (a.icon || '🏅') + '</span><span class="badge-mini-name">' + escapeHtml(a.name || '') + '</span><div class="badge-tip"><strong>' + (a.icon || '') + ' ' + escapeHtml(a.name || '') + '</strong> ' + escapeHtml(a.description || '') + '</div></div>';
     }).join('');
-    if (remaining > 0) badgesHtml += '<span class="badges-more">+' + remaining + ' ещё</span>';
-    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div>' + (badgesHtml ? '<div class="stats-profile-badges">' + badgesHtml + '</div>' : '');
+    if (remaining > 0) badgesHtml += '<span class="badges-more" role="button" tabindex="0">+' + remaining + ' ещё</span>';
+    badgesHtml += '<span class="badges-more" role="button" tabindex="0" style="margin-left:auto;" id="public-ach-all-btn">🏅 Все ачивки</span>';
+    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div><div class="stats-profile-badges">' + badgesHtml + '</div>';
     el.classList.remove('hidden');
+    window._publicAchievements = achievements;
+    renderPublicAchPanel(achievements, null);
+    bindPublicAchPanel();
+  }
+
+  function renderPublicAchPanel(achievements, filterRarity) {
+    const grid = document.getElementById('ach-panel-grid');
+    const countEl = document.getElementById('ach-panel-count');
+    if (!grid) return;
+    const list = Array.isArray(achievements) ? (filterRarity ? achievements.filter((a) => (a.rarity || 'common') === filterRarity) : achievements) : [];
+    const earnedCount = (achievements || []).filter((a) => a.earned).length;
+    const total = (achievements || []).length;
+    if (countEl) countEl.innerHTML = 'Получено: <span style="color:var(--amber);font-weight:700;">' + earnedCount + '</span> / ' + total;
+    const getProgressPct = function (a) {
+      const p = a.progress;
+      if (!p || p.target <= 0) return 0;
+      return Math.round((100 * (p.current || 0)) / p.target);
+    };
+    const progressColor = function (rarity) {
+      if (rarity === 'legendary') return 'var(--amber)';
+      if (rarity === 'epic') return 'var(--purple)';
+      if (rarity === 'rare') return 'var(--cyan)';
+      return 'var(--text-muted)';
+    };
+    const rarityDot = function (r) {
+      if (r === 'common') return '•';
+      if (r === 'rare') return '••';
+      if (r === 'epic') return '•••';
+      return '★';
+    };
+    grid.innerHTML = list.map((a) => {
+      const rarity = a.rarity || 'common';
+      const cls = a.earned ? 'earned' : 'locked';
+      const progressPct = getProgressPct(a);
+      const progressHtml = (!a.earned && progressPct > 0) ? '<div class="ach-panel-progress"><div class="ach-panel-progress-fill" style="width:' + progressPct + '%;background:' + progressColor(rarity) + '"></div></div>' : '';
+      return '<div class="ach-panel-card ' + cls + '"><div class="ach-panel-icon">' + (a.icon || '🏅') + '</div><div class="ach-panel-info"><div class="ach-panel-name">' + escapeHtml(a.name || '') + '</div><div class="ach-panel-desc">' + escapeHtml(a.description || '') + '</div>' + progressHtml + '</div><span class="ach-panel-rarity r-' + rarity + '">' + rarityDot(rarity) + '</span></div>';
+    }).join('');
+  }
+
+  function togglePublicAchPanel() {
+    const panel = document.getElementById('public-stats-ach-panel');
+    if (!panel) return;
+    panel.classList.toggle('open');
+    panel.setAttribute('aria-hidden', panel.classList.contains('open') ? 'false' : 'true');
+    if (panel.classList.contains('open')) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function bindPublicAchPanel() {
+    const allBtn = document.getElementById('public-ach-all-btn');
+    const closeBtn = document.getElementById('ach-panel-close-btn');
+    const filters = document.querySelectorAll('.ach-panel-filter-btn[data-filter]');
+    const click = function (el, fn) {
+      if (!el) return;
+      el.addEventListener('click', fn);
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+    };
+    click(allBtn, togglePublicAchPanel);
+    click(closeBtn, togglePublicAchPanel);
+    document.querySelectorAll('.stats-profile-badges .badges-more').forEach(function (b) {
+      if (b.id !== 'public-ach-all-btn') { click(b, togglePublicAchPanel); }
+    });
+    filters.forEach(function (f) {
+      const filter = f.getAttribute('data-filter');
+      click(f, function () {
+        renderPublicAchPanel(window._publicAchievements || [], filter === 'all' ? null : filter);
+      });
+    });
   }
 
   function renderPublicStatsProfileGroup(data) {
