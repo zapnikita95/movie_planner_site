@@ -1152,7 +1152,8 @@
       const c = ratingBreakdown[r] ?? 0;
       const pct = maxRb ? (c / maxRb) * 100 : 0;
       const bgStyle = c > 0 ? 'background:hsl(' + ((r - 1) * 12) + ',80%,55%)' : '';
-      return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + bgStyle + '">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
+      const minW = c > 0 ? 'min-width:24px;' : '';
+      return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + minW + bgStyle + '">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
     }).join('');
     blocks.push('<div class="stats-block"><div class="stats-block-title">📊 Распределение оценок группы</div><p class="stats-block-sub">Средняя группы: <span style="color:' + ratingColor(+avgRb) + ';font-weight:700">' + avgRb + '</span></p>' + bars + '</div>');
 
@@ -1619,7 +1620,8 @@
       const pct = max ? (c / max) * 100 : 0;
       const bg = c > 0 ? (RATING_HSL[i] || 'hsl(60,80%,55%)') : '';
       const fillInner = c > 0 ? String(c) : '';
-      rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + (bg ? 'background:' + bg : '') + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
+      const minW = c > 0 ? 'min-width:24px;' : '';
+      rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + minW + (bg ? 'background:' + bg : '') + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
     }
     el.innerHTML = '<div class="stats-block-title">📊 Распределение оценок</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
   }
