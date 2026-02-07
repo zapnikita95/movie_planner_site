@@ -933,16 +933,40 @@
     const achievements = data.achievements || [];
     const heatmap = data.activity_heatmap || {};
 
-    // Header (and share URL: hash-based, so external users see ONLY stats)
+    // Header (and share URL / enable button in cabinet)
     if (headerEl) {
       const slug = group.public_slug;
       const shareUrl = slug ? (window.location.origin + '/#/g/' + slug + '/stats') : '';
+      const isCabinet = !ctx || !ctx.lbPrefix || ctx.lbPrefix !== 'public-lb';
+      let shareHtml = '';
+      if (shareUrl) {
+        shareHtml = '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>';
+      } else if (isCabinet) {
+        shareHtml = '<div class="stats-group-share"><span class="stats-personal-share-note">Поделиться: </span><button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
+      }
       headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(group.title || 'Группа') + '</span></h3>' +
-        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' +
-        (shareUrl ? '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' : '');
+        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
         if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
+      });
+      headerEl.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Включение…';
+        api('/api/site/group-stats/settings', { method: 'PUT', body: JSON.stringify({ public_enabled: true }) })
+          .then((r) => {
+            if (r.success) {
+              const monthEl = document.getElementById('stats-month');
+              const yearEl = document.getElementById('stats-year');
+              const now = new Date();
+              loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+            } else {
+              btn.disabled = false;
+              btn.textContent = 'Включить публичную ссылку';
+            }
+          })
+          .catch(() => { btn.disabled = false; btn.textContent = 'Включить публичную ссылку'; });
       });
     }
 

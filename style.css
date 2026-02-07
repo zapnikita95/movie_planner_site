@@ -286,7 +286,62 @@ section {
     text-decoration: none;
 }
 .article-content .back-links a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
+}
+
+/* Terms of Use page */
+.terms-page .terms-title {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 36px;
+  margin-bottom: 16px;
+}
+.terms-lead {
+  font-size: 18px;
+  color: var(--text-gray);
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+.terms-block {
+  margin-bottom: 36px;
+  padding: 24px 28px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border-left: 4px solid var(--primary-color);
+}
+.terms-block h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 20px;
+  color: var(--text-dark);
+}
+.terms-block ul {
+  margin-bottom: 12px;
+}
+.terms-block code {
+  background: rgba(102, 126, 234, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+.terms-footer-note {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* Footer muted link (gray) */
+.footer-link-muted {
+  color: rgba(255, 255, 255, 0.5) !important;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-link-muted:hover {
+  color: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* Features Section */
