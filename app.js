@@ -714,7 +714,23 @@
     const years = [];
     for (let y = curYear; y >= curYear - 3; y--) years.push(y);
     yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
-    pillsEl.innerHTML = MONTH_SHORT.map((name, i) => '<button type="button" class="month-pill' + (i + 1 === curMonth ? ' active' : '') + '" data-month="' + (i + 1) + '">' + name + '</button>').join('');
+    function renderMonthPills() {
+      const selYear = parseInt(yearEl.value, 10);
+      const maxMonth = (selYear === curYear) ? curMonth : 12;
+      let activeMonth = curMonth;
+      const activeEl = pillsEl.querySelector('.month-pill.active');
+      if (activeEl) {
+        const m = parseInt(activeEl.getAttribute('data-month'), 10);
+        if (m <= maxMonth) activeMonth = m;
+        else activeMonth = maxMonth;
+      } else if (selYear < curYear) activeMonth = 12;
+      pillsEl.innerHTML = MONTH_SHORT.map((name, i) => {
+        const monthNum = i + 1;
+        if (monthNum > maxMonth) return '';
+        return '<button type="button" class="month-pill' + (monthNum === activeMonth ? ' active' : '') + '" data-month="' + monthNum + '">' + name + '</button>';
+      }).filter(Boolean).join('');
+    }
+    renderMonthPills();
     function getMonthYear() {
       const active = pillsEl.querySelector('.month-pill.active');
       const m = active ? parseInt(active.getAttribute('data-month'), 10) : curMonth;
@@ -732,6 +748,7 @@
         loadStats(m, y);
       });
       yearEl.addEventListener('change', () => {
+        renderMonthPills();
         const { m, y } = getMonthYear();
         loadStats(m, y);
       });
@@ -863,12 +880,25 @@
     const yearEl = document.getElementById('public-stats-year');
     if (!monthEl || !yearEl) return;
     const now = new Date();
-    const curMonth = month || now.getMonth() + 1;
-    const curYear = year || now.getFullYear();
-    monthEl.innerHTML = MONTH_NAMES.map((name, i) => '<option value="' + (i + 1) + '"' + (i + 1 === curMonth ? ' selected' : '') + '>' + name + '</option>').join('');
+    const curMonth = now.getMonth() + 1;
+    const curYear = now.getFullYear();
+    const selMonth = month || curMonth;
+    const selYear = year || curYear;
     const years = [];
     for (let y = curYear; y >= curYear - 3; y--) years.push(y);
-    yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
+    yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === selYear ? ' selected' : '') + '>' + y + '</option>').join('');
+    function renderMonthOptions() {
+      const y = parseInt(yearEl.value, 10);
+      const maxMonth = (y === curYear) ? curMonth : 12;
+      let selected = parseInt(monthEl.value, 10) || selMonth;
+      if (selected > maxMonth) selected = maxMonth;
+      monthEl.innerHTML = MONTH_NAMES.map((name, i) => {
+        const m = i + 1;
+        if (m > maxMonth) return '';
+        return '<option value="' + m + '"' + (m === selected ? ' selected' : '') + '>' + name + '</option>';
+      }).filter(Boolean).join('');
+    }
+    renderMonthOptions();
     const base = type === 'user' ? '#/u/' + encodeURIComponent(slug) + '/stats' : '#/g/' + encodeURIComponent(slug) + '/stats';
     if (!monthEl._publicBound) {
       monthEl._publicBound = yearEl._publicBound = true;
@@ -880,7 +910,7 @@
         location.hash = base + (m && y ? '?m=' + m + '&y=' + y : '');
       };
       monthEl.addEventListener('change', onChange);
-      yearEl.addEventListener('change', onChange);
+      yearEl.addEventListener('change', () => { renderMonthOptions(); onChange(); });
     }
   }
 
