@@ -99,8 +99,23 @@
       </section>
 
       <section>
-        <div class="what-is">
-          <p>Movie Planner — это трекер фильмов и сериалов с планированием просмотров. Работает в личных чатах и в группах (Telegram-бот). Ведите личную базу или общий watchlist с друзьями, планируйте походы в кино и получайте напоминания.</p>
+        <div class="what-is-v2">
+          <div class="what-is-v2-label">Что такое Movie Planner</div>
+          <div class="what-is-v2-title">
+            Трекер фильмов и сериалов<br>
+            с <span class="gradient-text">планированием просмотров</span>
+          </div>
+          <div class="what-is-v2-text">
+            Ведите личную базу или общий watchlist с друзьями. Планируйте кино дома или в кинотеатре, получайте напоминания. Работает через Telegram-бот, веб-кабинет и браузерное расширение.
+          </div>
+          <div class="what-is-v2-features">
+            <div class="what-is-v2-feature"><span class="feat-icon">📚</span> Watchlist</div>
+            <div class="what-is-v2-feature"><span class="feat-icon">📅</span> Планирование</div>
+            <div class="what-is-v2-feature"><span class="feat-icon">📺</span> Трекер сериалов</div>
+            <div class="what-is-v2-feature"><span class="feat-icon">🎫</span> Билеты в кино</div>
+            <div class="what-is-v2-feature"><span class="feat-icon">👥</span> Группы</div>
+            <div class="what-is-v2-feature"><span class="feat-icon">📊</span> Статистика</div>
+          </div>
         </div>
       </section>
 
@@ -235,12 +250,14 @@
         <div id="public-stats-error" class="stats-error hidden"></div>
         <div id="public-stats-content" class="stats-content">
           <div id="public-stats-group-wrap">
+            <div id="public-stats-profile-group" class="stats-profile hidden"></div>
             <div id="public-stats-group-header" class="stats-group-header"></div>
             <div id="public-stats-summary" class="stats-summary stats-group-summary"></div>
             <div id="public-stats-mvp"></div>
             <div class="stats-grid stats-group-grid" id="public-stats-grid"></div>
           </div>
           <div id="public-stats-personal-wrap" class="hidden">
+            <div id="public-stats-profile-personal" class="stats-profile hidden"></div>
             <div id="public-stats-personal-summary" class="stats-summary"></div>
             <div class="stats-grid">
               <div id="public-stats-personal-top" class="stats-block"></div>

@@ -788,7 +788,7 @@
         if (isGroup) {
           renderGroupStats(data);
         } else {
-          renderStatsPersonalShare(data.share_url);
+          renderStatsPersonalShare(data.share_url, data.share_views);
           renderStatsSummary(data.summary);
           renderStatsTopFilms(data.top_films || [], undefined, data.period);
           renderStatsRatingBreakdown(data.rating_breakdown || {});
@@ -847,6 +847,7 @@
           gridEl: document.getElementById('public-stats-grid'),
           lbPrefix: 'public-lb'
         };
+        renderPublicStatsProfileGroup(data);
         renderGroupStats(data, ctx);
       })
       .catch(() => {
@@ -909,6 +910,7 @@
         if (subtitle) subtitle.textContent = 'Статистика: ' + (user.name || slug);
         if (groupWrap) groupWrap.classList.add('hidden');
         if (personalWrap) personalWrap.classList.remove('hidden');
+        renderPublicStatsProfilePersonal(data);
         renderStatsSummary(data.summary, 'public-stats-personal-summary');
         renderStatsTopFilms(data.top_films || [], 'public-stats-personal-top', data.period);
         renderStatsRatingBreakdown(data.rating_breakdown || {}, 'public-stats-personal-rating');
@@ -987,12 +989,16 @@
 
     // Header (and share URL / enable button in cabinet)
     if (headerEl) {
-      const slug = group.public_slug;
-      const shareUrl = slug ? (window.location.origin + '/#/g/' + encodeURIComponent(slug) + '/stats') : '';
+      const shareUrl = data.share_url || (group.public_slug ? (window.location.origin + '/#/g/' + encodeURIComponent(group.public_slug) + '/stats') : '');
+      const shareViews = data.share_views;
       const isCabinet = !ctx || !ctx.lbPrefix || ctx.lbPrefix !== 'public-lb';
       let shareHtml = '';
       if (shareUrl) {
-        shareHtml = '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>';
+        let viewsHtml = '';
+        if (shareViews != null && shareViews >= 0) {
+          viewsHtml = '<div class="stats-share-views">Переходов по ссылке: ' + shareViews + '</div>';
+        }
+        shareHtml = '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' + viewsHtml;
       } else if (isCabinet) {
         shareHtml = '<div class="stats-group-share"><span class="stats-personal-share-note">Поделиться: </span><button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
       }
@@ -1098,13 +1104,25 @@
     const maxR = Math.max(1, ...(lb.ratings || []).map((x) => x.count));
     const maxA = Math.max(0.1, ...(lb.avg_rating || []).map((x) => x.value));
     const maxC = Math.max(1, ...(lb.cinema || []).map((x) => x.count));
-    function lbRows(items, valueKey, maxVal, suffix) {
+    function lbValueClass(lbType, val, pct) {
+      if (lbType === 'avg_rating') {
+        if (val >= 8) return 'value-high';
+        if (val >= 5) return 'value-mid';
+        return 'value-low';
+      }
+      if (pct >= 80) return 'value-high';
+      if (pct >= 40) return 'value-mid';
+      return 'value-low';
+    }
+    function lbRows(items, valueKey, maxVal, suffix, lbType) {
+      lbType = lbType || 'count';
       return (items || []).map((item, i) => {
         const m = memberById(members, item.user_id);
         const val = item[valueKey];
         const pct = maxVal ? (val / maxVal) * 100 : 0;
         const color = m && m.avatar_color ? m.avatar_color : '#9b4dff';
-        return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || 'Участник') : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value">' + val + suffix + '</div></div>';
+        const vc = lbValueClass(lbType, val, pct);
+        return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || 'Участник') : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value ' + vc + '">' + val + suffix + '</div></div>';
       }).join('');
     }
     const lbPref = ctx.lbPrefix || 'lb';
@@ -1113,10 +1131,10 @@
       '<button type="button" class="stats-lb-tab" data-lb="ratings">Оценки</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="avg_rating">Средняя</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="cinema">Кинотеатр</button></div>' +
-      '<div id="' + lbPref + '-watched" class="stats-lb-content">' + lbRows(lb.watched, 'count', maxW, '') + '</div>' +
-      '<div id="' + lbPref + '-ratings" class="stats-lb-content hidden">' + lbRows(lb.ratings, 'count', maxR, '') + '</div>' +
-      '<div id="' + lbPref + '-avg_rating" class="stats-lb-content hidden">' + lbRows(lb.avg_rating, 'value', maxA, '') + '</div>' +
-      '<div id="' + lbPref + '-cinema" class="stats-lb-content hidden">' + lbRows(lb.cinema, 'count', maxC, '') + '</div></div>');
+      '<div id="' + lbPref + '-watched" class="stats-lb-content">' + lbRows(lb.watched, 'count', maxW, '', 'count') + '</div>' +
+      '<div id="' + lbPref + '-ratings" class="stats-lb-content hidden">' + lbRows(lb.ratings, 'count', maxR, '', 'count') + '</div>' +
+      '<div id="' + lbPref + '-avg_rating" class="stats-lb-content hidden">' + lbRows(lb.avg_rating, 'value', maxA, '', 'avg_rating') + '</div>' +
+      '<div id="' + lbPref + '-cinema" class="stats-lb-content hidden">' + lbRows(lb.cinema, 'count', maxC, '', 'count') + '</div></div>');
 
     // Cinema (походы в кино)
     const cinemaList = data.cinema || [];
@@ -1255,13 +1273,61 @@
     });
   }
 
-  function renderStatsPersonalShare(shareUrl) {
+  function renderPublicStatsProfilePersonal(data) {
+    const el = document.getElementById('public-stats-profile-personal');
+    if (!el) return;
+    const user = data.user || {};
+    const s = data.summary || {};
+    const name = user.name || user.username || 'Пользователь';
+    const initial = (name[0] || '?').toUpperCase();
+    const meta = [
+      s.films_watched ? '🎬 ' + s.films_watched + ' фильмов' : null,
+      s.series_watched ? '📺 ' + s.series_watched + ' сериалов' : null,
+      s.avg_rating != null ? '⭐ ' + Number(s.avg_rating).toFixed(1) + ' средняя' : null
+    ].filter(Boolean).join(' · ');
+    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(name) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div>';
+    el.classList.remove('hidden');
+  }
+
+  function renderPublicStatsProfileGroup(data) {
+    const el = document.getElementById('public-stats-profile-group');
+    if (!el) return;
+    const group = data.group || {};
+    const s = data.summary || {};
+    const achievements = data.achievements || [];
+    const title = group.title || 'Группа';
+    const initial = (title[0] || 'Г').toUpperCase();
+    const meta = [
+      s.group_films != null ? '🎬 ' + s.group_films + ' фильмов' : null,
+      s.group_ratings != null ? '⭐ ' + s.group_ratings + ' оценок' : null,
+      s.group_cinema != null ? '🎥 ' + s.group_cinema + ' в кино' : null,
+      (group.members_active || 0) ? '👥 ' + group.members_active + ' участников' : null
+    ].filter(Boolean).join(' · ');
+    const earned = achievements.filter((a) => a.earned);
+    const show = earned.slice(0, 5);
+    const remaining = earned.length - show.length;
+    let badgesHtml = show.map((a) => {
+      const rarity = (a.rarity || 'common');
+      return '<div class="badge-mini ' + rarity + '"><span class="badge-mini-icon">' + (a.icon || '🏅') + '</span><span class="badge-mini-name">' + escapeHtml(a.name || '') + '</span><div class="badge-tip"><strong>' + (a.icon || '') + ' ' + escapeHtml(a.name || '') + '</strong>' + escapeHtml(a.description || '') + '</div></div>';
+    }).join('');
+    if (remaining > 0) {
+      badgesHtml += '<span class="badges-more">+' + remaining + ' ещё</span>';
+    }
+    el.innerHTML = '<div class="stats-profile-top"><div class="stats-profile-avatar">' + escapeHtml(initial) + '</div><div class="stats-profile-info"><div class="stats-profile-name">' + escapeHtml(title) + '</div><div class="stats-profile-meta">' + escapeHtml(meta) + '</div></div></div>' + (badgesHtml ? '<div class="stats-profile-badges">' + badgesHtml + '</div>' : '');
+    el.classList.remove('hidden');
+  }
+
+  function renderStatsPersonalShare(shareUrl, shareViews) {
     const el = document.getElementById('stats-personal-share');
     if (!el) return;
     if (shareUrl) {
+      let viewsHtml = '';
+      if (shareViews != null && shareViews >= 0) {
+        viewsHtml = '<div class="stats-share-views">Переходов по ссылке: ' + shareViews + '</div>';
+      }
       el.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика</h3>' +
         '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span>' +
-        '<button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div></div>';
+        '<button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' + viewsHtml + '</div>';
       el.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
         if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
