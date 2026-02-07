@@ -1,6 +1,6 @@
 /* Compatibility with app.js */
 .hidden { display: none !important; }
-#landing.hidden, #cabinet-readonly.hidden, #cabinet-onboarding.hidden { display: none !important; }
+#landing.hidden, #cabinet-readonly.hidden, #cabinet-onboarding.hidden, #public-stats.hidden { display: none !important; }
 #login-modal { display: none; }
 #login-modal:not(.hidden) { display: flex !important; }
 .cabinet-section.hidden { display: none !important; }
@@ -65,7 +65,7 @@
 .film-streaming-btn .streaming-btn-emoji { margin-left: 6px; }
 .plan-info { padding: 24px; }
 .plan-meta, .plan-date-line, .plan-time-line, .plan-type { font-size: 14px; color: var(--text-muted); }
-.plan-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; }
+.plan-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .plans-split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
 @media (max-width: 768px) { .plans-split { grid-template-columns: 1fr; } }
 .plans-today-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -1079,6 +1079,8 @@ footer {
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s;
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
 .plan-card:hover {
@@ -1707,6 +1709,10 @@ footer {
 .stats-group-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 4px; }
 .stats-group-name { background: linear-gradient(135deg, #ff2d7b, #9b4dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .stats-group-meta { font-size: 14px; color: var(--text-muted); }
+.stats-personal-share { margin-bottom: 24px; }
+.stats-personal-share-note { font-size: 14px; color: var(--text-muted); }
+.stats-personal-share-note a { color: #ff2d7b; text-decoration: none; }
+.stats-personal-share-note a:hover { text-decoration: underline; }
 .stats-group-share { display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border: 1px solid var(--border-color-alt, rgba(255,255,255,0.08)); border-radius: 12px; padding: 8px 12px 8px 16px; font-size: 13px; color: var(--text-muted); }
 .stats-group-share-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-group-copy-btn { padding: 6px 14px; border-radius: 8px; background: linear-gradient(135deg, #ff2d7b, #9b4dff); color: white; border: none; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; }
@@ -1728,6 +1734,7 @@ footer {
 .stats-mvp-card { background: linear-gradient(135deg, rgba(255,45,123,0.08), rgba(155,77,255,0.08)); border: 1px solid rgba(255,45,123,0.2); border-radius: 20px; padding: 32px; text-align: center; margin-bottom: 32px; position: relative; }
 .stats-mvp-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(135deg, #ff2d7b, #9b4dff); border-radius: 20px 20px 0 0; }
 .stats-mvp-crown { font-size: 36px; margin-bottom: 8px; }
+.stats-mvp-card .avatar { margin-left: auto; margin-right: auto; }
 .stats-mvp-title { font-family: 'Unbounded', sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 12px; }
 .stats-mvp-name { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; background: linear-gradient(135deg, #ff2d7b, #9b4dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .stats-mvp-meta { font-size: 13px; color: var(--text-muted); margin-top: 4px; margin-bottom: 16px; }
@@ -1818,6 +1825,13 @@ footer {
 .stats-heatmap-legend { display: flex; gap: 8px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted); }
 .stats-heatmap-legend span { display: flex; align-items: center; gap: 4px; }
 .stats-heatmap-legend-bar { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+
+/* Public stats page (share link) */
+#public-stats { padding: 32px 0 80px; min-height: 100vh; }
+.public-stats-header-wrap { margin-bottom: 24px; }
+.public-stats-header-wrap .logo { display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary); text-decoration: none; font-family: 'Unbounded', sans-serif; font-weight: 700; }
+.public-stats-subtitle { font-size: 18px; color: var(--text-muted); margin: 12px 0 0; }
+.public-stats-selector { margin-bottom: 24px; }
 
 @media (max-width: 768px) {
   .stats-compat-grid { grid-template-columns: 1fr; }

@@ -219,6 +219,41 @@
       </section>
     </main>
 
+    <!-- Public group stats (share link: only stats, no other sections) -->
+    <main id="public-stats" class="hidden">
+      <div class="container">
+        <div class="public-stats-header-wrap">
+          <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
+          <p class="public-stats-subtitle" id="public-stats-subtitle">Статистика группы</p>
+        </div>
+        <div class="stats-month-selector public-stats-selector">
+          <label>Период:</label>
+          <select id="public-stats-month" class="stats-month-select" aria-label="Месяц"></select>
+          <select id="public-stats-year" class="stats-year-select" aria-label="Год"></select>
+        </div>
+        <div id="public-stats-loading" class="stats-loading hidden">Загрузка…</div>
+        <div id="public-stats-error" class="stats-error hidden"></div>
+        <div id="public-stats-content" class="stats-content">
+          <div id="public-stats-group-wrap">
+            <div id="public-stats-group-header" class="stats-group-header"></div>
+            <div id="public-stats-summary" class="stats-summary stats-group-summary"></div>
+            <div id="public-stats-mvp"></div>
+            <div class="stats-grid stats-group-grid" id="public-stats-grid"></div>
+          </div>
+          <div id="public-stats-personal-wrap" class="hidden">
+            <div id="public-stats-personal-summary" class="stats-summary"></div>
+            <div class="stats-grid">
+              <div id="public-stats-personal-top" class="stats-block"></div>
+              <div id="public-stats-personal-rating" class="stats-block"></div>
+              <div id="public-stats-personal-platforms" class="stats-block stats-block-full"></div>
+              <div id="public-stats-personal-cinema" class="stats-block stats-block-full"></div>
+              <div id="public-stats-personal-watched" class="stats-block stats-block-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
     <!-- Cabinet: Read-only (user has data) -->
     <main id="cabinet-readonly" class="hidden cabinet">
         <div class="container">
@@ -300,11 +335,13 @@
                     <div id="stats-content" class="stats-content">
                         <!-- Personal stats -->
                         <div id="stats-personal-wrap">
+                            <div class="stats-personal-share" id="stats-personal-share"></div>
                             <div id="stats-summary" class="stats-summary"></div>
                             <div class="stats-grid">
                                 <div id="stats-top-films" class="stats-block"></div>
                                 <div id="stats-rating-breakdown" class="stats-block"></div>
                                 <div id="stats-platforms" class="stats-block stats-block-full"></div>
+                                <div id="stats-cinema" class="stats-block stats-block-full"></div>
                                 <div id="stats-watched" class="stats-block stats-block-full"></div>
                             </div>
                         </div>

@@ -85,6 +85,11 @@
     });
   }
 
+  function apiPublic(url, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    return fetch(API_BASE + url, { ...options, headers }).then((r) => r.json().catch(() => ({})));
+  }
+
   function filmDeepLink(filmId, kpId, isSeries) {
     const chatId = getActiveChatId();
     const session = getActiveSession();
@@ -212,10 +217,12 @@
   }
 
   function showScreen(screenId) {
-    ['landing', 'cabinet-readonly', 'cabinet-onboarding'].forEach((id) => {
+    ['landing', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
+    const header = document.getElementById('site-header');
+    if (header) header.classList.toggle('hidden', screenId === 'public-stats');
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
   }
@@ -319,6 +326,15 @@
         loadUnwatched();
         loadSeries();
         loadRatings();
+        // Если открыта вкладка статистики — перезагрузить её
+        const statsSection = document.getElementById('section-stats');
+        if (statsSection && !statsSection.classList.contains('hidden')) {
+          initStatsSelectors();
+          const monthEl = document.getElementById('stats-month');
+          const yearEl = document.getElementById('stats-year');
+          const now = new Date();
+          loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+        }
       } else {
         showScreen('cabinet-onboarding');
       }
@@ -730,10 +746,12 @@
         if (isGroup) {
           renderGroupStats(data);
         } else {
+          renderStatsPersonalShare(data.share_url);
           renderStatsSummary(data.summary);
           renderStatsTopFilms(data.top_films || []);
           renderStatsRatingBreakdown(data.rating_breakdown || {});
           renderStatsPlatforms(data.platforms || []);
+          renderStatsCinema(data.cinema || []);
           renderStatsWatched(data.watched || []);
         }
       })
@@ -742,6 +760,136 @@
         if (content) content.style.visibility = '';
         if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
       });
+  }
+
+  // ——— Public stats (share link: group or user) ———
+  function parsePublicStatsHash() {
+    const h = (location.hash || '').replace(/^#/, '');
+    const pathPart = h.split('?')[0];
+    const params = new URLSearchParams(h.split('?')[1] || '');
+    const month = parseInt(params.get('m'), 10) || new Date().getMonth() + 1;
+    const year = parseInt(params.get('y'), 10) || new Date().getFullYear();
+    const gMatch = pathPart.match(/^\/g\/([a-zA-Z0-9_.-]+)\/stats/);
+    if (gMatch) return { type: 'group', slug: gMatch[1], month, year };
+    const uMatch = pathPart.match(/^\/u\/([a-zA-Z0-9_.-]+)\/stats/);
+    if (uMatch) return { type: 'user', slug: uMatch[1], month, year };
+    return null;
+  }
+
+  function loadPublicGroupStats(slug, month, year) {
+    const loading = document.getElementById('public-stats-loading');
+    const error = document.getElementById('public-stats-error');
+    const content = document.getElementById('public-stats-content');
+    const subtitle = document.getElementById('public-stats-subtitle');
+    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (error) { error.classList.add('hidden'); error.textContent = ''; }
+    if (content) content.style.visibility = 'hidden';
+    if (subtitle) subtitle.textContent = 'Статистика группы';
+
+    apiPublic('/api/site/group-stats/public/' + encodeURIComponent(slug) + '?month=' + (month || new Date().getMonth() + 1) + '&year=' + (year || new Date().getFullYear()))
+      .then((data) => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (!data || !data.success) {
+          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          return;
+        }
+        const group = data.group || {};
+        if (subtitle) subtitle.textContent = 'Статистика: ' + (group.title || 'Группа');
+        const ctx = {
+          headerEl: document.getElementById('public-stats-group-header'),
+          summaryEl: document.getElementById('public-stats-summary'),
+          mvpEl: document.getElementById('public-stats-mvp'),
+          gridEl: document.getElementById('public-stats-grid'),
+          lbPrefix: 'public-lb'
+        };
+        renderGroupStats(data, ctx);
+      })
+      .catch(() => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
+      });
+  }
+
+  function initPublicStatsSelectors(slug, month, year, type) {
+    type = type || 'group';
+    const monthEl = document.getElementById('public-stats-month');
+    const yearEl = document.getElementById('public-stats-year');
+    if (!monthEl || !yearEl) return;
+    const now = new Date();
+    const curMonth = month || now.getMonth() + 1;
+    const curYear = year || now.getFullYear();
+    monthEl.innerHTML = MONTH_NAMES.map((name, i) => '<option value="' + (i + 1) + '"' + (i + 1 === curMonth ? ' selected' : '') + '>' + name + '</option>').join('');
+    const years = [];
+    for (let y = curYear; y >= curYear - 3; y--) years.push(y);
+    yearEl.innerHTML = years.map((y) => '<option value="' + y + '"' + (y === curYear ? ' selected' : '') + '>' + y + '</option>').join('');
+    const base = type === 'user' ? '#/u/' + slug + '/stats' : '#/g/' + slug + '/stats';
+    if (!monthEl._publicBound) {
+      monthEl._publicBound = yearEl._publicBound = true;
+      const onChange = () => {
+        const m = parseInt(monthEl.value, 10);
+        const y = parseInt(yearEl.value, 10);
+        if (type === 'user') loadPublicUserStats(slug, m, y);
+        else loadPublicGroupStats(slug, m, y);
+        location.hash = base + (m && y ? '?m=' + m + '&y=' + y : '');
+      };
+      monthEl.addEventListener('change', onChange);
+      yearEl.addEventListener('change', onChange);
+    }
+  }
+
+  function loadPublicUserStats(slug, month, year) {
+    const loading = document.getElementById('public-stats-loading');
+    const error = document.getElementById('public-stats-error');
+    const content = document.getElementById('public-stats-content');
+    const subtitle = document.getElementById('public-stats-subtitle');
+    const groupWrap = document.getElementById('public-stats-group-wrap');
+    const personalWrap = document.getElementById('public-stats-personal-wrap');
+    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (error) { error.classList.add('hidden'); error.textContent = ''; }
+    if (content) content.style.visibility = 'hidden';
+    if (groupWrap) groupWrap.classList.add('hidden');
+    if (personalWrap) personalWrap.classList.add('hidden');
+    if (subtitle) subtitle.textContent = 'Статистика';
+
+    apiPublic('/api/site/stats/public/' + encodeURIComponent(slug) + '?month=' + (month || new Date().getMonth() + 1) + '&year=' + (year || new Date().getFullYear()))
+      .then((data) => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (!data || !data.success) {
+          if (error) { error.classList.remove('hidden'); error.textContent = data && data.error ? data.error : 'Не удалось загрузить статистику.'; }
+          return;
+        }
+        const user = data.user || {};
+        if (subtitle) subtitle.textContent = 'Статистика: ' + (user.name || slug);
+        if (groupWrap) groupWrap.classList.add('hidden');
+        if (personalWrap) personalWrap.classList.remove('hidden');
+        renderStatsSummary(data.summary, 'public-stats-personal-summary');
+        renderStatsTopFilms(data.top_films || [], 'public-stats-personal-top');
+        renderStatsRatingBreakdown(data.rating_breakdown || {}, 'public-stats-personal-rating');
+        renderStatsPlatforms(data.platforms || [], 'public-stats-personal-platforms');
+        renderStatsCinema(data.cinema || [], 'public-stats-personal-cinema');
+        renderStatsWatched(data.watched || [], 'public-stats-personal-watched');
+      })
+      .catch(() => {
+        if (loading) loading.classList.add('hidden');
+        if (content) content.style.visibility = '';
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
+      });
+  }
+
+  function showPublicStatsView(parsed) {
+    if (!parsed || !parsed.slug) return;
+    showScreen('public-stats');
+    initPublicStatsSelectors(parsed.slug, parsed.month, parsed.year, parsed.type);
+    if (parsed.type === 'user') {
+      loadPublicUserStats(parsed.slug, parsed.month, parsed.year);
+    } else {
+      document.getElementById('public-stats-group-wrap')?.classList.remove('hidden');
+      document.getElementById('public-stats-personal-wrap')?.classList.add('hidden');
+      loadPublicGroupStats(parsed.slug, parsed.month, parsed.year);
+    }
   }
 
   // ——— Group stats ———
@@ -765,7 +913,12 @@
     return 'var(--stats-pink, #ff2d7b)';
   }
 
-  function renderGroupStats(data) {
+  function renderGroupStats(data, ctx) {
+    ctx = ctx || {};
+    const headerEl = ctx.headerEl || document.getElementById('stats-group-header');
+    const summaryEl = ctx.summaryEl || document.getElementById('stats-group-summary');
+    const mvpEl = ctx.mvpEl || document.getElementById('stats-group-mvp');
+    let gridEl = ctx.gridEl || document.getElementById('stats-group-grid');
     const members = data.members || [];
     const group = data.group || {};
     const period = data.period || {};
@@ -780,11 +933,10 @@
     const achievements = data.achievements || [];
     const heatmap = data.activity_heatmap || {};
 
-    // Header
-    const headerEl = document.getElementById('stats-group-header');
+    // Header (and share URL: hash-based, so external users see ONLY stats)
     if (headerEl) {
       const slug = group.public_slug;
-      const shareUrl = slug ? (window.location.origin + '/g/' + slug + '/stats') : '';
+      const shareUrl = slug ? (window.location.origin + '/#/g/' + slug + '/stats') : '';
       headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(group.title || 'Группа') + '</span></h3>' +
         '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' +
         (shareUrl ? '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span><button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' : '');
@@ -795,7 +947,6 @@
     }
 
     // Summary cards
-    const summaryEl = document.getElementById('stats-group-summary');
     if (summaryEl) {
       const cards = [
         { val: summary.group_films ?? 0, label: 'Фильмов на группу', cls: 'stat-card-pink' },
@@ -808,7 +959,6 @@
     }
 
     // MVP
-    const mvpEl = document.getElementById('stats-group-mvp');
     if (mvpEl && mvp.user_id != null) {
       const mvpMember = memberById(members, mvp.user_id);
       const reasonLabels = { most_active: 'Больше всех смотрел и оценивал', most_ratings: 'Лидер по оценкам', most_cinema: 'Больше всех в кино', most_series: 'Больше всех серий' };
@@ -826,7 +976,6 @@
     }
 
     // Grid blocks
-    const gridEl = document.getElementById('stats-group-grid');
     if (!gridEl) return;
 
     const blocks = [];
@@ -881,15 +1030,45 @@
         return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || 'Участник') : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value">' + val + suffix + '</div></div>';
       }).join('');
     }
+    const lbPref = ctx.lbPrefix || 'lb';
     blocks.push('<div class="stats-block"><div class="stats-block-title">🏆 Лидерборд</div><div class="stats-lb-tabs">' +
       '<button type="button" class="stats-lb-tab active" data-lb="watched">Просмотры</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="ratings">Оценки</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="avg_rating">Средняя</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="cinema">Кинотеатр</button></div>' +
-      '<div id="lb-watched" class="stats-lb-content">' + lbRows(lb.watched, 'count', maxW, '') + '</div>' +
-      '<div id="lb-ratings" class="stats-lb-content hidden">' + lbRows(lb.ratings, 'count', maxR, '') + '</div>' +
-      '<div id="lb-avg_rating" class="stats-lb-content hidden">' + lbRows(lb.avg_rating, 'value', maxA, '') + '</div>' +
-      '<div id="lb-cinema" class="stats-lb-content hidden">' + lbRows(lb.cinema, 'count', maxC, '') + '</div></div>');
+      '<div id="' + lbPref + '-watched" class="stats-lb-content">' + lbRows(lb.watched, 'count', maxW, '') + '</div>' +
+      '<div id="' + lbPref + '-ratings" class="stats-lb-content hidden">' + lbRows(lb.ratings, 'count', maxR, '') + '</div>' +
+      '<div id="' + lbPref + '-avg_rating" class="stats-lb-content hidden">' + lbRows(lb.avg_rating, 'value', maxA, '') + '</div>' +
+      '<div id="' + lbPref + '-cinema" class="stats-lb-content hidden">' + lbRows(lb.cinema, 'count', maxC, '') + '</div></div>');
+
+    // Cinema (походы в кино)
+    const cinemaList = data.cinema || [];
+    if (cinemaList.length) {
+      const cinemaHtml = cinemaList.map((c) => {
+        const poster = posterUrl(c.kp_id);
+        const dateStr = c.date ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        return '<div class="watched-row">' +
+          (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + (c.year ? c.year + ' · ' : '') + dateStr + (c.rating != null ? ' · ⭐ ' + c.rating : '') + '</div></div></div>';
+      }).join('');
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🎥 Походы в кино</div>' + cinemaHtml + '</div>');
+    }
+
+    // Watched (всё просмотренное за месяц)
+    const watchedList = data.watched || [];
+    if (watchedList.length) {
+      const watchedHtml = watchedList.map((w) => {
+        const poster = posterUrl(w.kp_id);
+        const typeLabel = w.type === 'series' ? 'Сериал' : 'Фильм';
+        const dateStr = w.date ? new Date(w.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const m = w.user_id != null ? memberById(members, w.user_id) : null;
+        const byWho = m ? ' · ' + (m.first_name || m.username || '') : '';
+        return '<div class="watched-row">' +
+          (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(w.title || '') + '</div><div class="top-film-meta">' + escapeHtml(typeLabel + (dateStr ? ' · ' + dateStr : '') + (w.rating != null ? ' · ⭐ ' + w.rating : '') + byWho) + '</div></div></div>';
+      }).join('');
+      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📋 Всё просмотренное за месяц</div>' + watchedHtml + '</div>');
+    }
 
     // Controversial
     if (controversial.length) {
@@ -975,26 +1154,62 @@
         gridEl.querySelectorAll('.stats-lb-tab').forEach((t) => t.classList.remove('active'));
         this.classList.add('active');
         gridEl.querySelectorAll('.stats-lb-content').forEach((c) => c.classList.add('hidden'));
-        const content = document.getElementById('lb-' + key);
+        const content = document.getElementById((ctx.lbPrefix || 'lb') + '-' + key);
         if (content) content.classList.remove('hidden');
       });
     });
   }
 
-  function renderStatsSummary(s) {
-    const el = document.getElementById('stats-summary');
+  function renderStatsPersonalShare(shareUrl) {
+    const el = document.getElementById('stats-personal-share');
+    if (!el) return;
+    if (shareUrl) {
+      el.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика</h3>' +
+        '<div class="stats-group-share"><span class="stats-group-share-url">' + escapeHtml(shareUrl) + '</span>' +
+        '<button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div></div>';
+      el.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
+        const u = this.getAttribute('data-url');
+        if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
+      });
+      el.classList.remove('hidden');
+    } else {
+      el.innerHTML = '<div class="stats-personal-share-note">Поделиться статистикой: <button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
+      el.classList.remove('hidden');
+      el.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Включение…';
+        api('/api/site/stats/settings', { method: 'PUT', body: JSON.stringify({ public_enabled: true }) })
+          .then((r) => {
+            if (r.success) {
+              const monthEl = document.getElementById('stats-month');
+              const yearEl = document.getElementById('stats-year');
+              const now = new Date();
+              loadStats(monthEl ? parseInt(monthEl.value, 10) : now.getMonth() + 1, yearEl ? parseInt(yearEl.value, 10) : now.getFullYear());
+            } else {
+              this.disabled = false;
+              this.textContent = 'Включить публичную ссылку';
+            }
+          })
+          .catch(() => { this.disabled = false; this.textContent = 'Включить публичную ссылку'; });
+      });
+    }
+  }
+
+  function renderStatsSummary(s, elId) {
+    const el = document.getElementById(elId || 'stats-summary');
     if (!el || !s) return;
     el.innerHTML = [
       { val: s.films_watched || 0, label: 'Фильмов' },
       { val: s.series_watched || 0, label: 'Сериалов' },
       { val: s.episodes_watched || 0, label: 'Серий' },
+      { val: s.cinema_visits || 0, label: 'Походов в кино' },
       { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.series_watched || 0), label: 'Всего просмотров' },
       { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
     ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
   }
 
-  function renderStatsTopFilms(list) {
-    const el = document.getElementById('stats-top-films');
+  function renderStatsTopFilms(list, elId) {
+    const el = document.getElementById(elId || 'stats-top-films');
     if (!el) return;
     if (!list.length) { el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
     el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div>' + list.slice(0, 10).map((f, i) => {
@@ -1006,8 +1221,8 @@
     }).join('');
   }
 
-  function renderStatsRatingBreakdown(rb) {
-    const el = document.getElementById('stats-rating-breakdown');
+  function renderStatsRatingBreakdown(rb, elId) {
+    const el = document.getElementById(elId || 'stats-rating-breakdown');
     if (!el) return;
     const max = Math.max(1, ...Object.values(rb).map(Number));
     const rows = [];
@@ -1019,8 +1234,21 @@
     el.innerHTML = '<div class="stats-block-title">📊 Оценки</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
   }
 
-  function renderStatsPlatforms(list) {
-    const el = document.getElementById('stats-platforms');
+  function renderStatsCinema(list, elId) {
+    const el = document.getElementById(elId || 'stats-cinema');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="stats-block-title">🎥 Походы в кино</div><p class="empty-hint">Нет походов в кино за выбранный период.</p>'; return; }
+    el.innerHTML = '<div class="stats-block-title">🎥 Походы в кино</div>' + list.map((c) => {
+      const poster = posterUrl(c.kp_id);
+      const dateStr = c.date ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      return '<div class="watched-row">' +
+        (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
+        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + escapeHtml((c.year ? c.year + ' · ' : '') + (dateStr || '') + (c.rating != null ? ' · ⭐ ' + c.rating : '')) + '</div></div></div>';
+    }).join('');
+  }
+
+  function renderStatsPlatforms(list, elId) {
+    const el = document.getElementById(elId || 'stats-platforms');
     if (!el) return;
     if (!list.length) { el.innerHTML = '<div class="stats-block-title">📺 Платформы</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
     el.innerHTML = '<div class="stats-block-title">📺 Платформы</div>' + list.map((p) =>
@@ -1028,8 +1256,8 @@
     ).join('');
   }
 
-  function renderStatsWatched(list) {
-    const el = document.getElementById('stats-watched');
+  function renderStatsWatched(list, elId) {
+    const el = document.getElementById(elId || 'stats-watched');
     if (!el) return;
     if (!list.length) { el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
     el.innerHTML = '<div class="stats-block-title">📋 Просмотренное</div>' + list.map((w) => {
@@ -1231,6 +1459,25 @@
     initCarousels();
     initLightbox();
 
+    function handleHash() {
+      const parsed = parsePublicStatsHash();
+      if (parsed) {
+        showPublicStatsView(parsed);
+        return true;
+      }
+      const header = document.getElementById('site-header');
+      if (header) header.classList.remove('hidden');
+      return false;
+    }
+
+    window.addEventListener('hashchange', () => {
+      if (handleHash()) return;
+      showScreen('landing');
+      if (getToken()) loadMeAndShowCabinet();
+    });
+
+    const isPublicStats = handleHash();
+
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
@@ -1264,6 +1511,7 @@
       showScreen('landing');
     });
 
+    if (!isPublicStats) {
     // Миграция: старый одиночный токен -> одна сессия в списке
     const oldToken = localStorage.getItem('mp_site_token');
     if (!getToken() && oldToken) {
@@ -1295,6 +1543,14 @@
           renderHeader(null);
         });
       return;
+    }
+
+    if (getToken()) {
+      loadMeAndShowCabinet();
+    } else {
+      showScreen('landing');
+      renderHeader(null);
+    }
     }
 
     const footerYearEl = document.getElementById('footer-year');
@@ -1333,13 +1589,6 @@
     document.querySelectorAll('.ext-btn-text').forEach(function (el) {
       el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
     });
-
-    if (getToken()) {
-      loadMeAndShowCabinet();
-    } else {
-      showScreen('landing');
-      renderHeader(null);
-    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
