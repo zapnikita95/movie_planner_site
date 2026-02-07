@@ -1832,7 +1832,7 @@ body.in-public-stats .footer-extension-cabinet {
 .stats-month-select, .stats-year-select { padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
 .stats-loading, .stats-error { margin-bottom: 20px; color: var(--text-muted); }
 .stats-error { color: #ff4444; }
-.stats-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
 .stat-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; }
 .stat-card-value { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
 .stat-card-label { font-size: 13px; color: var(--text-muted); }
