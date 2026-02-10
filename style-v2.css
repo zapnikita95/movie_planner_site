@@ -2196,6 +2196,11 @@ body.in-public-stats .footer-extension-cabinet {
   #public-stats { padding: 24px 0 32px; min-height: auto; }
 }
 #public-stats .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 420px) {
+  #public-stats .container { padding: 0 12px; }
+  .stats-block { padding: 16px; }
+  #public-stats-content { overflow-x: hidden; max-width: 100%; }
+}
 .public-stats-header-wrap {
   max-width: 1200px;
   margin: 0 auto 24px;
@@ -2223,6 +2228,8 @@ body.in-public-stats .footer-extension-cabinet {
   .rating-bar-row { min-width: 0; }
   .rating-bar-track { min-width: 0; }
   #section-stats, #section-stats .stats-content, #section-stats .stats-group-grid { overflow-x: hidden; max-width: 100%; }
+  /* Блок «Всё просмотренное»: minmax(280px) вызывал overflow на 375px */
+  .watched-list { grid-template-columns: minmax(0, 1fr); }
   /* Leaderboard mobile: hide bar, show colored value */
   .stats-lb-bar-wrap { display: none; }
   .stats-lb-value { padding: 4px 12px; border-radius: 8px; font-size: 16px; }
