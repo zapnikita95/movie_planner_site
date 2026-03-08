@@ -461,7 +461,9 @@ section {
 .what-is-v2-title .gradient-text {
   display: inline-block;
   max-width: 100%;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
   background: linear-gradient(135deg, #ff2d7b, #9b4dff, #00d4ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
