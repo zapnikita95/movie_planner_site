@@ -1206,22 +1206,37 @@ body.in-public-stats .footer-extension-cabinet {
 
 .film-buttons {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: nowrap;
-  padding: 0 12px 12px;
+  padding: 0 16px 16px;
   margin-top: auto;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
 }
 .film-buttons .btn {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-width: 0;
   white-space: nowrap;
   justify-content: center;
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: 50px;
 }
 .film-buttons .film-streaming-btn .streaming-btn-emoji { margin-left: 4px; }
+
+/* Кнопки на всю ширину карточки, овальные (50px) */
+.card .film-buttons,
+.card.series-card .film-buttons {
+  width: 100%;
+  min-width: 0;
+}
+.card .film-buttons .btn,
+.card.series-card .film-buttons .btn {
+  border-radius: 50px;
+  flex: 1 1 0;
+  min-width: 0;
+}
 
 .film-buttons .btn-sm {
   padding: 10px 16px;
