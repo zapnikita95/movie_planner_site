@@ -1666,9 +1666,8 @@
       let badgeLabel = 'Фильм';
       if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
       else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = 'Сериал'; }
-      const canChange = canEdit && w.can_change_month && w.source;
-      const dataAttrs = ' data-film-id="' + (w.film_id || '') + '" data-source="' + (w.source || '') + '" data-user-id="' + (w.user_id != null ? String(w.user_id) : '') + '"';
-      const actionsHtml = canChange ? '<div class="watched-item-actions"><button type="button" class="watched-change-month-btn" data-action="change-watched-month">Изменить месяц</button></div>' : '';
+      const dataAttrs = ' data-film-id="' + (w.film_id || '') + '" data-source="' + (w.source || '') + '" data-user-id="' + (w.user_id != null ? String(w.user_id) : '') + '" data-can-change="' + (w.can_change_month && w.source ? '1' : '0') + '"';
+      const actionsHtml = canEdit ? '<div class="watched-item-actions"><button type="button" class="watched-menu-dots" aria-label="Ещё">⋮</button><div class="watched-menu-dropdown hidden"><button type="button" data-action="change-watched-month">Изменить месяц просмотра</button></div></div>' : '';
       return '<div class="watched-item"' + dataAttrs + '>' +
         (poster ? '<img src="' + poster + '" alt="' + escapeHtml(w.title || '') + '" class="watched-poster" loading="lazy" onerror="this.style.background=\'var(--bg-surface-alt)\'">' : '<div class="watched-poster"></div>') +
         '<div class="watched-info"><div class="watched-name">' + escapeHtml(w.title || '') + '</div><div class="watched-meta">' + escapeHtml(metaStr) + '</div></div>' +
@@ -1748,17 +1747,39 @@
       })();
       loadStats(g.m, g.y);
     };
+    container.querySelectorAll('.watched-menu-dots').forEach(function (dotsBtn) {
+      if (dotsBtn._bound) return;
+      dotsBtn._bound = true;
+      dotsBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var drop = this.nextElementSibling;
+        container.querySelectorAll('.watched-menu-dropdown').forEach(function (d) { if (d !== drop) d.classList.add('hidden'); });
+        if (drop && drop.classList) {
+          drop.classList.toggle('hidden');
+          var close = function (ev) {
+            if (ev.target.closest('.watched-item-actions')) return;
+            drop.classList.add('hidden');
+            document.removeEventListener('click', close);
+          };
+          document.addEventListener('click', close);
+        }
+      });
+    });
     container.querySelectorAll('[data-action="change-watched-month"]').forEach(function (btn) {
       if (btn._changeMonthBound) return;
       btn._changeMonthBound = true;
       btn.addEventListener('click', function (e) {
         e.preventDefault();
-        const item = this.closest('.watched-item');
+        var item = this.closest('.watched-item');
         if (!item) return;
-        const filmId = parseInt(item.getAttribute('data-film-id'), 10);
-        const source = item.getAttribute('data-source') || '';
-        const userIdVal = item.getAttribute('data-user-id');
-        const userId = userIdVal !== '' && userIdVal != null ? parseInt(userIdVal, 10) : null;
+        var drop = this.closest('.watched-menu-dropdown');
+        if (drop) drop.classList.add('hidden');
+        var filmId = parseInt(item.getAttribute('data-film-id'), 10);
+        var source = item.getAttribute('data-source') || '';
+        if (!source) source = 'ensure_wm';
+        var userIdVal = item.getAttribute('data-user-id');
+        var userId = userIdVal !== '' && userIdVal != null ? parseInt(userIdVal, 10) : null;
         openChangeMonthModal(filmId, source, userId, isGroup, currentMonth, currentYear, onSuccess);
       });
     });
