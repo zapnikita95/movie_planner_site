@@ -1733,7 +1733,10 @@
       api('/api/site/stats/set-watched-month', { method: 'PUT', body: JSON.stringify(body) }).then(function (res) {
         if (res && res.success) { close(); if (typeof onSuccess === 'function') onSuccess(); }
         else { alert(res && res.error ? res.error : 'Ошибка'); }
-      }).catch(function () { alert('Ошибка сети'); });
+      }).catch(function (err) {
+        console.warn('set-watched-month failed', err);
+        alert('Не удалось сохранить. Проверьте интернет или попробуйте позже.');
+      });
     });
   }
 
