@@ -347,6 +347,46 @@ header {
   letter-spacing: 0.05em;
 }
 
+/* Баннер розыгрыша (скрывается после 22.03) */
+.contest-banner {
+  text-align: center;
+  padding: 32px 24px;
+  margin: 0 auto 0;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 45, 123, 0.08), rgba(155, 77, 255, 0.08));
+  border: 1px solid rgba(255, 45, 123, 0.25);
+  border-radius: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+}
+.contest-banner-btn {
+  display: inline-block;
+  padding: 18px 40px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  font-weight: 800;
+  color: white;
+  text-decoration: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #ff2d7b, #9b4dff);
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.02em;
+}
+.contest-banner-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(255, 45, 123, 0.5);
+  color: white;
+}
+.contest-banner-hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 section {
   padding: 60px 24px;
   max-width: 1200px;

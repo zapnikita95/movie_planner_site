@@ -86,6 +86,10 @@
 
     <!-- Landing -->
     <main id="landing">
+      <section class="contest-banner" id="contest-banner">
+        <a href="https://t.me/movie_planner_bot" class="contest-banner-btn" target="_blank" rel="noopener">🎁 Участвовать в розыгрыше</a>
+        <p class="contest-banner-hint">Итоги — 22 марта</p>
+      </section>
       <section>
         <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
         <h1 class="hero-title">Ваш кинотеатр.<br>Ваши <span class="gradient">правила.</span></h1>
@@ -733,5 +737,13 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="app.js"></script>
+    <script>
+      (function() {
+        var banner = document.getElementById('contest-banner');
+        if (banner && new Date() >= new Date('2026-03-23T00:00:00')) {
+          banner.remove();
+        }
+      })();
+    </script>
 </body>
 </html>
