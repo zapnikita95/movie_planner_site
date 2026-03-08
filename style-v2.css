@@ -1207,12 +1207,12 @@ body.in-public-stats .footer-extension-cabinet {
 .film-buttons {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   padding: 0 16px 16px;
   margin-top: auto;
 }
 .film-buttons .btn {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
   white-space: nowrap;
   justify-content: center;
@@ -2276,4 +2276,94 @@ body.in-public-stats .footer-extension-cabinet {
   .stats-lb-value.value-high { background: linear-gradient(135deg, rgba(52,211,153,0.25), rgba(251,191,36,0.2)); color: #34d399; }
   .stats-lb-value.value-mid { background: rgba(255,255,255,0.06); color: var(--text-primary); }
   .stats-lb-value.value-low { background: rgba(107,107,118,0.15); color: var(--text-muted); }
+}
+
+/* ── Watched ⋮ three-dots menu (stats section) ── */
+.watched-item-actions {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.watched-menu-dots {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  font-family: inherit;
+}
+.watched-menu-dots:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+}
+.watched-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  min-width: 220px;
+  padding: 6px;
+}
+.watched-menu-dropdown.hidden { display: none; }
+.watched-menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+}
+.watched-menu-dropdown button:hover {
+  background: rgba(255, 45, 123, 0.1);
+  color: #ff2d7b;
+}
+
+/* ── Change month modal selects ── */
+.change-month-fields {
+  display: flex;
+  gap: 16px;
+  margin: 20px 0 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.change-month-fields label {
+  font-size: 14px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.change-month-fields select {
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.change-month-fields select:focus {
+  border-color: #9b4dff;
 }

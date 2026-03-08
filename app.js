@@ -411,7 +411,7 @@
               <div class="plan-title">🎬 ${titleSafe}</div>
             </div>
             <div class="plan-card-buttons">
-              <span class="btn btn-small btn-primary">Продолжить в Telegram</span>
+              <span class="btn btn-small btn-primary">В Telegram</span>
             </div>
           </a>`;
       };
@@ -477,7 +477,7 @@
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const streamingUrl = (m.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     const progressStatus = m.is_series
       ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
@@ -497,7 +497,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -545,7 +545,7 @@
     const poster = posterUrl(s.kp_id);
     const streamingUrl = (s.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
       <div class="card series-card">
@@ -560,7 +560,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -605,7 +605,7 @@
     const ratedDateHtml = ratedDateStr ? '<div class="film-rated-date">Оценено ' + escapeHtml(ratedDateStr) + '</div>' : '';
     const streamingUrl = (r.online_link || '').trim();
     const streamingBtn = streamingUrl
-      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">Просмотр на стриминге</span><span class="streaming-btn-emoji"> ⏯️</span></a>'
+      ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
       <div class="card film-card">
@@ -622,7 +622,7 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">Продолжить в Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
         </div>
       </div>`;
   }
@@ -1699,28 +1699,32 @@
 
   function openChangeMonthModal(filmId, source, userId, isGroup, currentMonth, currentYear, onSuccess) {
     const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.id = 'change-month-modal-overlay';
     const now = new Date();
     let monthHtml = '';
-    for (let m = 1; m <= 12; m++) monthHtml += '<option value="' + m + '">' + MONTH_NAMES[m - 1] + '</option>';
+    for (let m = 1; m <= 12; m++) monthHtml += '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + MONTH_NAMES[m - 1] + '</option>';
     let yearHtml = '';
     for (let y = now.getFullYear(); y >= 2020; y--) yearHtml += '<option value="' + y + '"' + (y === currentYear ? ' selected' : '') + '>' + y + '</option>';
-    overlay.innerHTML = '<div class="modal-backdrop" data-action="close-change-month"></div><div class="modal-box">' +
-      '<button type="button" class="modal-close" data-action="close-change-month" aria-label="Закрыть">&times;</button>' +
-      '<h3 class="modal-title">Изменить месяц просмотра</h3>' +
-      '<p class="modal-text">Укажите месяц, в который перенести просмотр. Ачивки не отзываются.</p>' +
-      '<div class="change-month-fields"><label>Месяц <select id="change-month-select">' + monthHtml + '</select></label>' +
-      '<label>Год <select id="change-year-select">' + yearHtml + '</select></label></div>' +
-      '<button type="button" class="btn btn-primary" data-action="submit-change-month">Сохранить</button></div>';
-    document.body.appendChild(overlay);
-    const monthSelect = document.getElementById('change-month-select');
-    const yearSelect = document.getElementById('change-year-select');
-    if (currentMonth && monthSelect) monthSelect.value = String(currentMonth);
-    const close = function () { overlay.remove(); };
-    overlay.querySelectorAll('[data-action="close-change-month"]').forEach(function (el) { el.addEventListener('click', close); });
-    overlay.querySelector('[data-action="submit-change-month"]').addEventListener('click', function () {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'change-month-modal';
+    modal.innerHTML =
+      '<div class="modal-content">' +
+        '<button type="button" class="modal-close" aria-label="Закрыть">&times;</button>' +
+        '<div class="modal-title">Изменить месяц</div>' +
+        '<div class="modal-hint">Укажите месяц, в который перенести просмотр. Ачивки не отзываются.</div>' +
+        '<div class="change-month-fields">' +
+          '<label>Месяц <select id="cmm-month-select">' + monthHtml + '</select></label>' +
+          '<label>Год <select id="cmm-year-select">' + yearHtml + '</select></label>' +
+        '</div>' +
+        '<button type="button" class="modal-button modal-button-telegram" id="cmm-save-btn">Сохранить</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+    const monthSelect = modal.querySelector('#cmm-month-select');
+    const yearSelect = modal.querySelector('#cmm-year-select');
+    const close = function () { modal.remove(); };
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    modal.querySelector('.modal-close').addEventListener('click', close);
+    modal.querySelector('#cmm-save-btn').addEventListener('click', function () {
       const targetMonth = parseInt(monthSelect && monthSelect.value || 1, 10);
       const targetYear = parseInt(yearSelect && yearSelect.value || now.getFullYear(), 10);
       const body = { film_id: filmId, target_month: targetMonth, target_year: targetYear, source: source };
