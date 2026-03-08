@@ -993,6 +993,44 @@ section {
   margin-bottom: 20px;
   line-height: 1.5;
 }
+.change-month-fields {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.change-month-fields label { font-size: 14px; color: var(--text-dark); }
+.change-month-fields select {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-left: 8px;
+}
+.watched-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.watched-item-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.watched-change-month-btn {
+  font-size: 13px;
+  color: var(--primary-dark);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.watched-change-month-btn:hover {
+  text-decoration: underline;
+  background: rgba(102, 126, 234, 0.08);
+}
 .modal-cta {
   display: inline-block;
   margin-bottom: 20px;

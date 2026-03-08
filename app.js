@@ -825,7 +825,7 @@
           renderStatsRatingBreakdown(data.rating_breakdown || {});
           renderStatsPlatforms(data.platforms || []);
           renderStatsCinema(data.cinema || []);
-          renderStatsWatched(data.watched || [], undefined, data.period);
+          renderStatsWatched(data.watched || [], undefined, data.period, { canEdit: true, isGroup: false });
         }
       })
       .catch(() => {
@@ -1304,10 +1304,13 @@
 
     // Watched list
     const watched = data.watched || [];
-    blocks.push('<div class="stats-block stats-block-full">' + buildWatchedBlockHtml(watched, period) + '</div>');
+    const watchedOptions = { canEdit: true, isGroup: true };
+    blocks.push('<div class="stats-block stats-block-full">' + buildWatchedBlockHtml(watched, period, watchedOptions) + '</div>');
 
     gridEl.innerHTML = blocks.join('');
     bindWatchedExpand(gridEl);
+    const watchedWrap = gridEl.querySelector('.watched-block-wrap');
+    if (watchedWrap) bindWatchedChangeMonth(watchedWrap.closest('.stats-block-full') || gridEl, period, watchedOptions);
 
     // Leaderboard tab switch
     gridEl.querySelectorAll('.stats-lb-tab').forEach((tab) => {
@@ -1648,7 +1651,9 @@
     ).join('');
   }
 
-  function buildWatchedBlockHtml(list, period) {
+  function buildWatchedBlockHtml(list, period, options) {
+    options = options || {};
+    const canEdit = !!options.canEdit;
     const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
     const title = monthLabel ? '📋 Всё просмотренное за ' + monthLabel : '📋 Просмотренное';
     if (!list.length) return '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>';
@@ -1661,10 +1666,14 @@
       let badgeLabel = 'Фильм';
       if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
       else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = 'Сериал'; }
-      return '<div class="watched-item">' +
+      const canChange = canEdit && w.can_change_month && w.source;
+      const dataAttrs = ' data-film-id="' + (w.film_id || '') + '" data-source="' + (w.source || '') + '" data-user-id="' + (w.user_id != null ? String(w.user_id) : '') + '"';
+      const actionsHtml = canChange ? '<div class="watched-item-actions"><button type="button" class="watched-change-month-btn" data-action="change-watched-month">Изменить месяц</button></div>' : '';
+      return '<div class="watched-item"' + dataAttrs + '>' +
         (poster ? '<img src="' + poster + '" alt="' + escapeHtml(w.title || '') + '" class="watched-poster" loading="lazy" onerror="this.style.background=\'var(--bg-surface-alt)\'">' : '<div class="watched-poster"></div>') +
         '<div class="watched-info"><div class="watched-name">' + escapeHtml(w.title || '') + '</div><div class="watched-meta">' + escapeHtml(metaStr) + '</div></div>' +
-        '<span class="watched-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + '</span></div>';
+        '<span class="watched-badge ' + badgeCls + '">' + escapeHtml(badgeLabel) + '</span>' +
+        actionsHtml + '</div>';
     }).join('');
     const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
     const visibleCount = isMobile ? 7 : 16;
@@ -1689,11 +1698,79 @@
     });
   }
 
-  function renderStatsWatched(list, elId, period) {
+  function openChangeMonthModal(filmId, source, userId, isGroup, currentMonth, currentYear, onSuccess) {
+    const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'change-month-modal-overlay';
+    const now = new Date();
+    let monthHtml = '';
+    for (let m = 1; m <= 12; m++) monthHtml += '<option value="' + m + '">' + MONTH_NAMES[m - 1] + '</option>';
+    let yearHtml = '';
+    for (let y = now.getFullYear(); y >= 2020; y--) yearHtml += '<option value="' + y + '"' + (y === currentYear ? ' selected' : '') + '>' + y + '</option>';
+    overlay.innerHTML = '<div class="modal-backdrop" data-action="close-change-month"></div><div class="modal-box">' +
+      '<button type="button" class="modal-close" data-action="close-change-month" aria-label="Закрыть">&times;</button>' +
+      '<h3 class="modal-title">Изменить месяц просмотра</h3>' +
+      '<p class="modal-text">Укажите месяц, в который перенести просмотр. Ачивки не отзываются.</p>' +
+      '<div class="change-month-fields"><label>Месяц <select id="change-month-select">' + monthHtml + '</select></label>' +
+      '<label>Год <select id="change-year-select">' + yearHtml + '</select></label></div>' +
+      '<button type="button" class="btn btn-primary" data-action="submit-change-month">Сохранить</button></div>';
+    document.body.appendChild(overlay);
+    const monthSelect = document.getElementById('change-month-select');
+    const yearSelect = document.getElementById('change-year-select');
+    if (currentMonth && monthSelect) monthSelect.value = String(currentMonth);
+    const close = function () { overlay.remove(); };
+    overlay.querySelectorAll('[data-action="close-change-month"]').forEach(function (el) { el.addEventListener('click', close); });
+    overlay.querySelector('[data-action="submit-change-month"]').addEventListener('click', function () {
+      const targetMonth = parseInt(monthSelect && monthSelect.value || 1, 10);
+      const targetYear = parseInt(yearSelect && yearSelect.value || now.getFullYear(), 10);
+      const body = { film_id: filmId, target_month: targetMonth, target_year: targetYear, source: source };
+      if (isGroup && userId != null) body.user_id = userId;
+      if (source === 'st') { body.current_month = currentMonth; body.current_year = currentYear; }
+      api('/api/site/stats/set-watched-month', { method: 'PUT', body: JSON.stringify(body) }).then(function (res) {
+        if (res && res.success) { close(); if (typeof onSuccess === 'function') onSuccess(); }
+        else { alert(res && res.error ? res.error : 'Ошибка'); }
+      }).catch(function () { alert('Ошибка сети'); });
+    });
+  }
+
+  function bindWatchedChangeMonth(container, period, options) {
+    if (!container || !options || !options.canEdit || !period || period.month == null || period.year == null) return;
+    const isGroup = !!options.isGroup;
+    const currentMonth = period.month;
+    const currentYear = period.year;
+    const onSuccess = function () {
+      const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () {
+        const y = document.getElementById('stats-year');
+        const p = document.getElementById('stats-month-pills');
+        const a = p && p.querySelector('.month-pill.active');
+        return { m: a ? parseInt(a.getAttribute('data-month'), 10) : currentMonth, y: y ? parseInt(y.value, 10) : currentYear };
+      })();
+      loadStats(g.m, g.y);
+    };
+    container.querySelectorAll('[data-action="change-watched-month"]').forEach(function (btn) {
+      if (btn._changeMonthBound) return;
+      btn._changeMonthBound = true;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const item = this.closest('.watched-item');
+        if (!item) return;
+        const filmId = parseInt(item.getAttribute('data-film-id'), 10);
+        const source = item.getAttribute('data-source') || '';
+        const userIdVal = item.getAttribute('data-user-id');
+        const userId = userIdVal !== '' && userIdVal != null ? parseInt(userIdVal, 10) : null;
+        openChangeMonthModal(filmId, source, userId, isGroup, currentMonth, currentYear, onSuccess);
+      });
+    });
+  }
+
+  function renderStatsWatched(list, elId, period, options) {
     const el = document.getElementById(elId || 'stats-watched');
     if (!el) return;
-    el.innerHTML = buildWatchedBlockHtml(list, period);
+    options = options || {};
+    el.innerHTML = buildWatchedBlockHtml(list, period, options);
     bindWatchedExpand(el);
+    bindWatchedChangeMonth(el, period, options);
   }
 
   // ——— FAQ аккордеон ———
