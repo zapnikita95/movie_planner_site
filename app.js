@@ -1105,7 +1105,6 @@
       summaryEl.innerHTML = cards.map((c) => {
         let scrollTarget = null;
         if (c.label === 'Просмотренных фильмов') {
-          // Find watched block in group grid
           scrollTarget = 'group-watched';
         } else if (c.label === 'Оценок поставлено') {
           scrollTarget = 'group-rating-breakdown';
@@ -1117,28 +1116,6 @@
         const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
         return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + (c.cls.includes('pink') ? '🎬' : c.cls.includes('purple') ? '⭐' : c.cls.includes('cyan') ? '🎥' : c.cls.includes('green') ? '📺' : '👥') + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
       }).join('');
-      // Bind click handlers for scroll (group stats)
-      summaryEl.querySelectorAll('.stat-card[data-scroll-to]').forEach((card) => {
-        card.addEventListener('click', function() {
-          const targetId = this.getAttribute('data-scroll-to');
-          const gridEl = ctx.gridEl || document.getElementById('stats-group-grid') || document.getElementById('public-stats-grid');
-          if (!gridEl) return;
-          let target = null;
-          if (targetId === 'group-watched') {
-            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('просмотренное') || b.querySelector('.stats-block-title')?.textContent?.includes('Просмотренное'));
-          } else if (targetId === 'group-rating-breakdown') {
-            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Распределение оценок'));
-          } else if (targetId === 'group-platforms') {
-            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Платформы'));
-          } else if (targetId === 'group-cinema') {
-            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Походы в кино'));
-          }
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(() => window.scrollBy(0, -20), 100);
-          }
-        });
-      });
     }
 
     // MVP
@@ -1360,6 +1337,56 @@
         if (content) content.classList.remove('hidden');
       });
     });
+
+    // Bind click handlers for scroll (group stats) - after grid is rendered
+    const summaryElForScroll = ctx.summaryEl || document.getElementById('stats-group-summary') || document.getElementById('public-stats-summary');
+    if (summaryElForScroll) {
+      summaryElForScroll.querySelectorAll('.stat-card[data-scroll-to]').forEach((card) => {
+        card.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-scroll-to');
+          if (!targetId || !gridEl) return;
+          let target = null;
+          const allBlocks = Array.from(gridEl.querySelectorAll('.stats-block'));
+          if (targetId === 'group-watched') {
+            // Find block with "просмотренное" or "Просмотренное" in title
+            target = allBlocks.find((b) => {
+              const title = b.querySelector('.stats-block-title');
+              if (!title) return false;
+              const text = title.textContent || '';
+              return text.toLowerCase().includes('просмотренное') || text.includes('📋');
+            });
+          } else if (targetId === 'group-rating-breakdown') {
+            // Find "Распределение оценок" block
+            target = allBlocks.find((b) => {
+              const title = b.querySelector('.stats-block-title');
+              if (!title) return false;
+              const text = title.textContent || '';
+              return text.includes('Распределение оценок') || text.includes('📊');
+            });
+          } else if (targetId === 'group-platforms') {
+            // Find "Платформы" block
+            target = allBlocks.find((b) => {
+              const title = b.querySelector('.stats-block-title');
+              if (!title) return false;
+              const text = title.textContent || '';
+              return text.includes('Платформы') || text.includes('📺');
+            });
+          } else if (targetId === 'group-cinema') {
+            // Find "Походы в кино" block
+            target = allBlocks.find((b) => {
+              const title = b.querySelector('.stats-block-title');
+              if (!title) return false;
+              const text = title.textContent || '';
+              return text.includes('Походы в кино') || text.includes('🎥');
+            });
+          }
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => window.scrollBy(0, -20), 100);
+          }
+        });
+      });
+    }
   }
 
   function formatMemberSince(dateStr) {
