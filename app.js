@@ -1102,7 +1102,43 @@
         { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green' },
         { val: summary.active_members ?? 0, label: 'Активных участников', cls: 'stat-card-amber' }
       ];
-      summaryEl.innerHTML = cards.map((c) => '<div class="stat-card ' + c.cls + '"><div class="stat-card-icon">' + (c.cls.includes('pink') ? '🎬' : c.cls.includes('purple') ? '⭐' : c.cls.includes('cyan') ? '🎥' : c.cls.includes('green') ? '📺' : '👥') + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>').join('');
+      summaryEl.innerHTML = cards.map((c) => {
+        let scrollTarget = null;
+        if (c.label === 'Просмотренных фильмов') {
+          // Find watched block in group grid
+          scrollTarget = 'group-watched';
+        } else if (c.label === 'Оценок поставлено') {
+          scrollTarget = 'group-rating-breakdown';
+        } else if (c.label === 'Сериалов / серий') {
+          scrollTarget = 'group-platforms';
+        } else if (c.label === 'Походов в кино') {
+          scrollTarget = 'group-cinema';
+        }
+        const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
+        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + (c.cls.includes('pink') ? '🎬' : c.cls.includes('purple') ? '⭐' : c.cls.includes('cyan') ? '🎥' : c.cls.includes('green') ? '📺' : '👥') + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
+      }).join('');
+      // Bind click handlers for scroll (group stats)
+      summaryEl.querySelectorAll('.stat-card[data-scroll-to]').forEach((card) => {
+        card.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-scroll-to');
+          const gridEl = ctx.gridEl || document.getElementById('stats-group-grid') || document.getElementById('public-stats-grid');
+          if (!gridEl) return;
+          let target = null;
+          if (targetId === 'group-watched') {
+            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('просмотренное') || b.querySelector('.stats-block-title')?.textContent?.includes('Просмотренное'));
+          } else if (targetId === 'group-rating-breakdown') {
+            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Распределение оценок'));
+          } else if (targetId === 'group-platforms') {
+            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Платформы'));
+          } else if (targetId === 'group-cinema') {
+            target = Array.from(gridEl.querySelectorAll('.stats-block')).find((b) => b.querySelector('.stats-block-title')?.textContent?.includes('Походы в кино'));
+          }
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => window.scrollBy(0, -20), 100);
+          }
+        });
+      });
     }
 
     // MVP
@@ -1563,8 +1599,36 @@
         { val: total, label: 'Всего просмотров', cls: 'stat-card-purple', icon: '📊' },
         { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка', cls: 'stat-card-amber', icon: '⭐' }
       ];
-      el.innerHTML = cards.map((c) => '<div class="stat-card ' + c.cls + '"><div class="stat-card-icon">' + c.icon + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>').join('');
+      el.innerHTML = cards.map((c) => {
+        let scrollTarget = null;
+        if (c.label === 'Фильмов') scrollTarget = 'watched';
+        else if (c.label === 'Средняя оценка') scrollTarget = 'rating-breakdown';
+        else if (c.label === 'Сериалов / серий') scrollTarget = 'platforms';
+        else if (c.label === 'Походов в кино') scrollTarget = 'cinema';
+        const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
+        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + c.icon + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
+      }).join('');
       el.classList.add('stats-group-summary');
+      // Bind click handlers for scroll (personal stats - both cabinet and public)
+      el.querySelectorAll('.stat-card[data-scroll-to]').forEach((card) => {
+        card.addEventListener('click', function() {
+          const targetKey = this.getAttribute('data-scroll-to');
+          // Try cabinet IDs first, then public IDs
+          const targetIds = targetKey === 'watched' ? ['stats-watched', 'public-stats-personal-watched'] :
+                           targetKey === 'rating-breakdown' ? ['stats-rating-breakdown', 'public-stats-personal-rating'] :
+                           targetKey === 'platforms' ? ['stats-platforms', 'public-stats-personal-platforms'] :
+                           targetKey === 'cinema' ? ['stats-cinema', 'public-stats-personal-cinema'] : [];
+          let target = null;
+          for (const id of targetIds) {
+            target = document.getElementById(id);
+            if (target) break;
+          }
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => window.scrollBy(0, -20), 100);
+          }
+        });
+      });
     } else {
       el.classList.remove('stats-group-summary');
       el.innerHTML = [
