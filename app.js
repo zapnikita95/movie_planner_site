@@ -104,20 +104,28 @@
     return BOT_START_LINK;
   }
 
-  /** Явный скролл окна: scrollIntoView на длинной странице часто почти не двигает viewport; остаётся только scrollBy(-20). */
   function getStatsScrollTopOffset() {
     const header = document.getElementById('site-header');
     if (!header || header.classList.contains('hidden')) return 16;
-    return Math.ceil(header.getBoundingClientRect().height) + 12;
+    return (header.offsetHeight || 0) + 12;
+  }
+
+  /** Считаем абсолютное расстояние от верха документа через offsetParent-цепочку —
+   *  getBoundingClientRect().top + scrollY даёт ошибки при css scroll-behavior:smooth. */
+  function getDocumentOffsetTop(el) {
+    let top = 0;
+    let curr = el;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      top += curr.offsetTop || 0;
+      curr = curr.offsetParent;
+    }
+    return top;
   }
 
   function scrollToStatsSection(el) {
-    if (!el || typeof el.getBoundingClientRect !== 'function') return;
-    requestAnimationFrame(function () {
-      const y0 = window.scrollY ?? document.documentElement.scrollTop ?? 0;
-      const top = el.getBoundingClientRect().top + y0 - getStatsScrollTopOffset();
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-    });
+    if (!el) return;
+    const top = getDocumentOffsetTop(el) - getStatsScrollTopOffset();
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
