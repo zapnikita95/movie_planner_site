@@ -104,6 +104,22 @@
     return BOT_START_LINK;
   }
 
+  /** Явный скролл окна: scrollIntoView на длинной странице часто почти не двигает viewport; остаётся только scrollBy(-20). */
+  function getStatsScrollTopOffset() {
+    const header = document.getElementById('site-header');
+    if (!header || header.classList.contains('hidden')) return 16;
+    return Math.ceil(header.getBoundingClientRect().height) + 12;
+  }
+
+  function scrollToStatsSection(el) {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return;
+    requestAnimationFrame(function () {
+      const y0 = window.scrollY ?? document.documentElement.scrollTop ?? 0;
+      const top = el.getBoundingClientRect().top + y0 - getStatsScrollTopOffset();
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    });
+  }
+
   // ——— UI: шапка, выпадающее меню аккаунтов ———
   function closeAccountDropdown() {
     const dd = document.getElementById('header-account-dropdown');
@@ -1380,10 +1396,7 @@
               return text.includes('Походы в кино') || text.includes('🎥');
             });
           }
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(() => window.scrollBy(0, -20), 100);
-          }
+          if (target) scrollToStatsSection(target);
         });
       });
     }
@@ -1650,10 +1663,7 @@
             target = document.getElementById(id);
             if (target) break;
           }
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(() => window.scrollBy(0, -20), 100);
-          }
+          if (target) scrollToStatsSection(target);
         });
       });
     } else {
