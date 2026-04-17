@@ -252,8 +252,11 @@
     if (header) header.classList.toggle('hidden', screenId === 'public-stats');
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
-    document.body.classList.toggle('in-cabinet', screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
+    const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
+    document.body.classList.toggle('in-cabinet', inCabinet);
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
+    const hs = document.getElementById('header-search');
+    if (hs) hs.classList.toggle('hidden', !(screenId === 'cabinet-readonly'));
   }
 
   function showSection(sectionId) {
@@ -386,7 +389,7 @@
       const ua = navigator.userAgent || '';
       const isOpera = /opr|opera/i.test(ua) || (navigator.browser && navigator.browser.opera);
       const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
-      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link').forEach((a) => {
+      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link, #cabinet-topbar-extension').forEach((a) => {
         if (a) { a.href = url; a.classList.remove('hidden'); }
       });
     }).catch(() => {});
@@ -2302,17 +2305,38 @@
       }
       const status = document.getElementById('tv-current-status');
       if (status) {
-        if (tvSettings.tv_type) {
-          const names = {
-            android_tv: 'Android TV / Яндекс ТВ / Google TV',
-            samsung: 'Samsung Smart TV (Tizen)',
-            lg: 'LG Smart TV (WebOS)',
-            other: 'Smart TV',
-          };
-          status.classList.remove('hidden');
-          status.innerHTML = '✅ Подключён: <b>' + escapeHtml(names[tvSettings.tv_type] || tvSettings.tv_type) + '</b>. В карточках фильмов появилась кнопка «📺 На ТВ».';
-        } else {
+        const names = {
+          android_tv: 'Android TV / Яндекс ТВ / Google TV',
+          samsung: 'Samsung Smart TV (Tizen)',
+          lg: 'LG Smart TV (WebOS)',
+          other: 'Smart TV',
+        };
+        if (!tvSettings.tv_type) {
           status.classList.add('hidden');
+          status.classList.remove('is-warn', 'is-ok');
+        } else {
+          status.classList.remove('hidden');
+          const tvName = escapeHtml(names[tvSettings.tv_type] || tvSettings.tv_type);
+          const needsAgent = (tvSettings.tv_type === 'android_tv');
+          if (needsAgent) {
+            if (tvSettings.agent_online) {
+              status.classList.remove('is-warn');
+              status.classList.add('is-ok');
+              status.innerHTML = '✅ <b>' + tvName + '</b> подключён, агент онлайн — фильм запускается в один клик.';
+            } else if (tvSettings.agent_token_exists) {
+              status.classList.remove('is-ok');
+              status.classList.add('is-warn');
+              status.innerHTML = '⚠️ <b>' + tvName + '</b> выбран, токен агента создан, но агент ещё не онлайн. Запустите агент на домашнем устройстве — тогда фильмы будут запускаться сразу.';
+            } else {
+              status.classList.remove('is-ok');
+              status.classList.add('is-warn');
+              status.innerHTML = '☑️ <b>' + tvName + '</b> выбран. Запуск через QR-код уже работает. Для <b>мгновенного запуска</b> сгенерируйте токен агента ниже и поднимите его дома.';
+            }
+          } else {
+            status.classList.remove('is-warn');
+            status.classList.add('is-ok');
+            status.innerHTML = '✅ <b>' + tvName + '</b> выбран. В карточках фильмов появилась кнопка «📺 На ТВ» — откроется страница запуска с QR-кодом, Cast и ссылками на стриминги.';
+          }
         }
       }
       const agentBlock = document.getElementById('tv-agent-block');
@@ -2983,6 +3007,162 @@
   }
 
   // ————————————————————————————————————————————————————
+  // Phase 4: Header search (hybrid dropdown + full modal)
+  // ————————————————————————————————————————————————————
+
+  let _headerSearchSeq = 0;
+  let _headerSearchDebounce = null;
+
+  function renderHeaderSearchDropdown(items, query) {
+    const dd = document.getElementById('header-search-dropdown');
+    if (!dd) return;
+    if (!items || !items.length) {
+      dd.innerHTML = `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
+      dd.classList.remove('hidden');
+      return;
+    }
+    const top = items.slice(0, 6);
+    dd.innerHTML = top.map((it) => {
+      const poster = it.poster || '';
+      const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
+      const inBase = it.already_in_base_film_id;
+      const actionBtn = inBase
+        ? `<button type="button" class="hs-result-btn hs-btn-open" data-hs-open-film="${escapeHtml(String(inBase))}">Открыть</button>`
+        : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}">＋ Добавить</button>`;
+      return `<div class="hs-result">
+        ${poster ? `<img class="hs-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="hs-result-poster"></div>'}
+        <div class="hs-result-info">
+          <div class="hs-result-title">${escapeHtml(it.title || '')}</div>
+          <div class="hs-result-meta">${escapeHtml(meta)}${inBase ? ' · <span class="hs-in-base">в базе</span>' : ''}</div>
+        </div>
+        ${actionBtn}
+      </div>`;
+    }).join('') + (items.length > 6
+      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${items.length})</button></div>`
+      : '');
+    dd.classList.remove('hidden');
+  }
+
+  function runHeaderSearch(query) {
+    const seq = ++_headerSearchSeq;
+    const dd = document.getElementById('header-search-dropdown');
+    if (!query || query.length < 2) {
+      if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+      return;
+    }
+    if (dd) {
+      dd.innerHTML = '<div class="header-search-loading">Ищем…</div>';
+      dd.classList.remove('hidden');
+    }
+    // Link shortcut
+    if (/kinopoisk\.(ru|com)\/(film|series)\//i.test(query) || /imdb\.com\/title\/tt\d+/i.test(query)) {
+      if (dd) dd.innerHTML = '<div class="header-search-empty">Распознали ссылку — откройте полную форму для добавления.</div>';
+      return;
+    }
+    api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
+      .then((data) => {
+        if (seq !== _headerSearchSeq) return;
+        if (!data || !data.success) {
+          if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка поиска</div>';
+          return;
+        }
+        renderHeaderSearchDropdown(data.items || [], query);
+      })
+      .catch(() => {
+        if (seq !== _headerSearchSeq) return;
+        if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка сети</div>';
+      });
+  }
+
+  function bindHeaderSearch() {
+    const wrap = document.getElementById('header-search');
+    const input = document.getElementById('header-search-input');
+    const dd = document.getElementById('header-search-dropdown');
+    const clearBtn = document.getElementById('header-search-clear');
+    if (!wrap || !input) return;
+
+    input.addEventListener('input', () => {
+      const v = input.value.trim();
+      if (clearBtn) clearBtn.classList.toggle('hidden', !v);
+      if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
+      _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), 280);
+    });
+    input.addEventListener('focus', () => {
+      const v = input.value.trim();
+      if (v.length >= 2 && dd && dd.innerHTML) dd.classList.remove('hidden');
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; if (dd) dd.classList.add('hidden'); input.blur(); }
+      if (e.key === 'Enter') {
+        const v = input.value.trim();
+        if (v.length >= 2) {
+          if (dd) dd.classList.add('hidden');
+          openAddFilmModal();
+          const modalInput = document.getElementById('add-film-input');
+          if (modalInput) { modalInput.value = v; runAddFilmSearch(v); }
+        }
+      }
+    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.add('hidden');
+        if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+        input.focus();
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) {
+        if (dd) dd.classList.add('hidden');
+      }
+    });
+    // Dropdown delegation
+    if (dd) {
+      dd.addEventListener('click', (e) => {
+        const addBtn = e.target.closest('[data-hs-add-kp]');
+        if (addBtn) {
+          e.preventDefault();
+          const kp = addBtn.getAttribute('data-hs-add-kp');
+          addBtn.disabled = true;
+          const prev = addBtn.textContent;
+          addBtn.textContent = '…';
+          api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+            .then((data) => {
+              if (data && data.success) {
+                addBtn.textContent = data.already_existed ? 'Уже в базе' : '✓ Добавлен';
+                if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
+              } else {
+                addBtn.disabled = false;
+                addBtn.textContent = prev;
+              }
+            })
+            .catch(() => { addBtn.disabled = false; addBtn.textContent = prev; });
+          return;
+        }
+        const openFilm = e.target.closest('[data-hs-open-film]');
+        if (openFilm) {
+          e.preventDefault();
+          const id = openFilm.getAttribute('data-hs-open-film');
+          if (dd) dd.classList.add('hidden');
+          input.value = '';
+          if (clearBtn) clearBtn.classList.add('hidden');
+          if (typeof openFilmModal === 'function') openFilmModal(id);
+          return;
+        }
+        const showAll = e.target.closest('[data-hs-show-all]');
+        if (showAll) {
+          e.preventDefault();
+          const v = input.value.trim();
+          if (dd) dd.classList.add('hidden');
+          openAddFilmModal();
+          const modalInput = document.getElementById('add-film-input');
+          if (modalInput) { modalInput.value = v; runAddFilmSearch(v); }
+        }
+      });
+    }
+  }
+
+  // ————————————————————————————————————————————————————
   // Phase 3: Profile switcher (cabinet-topbar)
   // ————————————————————————————————————————————————————
 
@@ -3100,14 +3280,19 @@
       }
       const profiles = data.profiles || [];
       if (!profiles.length) {
-        list.innerHTML = '<div class="cabinet-hint">Пока только этот профиль. Создайте группу в Telegram и позовите друзей через /invite.</div>';
+        list.innerHTML = '<div class="cabinet-hint">Пока только этот профиль. Создайте виртуальную комнату кнопкой справа — и позовите друзей.</div>';
         return;
       }
       list.innerHTML = profiles.map((p) => {
-        const emoji = p.is_personal ? '👤' : '👥';
-        const type = p.is_personal ? 'Личный' : 'Группа';
+        let emoji, type;
+        if (p.is_personal) { emoji = '👤'; type = 'Личный'; }
+        else if (p.is_virtual) { emoji = '🧩'; type = 'Виртуальная комната'; }
+        else { emoji = '👥'; type = 'Telegram-группа'; }
         const active = p.is_active;
-        return `<div class="group-card ${active ? 'active' : ''}">
+        const shareBtn = (!p.is_personal)
+          ? `<button type="button" data-action="share-profile" data-chat-id="${escapeHtml(String(p.chat_id))}" data-is-virtual="${p.is_virtual ? 1 : 0}">🔗 Пригласить</button>`
+          : '';
+        return `<div class="group-card ${active ? 'active' : ''}${p.is_virtual ? ' group-card-virtual' : ''}">
           <div class="group-card-head">
             <span class="group-card-emoji">${emoji}</span>
             <span class="group-card-name">${escapeHtml(p.name || 'Профиль')}</span>
@@ -3118,13 +3303,169 @@
             ${active
               ? '<button type="button" disabled>Активен</button>'
               : `<button type="button" class="primary" data-action="switch-profile" data-chat-id="${escapeHtml(String(p.chat_id))}">Открыть</button>`}
+            ${shareBtn}
           </div>
         </div>`;
       }).join('');
       list.querySelectorAll('[data-action="switch-profile"]').forEach((b) => {
         b.addEventListener('click', () => switchProfileTo(b.getAttribute('data-chat-id')));
       });
+      list.querySelectorAll('[data-action="share-profile"]').forEach((b) => {
+        b.addEventListener('click', () => generateRoomInvite(b.getAttribute('data-chat-id'), b.getAttribute('data-is-virtual') === '1'));
+      });
     });
+  }
+
+  // ————————————————————————————————————————————————————
+  // Phase 4: Virtual rooms — create & share invite
+  // ————————————————————————————————————————————————————
+
+  function openCreateRoomModal() {
+    const modal = document.getElementById('create-room-modal');
+    if (!modal) return;
+    const input = document.getElementById('create-room-name');
+    const statusEl = document.getElementById('create-room-status');
+    if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCreateRoomModal() {
+    const modal = document.getElementById('create-room-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function bindCreateRoomModal() {
+    const openBtn = document.getElementById('groups-create-room-btn');
+    if (openBtn) openBtn.addEventListener('click', openCreateRoomModal);
+    const modal = document.getElementById('create-room-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t && t.getAttribute && t.getAttribute('data-action') === 'close-create-room-modal') closeCreateRoomModal();
+      });
+    }
+    const emojiRow = document.getElementById('create-room-emoji-row');
+    if (emojiRow) {
+      emojiRow.addEventListener('click', (e) => {
+        const btn = e.target.closest('.create-room-emoji-btn');
+        if (!btn) return;
+        emojiRow.querySelectorAll('.create-room-emoji-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    }
+    const submitBtn = document.getElementById('create-room-submit');
+    if (submitBtn) submitBtn.addEventListener('click', submitCreateRoom);
+    const nameInput = document.getElementById('create-room-name');
+    if (nameInput) nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitCreateRoom(); });
+  }
+
+  function submitCreateRoom() {
+    const nameInput = document.getElementById('create-room-name');
+    const statusEl = document.getElementById('create-room-status');
+    const submitBtn = document.getElementById('create-room-submit');
+    const emojiActive = document.querySelector('#create-room-emoji-row .create-room-emoji-btn.active');
+    const name = (nameInput && nameInput.value || '').trim();
+    const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
+    if (!name) { if (statusEl) { statusEl.textContent = 'Введите название комнаты'; statusEl.className = 'add-film-status error'; } return; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
+    api('/api/site/rooms', { method: 'POST', body: JSON.stringify({ name, emoji }) }).then((data) => {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать комнату'; }
+      if (!data || !data.success) {
+        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать комнату'; statusEl.className = 'add-film-status error'; }
+        return;
+      }
+      closeCreateRoomModal();
+      // Сразу переключаемся в комнату
+      try { localStorage.setItem('mp_site_token', data.token); } catch (_) {}
+      // Показываем ссылку-приглашение
+      showShareInvite({
+        chat_id: data.chat_id,
+        url: data.invite_url,
+        name: `${data.emoji || '🎬'} ${data.name}`.trim(),
+        is_virtual: true,
+      });
+      // После закрытия share-modal — обновим кабинет
+    }).catch(() => {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать комнату'; }
+      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'add-film-status error'; }
+    });
+  }
+
+  function generateRoomInvite(chatId, isVirtual) {
+    if (!chatId) return;
+    api(`/api/site/rooms/${encodeURIComponent(chatId)}/invite`, { method: 'POST' }).then((data) => {
+      if (!data || !data.success) {
+        alert((data && data.error) || 'Не удалось создать приглашение');
+        return;
+      }
+      showShareInvite({
+        chat_id: chatId,
+        url: data.invite_url,
+        name: '',
+        is_virtual: !!isVirtual,
+        expires_at: data.expires_at,
+      });
+    });
+  }
+
+  function showShareInvite(info) {
+    const modal = document.getElementById('share-invite-modal');
+    if (!modal) return;
+    const urlEl = document.getElementById('share-invite-url');
+    const titleEl = document.getElementById('share-invite-title');
+    const hintEl = document.getElementById('share-invite-hint');
+    const metaEl = document.getElementById('share-invite-meta');
+    const copyBtn = document.getElementById('share-invite-copy');
+    const tgLink = document.getElementById('share-invite-telegram');
+    const waLink = document.getElementById('share-invite-whatsapp');
+    if (urlEl) urlEl.textContent = info.url || '';
+    if (titleEl) titleEl.textContent = info.name ? `Пригласить в «${info.name}»` : 'Ссылка для приглашения';
+    if (hintEl) hintEl.textContent = info.is_virtual
+      ? 'Отправьте эту ссылку — друг попадёт в вашу виртуальную комнату прямо с сайта, без Telegram.'
+      : 'Отправьте эту ссылку — друг получит доступ к этой группе в личном кабинете на сайте.';
+    if (metaEl) {
+      const parts = ['Ссылка действует 7 дней', 'до 10 приглашений'];
+      metaEl.textContent = parts.join(' · ');
+    }
+    const text = `Присоединяйся к моей комнате на movie-planner.ru: ${info.url}`;
+    if (tgLink) tgLink.href = `https://t.me/share/url?url=${encodeURIComponent(info.url || '')}&text=${encodeURIComponent('Присоединяйся к моей комнате на Movie Planner')}`;
+    if (waLink) waLink.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    if (copyBtn && !copyBtn._bound) {
+      copyBtn._bound = true;
+      copyBtn.addEventListener('click', () => {
+        const url = urlEl ? urlEl.textContent : '';
+        if (!url) return;
+        try {
+          navigator.clipboard.writeText(url).then(() => {
+            copyBtn.textContent = '✅ Скопировано';
+            setTimeout(() => { copyBtn.textContent = '📋 Скопировать'; }, 1500);
+          });
+        } catch (_) {
+          copyBtn.textContent = '✅ Скопировано';
+        }
+      });
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    if (!modal._bound) {
+      modal._bound = true;
+      modal.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t && t.getAttribute && t.getAttribute('data-action') === 'close-share-invite-modal') {
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+          // После закрытия — если мы на вкладке Groups — перерисуем и пересоздадим кабинет
+          try { loadMeAndShowCabinet(); } catch (_) {}
+        }
+      });
+    }
+    document.body.style.overflow = 'hidden';
   }
 
   // ————————————————————————————————————————————————————
@@ -3348,6 +3689,8 @@
 
     bindAddFilmModal();
     bindProfileSwitcher();
+    bindCreateRoomModal();
+    bindHeaderSearch();
     handleInviteTokenFromUrl();
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {

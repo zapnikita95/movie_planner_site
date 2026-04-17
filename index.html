@@ -58,6 +58,12 @@
     <header id="site-header">
       <div class="header-content">
         <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
+        <div class="header-search hidden" id="header-search" role="search">
+          <span class="header-search-icon" aria-hidden="true">🔍</span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
         <div class="header-buttons">
           <button type="button" class="btn-primary" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
@@ -329,7 +335,12 @@
                     </button>
                     <div class="cabinet-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
                 </div>
-                <button type="button" class="btn btn-primary cabinet-add-film-btn" id="cabinet-add-film-btn">＋ Добавить фильм</button>
+                <div class="cabinet-topbar-actions">
+                    <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" id="cabinet-topbar-extension" class="cabinet-topbar-icon-btn hidden" target="_blank" rel="noopener" title="Установить расширение для Chrome">
+                        <span class="topbar-icon-emoji">💻</span>
+                        <span class="topbar-icon-label">Расширение</span>
+                    </a>
+                </div>
             </div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
@@ -341,7 +352,6 @@
                 <button type="button" class="cabinet-nav-btn" data-section="groups"><span class="cabinet-nav-btn-emoji">👥</span><span class="cabinet-nav-btn-text">Друзья и группы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tv"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Телевизор</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
-                <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
             <div class="cabinet-sections">
                 <section id="section-plans" class="cabinet-section">
@@ -468,16 +478,28 @@
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
-                    <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
-                    <p class="cabinet-hint">Каждая группа в Telegram, куда добавлен Movie Planner, доступна на сайте как отдельный профиль. Переключайтесь между ними в шапке кабинета.</p>
+                    <div class="groups-header">
+                        <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
+                        <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
+                            <span>＋</span> Создать комнату
+                        </button>
+                    </div>
+                    <p class="cabinet-hint">Общие базы с друзьями. Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/MovieList_Planner_Bot" target="_blank" rel="noopener">@MovieList_Planner_Bot</a> в существующий Telegram-чат.</p>
                     <div id="groups-list" class="groups-list"></div>
                     <div class="groups-howto">
-                        <h3>Как пригласить друга в группу</h3>
-                        <ol class="groups-howto-list">
-                            <li>Создайте групповой чат в Telegram и добавьте туда <a href="https://t.me/MovieList_Planner_Bot" target="_blank" rel="noopener">@MovieList_Planner_Bot</a>.</li>
-                            <li>В этом чате отправьте команду <code>/invite</code> — бот вернёт ссылку (действует 7 дней).</li>
-                            <li>Перешлите ссылку другу: по ней он сразу получит доступ к этой же группе в своём личном кабинете на сайте.</li>
-                        </ol>
+                        <h3>Два способа пригласить друга</h3>
+                        <div class="groups-howto-grid">
+                            <div class="groups-howto-card">
+                                <div class="groups-howto-emoji">🧩</div>
+                                <div class="groups-howto-title">Виртуальная комната</div>
+                                <div class="groups-howto-text">Создайте комнату одной кнопкой, получите ссылку и отправьте другу. Telegram-чат не нужен.</div>
+                            </div>
+                            <div class="groups-howto-card">
+                                <div class="groups-howto-emoji">💬</div>
+                                <div class="groups-howto-title">Telegram-группа</div>
+                                <div class="groups-howto-text">Добавьте бота в чат, отправьте <code>/invite</code> — получите ссылку для друга (7 дней).</div>
+                            </div>
+                        </div>
                     </div>
                 </section>
                 <section id="section-tv" class="cabinet-section hidden cabinet-tv">
@@ -633,6 +655,55 @@
             </div>
         </div>
     </main>
+
+    <!-- Create Room Modal (Phase 4) -->
+    <div class="add-film-modal hidden" id="create-room-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-create-room-modal"></div>
+      <div class="add-film-modal-body">
+        <button type="button" class="add-film-modal-close" data-action="close-create-room-modal" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title">Создать виртуальную комнату</h2>
+        <p class="add-film-hint">Это общая база с друзьями без Telegram-группы. После создания вы получите ссылку — отправьте её тем, кого хотите пригласить.</p>
+        <div class="create-room-form">
+          <label class="create-room-label">Эмодзи</label>
+          <div class="create-room-emoji-row" id="create-room-emoji-row">
+            <button type="button" class="create-room-emoji-btn active" data-emoji="🎬">🎬</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="🍿">🍿</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="🎥">🎥</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="🎭">🎭</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="🚀">🚀</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="👻">👻</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="👑">👑</button>
+            <button type="button" class="create-room-emoji-btn" data-emoji="❤️">❤️</button>
+          </div>
+          <label class="create-room-label" for="create-room-name">Название</label>
+          <input type="text" id="create-room-name" class="add-film-input" placeholder="Например: Четверг — это пятница" maxlength="60" autocomplete="off">
+          <div id="create-room-status" class="add-film-status"></div>
+          <div class="create-room-actions">
+            <button type="button" class="btn btn-secondary" data-action="close-create-room-modal">Отмена</button>
+            <button type="button" class="btn btn-primary" id="create-room-submit">Создать комнату</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Invite Modal (Phase 4) -->
+    <div class="add-film-modal hidden" id="share-invite-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-share-invite-modal"></div>
+      <div class="add-film-modal-body">
+        <button type="button" class="add-film-modal-close" data-action="close-share-invite-modal" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title" id="share-invite-title">Пригласить друга</h2>
+        <p class="add-film-hint" id="share-invite-hint">Отправьте эту ссылку — друг попадёт в вашу комнату прямо с сайта, без Telegram.</p>
+        <div class="share-invite-box">
+          <code class="share-invite-url" id="share-invite-url"></code>
+          <div class="share-invite-actions">
+            <button type="button" class="btn btn-primary" id="share-invite-copy">📋 Скопировать</button>
+            <a class="btn btn-secondary" id="share-invite-telegram" target="_blank" rel="noopener">Telegram</a>
+            <a class="btn btn-secondary" id="share-invite-whatsapp" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+        </div>
+        <p class="share-invite-meta" id="share-invite-meta"></p>
+      </div>
+    </div>
 
     <!-- Add Film Modal (Phase 3) -->
     <div class="add-film-modal hidden" id="add-film-modal" aria-hidden="true" role="dialog">
