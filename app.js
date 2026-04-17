@@ -13,6 +13,7 @@
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
   let cabinetHasData = false;
+  let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
   let tvSettings = { tv_type: null, agent_token_exists: false, agent_online: false };
 
@@ -346,6 +347,7 @@
         return;
       }
       cabinetHasData = !!me.has_data;
+      cabinetUserId = me.user_id || null;
       renderHeader(me);
       loadExtensionConfig();
       loadTvSettings();
@@ -424,7 +426,7 @@
         const poster = posterUrl(p.kp_id);
         const titleSafe = escapeHtml(p.title || '');
         return `
-          <a href="${link}" target="_blank" rel="noopener" class="card plan-card">
+          <a href="${link}" target="_blank" rel="noopener" class="card plan-card" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}">
             <div class="card-poster-wrap">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
@@ -512,7 +514,7 @@
       : '';
     const progressHtml = progressStatus ? '<div class="film-status">' + progressStatus + '</div>' : '';
     return `
-      <div class="card film-card">
+      <div class="card film-card" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
           <div class="card-poster-wrap">
             ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
@@ -577,7 +579,7 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card series-card">
+      <div class="card series-card" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
           <div class="card-poster-wrap">
             ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
@@ -638,7 +640,7 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card film-card">
+      <div class="card film-card" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}">
         <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
           <div class="card-poster-wrap">
             ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
@@ -2404,8 +2406,364 @@
       const title = ticketsBtn.getAttribute('data-title') || '';
       const year = ticketsBtn.getAttribute('data-year') || '';
       buildTicketsPopover(ticketsBtn, title, year);
+      return;
+    }
+
+    // Закрытие модалки
+    const closer = e.target.closest('[data-action="close-film-modal"]');
+    if (closer) {
+      e.preventDefault();
+      closeFilmModal();
+      return;
+    }
+
+    // Клик по карточке фильма → открыть модалку (вместо перехода в Telegram)
+    const card = e.target.closest('[data-film-id]');
+    if (card) {
+      // Не перехватываем клик, если клик был по кнопке действия внутри карточки
+      // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
+      const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action]');
+      // "В Telegram" теперь должна нормально открываться — её не блокируем.
+      if (actionBtn && actionBtn !== card && !actionBtn.classList.contains('film-card-main')) {
+        return;
+      }
+      const filmId = card.getAttribute('data-film-id');
+      if (!filmId) return;
+      // Пропускаем спец-модификаторы (средний клик, ctrl/cmd-клик — пусть открывают Telegram)
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      openFilmModal(Number(filmId));
     }
   });
+
+  // ====================================================================
+  // Film Modal: подробности, оценка, «посмотрено», похожие
+  // ====================================================================
+
+  const _filmModalCache = Object.create(null);
+  let _filmModalCurrentId = null;
+  let _filmModalPreviewRating = 0; // hover-подсветка звёзд
+
+  function openFilmModal(filmId) {
+    const modal = document.getElementById('film-modal');
+    const content = document.getElementById('film-modal-content');
+    if (!modal || !content) return;
+    _filmModalCurrentId = filmId;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    const cached = _filmModalCache[filmId];
+    if (cached) {
+      renderFilmModal(cached.film, cached.ratings, cached.similar);
+    } else {
+      content.className = 'film-modal-content loading';
+      content.innerHTML = 'Загрузка…';
+    }
+
+    Promise.all([
+      api('/api/site/film/' + filmId),
+      api('/api/site/film/' + filmId + '/similar').catch(() => ({ success: true, items: [] })),
+    ]).then(([detail, sim]) => {
+      if (!detail || !detail.success) {
+        content.className = 'film-modal-content loading';
+        content.innerHTML = 'Не удалось загрузить фильм: ' + escapeHtml((detail && detail.error) || 'ошибка');
+        return;
+      }
+      if (_filmModalCurrentId !== filmId) return; // пользователь уже закрыл/сменил
+      const data = {
+        film: detail.film,
+        ratings: detail.ratings || [],
+        me: detail.me || { user_id: cabinetUserId },
+        similar: (sim && sim.items) || [],
+      };
+      _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
+      renderFilmModal(data.film, data.ratings, data.similar, data.me);
+    });
+  }
+
+  function closeFilmModal() {
+    const modal = document.getElementById('film-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    _filmModalCurrentId = null;
+    _filmModalPreviewRating = 0;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && _filmModalCurrentId != null) closeFilmModal();
+  });
+
+  function renderFilmModal(film, ratings, similar, me) {
+    const content = document.getElementById('film-modal-content');
+    if (!content) return;
+    content.className = 'film-modal-content';
+    const myUserId = (me && me.user_id) || cabinetUserId;
+    const myRatingObj = ratings.find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
+    const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+
+    const poster = posterUrl(film.kp_id);
+    const year = film.year ? `(${film.year})` : '';
+    const genresHtml = film.genres ? `<span>${escapeHtml(film.genres)}</span>` : '';
+    const kpRating = film.rating_kp != null ? `<span class="film-modal-rkp">★ КП ${Number(film.rating_kp).toFixed(1)}</span>` : '';
+    const imdbRating = film.rating_imdb != null ? `<span class="film-modal-rkp" style="background:rgba(200,200,200,0.12);color:#e0e0e0">IMDb ${Number(film.rating_imdb).toFixed(1)}</span>` : '';
+    const progress = film.progress ? `<span>📺 ${escapeHtml(film.progress)}</span>` : '';
+    const desc = film.description ? `<div class="film-modal-desc">${escapeHtml(film.description)}</div>` : '';
+    const crewParts = [];
+    if (film.director && film.director !== 'Не указан') crewParts.push(`<div><b>Режиссёр:</b> ${escapeHtml(film.director)}</div>`);
+    if (film.actors) crewParts.push(`<div><b>В ролях:</b> ${escapeHtml(film.actors)}</div>`);
+    const crew = crewParts.length ? `<div class="film-modal-crew">${crewParts.join('')}</div>` : '';
+
+    const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
+
+    // Rating stars
+    const starsHtml = buildRatingStars(myRating);
+    const ratingBlock = `
+      <div class="film-modal-section">
+        <h3>Ваша оценка</h3>
+        <div class="rating-stars" data-rating-stars="1">${starsHtml}</div>
+        ${myRating ? `<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>` : ''}
+      </div>`;
+
+    // Group ratings
+    const groupRatings = ratings.filter((r) => !myUserId || String(r.user_id) !== String(myUserId));
+    const groupHtml = groupRatings.length
+      ? `<div class="film-modal-section"><h3>Оценки участников</h3><div class="rating-group-list">${
+          ratings.map((r) => {
+            const isMine = myUserId && String(r.user_id) === String(myUserId);
+            const who = isMine ? 'Вы' : (r.username || 'Участник');
+            return `<div class="rg-row ${isMine ? 'mine' : ''}"><span>${escapeHtml(who)}</span><span class="rg-rating">★ ${Number(r.rating).toFixed(0)}</span></div>`;
+          }).join('')
+        }</div></div>`
+      : '';
+
+    // Watched toggle
+    const watchedHtml = `
+      <button type="button" class="watched-toggle ${film.watched ? 'on' : ''}" data-action="toggle-watched">
+        <span class="wt-mark">${film.watched ? '✓' : ''}</span>
+        <span>${film.watched ? 'Просмотрен' : 'Отметить просмотренным'}</span>
+      </button>`;
+
+    // Actions
+    const extra = buildFilmExtraButtons({
+      kp_id: film.kp_id, title: film.title, year: film.year,
+      plan_type: film.plan_type,
+    });
+    const actions = `
+      <div class="film-modal-actions">
+        ${watchedHtml}
+        <a class="btn btn-small btn-secondary" href="${tgLink}" target="_blank" rel="noopener">💬 В Telegram</a>
+        ${extra}
+      </div>`;
+
+    // Similar grid
+    const similarHtml = similar && similar.length
+      ? `<div class="film-modal-section"><h3>Похожие фильмы</h3><div class="similar-grid">${
+          similar.map((s) => {
+            const p = s.poster || posterUrl(s.kp_id) || '';
+            const img = p ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+            const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
+            const clickAttr = s.in_base_film_id
+              ? `data-film-id="${s.in_base_film_id}"`
+              : `data-similar-kp="${escapeHtml(String(s.kp_id))}"`;
+            return `<div class="similar-card" ${clickAttr} title="${escapeHtml(s.title || '')}">
+              ${img}
+              ${inBase}
+              <div class="similar-overlay">${escapeHtml(s.title || '')}</div>
+            </div>`;
+          }).join('')
+        }</div></div>`
+      : '';
+
+    content.innerHTML = `
+      <div class="film-modal-poster-wrap">
+        ${poster ? `<img src="${escapeHtml(poster)}" alt="" loading="lazy">` : '<div style="color:#665;">🎬</div>'}
+      </div>
+      <div class="film-modal-info">
+        <h2>${escapeHtml(film.title || '')} <span style="opacity:.6;font-weight:400;">${year}</span></h2>
+        <div class="film-modal-meta">
+          ${genresHtml}
+          ${kpRating}
+          ${imdbRating}
+          ${progress}
+        </div>
+        ${crew}
+        ${desc}
+        ${actions}
+        ${ratingBlock}
+        ${groupHtml}
+        ${similarHtml}
+      </div>`;
+
+    bindFilmModalInteractions(film);
+  }
+
+  function buildRatingStars(current) {
+    const cur = Number(current) || 0;
+    let html = '';
+    for (let i = 1; i <= 10; i += 1) {
+      const filled = cur >= i;
+      html += `<button type="button" class="rating-star${filled ? ' filled' : ''}" data-rating-value="${i}" aria-label="Оценить на ${i}">${i}</button>`;
+    }
+    if (cur) html += `<span class="rating-current" data-rating-current>${cur}/10</span>`;
+    return html;
+  }
+
+  function bindFilmModalInteractions(film) {
+    const content = document.getElementById('film-modal-content');
+    if (!content) return;
+
+    // Rating stars: click/hover
+    const starsWrap = content.querySelector('[data-rating-stars="1"]');
+    if (starsWrap) {
+      starsWrap.querySelectorAll('.rating-star').forEach((btn) => {
+        btn.addEventListener('mouseenter', () => {
+          const v = Number(btn.getAttribute('data-rating-value'));
+          previewRating(starsWrap, v);
+        });
+        btn.addEventListener('mouseleave', () => {
+          const cur = _filmModalCache[film.film_id];
+          const myUserId = (cur && cur.me && cur.me.user_id) || cabinetUserId;
+          const mine = cur && cur.ratings.find((r) => String(r.user_id) === String(myUserId));
+          previewRating(starsWrap, mine ? Number(mine.rating) : 0);
+        });
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const v = Number(btn.getAttribute('data-rating-value'));
+          setRating(film.film_id, v);
+        });
+      });
+    }
+
+    const removeBtn = content.querySelector('[data-action="remove-rating"]');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        deleteRating(film.film_id);
+      });
+    }
+
+    const watchedBtn = content.querySelector('[data-action="toggle-watched"]');
+    if (watchedBtn) {
+      watchedBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleWatched(film.film_id, !film.watched);
+      });
+    }
+
+    // Similar: клик по карточке похожего
+    content.querySelectorAll('[data-similar-kp]').forEach((card) => {
+      card.addEventListener('click', () => {
+        const kp = card.getAttribute('data-similar-kp');
+        // Если нет в базе — отправляем в Telegram на добавление
+        const url = 'https://t.me/MovieList_Planner_Bot?start=addfilm_' + encodeURIComponent(kp);
+        window.open(url, '_blank', 'noopener');
+      });
+    });
+    // Похожие фильмы, которые уже в базе — откроются автоматически делегированным обработчиком
+  }
+
+  function previewRating(starsWrap, v) {
+    starsWrap.querySelectorAll('.rating-star').forEach((b) => {
+      const bv = Number(b.getAttribute('data-rating-value'));
+      b.classList.toggle('filled', bv <= v);
+    });
+    const curEl = starsWrap.querySelector('[data-rating-current]');
+    if (curEl) curEl.textContent = v ? v + '/10' : '';
+  }
+
+  function setRating(filmId, rating) {
+    api('/api/site/film/' + filmId + '/rating', {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    }).then((res) => {
+      if (!res || !res.success) return;
+      const cache = _filmModalCache[filmId];
+      if (cache) {
+        const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
+        const idx = cache.ratings.findIndex((r) => String(r.user_id) === String(myUserId));
+        const row = { user_id: myUserId, rating, username: 'Вы' };
+        if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
+        cache.film.watched = true;
+        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+      }
+      applyRatingToLists(filmId, rating);
+    });
+  }
+
+  function deleteRating(filmId) {
+    api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
+      if (!res || !res.success) return;
+      const cache = _filmModalCache[filmId];
+      if (cache) {
+        const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
+        cache.ratings = cache.ratings.filter((r) => String(r.user_id) !== String(myUserId));
+        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+      }
+      removeRatingFromLists(filmId);
+    });
+  }
+
+  function toggleWatched(filmId, watched) {
+    api('/api/site/film/' + filmId + '/watched', {
+      method: 'POST',
+      body: JSON.stringify({ watched }),
+    }).then((res) => {
+      if (!res || !res.success) return;
+      const cache = _filmModalCache[filmId];
+      if (cache) {
+        cache.film.watched = !!watched;
+        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+      }
+      applyWatchedToLists(filmId, watched);
+    });
+  }
+
+  function applyRatingToLists(filmId, rating) {
+    if (typeof unwatchedItems !== 'undefined') {
+      // при ставе оценки фильм считается просмотренным — убираем из unwatched
+      const before = unwatchedItems.length;
+      unwatchedItems = unwatchedItems.filter((m) => Number(m.film_id) !== Number(filmId));
+      if (unwatchedItems.length !== before && typeof renderUnwatchedList === 'function') renderUnwatchedList();
+    }
+    if (typeof ratingsItems !== 'undefined') {
+      const idx = ratingsItems.findIndex((r) => Number(r.film_id) === Number(filmId));
+      if (idx >= 0) {
+        ratingsItems[idx].rating = rating;
+      } else {
+        // Нет в списке — можно перезагрузить
+        if (typeof loadRatings === 'function') loadRatings();
+        return;
+      }
+      if (typeof renderRatingsList === 'function') renderRatingsList();
+    }
+  }
+
+  function removeRatingFromLists(filmId) {
+    if (typeof ratingsItems !== 'undefined') {
+      const cache = _filmModalCache[filmId];
+      const myUserId = (cache && cache.me && cache.me.user_id) || cabinetUserId;
+      ratingsItems = ratingsItems.filter((r) => !(Number(r.film_id) === Number(filmId) && String(r.rater_user_id || myUserId) === String(myUserId)));
+      if (typeof renderRatingsList === 'function') renderRatingsList();
+    }
+  }
+
+  function applyWatchedToLists(filmId, watched) {
+    if (typeof unwatchedItems !== 'undefined') {
+      if (watched) {
+        unwatchedItems = unwatchedItems.filter((m) => Number(m.film_id) !== Number(filmId));
+      } else {
+        // Если отметили «не просмотрен» и фильма нет в списке — перезагрузим
+        if (!unwatchedItems.find((m) => Number(m.film_id) === Number(filmId)) && typeof loadUnwatched === 'function') {
+          loadUnwatched();
+          return;
+        }
+      }
+      if (typeof renderUnwatchedList === 'function') renderUnwatchedList();
+    }
+  }
 
   function init() {
     bindLogin();

@@ -588,6 +588,15 @@
         </div>
     </main>
 
+    <!-- Film Modal (общая для всех вкладок кабинета) -->
+    <div class="film-modal hidden" id="film-modal" aria-hidden="true" role="dialog">
+      <div class="film-modal-backdrop" data-action="close-film-modal"></div>
+      <div class="film-modal-body">
+        <button type="button" class="film-modal-close" data-action="close-film-modal" aria-label="Закрыть">&times;</button>
+        <div class="film-modal-content" id="film-modal-content"></div>
+      </div>
+    </div>
+
     <!-- Cabinet: Onboarding (user logged in, empty base) -->
     <main id="cabinet-onboarding" class="hidden cabinet">
         <div class="container">
