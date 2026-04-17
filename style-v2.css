@@ -2364,3 +2364,98 @@ body.in-public-stats .footer-extension-cabinet {
 .change-month-fields select:focus {
   border-color: #9b4dff;
 }
+
+/* ———— TV cabinet section ———— */
+.tv-settings-wrap { margin-top: 12px; }
+.tv-settings-hint { color: var(--text-muted, #aaa); font-size: 15px; line-height: 1.5; margin-bottom: 18px; }
+.tv-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.tv-type-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04); cursor: pointer; transition: all .18s ease;
+  text-align: left; color: inherit; font: inherit;
+}
+.tv-type-btn:hover { border-color: #9b4dff; background: rgba(155,77,255,0.08); transform: translateY(-1px); }
+.tv-type-btn.active { border-color: #9b4dff; background: rgba(155,77,255,0.14); box-shadow: 0 0 0 2px rgba(155,77,255,0.35); }
+.tv-type-emoji { font-size: 22px; }
+.tv-type-title { font-weight: 600; font-size: 15px; }
+.tv-type-sub { font-size: 12.5px; color: var(--text-muted, #aaa); }
+.tv-current-status {
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(52, 199, 89, 0.12); border: 1px solid rgba(52, 199, 89, 0.3);
+  font-size: 14px;
+}
+.tv-current-status.hidden { display: none; }
+.tv-agent-block {
+  margin-top: 28px; padding: 18px; border-radius: 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+}
+.tv-agent-block.hidden { display: none; }
+.tv-agent-block h3 { margin: 0 0 8px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+.tv-agent-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+  background: rgba(255,255,255,0.08); color: var(--text-muted, #aaa);
+}
+.tv-agent-badge.online { background: rgba(52,199,89,0.2); color: #34c759; }
+.tv-agent-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.tv-agent-token-wrap { margin-top: 14px; }
+.tv-agent-token-wrap.hidden { display: none; }
+.tv-agent-token-wrap code {
+  display: block; padding: 10px 12px; border-radius: 8px;
+  background: rgba(0,0,0,0.3); color: #b68cff; font-size: 14px;
+  word-break: break-all; font-family: 'JetBrains Mono', Menlo, monospace;
+}
+.tv-agent-install { margin-top: 14px; margin-bottom: 6px; }
+.tv-agent-token-wrap pre {
+  background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+  overflow-x: auto; font-size: 13px; color: #ccc; line-height: 1.5;
+  font-family: 'JetBrains Mono', Menlo, monospace;
+}
+.tv-agent-hint { font-size: 13px; color: var(--text-muted, #aaa); margin-top: 8px; }
+
+/* ———— TV launch button on film cards ———— */
+.film-tv-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: 10px; border: 1px solid rgba(155,77,255,0.4);
+  background: rgba(155,77,255,0.1); color: #d4baff; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s ease;
+}
+.film-tv-btn:hover { background: rgba(155,77,255,0.22); border-color: #9b4dff; color: #fff; }
+
+/* ———— Streaming services popover ———— */
+.streaming-popover {
+  position: absolute; z-index: 1000; margin-top: 8px;
+  background: rgba(25,22,38,0.98); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px; padding: 10px; min-width: 240px;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+  backdrop-filter: blur(12px);
+}
+.streaming-popover-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; color: inherit; text-decoration: none; font-size: 14px;
+  transition: background .15s;
+}
+.streaming-popover-item:hover { background: rgba(255,255,255,0.08); }
+.streaming-popover-empty { padding: 16px; color: var(--text-muted, #aaa); font-size: 13px; text-align: center; }
+
+/* ———— Tickets popover ———— */
+.tickets-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: 10px; border: 1px solid rgba(255,200,60,0.45);
+  background: rgba(255,200,60,0.1); color: #ffd97a; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s ease;
+}
+.tickets-btn:hover { background: rgba(255,200,60,0.22); color: #fff; border-color: #ffc83c; }
+
+/* ———— TV modal ———— */
+.tv-launch-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); }
+.tv-launch-modal .tv-launch-box {
+  width: min(440px, 94vw); padding: 26px; border-radius: 20px;
+  background: linear-gradient(160deg, #1c1730, #0f0d1a);
+  border: 1px solid rgba(255,255,255,0.1); text-align: center;
+}
+.tv-launch-modal h3 { margin: 0 0 8px; font-size: 20px; }
+.tv-launch-modal .tv-launch-sub { color: var(--text-muted, #aaa); font-size: 14px; margin-bottom: 16px; }
+.tv-launch-modal .tv-launch-qr { width: 200px; height: 200px; border-radius: 10px; margin: 0 auto 14px; display: block; background: #fff; padding: 8px; }
+.tv-launch-modal .tv-launch-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.tv-launch-modal .tv-launch-close { position: absolute; top: 14px; right: 18px; background: transparent; border: 0; color: #fff; font-size: 22px; cursor: pointer; }

@@ -13,6 +13,8 @@
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
   let cabinetHasData = false;
+  // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
+  let tvSettings = { tv_type: null, agent_token_exists: false, agent_online: false };
 
   function posterUrl(kpId) {
     if (!kpId) return '';
@@ -346,6 +348,7 @@
       cabinetHasData = !!me.has_data;
       renderHeader(me);
       loadExtensionConfig();
+      loadTvSettings();
       if (me.has_data) {
         showScreen('cabinet-readonly');
         loadPlans();
@@ -436,6 +439,7 @@
             </div>
             <div class="plan-card-buttons">
               <span class="btn btn-small btn-primary">В Telegram</span>
+              ${buildFilmExtraButtons({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
             </div>
           </a>`;
       };
@@ -521,7 +525,8 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
+          ${buildFilmExtraButtons({ kp_id: m.kp_id, title: m.title, year: m.year })}
         </div>
       </div>`;
   }
@@ -584,7 +589,8 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
+          ${buildFilmExtraButtons({ kp_id: s.kp_id, title: s.title, is_series: true })}
         </div>
       </div>`;
   }
@@ -646,7 +652,8 @@
           </div>
         </a>
         <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>${streamingBtn}
+          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
+          ${buildFilmExtraButtons({ kp_id: r.kp_id, title: r.title, year: r.year })}
         </div>
       </div>`;
   }
@@ -2093,6 +2100,313 @@
     });
   }
 
+  // ====================================================================
+  // TV / Streaming / Tickets — расширенные кнопки в карточках фильмов
+  // ====================================================================
+
+  function buildFilmExtraButtons(item) {
+    if (!item || !item.kp_id) return '';
+    const kp = String(item.kp_id);
+    const title = (item.title || '').replace(/"/g, '&quot;');
+    const year = item.year || '';
+    const parts = [];
+    if (tvSettings && tvSettings.tv_type) {
+      parts.push(
+        `<button type="button" class="film-tv-btn" data-tv-launch="1" data-kp="${kp}" data-title="${escapeHtml(item.title || '')}" onclick="event.preventDefault();event.stopPropagation();">📺 На ТВ</button>`
+      );
+    }
+    parts.push(
+      `<button type="button" class="btn btn-small btn-secondary film-streaming-btn" data-streaming="1" data-kp="${kp}" onclick="event.preventDefault();event.stopPropagation();">🎞 Онлайн-кинотеатр ▾</button>`
+    );
+    if (item.plan_type === 'cinema') {
+      parts.push(
+        `<button type="button" class="tickets-btn" data-tickets="1" data-kp="${kp}" data-title="${escapeHtml(item.title || '')}" data-year="${escapeHtml(String(year))}" onclick="event.preventDefault();event.stopPropagation();">🎫 Купить билет ▾</button>`
+      );
+    }
+    return parts.join(' ');
+  }
+
+  function closeAllFilmPopovers() {
+    document.querySelectorAll('.streaming-popover, .tickets-popover').forEach((el) => el.remove());
+  }
+
+  function buildStreamingPopover(anchorBtn, kpId) {
+    closeAllFilmPopovers();
+    const pop = document.createElement('div');
+    pop.className = 'streaming-popover';
+    pop.innerHTML = '<div class="streaming-popover-empty">Ищем онлайн-кинотеатры…</div>';
+    document.body.appendChild(pop);
+    const rect = anchorBtn.getBoundingClientRect();
+    pop.style.position = 'fixed';
+    pop.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
+    pop.style.top = (rect.bottom + 6) + 'px';
+    apiPublic('/api/extension/streaming-services?kp_id=' + encodeURIComponent(kpId)).then((data) => {
+      const services = (data && data.services) || [];
+      if (!services.length) {
+        pop.innerHTML = '<div class="streaming-popover-empty">Фильм пока не найден ни на одном онлайн-кинотеатре.<br>Попробуйте позже.</div>';
+        return;
+      }
+      pop.innerHTML = services.map((s) => {
+        const name = escapeHtml(s.name || '');
+        const url = escapeHtml(s.url || '#');
+        const icon = iconForStreaming(s.name || '');
+        return `<a href="${url}" target="_blank" rel="noopener" class="streaming-popover-item"><span>${icon}</span><span>${name}</span></a>`;
+      }).join('');
+    }).catch(() => {
+      pop.innerHTML = '<div class="streaming-popover-empty">Ошибка загрузки. Попробуйте позже.</div>';
+    });
+    setTimeout(() => {
+      document.addEventListener('click', function onDoc(e) {
+        if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', onDoc); }
+      });
+    }, 0);
+  }
+
+  function iconForStreaming(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('кинопоиск') || n.includes('kinopoisk')) return '🟡';
+    if (n.includes('okko')) return '🟠';
+    if (n.includes('ivi')) return '🔵';
+    if (n.includes('netflix')) return '🔴';
+    if (n.includes('more') || n.includes('start')) return '🟢';
+    if (n.includes('premier') || n.includes('премьер')) return '🟣';
+    return '🎬';
+  }
+
+  function buildTicketsPopover(anchorBtn, title, year) {
+    closeAllFilmPopovers();
+    const q = encodeURIComponent((title || '') + (year ? ' ' + year : ''));
+    const kp = anchorBtn.getAttribute('data-kp');
+    const kpSessionsUrl = kp ? `https://www.kinopoisk.ru/film/${kp}/sessions/` : `https://www.kinopoisk.ru/s/?query=${q}`;
+    const yaUrl = `https://afisha.yandex.ru/events/?text=${q}`;
+    const ramblerUrl = `https://www.rambler.ru/search?query=${q}+%D0%B1%D0%B8%D0%BB%D0%B5%D1%82%D1%8B&utm_source=kassa`;
+    const items = [
+      { icon: '🟡', name: 'Кинопоиск — сеансы', url: kpSessionsUrl, sub: 'Все кинотеатры в одном месте' },
+      { icon: '🔴', name: 'Яндекс.Афиша', url: yaUrl, sub: 'Сеансы и покупка билета' },
+      { icon: '🟣', name: 'Рамблер/касса', url: ramblerUrl, sub: 'Поиск сеансов' },
+    ];
+    const pop = document.createElement('div');
+    pop.className = 'streaming-popover tickets-popover';
+    pop.innerHTML = items.map((it) => (
+      `<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener" class="streaming-popover-item">
+        <span>${it.icon}</span>
+        <span><b>${escapeHtml(it.name)}</b><br><small style="color:var(--text-muted,#aaa)">${escapeHtml(it.sub)}</small></span>
+      </a>`
+    )).join('');
+    document.body.appendChild(pop);
+    const rect = anchorBtn.getBoundingClientRect();
+    pop.style.position = 'fixed';
+    pop.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+    pop.style.top = (rect.bottom + 6) + 'px';
+    setTimeout(() => {
+      document.addEventListener('click', function onDoc(e) {
+        if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', onDoc); }
+      });
+    }, 0);
+  }
+
+  function showTvLaunchModal(kpId, title) {
+    const modal = document.createElement('div');
+    modal.className = 'tv-launch-modal';
+    modal.innerHTML = `
+      <div class="tv-launch-box" style="position:relative">
+        <button type="button" class="tv-launch-close" aria-label="Закрыть">×</button>
+        <h3>📺 Запуск на ТВ</h3>
+        <div class="tv-launch-sub">${escapeHtml(title || 'Фильм')}</div>
+        <div id="tv-launch-content"><div style="color:var(--text-muted,#aaa);padding:16px 0;">Отправляю команду…</div></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('.tv-launch-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    api('/api/site/tv/launch', {
+      method: 'POST',
+      body: JSON.stringify({ kp_id: kpId, title: title || '' }),
+    }).then((data) => {
+      const c = modal.querySelector('#tv-launch-content');
+      if (!c) return;
+      if (!data.success) {
+        c.innerHTML = '<div style="color:#ff7a7a;padding:12px 0;">Не удалось отправить команду: ' + escapeHtml(data.error || '') + '</div>';
+        return;
+      }
+      const cast = data.cast_url;
+      const agentMsg = data.agent_sent
+        ? '<div style="color:#34c759;margin-bottom:10px;font-weight:600;">⚡ Команда отправлена агенту — фильм скоро запустится на ТВ.</div>'
+        : '<div style="color:var(--text-muted,#aaa);margin-bottom:10px;">Отсканируйте QR-код пультом ТВ или откройте страницу запуска на телефоне.</div>';
+      const qrSrc = API_BASE + '/api/tv/qr/' + encodeURIComponent(kpId);
+      c.innerHTML = `
+        ${agentMsg}
+        <img class="tv-launch-qr" src="${qrSrc}" alt="QR">
+        <div class="tv-launch-btns">
+          <a class="btn btn-primary" href="${escapeHtml(cast)}" target="_blank" rel="noopener">🚀 Открыть страницу запуска</a>
+          <a class="btn btn-secondary" href="https://hd.kinopoisk.ru/film/${encodeURIComponent(kpId)}" target="_blank" rel="noopener">🟡 Прямо в Кинопоиск HD</a>
+        </div>`;
+    });
+  }
+
+  // ————— Секция «Телевизор» в кабинете —————
+
+  function loadTvSettings() {
+    return api('/api/site/tv/settings').then((data) => {
+      if (data && data.success) {
+        tvSettings = {
+          tv_type: data.tv_type || null,
+          agent_token_exists: !!data.agent_token_exists,
+          agent_online: !!data.agent_online,
+        };
+      }
+      return tvSettings;
+    });
+  }
+
+  function renderTvSection() {
+    const wrap = document.getElementById('tv-settings-wrap');
+    if (!wrap) return;
+    loadTvSettings().then(() => {
+      const grid = document.getElementById('tv-type-grid');
+      if (grid) {
+        grid.querySelectorAll('.tv-type-btn').forEach((b) => {
+          b.classList.toggle('active', b.getAttribute('data-tv') === tvSettings.tv_type);
+          if (!b._bound) {
+            b._bound = true;
+            b.addEventListener('click', () => {
+              const tv = b.getAttribute('data-tv');
+              const newType = (tvSettings.tv_type === tv) ? null : tv;
+              api('/api/site/tv/settings', {
+                method: 'POST',
+                body: JSON.stringify({ tv_type: newType }),
+              }).then((data) => {
+                if (data && data.success) {
+                  tvSettings.tv_type = data.tv_type || null;
+                  renderTvSection();
+                  // Перерисовать карточки, чтобы обновилась кнопка «На ТВ»
+                  if (typeof loadUnwatched === 'function') loadUnwatched();
+                  loadPlans();
+                  loadSeries();
+                  loadRatings();
+                }
+              });
+            });
+          }
+        });
+      }
+      const status = document.getElementById('tv-current-status');
+      if (status) {
+        if (tvSettings.tv_type) {
+          const names = {
+            android_tv: 'Android TV / Яндекс ТВ / Google TV',
+            samsung: 'Samsung Smart TV (Tizen)',
+            lg: 'LG Smart TV (WebOS)',
+            other: 'Smart TV',
+          };
+          status.classList.remove('hidden');
+          status.innerHTML = '✅ Подключён: <b>' + escapeHtml(names[tvSettings.tv_type] || tvSettings.tv_type) + '</b>. В карточках фильмов появилась кнопка «📺 На ТВ».';
+        } else {
+          status.classList.add('hidden');
+        }
+      }
+      const agentBlock = document.getElementById('tv-agent-block');
+      if (agentBlock) {
+        if (tvSettings.tv_type === 'android_tv') agentBlock.classList.remove('hidden');
+        else agentBlock.classList.add('hidden');
+      }
+      const badge = document.getElementById('tv-agent-status-badge');
+      if (badge) {
+        if (tvSettings.agent_token_exists) {
+          badge.textContent = tvSettings.agent_online ? 'онлайн' : 'токен сгенерирован';
+          badge.classList.toggle('online', !!tvSettings.agent_online);
+        } else {
+          badge.textContent = 'не подключён';
+          badge.classList.remove('online');
+        }
+      }
+      const createBtn = document.getElementById('tv-agent-create-btn');
+      const revealBtn = document.getElementById('tv-agent-reveal-btn');
+      const resetBtn = document.getElementById('tv-agent-reset-btn');
+      const tokenWrap = document.getElementById('tv-agent-token-wrap');
+      if (createBtn) createBtn.classList.toggle('hidden', tvSettings.agent_token_exists);
+      if (revealBtn) revealBtn.classList.toggle('hidden', !tvSettings.agent_token_exists);
+      if (resetBtn) resetBtn.classList.toggle('hidden', !tvSettings.agent_token_exists);
+
+      if (createBtn && !createBtn._bound) {
+        createBtn._bound = true;
+        createBtn.addEventListener('click', () => {
+          api('/api/site/tv/agent/regenerate', { method: 'POST' }).then((data) => {
+            if (data && data.success) {
+              tvSettings.agent_token_exists = true;
+              showAgentToken(data.token);
+              renderTvSection();
+            }
+          });
+        });
+      }
+      if (revealBtn && !revealBtn._bound) {
+        revealBtn._bound = true;
+        revealBtn.addEventListener('click', () => {
+          api('/api/site/tv/agent/reveal').then((data) => {
+            if (data && data.success && data.token) showAgentToken(data.token);
+          });
+        });
+      }
+      if (resetBtn && !resetBtn._bound) {
+        resetBtn._bound = true;
+        resetBtn.addEventListener('click', () => {
+          if (!confirm('Сбросить токен агента? Старый агент перестанет работать.')) return;
+          api('/api/site/tv/agent', { method: 'DELETE' }).then((data) => {
+            if (data && data.success) {
+              tvSettings.agent_token_exists = false;
+              if (tokenWrap) tokenWrap.classList.add('hidden');
+              renderTvSection();
+            }
+          });
+        });
+      }
+    });
+  }
+
+  function showAgentToken(token) {
+    const wrap = document.getElementById('tv-agent-token-wrap');
+    const value = document.getElementById('tv-agent-token-value');
+    const cmd = document.getElementById('tv-agent-install-cmd');
+    if (!wrap || !value || !cmd) return;
+    value.textContent = token;
+    cmd.textContent =
+      'git clone https://github.com/Movie-Planner/moviebot-tv-agent.git\n' +
+      'cd moviebot-tv-agent\n' +
+      'pip install -r requirements.txt\n' +
+      'MP_AGENT_TOKEN=' + token + ' MP_API_BASE=https://movie-planner.ru TV_IP=192.168.1.X python agent.py';
+    wrap.classList.remove('hidden');
+  }
+
+  // Делегированные клики по кнопкам в карточках
+  document.addEventListener('click', (e) => {
+    const tvBtn = e.target.closest('[data-tv-launch="1"]');
+    if (tvBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const kp = tvBtn.getAttribute('data-kp');
+      const title = tvBtn.getAttribute('data-title') || '';
+      if (kp) showTvLaunchModal(kp, title);
+      return;
+    }
+    const streamingBtn = e.target.closest('[data-streaming="1"]');
+    if (streamingBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const kp = streamingBtn.getAttribute('data-kp');
+      if (kp) buildStreamingPopover(streamingBtn, kp);
+      return;
+    }
+    const ticketsBtn = e.target.closest('[data-tickets="1"]');
+    if (ticketsBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const title = ticketsBtn.getAttribute('data-title') || '';
+      const year = ticketsBtn.getAttribute('data-year') || '';
+      buildTicketsPopover(ticketsBtn, title, year);
+    }
+  });
+
   function init() {
     bindLogin();
     bindFaq();
@@ -2122,6 +2436,9 @@
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
         showSection(sectionId);
+        if (sectionId === 'tv') {
+          renderTvSection();
+        }
         if (sectionId === 'stats') {
           initStatsSelectors();
           const monthEl = document.getElementById('stats-month');

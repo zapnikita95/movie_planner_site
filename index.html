@@ -44,7 +44,10 @@
         {"@type": "Question", "name": "Какой трекер сериалов в Telegram лучше подходит для группы?", "acceptedAnswer": {"@type": "Answer", "text": "Movie Planner — трекер сериалов для Telegram с поддержкой групповых чатов. Добавьте бота в группу — все участники увидят общий список сериалов, смогут отмечать прогресс и планировать совместные просмотры."}},
         {"@type": "Question", "name": "Можно ли вести общий список сериалов с друзьями?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Создайте группу в Telegram, добавьте туда бота Movie Planner — список сериалов станет общим. Каждый может добавлять сериалы, видеть прогресс друг друга и планировать марафоны."}},
         {"@type": "Question", "name": "Как отмечать просмотренные эпизоды и смотреть прогресс?", "acceptedAnswer": {"@type": "Answer", "text": "Расширение для Chrome автоматически распознаёт сериал на странице стриминга — нажмите кнопку «Отметить серию». Или отметьте вручную в боте. Прогресс отображается в карточке сериала (например, S2 • E5)."}},
-        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления о новых сериях — бесплатен. Расширенные возможности (безлимитные подписки на сериалы, приоритетные уведомления) доступны по подписке."}}
+        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления о новых сериях — бесплатен. Расширенные возможности (безлимитные подписки на сериалы, приоритетные уведомления) доступны по подписке."}},
+        {"@type": "Question", "name": "Как запустить фильм на Smart TV?", "acceptedAnswer": {"@type": "Answer", "text": "Подключите телевизор в Telegram-боте (меню 🔌 → Телевизор) или в кабинете на сайте. После этого в карточке фильма появится кнопка «📺 На ТВ» — она откроет страницу запуска с QR-кодом, кнопками Кинопоиск HD / Okko / ivi и Cast. Поддерживаются Android TV, Яндекс ТВ, Google TV, Samsung (Tizen), LG (WebOS) и другие Smart TV."}},
+        {"@type": "Question", "name": "Что такое TV-агент Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "TV-агент — это скрипт на Python, запускаемый на любом устройстве в домашней сети (компьютер, Raspberry Pi, NAS). Он получает команды от Movie Planner и сам запускает фильм на Android TV / Яндекс ТВ через ADB — без QR-кода и телефона. Токен агента выдаёт бот, установка занимает несколько минут."}},
+        {"@type": "Question", "name": "На каких телевизорах работает Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Android TV / Google TV / Яндекс ТВ — полноценно, с Cast и мгновенным запуском через агента. Samsung Smart TV (Tizen) — через Smart View, AirPlay и QR-код. LG Smart TV (WebOS) — через LG Connect Apps и QR. Любой Smart TV с браузером — через QR-страницу запуска."}}
       ]
     }
     </script>
@@ -128,6 +131,7 @@
           <div class="bento-card"><h3>🎫 Билеты в кино</h3><p>Сохраняйте билеты. Бот пришлёт их за 10 минут до сеанса.</p></div>
           <div class="bento-card"><h3>⭐ Рекомендации</h3><p>Персональные рекомендации на основе оценок 9-10.</p></div>
           <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb, Letterboxd. Трекинг на стримингах.</p></div>
+          <div class="bento-card"><h3>📺 Запуск на Smart TV</h3><p>Кнопка «На ТВ»: QR-код, ссылка в Кинопоиск HD / Okko / ivi или мгновенный запуск через локального агента — Android TV, Яндекс ТВ, Samsung, LG.</p></div>
         </div>
       </section>
 
@@ -138,6 +142,19 @@
           <div class="step"><div class="step-number">2</div><h3>Планирование</h3><p>Запланируйте просмотр дома или в кино. Бот поймёт «суббота» или дату.</p></div>
           <div class="step"><div class="step-number">3</div><h3>Напоминания</h3><p>Получайте напоминания. Для билетов — за 10 минут до сеанса.</p></div>
           <div class="step"><div class="step-number">4</div><h3>Трекинг и статистика</h3><p>Отмечайте просмотренные, ставьте оценки, получайте рекомендации.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title gradient">Запустите фильм на телевизоре</h2>
+        <p style="text-align:center;max-width:760px;margin:0 auto 32px;color:var(--text-muted, #aaa);font-size:17px;line-height:1.55;">
+          Подключите свой Smart TV в Telegram-боте или в кабинете на сайте — и в каждой карточке фильма появится кнопка <b>«📺 На ТВ»</b>. 
+          Работает с Android TV / Яндекс ТВ / Google TV, Samsung (Tizen), LG (WebOS) и другими Smart TV с браузером.
+        </p>
+        <div class="steps">
+          <div class="step"><div class="step-number">1</div><h3>Подключите ТВ</h3><p>Выберите тип телевизора в боте (меню 🔌) или в кабинете на сайте. Займёт 10 секунд.</p></div>
+          <div class="step"><div class="step-number">2</div><h3>Нажмите «На ТВ»</h3><p>В карточке фильма появится кнопка. Откроется страница запуска: Кинопоиск HD, Okko, ivi, Cast и QR-код.</p></div>
+          <div class="step"><div class="step-number">3</div><h3>Или мгновенный запуск</h3><p>Для Android TV можно поднять локального агента на компьютере/Raspberry Pi — фильм стартует на ТВ в один клик, без телефона.</p></div>
         </div>
       </section>
 
@@ -178,6 +195,18 @@
                 <div class="faq-item">
                     <div class="faq-head">Как планировать походы в кино с билетами?</div>
                     <div class="faq-body">Выберите «В кино» при планировании просмотра, укажите дату и время, прикрепите фото билетов. За 10 минут до сеанса бот пришлёт напоминание вместе с вашими билетами.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">Как запустить фильм на Smart TV?</div>
+                    <div class="faq-body">Подключите свой телевизор — в Telegram-боте откройте меню 🔌 → «Телевизор» или сделайте это в кабинете на сайте. После этого в карточке каждого фильма появится кнопка «📺 На ТВ»: она откроет страницу запуска с QR-кодом, кнопками Кинопоиск HD / Okko / ivi и Cast. Поддерживаются Android TV, Яндекс ТВ, Google TV, Samsung (Tizen), LG (WebOS) и другие Smart TV.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">Что такое TV-агент и зачем он нужен?</div>
+                    <div class="faq-body">TV-агент — это маленький скрипт на Python, который запускается на любом устройстве в вашей домашней сети (компьютер, Raspberry Pi, NAS). Он принимает команды от Movie Planner и сам запускает фильм на Android TV / Яндекс ТВ через ADB — без QR, без телефона, без Cast. Нажали «На ТВ» на сайте или в боте — фильм уже играет. Подключение занимает 5 минут, токен выдаёт бот.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">На каких телевизорах работает кнопка «На ТВ»?</div>
+                    <div class="faq-body">Android TV / Google TV / Яндекс ТВ — полноценно, с Cast и агентом (мгновенный запуск). Samsung Smart TV (Tizen) — через Smart View / AirPlay и QR-код. LG Smart TV (WebOS) — через LG Connect Apps и QR. Любой Smart TV с браузером — через QR-код на странице запуска (открывает Кинопоиск HD / Okko / ivi).</div>
                 </div>
         </div>
       </section>
@@ -296,6 +325,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="tv"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Телевизор</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
@@ -401,6 +431,51 @@
                             <div id="stats-group-summary" class="stats-summary stats-group-summary"></div>
                             <div id="stats-group-mvp"></div>
                             <div class="stats-grid stats-group-grid" id="stats-group-grid"></div>
+                        </div>
+                    </div>
+                </section>
+                <section id="section-tv" class="cabinet-section hidden cabinet-tv">
+                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Подключение телевизора</span></h2>
+                    <div id="tv-settings-wrap" class="tv-settings-wrap">
+                        <p class="tv-settings-hint">Выберите тип вашего телевизора — после этого в карточках фильмов появится кнопка «📺 На ТВ»: откроется страница запуска в Кинопоиск HD / Okko / ivi, Cast и QR-код.</p>
+                        <div class="tv-type-grid" id="tv-type-grid">
+                            <button type="button" class="tv-type-btn" data-tv="android_tv">
+                                <span class="tv-type-emoji">📱</span>
+                                <span class="tv-type-title">Android TV / Яндекс ТВ / Google TV</span>
+                                <span class="tv-type-sub">Cast + мгновенный запуск через агента</span>
+                            </button>
+                            <button type="button" class="tv-type-btn" data-tv="samsung">
+                                <span class="tv-type-emoji">🔵</span>
+                                <span class="tv-type-title">Samsung Smart TV (Tizen)</span>
+                                <span class="tv-type-sub">Smart View + QR-код</span>
+                            </button>
+                            <button type="button" class="tv-type-btn" data-tv="lg">
+                                <span class="tv-type-emoji">🔴</span>
+                                <span class="tv-type-title">LG Smart TV (WebOS)</span>
+                                <span class="tv-type-sub">LG Connect Apps + QR</span>
+                            </button>
+                            <button type="button" class="tv-type-btn" data-tv="other">
+                                <span class="tv-type-emoji">📺</span>
+                                <span class="tv-type-title">Другой Smart TV</span>
+                                <span class="tv-type-sub">Браузер + QR</span>
+                            </button>
+                        </div>
+                        <div id="tv-current-status" class="tv-current-status hidden"></div>
+                        <div id="tv-agent-block" class="tv-agent-block hidden">
+                            <h3>🤖 Локальный TV-агент <span class="tv-agent-badge" id="tv-agent-status-badge">не подключён</span></h3>
+                            <p>Для Android TV / Яндекс ТВ можно поднять агента в домашней сети (компьютер, Raspberry Pi, NAS) — фильм будет запускаться на ТВ в один клик, без QR и телефона.</p>
+                            <div class="tv-agent-actions">
+                                <button type="button" class="btn-primary" id="tv-agent-create-btn">🤖 Сгенерировать токен агента</button>
+                                <button type="button" class="btn-secondary hidden" id="tv-agent-reveal-btn">👁 Показать токен</button>
+                                <button type="button" class="btn-secondary hidden" id="tv-agent-reset-btn">🗑 Сбросить токен</button>
+                            </div>
+                            <div id="tv-agent-token-wrap" class="tv-agent-token-wrap hidden">
+                                <p><b>Токен агента:</b></p>
+                                <code id="tv-agent-token-value"></code>
+                                <p class="tv-agent-install"><b>Запуск агента:</b></p>
+<pre id="tv-agent-install-cmd"></pre>
+                                <p class="tv-agent-hint">Полная инструкция и исходники — <a href="https://github.com/Movie-Planner/moviebot-tv-agent" target="_blank" rel="noopener">на GitHub</a>.</p>
+                            </div>
                         </div>
                     </div>
                 </section>
