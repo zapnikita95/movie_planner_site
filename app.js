@@ -437,24 +437,22 @@
         const poster = posterUrl(p.kp_id);
         const titleSafe = escapeHtml(p.title || '');
         return `
-          <a href="${link}" target="_blank" rel="noopener" class="card plan-card" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}">
-            <div class="card-poster-wrap">
-              ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="80" height="120" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}">
+            <div class="film-card-v2-poster">
+              ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
+              ${buildFilmTelegramTriangle(link)}
             </div>
-            <div class="plan-info">
-              <div class="plan-meta">
+            <div class="film-card-v2-body">
+              <div class="film-card-v2-meta">
                 <span class="plan-date-line">📅 ${escapeHtml(dateLine)}</span>
                 <span class="plan-time-line">${escapeHtml(timeLine)}</span>
                 <span class="plan-type">${typeLabel}</span>
               </div>
-              <div class="plan-title">🎬 ${titleSafe}</div>
+              <div class="film-card-v2-title">${titleSafe}</div>
+              ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
             </div>
-            <div class="plan-card-buttons">
-              <span class="btn btn-small btn-primary">В Telegram</span>
-              ${buildFilmExtraButtons({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
-            </div>
-          </a>`;
+          </div>`;
       };
       const homeEmpty = !data.home || !data.home.length;
       const cinemaEmpty = !data.cinema || !data.cinema.length;
@@ -523,23 +521,18 @@
     const progressStatus = m.is_series
       ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
       : '';
-    const progressHtml = progressStatus ? '<div class="film-status">' + progressStatus + '</div>' : '';
+    const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
     return `
-      <div class="card film-card" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}">
-        <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
-          <div class="card-poster-wrap">
-            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-            <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
-          </div>
-          <div class="film-info">
-            <div class="film-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
-            ${descHtml}
-            ${progressHtml}
-          </div>
-        </a>
-        <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
-          ${buildFilmExtraButtons({ kp_id: m.kp_id, title: m.title, year: m.year })}
+      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}">
+        <div class="film-card-v2-poster">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
+          ${buildFilmTelegramTriangle(link)}
+        </div>
+        <div class="film-card-v2-body">
+          <div class="film-card-v2-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
+          ${progressHtml}
+          ${buildFilmActionBar({ kp_id: m.kp_id, title: m.title, year: m.year })}
         </div>
       </div>`;
   }
@@ -590,20 +583,16 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card series-card" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}">
-        <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
-          <div class="card-poster-wrap">
-            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-            <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
-          </div>
-          <div class="film-info">
-            <div class="film-title">${escapeHtml(s.title)}</div>
-            <div class="film-status">${progress}</div>
-          </div>
-        </a>
-        <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
-          ${buildFilmExtraButtons({ kp_id: s.kp_id, title: s.title, is_series: true })}
+      <div class="card series-card film-card-v2" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}">
+        <div class="film-card-v2-poster">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
+          ${buildFilmTelegramTriangle(link)}
+        </div>
+        <div class="film-card-v2-body">
+          <div class="film-card-v2-title">${escapeHtml(s.title)}</div>
+          <div class="film-card-v2-status">${progress}</div>
+          ${buildFilmActionBar({ kp_id: s.kp_id, title: s.title, is_series: true })}
         </div>
       </div>`;
   }
@@ -651,22 +640,17 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card film-card" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}">
-        <a href="${link}" target="_blank" rel="noopener" class="film-card-main">
-          <div class="card-poster-wrap">
-            ${poster ? '<img src="' + poster + '" alt="" class="card-poster" width="96" height="144" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-            <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
-          </div>
-          <div class="film-info">
-            <div class="film-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
-            ${descHtml}
-            <div class="film-status">⭐ ${r.rating}${raterStr}</div>
-            ${ratedDateHtml}
-          </div>
-        </a>
-        <div class="film-buttons">
-          <a href="${link}" target="_blank" rel="noopener" class="btn btn-small btn-primary">В Telegram</a>
-          ${buildFilmExtraButtons({ kp_id: r.kp_id, title: r.title, year: r.year })}
+      <div class="card film-card film-card-v2" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}">
+        <div class="film-card-v2-poster">
+          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
+          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
+          ${buildFilmTelegramTriangle(link)}
+        </div>
+        <div class="film-card-v2-body">
+          <div class="film-card-v2-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
+          <div class="film-card-v2-status">⭐ ${r.rating}${raterStr}</div>
+          ${ratedDateHtml}
+          ${buildFilmActionBar({ kp_id: r.kp_id, title: r.title, year: r.year })}
         </div>
       </div>`;
   }
@@ -2117,26 +2101,78 @@
   // TV / Streaming / Tickets — расширенные кнопки в карточках фильмов
   // ====================================================================
 
+  // Старый набор раздельных кнопок — больше не используется в карточках.
+  // Оставлен как shim на случай, если вдруг вызов остался где-то ещё.
   function buildFilmExtraButtons(item) {
-    if (!item || !item.kp_id) return '';
-    const kp = String(item.kp_id);
-    const title = (item.title || '').replace(/"/g, '&quot;');
-    const year = item.year || '';
-    const parts = [];
-    if (tvSettings && tvSettings.tv_type) {
-      parts.push(
-        `<button type="button" class="film-tv-btn" data-tv-launch="1" data-kp="${kp}" data-title="${escapeHtml(item.title || '')}" onclick="event.preventDefault();event.stopPropagation();">📺 На ТВ</button>`
-      );
-    }
-    parts.push(
-      `<button type="button" class="btn btn-small btn-secondary film-streaming-btn" data-streaming="1" data-kp="${kp}" onclick="event.preventDefault();event.stopPropagation();">🎞 Онлайн-кинотеатр ▾</button>`
+    return buildFilmActionBar(item);
+  }
+
+  // Маленький прозрачный треугольник в углу постера — быстрый переход в Telegram.
+  function buildFilmTelegramTriangle(link) {
+    if (!link) return '';
+    return (
+      `<a href="${link}" target="_blank" rel="noopener" class="film-card-tg-triangle" ` +
+      `title="Открыть в Telegram" aria-label="Открыть в Telegram" ` +
+      `onclick="event.stopPropagation()">` +
+      `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M9.04 15.54 8.9 19.4c.28 0 .4-.12.55-.27l1.33-1.27 2.76 2.02c.51.28.87.13 1-.47L20.9 4.9c.18-.79-.28-1.1-.82-.9L3.5 10.56c-.78.3-.77.74-.13.94l4.1 1.28 9.52-6c.45-.3.86-.13.52.18"/></svg>` +
+      `</a>`
     );
-    if (item.plan_type === 'cinema') {
-      parts.push(
-        `<button type="button" class="tickets-btn" data-tickets="1" data-kp="${kp}" data-title="${escapeHtml(item.title || '')}" data-year="${escapeHtml(String(year))}" onclick="event.preventDefault();event.stopPropagation();">🎫 Купить билет ▾</button>`
+  }
+
+  // Единая панель действий: «Запланировать ▾» + «Смотреть ▾».
+  // item: { kp_id, title, year, is_series?, plan_type? ('cinema'|'home'), in_cinema? }
+  function buildFilmActionBar(item) {
+    if (!item || !item.kp_id) return '';
+    const kp = String(item.kp_id).replace(/\D/g, '');
+    if (!kp) return '';
+    const titleAttr = escapeHtml(item.title || '');
+    const yearAttr = escapeHtml(String(item.year || ''));
+    const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
+
+    const planItems = [
+      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_home_${kp}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏠 Дома</a>`,
+      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_cinema_${kp}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🎥 В кино</a>`,
+    ].join('');
+
+    const watchItems = [];
+    watchItems.push(
+      `<button type="button" class="action-dropdown-item" data-streaming="1" data-kp="${kp}">🎞 Онлайн</button>`
+    );
+    if (tvSettings && tvSettings.tv_type) {
+      watchItems.push(
+        `<button type="button" class="action-dropdown-item" data-tv-launch="1" data-kp="${kp}" data-title="${titleAttr}">📺 На ТВ</button>`
       );
     }
-    return parts.join(' ');
+    if (showCinemaWatch) {
+      watchItems.push(
+        `<button type="button" class="action-dropdown-item" data-tickets="1" data-kp="${kp}" data-title="${titleAttr}" data-year="${yearAttr}">🎫 В кино (билет)</button>`
+      );
+    }
+
+    return (
+      `<div class="film-action-bar">` +
+        `<div class="action-dropdown" data-dropdown-root="plan">` +
+          `<button type="button" class="action-dropdown-btn action-dropdown-btn-plan" data-dropdown-toggle="1" onclick="event.stopPropagation()">` +
+            `<span class="action-dropdown-btn-label">📅 Запланировать</span>` +
+            `<span class="action-dropdown-caret">▾</span>` +
+          `</button>` +
+          `<div class="action-dropdown-menu">${planItems}</div>` +
+        `</div>` +
+        `<div class="action-dropdown" data-dropdown-root="watch">` +
+          `<button type="button" class="action-dropdown-btn action-dropdown-btn-watch" data-dropdown-toggle="1" onclick="event.stopPropagation()">` +
+            `<span class="action-dropdown-btn-label">▶️ Смотреть</span>` +
+            `<span class="action-dropdown-caret">▾</span>` +
+          `</button>` +
+          `<div class="action-dropdown-menu">${watchItems.join('')}</div>` +
+        `</div>` +
+      `</div>`
+    );
+  }
+
+  function closeAllActionDropdowns(except) {
+    document.querySelectorAll('.action-dropdown.open').forEach((el) => {
+      if (el !== except) el.classList.remove('open');
+    });
   }
 
   function closeAllFilmPopovers() {
@@ -2414,10 +2450,33 @@
 
   // Делегированные клики по кнопкам в карточках
   document.addEventListener('click', (e) => {
+    // Треугольник Telegram в углу постера — не мешаем клику по ссылке,
+    // но закрываем выпадашки и не даём сработать клику по карточке.
+    const tgTriangle = e.target.closest('.film-card-tg-triangle');
+    if (tgTriangle) {
+      e.stopPropagation();
+      closeAllActionDropdowns();
+      return;
+    }
+    // Переключение выпадающего меню (Запланировать/Смотреть).
+    const ddToggle = e.target.closest('[data-dropdown-toggle="1"]');
+    if (ddToggle) {
+      e.preventDefault();
+      e.stopPropagation();
+      const root = ddToggle.closest('.action-dropdown');
+      if (root) {
+        const wasOpen = root.classList.contains('open');
+        closeAllActionDropdowns(wasOpen ? null : root);
+        if (wasOpen) root.classList.remove('open');
+        else root.classList.add('open');
+      }
+      return;
+    }
     const tvBtn = e.target.closest('[data-tv-launch="1"]');
     if (tvBtn) {
       e.preventDefault();
       e.stopPropagation();
+      closeAllActionDropdowns();
       const kp = tvBtn.getAttribute('data-kp');
       const title = tvBtn.getAttribute('data-title') || '';
       if (kp) showTvLaunchModal(kp, title);
@@ -2427,6 +2486,7 @@
     if (streamingBtn) {
       e.preventDefault();
       e.stopPropagation();
+      closeAllActionDropdowns();
       const kp = streamingBtn.getAttribute('data-kp');
       if (kp) buildStreamingPopover(streamingBtn, kp);
       return;
@@ -2435,10 +2495,15 @@
     if (ticketsBtn) {
       e.preventDefault();
       e.stopPropagation();
+      closeAllActionDropdowns();
       const title = ticketsBtn.getAttribute('data-title') || '';
       const year = ticketsBtn.getAttribute('data-year') || '';
       buildTicketsPopover(ticketsBtn, title, year);
       return;
+    }
+    // Клик в любое место, кроме меню — закрываем открытые дропдауны.
+    if (!e.target.closest('.action-dropdown-menu')) {
+      closeAllActionDropdowns();
     }
 
     // Закрытие модалки
@@ -2466,7 +2531,7 @@
     if (card) {
       // Не перехватываем клик, если клик был по кнопке действия внутри карточки
       // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
-      const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action]');
+      const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle]');
       // "В Telegram" теперь должна нормально открываться — её не блокируем.
       if (actionBtn && actionBtn !== card && !actionBtn.classList.contains('film-card-main')) {
         return;
