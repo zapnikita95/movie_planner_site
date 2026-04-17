@@ -349,8 +349,16 @@
       cabinetHasData = !!me.has_data;
       cabinetUserId = me.user_id || null;
       renderHeader(me);
+      updateProfileSwitcherUI(me);
       loadExtensionConfig();
       loadTvSettings();
+      try {
+        const pending = localStorage.getItem('mp_pending_invite_token');
+        if (pending) {
+          localStorage.removeItem('mp_pending_invite_token');
+          acceptInviteToken(pending);
+        }
+      } catch (_) {}
       if (me.has_data) {
         showScreen('cabinet-readonly');
         loadPlans();
@@ -2417,6 +2425,18 @@
       return;
     }
 
+    // Открытие модалки фильма по явной кнопке (например, из Add-Film-Modal)
+    const openBtn = e.target.closest('[data-action="open-film-modal"]');
+    if (openBtn) {
+      e.preventDefault();
+      const fid = openBtn.getAttribute('data-film-id');
+      if (fid) {
+        closeAddFilmModal();
+        if (typeof openFilmModal === 'function') openFilmModal(Number(fid));
+      }
+      return;
+    }
+
     // Клик по карточке фильма → открыть модалку (вместо перехода в Telegram)
     const card = e.target.closest('[data-film-id]');
     if (card) {
@@ -2577,6 +2597,12 @@
         }</div></div>`
       : '';
 
+    const trailerHtml = `
+      <div class="film-modal-section film-modal-trailer" data-trailer-wrap="1">
+        <button type="button" class="film-modal-trailer-btn" data-action="load-trailer" data-film-id="${film.film_id}">▶ Смотреть трейлер</button>
+        <div class="film-modal-trailer-embed hidden" data-trailer-embed="1"></div>
+      </div>`;
+
     content.innerHTML = `
       <div class="film-modal-poster-wrap">
         ${poster ? `<img src="${escapeHtml(poster)}" alt="" loading="lazy">` : '<div style="color:#665;">🎬</div>'}
@@ -2592,6 +2618,7 @@
         ${crew}
         ${desc}
         ${actions}
+        ${trailerHtml}
         ${ratingBlock}
         ${groupHtml}
         ${similarHtml}
@@ -2662,6 +2689,31 @@
         window.open(url, '_blank', 'noopener');
       });
     });
+
+    // Trailer: ленивая подгрузка
+    const trailerBtn = content.querySelector('[data-action="load-trailer"]');
+    if (trailerBtn) {
+      trailerBtn.addEventListener('click', () => {
+        const wrap = content.querySelector('[data-trailer-wrap="1"]');
+        const embed = wrap && wrap.querySelector('[data-trailer-embed="1"]');
+        if (!wrap || !embed) return;
+        trailerBtn.disabled = true;
+        trailerBtn.textContent = 'Ищем трейлер…';
+        api('/api/site/film/' + film.film_id + '/trailer').then((data) => {
+          if (!data || !data.success || !data.youtube_id) {
+            trailerBtn.disabled = false;
+            trailerBtn.textContent = 'Трейлер не найден';
+            return;
+          }
+          embed.innerHTML = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(data.youtube_id) + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+          embed.classList.remove('hidden');
+          trailerBtn.style.display = 'none';
+        }).catch(() => {
+          trailerBtn.disabled = false;
+          trailerBtn.textContent = 'Ошибка. Повторите';
+        });
+      });
+    }
     // Похожие фильмы, которые уже в базе — откроются автоматически делегированным обработчиком
   }
 
@@ -2765,6 +2817,510 @@
     }
   }
 
+  // ————————————————————————————————————————————————————
+  // Phase 3: Add Film modal
+  // ————————————————————————————————————————————————————
+
+  let _addFilmSearchSeq = 0;
+  let _addFilmDebounce = null;
+  let _addFilmType = 'any';
+
+  function openAddFilmModal() {
+    const modal = document.getElementById('add-film-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    const input = document.getElementById('add-film-input');
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 30);
+    }
+    const status = document.getElementById('add-film-status');
+    if (status) { status.textContent = 'Начните вводить название или вставьте ссылку.'; status.className = 'add-film-status'; }
+    const results = document.getElementById('add-film-results');
+    if (results) results.innerHTML = '';
+  }
+
+  function closeAddFilmModal() {
+    const modal = document.getElementById('add-film-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function runAddFilmSearch(query) {
+    const seq = ++_addFilmSearchSeq;
+    const status = document.getElementById('add-film-status');
+    const results = document.getElementById('add-film-results');
+    if (!query || query.length < 2) {
+      if (status) { status.textContent = 'Введите минимум 2 символа.'; status.className = 'add-film-status'; }
+      if (results) results.innerHTML = '';
+      return;
+    }
+    if (status) { status.textContent = 'Ищем…'; status.className = 'add-film-status'; }
+    api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(_addFilmType))
+      .then((data) => {
+        if (seq !== _addFilmSearchSeq) return;
+        if (!data || !data.success) {
+          if (status) { status.textContent = (data && data.error) || 'Ошибка поиска.'; status.className = 'add-film-status error'; }
+          if (results) results.innerHTML = '';
+          return;
+        }
+        const items = data.items || [];
+        if (!items.length) {
+          if (status) { status.textContent = 'Ничего не нашлось.'; status.className = 'add-film-status'; }
+          if (results) results.innerHTML = '';
+          return;
+        }
+        if (status) { status.textContent = 'Найдено: ' + items.length; status.className = 'add-film-status'; }
+        if (results) {
+          results.innerHTML = items.map((it) => {
+            const poster = it.poster || '';
+            const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
+            const inBase = it.already_in_base_film_id;
+            const btn = inBase
+              ? `<button type="button" class="add-search-result-btn" disabled>В базе</button>`
+              : `<button type="button" class="add-search-result-btn" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}">Добавить</button>`;
+            const openBtn = inBase
+              ? `<button type="button" class="add-search-result-btn" data-action="open-film-modal" data-film-id="${escapeHtml(String(inBase))}" style="margin-top:6px;border-color:rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#fff;">Открыть</button>`
+              : '';
+            return `<div class="add-search-result">
+              ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
+              <div class="add-search-result-info">
+                <div class="add-search-result-title">${escapeHtml(it.title || '')}</div>
+                <div class="add-search-result-meta">${escapeHtml(meta)}</div>
+                ${btn}
+                ${openBtn}
+              </div>
+            </div>`;
+          }).join('');
+        }
+      })
+      .catch(() => {
+        if (seq !== _addFilmSearchSeq) return;
+        if (status) { status.textContent = 'Ошибка сети. Повторите попытку.'; status.className = 'add-film-status error'; }
+      });
+  }
+
+  function pickAddFilm(kpId, btn) {
+    if (!kpId) return;
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Добавляем…'; }
+    api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) })
+      .then((data) => {
+        if (!data || !data.success) {
+          if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+          const status = document.getElementById('add-film-status');
+          if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
+          return;
+        }
+        if (btn) { btn.textContent = data.already_existed ? 'Уже в базе' : '✓ Добавлен'; btn.disabled = true; }
+        // Optimistic refresh
+        if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
+        // Автозакрыть модалку, если это только что добавленный фильм
+        if (!data.already_existed) {
+          setTimeout(() => { closeAddFilmModal(); showSection('unwatched'); }, 700);
+        }
+      })
+      .catch(() => {
+        if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+      });
+  }
+
+  function pickAddFilmByLink(link) {
+    const status = document.getElementById('add-film-status');
+    if (status) { status.textContent = 'Добавляем по ссылке…'; status.className = 'add-film-status'; }
+    return api('/api/site/add-film/by-link', { method: 'POST', body: JSON.stringify({ link }) })
+      .then((data) => {
+        if (!data || !data.success) {
+          if (status) { status.textContent = (data && data.error) || 'Не удалось распознать ссылку.'; status.className = 'add-film-status error'; }
+          return false;
+        }
+        if (status) { status.textContent = data.already_existed ? 'Фильм уже в базе.' : '✓ Фильм добавлен!'; status.className = 'add-film-status'; }
+        if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
+        setTimeout(() => { closeAddFilmModal(); if (!data.already_existed) showSection('unwatched'); }, 900);
+        return true;
+      });
+  }
+
+  function bindAddFilmModal() {
+    const addBtn = document.getElementById('cabinet-add-film-btn');
+    if (addBtn) addBtn.addEventListener('click', openAddFilmModal);
+
+    const input = document.getElementById('add-film-input');
+    if (input) {
+      input.addEventListener('input', () => {
+        const val = input.value.trim();
+        if (_addFilmDebounce) clearTimeout(_addFilmDebounce);
+        // Link shortcut
+        if (/kinopoisk\.(ru|com)\/(film|series)\//i.test(val) || /imdb\.com\/title\/tt\d+/i.test(val)) {
+          _addFilmDebounce = setTimeout(() => pickAddFilmByLink(val), 350);
+          return;
+        }
+        _addFilmDebounce = setTimeout(() => runAddFilmSearch(val), 300);
+      });
+    }
+    document.querySelectorAll('.add-film-type-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.add-film-type-btn').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+        _addFilmType = b.getAttribute('data-type') || 'any';
+        if (input && input.value.trim().length >= 2) runAddFilmSearch(input.value.trim());
+      });
+    });
+    document.addEventListener('click', (e) => {
+      const close = e.target.closest('[data-action="close-add-film-modal"]');
+      if (close) { e.preventDefault(); closeAddFilmModal(); return; }
+      const pick = e.target.closest('[data-action="add-film-pick"]');
+      if (pick) { e.preventDefault(); pickAddFilm(pick.getAttribute('data-kp'), pick); return; }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('add-film-modal');
+        if (modal && !modal.classList.contains('hidden')) closeAddFilmModal();
+      }
+    });
+  }
+
+  // ————————————————————————————————————————————————————
+  // Phase 3: Profile switcher (cabinet-topbar)
+  // ————————————————————————————————————————————————————
+
+  function updateProfileSwitcherUI(me) {
+    const nameEl = document.getElementById('cabinet-profile-name');
+    const emojiEl = document.getElementById('cabinet-profile-emoji');
+    if (!nameEl || !me) return;
+    nameEl.textContent = me.name || 'Профиль';
+    if (emojiEl) emojiEl.textContent = me.is_personal ? '👤' : '👥';
+  }
+
+  function closeProfileMenu() {
+    const menu = document.getElementById('cabinet-profile-menu');
+    const btn = document.getElementById('cabinet-profile-btn');
+    if (menu) menu.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openProfileMenu() {
+    const menu = document.getElementById('cabinet-profile-menu');
+    const btn = document.getElementById('cabinet-profile-btn');
+    if (!menu) return;
+    menu.classList.remove('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    menu.innerHTML = '<div class="profile-menu-hint">Загружаем профили…</div>';
+    api('/api/site/profiles').then((data) => {
+      if (!data || !data.success) {
+        menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
+        return;
+      }
+      const profiles = data.profiles || [];
+      const activeChatId = data.active_chat_id;
+      if (!profiles.length) {
+        menu.innerHTML = '<div class="profile-menu-hint">Пока только этот профиль. Добавьте бота в группу и получите /invite, чтобы появился второй.</div>';
+        return;
+      }
+      menu.innerHTML = profiles.map((p) => {
+        const emoji = p.is_personal ? '👤' : '👥';
+        const typeLabel = p.is_personal ? 'личный' : 'группа';
+        const active = p.is_active || String(p.chat_id) === String(activeChatId);
+        return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
+          <div class="profile-menu-item-main">
+            <span class="profile-menu-item-emoji">${emoji}</span>
+            <div class="profile-menu-item-info">
+              <div class="profile-menu-item-name">${escapeHtml(p.name || 'Профиль')}</div>
+              <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
+            </div>
+          </div>
+          ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
+        </div>`;
+      }).join('') + '<div class="profile-menu-hint">Создавайте новые профили через <code>/invite</code> в Telegram-группе.</div>';
+
+      menu.querySelectorAll('.profile-menu-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          const chatId = el.getAttribute('data-chat-id');
+          if (!chatId) return;
+          if (el.classList.contains('active')) { closeProfileMenu(); return; }
+          switchProfileTo(chatId);
+        });
+      });
+    }).catch(() => {
+      menu.innerHTML = '<div class="profile-menu-hint">Сервер не отвечает.</div>';
+    });
+  }
+
+  function switchProfileTo(chatId) {
+    api('/api/site/profiles/switch', { method: 'POST', body: JSON.stringify({ target_chat_id: Number(chatId) }) }).then((data) => {
+      if (!data || !data.success) {
+        alert((data && data.error) || 'Не удалось переключить профиль.');
+        return;
+      }
+      const sessions = getSessions();
+      const existing = sessions.find((s) => String(s.chat_id) === String(chatId));
+      if (existing) {
+        existing.token = data.token;
+        existing.name = data.name || existing.name;
+      } else {
+        sessions.push({ chat_id: String(chatId), token: data.token, name: data.name, is_personal: Number(chatId) > 0, has_data: true });
+      }
+      setSessions(sessions);
+      setActiveChatId(chatId);
+      closeProfileMenu();
+      loadMeAndShowCabinet();
+    });
+  }
+
+  function bindProfileSwitcher() {
+    const btn = document.getElementById('cabinet-profile-btn');
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = document.getElementById('cabinet-profile-menu');
+        if (menu && menu.classList.contains('hidden')) openProfileMenu();
+        else closeProfileMenu();
+      });
+    }
+    document.addEventListener('click', (e) => {
+      const sw = document.getElementById('cabinet-profile-switcher');
+      if (sw && !sw.contains(e.target)) closeProfileMenu();
+    });
+  }
+
+  // ————————————————————————————————————————————————————
+  // Phase 3: Groups section
+  // ————————————————————————————————————————————————————
+
+  function renderGroupsSection() {
+    const list = document.getElementById('groups-list');
+    if (!list) return;
+    list.innerHTML = '<div class="cabinet-hint">Загружаем профили…</div>';
+    api('/api/site/profiles').then((data) => {
+      if (!data || !data.success) {
+        list.innerHTML = '<div class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
+        return;
+      }
+      const profiles = data.profiles || [];
+      if (!profiles.length) {
+        list.innerHTML = '<div class="cabinet-hint">Пока только этот профиль. Создайте группу в Telegram и позовите друзей через /invite.</div>';
+        return;
+      }
+      list.innerHTML = profiles.map((p) => {
+        const emoji = p.is_personal ? '👤' : '👥';
+        const type = p.is_personal ? 'Личный' : 'Группа';
+        const active = p.is_active;
+        return `<div class="group-card ${active ? 'active' : ''}">
+          <div class="group-card-head">
+            <span class="group-card-emoji">${emoji}</span>
+            <span class="group-card-name">${escapeHtml(p.name || 'Профиль')}</span>
+          </div>
+          <div class="group-card-type">${type}</div>
+          <div class="group-card-meta"><span>🎬 ${p.movies_count || 0}</span><span>⭐ ${p.ratings_count || 0}</span></div>
+          <div class="group-card-actions">
+            ${active
+              ? '<button type="button" disabled>Активен</button>'
+              : `<button type="button" class="primary" data-action="switch-profile" data-chat-id="${escapeHtml(String(p.chat_id))}">Открыть</button>`}
+          </div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-action="switch-profile"]').forEach((b) => {
+        b.addEventListener('click', () => switchProfileTo(b.getAttribute('data-chat-id')));
+      });
+    });
+  }
+
+  // ————————————————————————————————————————————————————
+  // Phase 3: Premieres section
+  // ————————————————————————————————————————————————————
+
+  let _premieresData = [];
+  let _premieresPeriod = 'current_month';
+  let _premieresSort = 'date';
+
+  function renderPremieresSection(forceReload) {
+    const periodSel = document.getElementById('premieres-period');
+    const sortSel = document.getElementById('premieres-sort');
+    if (periodSel && !periodSel._bound) {
+      periodSel._bound = true;
+      periodSel.addEventListener('change', () => { _premieresPeriod = periodSel.value; renderPremieresSection(true); });
+    }
+    if (sortSel && !sortSel._bound) {
+      sortSel._bound = true;
+      sortSel.addEventListener('change', () => { _premieresSort = sortSel.value; renderPremieresList(); });
+    }
+    const loading = document.getElementById('premieres-loading');
+    const errorEl = document.getElementById('premieres-error');
+    const grid = document.getElementById('premieres-grid');
+    if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
+    if (forceReload || !_premieresData.length) {
+      if (loading) loading.classList.remove('hidden');
+      if (grid) grid.innerHTML = '';
+      api('/api/site/premieres?period=' + encodeURIComponent(_premieresPeriod)).then((data) => {
+        if (loading) loading.classList.add('hidden');
+        if (!data || !data.success) {
+          if (errorEl) { errorEl.textContent = (data && data.error) || 'Не удалось загрузить премьеры'; errorEl.classList.remove('hidden'); }
+          _premieresData = [];
+          return;
+        }
+        _premieresData = data.items || [];
+        renderPremieresList();
+      }).catch(() => {
+        if (loading) loading.classList.add('hidden');
+        if (errorEl) { errorEl.textContent = 'Ошибка сети.'; errorEl.classList.remove('hidden'); }
+      });
+    } else {
+      renderPremieresList();
+    }
+  }
+
+  function renderPremieresList() {
+    const grid = document.getElementById('premieres-grid');
+    if (!grid) return;
+    let items = (_premieresData || []).slice();
+    if (_premieresSort === 'genre') {
+      items.sort((a, b) => (a.genres || '').localeCompare(b.genres || ''));
+    } else {
+      items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+    }
+    if (!items.length) {
+      grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
+      return;
+    }
+    grid.innerHTML = items.map((it) => {
+      const poster = it.poster || '';
+      const year = it.year ? ` · ${it.year}` : '';
+      const dateLabel = formatPremiereDate(it.premiere_date);
+      const inBase = it.already_in_base_film_id;
+      const reminder = it.reminder_set;
+      const reminderBtn = reminder
+        ? `<button type="button" class="active" data-action="premiere-notify-off" data-kp="${escapeHtml(String(it.kp_id))}" data-film-id="${escapeHtml(String(inBase||''))}">🔔 Отключить</button>`
+        : `<button type="button" data-action="premiere-notify-on" data-kp="${escapeHtml(String(it.kp_id))}" data-date="${escapeHtml(String(it.premiere_date||''))}">🔔 Напомнить</button>`;
+      const addBtn = inBase
+        ? `<button type="button" disabled>В базе</button>`
+        : `<button type="button" data-action="premiere-add" data-kp="${escapeHtml(String(it.kp_id))}">＋ В базу</button>`;
+      return `<div class="premiere-card" data-film-id="${escapeHtml(String(inBase||''))}" data-kp="${escapeHtml(String(it.kp_id))}">
+        ${poster ? `<img class="premiere-card-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-card-poster"></div>'}
+        <div class="premiere-card-body">
+          <div class="premiere-card-title">${escapeHtml(it.title || '')}</div>
+          ${dateLabel ? `<div class="premiere-card-date">🎬 ${escapeHtml(dateLabel)}</div>` : ''}
+          <div class="premiere-card-meta">${escapeHtml(it.genres || '')}${year}</div>
+          <div class="premiere-card-actions" data-stop-card-click="1">
+            ${reminderBtn}
+            ${addBtn}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-action="premiere-notify-on"]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const kp = b.getAttribute('data-kp');
+        const date = b.getAttribute('data-date');
+        b.disabled = true; b.textContent = '…';
+        api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', {
+          method: 'POST', body: JSON.stringify({ premiere_date: date }),
+        }).then((data) => {
+          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; b.textContent = '🔔 Напомнить'; return; }
+          const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
+          if (it) { it.reminder_set = true; it.already_in_base_film_id = it.already_in_base_film_id || data.film_id; }
+          renderPremieresList();
+        });
+      });
+    });
+    grid.querySelectorAll('[data-action="premiere-notify-off"]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const kp = b.getAttribute('data-kp');
+        b.disabled = true; b.textContent = '…';
+        api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', { method: 'DELETE' }).then((data) => {
+          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; return; }
+          const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
+          if (it) it.reminder_set = false;
+          renderPremieresList();
+        });
+      });
+    });
+    grid.querySelectorAll('[data-action="premiere-add"]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const kp = b.getAttribute('data-kp');
+        b.disabled = true; b.textContent = 'Добавляем…';
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) }).then((data) => {
+          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; b.textContent = '＋ В базу'; return; }
+          const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
+          if (it) it.already_in_base_film_id = data.film_id;
+          if (typeof loadUnwatched === 'function') loadUnwatched();
+          renderPremieresList();
+        });
+      });
+    });
+    grid.querySelectorAll('.premiere-card').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-stop-card-click]')) return;
+        const filmId = card.getAttribute('data-film-id');
+        if (filmId && filmId !== 'null' && filmId !== '') {
+          if (typeof openFilmModal === 'function') openFilmModal(Number(filmId));
+        }
+      });
+    });
+  }
+
+  function formatPremiereDate(s) {
+    if (!s) return '';
+    try {
+      // YYYY-MM-DD или DD.MM.YYYY
+      const m1 = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m1) {
+        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+        const d = parseInt(m1[3], 10), mo = parseInt(m1[2], 10) - 1;
+        return d + ' ' + months[mo];
+      }
+      const m2 = String(s).match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+      if (m2) {
+        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+        return parseInt(m2[1], 10) + ' ' + months[parseInt(m2[2], 10) - 1];
+      }
+    } catch (_) {}
+    return s;
+  }
+
+  // ————————————————————————————————————————————————————
+  // Phase 3: invite token handling (?invite_token=...)
+  // ————————————————————————————————————————————————————
+
+  function handleInviteTokenFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('invite_token');
+    if (!t) return;
+    params.delete('invite_token');
+    const newSearch = params.toString();
+    const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+    window.history.replaceState({}, '', newUrl);
+    if (!getToken()) {
+      // Нет активной сессии — сначала логин, потом пригласим
+      try { localStorage.setItem('mp_pending_invite_token', t); } catch (_) {}
+      return;
+    }
+    acceptInviteToken(t);
+  }
+
+  function acceptInviteToken(token) {
+    api('/api/site/invite/accept', { method: 'POST', body: JSON.stringify({ invite_token: token }) }).then((data) => {
+      if (!data || !data.success) return;
+      const sessions = getSessions();
+      const existing = sessions.find((s) => String(s.chat_id) === String(data.chat_id));
+      if (existing) {
+        existing.token = data.token;
+        existing.name = data.name;
+      } else {
+        sessions.push({ chat_id: String(data.chat_id), token: data.token, name: data.name, is_personal: false, has_data: true });
+      }
+      setSessions(sessions);
+      setActiveChatId(data.chat_id);
+      try { localStorage.removeItem('mp_pending_invite_token'); } catch (_) {}
+      loadMeAndShowCabinet();
+    });
+  }
+
   function init() {
     bindLogin();
     bindFaq();
@@ -2790,12 +3346,22 @@
 
     const isPublicStats = handleHash();
 
+    bindAddFilmModal();
+    bindProfileSwitcher();
+    handleInviteTokenFromUrl();
+
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
         showSection(sectionId);
         if (sectionId === 'tv') {
           renderTvSection();
+        }
+        if (sectionId === 'premieres') {
+          renderPremieresSection();
+        }
+        if (sectionId === 'groups') {
+          renderGroupsSection();
         }
         if (sectionId === 'stats') {
           initStatsSelectors();

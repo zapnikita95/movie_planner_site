@@ -319,12 +319,26 @@
     <!-- Cabinet: Read-only (user has data) -->
     <main id="cabinet-readonly" class="hidden cabinet">
         <div class="container">
+            <!-- Top bar: профиль + добавить фильм (Phase 3) -->
+            <div class="cabinet-topbar">
+                <div class="cabinet-profile-switcher" id="cabinet-profile-switcher">
+                    <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" aria-haspopup="true" aria-expanded="false">
+                        <span class="cabinet-profile-emoji" id="cabinet-profile-emoji">👤</span>
+                        <span class="cabinet-profile-name" id="cabinet-profile-name">Личный</span>
+                        <span class="cabinet-profile-caret">▾</span>
+                    </button>
+                    <div class="cabinet-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
+                </div>
+                <button type="button" class="btn btn-primary cabinet-add-film-btn" id="cabinet-add-film-btn">＋ Добавить фильм</button>
+            </div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="groups"><span class="cabinet-nav-btn-emoji">👥</span><span class="cabinet-nav-btn-text">Друзья и группы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tv"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Телевизор</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
@@ -432,6 +446,38 @@
                             <div id="stats-group-mvp"></div>
                             <div class="stats-grid stats-group-grid" id="stats-group-grid"></div>
                         </div>
+                    </div>
+                </section>
+                <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
+                    <div class="section-with-search">
+                        <h2 class="section-title"><span class="section-title-emoji">🎭</span><span class="section-title-text">Премьеры</span></h2>
+                        <div class="premieres-toolbar">
+                            <select id="premieres-period" class="premieres-period-select" aria-label="Период">
+                                <option value="current_month">Текущий месяц</option>
+                                <option value="next_month">Следующий месяц</option>
+                            </select>
+                            <select id="premieres-sort" class="premieres-sort-select" aria-label="Сортировка">
+                                <option value="date">По дате</option>
+                                <option value="genre">По жанру</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="cabinet-hint">Афиша кинопремьер России. Включите напоминание, чтобы в день премьеры бот прислал уведомление, купите билет или добавьте фильм в базу.</p>
+                    <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
+                    <div id="premieres-error" class="premieres-error hidden"></div>
+                    <div id="premieres-grid" class="premieres-grid"></div>
+                </section>
+                <section id="section-groups" class="cabinet-section hidden cabinet-groups">
+                    <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
+                    <p class="cabinet-hint">Каждая группа в Telegram, куда добавлен Movie Planner, доступна на сайте как отдельный профиль. Переключайтесь между ними в шапке кабинета.</p>
+                    <div id="groups-list" class="groups-list"></div>
+                    <div class="groups-howto">
+                        <h3>Как пригласить друга в группу</h3>
+                        <ol class="groups-howto-list">
+                            <li>Создайте групповой чат в Telegram и добавьте туда <a href="https://t.me/MovieList_Planner_Bot" target="_blank" rel="noopener">@MovieList_Planner_Bot</a>.</li>
+                            <li>В этом чате отправьте команду <code>/invite</code> — бот вернёт ссылку (действует 7 дней).</li>
+                            <li>Перешлите ссылку другу: по ней он сразу получит доступ к этой же группе в своём личном кабинете на сайте.</li>
+                        </ol>
                     </div>
                 </section>
                 <section id="section-tv" class="cabinet-section hidden cabinet-tv">
@@ -587,6 +633,26 @@
             </div>
         </div>
     </main>
+
+    <!-- Add Film Modal (Phase 3) -->
+    <div class="add-film-modal hidden" id="add-film-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-add-film-modal"></div>
+      <div class="add-film-modal-body">
+        <button type="button" class="add-film-modal-close" data-action="close-add-film-modal" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title">Добавить фильм или сериал</h2>
+        <p class="add-film-hint">Введите название или вставьте ссылку на Кинопоиск / IMDb.</p>
+        <div class="add-film-search-row">
+          <input type="text" id="add-film-input" class="add-film-input" placeholder="Например: Пираты Карибского моря" autocomplete="off">
+          <div class="add-film-type-toggle" role="tablist">
+            <button type="button" class="add-film-type-btn active" data-type="any" role="tab">Все</button>
+            <button type="button" class="add-film-type-btn" data-type="film" role="tab">Фильмы</button>
+            <button type="button" class="add-film-type-btn" data-type="series" role="tab">Сериалы</button>
+          </div>
+        </div>
+        <div id="add-film-status" class="add-film-status"></div>
+        <div id="add-film-results" class="add-film-results"></div>
+      </div>
+    </div>
 
     <!-- Film Modal (общая для всех вкладок кабинета) -->
     <div class="film-modal hidden" id="film-modal" aria-hidden="true" role="dialog">
