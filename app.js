@@ -437,11 +437,12 @@
         const poster = posterUrl(p.kp_id);
         const titleSafe = escapeHtml(p.title || '');
         return `
-          <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}">
+          <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
             <div class="film-card-v2-poster">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
               <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
               ${buildFilmTelegramTriangle(link)}
+              ${buildFilmRateStar(p.film_id, 0)}
             </div>
             <div class="film-card-v2-body">
               <div class="film-card-v2-meta">
@@ -523,11 +524,12 @@
       : '';
     const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
     return `
-      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}">
+      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched">
         <div class="film-card-v2-poster">
           ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
           <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
           ${buildFilmTelegramTriangle(link)}
+          ${buildFilmRateStar(m.film_id, 0)}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
@@ -583,11 +585,12 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card series-card film-card-v2" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}">
+      <div class="card series-card film-card-v2" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}" data-context="series">
         <div class="film-card-v2-poster">
           ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
           <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
           ${buildFilmTelegramTriangle(link)}
+          ${buildFilmRateStar(s.film_id, 0)}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(s.title)}</div>
@@ -640,11 +643,12 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     return `
-      <div class="card film-card film-card-v2" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}">
+      <div class="card film-card film-card-v2" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}" data-context="ratings">
         <div class="film-card-v2-poster">
           ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
           <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
           ${buildFilmTelegramTriangle(link)}
+          ${buildFilmRateStar(r.film_id, r.rating)}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
@@ -2112,10 +2116,24 @@
     if (!link) return '';
     return (
       `<a href="${link}" target="_blank" rel="noopener" class="film-card-tg-triangle" ` +
-      `title="Открыть в Telegram" aria-label="Открыть в Telegram" ` +
-      `onclick="event.stopPropagation()">` +
+      `title="Открыть в Telegram" aria-label="Открыть в Telegram">` +
       `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M9.04 15.54 8.9 19.4c.28 0 .4-.12.55-.27l1.33-1.27 2.76 2.02c.51.28.87.13 1-.47L20.9 4.9c.18-.79-.28-1.1-.82-.9L3.5 10.56c-.78.3-.77.74-.13.94l4.1 1.28 9.52-6c.45-.3.86-.13.52.18"/></svg>` +
       `</a>`
+    );
+  }
+
+  // Кнопка со звёздочкой в углу постера — быстрая оценка фильма.
+  function buildFilmRateStar(filmId, currentRating) {
+    if (!filmId) return '';
+    const cur = Number(currentRating) || 0;
+    const label = cur ? `${cur}/10` : '';
+    return (
+      `<button type="button" class="film-card-rate-star${cur ? ' is-rated' : ''}" ` +
+      `data-rate-star="1" data-rate-film-id="${filmId}" data-current-rating="${cur}" ` +
+      `title="Оценить фильм" aria-label="Оценить фильм">` +
+      `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.5l2.955 6.305 6.545.835-4.77 4.62 1.2 6.74L12 17.77l-5.93 3.23 1.2-6.74L2.5 9.64l6.545-.835L12 2.5z"/></svg>` +
+      (label ? `<span class="film-card-rate-star-label">${label}</span>` : '') +
+      `</button>`
     );
   }
 
@@ -2130,8 +2148,8 @@
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
 
     const planItems = [
-      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_home_${kp}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏠 Дома</a>`,
-      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_cinema_${kp}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🎥 В кино</a>`,
+      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_home_${kp}" target="_blank" rel="noopener">🏠 Дома</a>`,
+      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_cinema_${kp}" target="_blank" rel="noopener">🎥 В кино</a>`,
     ].join('');
 
     const watchItems = [];
@@ -2152,14 +2170,14 @@
     return (
       `<div class="film-action-bar">` +
         `<div class="action-dropdown" data-dropdown-root="plan">` +
-          `<button type="button" class="action-dropdown-btn action-dropdown-btn-plan" data-dropdown-toggle="1" onclick="event.stopPropagation()">` +
+          `<button type="button" class="action-dropdown-btn action-dropdown-btn-plan" data-dropdown-toggle="1">` +
             `<span class="action-dropdown-btn-label">📅 Запланировать</span>` +
             `<span class="action-dropdown-caret">▾</span>` +
           `</button>` +
           `<div class="action-dropdown-menu">${planItems}</div>` +
         `</div>` +
         `<div class="action-dropdown" data-dropdown-root="watch">` +
-          `<button type="button" class="action-dropdown-btn action-dropdown-btn-watch" data-dropdown-toggle="1" onclick="event.stopPropagation()">` +
+          `<button type="button" class="action-dropdown-btn action-dropdown-btn-watch" data-dropdown-toggle="1">` +
             `<span class="action-dropdown-btn-label">▶️ Смотреть</span>` +
             `<span class="action-dropdown-caret">▾</span>` +
           `</button>` +
@@ -2172,6 +2190,180 @@
   function closeAllActionDropdowns(except) {
     document.querySelectorAll('.action-dropdown.open').forEach((el) => {
       if (el !== except) el.classList.remove('open');
+    });
+  }
+
+  // ====================================================================
+  // Мини-попап быстрой оценки (при клике на звёздочку в углу постера)
+  // ====================================================================
+
+  function closeRatePopover() {
+    document.querySelectorAll('.rate-popover').forEach((el) => el.remove());
+  }
+
+  function openRatePopover(starBtn) {
+    closeRatePopover();
+    closeAllActionDropdowns();
+    closeAllFilmPopovers && closeAllFilmPopovers();
+
+    const filmId = Number(starBtn.getAttribute('data-rate-film-id'));
+    if (!filmId) return;
+    const cur = Number(starBtn.getAttribute('data-current-rating')) || 0;
+    const card = starBtn.closest('[data-film-id]');
+    const context = card ? (card.getAttribute('data-context') || '') : '';
+
+    const pop = document.createElement('div');
+    pop.className = 'rate-popover';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Оцените фильм');
+
+    const stars = [];
+    for (let i = 1; i <= 10; i += 1) {
+      const filled = cur >= i ? ' is-filled' : '';
+      stars.push(
+        `<button type="button" class="rate-popover-star${filled}" data-rate-value="${i}" aria-label="Оценить на ${i}">${i}</button>`
+      );
+    }
+    const removeBtn = cur
+      ? `<button type="button" class="rate-popover-remove" data-rate-remove="1">✕ Убрать оценку</button>`
+      : '';
+    pop.innerHTML =
+      `<div class="rate-popover-header">` +
+        `<span class="rate-popover-title">Ваша оценка</span>` +
+        `<button type="button" class="rate-popover-close" data-rate-close="1" aria-label="Закрыть">×</button>` +
+      `</div>` +
+      `<div class="rate-popover-stars">${stars.join('')}</div>` +
+      (removeBtn ? `<div class="rate-popover-actions">${removeBtn}</div>` : '');
+
+    document.body.appendChild(pop);
+
+    positionRatePopover(pop, starBtn);
+
+    pop._filmId = filmId;
+    pop._context = context;
+    pop._starBtn = starBtn;
+
+    pop.querySelectorAll('.rate-popover-star').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        const v = Number(el.getAttribute('data-rate-value'));
+        pop.querySelectorAll('.rate-popover-star').forEach((b) => {
+          const bv = Number(b.getAttribute('data-rate-value'));
+          b.classList.toggle('is-filled', bv <= v);
+        });
+      });
+      el.addEventListener('mouseleave', () => {
+        const curVal = Number(starBtn.getAttribute('data-current-rating')) || 0;
+        pop.querySelectorAll('.rate-popover-star').forEach((b) => {
+          const bv = Number(b.getAttribute('data-rate-value'));
+          b.classList.toggle('is-filled', bv <= curVal);
+        });
+      });
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const v = Number(el.getAttribute('data-rate-value'));
+        submitQuickRating(filmId, v, context, starBtn);
+      });
+    });
+    const rm = pop.querySelector('[data-rate-remove="1"]');
+    if (rm) {
+      rm.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        submitQuickRatingDelete(filmId, context, starBtn);
+      });
+    }
+    const closeBtn = pop.querySelector('[data-rate-close="1"]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeRatePopover();
+      });
+    }
+  }
+
+  function positionRatePopover(pop, anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const scrollX = window.scrollX || window.pageXOffset || 0;
+    pop.style.position = 'absolute';
+    pop.style.zIndex = '200';
+    // временно прикрепим в DOM, чтобы измерить
+    pop.style.left = '-9999px';
+    pop.style.top = '-9999px';
+    const pw = pop.offsetWidth || 280;
+    const ph = pop.offsetHeight || 140;
+    const vw = window.innerWidth;
+    let left = rect.left + scrollX + rect.width / 2 - pw / 2;
+    if (left < 12) left = 12;
+    if (left + pw > vw - 12) left = vw - 12 - pw;
+    let top = rect.bottom + scrollY + 8;
+    if (top + ph > (scrollY + window.innerHeight) - 12) {
+      top = rect.top + scrollY - ph - 8;
+    }
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+
+  function submitQuickRating(filmId, rating, context, starBtn) {
+    api('/api/site/film/' + filmId + '/rating', {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    }).then((res) => {
+      if (!res || !res.success) {
+        alert((res && res.error) || 'Не удалось сохранить оценку');
+        return;
+      }
+      closeRatePopover();
+      // Обновляем локальные кэши карточек
+      if (typeof _filmModalCache !== 'undefined' && _filmModalCache[filmId]) {
+        const cache = _filmModalCache[filmId];
+        const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
+        const idx = cache.ratings.findIndex((r) => String(r.user_id) === String(myUserId));
+        const row = { user_id: myUserId, rating, username: 'Вы' };
+        if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
+        cache.film.watched = true;
+      }
+      // Обновляем звёздочку на карточке
+      if (starBtn) {
+        starBtn.setAttribute('data-current-rating', String(rating));
+        starBtn.classList.add('is-rated');
+        const lbl = starBtn.querySelector('.film-card-rate-star-label');
+        if (lbl) lbl.textContent = rating + '/10';
+        else {
+          const newLbl = document.createElement('span');
+          newLbl.className = 'film-card-rate-star-label';
+          newLbl.textContent = rating + '/10';
+          starBtn.appendChild(newLbl);
+        }
+      }
+      // Обновляем списки
+      if (typeof applyRatingToLists === 'function') applyRatingToLists(filmId, rating);
+      // Если оценили из планов — удаляем этот фильм из плановых карточек на фронте.
+      // Бэкенд (site_film_rating) также удаляет записи из plans.
+      if (context === 'plan') {
+        if (typeof loadPlans === 'function') loadPlans();
+      }
+    }).catch(() => {
+      alert('Сервер не отвечает. Попробуйте позже.');
+    });
+  }
+
+  function submitQuickRatingDelete(filmId, context, starBtn) {
+    api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
+      if (!res || !res.success) {
+        alert((res && res.error) || 'Не удалось удалить оценку');
+        return;
+      }
+      closeRatePopover();
+      if (starBtn) {
+        starBtn.setAttribute('data-current-rating', '0');
+        starBtn.classList.remove('is-rated');
+        const lbl = starBtn.querySelector('.film-card-rate-star-label');
+        if (lbl) lbl.remove();
+      }
+      if (typeof removeRatingFromLists === 'function') removeRatingFromLists(filmId);
     });
   }
 
@@ -2456,6 +2648,15 @@
     if (tgTriangle) {
       e.stopPropagation();
       closeAllActionDropdowns();
+      closeRatePopover();
+      return;
+    }
+    // Звёздочка быстрой оценки в углу постера.
+    const rateStar = e.target.closest('[data-rate-star="1"]');
+    if (rateStar) {
+      e.preventDefault();
+      e.stopPropagation();
+      openRatePopover(rateStar);
       return;
     }
     // Переключение выпадающего меню (Запланировать/Смотреть).
@@ -2505,6 +2706,10 @@
     if (!e.target.closest('.action-dropdown-menu')) {
       closeAllActionDropdowns();
     }
+    // Закрываем попап оценки, если кликнули вне него и вне звёздочки.
+    if (!e.target.closest('.rate-popover') && !e.target.closest('[data-rate-star="1"]')) {
+      closeRatePopover();
+    }
 
     // Закрытие модалки
     const closer = e.target.closest('[data-action="close-film-modal"]');
@@ -2531,7 +2736,7 @@
     if (card) {
       // Не перехватываем клик, если клик был по кнопке действия внутри карточки
       // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
-      const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle]');
+      const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle], [data-rate-star], .rate-popover');
       // "В Telegram" теперь должна нормально открываться — её не блокируем.
       if (actionBtn && actionBtn !== card && !actionBtn.classList.contains('film-card-main')) {
         return;
@@ -3266,19 +3471,24 @@
       }
       menu.innerHTML = profiles.map((p) => {
         const emoji = p.is_personal ? '👤' : '👥';
-        const typeLabel = p.is_personal ? 'личный' : 'группа';
+        const typeLabel = p.is_personal ? 'личный' : (p.is_virtual ? 'комната' : 'группа');
         const active = p.is_active || String(p.chat_id) === String(activeChatId);
+        // Имя активного профиля уже показано в кнопке-триггере сверху —
+        // в пункте меню не дублируем название, показываем только тип и стату.
+        const nameHtml = active
+          ? `<div class="profile-menu-item-name profile-menu-item-name-active">Текущий профиль</div>`
+          : `<div class="profile-menu-item-name">${escapeHtml(p.name || 'Профиль')}</div>`;
         return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
           <div class="profile-menu-item-main">
             <span class="profile-menu-item-emoji">${emoji}</span>
             <div class="profile-menu-item-info">
-              <div class="profile-menu-item-name">${escapeHtml(p.name || 'Профиль')}</div>
+              ${nameHtml}
               <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
             </div>
           </div>
           ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
         </div>`;
-      }).join('') + '<div class="profile-menu-hint">Создавайте новые профили через <code>/invite</code> в Telegram-группе.</div>';
+      }).join('') + '<div class="profile-menu-hint">Создавайте новые профили через <code>/invite</code> в Telegram-группе или кнопку «Создать комнату».</div>';
 
       menu.querySelectorAll('.profile-menu-item').forEach((el) => {
         el.addEventListener('click', () => {

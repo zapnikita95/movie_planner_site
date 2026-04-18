@@ -3164,23 +3164,166 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 }
 .film-card-tg-triangle svg { display: block; fill: currentColor; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
 
+/* Прозрачная звёздочка в верхнем-ЛЕВОМ углу постера — быстрая оценка. */
+.film-card-rate-star {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffd466;
+  cursor: pointer;
+  z-index: 3;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease, color 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.film-card-rate-star:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(255, 212, 102, 0.6);
+  transform: scale(1.06);
+}
+.film-card-rate-star svg { display: block; fill: currentColor; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+.film-card-rate-star.is-rated {
+  background: linear-gradient(135deg, rgba(255, 196, 58, 0.85), rgba(255, 138, 58, 0.85));
+  border-color: rgba(255, 212, 102, 0.9);
+  color: #1a1a1a;
+}
+.film-card-rate-star-label { color: inherit; }
+
+/* Поповер быстрой оценки */
+.rate-popover {
+  position: absolute;
+  background: #17171f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  min-width: 280px;
+  max-width: min(360px, calc(100vw - 24px));
+  color: #fff;
+  z-index: 200;
+  animation: rate-popover-in 0.15s ease-out;
+}
+@keyframes rate-popover-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.rate-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.rate-popover-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+.rate-popover-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s ease;
+}
+.rate-popover-close:hover { color: #fff; }
+.rate-popover-stars {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+.rate-popover-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+.rate-popover-star:hover {
+  background: rgba(255, 212, 102, 0.15);
+  border-color: rgba(255, 212, 102, 0.5);
+  color: #ffd466;
+  transform: translateY(-1px);
+}
+.rate-popover-star.is-filled {
+  background: linear-gradient(135deg, #ffc43a, #ff8a3a);
+  border-color: transparent;
+  color: #1a1a1a;
+}
+.rate-popover-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+.rate-popover-remove {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.rate-popover-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+@media (max-width: 420px) {
+  .rate-popover { min-width: 260px; padding: 10px 12px; }
+  .rate-popover-stars { grid-template-columns: repeat(5, 1fr); }
+}
+
 .film-card-v2-body {
   padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 .film-card-v2-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 6px 10px;
   font-size: 12px;
   color: var(--text-muted);
+  min-width: 0;
 }
 .film-card-v2-meta .plan-date-line,
 .film-card-v2-meta .plan-time-line,
-.film-card-v2-meta .plan-type { font-size: 12px; color: var(--text-muted); }
+.film-card-v2-meta .plan-type {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .film-card-v2-title {
   font-family: 'Unbounded', sans-serif;
   font-size: 15px;
@@ -3188,16 +3331,29 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   line-height: 1.35;
   color: var(--text-primary);
   word-break: break-word;
+  overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-width: 100%;
 }
 .film-card-v2-status {
   font-size: 13px;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
-.film-card-v2-body .film-rated-date { font-size: 12px; color: var(--text-muted); }
+.film-card-v2-body .film-rated-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
 
 /* Панель действий — две овальные кнопки в одну строку */
 .film-action-bar {
@@ -3228,7 +3384,18 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
   white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+  /* на кнопках не нужен user-select — чтобы по двойному клику не выделять текст */
+  user-select: none;
+  -webkit-user-select: none;
 }
+.action-dropdown-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.action-dropdown-btn:active { transform: scale(0.97); }
 .action-dropdown-btn:hover {
   border-color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
