@@ -21,6 +21,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
     <link rel="stylesheet" href="style-v2.css?v=20260418d">
+    <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -484,7 +485,7 @@
                             <span>＋</span> Создать комнату
                         </button>
                     </div>
-                    <p class="cabinet-hint">Общие базы с друзьями. Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/MovieList_Planner_Bot" target="_blank" rel="noopener">@MovieList_Planner_Bot</a> в существующий Telegram-чат.</p>
+                    <p class="cabinet-hint">Общие базы с друзьями. Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">@movie_planner_bot</a> в существующий Telegram-чат.</p>
                     <div id="groups-list" class="groups-list"></div>
                     <div class="groups-howto">
                         <h3>Два способа пригласить друга</h3>
@@ -682,6 +683,37 @@
             <button type="button" class="btn btn-secondary" data-action="close-create-room-modal">Отмена</button>
             <button type="button" class="btn btn-primary" id="create-room-submit">Создать комнату</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invite Confirm Modal (P4.0) — подтверждение вступления в группу по ссылке -->
+    <div class="add-film-modal hidden" id="invite-confirm-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-invite-confirm-modal"></div>
+      <div class="add-film-modal-body" style="max-width:440px;text-align:center">
+        <button type="button" class="add-film-modal-close" data-action="close-invite-confirm-modal" aria-label="Закрыть">&times;</button>
+        <div id="invite-confirm-emoji" style="font-size:56px;line-height:1;margin-bottom:10px">👥</div>
+        <h2 class="add-film-title" id="invite-confirm-title">Присоединиться к группе?</h2>
+        <p class="add-film-hint" id="invite-confirm-hint">Вас пригласили в совместную коллекцию фильмов. После вступления вы увидите планы и фильмы участников.</p>
+        <div id="invite-confirm-meta" class="share-invite-meta" style="margin:10px 0"></div>
+        <div id="invite-confirm-status" class="add-film-status"></div>
+        <div class="create-room-actions" style="justify-content:center;gap:12px">
+          <button type="button" class="btn btn-secondary" data-action="close-invite-confirm-modal">Отмена</button>
+          <button type="button" class="btn btn-primary" id="invite-confirm-submit">Присоединиться</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invite Success Modal (P4.0) — явный success после вступления -->
+    <div class="add-film-modal hidden" id="invite-success-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-invite-success-modal"></div>
+      <div class="add-film-modal-body" style="max-width:420px;text-align:center">
+        <button type="button" class="add-film-modal-close" data-action="close-invite-success-modal" aria-label="Закрыть">&times;</button>
+        <div id="invite-success-emoji" style="font-size:64px;line-height:1;margin-bottom:10px">🎉</div>
+        <h2 class="add-film-title" id="invite-success-title">Вы в группе!</h2>
+        <p class="add-film-hint" id="invite-success-hint">Теперь вы видите общие планы и фильмы. Переключайтесь между профилями через меню в правом верхнем углу.</p>
+        <div class="create-room-actions" style="justify-content:center">
+          <button type="button" class="btn btn-primary" id="invite-success-goto">Перейти в группу</button>
         </div>
       </div>
     </div>
@@ -953,6 +985,8 @@
         </div>
     </div>
     </div><!-- /content-wrapper -->
+    <script src="maps-suggest.js?v=20260418a"></script>
     <script src="app.js?v=20260418d"></script>
+    <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

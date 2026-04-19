@@ -359,7 +359,7 @@
         const pending = localStorage.getItem('mp_pending_invite_token');
         if (pending) {
           localStorage.removeItem('mp_pending_invite_token');
-          acceptInviteToken(pending);
+          showInviteConfirmModal(pending);
         }
       } catch (_) {}
       if (me.has_data) {
@@ -2979,7 +2979,7 @@
       card.addEventListener('click', () => {
         const kp = card.getAttribute('data-similar-kp');
         // Если нет в базе — отправляем в Telegram на добавление
-        const url = 'https://t.me/MovieList_Planner_Bot?start=addfilm_' + encodeURIComponent(kp);
+        const url = 'https://t.me/movie_planner_bot?start=addfilm_' + encodeURIComponent(kp);
         window.open(url, '_blank', 'noopener');
       });
     });
@@ -3900,7 +3900,7 @@
   }
 
   // ————————————————————————————————————————————————————
-  // Phase 3: invite token handling (?invite_token=...)
+  // Phase 3/4: invite token handling (?invite_token=...)
   // ————————————————————————————————————————————————————
 
   function handleInviteTokenFromUrl() {
@@ -3911,17 +3911,133 @@
     const newSearch = params.toString();
     const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
     window.history.replaceState({}, '', newUrl);
-    if (!getToken()) {
-      // Нет активной сессии — сначала логин, потом пригласим
-      try { localStorage.setItem('mp_pending_invite_token', t); } catch (_) {}
-      return;
-    }
-    acceptInviteToken(t);
+    // Всегда показываем preview + confirmation (и для auth, и для guest'ов).
+    showInviteConfirmModal(t);
   }
 
-  function acceptInviteToken(token) {
-    api('/api/site/invite/accept', { method: 'POST', body: JSON.stringify({ invite_token: token }) }).then((data) => {
-      if (!data || !data.success) return;
+  function showInviteConfirmModal(token) {
+    const modal = document.getElementById('invite-confirm-modal');
+    if (!modal) return;
+    const emojiEl = document.getElementById('invite-confirm-emoji');
+    const titleEl = document.getElementById('invite-confirm-title');
+    const hintEl = document.getElementById('invite-confirm-hint');
+    const metaEl = document.getElementById('invite-confirm-meta');
+    const statusEl = document.getElementById('invite-confirm-status');
+    const submitBtn = document.getElementById('invite-confirm-submit');
+    if (emojiEl) emojiEl.textContent = '👥';
+    if (titleEl) titleEl.textContent = 'Загружаем приглашение…';
+    if (hintEl) hintEl.textContent = '';
+    if (metaEl) metaEl.textContent = '';
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Присоединиться'; }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    if (!modal._bound) {
+      modal._bound = true;
+      modal.addEventListener('click', (e) => {
+        const el = e.target;
+        if (el && el.getAttribute && el.getAttribute('data-action') === 'close-invite-confirm-modal') {
+          closeInviteConfirmModal();
+        }
+      });
+    }
+
+    // Подтягиваем preview (публично, без авторизации)
+    fetch(API_BASE + '/api/site/invite/info?token=' + encodeURIComponent(token))
+      .then((r) => r.json().catch(() => ({})))
+      .then((info) => {
+        if (!info || !info.success) {
+          if (titleEl) titleEl.textContent = 'Не удалось загрузить приглашение';
+          if (hintEl) hintEl.textContent = 'Попросите отправителя создать новую ссылку.';
+          return;
+        }
+        if (info.is_expired) {
+          if (emojiEl) emojiEl.textContent = '⌛';
+          if (titleEl) titleEl.textContent = 'Ссылка больше не работает';
+          if (hintEl) {
+            hintEl.textContent = info.reason === 'uses_exhausted'
+              ? 'Лимит использований этой ссылки исчерпан. Попросите создать новую.'
+              : 'Срок действия ссылки истёк. Попросите отправителя сгенерировать новую.';
+          }
+          return;
+        }
+        if (emojiEl) emojiEl.textContent = info.emoji || '👥';
+        if (titleEl) titleEl.textContent = 'Присоединиться к «' + (info.name || 'Группа') + '»?';
+        if (hintEl) {
+          hintEl.textContent = info.is_virtual
+            ? 'Это виртуальная комната — общая база планов и фильмов с друзьями, без Telegram-чата.'
+            : 'Это Telegram-группа с общей базой фильмов и планов.';
+        }
+        if (metaEl) {
+          const parts = [];
+          if (info.members_count != null) parts.push(info.members_count + ' ' + pluralRu(info.members_count, ['участник','участника','участников']));
+          if (info.uses_left != null) parts.push('ещё ' + info.uses_left + ' ' + pluralRu(info.uses_left, ['приглашение','приглашения','приглашений']));
+          metaEl.textContent = parts.join(' · ');
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.onclick = () => handleInviteConfirmClick(token, info);
+        }
+      })
+      .catch(() => {
+        if (titleEl) titleEl.textContent = 'Не удалось загрузить приглашение';
+        if (hintEl) hintEl.textContent = 'Проверьте интернет и попробуйте ещё раз.';
+      });
+  }
+
+  function pluralRu(n, forms) {
+    n = Math.abs(n) % 100;
+    const n1 = n % 10;
+    if (n > 10 && n < 20) return forms[2];
+    if (n1 > 1 && n1 < 5) return forms[1];
+    if (n1 === 1) return forms[0];
+    return forms[2];
+  }
+
+  function closeInviteConfirmModal() {
+    const modal = document.getElementById('invite-confirm-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function handleInviteConfirmClick(token, info) {
+    if (!getToken()) {
+      // Guest: сохраняем токен и предлагаем залогиниться.
+      try { localStorage.setItem('mp_pending_invite_token', token); } catch (_) {}
+      const statusEl = document.getElementById('invite-confirm-status');
+      if (statusEl) {
+        statusEl.textContent = 'Нужно войти, чтобы присоединиться. Откроется окно входа…';
+        statusEl.className = 'add-film-status';
+      }
+      setTimeout(() => {
+        closeInviteConfirmModal();
+        try {
+          const lm = document.getElementById('login-modal');
+          if (lm) { lm.classList.remove('hidden'); lm.setAttribute('aria-hidden', 'false'); }
+        } catch (_) {}
+      }, 600);
+      return;
+    }
+    const submitBtn = document.getElementById('invite-confirm-submit');
+    const statusEl = document.getElementById('invite-confirm-status');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Присоединяемся…'; }
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
+    acceptInviteToken(token, info);
+  }
+
+  function acceptInviteToken(token, previewInfo) {
+    return api('/api/site/invite/accept', { method: 'POST', body: JSON.stringify({ invite_token: token }) }).then((data) => {
+      if (!data || !data.success) {
+        const statusEl = document.getElementById('invite-confirm-status');
+        const submitBtn = document.getElementById('invite-confirm-submit');
+        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось присоединиться'; statusEl.className = 'add-film-status error'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Присоединиться'; }
+        return;
+      }
       const sessions = getSessions();
       const existing = sessions.find((s) => String(s.chat_id) === String(data.chat_id));
       if (existing) {
@@ -3933,8 +4049,56 @@
       setSessions(sessions);
       setActiveChatId(data.chat_id);
       try { localStorage.removeItem('mp_pending_invite_token'); } catch (_) {}
-      loadMeAndShowCabinet();
+      closeInviteConfirmModal();
+      showInviteSuccessModal({
+        name: data.name || (previewInfo && previewInfo.name) || 'Группа',
+        emoji: (previewInfo && previewInfo.emoji) || '🎉',
+        already_member: !!data.already_member,
+      });
     });
+  }
+
+  function showInviteSuccessModal(info) {
+    const modal = document.getElementById('invite-success-modal');
+    if (!modal) {
+      // Fallback — просто переходим в кабинет
+      loadMeAndShowCabinet();
+      return;
+    }
+    const emojiEl = document.getElementById('invite-success-emoji');
+    const titleEl = document.getElementById('invite-success-title');
+    const hintEl = document.getElementById('invite-success-hint');
+    const gotoBtn = document.getElementById('invite-success-goto');
+    if (emojiEl) emojiEl.textContent = info.emoji || '🎉';
+    if (titleEl) titleEl.textContent = info.already_member
+      ? 'Вы уже в «' + info.name + '»'
+      : 'Готово! Вы в «' + info.name + '»';
+    if (hintEl) hintEl.textContent = info.already_member
+      ? 'Продолжайте пользоваться общей базой фильмов и планов.'
+      : 'Теперь вам доступны общие планы и фильмы этой группы. Переключайтесь между профилями через меню в правом верхнем углу.';
+    if (gotoBtn) {
+      gotoBtn.onclick = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        loadMeAndShowCabinet();
+      };
+    }
+    if (!modal._bound) {
+      modal._bound = true;
+      modal.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t && t.getAttribute && t.getAttribute('data-action') === 'close-invite-success-modal') {
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+          loadMeAndShowCabinet();
+        }
+      });
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
   }
 
   function init() {
