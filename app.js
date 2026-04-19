@@ -22,6 +22,64 @@
     return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
   }
 
+  // Глобальный toast — простое, но заметное уведомление внизу экрана.
+  // Использование: showToast('📋 Ссылка скопирована').
+  function showToast(message, opts) {
+    try {
+      let el = document.getElementById('mp-global-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'mp-global-toast';
+        el.style.cssText = [
+          'position:fixed', 'left:50%', 'bottom:28px', 'transform:translateX(-50%) translateY(20px)',
+          'background:rgba(20,20,28,0.95)', 'color:#fff', 'font-size:14px', 'font-weight:500',
+          'padding:12px 20px', 'border-radius:14px', 'border:1px solid rgba(255,255,255,0.08)',
+          'box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset',
+          'opacity:0', 'pointer-events:none', 'z-index:99999',
+          'transition:opacity 200ms ease, transform 200ms ease', 'max-width:88vw', 'text-align:center',
+        ].join(';');
+        document.body.appendChild(el);
+      }
+      el.textContent = message || '';
+      if (opts && opts.type === 'error') {
+        el.style.background = 'rgba(120,30,30,0.95)';
+      } else {
+        el.style.background = 'rgba(20,20,28,0.95)';
+      }
+      requestAnimationFrame(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(20px)';
+      }, (opts && opts.duration) || 2400);
+    } catch (_) {}
+  }
+
+  // Копирование в clipboard с фолбэком на execCommand — работает даже
+  // когда navigator.clipboard недоступен (иногда в http/iframe).
+  function copyToClipboard(text) {
+    if (!text) return Promise.reject(new Error('no text'));
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(String(text));
+    }
+    return new Promise((resolve, reject) => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = String(text);
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand failed'));
+      } catch (e) { reject(e); }
+    });
+  }
+
   const STORAGE_SESSIONS = 'mp_site_sessions';
   const STORAGE_ACTIVE = 'mp_site_active_chat_id';
   const MAX_PERSONAL = 2;
@@ -1291,7 +1349,13 @@
         '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
-        if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
+        if (!u) return;
+        const self = this;
+        copyToClipboard(u).then(() => {
+          self.textContent = 'Скопировано!';
+          showToast('📋 Ссылка скопирована');
+          setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
+        }).catch(() => showToast('Не удалось скопировать', { type: 'error' }));
       });
       headerEl.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
         const btn = this;
@@ -1805,7 +1869,13 @@
         '<button type="button" class="stats-group-copy-btn" data-url="' + escapeHtml(shareUrl) + '">Копировать</button></div>' + viewsHtml + '</div>';
       el.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
-        if (u && navigator.clipboard) navigator.clipboard.writeText(u).then(() => { this.textContent = 'Скопировано!'; setTimeout(() => { this.textContent = 'Копировать'; }, 2000); });
+        if (!u) return;
+        const self = this;
+        copyToClipboard(u).then(() => {
+          self.textContent = 'Скопировано!';
+          showToast('📋 Ссылка скопирована');
+          setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
+        }).catch(() => showToast('Не удалось скопировать', { type: 'error' }));
       });
       el.classList.remove('hidden');
     } else {
@@ -3864,9 +3934,14 @@
     if (!chatId) return;
     api(`/api/site/rooms/${encodeURIComponent(chatId)}/invite`, { method: 'POST' }).then((data) => {
       if (!data || !data.success) {
-        alert((data && data.error) || 'Не удалось создать приглашение');
+        showToast((data && data.error) || 'Не удалось создать приглашение', { type: 'error' });
         return;
       }
+      // Сразу копируем ссылку в буфер и даём пользователю понять,
+      // что всё получилось — даже если модалка не откроется по каким-то причинам.
+      copyToClipboard(data.invite_url)
+        .then(() => showToast('📋 Ссылка скопирована — отправьте другу'))
+        .catch(() => showToast('🔗 Ссылка создана — нажмите «Скопировать» в окне'));
       showShareInvite({
         chat_id: chatId,
         url: data.invite_url,
@@ -3904,14 +3979,16 @@
       copyBtn.addEventListener('click', () => {
         const url = urlEl ? urlEl.textContent : '';
         if (!url) return;
-        try {
-          navigator.clipboard.writeText(url).then(() => {
+        copyToClipboard(url)
+          .then(() => {
             copyBtn.textContent = '✅ Скопировано';
+            showToast('📋 Ссылка скопирована');
             setTimeout(() => { copyBtn.textContent = '📋 Скопировать'; }, 1500);
+          })
+          .catch(() => {
+            copyBtn.textContent = '✅ Скопировано';
+            showToast('📋 Ссылка скопирована');
           });
-        } catch (_) {
-          copyBtn.textContent = '✅ Скопировано';
-        }
       });
     }
     modal.classList.remove('hidden');
