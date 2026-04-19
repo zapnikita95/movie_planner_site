@@ -3,6 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // SPA shim (P4.3): восстанавливаем path из ?__spa=... (см. 404.html).
+      // Выполняется синхронно до загрузки app.js, чтобы он увидел корректный URL.
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var spa = params.get('__spa');
+          if (spa) {
+            params.delete('__spa');
+            var rest = params.toString();
+            var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
+            window.history.replaceState(null, '', newUrl);
+          }
+        } catch (_) {}
+      })();
+    </script>
     <title>Movie Planner — планировщик фильмов и сериалов в Telegram</title>
     <meta name="description" content="Movie Planner — удобный сервис для планирования просмотра фильмов и сериалов. Watchlist, напоминания, походы в кино, трекер сериалов, интеграция с Kinopoisk и IMDb.">
     <meta name="keywords" content="movie planner, планировщик фильмов, watchlist telegram, трекер сериалов, трекер сериалов telegram, уведомления о новых сериях, бот трекер сериалов telegram, список сериалов telegram, планирование кино, movie planner telegram">

@@ -259,9 +259,43 @@
     if (hs) hs.classList.toggle('hidden', !(screenId === 'cabinet-readonly'));
   }
 
-  function showSection(sectionId) {
+  // P4.3: маппинг между разделами кабинета и URL-путями
+  const SECTION_TO_PATH = {
+    plans: '/plans',
+    unwatched: '/watchlist',
+    series: '/series',
+    ratings: '/ratings',
+    stats: '/stats',
+    premieres: '/premieres',
+    groups: '/groups',
+    tv: '/tv',
+    about: '/about',
+  };
+  const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
+
+  function sectionFromPath(pathname) {
+    if (!pathname) return null;
+    const normalized = pathname.replace(/\/$/, '') || '/';
+    return PATH_TO_SECTION[normalized] || null;
+  }
+
+  function pushSectionUrl(sectionId, replace) {
+    try {
+      const path = SECTION_TO_PATH[sectionId] || '/';
+      const url = path + window.location.search + window.location.hash;
+      if (replace) {
+        window.history.replaceState({ section: sectionId }, '', url);
+      } else if (window.location.pathname !== path) {
+        window.history.pushState({ section: sectionId }, '', url);
+      }
+    } catch (_) {}
+  }
+
+  function showSection(sectionId, opts) {
+    const options = opts || {};
     const readonly = document.getElementById('cabinet-readonly');
     const onboarding = document.getElementById('cabinet-onboarding');
+    let rendered = false;
     if (readonly && !readonly.classList.contains('hidden')) {
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
@@ -270,9 +304,8 @@
         b.classList.remove('active');
         if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
       });
-      return;
-    }
-    if (onboarding && !onboarding.classList.contains('hidden')) {
+      rendered = true;
+    } else if (onboarding && !onboarding.classList.contains('hidden')) {
       onboarding.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = onboarding.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
@@ -280,6 +313,10 @@
         b.classList.remove('active');
         if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
       });
+      rendered = true;
+    }
+    if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
+      pushSectionUrl(sectionId, !!options.replace);
     }
   }
 
@@ -509,6 +546,14 @@
         loadUnwatched();
         loadSeries();
         loadRatings();
+        // P4.3: deep-link в раздел по текущему URL (например /groups)
+        const deepSection = sectionFromPath(window.location.pathname);
+        if (deepSection) {
+          showSection(deepSection, { replace: true, skipPush: false });
+          if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
+          if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+          if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+        }
         // Если открыта вкладка статистики — перезагрузить её
         const statsSection = document.getElementById('section-stats');
         if (statsSection && !statsSection.classList.contains('hidden')) {
@@ -520,6 +565,8 @@
         }
       } else {
         showScreen('cabinet-onboarding');
+        const deepSection = sectionFromPath(window.location.pathname);
+        if (deepSection) showSection(deepSection, { replace: true });
       }
     });
   }
@@ -4272,6 +4319,14 @@
     bindCreateRoomModal();
     bindHeaderSearch();
     handleInviteTokenFromUrl();
+
+    // P4.3: History API — browser back/forward между разделами
+    window.addEventListener('popstate', () => {
+      if (handleHash()) return;
+      if (!getToken()) return;
+      const sec = sectionFromPath(window.location.pathname);
+      if (sec) showSection(sec, { skipPush: true });
+    });
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {

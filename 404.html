@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Movie Planner</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <script>
+    // SPA shim для GitHub Pages: перенаправляем неизвестные пути на /
+    // и восстанавливаем их в index.html через history.replaceState.
+    // Так ссылки /groups, /plans, /premieres и т.п. работают при прямом
+    // открытии, хотя сайт статический и без серверного роутинга.
+    (function () {
+      var loc = window.location;
+      var target = loc.pathname + loc.search + loc.hash;
+      loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
+    })();
+  </script>
+</head>
+<body>
+  <noscript>
+    <p style="color:#fff;background:#111;padding:20px;font-family:sans-serif">
+      Страница не найдена. <a href="/" style="color:#ec4899">Открыть Movie Planner</a>.
+    </p>
+  </noscript>
+</body>
+</html>
