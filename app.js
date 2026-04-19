@@ -294,6 +294,25 @@
     if (openBtn) openBtn.addEventListener('click', () => modal && modal.classList.remove('hidden'));
     closeElements.forEach((el) => el.addEventListener('click', () => modal && modal.classList.add('hidden')));
 
+    // P4.2: переключение табов Telegram / Email
+    const tabButtons = document.querySelectorAll('.login-tab-btn');
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-login-tab');
+        tabButtons.forEach((b) => {
+          const active = b.getAttribute('data-login-tab') === target;
+          b.classList.toggle('active', active);
+          b.style.background = active ? 'rgba(255,255,255,0.08)' : 'transparent';
+          b.style.color = active ? '#fff' : '#aab';
+        });
+        document.querySelectorAll('.login-tab-panel').forEach((p) => p.classList.add('hidden'));
+        const panel = document.getElementById('login-tab-' + target);
+        if (panel) panel.classList.remove('hidden');
+      });
+    });
+
+    bindEmailLogin();
+
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -337,6 +356,128 @@
           }, 500);
         } else {
           if (status) { status.textContent = data.error || 'Неверный код'; status.className = 'login-status error'; }
+        }
+      });
+    }
+  }
+
+  // P4.2: email-логин на сайте — переиспользуем mobile /api/auth/email/*
+  // и обмениваем полученный JWT на site_session через /api/site/session/from-jwt
+  function bindEmailLogin() {
+    const modal = document.getElementById('login-modal');
+    const reqForm = document.getElementById('login-email-form');
+    const codeForm = document.getElementById('login-email-code-form');
+    const emailInput = document.getElementById('login-email');
+    const codeInput = document.getElementById('login-email-code');
+    const statusEl = document.getElementById('login-email-status');
+    const codeHint = document.getElementById('login-email-code-hint');
+    const reqBtn = document.getElementById('login-email-request-btn');
+    const backBtn = document.getElementById('login-email-back-btn');
+
+    function setStatus(text, kind) {
+      if (!statusEl) return;
+      statusEl.textContent = text || '';
+      statusEl.className = 'login-status' + (kind ? ' ' + kind : '');
+    }
+
+    if (reqForm) {
+      reqForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (emailInput && emailInput.value || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          setStatus('Укажите корректный email', 'error');
+          return;
+        }
+        if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = 'Отправляем…'; }
+        setStatus('');
+        try {
+          const resp = await fetch(API_BASE + '/api/auth/email/request-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
+          if (!data.success) {
+            setStatus(data.error === 'rate_limit' ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить код. Проверьте email и повторите.', 'error');
+            return;
+          }
+          if (codeHint) codeHint.textContent = 'Код отправлен на ' + email + '. Проверьте почту.';
+          reqForm.classList.add('hidden');
+          if (codeForm) codeForm.classList.remove('hidden');
+          if (codeInput) setTimeout(() => codeInput.focus(), 100);
+        } catch (_) {
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
+          setStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        }
+      });
+    }
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        if (codeForm) codeForm.classList.add('hidden');
+        if (reqForm) reqForm.classList.remove('hidden');
+        if (codeInput) codeInput.value = '';
+      });
+    }
+
+    if (codeForm) {
+      codeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (emailInput && emailInput.value || '').trim().toLowerCase();
+        const code = (codeInput && codeInput.value || '').trim();
+        if (!/^\d{4,8}$/.test(code)) {
+          setStatus('Введите код из письма', 'error');
+          return;
+        }
+        setStatus('Проверка…');
+        try {
+          const verifyResp = await fetch(API_BASE + '/api/auth/email/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code }),
+          });
+          const verifyData = await verifyResp.json().catch(() => ({}));
+          if (!verifyData.success || !verifyData.access) {
+            setStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
+            return;
+          }
+          const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access: verifyData.access }),
+          });
+          const exchangeData = await exchangeResp.json().catch(() => ({}));
+          if (!exchangeData.success || !exchangeData.token) {
+            setStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
+            return;
+          }
+          const sessions = getSessions();
+          const chatId = String(exchangeData.chat_id);
+          const existing = sessions.find((s) => String(s.chat_id) === chatId);
+          if (existing) {
+            existing.token = exchangeData.token;
+            existing.name = exchangeData.name;
+            existing.is_personal = true;
+          } else {
+            sessions.push({
+              chat_id: chatId,
+              token: exchangeData.token,
+              name: exchangeData.name,
+              has_data: false,
+              is_personal: true,
+              email: exchangeData.email || email,
+            });
+          }
+          setSessions(sessions);
+          setActiveChatId(chatId);
+          setStatus('Добро пожаловать!', 'success');
+          setTimeout(() => {
+            if (modal) modal.classList.add('hidden');
+            loadMeAndShowCabinet();
+          }, 400);
+        } catch (_) {
+          setStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
         }
       });
     }

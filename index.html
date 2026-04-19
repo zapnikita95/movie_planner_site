@@ -81,16 +81,46 @@
       <div class="modal-content" style="position:relative;z-index:1">
         <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
         <div class="modal-title">Вход в кабинет</div>
-        <p class="modal-hint">Получите код авторизации от бота в Telegram, затем введите его ниже</p>
-        <a href="https://t.me/movie_planner_bot?start=code" class="modal-button modal-button-telegram" target="_blank" rel="noopener">Получить код в Telegram</a>
-        <div class="modal-divider"><span>Уже есть код?</span></div>
-        <form id="login-form">
-          <div class="modal-form" style="flex-direction:column;align-items:stretch">
-            <input type="text" id="login-code" name="code" placeholder="000000" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
-            <p class="login-status" id="login-status"></p>
-            <button type="submit" class="modal-button modal-button-primary">Войти</button>
-          </div>
-        </form>
+
+        <!-- Tabs: Telegram / Email (P4.2) -->
+        <div class="login-tabs" role="tablist" style="display:flex;gap:6px;background:rgba(255,255,255,0.04);padding:4px;border-radius:12px;margin:8px 0 16px">
+          <button type="button" class="login-tab-btn active" data-login-tab="telegram" role="tab" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.08);border:0;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">Telegram</button>
+          <button type="button" class="login-tab-btn" data-login-tab="email" role="tab" style="flex:1;padding:8px 12px;background:transparent;border:0;border-radius:8px;color:#aab;font-weight:600;cursor:pointer">Email</button>
+        </div>
+
+        <!-- Telegram tab -->
+        <div id="login-tab-telegram" class="login-tab-panel">
+          <p class="modal-hint">Получите код авторизации от бота в Telegram, затем введите его ниже</p>
+          <a href="https://t.me/movie_planner_bot?start=code" class="modal-button modal-button-telegram" target="_blank" rel="noopener">Получить код в Telegram</a>
+          <div class="modal-divider"><span>Уже есть код?</span></div>
+          <form id="login-form">
+            <div class="modal-form" style="flex-direction:column;align-items:stretch">
+              <input type="text" id="login-code" name="code" placeholder="000000" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
+              <p class="login-status" id="login-status"></p>
+              <button type="submit" class="modal-button modal-button-primary">Войти</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Email tab (P4.2) -->
+        <div id="login-tab-email" class="login-tab-panel hidden">
+          <p class="modal-hint">Введите email — пришлём 6-значный код для входа. Telegram не нужен.</p>
+          <form id="login-email-form">
+            <div class="modal-form" style="flex-direction:column;align-items:stretch;gap:10px">
+              <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" class="modal-input">
+              <p class="login-status" id="login-email-status"></p>
+              <button type="submit" class="modal-button modal-button-primary" id="login-email-request-btn">Отправить код</button>
+            </div>
+          </form>
+          <form id="login-email-code-form" class="hidden" style="margin-top:10px">
+            <div class="modal-form" style="flex-direction:column;align-items:stretch;gap:10px">
+              <p class="modal-hint" id="login-email-code-hint">Код отправлен. Введите его ниже.</p>
+              <input type="text" id="login-email-code" name="code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
+              <button type="submit" class="modal-button modal-button-primary">Войти</button>
+              <button type="button" class="modal-button" id="login-email-back-btn" style="background:transparent;color:#aab">Изменить email</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
