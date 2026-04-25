@@ -36,7 +36,7 @@
     <meta name="twitter:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260418d">
+    <link rel="stylesheet" href="style-v2.css?v=20260425c">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,14 +78,15 @@
         <div class="header-search hidden" id="header-search" role="search">
           <span class="header-search-icon" aria-hidden="true">🔍</span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
           <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
         <div class="header-buttons">
           <button type="button" class="btn-primary" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
-            <button type="button" class="account-current" id="header-cabinet-name"></button>
-            <div class="account-dropdown hidden" id="header-account-dropdown"></div>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">⚙️<span class="header-settings-btn-text"> Настройки</span></button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
           </div>
         </div>
       </div>
@@ -376,46 +377,34 @@
             <div class="cabinet-topbar">
                 <div class="cabinet-profile-switcher" id="cabinet-profile-switcher">
                     <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" aria-haspopup="true" aria-expanded="false">
-                        <span class="cabinet-profile-emoji" id="cabinet-profile-emoji">👤</span>
+                        <span class="cabinet-profile-emoji" id="cabinet-profile-emoji"></span>
                         <span class="cabinet-profile-name" id="cabinet-profile-name">Личный</span>
                         <span class="cabinet-profile-caret">▾</span>
                     </button>
                     <div class="cabinet-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
-                </div>
-                <div class="cabinet-topbar-actions">
-                    <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" id="cabinet-topbar-extension" class="cabinet-topbar-icon-btn hidden" target="_blank" rel="noopener" title="Установить расширение для Chrome">
-                        <span class="topbar-icon-emoji">💻</span>
-                        <span class="topbar-icon-label">Расширение</span>
-                    </a>
                 </div>
             </div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Что посмотреть</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="groups"><span class="cabinet-nav-btn-emoji">👥</span><span class="cabinet-nav-btn-text">Друзья и группы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="tv"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Телевизор</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
             </div>
             <div class="cabinet-sections">
                 <section id="section-plans" class="cabinet-section">
                     <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
                         <h3 class="cabinet-subtitle">Планы на ближайшее время</h3>
-                        <div class="plans-today-list" id="plans-today"></div>
-                    </div>
-                    <div class="plans-split">
-                        <div>
-                            <h3>🏠&#32;Дома</h3>
-                            <div id="plans-home-list" class="cards-list"></div>
+                        <div class="plans-filter-tabs" id="plans-filter-tabs" role="tablist" aria-label="Показать планы">
+                            <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true">📋 Все планы</button>
+                            <button type="button" class="plans-filter-tab" data-plans-filter="home" role="tab" aria-selected="false">🏠 Дома</button>
+                            <button type="button" class="plans-filter-tab" data-plans-filter="cinema" role="tab" aria-selected="false">🎥 Кино</button>
+                            <button type="button" class="plans-filter-tab" data-plans-filter="premieres" role="tab" aria-selected="false">🎭 Премьеры</button>
                         </div>
-                        <div>
-                            <h3>🎥&#32;В кино</h3>
-                            <div id="plans-cinema-list" class="cards-list"></div>
-                        </div>
+                        <div class="plans-today-list cards-list" id="plans-list"></div>
                     </div>
                 </section>
                 <section id="section-unwatched" class="cabinet-section hidden">
@@ -442,6 +431,11 @@
                     </div>
                     <p class="cabinet-hint">В личном кабинете вы можете посмотреть список сериалов в вашей базе. Для остальных действий выберите сериал, и вы будете перенаправлены в Telegram.</p>
                     <div id="series-list" class="cards-list"></div>
+                </section>
+                <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch">
+                    <h2 class="section-title"><span class="section-title-emoji">🎯</span><span class="section-title-text">Что посмотреть</span></h2>
+                    <p class="cabinet-hint">Как в приложении: рандом из базы, с Кинопоиска, мастер подбора, рекомендации и подбор по оценкам.</p>
+                    <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
                     <div class="section-with-search">
@@ -525,9 +519,13 @@
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
+                <section id="section-settings" class="cabinet-section hidden cabinet-settings">
+                    <h2 class="section-title"><span class="section-title-emoji">⚙️</span><span class="section-title-text">Настройки</span></h2>
+                    <div id="settings-content" class="settings-content"></div>
+                </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
                     <div class="groups-header">
-                        <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
+                        <h2 class="section-title section-title--text-only"><span class="section-title-text">Друзья и группы</span></h2>
                         <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
                             <span>＋</span> Создать комнату
                         </button>
@@ -784,6 +782,15 @@
       </div>
     </div>
 
+    <div class="add-film-modal hidden" id="room-members-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-room-members-modal"></div>
+      <div class="add-film-modal-body room-members-modal-body">
+        <button type="button" class="add-film-modal-close" data-action="close-room-members-modal" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title" id="room-members-title">Участники комнаты</h2>
+        <div id="room-members-body" class="room-members-body"></div>
+      </div>
+    </div>
+
     <!-- Add Film Modal (Phase 3) -->
     <div class="add-film-modal hidden" id="add-film-modal" aria-hidden="true" role="dialog">
       <div class="add-film-modal-backdrop" data-action="close-add-film-modal"></div>
@@ -1037,7 +1044,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260425a"></script>
+    <script src="app.js?v=20260425c"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

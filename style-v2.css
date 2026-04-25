@@ -68,10 +68,35 @@
 .plan-title { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .plans-split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
 @media (max-width: 768px) { .plans-split { grid-template-columns: 1fr; } }
-.plans-today-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.plans-today-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 0; margin-bottom: 0; }
 .plans-today-wrap.hidden { display: none !important; }
 .cabinet-plans-today { margin-bottom: 24px; }
-.cabinet-subtitle { font-size: 18px; margin-bottom: 16px; }
+.cabinet-subtitle { font-size: 18px; margin-bottom: 10px; }
+/* Планы: вкладки «Все / Дома / Кино / Премьеры» */
+.plans-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px 0;
+}
+.plans-filter-tab {
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.plans-filter-tab:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
+.plans-filter-tab.active { color: #ff2d7b; border-color: rgba(255, 45, 123, 0.5); background: rgba(255, 45, 123, 0.08); }
+.plans-today-list .plans-empty-actions .btn { min-width: 0; }
 .empty-hint { color: var(--text-muted); margin-bottom: 16px; }
 .plans-empty-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .plans-empty-actions .btn { min-width: 240px; flex: 1 1 0; }
@@ -229,12 +254,12 @@ header {
 
 .btn-primary {
   background: linear-gradient(135deg, #ff2d7b, #9b4dff);
-  color: #ffffff;
+  color: white;
   border: none;
   padding: 18px 40px;
   border-radius: 50px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   text-decoration: none;
@@ -245,20 +270,6 @@ header {
   box-shadow: 0 0 30px rgba(255, 45, 123, 0.3);
   height: 60px;
   box-sizing: border-box;
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-/* Более высокий контраст для кнопок-ссылок с классом .btn.btn-primary
-   (страницы онбординга/пустых состояний, «Открыть бота» и т.п.) — чтобы
-   шрифт не сливался с градиентом. */
-a.btn.btn-primary,
-button.btn.btn-primary {
-  color: #ffffff !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  font-weight: 700;
-}
-a.btn.btn-primary:visited {
-  color: #ffffff !important;
 }
 
 .btn-primary:hover {
@@ -3512,4 +3523,76 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   .action-dropdown-btn { font-size: 12px; padding: 8px 6px; }
   .film-card-tg-triangle { width: 44px; height: 44px; }
 }
+
+/* —— Header: настройки, голосовой поиск —— */
+.header-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 200px;
+}
+.header-settings-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.header-settings-dropdown { min-width: 260px; max-width: 92vw; }
+.header-settings-nav-item {
+  display: block; width: 100%; text-align: left;
+  padding: 10px 12px; border: none; background: transparent; color: #fff;
+  font-size: 14px; cursor: pointer; border-radius: 8px;
+}
+.header-settings-nav-item:hover { background: rgba(255,255,255,0.08); }
+.header-search-mic {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border: none; border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer; font-size: 16px;
+}
+.header-search-mic:hover { background: rgba(255,255,255,0.12); }
+.header-search-mic.recording { background: rgba(200,40,40,0.4); animation: mp-pulse 1s ease infinite; }
+@keyframes mp-pulse { 50% { opacity: 0.75; } }
+.header-search-recent-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #889; padding: 8px 12px 4px; }
+.header-search-recent-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 8px; }
+.header-search-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #ddd; cursor: pointer; }
+.cabinet-profile-emoji:empty { display: none; }
+
+/* —— Группы: крестик, участники —— */
+.group-card { position: relative; }
+.group-card-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px; border: none; border-radius: 8px;
+  background: rgba(255,80,80,0.2); color: #faa; font-size: 18px; line-height: 1; cursor: pointer; z-index: 2;
+}
+.group-card-close:hover { background: rgba(255,80,80,0.35); }
+.group-card-manage { margin-top: 4px; }
+.room-members-body { max-height: 60vh; overflow: auto; }
+.room-member-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; }
+.room-member-name { font-weight: 500; }
+.room-member-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.room-member-controls select { max-width: 140px; }
+
+/* —— Что посмотреть / настройки —— */
+.whattowatch-modes { display: flex; flex-direction: column; gap: 8px; }
+.whattowatch-mode-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; font-size: 14px;
+}
+.whattowatch-mode-btn:hover { background: rgba(255,255,255,0.08); }
+.whattowatch-mode-emoji { font-size: 22px; }
+.whattowatch-result { margin-top: 16px; }
+.settings-block { margin-bottom: 20px; }
+.settings-list a, .settings-list button.settings-row {
+  display: block; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 6px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04); color: #fff; text-decoration: none; font-size: 14px; cursor: pointer;
+}
+.settings-list a:hover, .settings-list button.settings-row:hover { background: rgba(255,255,255,0.08); }
+.section-title--text-only .section-title-text { font-size: 1.35rem; }
 

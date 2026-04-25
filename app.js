@@ -12,6 +12,9 @@
   const BOT_SEARCH_LINK = BOT_LINK + '?start=search';
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
+  let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
+  const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
+  const LS_FILM_RECENT = 'mp_film_open_recent_v1';
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
@@ -191,13 +194,26 @@
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
   function closeAccountDropdown() {
-    const dd = document.getElementById('header-account-dropdown');
+    const dd = document.getElementById('header-settings-dropdown');
+    const settingsBtn = document.getElementById('header-settings-btn');
+    if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'false');
     if (dd) { dd.classList.add('hidden'); dd.classList.remove('open'); }
   }
 
   function openAccountDropdown() {
-    const dd = document.getElementById('header-account-dropdown');
+    const dd = document.getElementById('header-settings-dropdown');
+    const settingsBtn = document.getElementById('header-settings-btn');
+    if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
     if (!dd) return;
+    const extUrl = typeof _chromeExtUrl !== 'undefined' && _chromeExtUrl ? _chromeExtUrl
+      : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
+    let topNav = '<div class="header-dropdown-title">Перейти</div>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">Друзья и группы</button>';
+    topNav += '<a class="header-settings-nav-item" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки</button>';
+    topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const activeId = getActiveChatId();
     const personalCount = sessions.filter((s) => s.is_personal).length;
@@ -206,7 +222,7 @@
     const canAddGroup = groupCount < MAX_GROUP;
     const canAdd = sessions.length < MAX_PERSONAL + MAX_GROUP && (canAddPersonal || canAddGroup);
 
-    let html = '';
+    let html = topNav;
     if (sessions.length) {
       html += '<div class="header-dropdown-title">Текущие входы</div>';
       sessions.forEach((s) => {
@@ -226,6 +242,18 @@
       html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти из всех</button>';
     }
     dd.innerHTML = html;
+
+    dd.querySelectorAll('[data-settings-go]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const go = btn.getAttribute('data-settings-go');
+        closeAccountDropdown();
+        if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); return; }
+        if (go === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); return; }
+        if (go === 'about') { showSection('about'); return; }
+        if (go === 'settings') { showSection('settings'); if (typeof renderSettingsSection === 'function') renderSettingsSection(); }
+      });
+    });
 
     dd.querySelectorAll('.header-dropdown-account').forEach((el) => {
       const chatId = el.getAttribute('data-chat-id');
@@ -282,21 +310,12 @@
     if (!header) return;
     const loginBtn = header.querySelector('[data-action="login"]');
     const userWrap = document.getElementById('header-user-wrap');
-    const cabinetBtn = document.getElementById('header-cabinet-name');
     if (me && me.name) {
       if (loginBtn) loginBtn.classList.add('hidden');
       if (userWrap) userWrap.classList.remove('hidden');
-      if (cabinetBtn) {
-        const session = getActiveSession();
-        const isPersonal = me.is_personal !== undefined ? me.is_personal : (session ? session.is_personal : true);
-        const badge = isPersonal ? 'личный' : 'группа';
-        const badgeClass = isPersonal ? 'personal' : 'group';
-        cabinetBtn.innerHTML = '<span class="account-name">' + escapeHtml(me.name) + '</span><span class="account-badge ' + badgeClass + '">' + badge + '</span><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="margin-left:4px"><path d="M2 4l4 4 4-4"/></svg>';
-      }
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
       if (userWrap) userWrap.classList.add('hidden');
-      if (cabinetBtn) cabinetBtn.innerHTML = '';
     }
     closeAccountDropdown();
   }
@@ -322,12 +341,14 @@
     plans: '/plans',
     unwatched: '/watchlist',
     series: '/series',
+    whattowatch: '/whattowatch',
     ratings: '/ratings',
     stats: '/stats',
     premieres: '/premieres',
     groups: '/groups',
     tv: '/tv',
     about: '/about',
+    settings: '/settings',
   };
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
 
@@ -611,6 +632,8 @@
           if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
           if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
           if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+          if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
+          if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
         }
         // Если открыта вкладка статистики — перезагрузить её
         const statsSection = document.getElementById('section-stats');
@@ -635,7 +658,8 @@
       const ua = navigator.userAgent || '';
       const isOpera = /opr|opera/i.test(ua) || (navigator.browser && navigator.browser.opera);
       const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
-      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link, #cabinet-topbar-extension').forEach((a) => {
+      _chromeExtUrl = url;
+      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link, #header-settings-ext-link').forEach((a) => {
         if (a) { a.href = url; a.classList.remove('hidden'); }
       });
     }).catch(() => {});
@@ -667,22 +691,42 @@
     return parts.map((p) => '<span class="plan-title-line">' + p + '</span>').join('');
   }
 
-  // ——— Загрузка данных кабинета ———
-  function loadPlans() {
-    api('/api/site/plans').then((data) => {
-      if (!data.success) return;
-      const homeEl = document.getElementById('plans-home-list');
-      const cinemaEl = document.getElementById('plans-cinema-list');
-      const plansTodayEl = document.getElementById('plans-today');
-      const renderPlan = (p) => {
-        const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
-        const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-        const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-        const typeLabel = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
-        const link = filmDeepLink(p.film_id, p.kp_id, p.is_series);
-        const poster = posterUrl(p.kp_id);
-        const titleSafe = escapeHtml(p.title || '');
-        return `
+  let _plansData = { home: [], cinema: [], premieres: [] };
+  let _plansViewFilter = 'all';
+
+  function _sortPlansByTime(arr) {
+    return (arr || []).slice().sort((a, b) => {
+      const ta = a.plan_datetime ? new Date(a.plan_datetime).getTime() : 0;
+      const tb = b.plan_datetime ? new Date(b.plan_datetime).getTime() : 0;
+      return ta - tb;
+    });
+  }
+
+  function _planTypeLabel(p) {
+    const place = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
+    if (p.is_premiere_reminder) {
+      return '🎭 Премьера · ' + place;
+    }
+    return place;
+  }
+
+  function _getPlansListForView() {
+    const d = _plansData;
+    if (_plansViewFilter === 'home') return _sortPlansByTime(d.home);
+    if (_plansViewFilter === 'cinema') return _sortPlansByTime(d.cinema);
+    if (_plansViewFilter === 'premieres') return _sortPlansByTime(d.premieres);
+    return _sortPlansByTime((d.home || []).concat(d.cinema || []).concat(d.premieres || []));
+  }
+
+  function _renderPlanCard(p) {
+    const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
+    const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+    const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+    const typeLabel = _planTypeLabel(p);
+    const link = filmDeepLink(p.film_id, p.kp_id, p.is_series);
+    const poster = posterUrl(p.kp_id);
+    const titleSafe = escapeHtml(p.title || '');
+    return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
             <div class="film-card-v2-poster">
               ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
@@ -700,31 +744,104 @@
               ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
             </div>
           </div>`;
-      };
-      const homeEmpty = !data.home || !data.home.length;
-      const cinemaEmpty = !data.cinema || !data.cinema.length;
-      if (homeEl) {
-        if (homeEmpty) {
-          let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
-          html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>';
-          if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>';
-          html += '</div>';
-          homeEl.innerHTML = html;
-        } else {
-          homeEl.innerHTML = data.home.map(renderPlan).join('');
-        }
+  }
+
+  function _plansEmptyMessage() {
+    if (_plansViewFilter === 'home') {
+      let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
+      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>';
+      if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>';
+      html += '</div>';
+      return html;
+    }
+    if (_plansViewFilter === 'cinema') {
+      return '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры</a></div>';
+    }
+    if (_plansViewFilter === 'premieres') {
+      return '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите у фильма на экране «Премьеры» или в боте.</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button> <a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🤖 В боте</a></div>';
+    }
+    return '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
+      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>'
+      + (cabinetHasData ? ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>' : '')
+      + ' <a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a></div>';
+  }
+
+  function renderPlansList() {
+    const listEl = document.getElementById('plans-list');
+    if (!listEl) return;
+    const items = _getPlansListForView();
+    if (!items.length) {
+      listEl.innerHTML = _plansEmptyMessage();
+      return;
+    }
+    listEl.innerHTML = items.map(_renderPlanCard).join('');
+  }
+
+  function bindPlansFilterOnce() {
+    const bar = document.getElementById('plans-filter-tabs');
+    if (!bar || bar._mpPlansBound) return;
+    bar._mpPlansBound = true;
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-plans-filter]');
+      if (!btn || !bar.contains(btn)) return;
+      e.preventDefault();
+      const f = btn.getAttribute('data-plans-filter');
+      if (!f) return;
+      _plansViewFilter = f;
+      bar.querySelectorAll('[data-plans-filter]').forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      renderPlansList();
+    });
+  }
+
+  function bindPlansGotoOnce() {
+    if (window._mpPlansGoto) return;
+    window._mpPlansGoto = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-plans-goto]');
+      if (!t) return;
+      e.preventDefault();
+      const sec = t.getAttribute('data-plans-goto');
+      if (sec === 'premieres') {
+        if (typeof showSection === 'function') showSection('premieres');
+        if (typeof renderPremieresSection === 'function') renderPremieresSection();
       }
-      if (cinemaEl) {
-        if (cinemaEmpty) {
-          cinemaEl.innerHTML = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры</a></div>';
-        } else {
-          cinemaEl.innerHTML = data.cinema.map(renderPlan).join('');
-        }
-      }
-      const all = [...(data.home || []), ...(data.cinema || [])].slice(0, 3);
+    });
+  }
+
+  // ——— Загрузка данных кабинета ———
+  function loadPlans() {
+    api('/api/site/plans').then((data) => {
+      if (!data.success) return;
+      const home = data.home || [];
+      const cinema = data.cinema || [];
+      const premieres = data.premieres || [];
+      _plansData = { home, cinema, premieres };
+      _plansViewFilter = 'all';
+      const total = home.length + cinema.length + premieres.length;
       const todayWrap = document.getElementById('plans-today-wrap');
-      if (todayWrap) todayWrap.classList.toggle('hidden', !all.length);
-      if (plansTodayEl) plansTodayEl.innerHTML = all.length ? all.map(renderPlan).join('') : '';
+      if (todayWrap) {
+        todayWrap.classList.toggle('hidden', !total);
+      }
+      const listEl = document.getElementById('plans-list');
+      if (listEl && !total) {
+        listEl.innerHTML = '';
+      }
+      if (total) {
+        const tabs = document.getElementById('plans-filter-tabs');
+        if (tabs) {
+          tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
+            const isAll = b.getAttribute('data-plans-filter') === 'all';
+            b.classList.toggle('active', isAll);
+            b.setAttribute('aria-selected', isAll ? 'true' : 'false');
+          });
+        }
+        renderPlansList();
+        bindPlansFilterOnce();
+      }
     });
   }
 
@@ -3049,6 +3166,7 @@
         me: detail.me || { user_id: cabinetUserId },
         similar: (sim && sim.items) || [],
       };
+      try { pushHeaderFilmRecent(detail.film); } catch (e) {}
       _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
       renderFilmModal(data.film, data.ratings, data.similar, data.me);
     });
@@ -3541,6 +3659,52 @@
   let _headerSearchSeq = 0;
   let _headerSearchDebounce = null;
 
+  function _readJsonLs(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function _writeJsonLs(k, o) { try { localStorage.setItem(k, JSON.stringify(o)); } catch (e) {} }
+  function pushHeaderSearchQuery(q) {
+    const t = (q || '').trim();
+    if (t.length < 2) return;
+    const a = _readJsonLs(LS_SEARCH_RECENT, []);
+    const next = [t].concat(a.filter((x) => x !== t)).slice(0, 10);
+    _writeJsonLs(LS_SEARCH_RECENT, next);
+  }
+  function pushHeaderFilmRecent(f) {
+    if (!f) return;
+    const fid = f.film_id != null ? f.film_id : f.id;
+    if (!fid) return;
+    const row = { film_id: Number(fid), title: f.title || 'Фильм', kp_id: f.kp_id };
+    const a = _readJsonLs(LS_FILM_RECENT, []);
+    const next = [row].concat(a.filter((x) => String(x.film_id) !== String(row.film_id))).slice(0, 8);
+    _writeJsonLs(LS_FILM_RECENT, next);
+  }
+  function showHeaderSearchRecents(dd) {
+    if (!dd) return;
+    const recQ = _readJsonLs(LS_SEARCH_RECENT, []);
+    const recF = _readJsonLs(LS_FILM_RECENT, []);
+    if (!recQ.length && !recF.length) {
+      dd.innerHTML = '<div class="header-search-empty">Введите запрос не менее 2 символов</div>';
+      return;
+    }
+    let h = '';
+    if (recQ.length) {
+      h += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row">';
+      recQ.forEach((q) => {
+        h += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
+      });
+      h += '</div>';
+    }
+    if (recF.length) {
+      h += '<div class="header-search-recent-title">Недавние карточки</div>';
+      recF.forEach((f) => {
+        h += '<div class="hs-result" style="cursor:pointer" data-hs-open-film="' + escapeHtml(String(f.film_id)) + '">'
+        + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="">' ) : '<div class="hs-result-poster"></div>')
+        + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div></div></div>';
+      });
+    }
+    dd.innerHTML = h;
+    dd.classList.remove('hidden');
+  }
+
   function renderHeaderSearchDropdown(items, query) {
     const dd = document.getElementById('header-search-dropdown');
     if (!dd) return;
@@ -3594,6 +3758,7 @@
           if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка поиска</div>';
           return;
         }
+        if ((data.items || []).length) pushHeaderSearchQuery(query);
         renderHeaderSearchDropdown(data.items || [], query);
       })
       .catch(() => {
@@ -3617,7 +3782,8 @@
     });
     input.addEventListener('focus', () => {
       const v = input.value.trim();
-      if (v.length >= 2 && dd && dd.innerHTML) dd.classList.remove('hidden');
+      if (v.length < 2 && dd) showHeaderSearchRecents(dd);
+      else if (v.length >= 2 && dd && dd.innerHTML) dd.classList.remove('hidden');
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { input.value = ''; if (dd) dd.classList.add('hidden'); input.blur(); }
@@ -3647,6 +3813,14 @@
     // Dropdown delegation
     if (dd) {
       dd.addEventListener('click', (e) => {
+        const recQbtn = e.target.closest('[data-hs-recent-q]');
+        if (recQbtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const q = recQbtn.getAttribute('data-hs-recent-q') || recQbtn.textContent;
+          if (q && input) { input.value = q; input.dispatchEvent(new Event('input', { bubbles: true })); }
+          return;
+        }
         const addBtn = e.target.closest('[data-hs-add-kp]');
         if (addBtn) {
           e.preventDefault();
@@ -3688,6 +3862,53 @@
         }
       });
     }
+    const mic = document.getElementById('header-search-mic');
+    if (mic && !mic._mpVox) {
+      mic._mpVox = true;
+      let rec = null; let ch = [];
+      mic.addEventListener('click', () => {
+        if (!getToken()) { showToast('Войдите в кабинет'); return; }
+        if (mic._mpRec) {
+          const r = mic._mpRecorder;
+          if (r && r.state === 'recording') { try { r.stop(); } catch (e) {} }
+          return;
+        }
+        if (mic._mpPending) return;
+        if (!navigator.mediaDevices || !window.MediaRecorder) { showToast('В браузере нет записи с микрофона'); return; }
+        mic._mpPending = true;
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          mic._mpPending = false;
+          ch = [];
+          const opt = (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') && 'audio/webm;codecs=opus') || (MediaRecorder.isTypeSupported('audio/webm') && 'audio/webm') || 'audio/ogg';
+          rec = new MediaRecorder(stream, { mimeType: opt });
+          mic._mpRecorder = rec;
+          rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) ch.push(ev.data); };
+          rec.onstop = () => {
+            try { stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+            mic._mpRecorder = null;
+            mic.classList.remove('recording');
+            mic._mpRec = false;
+            if (!ch.length) { showToast('Пустая запись'); return; }
+            const blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
+            const fd = new FormData();
+            fd.append('audio', blob, 'q.webm');
+            const h = { Authorization: 'Bearer ' + getToken() };
+            fetch(API_BASE + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: h })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d && d.success && d.text) {
+                  if (input) { input.value = d.text; input.dispatchEvent(new Event('input', { bubbles: true })); }
+                } else {
+                  showToast('Не распознали. Повторите или введите текст');
+                }
+              })
+              .catch(() => { showToast('Ошибка сети'); });
+          };
+          mic._mpRec = true; mic.classList.add('recording');
+          rec.start(100);
+        }).catch(() => { mic._mpPending = false; showToast('Нет доступа к микрофону'); });
+      });
+    }
   }
 
   // ————————————————————————————————————————————————————
@@ -3699,7 +3920,10 @@
     const emojiEl = document.getElementById('cabinet-profile-emoji');
     if (!nameEl || !me) return;
     nameEl.textContent = me.name || 'Профиль';
-    if (emojiEl) emojiEl.textContent = me.is_personal ? '👤' : '👥';
+    if (emojiEl) {
+      const em = (me.room_emoji != null && String(me.room_emoji).trim() !== '') ? me.room_emoji : '';
+      emojiEl.textContent = em;
+    }
   }
 
   function closeProfileMenu() {
@@ -3728,17 +3952,18 @@
         return;
       }
       menu.innerHTML = profiles.map((p) => {
-        const emoji = p.is_personal ? '👤' : '👥';
+        const emoji = p.is_personal
+          ? ''
+          : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
         const typeLabel = p.is_personal ? 'личный' : (p.is_virtual ? 'комната' : 'группа');
         const active = p.is_active || String(p.chat_id) === String(activeChatId);
-        // Имя активного профиля уже показано в кнопке-триггере сверху —
-        // в пункте меню не дублируем название, показываем только тип и стату.
+        const disp = escapeHtml(p.display_name || p.name || 'Профиль');
         const nameHtml = active
-          ? `<div class="profile-menu-item-name profile-menu-item-name-active">Текущий профиль</div>`
-          : `<div class="profile-menu-item-name">${escapeHtml(p.name || 'Профиль')}</div>`;
+          ? `<div class="profile-menu-item-name profile-menu-item-name-active">${disp}</div>`
+          : `<div class="profile-menu-item-name">${disp}</div>`;
         return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
           <div class="profile-menu-item-main">
-            <span class="profile-menu-item-emoji">${emoji}</span>
+            <span class="profile-menu-item-emoji">${escapeHtml(emoji)}</span>
             <div class="profile-menu-item-info">
               ${nameHtml}
               <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
@@ -3799,8 +4024,224 @@
   }
 
   // ————————————————————————————————————————————————————
+  // Что посмотреть / настройки (как в миниаппе)
+  // ————————————————————————————————————————————————————
+
+  const WTW_MENU_MODES = [
+    { id: 'my_unwatched', kind: 'random', emoji: '🎲', title: 'Рандом по своей базе', hint: 'Случайный непросмотренный из базы' },
+    { id: 'kp_random', kind: 'random', emoji: '🎬', title: 'Рандом по Кинопоиску', hint: 'Случайный фильм с КП' },
+    { id: 'my_top_rated', kind: 'random', emoji: '⭐', title: 'По моим оценкам 9–10', hint: 'Из оцененных вами высоко' },
+    { id: 'wizard', kind: 'wizard', emoji: '🎯', title: 'По жанрам / годам / рейтингу', hint: 'Пошаговый подбор' },
+    { id: 'premieres_reco', kind: 'nav', target: 'premieres', emoji: '🎟️', title: 'Рекомендации премьер', hint: 'Экран «Премьеры»' },
+  ];
+
+  function setWhatchtwatchResult(html) {
+    const el = document.getElementById('whattowatch-result');
+    if (el) el.innerHTML = html;
+  }
+
+  function runSiteRandomMode(mode) {
+    setWhatchtwatchResult('<p class="cabinet-hint">Подбираем…</p>');
+    api('/api/miniapp/random', { method: 'POST', body: JSON.stringify({ mode }) })
+      .then((data) => {
+        if (!data || !data.film) {
+          const msg = (data && data.message) || 'Нет подходящих фильмов. Попробуйте другой режим или PRO-тариф.';
+          setWhatchtwatchResult('<div class="cabinet-hint">' + escapeHtml(msg) + '</div>');
+          return;
+        }
+        const f = data.film;
+        const title = f.title || '—';
+        const y = f.year ? f.year : '';
+        const g = f.genres || '';
+        if (f.film_id) {
+          setWhatchtwatchResult(
+            '<div class="whattowatch-result"><p><b>' + escapeHtml(title) + '</b> ' + escapeHtml(y) + '</p><p class="cabinet-hint">'
+            + escapeHtml(g) + '</p><button type="button" class="btn btn-primary" id="wtw-open">Открыть карточку</button> '
+            + '<button type="button" class="btn btn-secondary" id="wtw-again">🎲 Ещё</button></div>',
+          );
+          const o = document.getElementById('wtw-open');
+          const a = document.getElementById('wtw-again');
+          if (o) o.addEventListener('click', () => openFilmModal(Number(f.film_id)));
+          if (a) a.addEventListener('click', () => runSiteRandomMode(mode));
+        } else {
+          setWhatchtwatchResult('<div class="cabinet-hint">Найден «' + escapeHtml(title) + '». Добавьте через поиск в Telegram. kp: ' + escapeHtml(String(f.kp_id)) + '</div>');
+        }
+      })
+      .catch(() => { setWhatchtwatchResult('<p class="cabinet-hint">Ошибка сети</p>'); });
+  }
+
+  function renderWhattowatchSection() {
+    const root = document.getElementById('whattowatch-content');
+    if (!root) return;
+    const btns = WTW_MENU_MODES.map((m) => {
+      if (m.kind === 'nav') {
+        return `<button type="button" class="whattowatch-mode-btn" data-wtw-nav="${m.target}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
+      }
+      if (m.kind === 'wizard') {
+        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">На сайте: откройте миниапп / приложение для полного мастера, или введите фильтры в поиске.</div></div></button>`;
+      }
+      return `<button type="button" class="whattowatch-mode-btn" data-wtw-mode="${m.id}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
+    }).join('');
+    root.innerHTML = '<div class="whattowatch-modes">' + btns + '</div><div id="whattowatch-result"></div>';
+    root.querySelectorAll('[data-wtw-mode]').forEach((b) => {
+      b.addEventListener('click', () => runSiteRandomMode(b.getAttribute('data-wtw-mode')));
+    });
+    root.querySelectorAll('[data-wtw-nav]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const t = b.getAttribute('data-wtw-nav');
+        if (t) { showSection(t); if (t === 'premieres' && renderPremieresSection) renderPremieresSection(true); }
+      });
+    });
+  }
+
+  function renderSettingsSection() {
+    const root = document.getElementById('settings-content');
+    if (!root) return;
+    root.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
+    api('/api/miniapp/profile').then((d) => {
+      const u = d && d.user;
+      const sub = d && d.subscription;
+      const name = (u && (u.first_name || u.username)) ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username : 'Профиль';
+      root.innerHTML = `
+        <p class="cabinet-hint">Профиль Telegram и подписка синхронизированы с ботом. Уведомления в Telegram — в боте / настройки.</p>
+        <div class="settings-block"><div class="header-dropdown-title" style="margin-top:0">Профиль</div>
+        <p><b>${escapeHtml(name || '')}</b> ${u && u.username ? ' · @' + escapeHtml(u.username) : ''}</p>
+        ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим — <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">оформить в боте</a></p>'}
+        </div>
+        <div class="settings-block settings-list">
+        <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener" class="settings-row">Команды бота</a>
+        <button type="button" class="settings-row" data-sets-go="tv">📺 Телевизор</button>
+        <button type="button" class="settings-row" data-sets-go="groups">Друзья и группы</button>
+        <button type="button" class="settings-row" data-sets-go="import">Импорт оценок с Кинопоиска (через бот)</button>
+        <a href="#" class="settings-row" id="settings-app-apk" target="_blank" rel="noopener">Скачать Android-приложение (APK)</a>
+        </div>
+        <div class="settings-block" id="settings-toggles">Загрузка уведомлений…</div>`;
+      const apk = document.getElementById('settings-app-apk');
+      if (apk) {
+        fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((rel) => {
+            if (rel && rel.url) {
+              apk.href = rel.url;
+            } else {
+              apk.href = API_BASE + '/download';
+            }
+          })
+          .catch(() => { apk.href = API_BASE + '/download'; });
+      }
+      root.querySelectorAll('[data-sets-go]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const g = btn.getAttribute('data-sets-go');
+          if (g === 'tv') { showSection('tv'); if (renderTvSection) renderTvSection(); }
+          if (g === 'groups') { showSection('groups'); if (renderGroupsSection) renderGroupsSection(); }
+          if (g === 'import') { window.open('https://t.me/movie_planner_bot?start=import', '_blank', 'noopener'); }
+        });
+      });
+    }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Откройте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">бота</a> для настроек.</p>'; });
+  }
+
+  // ————————————————————————————————————————————————————
   // Phase 3: Groups section
   // ————————————————————————————————————————————————————
+
+  function groupCardEmoji(p) {
+    if (p.is_personal) return '';
+    if (p.is_virtual) return (p.group_emoji && String(p.group_emoji).trim()) ? p.group_emoji : '🎬';
+    return '💬';
+  }
+
+  function leaveOrDeleteGroup(p) {
+    const id = p.chat_id;
+    const isVirt = !!p.is_virtual;
+    if (p.is_personal) return;
+    const isOwner = (p.my_role || '') === 'owner';
+    const doDelete = isVirt && isOwner
+      && window.confirm('Удалить комнату навсегда? Данные и участники будут сняты.');
+    const doLeave = !doDelete
+      && window.confirm(isVirt
+        ? 'Покинуть комнату? К базе вы потеряете доступ, пока вас снова не пригласят.'
+        : 'Покинуть группу в кабинете? (Telegram-чат не удалится.)');
+    if (!doDelete && !doLeave) return;
+    if (doDelete) {
+      api('/api/site/rooms/' + encodeURIComponent(id), { method: 'DELETE' }).then((r) => {
+        if (r && r.success) { renderGroupsSection(); loadMeAndShowCabinet(); }
+        else { alert((r && r.message) || (r && r.error) || 'Не удалось удалить'); }
+      });
+      return;
+    }
+    api('/api/site/rooms/' + encodeURIComponent(id) + '/leave', { method: 'POST' }).then((r) => {
+      if (r && r.success) { renderGroupsSection(); loadMeAndShowCabinet(); }
+      else { alert((r && r.message) || (r && r.error) || 'Не удалось выйти'); }
+    });
+  }
+
+  function openRoomMembersModal(chatId) {
+    const modal = document.getElementById('room-members-modal');
+    const body = document.getElementById('room-members-body');
+    if (!modal || !body) return;
+    body.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    api('/api/site/rooms/' + encodeURIComponent(chatId) + '/members').then((d) => {
+      if (!d || !d.success) {
+        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || 'Нет доступа') + '</p>';
+        return;
+      }
+      if (!d.can_manage_members) {
+        body.innerHTML = '<p class="cabinet-hint">Управление участниками доступно владельцу и администраторам.</p>';
+        return;
+      }
+      const mem = d.members || [];
+      body.innerHTML = mem.map((m) => {
+        if (m.is_me) {
+          return '<div class="room-member-row"><span class="room-member-name">' + escapeHtml(m.name || '') + ' <span class="muted">(вы)</span></span></div>';
+        }
+        const isOwner = m.is_owner;
+        if (isOwner) {
+          return '<div class="room-member-row"><span class="room-member-name">' + escapeHtml(m.name || '') + '</span><span class="muted">создатель</span></div>';
+        }
+        const role = (m.role || 'member') === 'admin' ? 'admin' : 'member';
+        return `<div class="room-member-row" data-muid="${escapeHtml(String(m.user_id))}">
+          <span class="room-member-name">${escapeHtml(m.name || '')}</span>
+          <div class="room-member-controls">
+            <select data-mem-role>
+              <option value="member"${role === 'member' ? ' selected' : ''}>Участник</option>
+              <option value="admin"${role === 'admin' ? ' selected' : ''}>Админ</option>
+            </select>
+            <label class="muted small" style="display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" data-mem-delegate${m.can_manage_admins ? ' checked' : ''}> Может назн. админов
+            </label>
+            <button type="button" class="btn btn-small btn-primary" data-mem-apply>Применить</button>
+          </div>
+        </div>`;
+      }).join('');
+      body.querySelectorAll('[data-mem-apply]').forEach((btn) => {
+        const row = btn.closest('.room-member-row');
+        if (!row) return;
+        btn.addEventListener('click', () => {
+          const uid = row.getAttribute('data-muid');
+          const roleSel = row.querySelector('[data-mem-role]');
+          const del = row.querySelector('[data-mem-delegate]');
+          const role = roleSel ? roleSel.value : 'member';
+          const canD = del && del.checked;
+          api('/api/site/rooms/' + encodeURIComponent(chatId) + '/members/' + uid, {
+            method: 'PATCH',
+            body: JSON.stringify({ role, can_manage_admins: canD }),
+          }).then((r) => {
+            if (r && r.success) { showToast('Сохранено'); openRoomMembersModal(chatId); }
+            else { alert((r && r.error) || 'Ошибка'); }
+          });
+        });
+      });
+    });
+    const closeModal = function () { modal.classList.add('hidden'); document.body.style.overflow = ''; };
+    if (!modal._mpRmCloseBound) {
+      modal._mpRmCloseBound = true;
+      modal.querySelectorAll('[data-action="close-room-members-modal"]').forEach((c) => {
+        c.addEventListener('click', (ev) => { ev.preventDefault(); closeModal(); });
+      });
+    }
+  }
 
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');
@@ -3817,29 +4258,47 @@
         return;
       }
       list.innerHTML = profiles.map((p) => {
-        let emoji, type;
-        if (p.is_personal) { emoji = '👤'; type = 'Личный'; }
-        else if (p.is_virtual) { emoji = '🧩'; type = 'Виртуальная комната'; }
-        else { emoji = '👥'; type = 'Telegram-группа'; }
+        const emoji = groupCardEmoji(p);
+        let type;
+        if (p.is_personal) type = 'Личный';
+        else if (p.is_virtual) type = 'Виртуальная комната';
+        else type = 'Telegram-группа';
         const active = p.is_active;
+        const showClose = !p.is_personal;
+        const showManage = p.is_virtual;
         const shareBtn = (!p.is_personal)
-          ? `<button type="button" data-action="share-profile" data-chat-id="${escapeHtml(String(p.chat_id))}" data-is-virtual="${p.is_virtual ? 1 : 0}">🔗 Пригласить</button>`
+          ? '<button type="button" data-action="share-profile" data-chat-id="' + escapeHtml(String(p.chat_id)) + '" data-is-virtual="' + (p.is_virtual ? 1 : 0) + '">🔗 Пригласить</button>'
           : '';
         return `<div class="group-card ${active ? 'active' : ''}${p.is_virtual ? ' group-card-virtual' : ''}">
+          ${showClose ? '<button type="button" class="group-card-close" data-action="group-exit" data-cid="' + escapeHtml(String(p.chat_id)) + '" title="Удалить или выйти">×</button>' : ''}
           <div class="group-card-head">
-            <span class="group-card-emoji">${emoji}</span>
-            <span class="group-card-name">${escapeHtml(p.name || 'Профиль')}</span>
+            <span class="group-card-emoji">${escapeHtml(emoji)}</span>
+            <span class="group-card-name">${escapeHtml(p.display_name || p.name || 'Профиль')}</span>
           </div>
           <div class="group-card-type">${type}</div>
           <div class="group-card-meta"><span>🎬 ${p.movies_count || 0}</span><span>⭐ ${p.ratings_count || 0}</span></div>
           <div class="group-card-actions">
             ${active
-              ? '<button type="button" disabled>Активен</button>'
-              : `<button type="button" class="primary" data-action="switch-profile" data-chat-id="${escapeHtml(String(p.chat_id))}">Открыть</button>`}
+        ? '<button type="button" disabled>Активен</button>'
+        : '<button type="button" class="primary" data-action="switch-profile" data-chat-id="' + escapeHtml(String(p.chat_id)) + '">Открыть</button>'}
             ${shareBtn}
+            ${showManage ? '<button type="button" class="group-card-manage" data-action="group-manage" data-cid="' + escapeHtml(String(p.chat_id)) + '">Участники</button>' : ''}
           </div>
         </div>`;
       }).join('');
+
+      const profByCid = Object.fromEntries(profiles.map((p) => [String(p.chat_id), p]));
+      list.querySelectorAll('[data-action="group-exit"]').forEach((b) => {
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const cid = b.getAttribute('data-cid');
+          const p = profByCid[cid];
+          if (p) leaveOrDeleteGroup(p);
+        });
+      });
+      list.querySelectorAll('[data-action="group-manage"]').forEach((b) => {
+        b.addEventListener('click', () => openRoomMembersModal(b.getAttribute('data-cid')));
+      });
       list.querySelectorAll('[data-action="switch-profile"]').forEach((b) => {
         b.addEventListener('click', () => switchProfileTo(b.getAttribute('data-chat-id')));
       });
@@ -4424,11 +4883,13 @@
     });
 
     const isPublicStats = handleHash();
+    const userWrap = document.getElementById('header-user-wrap');
 
     bindAddFilmModal();
     bindProfileSwitcher();
     bindCreateRoomModal();
     bindHeaderSearch();
+    bindPlansGotoOnce();
     handleInviteTokenFromUrl();
 
     // P4.3: History API — browser back/forward между разделами
@@ -4436,7 +4897,19 @@
       if (handleHash()) return;
       if (!getToken()) return;
       const sec = sectionFromPath(window.location.pathname);
-      if (sec) showSection(sec, { skipPush: true });
+      if (sec) {
+        showSection(sec, { skipPush: true });
+        if (sec === 'tv' && typeof renderTvSection === 'function') renderTvSection();
+        if (sec === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
+        if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
+        if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
+        if (sec === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
+        if (sec === 'stats') {
+          initStatsSelectors();
+          const now = new Date();
+          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
+        }
+      }
     });
 
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
@@ -4452,6 +4925,12 @@
         if (sectionId === 'groups') {
           renderGroupsSection();
         }
+        if (sectionId === 'whattowatch' && typeof renderWhattowatchSection === 'function') {
+          renderWhattowatchSection();
+        }
+        if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
+          renderSettingsSection();
+        }
         if (sectionId === 'stats') {
           initStatsSelectors();
           const monthEl = document.getElementById('stats-month');
@@ -4462,12 +4941,11 @@
       });
     });
 
-    const cabinetName = document.getElementById('header-cabinet-name');
-    const userWrap = document.getElementById('header-user-wrap');
-    if (cabinetName) {
-      cabinetName.addEventListener('click', (e) => {
+    const settingsHeaderBtn = document.getElementById('header-settings-btn');
+    if (settingsHeaderBtn) {
+      settingsHeaderBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const dd = document.getElementById('header-account-dropdown');
+        const dd = document.getElementById('header-settings-dropdown');
         if (dd && dd.classList.contains('hidden')) openAccountDropdown();
         else closeAccountDropdown();
       });
