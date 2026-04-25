@@ -4012,6 +4012,36 @@
   // Phase 3: Premieres section
   // ————————————————————————————————————————————————————
 
+  function premiereTodayYmdMsk() {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  }
+  function premiereExtractYmd(dateStr) {
+    if (dateStr == null || dateStr === '') return null;
+    const s = String(dateStr);
+    const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    const dmy = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (dmy) {
+      const dd = dmy[1].padStart(2, '0');
+      const mm = dmy[2].padStart(2, '0');
+      return dmy[3] + '-' + mm + '-' + dd;
+    }
+    return null;
+  }
+  /** Текущий / следующий месяц: только даты строго после сегодня (МСК), как «Скоро» в миниаппе. */
+  function filterPremieresUpcomingMsk(items) {
+    const today = premiereTodayYmdMsk();
+    return (items || []).filter((p) => {
+      const ymd = premiereExtractYmd(p.premiere_date);
+      return ymd && ymd > today;
+    });
+  }
+
   let _premieresData = [];
   let _premieresPeriod = 'current_month';
   let _premieresSort = 'date';
@@ -4019,6 +4049,7 @@
   function renderPremieresSection(forceReload) {
     const periodSel = document.getElementById('premieres-period');
     const sortSel = document.getElementById('premieres-sort');
+    if (periodSel && periodSel.value) _premieresPeriod = periodSel.value;
     if (periodSel && !periodSel._bound) {
       periodSel._bound = true;
       periodSel.addEventListener('change', () => { _premieresPeriod = periodSel.value; renderPremieresSection(true); });
@@ -4060,6 +4091,9 @@
       items.sort((a, b) => (a.genres || '').localeCompare(b.genres || ''));
     } else {
       items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+    }
+    if (_premieresPeriod === 'current_month' || _premieresPeriod === 'next_month') {
+      items = filterPremieresUpcomingMsk(items);
     }
     if (!items.length) {
       grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
