@@ -6,6 +6,11 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://movie-planner.ru/llms.txt</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://movie-planner.ru/usloviya-ispolzovaniya.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

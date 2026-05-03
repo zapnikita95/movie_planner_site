@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 
+# Optional context for assistants: https://movie-planner.ru/llms.txt
+
 Sitemap: https://movie-planner.ru/sitemap.xml

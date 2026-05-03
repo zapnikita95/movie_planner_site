@@ -19,24 +19,26 @@
         } catch (_) {}
       })();
     </script>
-    <title>Movie Planner — планировщик фильмов и сериалов в Telegram</title>
-    <meta name="description" content="Movie Planner — удобный сервис для планирования просмотра фильмов и сериалов. Watchlist, напоминания, походы в кино, трекер сериалов, интеграция с Kinopoisk и IMDb.">
+    <title>Movie Planner — фильмы и сериалы: приложение, Mini App, сайт</title>
+    <meta name="description" content="Movie Planner: учёт фильмов и сериалов, планы и напоминания. Клиенты: приложение для Android, Telegram Mini App, веб-кабинет на movie-planner.ru, Telegram-бот и расширение Chrome (Kinopoisk, IMDb).">
     <meta name="keywords" content="movie planner, планировщик фильмов, watchlist telegram, трекер сериалов, трекер сериалов telegram, уведомления о новых сериях, бот трекер сериалов telegram, список сериалов telegram, планирование кино, movie planner telegram">
     <meta name="google-site-verification" content="BUJSpGPrPkPnVgLV2eHrFrPVTuumNdtDUwbI9CzQVwM" />
     <!-- Open Graph -->
-    <meta property="og:title" content="Movie Planner — планировщик фильмов и сериалов">
-    <meta property="og:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
+    <meta property="og:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
+    <meta property="og:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://movie-planner.ru/">
     <meta property="og:image" content="https://movie-planner.ru/images/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ru_RU">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Movie Planner — планировщик фильмов и сериалов">
-    <meta name="twitter:description" content="Watchlist, напоминания о просмотрах, трекер сериалов и походы в кино в Telegram">
+    <meta name="twitter:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
+    <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260425c">
+    <link rel="stylesheet" href="style-v2.css?v=20260425d">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,6 +67,34 @@
         {"@type": "Question", "name": "Как запустить фильм на Smart TV?", "acceptedAnswer": {"@type": "Answer", "text": "Подключите телевизор в Telegram-боте (меню 🔌 → Телевизор) или в кабинете на сайте. После этого в карточке фильма появится кнопка «📺 На ТВ» — она откроет страницу запуска с QR-кодом, кнопками Кинопоиск HD / Okko / ivi и Cast. Поддерживаются Android TV, Яндекс ТВ, Google TV, Samsung (Tizen), LG (WebOS) и другие Smart TV."}},
         {"@type": "Question", "name": "Что такое TV-агент Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "TV-агент — это скрипт на Python, запускаемый на любом устройстве в домашней сети (компьютер, Raspberry Pi, NAS). Он получает команды от Movie Planner и сам запускает фильм на Android TV / Яндекс ТВ через ADB — без QR-кода и телефона. Токен агента выдаёт бот, установка занимает несколько минут."}},
         {"@type": "Question", "name": "На каких телевизорах работает Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Android TV / Google TV / Яндекс ТВ — полноценно, с Cast и мгновенным запуском через агента. Samsung Smart TV (Tizen) — через Smart View, AirPlay и QR-код. LG Smart TV (WebOS) — через LG Connect Apps и QR. Любой Smart TV с браузером — через QR-страницу запуска."}}
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://movie-planner.ru/#organization",
+          "name": "Movie Planner",
+          "url": "https://movie-planner.ru/",
+          "sameAs": [
+            "https://t.me/movie_planner_bot",
+            "https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol",
+            "https://github.com/zapnikita95/movie_planner_bot",
+            "https://github.com/zapnikita95/movie_planner_site",
+            "https://github.com/zapnikita95/movieplanner-mobile"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://movie-planner.ru/#website",
+          "name": "Movie Planner",
+          "url": "https://movie-planner.ru/",
+          "publisher": { "@id": "https://movie-planner.ru/#organization" },
+          "inLanguage": "ru-RU"
+        }
       ]
     }
     </script>
@@ -147,10 +177,12 @@
         <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
         <h1 class="hero-title">Ваш кинотеатр.<br>Ваши <span class="gradient">правила.</span></h1>
         <p class="hero-subtitle">Watchlist, напоминания о планах, походы в кино и трекер сериалов.</p>
-        <p class="hero-description">Ведите базу просмотров, планируйте кино дома или в кинотеатре, отслеживайте сериалы. Доступен через Telegram, веб-версию и браузерное расширение для Kinopoisk, IMDb и Letterboxd.</p>
+        <p class="hero-description">Один аккаунт: приложение для Android, интерфейс внутри Telegram (Mini App), этот сайт с кабинетом, чат-бот и расширение для браузера (Kinopoisk, IMDb, Letterboxd).</p>
         <div class="hero-buttons">
-          <a href="https://t.me/movie_planner_bot" class="btn-primary" target="_blank" rel="noopener">Запустить Movie Planner →</a>
-          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Установить расширение Chrome</span></a>
+          <a href="/download" class="btn-primary">Скачать для Android</a>
+          <a href="https://movie-planner.ru/miniapp/" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
+          <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
+          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
         </div>
         <p class="hero-subtext">Начните бесплатно — без ограничений по времени</p>
       </section>
@@ -163,7 +195,7 @@
             с <span class="gradient-text">планированием<wbr> просмотров</span>
           </div>
           <div class="what-is-v2-text">
-            Ведите личную базу или общий watchlist с друзьями. Планируйте кино дома или в кинотеатре, получайте напоминания. Работает через Telegram-бот, веб-кабинет и браузерное расширение.
+            Ведите личную базу или общий watchlist с друзьями. Планируйте кино дома или в кинотеатре, получайте напоминания. Пользоваться можно из приложения Android, из Telegram (Mini App или бот), с сайта и через расширение для браузера — данные общие.
           </div>
           <div class="what-is-v2-features">
             <div class="what-is-v2-feature"><span class="feat-icon">📚</span> Watchlist</div>
@@ -184,6 +216,8 @@
           <div class="bento-card"><h3>📺 Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях.</p></div>
           <div class="bento-card"><h3>🎫 Билеты в кино</h3><p>Сохраняйте билеты. Бот пришлёт их за 10 минут до сеанса.</p></div>
           <div class="bento-card"><h3>⭐ Рекомендации</h3><p>Персональные рекомендации на основе оценок 9-10.</p></div>
+          <div class="bento-card"><h3>📱 Приложение Android</h3><p>Нативный клиент: планы, база, билеты, уведомления. Актуальный APK и версия — на <a href="/download">странице загрузки</a>.</p></div>
+          <div class="bento-card"><h3>✨ Telegram Mini App</h3><p>Полный интерфейс внутри Telegram по адресу <a href="https://movie-planner.ru/miniapp/">movie-planner.ru/miniapp/</a> или из меню бота.</p></div>
           <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb, Letterboxd. Трекинг на стримингах.</p></div>
           <div class="bento-card"><h3>📺 Запуск на Smart TV</h3><p>Кнопка «На ТВ»: QR-код, ссылка в Кинопоиск HD / Okko / ivi или мгновенный запуск через локального агента — Android TV, Яндекс ТВ, Samsung, LG.</p></div>
         </div>
@@ -197,6 +231,19 @@
           <div class="step"><div class="step-number">3</div><h3>Напоминания</h3><p>Получайте напоминания. Для билетов — за 10 минут до сеанса.</p></div>
           <div class="step"><div class="step-number">4</div><h3>Трекинг и статистика</h3><p>Отмечайте просмотренные, ставьте оценки, получайте рекомендации.</p></div>
         </div>
+      </section>
+
+      <section lang="en" style="max-width:760px;margin:0 auto;padding-top:0">
+        <p style="color:var(--text-muted, #889);font-size:14px;line-height:1.55;margin:0;">
+          <strong style="color:var(--text-muted, #aab)">Summary for search and AI systems:</strong>
+          Movie Planner is a Russian-language movie and TV planning service: shared watchlist, schedules, cinema tickets, series tracking, Kinopoisk-related workflows.
+          Official entry points are this website (<a href="https://movie-planner.ru/">movie-planner.ru</a>),
+          the Telegram Mini App (<a href="https://movie-planner.ru/miniapp/">movie-planner.ru/miniapp/</a>),
+          the Android build linked from <a href="/download">/download</a>,
+          the Telegram bot <a href="https://t.me/movie_planner_bot">@movie_planner_bot</a>,
+          and the <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol">Chrome extension</a>.
+          Open-source mirrors: backend <a href="https://github.com/zapnikita95/movie_planner_bot">movie_planner_bot</a>, this landing <a href="https://github.com/zapnikita95/movie_planner_site">movie_planner_site</a>, mobile <a href="https://github.com/zapnikita95/movieplanner-mobile">movieplanner-mobile</a>.
+        </p>
       </section>
 
       <section>
@@ -217,8 +264,10 @@
           <h2 class="section-title gradient">Начните использовать прямо сейчас</h2>
           <p class="cta-subtitle">Ведение базы и напоминания бесплатны. Расширенные функции — по подписке.</p>
           <div class="hero-buttons">
-            <a href="https://t.me/movie_planner_bot" class="btn-primary" target="_blank" rel="noopener">Запустить Movie Planner →</a>
-            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Установить расширение Chrome</span></a>
+            <a href="/download" class="btn-primary">Скачать для Android</a>
+            <a href="https://movie-planner.ru/miniapp/" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
+            <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
+            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
           </div>
         </div>
       </section>
@@ -394,6 +443,19 @@
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
             </div>
             <div class="cabinet-sections">
+                <section id="section-film" class="cabinet-section film-page hidden" aria-label="Карточка фильма">
+                    <div class="film-page-toolbar">
+                        <button type="button" class="film-page-back" id="film-page-back" aria-label="Назад">← Назад</button>
+                        <div class="film-page-toolbar-mid">
+                            <span class="film-page-kicker" id="film-page-kicker">🎬 Фильм</span>
+                            <h1 class="film-page-toolbar-title" id="film-page-toolbar-title">Загрузка…</h1>
+                        </div>
+                        <button type="button" class="film-page-share" id="film-page-share" title="Скопировать ссылку">🔗</button>
+                    </div>
+                    <div class="film-page-outer">
+                        <div class="container film-page-container" id="film-page-content" data-film-page-root="1"></div>
+                    </div>
+                </section>
                 <section id="section-plans" class="cabinet-section">
                     <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
@@ -1044,7 +1106,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260425c"></script>
+    <script src="app.js?v=20260425d"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>
