@@ -12,6 +12,7 @@
   const BOT_SEARCH_LINK = BOT_LINK + '?start=search';
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
+  const BOT_SCHEDULE_LINK = BOT_LINK + '?start=schedule';
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
@@ -209,10 +210,11 @@
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">Перейти</div>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">Друзья и группы</button>';
-    topNav += '<a class="header-settings-nav-item" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
+    topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки</button>';
+    topNav += '<a class="header-settings-nav-item" href="' + BOT_LINK + '" target="_blank" rel="noopener">⚙️ Настройки в Telegram</a>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки на сайте</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const activeId = getActiveChatId();
@@ -230,9 +232,10 @@
         const typeLabel = s.is_personal ? 'личный' : 'группа';
         const name = escapeHtml(s.name || 'Кабинет');
         html += '<div class="header-dropdown-account' + (isActive ? ' is-active' : '') + '" data-chat-id="' + escapeHtml(String(s.chat_id)) + '">';
-        html += '<span class="header-dropdown-account-name">' + name + '<span class="header-dropdown-account-type">(' + typeLabel + ')</span></span>';
-        html += '<button type="button" class="header-dropdown-account-remove" data-chat-id="' + escapeHtml(String(s.chat_id)) + '" aria-label="Выйти">×</button>';
-        html += '</div>';
+        html += '<div class="header-dropdown-account-line">';
+        html += '<span class="header-dropdown-account-name">' + name + '<span class="header-dropdown-account-type"> (' + typeLabel + ')</span></span>';
+        html += '<button type="button" class="header-dropdown-account-remove" data-chat-id="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>';
+        html += '</div></div>';
       });
       html += '<div class="header-dropdown-divider"></div>';
     }
@@ -338,6 +341,7 @@
 
   // P4.3: маппинг между разделами кабинета и URL-путями
   const SECTION_TO_PATH = {
+    home: '/home',
     plans: '/plans',
     unwatched: '/watchlist',
     series: '/series',
@@ -355,7 +359,44 @@
   function sectionFromPath(pathname) {
     if (!pathname) return null;
     const normalized = pathname.replace(/\/$/, '') || '/';
+    if (normalized === '/') return 'home';
     return PATH_TO_SECTION[normalized] || null;
+  }
+
+  const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
+  const DEFAULT_DOC_TITLE = typeof document !== 'undefined' && document.title ? document.title : 'Movie Planner';
+  function filmIdFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_filmPathRe);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  function isFilmPageOpen() {
+    const s = document.getElementById('section-film');
+    return s && !s.classList.contains('hidden');
+  }
+  function getFilmRenderRoot() {
+    if (isFilmPageOpen()) {
+      return document.getElementById('film-page-content') || document.getElementById('film-modal-content');
+    }
+    return document.getElementById('film-modal-content');
+  }
+  function showFilmPageLayout() {
+    const ro = document.getElementById('cabinet-readonly');
+    if (!ro || ro.classList.contains('hidden')) return;
+    ro.querySelectorAll('.cabinet-section').forEach((el) => {
+      el.classList.toggle('hidden', el.id !== 'section-film');
+    });
+    ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
+  }
+  function setFilmPageToolbar(film) {
+    const t = document.getElementById('film-page-toolbar-title');
+    const k = document.getElementById('film-page-kicker');
+    if (t) t.textContent = (film && (film.title || 'Фильм')) || 'Загрузка…';
+    if (k) k.textContent = film && film.is_series ? '📺 Сериал' : '🎬 Фильм';
+  }
+  function restoreDocumentTitle() {
+    try { document.title = DEFAULT_DOC_TITLE; } catch (_) {}
   }
 
   function pushSectionUrl(sectionId, replace) {
@@ -375,10 +416,12 @@
     const readonly = document.getElementById('cabinet-readonly');
     const onboarding = document.getElementById('cabinet-onboarding');
     let rendered = false;
+    let tShown = null;
     if (readonly && !readonly.classList.contains('hidden')) {
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
+      tShown = t;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
         if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
@@ -388,14 +431,22 @@
       onboarding.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = onboarding.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
+      tShown = t;
       onboarding.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
         if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
       });
       rendered = true;
     }
+    if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
+      _filmModalCurrentId = null;
+      try { restoreDocumentTitle(); } catch (e) {}
+    }
     if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
       pushSectionUrl(sectionId, !!options.replace);
+    }
+    if (rendered && sectionId === 'home') {
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }
   }
 
@@ -625,19 +676,26 @@
         loadUnwatched();
         loadSeries();
         loadRatings();
-        // P4.3: deep-link в раздел по текущему URL (например /groups)
-        const deepSection = sectionFromPath(window.location.pathname);
-        if (deepSection) {
-          showSection(deepSection, { replace: true, skipPush: false });
-          if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
-          if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
-          if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
-          if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
-          if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+        // P4.3: deep-link — страница фильма /film/:id или раздел
+        const pathFid = filmIdFromPathname(window.location.pathname);
+        if (pathFid) {
+          openFilmPage(pathFid, { skipHistory: true, replace: true });
+        } else {
+          const deepSection = sectionFromPath(window.location.pathname);
+          if (deepSection) {
+            showSection(deepSection, { replace: true, skipPush: false });
+            if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
+            if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+            if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+            if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
+            if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+          } else {
+            showSection('home', { replace: true });
+          }
         }
         // Если открыта вкладка статистики — перезагрузить её
         const statsSection = document.getElementById('section-stats');
-        if (statsSection && !statsSection.classList.contains('hidden')) {
+        if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
           initStatsSelectors();
           const monthEl = document.getElementById('stats-month');
           const yearEl = document.getElementById('stats-year');
@@ -646,8 +704,10 @@
         }
       } else {
         showScreen('cabinet-onboarding');
-        const deepSection = sectionFromPath(window.location.pathname);
+        let deepSection = sectionFromPath(window.location.pathname);
+        if (deepSection === 'home') deepSection = 'onboard-main';
         if (deepSection) showSection(deepSection, { replace: true });
+        else showSection('onboard-main', { replace: true });
       }
     });
   }
@@ -710,6 +770,390 @@
     return place;
   }
 
+  // ——— Главная кабинета: конструктор превью (ключи localStorage как в миниаппе) ———
+  const HOME_LS_ORDER = 'sections_order';
+  const HOME_LS_HIDDEN = 'sections_hidden';
+  const HOME_LS_EMOJI = 'mp_home_emoji_v1';
+  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres'];
+
+  function loadHomeSectionsOrder() {
+    try {
+      const raw = localStorage.getItem(HOME_LS_ORDER);
+      if (!raw) return DEFAULT_HOME_SECTION_ORDER.slice();
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr) || !arr.length) return DEFAULT_HOME_SECTION_ORDER.slice();
+      const known = arr.filter((x) => HOME_BLOCK_IDS.indexOf(x) >= 0);
+      const missing = DEFAULT_HOME_SECTION_ORDER.filter((x) => known.indexOf(x) < 0);
+      return known.concat(missing);
+    } catch (_) {
+      return DEFAULT_HOME_SECTION_ORDER.slice();
+    }
+  }
+  function saveHomeSectionsOrder(arr) {
+    try { localStorage.setItem(HOME_LS_ORDER, JSON.stringify(arr)); } catch (_) {}
+  }
+  function loadHomeSectionsHidden() {
+    try {
+      const raw = localStorage.getItem(HOME_LS_HIDDEN);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  function saveHomeSectionsHidden(arr) {
+    try { localStorage.setItem(HOME_LS_HIDDEN, JSON.stringify(arr)); } catch (_) {}
+  }
+  function loadHomeEmojiVis() {
+    try {
+      const raw = localStorage.getItem(HOME_LS_EMOJI);
+      if (!raw) return { random: true, shazam: true, voice: true };
+      const j = JSON.parse(raw);
+      return {
+        random: j.random !== false,
+        shazam: j.shazam !== false,
+        voice: j.voice !== false,
+      };
+    } catch (_) {
+      return { random: true, shazam: true, voice: true };
+    }
+  }
+  function saveHomeEmojiVis(next) {
+    try { localStorage.setItem(HOME_LS_EMOJI, JSON.stringify(next)); } catch (_) {}
+  }
+
+  function applyHomeEmojiVisibility() {
+    const v = loadHomeEmojiVis();
+    const wrap = document.getElementById('home-quick-actions');
+    if (!wrap) return;
+    wrap.querySelectorAll('[data-home-emoji-key]').forEach((el) => {
+      const k = el.getAttribute('data-home-emoji-key');
+      const on = k === 'random' ? v.random : k === 'shazam' ? v.shazam : k === 'voice' ? v.voice : true;
+      el.classList.toggle('hidden', !on);
+    });
+  }
+
+  let _homeDashTimer = null;
+  function scheduleHomeDashboardRefresh() {
+    clearTimeout(_homeDashTimer);
+    _homeDashTimer = setTimeout(() => {
+      try { renderHomeDashboardFromCache(); } catch (_) {}
+    }, 120);
+  }
+
+  function _mergePlansForHomePreview() {
+    const d = _plansData || { home: [], cinema: [], premieres: [] };
+    return _sortPlansByTime((d.home || []).concat(d.cinema || []).concat(d.premieres || []));
+  }
+
+  const HOME_BLOCK_META = {
+    plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
+    unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
+    series: { title: 'Сериалы', section: 'series', moreLabel: 'Все сериалы →' },
+    premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
+  };
+
+  function renderHomeBlockHtml(blockId) {
+    const meta = HOME_BLOCK_META[blockId];
+    if (!meta) return '';
+    const head = '<div class="home-dash-head"><h3 class="home-dash-h">' + escapeHtml(meta.title) + '</h3>'
+      + '<button type="button" class="link-inline home-dash-more" data-home-show-section="' + escapeHtml(meta.section) + '">'
+      + escapeHtml(meta.moreLabel) + '</button></div>';
+
+    if (blockId === 'plans') {
+      const plans = _mergePlansForHomePreview().slice(0, 5);
+      if (!plans.length) {
+        return '<section class="home-dash-block">' + head
+          + '<div class="home-dash-empty"><p class="empty-hint">Запланированных просмотров пока нет.</p><div class="plans-empty-actions">'
+          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Запланировать просмотр</a> '
+          + '<a href="' + BOT_START_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Открыть бота</a> '
+          + '<a href="' + BOT_PREMIERES_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Премьеры</a> '
+          + '<a href="' + BOT_SCHEDULE_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Расписание в Telegram</a>'
+          + '</div></div></section>';
+      }
+      const rows = plans.map((p) => {
+        const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
+        const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+        const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+        return '<div class="home-dash-row film-card-v2" data-film-id="' + (p.film_id || '') + '"><div class="home-dash-row-text">'
+          + '<div class="home-dash-row-title">' + escapeHtml(p.title || '') + '</div>'
+          + '<div class="home-dash-row-meta">' + escapeHtml((dateLine + ' ' + timeLine).trim()) + ' · ' + _planTypeLabel(p) + '</div></div></div>';
+      }).join('');
+      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+    }
+
+    if (blockId === 'unwatched') {
+      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 5);
+      if (!items.length) {
+        return '<section class="home-dash-block">' + head
+          + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions">'
+          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Запланировать просмотр</a> '
+          + '<a href="' + BOT_START_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Открыть бота</a>'
+          + '</div></div></section>';
+      }
+      const rows = items.map((m) => '<div class="home-dash-row film-card-v2" data-film-id="' + (m.film_id || '') + '"><div class="home-dash-row-text">'
+        + '<div class="home-dash-row-title">' + escapeHtml(m.title || '') + '</div>'
+        + '<div class="home-dash-row-meta">' + (m.year ? escapeHtml(String(m.year)) : '') + '</div></div></div>').join('');
+      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+    }
+
+    if (blockId === 'series') {
+      const items = (typeof seriesItems !== 'undefined' ? seriesItems : []).slice(0, 5);
+      if (!items.length) {
+        return '<section class="home-dash-block">' + head
+          + '<div class="home-dash-empty"><p class="empty-hint">Сериалов пока нет.</p><div class="plans-empty-actions">'
+          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Добавить в боте</a>'
+          + '</div></div></section>';
+      }
+      const rows = items.map((s) => '<div class="home-dash-row film-card-v2" data-film-id="' + (s.film_id || '') + '"><div class="home-dash-row-text">'
+        + '<div class="home-dash-row-title">' + escapeHtml(s.title || '') + '</div>'
+        + '<div class="home-dash-row-meta">' + escapeHtml(s.progress || 'Сериал') + '</div></div></div>').join('');
+      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+    }
+
+    if (blockId === 'premieres') {
+      const raw = typeof _homePremierePreview !== 'undefined' ? _homePremierePreview : [];
+      let items = raw.slice();
+      if (typeof filterPremieresUpcomingMsk === 'function') {
+        items = filterPremieresUpcomingMsk(items);
+      }
+      items = items.slice(0, 5);
+      if (!items.length) {
+        return '<section class="home-dash-block">' + head
+          + '<div class="home-dash-empty"><p class="empty-hint">Скорых премьер в этом месяце не найдено.</p><div class="plans-empty-actions">'
+          + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Раздел «Премьеры»</button> '
+          + '<a href="' + BOT_PREMIERES_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">В боте</a>'
+          + '</div></div></section>';
+      }
+      const rows = items.map((it) => {
+        const fid = it.already_in_base_film_id;
+        const kp = it.kp_id;
+        const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || '');
+        if (fid) {
+          return '<div class="home-dash-row film-card-v2" data-film-id="' + fid + '"><div class="home-dash-row-text">'
+            + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
+            + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + '</div></div></div>';
+        }
+        const kpStr = kp != null ? String(kp) : '';
+        return '<div class="home-dash-row home-dash-row--premiere"><div class="home-dash-row-text">'
+          + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
+          + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + (kpStr ? ' · <a href="https://www.kinopoisk.ru/film/' + escapeHtml(kpStr) + '/" target="_blank" rel="noopener">Кинопоиск</a>' : '')
+          + '</div></div><button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">В премьерах</button></div>';
+      }).join('');
+      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+    }
+    return '';
+  }
+
+  let _homePremierePreview = [];
+
+  function renderHomeDashboardFromCache() {
+    const root = document.getElementById('home-dashboard-root');
+    const secHome = document.getElementById('section-home');
+    if (!root || !secHome || secHome.classList.contains('hidden')) return;
+
+    applyHomeEmojiVisibility();
+
+    api('/api/site/premieres?period=current_month').then((data) => {
+      if (data && data.success && Array.isArray(data.items)) {
+        let items = data.items.slice();
+        items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+        _homePremierePreview = items;
+      } else {
+        _homePremierePreview = [];
+      }
+    }).catch(() => {
+      _homePremierePreview = [];
+    }).finally(() => {
+      applyHomeEmojiVisibility();
+      const order = loadHomeSectionsOrder();
+      const hidden = loadHomeSectionsHidden();
+      let html = '';
+      order.forEach((bid) => {
+        if (hidden.indexOf(bid) >= 0) return;
+        html += renderHomeBlockHtml(bid);
+      });
+      if (!html.trim()) {
+        html = '<p class="cabinet-hint">Все блоки скрыты. Откройте «Настроить главную…», чтобы вернуть превью.</p>';
+      }
+      root.innerHTML = html;
+    });
+  }
+
+  function bindHomeSectionNavOnce() {
+    if (window._mpHomeNavBound) return;
+    window._mpHomeNavBound = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-home-show-section]');
+      if (!t) return;
+      if (t.closest('.header-settings-dropdown')) return;
+      e.preventDefault();
+      const sec = t.getAttribute('data-home-show-section');
+      if (!sec) return;
+      showSection(sec);
+      if (sec === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
+    });
+  }
+
+  function syncHomeLayoutModalFromStorage() {
+    const order = loadHomeSectionsOrder();
+    const hidden = loadHomeSectionsHidden();
+    const em = loadHomeEmojiVis();
+    const er = document.getElementById('home-layout-emoji-random');
+    const es = document.getElementById('home-layout-emoji-shazam');
+    const ev = document.getElementById('home-layout-emoji-voice');
+    if (er) er.checked = !!em.random;
+    if (es) es.checked = !!em.shazam;
+    if (ev) ev.checked = !!em.voice;
+    const listEl = document.getElementById('home-layout-section-list');
+    if (!listEl) return;
+    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры' };
+    listEl.innerHTML = order.map((id) => {
+      const vis = hidden.indexOf(id) < 0;
+      const title = titles[id] || id;
+      return '<li class="home-layout-li" data-section-id="' + escapeHtml(id) + '">'
+        + '<label class="home-layout-vis"><input type="checkbox" class="home-layout-show-cb"' + (vis ? ' checked' : '') + '> '
+        + escapeHtml(title) + '</label>'
+        + '<span class="home-layout-order">'
+        + '<button type="button" class="btn btn-small btn-secondary home-layout-up" aria-label="Выше">↑</button>'
+        + '<button type="button" class="btn btn-small btn-secondary home-layout-down" aria-label="Ниже">↓</button>'
+        + '</span></li>';
+    }).join('');
+  }
+
+  function persistHomeLayoutFromModal() {
+    const listEl = document.getElementById('home-layout-section-list');
+    if (!listEl) return;
+    const order = [];
+    const hidden = [];
+    listEl.querySelectorAll('.home-layout-li').forEach((li) => {
+      const id = li.getAttribute('data-section-id');
+      if (!id) return;
+      order.push(id);
+      const cb = li.querySelector('.home-layout-show-cb');
+      if (cb && !cb.checked) hidden.push(id);
+    });
+    saveHomeSectionsOrder(order);
+    saveHomeSectionsHidden(hidden);
+    const er = document.getElementById('home-layout-emoji-random');
+    const es = document.getElementById('home-layout-emoji-shazam');
+    const ev = document.getElementById('home-layout-emoji-voice');
+    saveHomeEmojiVis({
+      random: er ? !!er.checked : true,
+      shazam: es ? !!es.checked : true,
+      voice: ev ? !!ev.checked : true,
+    });
+  }
+
+  function closeHomeLayoutModal() {
+    const modal = document.getElementById('modal-home-layout');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function openHomeLayoutModal() {
+    const modal = document.getElementById('modal-home-layout');
+    if (!modal) return;
+    syncHomeLayoutModalFromStorage();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function bindHomeLayoutModalOnce() {
+    const openBtn = document.getElementById('home-layout-open-btn');
+    const modal = document.getElementById('modal-home-layout');
+    const listEl = document.getElementById('home-layout-section-list');
+    if (!modal || modal._mpBound) return;
+    modal._mpBound = true;
+    if (openBtn && !openBtn._mpBound) {
+      openBtn._mpBound = true;
+      openBtn.addEventListener('click', () => openHomeLayoutModal());
+    }
+    modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="close-home-layout"]')) {
+        persistHomeLayoutFromModal();
+        closeHomeLayoutModal();
+        scheduleHomeDashboardRefresh();
+      }
+    });
+    if (listEl && !listEl._mpBound) {
+      listEl._mpBound = true;
+      listEl.addEventListener('click', (e) => {
+        const up = e.target.closest('.home-layout-up');
+        const dn = e.target.closest('.home-layout-down');
+        const li = e.target.closest('.home-layout-li');
+        if (!li || (!up && !dn)) return;
+        e.preventDefault();
+        const parent = li.parentNode;
+        if (up && li.previousElementSibling) parent.insertBefore(li, li.previousElementSibling);
+        if (dn && li.nextElementSibling) parent.insertBefore(li.nextElementSibling, li);
+      });
+    }
+  }
+
+  function bindHomeShazamOnce() {
+    const btn = document.getElementById('home-shazam-submit');
+    const ta = document.getElementById('home-shazam-query');
+    const status = document.getElementById('home-shazam-status');
+    const results = document.getElementById('home-shazam-results');
+    if (!btn || btn._mpBound) return;
+    btn._mpBound = true;
+    btn.addEventListener('click', () => {
+      const q = (ta && ta.value || '').trim();
+      if (q.length < 3) {
+        if (status) {
+          status.textContent = 'Введите хотя бы 3 символа';
+          status.classList.remove('hidden');
+        }
+        return;
+      }
+      if (status) {
+        status.textContent = 'Ищем…';
+        status.classList.remove('hidden');
+      }
+      if (results) results.innerHTML = '';
+      api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: q }) })
+        .then((data) => {
+          if (!data || !data.success) {
+            const err = (data && data.message) || (data && data.error) || 'Не удалось выполнить поиск';
+            if (status) status.textContent = typeof err === 'string' ? err : 'Ошибка';
+            return;
+          }
+          if (status) status.classList.add('hidden');
+          const items = data.items || [];
+          if (!items.length) {
+            if (results) results.innerHTML = '<p class="cabinet-hint">Ничего не нашли — уточните описание.</p>';
+            return;
+          }
+          if (results) {
+            results.innerHTML = '<div class="home-shazam-grid">' + items.map((it) => {
+              const kp = it.kp_id != null ? String(it.kp_id) : '';
+              const poster = it.poster
+                ? '<img src="' + escapeHtml(it.poster) + '" alt="" class="home-shazam-poster" loading="lazy" referrerpolicy="no-referrer">'
+                : '<div class="home-shazam-poster home-shazam-poster--empty"></div>';
+              const btnAdd = kp
+                ? '<button type="button" class="btn btn-small btn-primary" data-action="add-film-pick" data-kp="' + escapeHtml(kp) + '">В базу</button>'
+                : '';
+              return '<div class="home-shazam-card">' + poster + '<div class="home-shazam-card-body">'
+                + '<div class="home-shazam-card-title">' + escapeHtml(it.title || '') + '</div>'
+                + '<div class="home-shazam-card-meta">' + (it.year ? escapeHtml(String(it.year)) : '') + '</div>'
+                + btnAdd + '</div></div>';
+            }).join('') + '</div>';
+          }
+        })
+        .catch(() => {
+          if (status) {
+            status.textContent = 'Ошибка сети';
+            status.classList.remove('hidden');
+          }
+        });
+    });
+  }
+
   function _getPlansListForView() {
     const d = _plansData;
     if (_plansViewFilter === 'home') return _sortPlansByTime(d.home);
@@ -749,21 +1193,31 @@
   function _plansEmptyMessage() {
     if (_plansViewFilter === 'home') {
       let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
-      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>';
-      if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>';
+      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> ';
+      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> ';
+      html += '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> ';
+      html += '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a>';
+      if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный</a>';
       html += '</div>';
       return html;
     }
     if (_plansViewFilter === 'cinema') {
-      return '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions"><a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">📆 Найти премьеры</a></div>';
+      return '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions">'
+        + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> '
+        + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> '
+        + '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> '
+        + '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a></div>';
     }
     if (_plansViewFilter === 'premieres') {
       return '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите у фильма на экране «Премьеры» или в боте.</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button> <a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🤖 В боте</a></div>';
     }
     return '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
-      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">🔍 Найти фильмы</a>'
-      + (cabinetHasData ? ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный фильм</a>' : '')
-      + ' <a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a></div>';
+      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> '
+      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> '
+      + '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> '
+      + '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a>'
+      + (cabinetHasData ? ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный</a>' : '')
+      + '</div>';
   }
 
   function renderPlansList() {
@@ -821,27 +1275,19 @@
       const premieres = data.premieres || [];
       _plansData = { home, cinema, premieres };
       _plansViewFilter = 'all';
-      const total = home.length + cinema.length + premieres.length;
       const todayWrap = document.getElementById('plans-today-wrap');
-      if (todayWrap) {
-        todayWrap.classList.toggle('hidden', !total);
+      if (todayWrap) todayWrap.classList.remove('hidden');
+      const tabs = document.getElementById('plans-filter-tabs');
+      if (tabs) {
+        tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
+          const isAll = b.getAttribute('data-plans-filter') === 'all';
+          b.classList.toggle('active', isAll);
+          b.setAttribute('aria-selected', isAll ? 'true' : 'false');
+        });
       }
-      const listEl = document.getElementById('plans-list');
-      if (listEl && !total) {
-        listEl.innerHTML = '';
-      }
-      if (total) {
-        const tabs = document.getElementById('plans-filter-tabs');
-        if (tabs) {
-          tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
-            const isAll = b.getAttribute('data-plans-filter') === 'all';
-            b.classList.toggle('active', isAll);
-            b.setAttribute('aria-selected', isAll ? 'true' : 'false');
-          });
-        }
-        renderPlansList();
-        bindPlansFilterOnce();
-      }
+      bindPlansFilterOnce();
+      renderPlansList();
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
   }
 
@@ -933,9 +1379,11 @@
       if (sortSelect) sortSelect.value = unwatchedSortMode;
       bindSectionSearchOnce('unwatched', renderUnwatchedList);
       renderUnwatchedList();
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }).catch(() => {
       unwatchedItems = [];
       renderUnwatchedList();
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
   }
 
@@ -980,6 +1428,7 @@
       seriesItems = Array.isArray(data.items) ? data.items : [];
       bindSectionSearchOnce('series', renderSeriesList);
       renderSeriesList();
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
   }
 
@@ -3133,33 +3582,70 @@
   let _filmModalCurrentId = null;
   let _filmModalPreviewRating = 0; // hover-подсветка звёзд
 
-  function openFilmModal(filmId) {
+  function closeFilmModal() {
     const modal = document.getElementById('film-modal');
-    const content = document.getElementById('film-modal-content');
-    if (!modal || !content) return;
-    _filmModalCurrentId = filmId;
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if (!isFilmPageOpen()) {
+      _filmModalCurrentId = null;
+    }
+    _filmModalPreviewRating = 0;
+  }
 
-    const cached = _filmModalCache[filmId];
-    if (cached) {
-      renderFilmModal(cached.film, cached.ratings, cached.similar);
-    } else {
-      content.className = 'film-modal-content loading';
-      content.innerHTML = 'Загрузка…';
+  function openFilmPage(filmId, opts) {
+    const o = opts || {};
+    if (!getToken()) {
+      showToast('Войдите в кабинет');
+      return;
+    }
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) {
+      showToast('Страница фильма недоступна');
+      return;
+    }
+    closeAddFilmModal();
+    closeFilmModal();
+    _filmModalCurrentId = filmId;
+    showScreen('cabinet-readonly');
+    showFilmPageLayout();
+    if (!o.skipHistory) {
+      try {
+        const path = '/film/' + filmId;
+        (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', filmId }, '', path);
+      } catch (e) {}
     }
 
-    Promise.all([
+    const runLoad = (cached) => {
+      if (cached) {
+        setFilmPageToolbar(cached.film);
+        try {
+          document.title = (cached.film && cached.film.title ? cached.film.title + ' · Movie Planner' : DEFAULT_DOC_TITLE);
+        } catch (e) {}
+        renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
+      } else {
+        pageRoot.className = 'container film-page-container film-modal-content loading';
+        pageRoot.innerHTML = 'Загрузка…';
+        setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
+      }
+    };
+    if (_filmModalCache[filmId]) {
+      runLoad(_filmModalCache[filmId]);
+    } else {
+      runLoad(null);
+    }
+    return Promise.all([
       api('/api/site/film/' + filmId),
       api('/api/site/film/' + filmId + '/similar').catch(() => ({ success: true, items: [] })),
     ]).then(([detail, sim]) => {
       if (!detail || !detail.success) {
-        content.className = 'film-modal-content loading';
-        content.innerHTML = 'Не удалось загрузить фильм: ' + escapeHtml((detail && detail.error) || 'ошибка');
+        pageRoot.className = 'container film-page-container';
+        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p><p class="film-page-error-actions"><button type="button" class="btn btn-primary" data-action="close-film-page">← Назад</button></p>';
+        setFilmPageToolbar({ title: 'Ошибка', is_series: false });
         return;
       }
-      if (_filmModalCurrentId !== filmId) return; // пользователь уже закрыл/сменил
+      if (_filmModalCurrentId !== filmId) return;
       const data = {
         film: detail.film,
         ratings: detail.ratings || [],
@@ -3168,28 +3654,49 @@
       };
       try { pushHeaderFilmRecent(detail.film); } catch (e) {}
       _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
-      renderFilmModal(data.film, data.ratings, data.similar, data.me);
+      try { document.title = (data.film && data.film.title ? data.film.title + ' · Movie Planner' : DEFAULT_DOC_TITLE); } catch (e) {}
+      renderFilmDetail(data.film, data.ratings, data.similar, data.me, pageRoot);
+      setFilmPageToolbar(data.film);
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
     });
   }
 
-  function closeFilmModal() {
-    const modal = document.getElementById('film-modal');
-    if (!modal) return;
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    _filmModalCurrentId = null;
-    _filmModalPreviewRating = 0;
+  function closeFilmPage() {
+    restoreDocumentTitle();
+    if (window.history.length > 1) {
+      try { window.history.back(); } catch (e) { showSection('home', { replace: true }); try { scheduleHomeDashboardRefresh(); } catch (_) {} }
+    } else {
+      showSection('home', { replace: true });
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
+    }
+  }
+
+  function openFilmModal(filmId) {
+    return openFilmPage(filmId, {});
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && _filmModalCurrentId != null) closeFilmModal();
+    if (e.key !== 'Escape') return;
+    if (isFilmPageOpen() && _filmModalCurrentId != null) {
+      e.preventDefault();
+      closeFilmPage();
+      return;
+    }
+    if (!isFilmPageOpen() && _filmModalCurrentId != null) closeFilmModal();
   });
 
   function renderFilmModal(film, ratings, similar, me) {
-    const content = document.getElementById('film-modal-content');
+    const content = getFilmRenderRoot() || document.getElementById('film-modal-content');
     if (!content) return;
-    content.className = 'film-modal-content';
+    return renderFilmDetail(film, ratings, similar, me, content);
+  }
+
+  function renderFilmDetail(film, ratings, similar, me, content) {
+    if (!content) return;
+    const isPage = content.getAttribute && content.getAttribute('data-film-page-root');
+    content.className = isPage
+      ? 'container film-page-container film-modal-content'
+      : 'film-modal-content';
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = ratings.find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
@@ -3294,7 +3801,7 @@
         ${similarHtml}
       </div>`;
 
-    bindFilmModalInteractions(film);
+    bindFilmModalInteractions(film, content);
   }
 
   function buildRatingStars(current) {
@@ -3308,8 +3815,8 @@
     return html;
   }
 
-  function bindFilmModalInteractions(film) {
-    const content = document.getElementById('film-modal-content');
+  function bindFilmModalInteractions(film, rootEl) {
+    const content = rootEl || getFilmRenderRoot();
     if (!content) return;
 
     // Rating stars: click/hover
@@ -3409,7 +3916,7 @@
         const row = { user_id: myUserId, rating, username: 'Вы' };
         if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
         cache.film.watched = true;
-        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, getFilmRenderRoot());
       }
       applyRatingToLists(filmId, rating);
     });
@@ -3422,7 +3929,7 @@
       if (cache) {
         const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
         cache.ratings = cache.ratings.filter((r) => String(r.user_id) !== String(myUserId));
-        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, getFilmRenderRoot());
       }
       removeRatingFromLists(filmId);
     });
@@ -3437,7 +3944,7 @@
       const cache = _filmModalCache[filmId];
       if (cache) {
         cache.film.watched = !!watched;
-        renderFilmModal(cache.film, cache.ratings, cache.similar, cache.me);
+        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, getFilmRenderRoot());
       }
       applyWatchedToLists(filmId, watched);
     });
@@ -4009,9 +4516,15 @@
 
   function bindProfileSwitcher() {
     const btn = document.getElementById('cabinet-profile-btn');
+    const nameEl = document.getElementById('cabinet-profile-name');
     if (btn) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (nameEl && (e.target === nameEl || (nameEl.contains && nameEl.contains(e.target)))) {
+          closeProfileMenu();
+          openAccountDropdown();
+          return;
+        }
         const menu = document.getElementById('cabinet-profile-menu');
         if (menu && menu.classList.contains('hidden')) openProfileMenu();
         else closeProfileMenu();
@@ -4890,15 +5403,49 @@
     bindCreateRoomModal();
     bindHeaderSearch();
     bindPlansGotoOnce();
+    bindHomeSectionNavOnce();
+    bindHomeLayoutModalOnce();
+    bindHomeShazamOnce();
+    const filmBack = document.getElementById('film-page-back');
+    if (filmBack) {
+      filmBack.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeFilmPage();
+      });
+    }
+    const filmShare = document.getElementById('film-page-share');
+    if (filmShare) {
+      filmShare.addEventListener('click', (e) => {
+        e.preventDefault();
+        const u = String(window.location.href || '').split('#')[0];
+        copyToClipboard(u)
+          .then(() => { showToast('Ссылка скопирована'); })
+          .catch(() => { showToast('Не удалось скопировать', { type: 'error' }); });
+      });
+    }
+    document.addEventListener('click', (e) => {
+      const b = e.target && e.target.closest && e.target.closest('[data-action="close-film-page"]');
+      if (b) {
+        e.preventDefault();
+        closeFilmPage();
+      }
+    });
     handleInviteTokenFromUrl();
 
-    // P4.3: History API — browser back/forward между разделами
+    // P4.3: History API — кабинет, /film/:id, разделы
     window.addEventListener('popstate', () => {
       if (handleHash()) return;
       if (!getToken()) return;
+      const pathF = filmIdFromPathname(window.location.pathname);
+      if (pathF) {
+        try { openFilmPage(pathF, { skipHistory: true, replace: true }); } catch (e) {}
+        return;
+      }
+      try { restoreDocumentTitle(); } catch (e) {}
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
         showSection(sec, { skipPush: true });
+        if (sec === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
         if (sec === 'tv' && typeof renderTvSection === 'function') renderTvSection();
         if (sec === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
         if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
@@ -4937,6 +5484,9 @@
           const yearEl = document.getElementById('stats-year');
           const now = new Date();
           (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
+        }
+        if (sectionId === 'home') {
+          try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }
       });
     });
