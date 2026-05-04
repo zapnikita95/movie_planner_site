@@ -3891,6 +3891,18 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+/* Отдельная страница «Подбор по описанию»: без разделителя как под главной */
+#section-shazam .home-shazam-block {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+#section-shazam .home-shazam-row {
+  max-width: 920px;
+}
+.shazam-page-back-wrap {
+  margin-bottom: 8px;
+}
 .home-shazam-row {
   display: flex;
   flex-wrap: wrap;

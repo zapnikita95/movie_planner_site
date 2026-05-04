@@ -356,6 +356,7 @@
     unwatched: '/watchlist',
     series: '/series',
     whattowatch: '/whattowatch',
+    shazam: '/shazam',
     ratings: '/ratings',
     stats: '/stats',
     premieres: '/premieres',
@@ -457,6 +458,12 @@
     }
     if (rendered && sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
+    }
+    if (rendered && sectionId === 'shazam') {
+      try {
+        const ta = document.getElementById('home-shazam-query');
+        if (ta) setTimeout(function () { ta.focus(); }, 0);
+      } catch (_) {}
     }
   }
 
@@ -716,6 +723,10 @@
         showScreen('cabinet-onboarding');
         let deepSection = sectionFromPath(window.location.pathname);
         if (deepSection === 'home') deepSection = 'onboard-main';
+        if (deepSection === 'shazam') {
+          try { window.history.replaceState({}, '', '/'); } catch (_) {}
+          deepSection = 'onboard-main';
+        }
         if (deepSection) showSection(deepSection, { replace: true });
         else showSection('onboard-main', { replace: true });
       }
@@ -819,15 +830,14 @@
   function loadHomeEmojiVis() {
     try {
       const raw = localStorage.getItem(HOME_LS_EMOJI);
-      if (!raw) return { random: true, shazam: true, voice: true };
+      if (!raw) return { random: true, shazam: true };
       const j = JSON.parse(raw);
       return {
         random: j.random !== false,
         shazam: j.shazam !== false,
-        voice: j.voice !== false,
       };
     } catch (_) {
-      return { random: true, shazam: true, voice: true };
+      return { random: true, shazam: true };
     }
   }
   function saveHomeEmojiVis(next) {
@@ -840,7 +850,7 @@
     if (!wrap) return;
     wrap.querySelectorAll('[data-home-emoji-key]').forEach((el) => {
       const k = el.getAttribute('data-home-emoji-key');
-      const on = k === 'random' ? v.random : k === 'shazam' ? v.shazam : k === 'voice' ? v.voice : true;
+      const on = k === 'random' ? v.random : k === 'shazam' ? v.shazam : true;
       el.classList.toggle('hidden', !on);
     });
   }
@@ -1027,10 +1037,8 @@
     const em = loadHomeEmojiVis();
     const er = document.getElementById('home-layout-emoji-random');
     const es = document.getElementById('home-layout-emoji-shazam');
-    const ev = document.getElementById('home-layout-emoji-voice');
     if (er) er.checked = !!em.random;
     if (es) es.checked = !!em.shazam;
-    if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
     const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры' };
@@ -1063,11 +1071,9 @@
     saveHomeSectionsHidden(hidden);
     const er = document.getElementById('home-layout-emoji-random');
     const es = document.getElementById('home-layout-emoji-shazam');
-    const ev = document.getElementById('home-layout-emoji-voice');
     saveHomeEmojiVis({
       random: er ? !!er.checked : true,
       shazam: es ? !!es.checked : true,
-      voice: ev ? !!ev.checked : true,
     });
   }
 
@@ -1187,16 +1193,7 @@
       if (!btn) return;
       const action = btn.getAttribute('data-home-action');
       if (action === 'shazam') {
-        const block = document.getElementById('home-shazam-block');
-        if (block) block.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      if (action === 'voice') {
-        const mic = document.getElementById('header-search-mic');
-        if (mic) {
-          if (window.scrollY > 10) window.scrollTo({ top: 0, behavior: 'smooth' });
-          setTimeout(() => { mic.click(); }, 120);
-        }
+        showSection('shazam');
         return;
       }
       if (action === 'random') {

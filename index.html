@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260504cabinetfix4">
+    <link rel="stylesheet" href="style-v2.css?v=20260504shazampage">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,15 +464,17 @@
                     </div>
                     <div class="home-quick-actions" id="home-quick-actions" aria-label="Быстрые действия">
                         <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм">🎲</button>
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Прокрутить к Шазаму">🔮</button>
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="voice" data-home-action="voice" title="Голосовой поиск">🎤</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Подбор по описанию (Шазам)">🔮</button>
                     </div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
+                </section>
+                <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
+                    <p class="cabinet-hint shazam-page-back-wrap"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
+                    <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🔮</span><span class="section-title-text">Подбор по описанию</span></h2>
+                    <p class="cabinet-hint home-shazam-hint">Опишите фильм своими словами — те же лимиты, что в мини-приложении.</p>
                     <div id="home-shazam-block" class="home-shazam-block">
-                        <h3 class="cabinet-subtitle">Шазам</h3>
-                        <p class="cabinet-hint home-shazam-hint">Опишите фильм своими словами — те же лимиты, что в мини-приложении.</p>
                         <div class="home-shazam-row">
-                            <textarea id="home-shazam-query" class="home-shazam-textarea" rows="3" maxlength="2000" placeholder="Например: фильм про космос, где герой застрял на Марсе…" aria-label="Описание для Шазам"></textarea>
+                            <textarea id="home-shazam-query" class="home-shazam-textarea" rows="3" maxlength="2000" placeholder="Например: фильм про космос, где герой застрял на Марсе…" aria-label="Описание для поиска по смыслу"></textarea>
                             <button type="button" class="btn btn-primary" id="home-shazam-submit">Найти</button>
                         </div>
                         <div id="home-shazam-status" class="home-shazam-status hidden"></div>
@@ -1133,7 +1135,6 @@
         <div class="home-layout-emoji-toggles">
           <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-random"> Показывать 🎲</label>
           <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-shazam"> Показывать 🔮</label>
-          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-voice"> Показывать 🎤</label>
         </div>
         <div class="home-layout-blocks-title">Блоки превью</div>
         <ul class="home-layout-list" id="home-layout-section-list"></ul>
@@ -1154,7 +1155,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260504cabinetfix4"></script>
+    <script src="app.js?v=20260504shazampage"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>
