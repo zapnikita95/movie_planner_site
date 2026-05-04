@@ -60,6 +60,10 @@ a:hover { text-decoration: underline; }
 .article p, .article li { margin-bottom: 12px; }
 .article ul { padding-left: 1.25rem; margin: 12px 0; }
 .article li { margin-bottom: 8px; }
+.article .muted {
+  font-size: 0.9rem;
+  color: var(--mp-muted);
+}
 .meta-updated {
   font-size: 0.85rem;
   color: var(--mp-muted);
