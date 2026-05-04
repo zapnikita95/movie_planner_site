@@ -64,6 +64,17 @@
 
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
+  /** Публичный base URL API для интеграций: на movie-planner.ru — тот же origin, иначе прямой бэкенд. */
+  function getPublicApiBase() {
+    try {
+      const h = window.location.hostname;
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
+        return window.location.origin;
+      }
+    } catch (_) {}
+    return API_BASE;
+  }
+
   function copyToClipboard(text) {
     if (!text) return Promise.reject(new Error('no text'));
     if (navigator.clipboard && window.isSecureContext) {
@@ -4842,6 +4853,20 @@
         <p><b>${escapeHtml(name || '')}</b> ${u && u.username ? ' · @' + escapeHtml(u.username) : ''}</p>
         ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим</p>'}
         </div>
+        <div class="settings-block" id="settings-api-token-block">
+        <div class="header-dropdown-title" style="margin-top:0">API и нейросети</div>
+        <p class="cabinet-hint" style="margin-bottom:10px;line-height:1.45">
+        Тот же секрет, что использует кабинет при запросах к серверу. Укажите в Zapier, Cursor MCP или curl как заголовок
+        <code style="font-size:12px">Authorization: Bearer …</code>. Не публикуйте токен.
+        </p>
+        <p class="muted small" style="margin-bottom:8px">Адрес API: <code id="settings-api-base" style="font-size:12px"></code></p>
+        <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
+        <button type="button" class="settings-row" id="settings-copy-api-token">🔑 Скопировать токен</button>
+        <a href="/developer" class="settings-row" rel="noopener">Документация и OAuth</a>
+        <a href="/integration" class="settings-row" rel="noopener">Страница токена (как в браузере)</a>
+        </div>
+        <p class="muted small" id="settings-api-token-hint" style="margin-top:8px"></p>
+        </div>
         <div class="settings-block settings-list">
         <button type="button" class="settings-row" data-sets-go="home-layout">🏠 Настроить главную</button>
         <button type="button" class="settings-row" data-sets-go="tv">📺 Телевизор</button>
@@ -4870,6 +4895,23 @@
           if (g === 'groups') { showSection('groups'); if (renderGroupsSection) renderGroupsSection(); }
         });
       });
+      const baseEl = document.getElementById('settings-api-base');
+      const copyBtn = document.getElementById('settings-copy-api-token');
+      const hintEl = document.getElementById('settings-api-token-hint');
+      if (baseEl) baseEl.textContent = getPublicApiBase();
+      const curTok = getToken();
+      if (copyBtn) {
+        if (!curTok) {
+          copyBtn.disabled = true;
+          if (hintEl) hintEl.textContent = 'Войдите в кабинет — токен доступен после входа.';
+        } else {
+          copyBtn.addEventListener('click', () => {
+            copyToClipboard(curTok)
+              .then(() => { showToast('Токен скопирован'); })
+              .catch(() => { alert('Не удалось скопировать'); });
+          });
+        }
+      }
     }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
   }
 
