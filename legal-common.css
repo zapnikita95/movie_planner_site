@@ -57,12 +57,62 @@ a:hover { text-decoration: underline; }
   margin: 28px 0 12px;
   color: #111;
 }
+.article h3 {
+  font-size: 1.02rem;
+  margin: 22px 0 10px;
+  color: #222;
+}
 .article p, .article li { margin-bottom: 12px; }
 .article ul { padding-left: 1.25rem; margin: 12px 0; }
 .article li { margin-bottom: 8px; }
 .article .muted {
   font-size: 0.9rem;
   color: var(--mp-muted);
+}
+/* Блок для Google Play: удаление аккаунта (должен быть хорошо виден) */
+.deletion-callout {
+  background: #f3f5ff;
+  border: 1px solid var(--mp-border);
+  border-left: 4px solid #5c6bc0;
+  border-radius: 10px;
+  padding: 20px 20px 8px;
+  margin: 20px 0 24px;
+}
+.deletion-callout > h3 {
+  font-size: 1.05rem;
+  margin: 0 0 12px;
+  color: #111;
+}
+.deletion-callout ol {
+  padding-left: 1.25rem;
+  margin: 0 0 12px;
+}
+.deletion-callout li { margin-bottom: 10px; }
+.deletion-table-wrap { overflow-x: auto; margin: 16px 0; }
+.deletion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.deletion-table th,
+.deletion-table td {
+  border: 1px solid var(--mp-border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.deletion-table th {
+  background: #f8f8f8;
+  font-weight: 600;
+}
+.deletion-kicker {
+  font-size: 0.95rem;
+  color: var(--mp-text);
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
 }
 .meta-updated {
   font-size: 0.85rem;

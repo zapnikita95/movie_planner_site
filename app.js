@@ -1288,6 +1288,8 @@
   }
 
   function _plansEmptyMessage() {
+    /** Один корневой узел: иначе grid (.plans-today-list + .cards-list) кладёт p и кнопки в разные колонки / сжимает кнопки. */
+    let inner;
     if (_plansViewFilter === 'home') {
       let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
       html += '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> ';
@@ -1295,22 +1297,22 @@
       html += '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button> ';
       html += '<button type="button" class="btn btn-small btn-secondary" data-goto-plans="all">Все планы</button>';
       html += '</div>';
-      return html;
-    }
-    if (_plansViewFilter === 'cinema') {
-      return '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions">'
+      inner = html;
+    } else if (_plansViewFilter === 'cinema') {
+      inner = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions">'
         + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
         + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
         + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button></div>';
+    } else if (_plansViewFilter === 'premieres') {
+      inner = '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите напоминание на экране «Премьеры».</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button></div>';
+    } else {
+      inner = '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
+        + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button>'
+        + '</div>';
     }
-    if (_plansViewFilter === 'premieres') {
-      return '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите напоминание на экране «Премьеры».</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button></div>';
-    }
-    return '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
-      + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-      + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
-      + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button>'
-      + '</div>';
+    return '<div class="plans-list-empty-wrap">' + inner + '</div>';
   }
 
   function renderPlansList() {
