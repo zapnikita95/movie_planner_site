@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260504c">
+    <link rel="stylesheet" href="style-v2.css?v=20260504webcabinet">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -462,12 +462,11 @@
                 <section id="section-home" class="cabinet-section">
                     <div class="home-dash-page-head">
                         <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🏠</span><span class="section-title-text">Главная</span></h2>
-                        <button type="button" class="btn btn-small btn-secondary" id="home-layout-open-btn">Настроить главную…</button>
                     </div>
                     <div class="home-quick-actions" id="home-quick-actions" aria-label="Быстрые действия">
-                        <a href="https://t.me/movie_planner_bot?start=random" class="home-emoji-btn" data-home-emoji-key="random" target="_blank" rel="noopener" title="Случайный фильм">🎲</a>
-                        <a href="#home-shazam-block" class="home-emoji-btn" data-home-emoji-key="shazam" title="Прокрутить к Шазаму">🔮</a>
-                        <a href="https://t.me/movie_planner_bot?start=search" class="home-emoji-btn" data-home-emoji-key="voice" target="_blank" rel="noopener" title="Поиск в боте (голос и текст)">🎤</a>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм">🎲</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Прокрутить к Шазаму">🔮</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="voice" data-home-action="voice" title="Голосовой поиск">🎤</button>
                     </div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
                     <div id="home-shazam-block" class="home-shazam-block">
@@ -479,15 +478,14 @@
                         </div>
                         <div id="home-shazam-status" class="home-shazam-status hidden"></div>
                         <div id="home-shazam-results" class="home-shazam-results"></div>
-                        <p class="home-shazam-tg-wrap"><a href="https://t.me/movie_planner_bot?start=shazam" class="link-inline" target="_blank" rel="noopener">Открыть Шазам в Telegram</a></p>
                     </div>
                 </section>
                 <section id="section-plans" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-toolbar">
-                        <a href="https://t.me/movie_planner_bot?start=search" class="btn btn-small btn-primary" target="_blank" rel="noopener">Запланировать просмотр</a>
-                        <a href="https://t.me/movie_planner_bot?start=schedule" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Расписание в Telegram</a>
-                        <a href="https://t.me/movie_planner_bot?start=premieres" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Премьеры в боте</a>
+                        <button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм в базу</button>
+                        <button type="button" class="btn btn-small btn-secondary" data-plans-action="show-all">Все планы</button>
+                        <button type="button" class="btn btn-small btn-secondary" data-plans-action="show-premieres">Премьеры</button>
                     </div>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
                         <h3 class="cabinet-subtitle">Планы на ближайшее время</h3>
@@ -514,7 +512,7 @@
                         </div>
                         <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                     </div>
-                    <p class="cabinet-hint">В личном кабинете вы можете посмотреть список фильмов в вашей базе. Для остальных действий выберите фильм, и вы будете перенаправлены в Telegram.</p>
+                    <p class="cabinet-hint">Список фильмов вашей базы. Откройте карточку для действий: оценка, пометка просмотра, просмотр онлайн и планирование.</p>
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
@@ -522,7 +520,7 @@
                         <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
                         <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
                     </div>
-                    <p class="cabinet-hint">В личном кабинете вы можете посмотреть список сериалов в вашей базе. Для остальных действий выберите сериал, и вы будете перенаправлены в Telegram.</p>
+                    <p class="cabinet-hint">Список сериалов вашей базы. Откройте карточку для управления прогрессом и просмотром.</p>
                     <div id="series-list" class="cards-list"></div>
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch">
@@ -535,7 +533,7 @@
                         <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Оценки</span></h2>
                         <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
                     </div>
-                    <p class="cabinet-hint">В личном кабинете вы можете посмотреть список последних оценок. Для остальных действий выберите фильм или сериал, и вы будете перенаправлены в Telegram.</p>
+                    <p class="cabinet-hint">Ваши и групповые оценки. Откройте карточку фильма или сериала, чтобы изменить оценку и статус просмотра.</p>
                     <div id="ratings-toolbar" class="section-ratings-toolbar" style="display:none">
                         <label for="ratings-member-filter">Участник:</label>
                         <select id="ratings-member-filter" class="ratings-member-select" aria-label="Фильтр по участнику">
@@ -607,7 +605,7 @@
                             </select>
                         </div>
                     </div>
-                    <p class="cabinet-hint">Афиша кинопремьер России. Включите напоминание, чтобы в день премьеры бот прислал уведомление, купите билет или добавьте фильм в базу.</p>
+                    <p class="cabinet-hint">Афиша кинопремьер России. Включайте напоминания, добавляйте релизы в базу и открывайте карточки фильмов прямо на сайте.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
@@ -1157,7 +1155,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260504c"></script>
+    <script src="app.js?v=20260504webcabinet"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

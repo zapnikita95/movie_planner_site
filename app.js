@@ -213,7 +213,6 @@
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
-    topNav += '<a class="header-settings-nav-item" href="' + BOT_LINK + '" target="_blank" rel="noopener">⚙️ Настройки в Telegram</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки на сайте</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
@@ -867,19 +866,22 @@
       if (!plans.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">Запланированных просмотров пока нет.</p><div class="plans-empty-actions">'
-          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Запланировать просмотр</a> '
-          + '<a href="' + BOT_START_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Открыть бота</a> '
-          + '<a href="' + BOT_PREMIERES_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Премьеры</a> '
-          + '<a href="' + BOT_SCHEDULE_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Расписание в Telegram</a>'
+          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button> '
+          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">Премьеры</button>'
           + '</div></div></section>';
       }
       const rows = plans.map((p) => {
         const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
         const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
         const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+        const poster = posterUrl(p.kp_id);
         return '<div class="home-dash-row film-card-v2" data-film-id="' + (p.film_id || '') + '"><div class="home-dash-row-text">'
+          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎬</span>') + '</div>'
+          + '<div class="home-dash-row-main">'
           + '<div class="home-dash-row-title">' + escapeHtml(p.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + escapeHtml((dateLine + ' ' + timeLine).trim()) + ' · ' + _planTypeLabel(p) + '</div></div></div>';
+          + '<div class="home-dash-row-meta">' + escapeHtml((dateLine + ' ' + timeLine).trim()) + ' · ' + _planTypeLabel(p) + '</div>'
+          + '</div></div></div>';
       }).join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
@@ -889,13 +891,16 @@
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions">'
-          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Запланировать просмотр</a> '
-          + '<a href="' + BOT_START_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">Открыть бота</a>'
+          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
           + '</div></div></section>';
       }
       const rows = items.map((m) => '<div class="home-dash-row film-card-v2" data-film-id="' + (m.film_id || '') + '"><div class="home-dash-row-text">'
+        + '<div class="home-dash-row-poster">' + (m.kp_id ? ('<img src="' + escapeHtml(posterUrl(m.kp_id)) + '" alt="" loading="lazy">') : '<span>🎬</span>') + '</div>'
+        + '<div class="home-dash-row-main">'
         + '<div class="home-dash-row-title">' + escapeHtml(m.title || '') + '</div>'
-        + '<div class="home-dash-row-meta">' + (m.year ? escapeHtml(String(m.year)) : '') + '</div></div></div>').join('');
+        + '<div class="home-dash-row-meta">' + (m.year ? escapeHtml(String(m.year)) : '') + '</div>'
+        + '</div></div></div>').join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
 
@@ -904,12 +909,15 @@
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">Сериалов пока нет.</p><div class="plans-empty-actions">'
-          + '<a href="' + BOT_SEARCH_LINK + '" class="btn btn-small btn-primary" target="_blank" rel="noopener">Добавить в боте</a>'
+          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button>'
           + '</div></div></section>';
       }
       const rows = items.map((s) => '<div class="home-dash-row film-card-v2" data-film-id="' + (s.film_id || '') + '"><div class="home-dash-row-text">'
+        + '<div class="home-dash-row-poster">' + (s.kp_id ? ('<img src="' + escapeHtml(posterUrl(s.kp_id)) + '" alt="" loading="lazy">') : '<span>📺</span>') + '</div>'
+        + '<div class="home-dash-row-main">'
         + '<div class="home-dash-row-title">' + escapeHtml(s.title || '') + '</div>'
-        + '<div class="home-dash-row-meta">' + escapeHtml(s.progress || 'Сериал') + '</div></div></div>').join('');
+        + '<div class="home-dash-row-meta">' + escapeHtml(s.progress || 'Сериал') + '</div>'
+        + '</div></div></div>').join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
 
@@ -923,23 +931,28 @@
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">Скорых премьер в этом месяце не найдено.</p><div class="plans-empty-actions">'
-          + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Раздел «Премьеры»</button> '
-          + '<a href="' + BOT_PREMIERES_LINK + '" class="btn btn-small btn-secondary" target="_blank" rel="noopener">В боте</a>'
+          + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Открыть «Премьеры»</button>'
           + '</div></div></section>';
       }
       const rows = items.map((it) => {
         const fid = it.already_in_base_film_id;
         const kp = it.kp_id;
+        const poster = it.poster || posterUrl(kp);
         const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || '');
         if (fid) {
           return '<div class="home-dash-row film-card-v2" data-film-id="' + fid + '"><div class="home-dash-row-text">'
+            + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
+            + '<div class="home-dash-row-main">'
             + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
-            + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + '</div></div></div>';
+            + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + '</div>'
+            + '</div></div></div>';
         }
         const kpStr = kp != null ? String(kp) : '';
         return '<div class="home-dash-row home-dash-row--premiere"><div class="home-dash-row-text">'
+          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
+          + '<div class="home-dash-row-main">'
           + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + (kpStr ? ' · <a href="https://www.kinopoisk.ru/film/' + escapeHtml(kpStr) + '/" target="_blank" rel="noopener">Кинопоиск</a>' : '')
+          + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel)
           + '</div></div><button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">В премьерах</button></div>';
       }).join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
@@ -1154,6 +1167,36 @@
     });
   }
 
+  function bindHomeQuickActionsOnce() {
+    const wrap = document.getElementById('home-quick-actions');
+    if (!wrap || wrap._mpBound) return;
+    wrap._mpBound = true;
+    wrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-home-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-home-action');
+      if (action === 'shazam') {
+        const block = document.getElementById('home-shazam-block');
+        if (block) block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (action === 'voice') {
+        const mic = document.getElementById('header-search-mic');
+        if (mic) {
+          if (window.scrollY > 10) window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => { mic.click(); }, 120);
+        }
+        return;
+      }
+      if (action === 'random') {
+        showSection('whattowatch');
+        setTimeout(() => {
+          if (typeof runSiteRandomMode === 'function') runSiteRandomMode('my_unwatched');
+        }, 80);
+      }
+    });
+  }
+
   function _getPlansListForView() {
     const d = _plansData;
     if (_plansViewFilter === 'home') return _sortPlansByTime(d.home);
@@ -1193,30 +1236,26 @@
   function _plansEmptyMessage() {
     if (_plansViewFilter === 'home') {
       let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
-      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> ';
-      html += '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> ';
-      html += '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> ';
-      html += '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a>';
-      if (cabinetHasData) html += ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный</a>';
+      html += '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> ';
+      html += '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> ';
+      html += '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button> ';
+      html += '<button type="button" class="btn btn-small btn-secondary" data-goto-plans="all">Все планы</button>';
       html += '</div>';
       return html;
     }
     if (_plansViewFilter === 'cinema') {
       return '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions">'
-        + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> '
-        + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> '
-        + '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> '
-        + '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a></div>';
+        + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button></div>';
     }
     if (_plansViewFilter === 'premieres') {
-      return '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите у фильма на экране «Премьеры» или в боте.</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button> <a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🤖 В боте</a></div>';
+      return '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите напоминание на экране «Премьеры».</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button></div>';
     }
     return '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
-      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-primary">Запланировать просмотр</a> '
-      + '<a href="' + BOT_SEARCH_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🔍 Найти фильмы</a> '
-      + '<a href="' + BOT_PREMIERES_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">📆 Премьеры</a> '
-      + '<a href="' + BOT_SCHEDULE_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">Расписание в Telegram</a>'
-      + (cabinetHasData ? ' <a href="' + BOT_RANDOM_LINK + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary">🎲 Случайный</a>' : '')
+      + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+      + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
+      + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button>'
       + '</div>';
   }
 
@@ -1255,6 +1294,43 @@
     if (window._mpPlansGoto) return;
     window._mpPlansGoto = true;
     document.addEventListener('click', (e) => {
+      const act = e.target.closest('[data-plans-action]');
+      if (act) {
+        e.preventDefault();
+        const action = act.getAttribute('data-plans-action');
+        if (action === 'open-add-film') {
+          openAddFilmModal();
+          return;
+        }
+        if (action === 'show-premieres') {
+          showSection('premieres');
+          if (typeof renderPremieresSection === 'function') renderPremieresSection(true);
+          return;
+        }
+        if (action === 'show-all') {
+          showSection('plans');
+          _plansViewFilter = 'all';
+          renderPlansList();
+          return;
+        }
+      }
+      const goPlans = e.target.closest('[data-goto-plans]');
+      if (goPlans) {
+        e.preventDefault();
+        const filter = goPlans.getAttribute('data-goto-plans') || 'all';
+        showSection('plans');
+        _plansViewFilter = filter;
+        const tabs = document.getElementById('plans-filter-tabs');
+        if (tabs) {
+          tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
+            const on = b.getAttribute('data-plans-filter') === filter;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+        }
+        renderPlansList();
+        return;
+      }
       const t = e.target.closest('[data-plans-goto]');
       if (!t) return;
       e.preventDefault();
@@ -2937,13 +3013,7 @@
 
   // Маленький прозрачный треугольник в углу постера — быстрый переход в Telegram.
   function buildFilmTelegramTriangle(link) {
-    if (!link) return '';
-    return (
-      `<a href="${link}" target="_blank" rel="noopener" class="film-card-tg-triangle" ` +
-      `title="Открыть в Telegram" aria-label="Открыть в Telegram">` +
-      `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M9.04 15.54 8.9 19.4c.28 0 .4-.12.55-.27l1.33-1.27 2.76 2.02c.51.28.87.13 1-.47L20.9 4.9c.18-.79-.28-1.1-.82-.9L3.5 10.56c-.78.3-.77.74-.13.94l4.1 1.28 9.52-6c.45-.3.86-.13.52.18"/></svg>` +
-      `</a>`
-    );
+    return '';
   }
 
   // Кнопка со звёздочкой в углу постера — быстрая оценка фильма.
@@ -2972,8 +3042,9 @@
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
 
     const planItems = [
-      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_home_${kp}" target="_blank" rel="noopener">🏠 Дома</a>`,
-      `<a class="action-dropdown-item" href="${BOT_LINK}?start=plan_cinema_${kp}" target="_blank" rel="noopener">🎥 В кино</a>`,
+      `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
+      `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>`,
+      `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
 
     const watchItems = [];
@@ -4566,18 +4637,42 @@
         const title = f.title || '—';
         const y = f.year ? f.year : '';
         const g = f.genres || '';
+        const poster = f.poster || posterUrl(f.kp_id);
         if (f.film_id) {
           setWhatchtwatchResult(
-            '<div class="whattowatch-result"><p><b>' + escapeHtml(title) + '</b> ' + escapeHtml(y) + '</p><p class="cabinet-hint">'
+            '<div class="whattowatch-result-card">'
+            + '<div class="whattowatch-result-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<span>🎬</span>') + '</div>'
+            + '<div class="whattowatch-result-body"><p><b>' + escapeHtml(title) + '</b> ' + escapeHtml(y) + '</p><p class="cabinet-hint">'
             + escapeHtml(g) + '</p><button type="button" class="btn btn-primary" id="wtw-open">Открыть карточку</button> '
-            + '<button type="button" class="btn btn-secondary" id="wtw-again">🎲 Ещё</button></div>',
+            + '<button type="button" class="btn btn-secondary" id="wtw-again">🎲 Ещё</button></div></div>',
           );
           const o = document.getElementById('wtw-open');
           const a = document.getElementById('wtw-again');
           if (o) o.addEventListener('click', () => openFilmModal(Number(f.film_id)));
           if (a) a.addEventListener('click', () => runSiteRandomMode(mode));
         } else {
-          setWhatchtwatchResult('<div class="cabinet-hint">Найден «' + escapeHtml(title) + '». Добавьте через поиск в Telegram. kp: ' + escapeHtml(String(f.kp_id)) + '</div>');
+          setWhatchtwatchResult('<div class="cabinet-hint">Найден «' + escapeHtml(title) + '». Добавьте в базу через кнопку ниже.</div><button type="button" class="btn btn-primary" id="wtw-add-kp">Добавить в базу</button>');
+          const addBtn = document.getElementById('wtw-add-kp');
+          if (addBtn) {
+            addBtn.addEventListener('click', () => {
+              addBtn.disabled = true;
+              addBtn.textContent = 'Добавляем…';
+              api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: f.kp_id }) })
+                .then((r) => {
+                  if (r && r.success) {
+                    addBtn.textContent = 'Добавлено';
+                    if (typeof loadUnwatched === 'function') loadUnwatched();
+                  } else {
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Добавить в базу';
+                  }
+                })
+                .catch(() => {
+                  addBtn.disabled = false;
+                  addBtn.textContent = 'Добавить в базу';
+                });
+            });
+          }
         }
       })
       .catch(() => { setWhatchtwatchResult('<p class="cabinet-hint">Ошибка сети</p>'); });
@@ -4591,7 +4686,7 @@
         return `<button type="button" class="whattowatch-mode-btn" data-wtw-nav="${m.target}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
       }
       if (m.kind === 'wizard') {
-        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">На сайте: откройте миниапп / приложение для полного мастера, или введите фильтры в поиске.</div></div></button>`;
+        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">Пошаговый опросник на сайте: жанры, годы, рейтинги, тип и настроение.</div></div></button>`;
       }
       return `<button type="button" class="whattowatch-mode-btn" data-wtw-mode="${m.id}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
     }).join('');
@@ -4605,6 +4700,132 @@
         if (t) { showSection(t); if (t === 'premieres' && renderPremieresSection) renderPremieresSection(true); }
       });
     });
+    root.querySelectorAll('[data-wtw-wizard]').forEach((b) => {
+      b.addEventListener('click', () => {
+        renderWhattowatchWizard();
+      });
+    });
+  }
+
+  function renderWhattowatchWizard() {
+    const root = document.getElementById('whattowatch-result');
+    if (!root) return;
+    const genres = [
+      { id: 'comedy', label: 'Комедия' },
+      { id: 'drama', label: 'Драма' },
+      { id: 'thriller', label: 'Триллер' },
+      { id: 'fantasy', label: 'Фэнтези' },
+      { id: 'action', label: 'Экшен' },
+      { id: 'detective', label: 'Детектив' },
+      { id: 'horror', label: 'Ужасы' },
+      { id: 'sci_fi', label: 'Фантастика' },
+      { id: 'romance', label: 'Романтика' },
+      { id: 'adventure', label: 'Приключения' },
+    ];
+    root.innerHTML = '<form id="wtw-wizard-form" class="wtw-wizard">' +
+      '<div class="wtw-wizard-title">Опросник подбора</div>' +
+      '<div class="wtw-wizard-grid">' +
+      '<label>Ключевые слова<input type="text" id="wtw-q" placeholder="например: космос, выживание, семья"></label>' +
+      '<label>Год от<input type="number" id="wtw-year-from" min="1900" max="2100" placeholder="2000"></label>' +
+      '<label>Год до<input type="number" id="wtw-year-to" min="1900" max="2100" placeholder="2026"></label>' +
+      '<label>Рейтинг от<input type="number" id="wtw-rating-from" min="1" max="10" step="0.1" placeholder="7"></label>' +
+      '<label>Тип<select id="wtw-type"><option value="">Любой</option><option value="films">Фильмы</option><option value="series">Сериалы</option></select></label>' +
+      '<label>Где смотреть<select id="wtw-source"><option value="">Любой источник</option><option value="my_base">Из моей базы</option><option value="kinopoisk">По Кинопоиску</option></select></label>' +
+      '</div>' +
+      '<div class="wtw-wizard-genres">' + genres.map((g) => '<label><input type="checkbox" value="' + g.id + '"> ' + g.label + '</label>').join('') + '</div>' +
+      '<div class="wtw-wizard-actions"><button type="submit" class="btn btn-primary">Подобрать</button><button type="button" class="btn btn-secondary" id="wtw-wizard-back">Назад</button></div>' +
+      '</form>';
+
+    const back = document.getElementById('wtw-wizard-back');
+    if (back) back.addEventListener('click', () => { renderWhattowatchSection(); });
+    const form = document.getElementById('wtw-wizard-form');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const selectedGenres = [];
+      form.querySelectorAll('.wtw-wizard-genres input[type="checkbox"]:checked').forEach((cb) => selectedGenres.push(cb.value));
+      const payload = {
+        mode: 'wizard',
+        query: (document.getElementById('wtw-q') && document.getElementById('wtw-q').value || '').trim(),
+        genres: selectedGenres,
+        year_from: Number((document.getElementById('wtw-year-from') && document.getElementById('wtw-year-from').value) || 0) || null,
+        year_to: Number((document.getElementById('wtw-year-to') && document.getElementById('wtw-year-to').value) || 0) || null,
+        rating_from: Number((document.getElementById('wtw-rating-from') && document.getElementById('wtw-rating-from').value) || 0) || null,
+        type: (document.getElementById('wtw-type') && document.getElementById('wtw-type').value) || '',
+        source: (document.getElementById('wtw-source') && document.getElementById('wtw-source').value) || '',
+      };
+      runSiteWizardMode(payload);
+    });
+  }
+
+  function renderWizardCards(items) {
+    if (!items.length) {
+      return '<div class="cabinet-hint">Ничего не найдено. Измените фильтры и попробуйте снова.</div>';
+    }
+    return '<div class="wtw-cards">' + items.map((f) => {
+      const poster = f.poster || posterUrl(f.kp_id);
+      const year = f.year ? String(f.year) : '';
+      const genres = f.genres || '';
+      const filmId = f.film_id ? String(f.film_id) : '';
+      const cardAction = filmId
+        ? '<button type="button" class="btn btn-small btn-primary" data-wtw-open-film="' + escapeHtml(filmId) + '">Открыть</button>'
+        : '<button type="button" class="btn btn-small btn-secondary" data-wtw-add-kp="' + escapeHtml(String(f.kp_id || '')) + '">Добавить в базу</button>';
+      return '<div class="wtw-card">' +
+        '<div class="wtw-card-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<span>🎬</span>') + '</div>' +
+        '<div class="wtw-card-body">' +
+        '<div class="wtw-card-title">' + escapeHtml(f.title || 'Без названия') + '</div>' +
+        '<div class="wtw-card-meta">' + escapeHtml([year, genres].filter(Boolean).join(' · ')) + '</div>' +
+        '<div class="wtw-card-actions">' + cardAction + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+
+  function runSiteWizardMode(payload) {
+    const root = document.getElementById('whattowatch-result');
+    if (!root) return;
+    root.innerHTML = '<div class="cabinet-hint">Подбираем по фильтрам…</div>';
+    api('/api/miniapp/random', { method: 'POST', body: JSON.stringify(payload) })
+      .then((data) => {
+        const list = [];
+        if (data && Array.isArray(data.items)) {
+          list.push.apply(list, data.items);
+        } else if (data && data.film) {
+          list.push(data.film);
+        }
+        root.innerHTML = '<div class="wtw-wizard-actions"><button type="button" class="btn btn-secondary" id="wtw-wizard-edit">Изменить фильтры</button></div>' + renderWizardCards(list);
+        const edit = document.getElementById('wtw-wizard-edit');
+        if (edit) edit.addEventListener('click', () => renderWhattowatchWizard());
+        root.querySelectorAll('[data-wtw-open-film]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-wtw-open-film');
+            if (id) openFilmModal(Number(id));
+          });
+        });
+        root.querySelectorAll('[data-wtw-add-kp]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const kp = btn.getAttribute('data-wtw-add-kp');
+            if (!kp) return;
+            btn.disabled = true;
+            btn.textContent = 'Добавляем…';
+            api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+              .then((r) => {
+                if (r && r.success) {
+                  btn.textContent = 'Добавлено';
+                  if (typeof loadUnwatched === 'function') loadUnwatched();
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = 'Добавить в базу';
+                }
+              })
+              .catch(() => {
+                btn.disabled = false;
+                btn.textContent = 'Добавить в базу';
+              });
+          });
+        });
+      })
+      .catch(() => {
+        root.innerHTML = '<div class="cabinet-hint">Ошибка сети. Попробуйте ещё раз.</div>';
+      });
   }
 
   function renderSettingsSection() {
@@ -4616,16 +4837,15 @@
       const sub = d && d.subscription;
       const name = (u && (u.first_name || u.username)) ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username : 'Профиль';
       root.innerHTML = `
-        <p class="cabinet-hint">Профиль Telegram и подписка синхронизированы с ботом. Уведомления в Telegram — в боте / настройки.</p>
+        <p class="cabinet-hint">Настройки аккаунта, главной страницы и устройств для просмотра.</p>
         <div class="settings-block"><div class="header-dropdown-title" style="margin-top:0">Профиль</div>
         <p><b>${escapeHtml(name || '')}</b> ${u && u.username ? ' · @' + escapeHtml(u.username) : ''}</p>
-        ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим — <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">оформить в боте</a></p>'}
+        ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим</p>'}
         </div>
         <div class="settings-block settings-list">
-        <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener" class="settings-row">Команды бота</a>
+        <button type="button" class="settings-row" data-sets-go="home-layout">🏠 Настроить главную</button>
         <button type="button" class="settings-row" data-sets-go="tv">📺 Телевизор</button>
         <button type="button" class="settings-row" data-sets-go="groups">Друзья и группы</button>
-        <button type="button" class="settings-row" data-sets-go="import">Импорт оценок с Кинопоиска (через бот)</button>
         <a href="#" class="settings-row" id="settings-app-apk" target="_blank" rel="noopener">Скачать Android-приложение (APK)</a>
         </div>
         <div class="settings-block" id="settings-toggles">Загрузка уведомлений…</div>`;
@@ -4645,12 +4865,12 @@
       root.querySelectorAll('[data-sets-go]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const g = btn.getAttribute('data-sets-go');
+          if (g === 'home-layout') { openHomeLayoutModal(); return; }
           if (g === 'tv') { showSection('tv'); if (renderTvSection) renderTvSection(); }
           if (g === 'groups') { showSection('groups'); if (renderGroupsSection) renderGroupsSection(); }
-          if (g === 'import') { window.open('https://t.me/movie_planner_bot?start=import', '_blank', 'noopener'); }
         });
       });
-    }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Откройте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">бота</a> для настроек.</p>'; });
+    }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
   }
 
   // ————————————————————————————————————————————————————
@@ -5406,6 +5626,7 @@
     bindHomeSectionNavOnce();
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
+    bindHomeQuickActionsOnce();
     const filmBack = document.getElementById('film-page-back');
     if (filmBack) {
       filmBack.addEventListener('click', (e) => {
