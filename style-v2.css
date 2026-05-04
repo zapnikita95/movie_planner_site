@@ -1377,6 +1377,28 @@ body.in-public-stats .footer-extension-cabinet {
   margin-top: auto;
 }
 
+/* Кабинет: шаринг события в паблик (POST /api/site/plans/:id/share → /p/<token>) */
+.plan-card-share-row {
+  margin: 10px 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.plan-card-share-btn {
+  font-size: 13px !important;
+  padding: 8px 14px !important;
+  border: 1px solid rgba(255, 181, 71, 0.45) !important;
+  color: #ffb347 !important;
+  background: rgba(255, 181, 71, 0.1) !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  font-weight: 600;
+}
+.plan-card-share-btn:hover {
+  background: rgba(255, 181, 71, 0.18) !important;
+  border-color: #ffb347 !important;
+}
+
 .plan-card-buttons .btn-small,
 .plan-card-buttons .btn-sm {
   padding: 8px 16px;

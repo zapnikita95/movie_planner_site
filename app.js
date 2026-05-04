@@ -1216,6 +1216,44 @@
     return _sortPlansByTime((d.home || []).concat(d.cinema || []).concat(d.premieres || []));
   }
 
+  function shareCabinetPlanLink(planId) {
+    const pid = parseInt(planId, 10);
+    if (!pid || Number.isNaN(pid)) return;
+    if (!getToken()) {
+      showToast('Войдите в кабинет', { type: 'error' });
+      return;
+    }
+    showToast('Готовим ссылку на событие…', { duration: 1600 });
+    api('/api/site/plans/' + pid + '/share', { method: 'POST', body: JSON.stringify({}) })
+      .then(function (res) {
+        if (!res || res.success === false || !res.share_url) {
+          const err = (res && (res.error || res.message)) || 'Не удалось создать ссылку';
+          showToast(err, { type: 'error' });
+          return;
+        }
+        const url = res.share_url;
+        const line = '🎬 Событие в Movie Planner — присоединяйтесь к просмотру';
+        if (navigator.share) {
+          navigator.share({ title: line, text: line + '\n' + url, url: url }).catch(function () {
+            copyToClipboard(url + '\n' + line).then(function () {
+              showToast('📋 Ссылка скопирована — вставьте в паблик или чат');
+            }).catch(function () {
+              showToast(url);
+            });
+          });
+        } else {
+          copyToClipboard(url + '\n' + line).then(function () {
+            showToast('📋 Ссылка для паблика скопирована');
+          }).catch(function () {
+            showToast(url);
+          });
+        }
+      })
+      .catch(function () {
+        showToast('Не удалось создать ссылку', { type: 'error' });
+      });
+  }
+
   function _renderPlanCard(p) {
     const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
     const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
@@ -1224,6 +1262,10 @@
     const link = filmDeepLink(p.film_id, p.kp_id, p.is_series);
     const poster = posterUrl(p.kp_id);
     const titleSafe = escapeHtml(p.title || '');
+    const planId = p.id != null ? String(p.id) : '';
+    const shareRow = planId
+      ? '<div class="plan-card-share-row"><button type="button" class="btn btn-small plan-card-share-btn" data-plan-share-id="' + escapeHtml(planId) + '" title="Публичная страница с датой, группой, вступлением и календарём">↗ Поделиться событием</button></div>'
+      : '';
     return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
             <div class="film-card-v2-poster">
@@ -1239,6 +1281,7 @@
                 <span class="plan-type">${typeLabel}</span>
               </div>
               <div class="film-card-v2-title">${titleSafe}</div>
+              ${shareRow}
               ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
             </div>
           </div>`;
@@ -1305,6 +1348,14 @@
     if (window._mpPlansGoto) return;
     window._mpPlansGoto = true;
     document.addEventListener('click', (e) => {
+      const sharePlanEl = e.target.closest('[data-plan-share-id]');
+      if (sharePlanEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        const sid = sharePlanEl.getAttribute('data-plan-share-id');
+        if (sid) shareCabinetPlanLink(sid);
+        return;
+      }
       const act = e.target.closest('[data-plans-action]');
       if (act) {
         e.preventDefault();
