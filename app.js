@@ -947,13 +947,13 @@
             + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + '</div>'
             + '</div></div></div>';
         }
-        const kpStr = kp != null ? String(kp) : '';
         return '<div class="home-dash-row home-dash-row--premiere"><div class="home-dash-row-text">'
           + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
           + '<div class="home-dash-row-main">'
           + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
           + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel)
-          + '</div></div><button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">В премьерах</button></div>';
+          + '</div></div></div>'
+          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">В премьерах</button></div>';
       }).join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }

@@ -3790,6 +3790,9 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
 }
 .home-dash-head {
   display: flex;
@@ -4097,7 +4100,10 @@ a.header-settings-nav-item {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
   }
+  .home-dash-block { height: 100%; }
 }
 
 /* Plans toolbar and empty actions: no overlap */
