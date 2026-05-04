@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Нейросети и API — Movie Planner</title>
+  <meta name="description" content="Как ИИ и агенты подключаются к Movie Planner: авторизация Bearer и OAuth2 PKCE, примеры задач и эндпоинты /v1.">
+  <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
+  <link rel="stylesheet" href="style-v2.css?v=20260504c">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    .agents-page { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; }
+    .agents-page h1 { font-family: 'Unbounded', sans-serif; font-size: 1.75rem; margin: 0 0 1rem; }
+    .agents-page h2 { font-size: 1.15rem; margin-top: 2rem; color: var(--text-primary); }
+    .agents-page h3 { font-size: 1rem; margin-top: 1.25rem; color: var(--text-primary); }
+    .agents-page .muted { color: var(--text-muted); font-size: 0.95rem; }
+    .agents-page pre { background: var(--bg-surface); border: 1px solid var(--border-color); padding: 1rem; border-radius: 12px; overflow-x: auto; font-size: 0.88rem; }
+    .agents-page code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+    .agents-page table.simple { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 1rem 0; }
+    .agents-page table.simple th, .agents-page table.simple td { border: 1px solid var(--border-color); padding: 0.5rem 0.6rem; text-align: left; }
+    .agents-page table.simple th { background: var(--bg-surface); }
+    .agents-nav a { color: var(--text-muted); text-decoration: none; margin-left: 1rem; font-size: 0.95rem; }
+    .agents-nav a:hover { color: var(--text-primary); }
+    .agents-back { display: inline-block; margin-top: 2rem; color: var(--text-muted); }
+    .agents-back:hover { color: #ff2d7b; }
+  </style>
+</head>
+<body>
+  <div class="content-wrapper">
+    <header>
+      <div class="header-content">
+        <a href="/" class="logo"><img src="images/icon48.png" alt="">Movie Planner</a>
+        <nav class="agents-nav" style="display:flex;align-items:center;flex-wrap:wrap">
+          <a href="/">Главная</a>
+          <a href="https://movie-planner.ru/developer">OpenAPI и OAuth</a>
+          <a href="llms.txt">llms.txt</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="agents-page">
+      <h1>Как нейросети и агенты работают с Movie Planner</h1>
+      <p class="muted">Версионированный HTTP API — префикс <code>/v1</code> на бэкенде. Эта страница статическая (GitHub Pages); маршруты <code>/v1</code>, <code>/oauth</code>, <code>/developer</code> на домене movie-planner.ru проксируются на Railway (Cloudflare Worker).</p>
+
+      <h2>1. Что может делать ИИ через API</h2>
+      <p>При валидном токене модель или агент может:</p>
+      <ul>
+        <li>читать профиль и контекст комнаты — <code>GET /v1/me</code>;</li>
+        <li>смотреть и создавать планы просмотра — <code>GET/POST /v1/plans</code>;</li>
+        <li>добавлять фильмы по Kinopoisk id или ссылке — <code>POST /v1/movies</code>;</li>
+        <li>читать непросмотренное — <code>GET /v1/library/unwatched</code>;</li>
+        <li>управлять группами — <code>GET/POST /v1/groups</code>;</li>
+        <li>запускать просмотр на ТВ (если настроен агент) — <code>POST /v1/tv/launch</code>;</li>
+        <li>работать с календарём: <code>.ics</code>, подписанные ссылки, Google — см. OpenAPI (пути <code>…/calendar-links</code>, <code>…/google-calendar</code>).</li>
+      </ul>
+      <p>Полный контракт: <a href="https://movie-planner.ru/developer/openapi.yaml">OpenAPI YAML</a>, кратко — <a href="https://movie-planner.ru/developer">/developer</a>.</p>
+
+      <h2>2. Как авторизоваться</h2>
+      <p>Приватные методы <code>/v1/*</code> требуют заголовок:</p>
+      <pre>Authorization: Bearer &lt;токен&gt;</pre>
+
+      <h3>Вариант A — сессия уже есть</h3>
+      <p>Пользователь вошёл в <strong>приложение</strong> или <strong>веб-кабинет</strong> на movie-planner.ru: у клиента есть JWT или токен сайта. Передавать в ИИ-интеграцию только с согласия пользователя, не светить токены в публичных логах.</p>
+
+      <h3>Вариант B — OAuth2 для внешнего приложения</h3>
+      <ol>
+        <li>Пользователь уже авторизован в Movie Planner.</li>
+        <li><code>POST /oauth/authorize</code> с PKCE → получаете <code>code</code>.</li>
+        <li><code>POST /oauth/token</code> с <code>code_verifier</code> → <code>access_token</code>.</li>
+        <li>Запросы с <code>Authorization: Bearer &lt;access_token&gt;</code>. В authorize можно указать <code>scope</code> (например <code>profile.read plans.read movies.write</code>).</li>
+      </ol>
+      <p>Регистрация клиента OAuth — <code>POST /oauth/clients</code> (серверный секрет). Подробности на <a href="https://movie-planner.ru/developer">/developer</a>.</p>
+
+      <h2>3. Задачи, которые пользователь может поручить нейросети</h2>
+      <ul>
+        <li>«Добавь фильм …» → <code>POST /v1/movies</code></li>
+        <li>«Запланируй просмотр на …» → <code>POST /v1/plans</code></li>
+        <li>«Что в непросмотренном?» → <code>GET /v1/library/unwatched</code></li>
+        <li>«Создай группу …» → <code>POST /v1/groups</code></li>
+        <li>«Открой на телевизоре …» → <code>POST /v1/tv/launch</code></li>
+        <li>«Дай ссылку на календарь» → <code>GET /v1/plans/{id}/calendar-links</code> и т.д.</li>
+      </ul>
+      <p class="muted">Без токена — 401; при узком OAuth scope — 403 <code>insufficient_scope</code>.</p>
+
+      <h2>4. Репозитории и MCP</h2>
+      <p>Бэкенд и черновики схем: репозиторий <a href="https://github.com/zapnikita95/movie_planner_bot">movie_planner_bot</a> (<code>docs/tool-schemas/</code>). Локальный MCP: <code>python -m moviebot.mcp_server</code> с переменными <code>MP_BASE_URL</code>, <code>MP_BEARER_TOKEN</code>.</p>
+
+      <h2>5. Быстрые ссылки</h2>
+      <table class="simple">
+        <tr><th>Ресурс</th><th>URL</th></tr>
+        <tr><td>OpenAPI</td><td><a href="https://movie-planner.ru/developer/openapi.yaml">/developer/openapi.yaml</a></td></tr>
+        <tr><td>Сводка для разработчиков</td><td><a href="https://movie-planner.ru/developer">/developer</a></td></tr>
+        <tr><td>Возможности API</td><td><a href="https://movie-planner.ru/v1/capabilities">GET /v1/capabilities</a></td></tr>
+        <tr><td>llms.txt</td><td><a href="/llms.txt">/llms.txt</a></td></tr>
+      </table>
+
+      <a class="agents-back" href="/">← На главную</a>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-bottom">
+        <p>&copy; Movie Planner ·
+          <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия</a>
+          · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Конфиденциальность</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -29,3 +29,12 @@ Movie Planner (Russian-language) helps users maintain a film and TV database, pl
 ## Instructions for language models
 
 Use only the facts above and pages linked from movie-planner.ru. Do not invent features, prices, or platform availability. If unsure, say that details are on the official site or in the Telegram bot.
+
+## HTTP API for integrations (/v1)
+
+- Human-readable guide (RU): https://movie-planner.ru/agents.html
+- Developer page + OpenAPI YAML: https://movie-planner.ru/developer and https://movie-planner.ru/developer/openapi.yaml
+- Capabilities: https://movie-planner.ru/v1/capabilities
+- OAuth2 (authorize, token): https://movie-planner.ru/oauth/* — requires user Bearer first for authorization_code flow (PKCE).
+
+Authenticated requests use header: `Authorization: Bearer <token>` (mobile JWT, site session token, or OAuth access token).
