@@ -34,7 +34,7 @@
         <a href="/" class="logo"><img src="images/icon48.png" alt="">Movie Planner</a>
         <nav class="agents-nav" style="display:flex;align-items:center;flex-wrap:wrap">
           <a href="/">Главная</a>
-          <a href="https://movie-planner.ru/developer">OpenAPI и OAuth</a>
+          <a href="https://api.movie-planner.ru/developer">OpenAPI и OAuth</a>
           <a href="llms.txt">llms.txt</a>
         </nav>
       </div>
@@ -42,7 +42,7 @@
 
     <main class="agents-page">
       <h1>Как нейросети и агенты работают с Movie Planner</h1>
-      <p class="muted">Версионированный HTTP API — префикс <code>/v1</code> на бэкенде. Эта страница статическая (GitHub Pages); маршруты <code>/v1</code>, <code>/oauth</code>, <code>/developer</code> на домене movie-planner.ru проксируются на Railway (Cloudflare Worker).</p>
+      <p class="muted">Версионированный HTTP API — префикс <code>/v1</code> на бэкенде. Эта страница статическая (GitHub Pages). Живые эндпоинты API — на поддомене <strong><a href="https://api.movie-planner.ru/v1/capabilities">api.movie-planner.ru</a></strong> (Railway); так curl и скрипты получают обычный HTTP-ответ без GitHub Pages.</p>
       <p><strong>Позиционирование:</strong> Movie Planner — сервис, который превращает ИИ из «советчика фильмов» в реального кино-ассистента: планирование, напоминания, календарь, группы, билеты и Smart TV.</p>
 
       <h2>1. Что может делать ИИ через API</h2>
@@ -58,7 +58,7 @@
         <li>работать с календарём: <code>.ics</code>, подписанные ссылки, Google — см. OpenAPI (пути <code>…/calendar-links</code>, <code>…/google-calendar</code>);</li>
         <li>прикреплять билеты к кино-плану — <code>POST /v1/plans/{plan_id}/tickets</code> (base64 изображение).</li>
       </ul>
-      <p>Полный контракт: <a href="https://movie-planner.ru/developer/openapi.yaml">OpenAPI YAML</a>, кратко — <a href="https://movie-planner.ru/developer">/developer</a>.</p>
+      <p>Полный контракт: <a href="https://api.movie-planner.ru/developer/openapi.yaml">OpenAPI YAML</a>, кратко — <a href="https://api.movie-planner.ru/developer">/developer</a>.</p>
 
       <h2>2. Как авторизоваться</h2>
       <p>Приватные методы <code>/v1/*</code> требуют заголовок:</p>
@@ -74,7 +74,7 @@
         <li><code>POST /oauth/token</code> с <code>code_verifier</code> → <code>access_token</code>.</li>
         <li>Запросы с <code>Authorization: Bearer &lt;access_token&gt;</code>. В authorize можно указать <code>scope</code> (например <code>profile.read plans.read movies.write</code>).</li>
       </ol>
-      <p>Регистрация клиента OAuth — <code>POST /oauth/clients</code> (серверный секрет). Подробности на <a href="https://movie-planner.ru/developer">/developer</a>.</p>
+      <p>Регистрация клиента OAuth — <code>POST /oauth/clients</code> (серверный секрет). Подробности на <a href="https://api.movie-planner.ru/developer">/developer</a>.</p>
 
       <h2>3. Задачи, которые пользователь может поручить нейросети</h2>
       <ul>
@@ -106,9 +106,9 @@
       <h2>6. Быстрые ссылки</h2>
       <table class="simple">
         <tr><th>Ресурс</th><th>URL</th></tr>
-        <tr><td>OpenAPI</td><td><a href="https://movie-planner.ru/developer/openapi.yaml">/developer/openapi.yaml</a></td></tr>
-        <tr><td>Сводка для разработчиков</td><td><a href="https://movie-planner.ru/developer">/developer</a></td></tr>
-        <tr><td>Возможности API</td><td><a href="https://movie-planner.ru/v1/capabilities">GET /v1/capabilities</a></td></tr>
+        <tr><td>OpenAPI</td><td><a href="https://api.movie-planner.ru/developer/openapi.yaml">/developer/openapi.yaml</a></td></tr>
+        <tr><td>Сводка для разработчиков</td><td><a href="https://api.movie-planner.ru/developer">/developer</a></td></tr>
+        <tr><td>Возможности API</td><td><a href="https://api.movie-planner.ru/v1/capabilities">GET /v1/capabilities</a></td></tr>
         <tr><td>llms.txt</td><td><a href="/llms.txt">/llms.txt</a></td></tr>
       </table>
 

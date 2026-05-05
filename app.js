@@ -1,11 +1,19 @@
 /**
  * Movie Planner — личный кабинет на сайте
- * API: https://web-production-3921c.up.railway.app
+ * Прод: API на поддомене Railway (без GitHub Pages → без ложного 404 для curl).
  */
 (function () {
   'use strict';
 
-  const API_BASE = 'https://web-production-3921c.up.railway.app';
+  const API_BASE = (function () {
+    try {
+      var h = window.location.hostname || '';
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
+        return 'https://api.movie-planner.ru';
+      }
+    } catch (e) {}
+    return 'https://web-production-3921c.up.railway.app';
+  })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
   const BOT_CODE_LINK = 'https://t.me/movie_planner_bot?start=code';
@@ -64,12 +72,12 @@
 
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
-  /** Публичный base URL API для интеграций: на movie-planner.ru — тот же origin, иначе прямой бэкенд. */
+  /** Публичный base URL для Bearer/curl (совпадает с API_BASE на проде). */
   function getPublicApiBase() {
     try {
       const h = window.location.hostname;
       if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return window.location.origin;
+        return 'https://api.movie-planner.ru';
       }
     } catch (_) {}
     return API_BASE;
@@ -4912,8 +4920,8 @@
         <p class="muted small" style="margin-bottom:8px">Адрес API: <code id="settings-api-base" style="font-size:12px"></code></p>
         <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
         <button type="button" class="settings-row" id="settings-copy-api-token">🔑 Скопировать токен</button>
-        <a href="/developer" class="settings-row" rel="noopener">Документация и OAuth</a>
-        <a href="/integration" class="settings-row" rel="noopener">Страница токена (как в браузере)</a>
+        <a href="${API_BASE}/developer" class="settings-row" rel="noopener">Документация и OAuth</a>
+        <a href="${API_BASE}/integration" class="settings-row" rel="noopener">Страница токена (как в браузере)</a>
         </div>
         <p class="muted small" id="settings-api-token-hint" style="margin-top:8px"></p>
         </div>

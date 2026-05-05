@@ -6,33 +6,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <script>
-    // 1) Если домен смотрит напрямую на GitHub Pages (без Cloudflare Worker),
-    //    запросы к API / miniapp / oauth попадают сюда как 404 — перебрасываем на Railway.
-    //    BACKEND_ORIGIN совпадает с дефолтом Worker и movie_planner_site/app.js API_BASE.
-    // 2) Иначе SPA shim: неизвестные пути → /?__spa=… (лендинг + клиентский роутинг).
+    // SPA shim для GitHub Pages: неизвестные пути → /?__spa=…
+    // API и бэкенд — на https://api.movie-planner.ru (см. docs/DNS_RUSSIA_WITHOUT_CLOUDFLARE.md).
     (function () {
       var loc = window.location;
-      var p = loc.pathname || '';
-      var BACKEND_ORIGIN = 'https://web-production-3921c.up.railway.app'.replace(/\/$/, '');
-      function shouldProxyToBackend(path) {
-        if (path === '/webhook' || path === '/health' || path === '/integration' || path === '/download' || path === '/app' || path === '/tv') return true;
-        if (path.indexOf('/cast') === 0) return true;
-        if (path.indexOf('/api/') === 0) return true;
-        if (path === '/v1' || path.indexOf('/v1/') === 0) return true;
-        if (path === '/oauth' || path.indexOf('/oauth/') === 0) return true;
-        if (path === '/developer' || path.indexOf('/developer/') === 0) return true;
-        if (path.indexOf('/miniapp') === 0) return true;
-        if (path.indexOf('/share/') === 0) return true;
-        if (path.indexOf('/i/') === 0) return true;
-        if (path.indexOf('/p/') === 0) return true;
-        if (path.indexOf('/yookassa') === 0) return true;
-        return false;
-      }
-      if (shouldProxyToBackend(p)) {
-        loc.replace(BACKEND_ORIGIN + p + loc.search + loc.hash);
-        return;
-      }
-      var target = p + loc.search + loc.hash;
+      var target = loc.pathname + loc.search + loc.hash;
       loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
     })();
   </script>
