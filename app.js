@@ -586,7 +586,7 @@
           const resp = await fetch(API_BASE + '/api/auth/email/request-code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, accept_privacy: true }),
           });
           const data = await resp.json().catch(() => ({}));
           if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
