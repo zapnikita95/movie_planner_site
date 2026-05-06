@@ -4070,6 +4070,18 @@ a.header-settings-nav-item {
   padding: 0;
 }
 
+/* Карточки главной — это <section.home-dash-block>. Глобальный `section {}` для лендинга задаёт
+   max-width: 1200px и margin: auto на КАЖДЫЙ section → ломается выравнивание и ширина колонок.
+   У grid-элементов по умолчанию min-width: auto → длинный контент раздувает колонку. */
+#home-dashboard-root > section.home-dash-block {
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
 /* Home quick actions: big + centered */
 .home-quick-actions {
   justify-content: center;
@@ -4145,10 +4157,13 @@ a.header-settings-nav-item {
     gap: 16px 18px;
     align-items: stretch;
     align-content: start;
+    width: 100%;
+    min-width: 0;
   }
   #section-home .home-dashboard-root .home-dash-block {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     min-height: clamp(220px, 26vh, 340px);
     max-height: min(520px, calc(42vh - 28px));
     overflow: hidden;
@@ -4170,6 +4185,18 @@ a.header-settings-nav-item {
     justify-content: center;
     min-height: 0;
     gap: 10px;
+  }
+  /* Строка премьеры: одна колонка (текст | кнопка вертикально) — иначе колонка «auto» + min-width кнопки ломает 1fr */
+  #section-home .home-dash-row--premiere {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+    align-items: stretch;
+  }
+  #section-home .home-dash-row--premiere .btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    justify-self: stretch;
   }
 }
 
