@@ -232,6 +232,7 @@
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки на сайте</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
@@ -272,6 +273,7 @@
         if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); return; }
         if (go === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); return; }
         if (go === 'about') { showSection('about'); return; }
+        if (go === 'developer') { showSection('developer'); return; }
         if (go === 'settings') { showSection('settings'); if (typeof renderSettingsSection === 'function') renderSettingsSection(); }
       });
     });
@@ -372,6 +374,7 @@
     tv: '/tv',
     about: '/about',
     settings: '/settings',
+    developer: '/my-api',
   };
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
 
@@ -471,6 +474,11 @@
       try {
         const ta = document.getElementById('home-shazam-query');
         if (ta) setTimeout(function () { ta.focus(); }, 0);
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'developer') {
+      try {
+        if (typeof renderDeveloperSection === 'function') renderDeveloperSection();
       } catch (_) {}
     }
   }
@@ -4897,6 +4905,69 @@
       });
   }
 
+  /** Копирование Bearer после проверки на сервере (GET /api/site/api-access-token). */
+  function wireApiAccessCopy(copyBtn, hintEl, baseEl) {
+    if (!copyBtn) return;
+    const tok = getToken();
+    if (!tok) {
+      copyBtn.disabled = true;
+      if (hintEl) hintEl.textContent = 'Войдите в кабинет — токен доступен после входа.';
+      return;
+    }
+    copyBtn.disabled = false;
+    if (baseEl) baseEl.textContent = getPublicApiBase();
+    copyBtn.addEventListener('click', () => {
+      fetch(API_BASE + '/api/site/api-access-token', {
+        headers: { Authorization: 'Bearer ' + tok, Accept: 'application/json' },
+      })
+        .then((r) => r.json().catch(() => ({})))
+        .then((j) => {
+          if (!j || !j.success || !j.token) {
+            if (hintEl) hintEl.textContent = (j && j.error) ? String(j.error) : 'Не удалось получить токен. Обновите страницу.';
+            return;
+          }
+          if (baseEl && j.api_base_url) baseEl.textContent = j.api_base_url;
+          return copyToClipboard(j.token)
+            .then(() => { showToast('Токен скопирован'); })
+            .catch(() => { alert('Не удалось скопировать'); });
+        })
+        .catch(() => { alert('Ошибка сети'); });
+    });
+  }
+
+  function renderDeveloperSection() {
+    const root = document.getElementById('developer-content');
+    if (!root) return;
+    root.innerHTML = `
+      <div class="settings-block" id="developer-api-token-block">
+        <div class="header-dropdown-title" style="margin-top:0">Ваш API-ключ</div>
+        <p class="cabinet-hint" style="margin-bottom:10px;line-height:1.45">
+          Это секрет доступа к вашему аккаунту в Movie Planner. В Zapier, Cursor, curl или MCP укажите заголовок
+          <code style="font-size:12px">Authorization: Bearer …</code>
+          и базовый URL ниже (часто совпадает с адресом API в настройках ИИ).
+        </p>
+        <p class="muted small" style="margin-bottom:8px">Базовый URL API: <code id="developer-api-base" style="font-size:12px"></code></p>
+        <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
+          <button type="button" class="settings-row" id="developer-copy-api-token">🔑 Скопировать API-ключ</button>
+          <a href="${API_BASE}/developer" class="settings-row" rel="noopener">Документация, OpenAPI и OAuth</a>
+          <a href="${API_BASE}/integration" class="settings-row" rel="noopener">Запасная страница токена</a>
+        </div>
+        <p class="muted small" id="developer-api-token-hint" style="margin-top:8px"></p>
+      </div>
+      <div class="settings-block">
+        <div class="header-dropdown-title" style="margin-top:0">Проверка</div>
+        <p class="muted small" style="margin-bottom:0">
+          Без ключа: <code style="font-size:11px">GET …/v1/capabilities</code> → 200.
+          С ключом: <code style="font-size:11px">GET …/v1/me</code>.
+        </p>
+      </div>`;
+    wireApiAccessCopy(
+      document.getElementById('developer-copy-api-token'),
+      document.getElementById('developer-api-token-hint'),
+      document.getElementById('developer-api-base'),
+    );
+  }
+
   function renderSettingsSection() {
     const root = document.getElementById('settings-content');
     if (!root) return;
@@ -4912,9 +4983,9 @@
         ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим</p>'}
         </div>
         <div class="settings-block" id="settings-api-token-block">
-        <div class="header-dropdown-title" style="margin-top:0">API и нейросети</div>
+        <div class="header-dropdown-title" style="margin-top:0">Для разработчиков и нейросетей</div>
         <p class="cabinet-hint" style="margin-bottom:10px;line-height:1.45">
-        Тот же секрет, что использует кабинет при запросах к серверу. Укажите в Zapier, Cursor MCP или curl как заголовок
+        Тот же ключ, что использует этот кабинет. Полный экран — вкладка <b>«Нейросети»</b> внизу. Укажите в ИИ или curl заголовок
         <code style="font-size:12px">Authorization: Bearer …</code>. Не публикуйте токен.
         </p>
         <p class="muted small" style="margin-bottom:8px">Адрес API: <code id="settings-api-base" style="font-size:12px"></code></p>
@@ -4956,20 +5027,7 @@
       const baseEl = document.getElementById('settings-api-base');
       const copyBtn = document.getElementById('settings-copy-api-token');
       const hintEl = document.getElementById('settings-api-token-hint');
-      if (baseEl) baseEl.textContent = getPublicApiBase();
-      const curTok = getToken();
-      if (copyBtn) {
-        if (!curTok) {
-          copyBtn.disabled = true;
-          if (hintEl) hintEl.textContent = 'Войдите в кабинет — токен доступен после входа.';
-        } else {
-          copyBtn.addEventListener('click', () => {
-            copyToClipboard(curTok)
-              .then(() => { showToast('Токен скопирован'); })
-              .catch(() => { alert('Не удалось скопировать'); });
-          });
-        }
-      }
+      wireApiAccessCopy(copyBtn, hintEl, baseEl);
     }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
   }
 
