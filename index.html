@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260509homedash">
+    <link rel="stylesheet" href="style-v2.css?v=20260509loginui">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -129,58 +129,48 @@
         <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
         <div class="modal-title">Вход в кабинет</div>
 
-        <!-- OAuth: Google / Яндекс / Telegram Login Widget (бэкенд /api/site/*) -->
-        <div class="login-oauth-block" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08)">
-          <p class="modal-hint" style="margin-top:0">Войти через Google, Яндекс или аккаунт Telegram</p>
-          <label class="login-oauth-privacy" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#aab;margin-bottom:10px;cursor:pointer">
-            <input type="checkbox" id="login-oauth-privacy" style="margin-top:3px;flex-shrink:0"/>
-            <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener" style="color:#e73">политикой конфиденциальности</a> (обязательно для Google и Яндекс; для виджета Telegram тоже)</span>
-          </label>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-            <button type="button" class="modal-button" id="login-oauth-google" disabled style="flex:1;min-width:120px;background:#fff;color:#202124;border:1px solid #dadce0;font-weight:600">Google</button>
-            <button type="button" class="modal-button" id="login-oauth-yandex" disabled style="flex:1;min-width:120px;background:#fc3f1e;border-color:#fc3f1e;color:#fff;font-weight:600">Яндекс</button>
+        <div class="login-methods-grid login-methods-grid--oauth2" role="group" aria-label="Google и Яндекс">
+          <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" disabled title="Google" aria-label="Войти через Google">
+            <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
+            <span class="visually-hidden">Google</span>
+          </button>
+          <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" disabled title="Яндекс" aria-label="Войти через Яндекс">
+            <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
+            <span class="visually-hidden">Яндекс</span>
+          </button>
+        </div>
+
+        <label class="login-oauth-privacy">
+          <input type="checkbox" id="login-oauth-privacy"/>
+          <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+        </label>
+
+        <div class="login-methods-grid login-methods-grid--tg-bot" role="group" aria-label="Telegram и бот">
+          <div id="login-tg-widget-wrap" class="login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram">
+            <div id="login-tg-widget-mount" class="login-tg-widget-mount"></div>
           </div>
-          <div id="login-tg-widget-mount" style="min-height:54px;display:flex;align-items:center;justify-content:center"></div>
-          <p class="modal-hint" style="margin:12px 0 4px;font-size:13px;color:#889">Или код из бота / почта — вкладки ниже.</p>
+          <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" aria-expanded="false" aria-controls="login-bot-panel" title="Код из бота">🤖</button>
         </div>
 
-        <!-- Tabs: Telegram / Email (P4.2) -->
-        <div class="login-tabs" role="tablist" style="display:flex;gap:6px;background:rgba(255,255,255,0.04);padding:4px;border-radius:12px;margin:8px 0 16px">
-          <button type="button" class="login-tab-btn active" data-login-tab="telegram" role="tab" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.08);border:0;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">Telegram</button>
-          <button type="button" class="login-tab-btn" data-login-tab="email" role="tab" style="flex:1;padding:8px 12px;background:transparent;border:0;border-radius:8px;color:#aab;font-weight:600;cursor:pointer">Email</button>
-        </div>
-
-        <!-- Telegram tab -->
-        <div id="login-tab-telegram" class="login-tab-panel">
-          <p class="modal-hint">Получите код авторизации от бота в Telegram, затем введите его ниже</p>
-          <a href="https://t.me/movie_planner_bot?start=code" class="modal-button modal-button-telegram" target="_blank" rel="noopener">Получить код в Telegram</a>
-          <div class="modal-divider"><span>Уже есть код?</span></div>
-          <form id="login-form">
-            <div class="modal-form" style="flex-direction:column;align-items:stretch">
-              <input type="text" id="login-code" name="code" placeholder="000000" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
-              <p class="login-status" id="login-status"></p>
-              <button type="submit" class="modal-button modal-button-primary">Войти</button>
-            </div>
+        <div id="login-bot-panel" class="login-bot-panel hidden">
+          <form id="login-form" class="login-bot-form">
+            <input type="text" id="login-code" name="code" placeholder="Код из бота" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-bot-code-input">
+            <button type="submit" class="modal-button modal-button-primary login-bot-submit">Войти</button>
           </form>
+          <p class="login-status" id="login-status"></p>
+          <a href="https://t.me/movie_planner_bot?start=code" class="login-bot-tg-link" target="_blank" rel="noopener">Открыть бота</a>
         </div>
 
-        <!-- Email tab (P4.2) -->
-        <div id="login-tab-email" class="login-tab-panel hidden">
-          <p class="modal-hint">Введите email — пришлём 6-значный код для входа. Telegram не нужен.</p>
-          <form id="login-email-form">
-            <div class="modal-form" style="flex-direction:column;align-items:stretch;gap:10px">
-              <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" class="modal-input">
-              <p class="login-status" id="login-email-status"></p>
-              <button type="submit" class="modal-button modal-button-primary" id="login-email-request-btn">Отправить код</button>
-            </div>
+        <div class="login-email-section">
+          <form id="login-email-form" class="login-email-request-row">
+            <input type="email" id="login-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
+            <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-email-request-btn">Код</button>
           </form>
-          <form id="login-email-code-form" class="hidden" style="margin-top:10px">
-            <div class="modal-form" style="flex-direction:column;align-items:stretch;gap:10px">
-              <p class="modal-hint" id="login-email-code-hint">Код отправлен. Введите его ниже.</p>
-              <input type="text" id="login-email-code" name="code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" class="modal-input">
-              <button type="submit" class="modal-button modal-button-primary">Войти</button>
-              <button type="button" class="modal-button" id="login-email-back-btn" style="background:transparent;color:#aab">Изменить email</button>
-            </div>
+          <p class="login-status" id="login-email-status"></p>
+          <form id="login-email-code-form" class="login-email-code-row hidden">
+            <input type="text" id="login-email-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
+            <button type="submit" class="modal-button modal-button-primary">Войти</button>
+            <button type="button" class="modal-button login-email-back-btn" id="login-email-back-btn">Назад</button>
           </form>
         </div>
       </div>
@@ -1213,7 +1203,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260509oauthmodal"></script>
+    <script src="app.js?v=20260509loginui"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

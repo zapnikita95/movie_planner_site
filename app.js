@@ -642,6 +642,7 @@
     const status = document.getElementById('login-status');
 
     let loginTgWidgetMounted = false;
+    /** Виджет Telegram Login: домен страницы должен быть в BotFather → /setdomain (movie-planner.ru). */
     function mountTelegramLoginWidget() {
       const wrap = document.getElementById('login-tg-widget-mount');
       if (!wrap || loginTgWidgetMounted) return;
@@ -661,7 +662,7 @@
     window.mpTelegramLogin = function (user) {
       const priv = document.getElementById('login-oauth-privacy');
       if (!priv || !priv.checked) {
-        alert('Отметьте согласие с политикой конфиденциальности.');
+        try { showToast('Нужна галочка про политику', { type: 'error', duration: 3200 }); } catch (_) { alert('Отметьте согласие с политикой.'); }
         return;
       }
       const modalEl = document.getElementById('login-modal');
@@ -694,10 +695,12 @@
     const oauthPriv = document.getElementById('login-oauth-privacy');
     const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
+    const tgWrap = document.getElementById('login-tg-widget-wrap');
     function syncOauthPrivButtons() {
       const ok = oauthPriv && oauthPriv.checked;
       if (oauthG) oauthG.disabled = !ok;
       if (oauthY) oauthY.disabled = !ok;
+      if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
     }
     if (oauthPriv) oauthPriv.addEventListener('change', syncOauthPrivButtons);
     syncOauthPrivButtons();
@@ -720,24 +723,23 @@
         mountTelegramLoginWidget();
       });
     }
-    closeElements.forEach((el) => el.addEventListener('click', () => modal && modal.classList.add('hidden')));
+    closeElements.forEach((el) => el.addEventListener('click', () => {
+      if (modal) modal.classList.add('hidden');
+      const bp = document.getElementById('login-bot-panel');
+      const bt = document.getElementById('login-bot-toggle');
+      if (bp) bp.classList.add('hidden');
+      if (bt) bt.setAttribute('aria-expanded', 'false');
+    }));
 
-    // P4.2: переключение табов Telegram / Email
-    const tabButtons = document.querySelectorAll('.login-tab-btn');
-    tabButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const target = btn.getAttribute('data-login-tab');
-        tabButtons.forEach((b) => {
-          const active = b.getAttribute('data-login-tab') === target;
-          b.classList.toggle('active', active);
-          b.style.background = active ? 'rgba(255,255,255,0.08)' : 'transparent';
-          b.style.color = active ? '#fff' : '#aab';
-        });
-        document.querySelectorAll('.login-tab-panel').forEach((p) => p.classList.add('hidden'));
-        const panel = document.getElementById('login-tab-' + target);
-        if (panel) panel.classList.remove('hidden');
+    const botToggle = document.getElementById('login-bot-toggle');
+    const botPanel = document.getElementById('login-bot-panel');
+    if (botToggle && botPanel) {
+      botToggle.addEventListener('click', () => {
+        botPanel.classList.toggle('hidden');
+        const open = !botPanel.classList.contains('hidden');
+        botToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
-    });
+    }
 
     bindEmailLogin();
 
@@ -781,7 +783,6 @@
     const emailInput = document.getElementById('login-email');
     const codeInput = document.getElementById('login-email-code');
     const statusEl = document.getElementById('login-email-status');
-    const codeHint = document.getElementById('login-email-code-hint');
     const reqBtn = document.getElementById('login-email-request-btn');
     const backBtn = document.getElementById('login-email-back-btn');
 
@@ -813,7 +814,7 @@
             setStatus(data.error === 'rate_limit' ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить код. Проверьте email и повторите.', 'error');
             return;
           }
-          if (codeHint) codeHint.textContent = 'Код отправлен на ' + email + '. Проверьте почту.';
+          setStatus('Код отправлен', 'success');
           reqForm.classList.add('hidden');
           if (codeForm) codeForm.classList.remove('hidden');
           if (codeInput) setTimeout(() => codeInput.focus(), 100);

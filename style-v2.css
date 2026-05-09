@@ -1486,6 +1486,272 @@ body.in-public-stats .footer-extension-cabinet {
   margin-bottom: 8px;
 }
 
+/* ——— Логин: сетка 2×2 + почта (cabinet modal) ——— */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#login-modal .modal-content {
+  max-width: 440px;
+  padding: 36px 28px 32px;
+}
+
+.login-methods-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.login-methods-grid--oauth2 {
+  margin-top: 16px;
+}
+
+.login-methods-grid--tg-bot {
+  margin-top: 12px;
+}
+
+.login-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.login-oauth-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.login-oauth-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.login-oauth-google {
+  background: #fff;
+  border-color: #dadce0;
+}
+
+.login-oauth-google:hover:not(:disabled) {
+  background: #f8f9fa;
+}
+
+.login-oauth-yandex {
+  background: #fc3f1e;
+  border-color: #fc3f1e;
+}
+
+.login-oauth-yandex:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.login-oauth-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Google «G» (официальная палитра) */
+.login-oauth-icon--google {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23FFC107' d='M43.611 20.083H42V20H24v8h11.303C33.432 32.905 29.307 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z'/%3E%3Cpath fill='%23FF3D00' d='m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z'/%3E%3Cpath fill='%234CAF50' d='M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.282 0-9.479-3.334-11.093-8.032l-6.548 5.045C9.876 39.934 16.498 44 24 44z'/%3E%3Cpath fill='%231976D2' d='M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l.003-.002 6.19 5.238C38.083 35.352 44 30.294 44 24c0-1.341-.138-2.65-.389-3.917z'/%3E%3C/svg%3E");
+}
+
+.login-oauth-icon--yandex {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M12.185 24 6.653 0H2.055v24h4.598V14.03l4.02 9.97h4.512L12.185 24z'/%3E%3Cpath fill='%23fff' d='M21.945 0h-4.603l-5.53 24h4.603l1.103-5.53h5.53L21.945 0zm-3.06 14.03 1.654-8.275h.046l1.654 8.275h-3.354z'/%3E%3C/svg%3E");
+}
+
+.login-oauth-bot {
+  font-size: 26px;
+  line-height: 1;
+  padding: 0;
+}
+
+.login-tg-widget-wrap {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+
+.login-tg-widget-wrap--locked {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.login-tg-widget-mount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+}
+
+.login-tg-widget-mount iframe {
+  border-radius: 10px !important;
+}
+
+.login-oauth-privacy {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 12px 0 0;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.login-oauth-privacy input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.login-oauth-privacy a {
+  color: var(--accent, #ff5aa5);
+}
+
+.login-bot-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-bot-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.login-bot-code-input {
+  flex: 1 1 140px;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+
+.login-bot-submit {
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.login-bot-tg-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--accent, #ff5aa5);
+  text-decoration: none;
+}
+
+.login-bot-tg-link:hover {
+  text-decoration: underline;
+}
+
+.login-email-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-email-request-row,
+.login-email-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.login-email-input {
+  flex: 1 1 180px;
+  text-align: left !important;
+  letter-spacing: normal !important;
+  font-size: 16px !important;
+}
+
+#login-modal .login-email-input::placeholder {
+  letter-spacing: normal;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+#login-modal .login-bot-code-input::placeholder,
+#login-modal .login-email-code-input::placeholder {
+  letter-spacing: normal;
+}
+
+.login-email-send-btn {
+  flex: 0 0 auto;
+  min-width: 72px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.login-email-code-input {
+  flex: 1 1 140px;
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+.login-email-back-btn {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+@media (max-width: 520px) {
+  #login-modal .modal-content {
+    padding: 28px 18px 24px;
+    width: 92%;
+  }
+
+  .login-methods-grid {
+    gap: 8px;
+  }
+
+  .login-oauth-btn,
+  .login-tg-widget-wrap {
+    min-height: 48px;
+  }
+
+  .login-bot-form {
+    flex-direction: column;
+  }
+
+  .login-bot-submit {
+    width: 100%;
+  }
+
+  .login-email-request-row,
+  .login-email-code-row {
+    flex-direction: column;
+  }
+
+  .login-email-send-btn {
+    width: 100%;
+  }
+}
+
 .modal-hint {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
