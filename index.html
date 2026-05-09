@@ -513,6 +513,16 @@
                             </select>
                         </div>
                         <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
+                        <div class="section-filter-row">
+                            <select id="section-filter-unwatched-type" class="section-filter-select" aria-label="Тип">
+                                <option value="any">Все</option>
+                                <option value="film">Фильмы</option>
+                                <option value="series">Сериалы</option>
+                            </select>
+                            <input type="text" id="section-filter-unwatched-year-from" class="section-filter-input section-filter-year" placeholder="Год от" inputmode="numeric" aria-label="Год от">
+                            <input type="text" id="section-filter-unwatched-year-to" class="section-filter-input section-filter-year" placeholder="Год до" inputmode="numeric" aria-label="Год до">
+                            <input type="text" id="section-filter-unwatched-genre" class="section-filter-input section-filter-genre" placeholder="Жанр" aria-label="Жанр">
+                        </div>
                     </div>
                     <p class="cabinet-hint">Список фильмов вашей базы. Откройте карточку для действий: оценка, пометка просмотра, просмотр онлайн и планирование.</p>
                     <div id="unwatched-list" class="cards-list"></div>
@@ -521,6 +531,11 @@
                     <div class="section-with-search">
                         <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
                         <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                        <div class="section-filter-row">
+                            <input type="text" id="section-filter-series-year-from" class="section-filter-input section-filter-year" placeholder="Год от" inputmode="numeric" aria-label="Год от">
+                            <input type="text" id="section-filter-series-year-to" class="section-filter-input section-filter-year" placeholder="Год до" inputmode="numeric" aria-label="Год до">
+                            <input type="text" id="section-filter-series-genre" class="section-filter-input section-filter-genre" placeholder="Жанр" aria-label="Жанр">
+                        </div>
                     </div>
                     <p class="cabinet-hint">Список сериалов вашей базы. Откройте карточку для управления прогрессом и просмотром.</p>
                     <div id="series-list" class="cards-list"></div>

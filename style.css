@@ -1535,6 +1535,23 @@ section {
   color: var(--text-dark);
   cursor: pointer;
 }
+.section-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+.section-filter-select,
+.section-filter-input {
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-white);
+  color: var(--text-dark);
+}
+.section-filter-year { width: 88px; }
+.section-filter-genre { min-width: 130px; flex: 1; }
 .film-description {
   font-size: 14px;
   color: var(--text-gray);

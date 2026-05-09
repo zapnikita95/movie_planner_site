@@ -1454,12 +1454,13 @@
     return (el && el.value || '').trim().toLowerCase();
   }
 
-  function filterByTitle(items, query, titleKey) {
+  function filterByTitle(items, query, titleKey, extraKeys) {
     if (!query) return items.slice();
     const key = titleKey || 'title';
+    const keys = [key].concat(Array.isArray(extraKeys) ? extraKeys : []);
     const filtered = items.filter((item) => {
-      const t = (item[key] || '').toLowerCase();
-      return t.includes(query);
+      const blob = keys.map((k) => String(item[k] || '')).join(' ').toLowerCase();
+      return blob.includes(query);
     });
     return filtered.sort((a, b) => {
       const ta = (a[key] || '').toLowerCase();
@@ -1468,6 +1469,21 @@
       const ib = tb.indexOf(query);
       return ia - ib;
     });
+  }
+
+  function sectionFilterState(section) {
+    const typeEl = document.getElementById('section-filter-' + section + '-type');
+    const yearFromEl = document.getElementById('section-filter-' + section + '-year-from');
+    const yearToEl = document.getElementById('section-filter-' + section + '-year-to');
+    const genreEl = document.getElementById('section-filter-' + section + '-genre');
+    const yearFrom = parseInt((yearFromEl && yearFromEl.value) || '', 10);
+    const yearTo = parseInt((yearToEl && yearToEl.value) || '', 10);
+    return {
+      type: (typeEl && typeEl.value) || 'any',
+      yearFrom: Number.isNaN(yearFrom) ? null : yearFrom,
+      yearTo: Number.isNaN(yearTo) ? null : yearTo,
+      genre: ((genreEl && genreEl.value) || '').trim().toLowerCase(),
+    };
   }
 
   function renderUnwatchedCard(m) {
@@ -1509,7 +1525,18 @@
       return;
     }
     const query = sectionSearchQuery('unwatched');
-    let list = filterByTitle(unwatchedItems, query);
+    const fs = sectionFilterState('unwatched');
+    let list = filterByTitle(unwatchedItems, query, 'title', ['actors', 'director', 'genres', 'year']);
+    list = list.filter((m) => {
+      if (fs.type === 'film' && m.is_series) return false;
+      if (fs.type === 'series' && !m.is_series) return false;
+      const y = parseInt(String(m.year || ''), 10);
+      if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
+      if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
+      if (fs.genre && String(m.genres || '').toLowerCase().indexOf(fs.genre) === -1) return false;
+      return true;
+    });
+    list.sort((a, b) => Number(Boolean(b.has_upcoming_plan)) - Number(Boolean(a.has_upcoming_plan)));
     if (!query) {
       if (unwatchedSortMode === 'date_old') list.reverse();
       if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
@@ -1531,6 +1558,14 @@
       }
       if (sortSelect) sortSelect.value = unwatchedSortMode;
       bindSectionSearchOnce('unwatched', renderUnwatchedList);
+      ['type', 'year-from', 'year-to', 'genre'].forEach((suffix) => {
+        const el = document.getElementById('section-filter-unwatched-' + suffix);
+        if (el && !el.dataset.bound) {
+          el.dataset.bound = '1';
+          el.addEventListener('input', renderUnwatchedList);
+          el.addEventListener('change', renderUnwatchedList);
+        }
+      });
       renderUnwatchedList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }).catch(() => {
@@ -1571,7 +1606,14 @@
       el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте.</p>';
       return;
     }
-    const list = filterByTitle(seriesItems, sectionSearchQuery('series'));
+    const fs = sectionFilterState('series');
+    const list = filterByTitle(seriesItems, sectionSearchQuery('series'), 'title', ['actors', 'genres', 'year']).filter((s) => {
+      const y = parseInt(String(s.year || ''), 10);
+      if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
+      if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
+      if (fs.genre && String(s.genres || '').toLowerCase().indexOf(fs.genre) === -1) return false;
+      return true;
+    });
     el.innerHTML = list.length ? list.map(renderSeriesCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
   }
 
@@ -1580,6 +1622,14 @@
       if (!data.success) return;
       seriesItems = Array.isArray(data.items) ? data.items : [];
       bindSectionSearchOnce('series', renderSeriesList);
+      ['year-from', 'year-to', 'genre'].forEach((suffix) => {
+        const el = document.getElementById('section-filter-series-' + suffix);
+        if (el && !el.dataset.bound) {
+          el.dataset.bound = '1';
+          el.addEventListener('input', renderSeriesList);
+          el.addEventListener('change', renderSeriesList);
+        }
+      });
       renderSeriesList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
@@ -3858,7 +3908,16 @@
     const desc = film.description ? `<div class="film-modal-desc">${escapeHtml(film.description)}</div>` : '';
     const crewParts = [];
     if (film.director && film.director !== 'Не указан') crewParts.push(`<div><b>Режиссёр:</b> ${escapeHtml(film.director)}</div>`);
-    if (film.actors) crewParts.push(`<div><b>В ролях:</b> ${escapeHtml(film.actors)}</div>`);
+    if (film.actors) {
+      const actorsRaw = String(film.actors || '');
+      if (actorsRaw.length > 180) {
+        const shortActors = escapeHtml(actorsRaw.slice(0, 180));
+        const fullActors = escapeHtml(actorsRaw);
+        crewParts.push(`<div><b>В ролях:</b> <span class="film-actors-short">${shortActors}…</span><span class="film-actors-full hidden">${fullActors}</span> <button type="button" class="film-actors-more-btn">ещё</button></div>`);
+      } else {
+        crewParts.push(`<div><b>В ролях:</b> ${escapeHtml(film.actors)}</div>`);
+      }
+    }
     const crew = crewParts.length ? `<div class="film-modal-crew">${crewParts.join('')}</div>` : '';
 
     const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
@@ -3966,6 +4025,18 @@
   function bindFilmModalInteractions(film, rootEl) {
     const content = rootEl || getFilmRenderRoot();
     if (!content) return;
+    const actorsMoreBtn = content.querySelector('.film-actors-more-btn');
+    if (actorsMoreBtn) {
+      actorsMoreBtn.addEventListener('click', () => {
+        const shortEl = content.querySelector('.film-actors-short');
+        const fullEl = content.querySelector('.film-actors-full');
+        if (!shortEl || !fullEl) return;
+        const expanded = !fullEl.classList.contains('hidden');
+        fullEl.classList.toggle('hidden', expanded);
+        shortEl.classList.toggle('hidden', !expanded);
+        actorsMoreBtn.textContent = expanded ? 'ещё' : 'свернуть';
+      });
+    }
 
     // Rating stars: click/hover
     const starsWrap = content.querySelector('[data-rating-stars="1"]');
