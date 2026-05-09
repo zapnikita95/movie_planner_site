@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260507cabinetgrid">
+    <link rel="stylesheet" href="style-v2.css?v=20260508groupadmin">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,6 +128,21 @@
       <div class="modal-content" style="position:relative;z-index:1">
         <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
         <div class="modal-title">Вход в кабинет</div>
+
+        <!-- OAuth: Google / Яндекс / Telegram Login Widget (бэкенд /api/site/*) -->
+        <div class="login-oauth-block" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <p class="modal-hint" style="margin-top:0">Войти через Google, Яндекс или аккаунт Telegram</p>
+          <label class="login-oauth-privacy" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#aab;margin-bottom:10px;cursor:pointer">
+            <input type="checkbox" id="login-oauth-privacy" style="margin-top:3px;flex-shrink:0"/>
+            <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener" style="color:#e73">политикой конфиденциальности</a> (обязательно для Google и Яндекс; для виджета Telegram тоже)</span>
+          </label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <button type="button" class="modal-button" id="login-oauth-google" disabled style="flex:1;min-width:120px;background:#fff;color:#202124;border:1px solid #dadce0;font-weight:600">Google</button>
+            <button type="button" class="modal-button" id="login-oauth-yandex" disabled style="flex:1;min-width:120px;background:#fc3f1e;border-color:#fc3f1e;color:#fff;font-weight:600">Яндекс</button>
+          </div>
+          <div id="login-tg-widget-mount" style="min-height:54px;display:flex;align-items:center;justify-content:center"></div>
+          <p class="modal-hint" style="margin:12px 0 4px;font-size:13px;color:#889">Или код из бота / почта — вкладки ниже.</p>
+        </div>
 
         <!-- Tabs: Telegram / Email (P4.2) -->
         <div class="login-tabs" role="tablist" style="display:flex;gap:6px;background:rgba(255,255,255,0.04);padding:4px;border-radius:12px;margin:8px 0 16px">
@@ -441,6 +456,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Что посмотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="inbox"><span class="cabinet-nav-btn-emoji">🔔</span><span class="cabinet-nav-btn-text">Уведомления</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="stats"><span class="cabinet-nav-btn-emoji">📊</span><span class="cabinet-nav-btn-text">Статистика</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="developer"><span class="cabinet-nav-btn-emoji">🔌</span><span class="cabinet-nav-btn-text">Нейросети</span></button>
@@ -458,6 +474,11 @@
                     <div class="film-page-outer">
                         <div class="container film-page-container" id="film-page-content" data-film-page-root="1"></div>
                     </div>
+                </section>
+                <section id="section-inbox" class="cabinet-section hidden" aria-label="Уведомления">
+                    <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🔔</span><span class="section-title-text">Уведомления</span></h2>
+                    <p class="cabinet-hint">Приглашения и сообщения из групп, напоминания о планах и <b>напоминание поставить оценку</b> после просмотра (как в боте).</p>
+                    <div id="site-inbox-root" class="site-inbox-root" aria-live="polite"></div>
                 </section>
                 <section id="section-home" class="cabinet-section">
                     <div class="home-dash-page-head">
@@ -834,6 +855,13 @@
             <button type="button" class="create-room-emoji-btn" data-emoji="👑">👑</button>
             <button type="button" class="create-room-emoji-btn" data-emoji="❤️">❤️</button>
           </div>
+          <label class="create-room-label">Тип группы</label>
+          <div class="create-room-kind-row" id="create-room-kind-row">
+            <button type="button" class="create-room-kind-btn active" data-kind="friends">👥 Друзья</button>
+            <button type="button" class="create-room-kind-btn" data-kind="cinema_club">🎬 Киноклуб</button>
+            <button type="button" class="create-room-kind-btn" data-kind="blogger">⭐️ Блоггер</button>
+          </div>
+          <div id="create-room-kind-extra" class="create-room-kind-extra"></div>
           <label class="create-room-label" for="create-room-name">Название</label>
           <input type="text" id="create-room-name" class="add-film-input" placeholder="Например: Четверг — это пятница" maxlength="60" autocomplete="off">
           <div id="create-room-status" class="add-film-status"></div>
@@ -901,6 +929,15 @@
         <button type="button" class="add-film-modal-close" data-action="close-room-members-modal" aria-label="Закрыть">&times;</button>
         <h2 class="add-film-title" id="room-members-title">Участники комнаты</h2>
         <div id="room-members-body" class="room-members-body"></div>
+      </div>
+    </div>
+
+    <div class="add-film-modal hidden" id="room-access-modal" aria-hidden="true" role="dialog">
+      <div class="add-film-modal-backdrop" data-action="close-room-access-modal"></div>
+      <div class="add-film-modal-body room-members-modal-body">
+        <button type="button" class="add-film-modal-close" data-action="close-room-access-modal" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title" id="room-access-title">Заявки и доступ</h2>
+        <div id="room-access-body" class="room-members-body"></div>
       </div>
     </div>
 
@@ -1176,7 +1213,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260507cabinetgrid"></script>
+    <script src="app.js?v=20260509oauthmodal"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

@@ -143,6 +143,79 @@
     return session ? session.token : null;
   }
 
+  /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
+  function applySiteSessionLogin(data, modalEl, statusEl) {
+    const sessions = getSessions();
+    const isPersonal = data.is_personal !== undefined ? !!data.is_personal : true;
+    const chatId = String(data.chat_id);
+    const existing = sessions.find((s) => String(s.chat_id) === chatId);
+    if (existing) {
+      existing.token = data.token;
+      existing.name = data.name || existing.name;
+      if (data.has_data !== undefined) existing.has_data = !!data.has_data;
+      existing.is_personal = isPersonal;
+      setSessions(sessions);
+    } else {
+      const personalCount = sessions.filter((s) => s.is_personal).length;
+      const groupCount = sessions.filter((s) => !s.is_personal).length;
+      if (isPersonal && personalCount >= MAX_PERSONAL) {
+        if (statusEl) { statusEl.textContent = 'Максимум 2 личных кабинета'; statusEl.className = 'login-status error'; }
+        return { ok: false, error: 'max_personal' };
+      }
+      if (!isPersonal && groupCount >= MAX_GROUP) {
+        if (statusEl) { statusEl.textContent = 'Максимум 2 групповых кабинета'; statusEl.className = 'login-status error'; }
+        return { ok: false, error: 'max_group' };
+      }
+      sessions.push({
+        chat_id: chatId,
+        token: data.token,
+        name: data.name || 'Профиль',
+        has_data: !!data.has_data,
+        is_personal: isPersonal,
+      });
+      setSessions(sessions);
+    }
+    setActiveChatId(chatId);
+    if (modalEl) modalEl.classList.add('hidden');
+    loadMeAndShowCabinet();
+    return { ok: true };
+  }
+
+  /** Редирект после Google/Яндекс OAuth: /#token=…&chat_id=…&name=… */
+  function consumeOAuthReturnFromHash() {
+    try {
+      const raw = (location.hash || '').replace(/^#/, '');
+      if (!raw || raw.indexOf('token=') < 0) return false;
+      if (raw.charAt(0) === '/') return false;
+      const params = new URLSearchParams(raw);
+      let tok = params.get('token');
+      if (!tok) return false;
+      try { tok = decodeURIComponent(tok); } catch (_) {}
+      const chatId = params.get('chat_id');
+      if (chatId == null || chatId === '') return false;
+      let name = params.get('name') || 'Профиль';
+      try { name = decodeURIComponent(name); } catch (_) {}
+      const data = {
+        token: tok,
+        chat_id: chatId,
+        name: name,
+        has_data: false,
+        is_personal: true,
+      };
+      const modal = document.getElementById('login-modal');
+      const r = applySiteSessionLogin(data, modal, null);
+      if (!r.ok) {
+        try { showToast('Слишком много сохранённых профилей — удалите один в настройках.', { type: 'error' }); } catch (_) {}
+        history.replaceState(null, '', location.pathname + location.search);
+        return false;
+      }
+      history.replaceState(null, '', location.pathname + location.search);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function removeSessionByToken(token) {
     const sessions = getSessions();
     const removed = sessions.find((s) => s.token === token);
@@ -375,6 +448,7 @@
     about: '/about',
     settings: '/settings',
     developer: '/my-api',
+    inbox: '/inbox',
   };
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
 
@@ -481,6 +555,82 @@
         if (typeof renderDeveloperSection === 'function') renderDeveloperSection();
       } catch (_) {}
     }
+    if (rendered && sectionId === 'inbox') {
+      try {
+        if (typeof renderInboxSection === 'function') renderInboxSection();
+      } catch (_) {}
+    }
+  }
+
+  function renderInboxSection() {
+    const root = document.getElementById('site-inbox-root');
+    if (!root) return;
+    root.innerHTML = '<p class="cabinet-hint">Загружаем…</p>';
+    api('/api/site/inbox').then((data) => {
+      if (!data || !data.success) {
+        root.innerHTML = '<p class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить') + '</p>';
+        return;
+      }
+      const items = data.items || [];
+      const unreadIds = items.filter((x) => !x.is_read && x.id != null).map((x) => x.id);
+      if (unreadIds.length) {
+        api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ ids: unreadIds }) }).catch(() => {});
+      }
+      const kindLabel = (k) => ({
+        group_share: 'Группа',
+        plan_reminder: 'Планы',
+        premiere_release: 'Премьера',
+        rate_reminder: 'Оценка',
+        group_join: 'Группа',
+        group_invite_accepted: 'Группа',
+      }[k] || k || 'Сообщение');
+      const parsePayload = (p) => {
+        try {
+          return typeof p === 'string' ? JSON.parse(p) : (p || {});
+        } catch (_) {
+          return {};
+        }
+      };
+      if (!items.length) {
+        root.innerHTML = '<p class="cabinet-hint">Пока пусто.</p>';
+        return;
+      }
+      root.innerHTML = items.map((it) => {
+        const pl = parsePayload(it.payload);
+        const fid = pl.film_id != null ? String(pl.film_id) : '';
+        const kp = pl.kp_id != null ? String(pl.kp_id) : '';
+        const summary = it.kind === 'rate_reminder'
+          ? ('⭐ Пора оценить: ' + ((pl.film_title && String(pl.film_title)) || it.title || 'фильм'))
+          : ((it.title || '').trim() || kindLabel(it.kind));
+        let actions = '';
+        if (it.kind === 'rate_reminder' && fid) {
+          actions = '<button type="button" class="btn btn-small btn-primary site-inbox-open-film" data-film-id="' + escapeHtml(fid) + '">Открыть фильм</button>';
+        } else if (kp && String(kp).trim() !== '') {
+          actions = '<button type="button" class="btn btn-small btn-secondary site-inbox-open-kp" data-kp-id="' + escapeHtml(kp) + '">Кинопоиск</button>';
+        }
+        return '<div class="site-inbox-card">'
+          + '<div class="site-inbox-kind">' + escapeHtml(kindLabel(it.kind)) + '</div>'
+          + '<div class="site-inbox-title">' + escapeHtml(summary) + '</div>'
+          + (it.body ? '<div class="site-inbox-body muted">' + escapeHtml(it.body) + '</div>' : '')
+          + (actions ? '<div class="site-inbox-actions">' + actions + '</div>' : '')
+          + '<div class="site-inbox-time muted small">' + escapeHtml(it.created_at || '') + '</div>'
+          + '</div>';
+      }).join('');
+      root.querySelectorAll('.site-inbox-open-film').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-film-id');
+          if (id && typeof openFilmModal === 'function') openFilmModal(Number(id));
+        });
+      });
+      root.querySelectorAll('.site-inbox-open-kp').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const kpid = btn.getAttribute('data-kp-id');
+          if (kpid) window.open('https://www.kinopoisk.ru/film/' + encodeURIComponent(kpid) + '/', '_blank', 'noopener');
+        });
+      });
+    }).catch(() => {
+      root.innerHTML = '<p class="cabinet-hint">Ошибка сети</p>';
+    });
   }
 
   // ——— Вход по коду ———
@@ -491,7 +641,85 @@
     const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
 
-    if (openBtn) openBtn.addEventListener('click', () => modal && modal.classList.remove('hidden'));
+    let loginTgWidgetMounted = false;
+    function mountTelegramLoginWidget() {
+      const wrap = document.getElementById('login-tg-widget-mount');
+      if (!wrap || loginTgWidgetMounted) return;
+      if (wrap.querySelector('script')) return;
+      loginTgWidgetMounted = true;
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://telegram.org/js/telegram-widget.js?22';
+      s.setAttribute('data-telegram-login', 'movie_planner_bot');
+      s.setAttribute('data-size', 'large');
+      s.setAttribute('data-radius', '14');
+      s.setAttribute('data-onauth', 'mpTelegramLogin(user)');
+      s.setAttribute('data-request-access', 'write');
+      wrap.appendChild(s);
+    }
+
+    window.mpTelegramLogin = function (user) {
+      const priv = document.getElementById('login-oauth-privacy');
+      if (!priv || !priv.checked) {
+        alert('Отметьте согласие с политикой конфиденциальности.');
+        return;
+      }
+      const modalEl = document.getElementById('login-modal');
+      fetch(API_BASE + '/api/site/auth/telegram-widget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({}, user, { accept_privacy: true, acceptPrivacy: true })),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.token) {
+            applySiteSessionLogin(
+              {
+                token: data.token,
+                chat_id: data.chat_id,
+                name: data.name || 'Профиль',
+                has_data: !!data.has_data,
+                is_personal: data.is_personal !== undefined ? !!data.is_personal : true,
+              },
+              modalEl,
+              null,
+            );
+          } else {
+            alert((data && data.message) || data.error || 'Не удалось войти через Telegram');
+          }
+        })
+        .catch(() => alert('Ошибка сети'));
+    };
+
+    const oauthPriv = document.getElementById('login-oauth-privacy');
+    const oauthG = document.getElementById('login-oauth-google');
+    const oauthY = document.getElementById('login-oauth-yandex');
+    function syncOauthPrivButtons() {
+      const ok = oauthPriv && oauthPriv.checked;
+      if (oauthG) oauthG.disabled = !ok;
+      if (oauthY) oauthY.disabled = !ok;
+    }
+    if (oauthPriv) oauthPriv.addEventListener('change', syncOauthPrivButtons);
+    syncOauthPrivButtons();
+    if (oauthG) {
+      oauthG.addEventListener('click', () => {
+        if (!oauthPriv || !oauthPriv.checked) return;
+        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+      });
+    }
+    if (oauthY) {
+      oauthY.addEventListener('click', () => {
+        if (!oauthPriv || !oauthPriv.checked) return;
+        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+      });
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        if (modal) modal.classList.remove('hidden');
+        mountTelegramLoginWidget();
+      });
+    }
     closeElements.forEach((el) => el.addEventListener('click', () => modal && modal.classList.add('hidden')));
 
     // P4.2: переключение табов Telegram / Email
@@ -524,36 +752,19 @@
         if (status) { status.textContent = 'Проверка...'; status.className = 'login-status'; }
         const data = await api('/api/site/validate', { method: 'POST', body: JSON.stringify({ code: code }) });
         if (data.success && data.token) {
-          const sessions = getSessions();
-          const isPersonal = !!data.is_personal;
-          const chatId = String(data.chat_id);
-          const existing = sessions.find((s) => String(s.chat_id) === chatId);
-          if (existing) {
-            existing.token = data.token;
-            existing.name = data.name;
-            existing.has_data = data.has_data;
-            existing.is_personal = isPersonal;
-            setSessions(sessions);
-          } else {
-            const personalCount = sessions.filter((s) => s.is_personal).length;
-            const groupCount = sessions.filter((s) => !s.is_personal).length;
-            if (isPersonal && personalCount >= MAX_PERSONAL) {
-              if (status) { status.textContent = 'Максимум 2 личных кабинета'; status.className = 'login-status error'; }
-              return;
-            }
-            if (!isPersonal && groupCount >= MAX_GROUP) {
-              if (status) { status.textContent = 'Максимум 2 групповых кабинета'; status.className = 'login-status error'; }
-              return;
-            }
-            sessions.push({ chat_id: chatId, token: data.token, name: data.name, has_data: data.has_data, is_personal: isPersonal });
-            setSessions(sessions);
-          }
-          setActiveChatId(chatId);
+          const r = applySiteSessionLogin(
+            {
+              token: data.token,
+              chat_id: data.chat_id,
+              name: data.name,
+              has_data: data.has_data,
+              is_personal: !!data.is_personal,
+            },
+            modal,
+            status,
+          );
+          if (!r.ok) return;
           if (status) { status.textContent = 'Успешно!'; status.className = 'login-status success'; }
-          setTimeout(() => {
-            modal.classList.add('hidden');
-            loadMeAndShowCabinet();
-          }, 500);
         } else {
           if (status) { status.textContent = data.error || 'Неверный код'; status.className = 'login-status error'; }
         }
@@ -1580,6 +1791,10 @@
     const progress = s.progress ? `Прогресс: ${s.progress}` : 'Не начат';
     const poster = posterUrl(s.kp_id);
     const streamingUrl = (s.online_link || '').trim();
+    const subActive = !!s.has_subscription;
+    const subToggleBtn = s.film_id
+      ? `<button type="button" class="btn btn-small ${subActive ? 'btn-primary' : 'btn-secondary'} series-sub-toggle" data-series-sub-toggle="${escapeHtml(String(s.film_id))}" data-subscribed="${subActive ? '1' : '0'}" onclick="event.stopPropagation()">${subActive ? '🚫⏰' : '⏰'}</button>`
+      : '';
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
@@ -1594,6 +1809,7 @@
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(s.title)}</div>
           <div class="film-card-v2-status">${progress}</div>
+          <div style="margin:8px 0 6px">${subToggleBtn}</div>
           ${buildFilmActionBar({ kp_id: s.kp_id, title: s.title, is_series: true })}
         </div>
       </div>`;
@@ -1608,6 +1824,8 @@
     }
     const fs = sectionFilterState('series');
     const list = filterByTitle(seriesItems, sectionSearchQuery('series'), 'title', ['actors', 'genres', 'year']).filter((s) => {
+      if (fs.type === 'awaiting') return !!s.has_subscription;
+      if (fs.type === 'watching') return Number(s.watched_count || 0) > 0;
       const y = parseInt(String(s.year || ''), 10);
       if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
       if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
@@ -1615,6 +1833,29 @@
       return true;
     });
     el.innerHTML = list.length ? list.map(renderSeriesCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+    el.querySelectorAll('[data-series-sub-toggle]').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const filmId = btn.getAttribute('data-series-sub-toggle');
+        if (!filmId) return;
+        const wasSubscribed = btn.getAttribute('data-subscribed') === '1';
+        btn.disabled = true;
+        api('/api/site/film/' + encodeURIComponent(filmId) + '/series-episode-subscription', {
+          method: 'POST',
+          body: JSON.stringify({ subscribed: !wasSubscribed }),
+        }).then((data) => {
+          if (!data || data.success !== true) throw new Error((data && (data.message || data.error)) || 'save_failed');
+          seriesItems = seriesItems.map((it) => (String(it.film_id) === String(filmId) ? ({ ...it, has_subscription: !!data.subscribed }) : it));
+          showToast(data.subscribed ? 'Добавлено в ⏰ Ожидаю' : 'Убрано из ⏰ Ожидаю');
+          renderSeriesList();
+          try { scheduleHomeDashboardRefresh(); } catch (_) {}
+        }).catch((e) => {
+          showToast((e && e.message) || 'Не удалось сохранить');
+          btn.disabled = false;
+        });
+      });
+    });
   }
 
   function loadSeries() {
@@ -3334,7 +3575,7 @@
       body: JSON.stringify({ rating }),
     }).then((res) => {
       if (!res || !res.success) {
-        alert((res && res.error) || 'Не удалось сохранить оценку');
+        showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
       closeRatePopover();
@@ -3367,15 +3608,16 @@
       if (context === 'plan') {
         if (typeof loadPlans === 'function') loadPlans();
       }
+      refreshFilmDetailFromApi(filmId);
     }).catch(() => {
-      alert('Сервер не отвечает. Попробуйте позже.');
+      showToast('Сервер не отвечает. Попробуйте позже.', { type: 'error' });
     });
   }
 
   function submitQuickRatingDelete(filmId, context, starBtn) {
     api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
       if (!res || !res.success) {
-        alert((res && res.error) || 'Не удалось удалить оценку');
+        showToast((res && (res.message || res.error)) || 'Не удалось удалить оценку', { type: 'error' });
         return;
       }
       closeRatePopover();
@@ -3386,6 +3628,7 @@
         if (lbl) lbl.remove();
       }
       if (typeof removeRatingFromLists === 'function') removeRatingFromLists(filmId);
+      refreshFilmDetailFromApi(filmId);
     });
   }
 
@@ -3889,6 +4132,21 @@
     return renderFilmDetail(film, ratings, similar, me, content);
   }
 
+  function refreshFilmDetailFromApi(filmId) {
+    return api('/api/site/film/' + filmId).then((detail) => {
+      if (!detail || !detail.success) return;
+      const cache = _filmModalCache[filmId];
+      if (!cache) return;
+      cache.film = detail.film;
+      cache.ratings = detail.ratings || [];
+      if (detail.me) cache.me = detail.me;
+      const root = getFilmRenderRoot();
+      if (root && _filmModalCurrentId === filmId) {
+        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, root);
+      }
+    });
+  }
+
   function renderFilmDetail(film, ratings, similar, me, content) {
     if (!content) return;
     const isPage = content.getAttribute && content.getAttribute('data-film-page-root');
@@ -3898,6 +4156,8 @@
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = ratings.find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    const isVirtualRoom = !!film.is_virtual_room;
+    const canRateInGroup = film.can_rate_in_group !== false;
 
     const poster = posterUrl(film.kp_id);
     const year = film.year ? `(${film.year})` : '';
@@ -3922,18 +4182,55 @@
 
     const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
 
-    // Rating stars
-    const starsHtml = buildRatingStars(myRating);
-    const ratingBlock = `
-      <div class="film-modal-section">
-        <h3>Ваша оценка</h3>
-        <div class="rating-stars" data-rating-stars="1">${starsHtml}</div>
-        ${myRating ? `<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>` : ''}
-      </div>`;
+    // Оценки админов (виртуальная группа) — раскрываемый список
+    let adminBreakdownHtml = '';
+    if (isVirtualRoom) {
+      const rows = film.admin_rating_breakdown || [];
+      const rowHtml = rows.length
+        ? rows.map(function (row) {
+          const nm = escapeHtml(row.display_name || ('user ' + row.user_id));
+          const rl = escapeHtml(row.role_label || '');
+          const sc = Number(row.rating);
+          return (
+            '<div class="film-admin-rating-row">' +
+              '<div class="film-admin-rating-who">' +
+                '<span class="film-admin-rating-name">' + nm + '</span>' +
+                (rl ? '<span class="film-admin-rating-role">' + rl + '</span>' : '') +
+              '</div>' +
+              '<span class="film-admin-rating-score">' + sc + '<span class="film-admin-rating-denom">/10</span></span>' +
+            '</div>'
+          );
+        }).join('')
+        : '<p class="film-admin-ratings-empty">Пока ни один админ не поставил оценку.</p>';
+      const badge = rows.length ? '<span class="film-admin-ratings-badge">' + rows.length + '</span>' : '';
+      adminBreakdownHtml =
+        '<details class="film-modal-section film-admin-ratings-details" open>' +
+          '<summary class="film-admin-ratings-summary">Оценки админов ' + badge + '</summary>' +
+          '<div class="film-admin-ratings-body">' + rowHtml + '</div>' +
+        '</details>';
+    }
 
-    // Group ratings
+    // Rating stars — в виртуальной группе участник без прав не ставит оценку
+    let ratingBlock = '';
+    if (isVirtualRoom && !canRateInGroup) {
+      ratingBlock =
+        '<div class="film-modal-section film-rating-locked">' +
+          '<h3>Ваша оценка</h3>' +
+          '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель — от своего профиля. Разбор по админам — в блоке выше.</p>' +
+        '</div>';
+    } else {
+      const starsHtml = buildRatingStars(myRating);
+      ratingBlock =
+        '<div class="film-modal-section">' +
+          '<h3>Ваша оценка</h3>' +
+          '<div class="rating-stars" data-rating-stars="1">' + starsHtml + '</div>' +
+          (myRating ? '<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' : '') +
+        '</div>';
+    }
+
+    // Group ratings — для виртуальной комнаты общий список заменён блоком «Оценки админов»
     const groupRatings = ratings.filter((r) => !myUserId || String(r.user_id) !== String(myUserId));
-    const groupHtml = groupRatings.length
+    const groupHtml = !isVirtualRoom && groupRatings.length
       ? `<div class="film-modal-section"><h3>Оценки участников</h3><div class="rating-group-list">${
           ratings.map((r) => {
             const isMine = myUserId && String(r.user_id) === String(myUserId);
@@ -4003,6 +4300,7 @@
         ${desc}
         ${actions}
         ${trailerHtml}
+        ${adminBreakdownHtml}
         ${ratingBlock}
         ${groupHtml}
         ${similarHtml}
@@ -4038,9 +4336,9 @@
       });
     }
 
-    // Rating stars: click/hover
+    // Rating stars: click/hover (нет блока — только read-only для участника в группе)
     const starsWrap = content.querySelector('[data-rating-stars="1"]');
-    if (starsWrap) {
+    if (starsWrap && !(film.is_virtual_room && film.can_rate_in_group === false)) {
       starsWrap.querySelectorAll('.rating-star').forEach((btn) => {
         btn.addEventListener('mouseenter', () => {
           const v = Number(btn.getAttribute('data-rating-value'));
@@ -4123,34 +4421,41 @@
   }
 
   function setRating(filmId, rating) {
+    const cache = _filmModalCache[filmId];
+    if (cache && cache.film && cache.film.is_virtual_room && cache.film.can_rate_in_group === false) {
+      showToast('В группе оценки ставят только админы и создатель.', { type: 'error' });
+      return;
+    }
     api('/api/site/film/' + filmId + '/rating', {
       method: 'POST',
       body: JSON.stringify({ rating }),
     }).then((res) => {
-      if (!res || !res.success) return;
-      const cache = _filmModalCache[filmId];
-      if (cache) {
-        const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
-        const idx = cache.ratings.findIndex((r) => String(r.user_id) === String(myUserId));
-        const row = { user_id: myUserId, rating, username: 'Вы' };
-        if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
-        cache.film.watched = true;
-        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, getFilmRenderRoot());
+      if (!res || !res.success) {
+        showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
+        return;
       }
       applyRatingToLists(filmId, rating);
+      refreshFilmDetailFromApi(filmId).then(() => {
+        try {
+          const c = _filmModalCache[filmId];
+          if (c) c.film.watched = true;
+        } catch (e) {}
+      });
+    }).catch(() => {
+      showToast('Сервер не отвечает', { type: 'error' });
     });
   }
 
   function deleteRating(filmId) {
     api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
-      if (!res || !res.success) return;
-      const cache = _filmModalCache[filmId];
-      if (cache) {
-        const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
-        cache.ratings = cache.ratings.filter((r) => String(r.user_id) !== String(myUserId));
-        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, getFilmRenderRoot());
+      if (!res || !res.success) {
+        showToast((res && (res.message || res.error)) || 'Не удалось удалить оценку', { type: 'error' });
+        return;
       }
       removeRatingFromLists(filmId);
+      refreshFilmDetailFromApi(filmId);
+    }).catch(() => {
+      showToast('Сервер не отвечает', { type: 'error' });
     });
   }
 
@@ -5205,6 +5510,174 @@
     }
   }
 
+  function openRoomAccessModal(chatId) {
+    const modal = document.getElementById('room-access-modal');
+    const body = document.getElementById('room-access-body');
+    if (!modal || !body) return;
+    body.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    if (!modal._mpRaCloseBound) {
+      modal._mpRaCloseBound = true;
+      modal.querySelectorAll('[data-action="close-room-access-modal"]').forEach((c) => {
+        c.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        });
+      });
+    }
+
+    const mid = encodeURIComponent(chatId);
+    Promise.all([
+      api('/api/site/rooms/' + mid + '/members'),
+      api('/api/site/rooms/' + mid + '/join-requests').catch(() => ({ success: false, items: [] })),
+    ]).then(([d, jr]) => {
+      if (!d || !d.success) {
+        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || 'Нет доступа') + '</p>';
+        return;
+      }
+      const room = d.room || {};
+      const gk = room.group_kind || 'friends';
+      const isVirt = d.is_virtual;
+      const canManage = d.can_manage_members;
+      const iAmOwner = d.i_am_owner;
+      if (!isVirt) {
+        body.innerHTML = '<p class="cabinet-hint">Для Telegram-группы доступ и приглашения задаются в Telegram.</p>';
+        return;
+      }
+      if (!canManage) {
+        body.innerHTML = '<p class="cabinet-hint">Настройки доступны владельцу и администраторам.</p>';
+        return;
+      }
+      if (gk === 'friends') {
+        body.innerHTML = '<p class="cabinet-hint">Для группы друзей поиск и отдельные заявки здесь не настраиваются.</p>';
+        return;
+      }
+
+      const members = d.members || [];
+      const modes = [
+        ['any_admin', 'Любой админ'],
+        ['majority_admins', 'Большинство'],
+        ['specific_admins', 'Конкретные админы'],
+        ['creator_only', 'Создатель'],
+        ['no_approval', 'Без согласования'],
+      ];
+      const curMode = room.join_approval_mode || 'any_admin';
+      const discover = !!room.is_discoverable;
+      const approverIds = (room.join_approver_user_ids || []).map(Number);
+
+      const pending = (jr && jr.success && jr.items)
+        ? jr.items.filter((x) => x && x.status === 'pending')
+        : [];
+
+      let approverHtml = '';
+      if (curMode === 'specific_admins') {
+        if (iAmOwner) {
+          const admins = members.filter((m) => m.role === 'admin' && !m.is_owner && m.user_id);
+          if (!admins.length) {
+            approverHtml = '<p class="cabinet-hint" style="margin-top:10px">Нет других админов — назначьте их в «Участники», затем отметьте одобряющих.</p>';
+          } else {
+            approverHtml = admins.map((m) => {
+              const uid = Number(m.user_id);
+              const checked = approverIds.indexOf(uid) >= 0;
+              return `<label class="room-member-row" style="cursor:pointer;align-items:center">
+                <input type="checkbox" class="room-access-approver-cb" data-uid="${uid}" ${checked ? 'checked' : ''} style="margin-right:10px">
+                <span class="room-member-name">${escapeHtml(m.name || '')}<span class="muted small"> · админ</span></span>
+              </label>`;
+            }).join('');
+          }
+        } else {
+          approverHtml = '<p class="cabinet-hint" style="margin-top:10px">Список одобряющих настраивает создатель.</p>';
+        }
+      }
+
+      const requestsHtml = pending.length
+        ? (`<div class="create-room-label" style="margin-top:16px">Заявки (${pending.length})</div>` + pending.map((r) => `
+          <div class="room-member-row" style="flex-direction:column;align-items:flex-start">
+            <span class="room-member-name">Пользователь #${Number(r.applicant_user_id)}</span>
+            ${r.message ? `<span class="muted small">${escapeHtml(r.message)}</span>` : ''}
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button type="button" class="btn btn-small btn-primary" data-jrid="${Number(r.id)}" data-jdec="approve">Одобрить</button>
+              <button type="button" class="btn btn-small btn-secondary" data-jrid="${Number(r.id)}" data-jdec="reject">Отклонить</button>
+            </div>
+          </div>`).join(''))
+        : '<p class="cabinet-hint" style="margin-top:14px">Нет активных заявок.</p>';
+
+      body.innerHTML = `
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:4px;font-size:14px">
+          <input type="checkbox" id="room-access-discover" ${discover ? 'checked' : ''} style="margin-top:3px">
+          <span>Показывать группу в поиске</span>
+        </label>
+        <div class="create-room-label" style="margin-top:14px">Режим заявок</div>
+        <div class="create-room-approval-row" id="room-access-mode-row">
+          ${modes.map(([id, label]) => `<button type="button" class="create-room-approval-btn ${curMode === id ? 'active' : ''}" data-rmode="${id}">${escapeHtml(label)}</button>`).join('')}
+        </div>
+        ${curMode === 'specific_admins' ? (`<div class="create-room-label" style="margin-top:12px">Кто одобряет</div>${approverHtml}`) : ''}
+        ${requestsHtml}
+      `;
+
+      const disEl = document.getElementById('room-access-discover');
+      if (disEl) {
+        disEl.addEventListener('change', () => {
+          api('/api/site/rooms/' + mid + '/settings', {
+            method: 'PATCH',
+            body: JSON.stringify({ is_discoverable: !!disEl.checked }),
+          }).then((r) => {
+            if (r && r.success) showToast('Сохранено');
+            else { disEl.checked = !disEl.checked; alert((r && r.error) || 'Ошибка'); }
+          });
+        });
+      }
+
+      body.querySelectorAll('[data-rmode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-rmode');
+          if (!mode) return;
+          api('/api/site/rooms/' + mid + '/settings', {
+            method: 'PATCH',
+            body: JSON.stringify({ join_approval_mode: mode }),
+          }).then((r) => {
+            if (r && r.success) { showToast('Сохранено'); openRoomAccessModal(chatId); }
+            else alert((r && r.error) || 'Ошибка');
+          });
+        });
+      });
+
+      body.querySelectorAll('.room-access-approver-cb').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          const picks = [...body.querySelectorAll('.room-access-approver-cb:checked')].map((x) => Number(x.getAttribute('data-uid')));
+          api('/api/site/rooms/' + mid + '/settings', {
+            method: 'PATCH',
+            body: JSON.stringify({ join_approver_user_ids: picks }),
+          }).then((r) => {
+            if (r && r.success) showToast('Сохранено');
+            else { cb.checked = !cb.checked; alert((r && r.error) || 'Ошибка'); }
+          });
+        });
+      });
+
+      body.querySelectorAll('[data-jrid]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const rid = btn.getAttribute('data-jrid');
+          const dec = btn.getAttribute('data-jdec');
+          api('/api/site/rooms/' + mid + '/join-requests/' + rid + '/decision', {
+            method: 'POST',
+            body: JSON.stringify({ decision: dec }),
+          }).then((r) => {
+            if (r && r.success) {
+              showToast(dec === 'approve' ? 'Заявка обработана' : 'Отклонено');
+              openRoomAccessModal(chatId);
+            } else alert((r && r.error) || 'Ошибка');
+          });
+        });
+      });
+    });
+  }
+
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');
     if (!list) return;
@@ -5245,6 +5718,7 @@
         : '<button type="button" class="primary" data-action="switch-profile" data-chat-id="' + escapeHtml(String(p.chat_id)) + '">Открыть</button>'}
             ${shareBtn}
             ${showManage ? '<button type="button" class="group-card-manage" data-action="group-manage" data-cid="' + escapeHtml(String(p.chat_id)) + '">Участники</button>' : ''}
+            ${showManage ? '<button type="button" class="group-card-manage" data-action="group-access" data-cid="' + escapeHtml(String(p.chat_id)) + '">Заявки и доступ</button>' : ''}
           </div>
         </div>`;
       }).join('');
@@ -5261,6 +5735,9 @@
       list.querySelectorAll('[data-action="group-manage"]').forEach((b) => {
         b.addEventListener('click', () => openRoomMembersModal(b.getAttribute('data-cid')));
       });
+      list.querySelectorAll('[data-action="group-access"]').forEach((b) => {
+        b.addEventListener('click', () => openRoomAccessModal(b.getAttribute('data-cid')));
+      });
       list.querySelectorAll('[data-action="switch-profile"]').forEach((b) => {
         b.addEventListener('click', () => switchProfileTo(b.getAttribute('data-chat-id')));
       });
@@ -5274,11 +5751,65 @@
   // Phase 4: Virtual rooms — create & share invite
   // ————————————————————————————————————————————————————
 
+  let _createRoomDiscover = false;
+  let _createRoomApproval = 'any_admin';
+
+  function renderCreateRoomKindExtra() {
+    const box = document.getElementById('create-room-kind-extra');
+    const row = document.getElementById('create-room-kind-row');
+    if (!box || !row) return;
+    const active = row.querySelector('.create-room-kind-btn.active');
+    const kind = (active && active.getAttribute('data-kind')) || 'friends';
+    if (kind === 'friends') {
+      box.innerHTML = '<p class="cabinet-hint" style="margin:4px 0 0">Группа друзей не показывается в общем поиске групп.</p>';
+      return;
+    }
+    const modes = [
+      ['any_admin', 'Любой админ'],
+      ['majority_admins', 'Большинство'],
+      ['specific_admins', 'Конкретные админы'],
+      ['creator_only', 'Создатель'],
+      ['no_approval', 'Без согласования'],
+    ];
+    box.innerHTML = `
+      <label class="create-room-discover" style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;cursor:pointer;font-size:14px;color:var(--text-body,#eee)">
+        <input type="checkbox" id="create-room-discoverable" style="margin-top:3px" ${_createRoomDiscover ? 'checked' : ''}>
+        <span>Показывать в поиске групп</span>
+      </label>
+      <div class="create-room-label" style="margin-top:12px">Заявки на вступление</div>
+      <div class="create-room-approval-row" id="create-room-approval-row">
+        ${modes.map(([id, label]) => `<button type="button" class="create-room-approval-btn ${_createRoomApproval === id ? 'active' : ''}" data-approval="${id}">${escapeHtml(label)}</button>`).join('')}
+      </div>
+      <p class="cabinet-hint" style="margin-top:8px">Для «Конкретные админы» после создания отметьте одобряющих в «Заявки и доступ» (настраивает создатель).</p>
+    `;
+    const dis = document.getElementById('create-room-discoverable');
+    if (dis) {
+      dis.addEventListener('change', () => {
+        _createRoomDiscover = !!dis.checked;
+      });
+    }
+    box.querySelectorAll('.create-room-approval-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        _createRoomApproval = b.getAttribute('data-approval') || 'any_admin';
+        renderCreateRoomKindExtra();
+      });
+    });
+  }
+
   function openCreateRoomModal() {
     const modal = document.getElementById('create-room-modal');
     if (!modal) return;
     const input = document.getElementById('create-room-name');
     const statusEl = document.getElementById('create-room-status');
+    const kindRow = document.getElementById('create-room-kind-row');
+    if (kindRow) {
+      kindRow.querySelectorAll('.create-room-kind-btn').forEach((b) => b.classList.remove('active'));
+      const f = kindRow.querySelector('.create-room-kind-btn[data-kind="friends"]');
+      if (f) f.classList.add('active');
+    }
+    _createRoomDiscover = false;
+    _createRoomApproval = 'any_admin';
+    renderCreateRoomKindExtra();
     if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
     modal.classList.remove('hidden');
@@ -5304,6 +5835,26 @@
         if (t && t.getAttribute && t.getAttribute('data-action') === 'close-create-room-modal') closeCreateRoomModal();
       });
     }
+    const kindRow = document.getElementById('create-room-kind-row');
+    if (kindRow && !kindRow._mpBound) {
+      kindRow._mpBound = true;
+      kindRow.addEventListener('click', (e) => {
+        const btn = e.target.closest('.create-room-kind-btn');
+        if (!btn) return;
+        kindRow.querySelectorAll('.create-room-kind-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const kind = btn.getAttribute('data-kind') || 'friends';
+        if (kind === 'friends') {
+          _createRoomDiscover = false;
+          _createRoomApproval = 'any_admin';
+        } else if (kind === 'cinema_club') {
+          _createRoomDiscover = true;
+        } else {
+          _createRoomDiscover = false;
+        }
+        renderCreateRoomKindExtra();
+      });
+    }
     const emojiRow = document.getElementById('create-room-emoji-row');
     if (emojiRow) {
       emojiRow.addEventListener('click', (e) => {
@@ -5327,8 +5878,18 @@
     const name = (nameInput && nameInput.value || '').trim();
     const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
     if (!name) { if (statusEl) { statusEl.textContent = 'Введите название комнаты'; statusEl.className = 'add-film-status error'; } return; }
+    const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
+    const groupKind = (kindBtn && kindBtn.getAttribute('data-kind')) || 'friends';
+    const body = { name, emoji, group_kind: groupKind };
+    if (groupKind === 'friends') {
+      body.is_discoverable = false;
+      body.join_approval_mode = 'any_admin';
+    } else {
+      body.is_discoverable = !!_createRoomDiscover;
+      body.join_approval_mode = _createRoomApproval;
+    }
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
-    api('/api/site/rooms', { method: 'POST', body: JSON.stringify({ name, emoji }) }).then((data) => {
+    api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать комнату'; }
       if (!data || !data.success) {
         if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать комнату'; statusEl.className = 'add-film-status error'; }
@@ -5822,6 +6383,7 @@
   }
 
   function init() {
+    consumeOAuthReturnFromHash();
     bindLogin();
     bindFaq();
     initCarousels();
@@ -5901,6 +6463,7 @@
         if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
         if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
         if (sec === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
+        if (sec === 'inbox' && typeof renderInboxSection === 'function') renderInboxSection();
         if (sec === 'stats') {
           initStatsSelectors();
           const now = new Date();
@@ -5927,6 +6490,9 @@
         }
         if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
           renderSettingsSection();
+        }
+        if (sectionId === 'inbox' && typeof renderInboxSection === 'function') {
+          renderInboxSection();
         }
         if (sectionId === 'stats') {
           initStatsSelectors();
