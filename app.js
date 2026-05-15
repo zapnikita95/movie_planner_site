@@ -409,6 +409,18 @@
     if (me && me.name) {
       if (loginBtn) loginBtn.classList.add('hidden');
       if (userWrap) userWrap.classList.remove('hidden');
+      // Показать монетки
+      const coinsBtn = document.getElementById('header-coins-btn');
+      const coinsVal = document.getElementById('header-coins-val');
+      if (coinsBtn && me.coins) {
+        coinsVal.textContent = me.coins.balance != null ? me.coins.balance : '—';
+        coinsBtn.classList.remove('hidden');
+        coinsBtn.onclick = function() {
+          const bal = me.coins.balance != null ? me.coins.balance : '—';
+          const streak = me.coins.streak_days > 0 ? `\n🔥 Стрик: ${me.coins.streak_days} дн. подряд` : '';
+          alert(`🪙 Ваши монетки: ${bal}${streak}\n\nЗарабатывайте: +15 за фильм, +40 за оценку.\nТратьте: −30 Random KP, −120 Shazam, −35 билет.\n💎 PRO — монетки не нужны.`);
+        };
+      }
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
       if (userWrap) userWrap.classList.add('hidden');

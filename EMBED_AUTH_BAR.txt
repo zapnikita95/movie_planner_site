@@ -1,0 +1,19 @@
+Фрагмент для репозитория сайта (лендинг movie-planner.ru):
+
+1) В шапке (справа сверху) добавьте контейнер и скрипт:
+
+   <div id="mp-auth-slot" data-mp-auth-bar style="min-height:40px"></div>
+   <script src="https://movie-planner.ru/embed/mp-auth.js" defer></script>
+
+   Скрипт сам подставит «Войти» или имя + ссылку «Кабинет», текст не вылезает (ellipsis).
+
+2) Отдельные URL (проксируются на бэкенд через Cloudflare Worker):
+   — Личный кабинет: https://movie-planner.ru/cabinet
+   — Вход: https://movie-planner.ru/login
+
+3) Если у вас в статическом index есть редирект «залогинен → кабинет» при открытии главной — удалите его:
+   главная должна оставаться лендингом; кабинет только по /cabinet .
+
+4) В Google Cloud и Яндекс OAuth добавьте ещё redirect URI для ВЕБ-входа (в дополнение к мостам для приложения):
+   https://movie-planner.ru/api/site/oauth/google/callback
+   https://movie-planner.ru/api/site/oauth/yandex/callback

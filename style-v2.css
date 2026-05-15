@@ -4810,3 +4810,36 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
+/* ── Coins widget ────────────────────────────────────────────────────── */
+.header-coins-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,181,71,.15);
+  border: 1px solid rgba(255,181,71,.35);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #c98a00;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background .15s;
+}
+.header-coins-btn:hover { background: rgba(255,181,71,.28); }
+.header-coins-sprite {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('coin_gold.png');
+  background-size: calc(8 * 20px) 20px;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation: site-coin-spin .8s steps(8) infinite;
+}
+@keyframes site-coin-spin {
+  from { background-position: 0 0; }
+  to   { background-position: calc(-8 * 20px) 0; }
+}
+/* ── /Coins widget ───────────────────────────────────────────────────── */
