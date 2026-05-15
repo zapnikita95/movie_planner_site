@@ -413,10 +413,10 @@
       const coinsBtn = document.getElementById('header-coins-btn');
       const coinsVal = document.getElementById('header-coins-val');
       if (coinsBtn && me.coins) {
-        coinsVal.textContent = me.coins.balance != null ? me.coins.balance : '—';
+        coinsVal.textContent = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
         coinsBtn.classList.remove('hidden');
         coinsBtn.onclick = function() {
-          const bal = me.coins.balance != null ? me.coins.balance : '—';
+          const bal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
           const streak = me.coins.streak_days > 0 ? `\n🔥 Стрик: ${me.coins.streak_days} дн. подряд` : '';
           alert(`🪙 Ваши монетки: ${bal}${streak}\n\nЗарабатывайте: +15 за фильм, +40 за оценку.\nТратьте: −30 Random KP, −120 Shazam, −35 билет.\n💎 PRO — монетки не нужны.`);
         };
