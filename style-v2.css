@@ -2933,6 +2933,68 @@ body.in-public-stats .footer-extension-cabinet {
 .similar-card .similar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent); color: #fff; padding: 22px 8px 8px; font-size: 12px; line-height: 1.3; }
 .similar-card .similar-in-base { position: absolute; top: 6px; right: 6px; background: rgba(52,199,89,0.9); color: #001f0a; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
 
+.film-similar-under-poster { margin: 14px 0 4px; padding: 0; }
+.film-similar-under-poster .film-similar-rail-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: rgba(255,255,255,0.92);
+}
+.similar-rail {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.similar-rail-card {
+  flex: 0 0 92px;
+  min-width: 92px;
+  max-width: 108px;
+  scroll-snap-align: start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.similar-rail-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0818;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.similar-rail-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.similar-rail-poster .similar-in-base {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(52,199,89,0.92);
+  color: #001f0a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 6px;
+}
+.similar-rail-title {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: rgba(255,255,255,0.88);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Страница фильма /film/:id (в кабинете) */
 #section-film.film-page { padding: 0 0 32px; }
 .film-page-toolbar {
@@ -4843,3 +4905,105 @@ a.header-settings-nav-item {
   to   { background-position: calc(-8 * 20px) 0; }
 }
 /* ── /Coins widget ───────────────────────────────────────────────────── */
+
+/* ── Friends / Social (Друзья и группы) ──────────────────────────────── */
+.soc-tab-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border-color, #eee);
+}
+.soc-tab {
+  flex: 1;
+  padding: 12px 10px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  color: var(--text-muted, #888);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  position: relative;
+}
+.soc-tab.active {
+  color: var(--accent, #ff2d7b);
+  border-bottom-color: var(--accent, #ff2d7b);
+}
+.soc-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--accent, #ff2d7b);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 5px;
+}
+.soc-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.soc-search-row .input { flex: 1; }
+.soc-friend-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: var(--surface, #fff);
+  cursor: pointer;
+  transition: background 0.1s;
+  text-decoration: none;
+  color: inherit;
+}
+.soc-friend-card:hover { background: var(--surface-hover, #f8f8f8); }
+.soc-friend-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent, #ff2d7b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.soc-friend-name { font-weight: 700; font-size: 14px; }
+.soc-friend-meta { font-size: 12px; color: var(--text-muted, #888); margin-top: 2px; }
+.soc-request-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: var(--surface, #fff);
+}
+.soc-activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+.list-title-section {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted, #aaa);
+  margin: 14px 0 6px;
+}
+/* ── /Friends / Social ────────────────────────────────────────────────── */

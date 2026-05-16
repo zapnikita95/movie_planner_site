@@ -651,26 +651,55 @@
                     <div id="settings-content" class="settings-content"></div>
                 </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
-                    <div class="groups-header">
-                        <h2 class="section-title section-title--text-only"><span class="section-title-text">Друзья и группы</span></h2>
-                        <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
-                            <span>＋</span> Создать комнату
-                        </button>
+                    <h2 class="section-title section-title--text-only"><span class="section-title-text">Друзья и группы</span></h2>
+
+                    <!-- Tabs -->
+                    <div class="soc-tab-row" id="soc-tab-row">
+                        <button type="button" class="soc-tab active" data-soc-tab="friends">Друзья <span class="soc-tab-badge hidden" id="soc-tab-badge-count"></span></button>
+                        <button type="button" class="soc-tab" data-soc-tab="groups">Группы</button>
                     </div>
-                    <p class="cabinet-hint">Общие базы с друзьями. Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">@movie_planner_bot</a> в существующий Telegram-чат.</p>
-                    <div id="groups-list" class="groups-list"></div>
-                    <div class="groups-howto">
-                        <h3>Два способа пригласить друга</h3>
-                        <div class="groups-howto-grid">
-                            <div class="groups-howto-card">
-                                <div class="groups-howto-emoji">🧩</div>
-                                <div class="groups-howto-title">Виртуальная комната</div>
-                                <div class="groups-howto-text">Создайте комнату одной кнопкой, получите ссылку и отправьте другу. Telegram-чат не нужен.</div>
-                            </div>
-                            <div class="groups-howto-card">
-                                <div class="groups-howto-emoji">💬</div>
-                                <div class="groups-howto-title">Telegram-группа</div>
-                                <div class="groups-howto-text">Добавьте бота в чат, отправьте <code>/invite</code> — получите ссылку для друга (7 дней).</div>
+
+                    <!-- Friends tab -->
+                    <div id="soc-pane-friends">
+                        <div class="soc-search-row">
+                            <input type="text" id="soc-search-input" class="input" placeholder="Найти друга по имени" />
+                            <button type="button" class="btn btn-secondary" id="soc-search-btn">Найти</button>
+                        </div>
+                        <div id="soc-search-results" class="hidden"></div>
+                        <div id="soc-friend-requests" class="hidden">
+                            <div class="list-title-section">Входящие запросы</div>
+                            <div id="soc-friend-requests-list"></div>
+                        </div>
+                        <div id="soc-friends-list-wrap">
+                            <div class="list-title-section" id="soc-friends-label" style="display:none">Мои друзья</div>
+                            <div id="soc-friends-list"></div>
+                            <div id="soc-friends-empty" class="cabinet-hint hidden">Нет друзей — найдите кого-нибудь выше</div>
+                        </div>
+                        <div id="soc-friends-actions" style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"></div>
+                    </div>
+
+                    <!-- Groups tab -->
+                    <div id="soc-pane-groups" style="display:none">
+                        <div class="groups-header" style="margin-top:0">
+                            <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
+                                <span>＋</span> Создать комнату
+                            </button>
+                        </div>
+                        <p class="cabinet-hint">Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">@movie_planner_bot</a> в существующий Telegram-чат.</p>
+                        <div id="groups-list" class="groups-list"></div>
+                        <div class="groups-howto">
+                            <h3>Два способа пригласить друга</h3>
+                            <div class="groups-howto-grid">
+                                <div class="groups-howto-card">
+                                    <div class="groups-howto-emoji">🧩</div>
+                                    <div class="groups-howto-title">Виртуальная комната</div>
+                                    <div class="groups-howto-text">Создайте комнату одной кнопкой, получите ссылку и отправьте другу. Telegram-чат не нужен.</div>
+                                </div>
+                                <div class="groups-howto-card">
+                                    <div class="groups-howto-emoji">💬</div>
+                                    <div class="groups-howto-title">Telegram-группа</div>
+                                    <div class="groups-howto-text">Добавьте бота в чат, отправьте <code>/invite</code> — получите ссылку для друга (7 дней).</div>
+                                </div>
                             </div>
                         </div>
                     </div>

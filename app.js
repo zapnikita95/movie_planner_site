@@ -4048,6 +4048,44 @@
     _filmModalPreviewRating = 0;
   }
 
+  const HIGH_RATING_SIMILAR_MIN = 9;
+
+  function filmMyRating(ratings, me) {
+    const myUserId = (me && me.user_id) || cabinetUserId;
+    const myRatingObj = (ratings || []).find(function (r) {
+      return r.user_id && myUserId && String(r.user_id) === String(myUserId);
+    });
+    return myRatingObj ? Number(myRatingObj.rating) : 0;
+  }
+
+  function buildSimilarRailHtml(similar) {
+    if (!similar || !similar.length) return '';
+    return (
+      '<div class="film-modal-section film-similar-under-poster">' +
+        '<div class="film-similar-rail-label">Похожие фильмы</div>' +
+        '<div class="similar-rail" role="list">' +
+        similar.map(function (s) {
+          const p = s.poster || posterUrl(s.kp_id) || '';
+          const img = p
+            ? '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+            : '';
+          const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
+          const clickAttr = s.in_base_film_id
+            ? 'data-film-id="' + s.in_base_film_id + '"'
+            : 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
+          const em = s.is_series ? '📺 ' : '🎬 ';
+          return (
+            '<button type="button" class="similar-rail-card" ' + clickAttr +
+            ' title="' + escapeHtml(s.title || '') + '" role="listitem">' +
+              '<div class="similar-rail-poster">' + img + inBase + '</div>' +
+              '<div class="similar-rail-title">' + em + escapeHtml(s.title || '') + '</div>' +
+            '</button>'
+          );
+        }).join('') +
+        '</div></div>'
+    );
+  }
+
   function openFilmPage(filmId, opts) {
     const o = opts || {};
     if (!getToken()) {
@@ -4089,10 +4127,7 @@
     } else {
       runLoad(null);
     }
-    return Promise.all([
-      api('/api/site/film/' + filmId),
-      api('/api/site/film/' + filmId + '/similar').catch(() => ({ success: true, items: [] })),
-    ]).then(([detail, sim]) => {
+    return api('/api/site/film/' + filmId).then(function (detail) {
       if (!detail || !detail.success) {
         pageRoot.className = 'container film-page-container';
         pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p><p class="film-page-error-actions"><button type="button" class="btn btn-primary" data-action="close-film-page">← Назад</button></p>';
@@ -4100,18 +4135,25 @@
         return;
       }
       if (_filmModalCurrentId !== filmId) return;
-      const data = {
-        film: detail.film,
-        ratings: detail.ratings || [],
-        me: detail.me || { user_id: cabinetUserId },
-        similar: (sim && sim.items) || [],
-      };
-      try { pushHeaderFilmRecent(detail.film); } catch (e) {}
-      _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
-      try { document.title = (data.film && data.film.title ? data.film.title + ' · Movie Planner' : DEFAULT_DOC_TITLE); } catch (e) {}
-      renderFilmDetail(data.film, data.ratings, data.similar, data.me, pageRoot);
-      setFilmPageToolbar(data.film);
-      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
+      const myRating = filmMyRating(detail.ratings || [], detail.me);
+      const simPromise = myRating >= HIGH_RATING_SIMILAR_MIN
+        ? api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; })
+        : Promise.resolve({ success: true, items: [] });
+      return simPromise.then(function (sim) {
+        if (_filmModalCurrentId !== filmId) return;
+        const data = {
+          film: detail.film,
+          ratings: detail.ratings || [],
+          me: detail.me || { user_id: cabinetUserId },
+          similar: (sim && sim.items) || [],
+        };
+        try { pushHeaderFilmRecent(detail.film); } catch (e) {}
+        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
+        try { document.title = (data.film && data.film.title ? data.film.title + ' · Movie Planner' : DEFAULT_DOC_TITLE); } catch (e) {}
+        renderFilmDetail(data.film, data.ratings, data.similar, data.me, pageRoot);
+        setFilmPageToolbar(data.film);
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
+      });
     });
   }
 
@@ -4146,17 +4188,31 @@
   }
 
   function refreshFilmDetailFromApi(filmId) {
-    return api('/api/site/film/' + filmId).then((detail) => {
+    return api('/api/site/film/' + filmId).then(function (detail) {
       if (!detail || !detail.success) return;
       const cache = _filmModalCache[filmId];
       if (!cache) return;
       cache.film = detail.film;
       cache.ratings = detail.ratings || [];
       if (detail.me) cache.me = detail.me;
-      const root = getFilmRenderRoot();
-      if (root && _filmModalCurrentId === filmId) {
-        renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, root);
+      const myRating = filmMyRating(cache.ratings, cache.me);
+      const finish = function () {
+        const root = getFilmRenderRoot();
+        if (root && _filmModalCurrentId === filmId) {
+          renderFilmDetail(cache.film, cache.ratings, cache.similar, cache.me, root);
+        }
+      };
+      if (myRating >= HIGH_RATING_SIMILAR_MIN) {
+        return api('/api/site/film/' + filmId + '/similar').then(function (sim) {
+          cache.similar = (sim && sim.items) || [];
+          finish();
+        }).catch(function () {
+          cache.similar = [];
+          finish();
+        });
       }
+      cache.similar = [];
+      finish();
     });
   }
 
@@ -4272,23 +4328,8 @@
         ${extra}
       </div>`;
 
-    // Similar grid
-    const similarHtml = similar && similar.length
-      ? `<div class="film-modal-section"><h3>Похожие фильмы</h3><div class="similar-grid">${
-          similar.map((s) => {
-            const p = s.poster || posterUrl(s.kp_id) || '';
-            const img = p ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
-            const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
-            const clickAttr = s.in_base_film_id
-              ? `data-film-id="${s.in_base_film_id}"`
-              : `data-similar-kp="${escapeHtml(String(s.kp_id))}"`;
-            return `<div class="similar-card" ${clickAttr} title="${escapeHtml(s.title || '')}">
-              ${img}
-              ${inBase}
-              <div class="similar-overlay">${escapeHtml(s.title || '')}</div>
-            </div>`;
-          }).join('')
-        }</div></div>`
+    const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
+      ? buildSimilarRailHtml(similar)
       : '';
 
     const trailerHtml = `
@@ -4301,6 +4342,7 @@
       <div class="film-modal-poster-wrap">
         ${poster ? `<img src="${escapeHtml(poster)}" alt="" loading="lazy">` : '<div style="color:#665;">🎬</div>'}
       </div>
+      ${similarHtml}
       <div class="film-modal-info">
         <h2>${escapeHtml(film.title || '')} <span style="opacity:.6;font-weight:400;">${year}</span></h2>
         <div class="film-modal-meta">
@@ -4316,10 +4358,32 @@
         ${adminBreakdownHtml}
         ${ratingBlock}
         ${groupHtml}
-        ${similarHtml}
+        <div id="film-friends-social-block"></div>
       </div>`;
 
     bindFilmModalInteractions(film, content);
+
+    // Async-load friend social (non-blocking)
+    if (film.kp_id) {
+      api(`/api/friends/film/${film.kp_id}/social`).then((social) => {
+        const el = document.getElementById('film-friends-social-block');
+        if (!el) return;
+        const watchers = (social && social.watchers) || [];
+        if (!watchers.length) return;
+        el.innerHTML = `
+          <div class="film-modal-section">
+            <h3>👥 Друзья смотрели (${watchers.length})</h3>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              ${watchers.map((w) => `
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface-2,#f8f8f8);border-radius:8px">
+                  <div class="soc-friend-avatar" style="width:30px;height:30px;font-size:12px">${escapeHtml((w.name || '?')[0].toUpperCase())}</div>
+                  <span style="flex:1;font-weight:600;font-size:13px">${escapeHtml(w.name)}</span>
+                  ${w.rating != null ? `<span style="font-weight:700;color:var(--accent,#ff2d7b)">${w.rating}/10</span>` : '<span style="color:#aaa;font-size:12px">смотрел</span>'}
+                </div>`).join('')}
+            </div>
+          </div>`;
+      }).catch(() => {});
+    }
   }
 
   function buildRatingStars(current) {
@@ -4387,13 +4451,27 @@
       });
     }
 
-    // Similar: клик по карточке похожего
-    content.querySelectorAll('[data-similar-kp]').forEach((card) => {
-      card.addEventListener('click', () => {
+    content.querySelectorAll('.similar-rail-card[data-film-id]').forEach(function (card) {
+      card.addEventListener('click', function () {
+        const fid = card.getAttribute('data-film-id');
+        if (fid) openFilmModal(Number(fid));
+      });
+    });
+    content.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
+      card.addEventListener('click', function () {
         const kp = card.getAttribute('data-similar-kp');
-        // Если нет в базе — отправляем в Telegram на добавление
-        const url = 'https://t.me/movie_planner_bot?start=addfilm_' + encodeURIComponent(kp);
-        window.open(url, '_blank', 'noopener');
+        if (!kp) return;
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+          .then(function (res) {
+            if (res && res.success && res.film_id) {
+              openFilmModal(Number(res.film_id));
+            } else {
+              showToast('Не удалось открыть фильм', { type: 'error' });
+            }
+          })
+          .catch(function () {
+            showToast('Ошибка сети', { type: 'error' });
+          });
       });
     });
 
@@ -4442,19 +4520,22 @@
     api('/api/site/film/' + filmId + '/rating', {
       method: 'POST',
       body: JSON.stringify({ rating }),
-    }).then((res) => {
+    }).then(function (res) {
       if (!res || !res.success) {
         showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
       applyRatingToLists(filmId, rating);
-      refreshFilmDetailFromApi(filmId).then(() => {
+      if (rating >= HIGH_RATING_SIMILAR_MIN && res.similar && _filmModalCache[filmId]) {
+        _filmModalCache[filmId].similar = res.similar;
+      }
+      refreshFilmDetailFromApi(filmId).then(function () {
         try {
           const c = _filmModalCache[filmId];
           if (c) c.film.watched = true;
         } catch (e) {}
       });
-    }).catch(() => {
+    }).catch(function () {
       showToast('Сервер не отвечает', { type: 'error' });
     });
   }
@@ -5691,9 +5772,228 @@
     });
   }
 
+  // ── Friends JS ─────────────────────────────────────────────────────────────
+
+  function _renderFriendCard(f) {
+    const letter = (f.name || '?')[0].toUpperCase();
+    return `<div class="soc-friend-card" style="cursor:default">
+      <div class="soc-friend-avatar">${letter}</div>
+      <div style="flex:1">
+        <div class="soc-friend-name">${escapeHtml(f.name)}</div>
+        <div class="soc-friend-meta">${f.ratings_count || 0} оценок · ${f.coins || 0} монет · ${f.achievements_count || 0} ачивок</div>
+      </div>
+    </div>`;
+  }
+
+  function _renderRequestRow(r, onAccept, onDecline) {
+    const letter = (r.name || '?')[0].toUpperCase();
+    const row = document.createElement('div');
+    row.className = 'soc-request-row';
+    row.innerHTML = `
+      <div class="soc-friend-avatar">${escapeHtml(letter)}</div>
+      <div style="flex:1"><strong>${escapeHtml(r.name)}</strong></div>
+      <button type="button" class="btn btn-primary" style="padding:7px 12px;font-size:13px">Принять</button>
+      <button type="button" class="btn btn-ghost" style="padding:7px 10px;font-size:13px">✕</button>
+    `;
+    row.querySelectorAll('.btn-primary')[0].addEventListener('click', () => onAccept(r.user_id));
+    row.querySelectorAll('.btn-ghost')[0].addEventListener('click', () => onDecline(r.user_id));
+    return row;
+  }
+
+  async function _loadFriendsPane() {
+    let friends = [], requests = { incoming: [], outgoing: [] };
+    try {
+      const [fr, rq] = await Promise.all([
+        api('/api/friends'),
+        api('/api/friends/requests'),
+      ]);
+      friends = (fr && fr.friends) || [];
+      requests = rq || { incoming: [], outgoing: [] };
+    } catch (e) { /* graceful */ }
+
+    const pending = (requests.incoming || []);
+    const badgeEl = document.getElementById('soc-tab-badge-count');
+    if (badgeEl) {
+      badgeEl.textContent = pending.length;
+      badgeEl.classList.toggle('hidden', pending.length === 0);
+    }
+
+    // Requests
+    const reqWrap = document.getElementById('soc-friend-requests');
+    const reqList = document.getElementById('soc-friend-requests-list');
+    if (reqWrap && reqList) {
+      if (pending.length) {
+        reqWrap.classList.remove('hidden');
+        reqList.innerHTML = '';
+        pending.forEach((r) => {
+          reqList.appendChild(_renderRequestRow(r,
+            async (uid) => {
+              try { await api('/api/friends/accept', { method: 'POST', body: JSON.stringify({ from_user_id: uid }) }); _loadFriendsPane(); }
+              catch (e) { alert((e && e.message) || 'Ошибка'); }
+            },
+            async (uid) => {
+              try { await api('/api/friends/decline', { method: 'POST', body: JSON.stringify({ from_user_id: uid }) }); _loadFriendsPane(); }
+              catch (e) { alert((e && e.message) || 'Ошибка'); }
+            }
+          ));
+        });
+      } else {
+        reqWrap.classList.add('hidden');
+      }
+    }
+
+    // Friends list
+    const friendsListEl = document.getElementById('soc-friends-list');
+    const friendsLabelEl = document.getElementById('soc-friends-label');
+    const friendsEmptyEl = document.getElementById('soc-friends-empty');
+    if (friendsListEl) {
+      if (friends.length) {
+        friendsListEl.innerHTML = friends.map(_renderFriendCard).join('');
+        if (friendsLabelEl) friendsLabelEl.style.display = '';
+        if (friendsEmptyEl) friendsEmptyEl.classList.add('hidden');
+      } else {
+        friendsListEl.innerHTML = '';
+        if (friendsLabelEl) friendsLabelEl.style.display = 'none';
+        if (friendsEmptyEl) friendsEmptyEl.classList.remove('hidden');
+      }
+    }
+
+    // Action buttons
+    const actionsEl = document.getElementById('soc-friends-actions');
+    if (actionsEl && friends.length > 0) {
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-secondary" id="soc-activity-btn">Лента активности</button>
+        <button type="button" class="btn btn-secondary" id="soc-lb-btn">🏆 Рейтинг друзей</button>
+      `;
+      actionsEl.querySelector('#soc-activity-btn')?.addEventListener('click', _openFriendsActivity);
+      actionsEl.querySelector('#soc-lb-btn')?.addEventListener('click', _openFriendsLeaderboard);
+    }
+  }
+
+  async function _runFriendSearch() {
+    const q = (document.getElementById('soc-search-input')?.value || '').trim();
+    const out = document.getElementById('soc-search-results');
+    if (!q || q.length < 2 || !out) return;
+    out.classList.remove('hidden');
+    out.innerHTML = '<div class="cabinet-hint">Ищем…</div>';
+    try {
+      const data = await api(`/api/friends/search?q=${encodeURIComponent(q)}`);
+      const users = (data && data.users) || [];
+      if (!users.length) {
+        out.innerHTML = '<div class="cabinet-hint">Никого не найдено</div>';
+        return;
+      }
+      out.innerHTML = users.map((u) => `
+        <div class="soc-request-row" data-uid="${Number(u.user_id)}">
+          <div class="soc-friend-avatar">${escapeHtml((u.name || '?')[0].toUpperCase())}</div>
+          <div style="flex:1"><strong>${escapeHtml(u.name)}</strong></div>
+          ${u.friendship_status === 'accepted'
+            ? '<span style="color:green;font-size:13px;font-weight:700">Друзья ✓</span>'
+            : u.friendship_status === 'pending'
+            ? '<span style="color:#999;font-size:13px">Запрос отправлен</span>'
+            : `<button type="button" class="btn btn-primary soc-add-friend-btn" data-uid="${Number(u.user_id)}" style="padding:7px 12px;font-size:13px">Добавить</button>`
+          }
+        </div>`).join('');
+      out.querySelectorAll('.soc-add-friend-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const uid = Number(btn.getAttribute('data-uid'));
+          try {
+            await api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) });
+            btn.textContent = 'Запрос отправлен';
+            btn.disabled = true;
+          } catch (e) { alert((e && e.message) || 'Ошибка'); }
+        });
+      });
+    } catch (_e) {
+      out.innerHTML = '<div class="cabinet-hint">Ошибка поиска</div>';
+    }
+  }
+
+  async function _openFriendsActivity() {
+    const data = await api('/api/friends/activity?limit=20');
+    const items = (data && data.items) || [];
+    const html = items.length
+      ? items.map((it) => {
+          const letter = (it.name || '?')[0].toUpperCase();
+          const ts = it.happened_at ? new Date(it.happened_at).toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '';
+          const desc = it.event_type === 'rating'
+            ? `оценил${it.value != null ? ' ' + it.value + '/10' : ''} — ${escapeHtml(it.film_title || String(it.kp_id || ''))}`
+            : it.event_type === 'achievement'
+            ? `получил достижение «${escapeHtml(it.extra || '')}»`
+            : escapeHtml(it.event_type || '');
+          return `<div class="soc-activity-row">
+            <div class="soc-friend-avatar" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${escapeHtml(letter)}</div>
+            <div style="flex:1;font-size:13px"><strong>${escapeHtml(it.name)}</strong> ${desc}${ts ? ` <span style="color:#aaa"> · ${ts}</span>` : ''}</div>
+          </div>`;
+        }).join('')
+      : '<div class="cabinet-hint">Нет активности</div>';
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `<div style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow:auto">
+      <div style="font-size:17px;font-weight:700;margin-bottom:16px">Лента активности друзей</div>
+      ${html}
+      <button type="button" style="margin-top:16px;width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;background:none;cursor:pointer">Закрыть</button>
+    </div>`;
+    modal.querySelector('button').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+  }
+
+  async function _openFriendsLeaderboard() {
+    const data = await api('/api/friends/leaderboard');
+    const items = (data && data.leaderboard) || [];
+    const medals = ['🥇', '🥈', '🥉'];
+    const html = items.length
+      ? items.map((it, i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px${it.is_me ? ';background:rgba(255,45,123,0.05);border-color:rgba(255,45,123,0.3)' : ''}">
+          <span style="font-size:18px;width:28px;text-align:center">${medals[i] || (i + 1) + '.'}</span>
+          <div class="soc-friend-avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">${escapeHtml((it.name || '?')[0].toUpperCase())}</div>
+          <div style="flex:1">
+            <div style="font-weight:700">${escapeHtml(it.name)}${it.is_me ? ' <span style="color:#aaa;font-weight:400">(вы)</span>' : ''}</div>
+            <div style="font-size:12px;color:#888">${it.ratings_count} оценок · ${it.streak_days} дн стрика</div>
+          </div>
+          <div style="font-size:15px;font-weight:800;color:var(--accent,#ff2d7b)">${it.coins}</div>
+        </div>`).join('')
+      : '<div class="cabinet-hint">Нет данных — добавьте друзей</div>';
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `<div style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow:auto">
+      <div style="font-size:17px;font-weight:700;margin-bottom:16px">🏆 Рейтинг друзей</div>
+      ${html}
+      <button type="button" style="margin-top:16px;width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;background:none;cursor:pointer">Закрыть</button>
+    </div>`;
+    modal.querySelector('button').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+  }
+
+  function _initSocTabRow() {
+    const tabRow = document.getElementById('soc-tab-row');
+    if (!tabRow || tabRow._socBound) return;
+    tabRow._socBound = true;
+    tabRow.querySelectorAll('.soc-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabRow.querySelectorAll('.soc-tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        const pane = tab.getAttribute('data-soc-tab');
+        document.getElementById('soc-pane-friends').style.display = pane === 'friends' ? '' : 'none';
+        document.getElementById('soc-pane-groups').style.display = pane === 'groups' ? '' : 'none';
+      });
+    });
+    const searchInput = document.getElementById('soc-search-input');
+    const searchBtn = document.getElementById('soc-search-btn');
+    if (searchBtn) searchBtn.addEventListener('click', () => void _runFriendSearch());
+    if (searchInput) searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') void _runFriendSearch(); });
+    void _loadFriendsPane();
+  }
+
+  // ── /Friends JS ─────────────────────────────────────────────────────────────
+
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');
     if (!list) return;
+    // Init social tab row
+    _initSocTabRow();
     list.innerHTML = '<div class="cabinet-hint">Загружаем профили…</div>';
     api('/api/site/profiles').then((data) => {
       if (!data || !data.success) {
