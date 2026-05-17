@@ -924,7 +924,19 @@
         const pending = localStorage.getItem('mp_pending_invite_token');
         if (pending) {
           localStorage.removeItem('mp_pending_invite_token');
-          showInviteConfirmModal(pending);
+          // showInviteConfirmModal(pending);
+        }
+      } catch (_) {}
+      try {
+        const pendingFriend = localStorage.getItem('mp_pending_add_friend');
+        if (pendingFriend && /^\d+$/.test(pendingFriend)) {
+          localStorage.removeItem('mp_pending_add_friend');
+          const uid = Number(pendingFriend);
+          const token = getToken();
+          fetch(API_BASE + '/api/friends/' + uid + '/public', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then((r) => r.json().catch(() => ({})))
+            .then((d) => { if (d.success) _openAddFriendModal(uid, d, true); })
+            .catch(() => {});
         }
       } catch (_) {}
       if (me.has_data) {
@@ -6695,6 +6707,110 @@
     document.body.style.overflow = 'hidden';
   }
 
+  // ── Add-friend landing (/add?u=<id> or /?add=<id>) ──────────────────────────
+
+  function _openAddFriendModal(userId, profile, isLoggedIn) {
+    const existing = document.getElementById('mp-add-friend-overlay');
+    if (existing) existing.remove();
+
+    const name = (profile && profile.name) || 'Пользователь';
+    const initials = name[0].toUpperCase();
+    const ratings = (profile && profile.ratings_count) || 0;
+    const coins = (profile && profile.coins) || 0;
+    const fs = profile && profile.friendship_status;
+
+    let actionHtml;
+    if (fs === 'accepted') {
+      actionHtml = '<p style="text-align:center;color:#aaa;margin:0">Вы уже друзья ✓</p>';
+    } else if (fs === 'pending_outgoing') {
+      actionHtml = '<p style="text-align:center;color:#aaa;margin:0">Запрос уже отправлен</p>';
+    } else if (fs === 'pending_incoming') {
+      actionHtml = '<button id="mp-aff-accept" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Принять запрос</button>';
+    } else if (isLoggedIn) {
+      actionHtml = '<button id="mp-aff-add" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Добавить в друзья</button>';
+    } else {
+      actionHtml = '<button id="mp-aff-login" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Войти и добавить в друзья</button>';
+    }
+
+    const ov = document.createElement('div');
+    ov.id = 'mp-add-friend-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    ov.innerHTML = `
+      <div style="background:#1c1c28;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.7);text-align:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ff2d7b,#7b2fff);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 16px">${initials}</div>
+        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">${name}</div>
+        <div style="font-size:13px;color:#888;margin-bottom:4px">приглашает тебя в Movie Planner 🎬</div>
+        <div style="display:flex;gap:16px;justify-content:center;margin:12px 0 20px;font-size:13px;color:#aaa">
+          <span>🎬 ${ratings} оценок</span>
+          <span>🪙 ${coins} монет</span>
+        </div>
+        ${actionHtml}
+        <button id="mp-aff-close" style="width:100%;margin-top:10px;padding:12px;background:transparent;color:#888;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:14px;cursor:pointer">Закрыть</button>
+      </div>`;
+    document.body.appendChild(ov);
+
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    document.getElementById('mp-aff-close').addEventListener('click', () => ov.remove());
+
+    const addBtn = document.getElementById('mp-aff-add');
+    if (addBtn) {
+      addBtn.addEventListener('click', async () => {
+        addBtn.disabled = true; addBtn.textContent = 'Отправляем…';
+        try {
+          const r = await fetch(API_BASE + '/api/friends/request', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to_user_id: userId }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (d.success || r.ok) { showToast('Запрос отправлен!'); ov.remove(); }
+          else { showToast(d.error || 'Ошибка', { type: 'error' }); addBtn.disabled = false; addBtn.textContent = 'Добавить в друзья'; }
+        } catch (_) { showToast('Сетевая ошибка', { type: 'error' }); addBtn.disabled = false; addBtn.textContent = 'Добавить в друзья'; }
+      });
+    }
+
+    const acceptBtn = document.getElementById('mp-aff-accept');
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', async () => {
+        acceptBtn.disabled = true; acceptBtn.textContent = 'Принимаем…';
+        try {
+          const r = await fetch(API_BASE + '/api/friends/accept', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from_user_id: userId }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (d.success || r.ok) { showToast('Теперь вы друзья! 🎉'); ov.remove(); }
+          else { showToast(d.error || 'Ошибка', { type: 'error' }); acceptBtn.disabled = false; acceptBtn.textContent = 'Принять запрос'; }
+        } catch (_) { showToast('Сетевая ошибка', { type: 'error' }); acceptBtn.disabled = false; acceptBtn.textContent = 'Принять запрос'; }
+      });
+    }
+
+    const loginBtn = document.getElementById('mp-aff-login');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        try { localStorage.setItem('mp_pending_add_friend', String(userId)); } catch (_) {}
+        ov.remove();
+        const hdr = document.getElementById('header-login-btn') || document.querySelector('[data-action="login"]');
+        if (hdr) hdr.click();
+      });
+    }
+  }
+
+  async function handleAddFriendFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const addUserId = params.get('add') || params.get('u');
+    if (!addUserId || !/^\d+$/.test(addUserId)) return;
+    const uid = Number(addUserId);
+    const token = getToken();
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    try {
+      const r = await fetch(API_BASE + '/api/friends/' + uid + '/public', { headers });
+      const data = await r.json().catch(() => ({}));
+      if (data.success) _openAddFriendModal(uid, data, !!token);
+    } catch (_) {}
+  }
+
   function init() {
     consumeOAuthReturnFromHash();
     bindLogin();
@@ -6755,7 +6871,7 @@
         closeFilmPage();
       }
     });
-    handleInviteTokenFromUrl();
+    void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
     window.addEventListener('popstate', () => {
