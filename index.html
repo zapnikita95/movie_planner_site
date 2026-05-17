@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260509loginui">
+    <link rel="stylesheet" href="style-v2.css?v=20260517authfix">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -132,7 +132,7 @@
         <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
         <div class="modal-title">Вход в кабинет</div>
 
-        <div class="login-methods-grid login-methods-grid--oauth2" role="group" aria-label="Google и Яндекс">
+        <div class="login-methods-grid" role="group" aria-label="Способы входа">
           <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" disabled title="Google" aria-label="Войти через Google">
             <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
             <span class="visually-hidden">Google</span>
@@ -141,19 +141,17 @@
             <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
             <span class="visually-hidden">Яндекс</span>
           </button>
+          <div id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Войти через Telegram">
+            <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
+            <div id="login-tg-widget-mount" class="login-tg-widget-mount"></div>
+          </div>
+          <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" aria-expanded="false" aria-controls="login-bot-panel" title="Код из бота" aria-label="Код из бота">🤖</button>
         </div>
 
         <label class="login-oauth-privacy">
           <input type="checkbox" id="login-oauth-privacy"/>
           <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
         </label>
-
-        <div class="login-methods-grid login-methods-grid--tg-bot" role="group" aria-label="Telegram и бот">
-          <div id="login-tg-widget-wrap" class="login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram">
-            <div id="login-tg-widget-mount" class="login-tg-widget-mount"></div>
-          </div>
-          <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" aria-expanded="false" aria-controls="login-bot-panel" title="Код из бота">🤖</button>
-        </div>
 
         <div id="login-bot-panel" class="login-bot-panel hidden">
           <form id="login-form" class="login-bot-form">
@@ -1235,7 +1233,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260509loginui"></script>
+    <script src="app.js?v=20260517authfix"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

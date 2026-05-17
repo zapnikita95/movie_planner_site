@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Telegram</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #0f0f13;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    function onTelegramAuth(user) {
+      try {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(user));
+        }
+      } catch (_) {}
+    }
+  </script>
+  <script>
+    (function () {
+      var bot = "movie_planner_bot";
+      try {
+        var raw = new URLSearchParams(location.search).get("bot") || bot;
+        if (/^[a-zA-Z0-9_]{3,64}$/.test(raw)) bot = raw;
+      } catch (_) {}
+      var script = document.createElement("script");
+      script.async = true;
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.setAttribute("data-telegram-login", bot);
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-radius", "14");
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute("data-request-access", "write");
+      document.body.appendChild(script);
+    })();
+  </script>
+</body>
+</html>

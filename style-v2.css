@@ -1508,17 +1508,11 @@ body.in-public-stats .footer-extension-cabinet {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-}
-
-.login-methods-grid--oauth2 {
   margin-top: 16px;
 }
 
-.login-methods-grid--tg-bot {
-  margin-top: 12px;
-}
-
 .login-oauth-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1578,6 +1572,18 @@ body.in-public-stats .footer-extension-cabinet {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M12.185 24 6.653 0H2.055v24h4.598V14.03l4.02 9.97h4.512L12.185 24z'/%3E%3Cpath fill='%23fff' d='M21.945 0h-4.603l-5.53 24h4.603l1.103-5.53h5.53L21.945 0zm-3.06 14.03 1.654-8.275h.046l1.654 8.275h-3.354z'/%3E%3C/svg%3E");
 }
 
+.login-oauth-telegram {
+  background: #229ed9;
+  border-color: #229ed9;
+  overflow: hidden;
+}
+
+.login-oauth-icon--telegram {
+  width: 28px;
+  height: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Ccircle cx='120' cy='120' r='120' fill='%232AABEE'/%3E%3Cpath fill='%23fff' d='M98.6 174.4c-3.9 0-3.2-1.5-4.5-5.2L82.8 132l87-51.6'/%3E%3Cpath fill='%23fff' d='M98.6 174.4c3 0 4.3-1.4 6-3l16-15.5-20-12.1'/%3E%3Cpath fill='%23d2e5f1' d='m100.6 143.8 48.4 35.7c5.5 3 9.5 1.5 10.9-5.1l19.7-92.9c2-8.1-3.1-11.8-8.4-9.4L55.6 116.7c-7.9 3.2-7.8 7.6-1.4 9.6l29.7 9.3 68.8-43.4c3.2-2 6.2-.9 3.8 1.2'/%3E%3C/svg%3E");
+}
+
 .login-oauth-bot {
   font-size: 26px;
   line-height: 1;
@@ -1585,13 +1591,6 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-tg-widget-wrap {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   transition: opacity 0.15s;
 }
@@ -1602,15 +1601,21 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-tg-widget-mount {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 48px;
+  height: 100%;
+  opacity: 0.01;
+  z-index: 2;
 }
 
 .login-tg-widget-mount iframe {
-  border-radius: 10px !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px !important;
 }
 
 .login-oauth-privacy {
