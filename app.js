@@ -693,6 +693,15 @@
       wrap.appendChild(s);
     }
 
+    function openTelegramLoginFallback() {
+      window.open('https://t.me/movie_planner_bot?start=site_login', '_blank', 'noopener');
+      const botPanel = document.getElementById('login-bot-panel');
+      const botToggle = document.getElementById('login-bot-toggle');
+      if (botPanel) botPanel.classList.remove('hidden');
+      if (botToggle) botToggle.setAttribute('aria-expanded', 'true');
+      try { showToast('Открыл Telegram. Возьмите код у бота и вставьте ниже.', { duration: 3600 }); } catch (_) {}
+    }
+
     window.mpTelegramLogin = function (user) {
       const priv = document.getElementById('login-oauth-privacy');
       if (!priv || !priv.checked) {
@@ -770,7 +779,12 @@
           e.preventDefault();
           e.stopPropagation();
           nudgeOAuthPrivacy();
+          return;
         }
+        setTimeout(() => {
+          const hasTelegramFrame = !!tgWrap.querySelector('iframe');
+          if (!hasTelegramFrame) openTelegramLoginFallback();
+        }, 700);
       }, true);
     }
 
