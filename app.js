@@ -242,6 +242,24 @@
     });
   }
 
+  function apiText(url, options = {}) {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return fetch(API_BASE + url, { ...options, headers }).then(async (r) => {
+      const text = await r.text().catch(() => '');
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (_) {
+        data = { success: false, error: text ? text.slice(0, 240) : r.statusText };
+      }
+      if (!r.ok && data && data.success !== false) data.success = false;
+      if (!r.ok && data && !data.error) data.error = r.statusText || ('HTTP ' + r.status);
+      return data;
+    });
+  }
+
   function apiPublic(url, options = {}) {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     return fetch(API_BASE + url, { ...options, headers }).then((r) => r.json().catch(() => ({})));
@@ -6502,7 +6520,7 @@
     out.classList.remove('hidden');
     out.innerHTML = '<div class="soc-search-state">Ищем…</div>';
     try {
-      const data = await api(`/api/friends/search?q=${encodeURIComponent(q)}`);
+      const data = await apiText(`/api/friends/search?q=${encodeURIComponent(q)}`);
       if (!data || data.success === false) {
         out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || 'Не удалось выполнить поиск') + '</div>';
         return;
@@ -6533,8 +6551,8 @@
           } catch (e) { showToast((e && e.message) || 'Ошибка', { type: 'error' }); }
         });
       });
-    } catch (_e) {
-      out.innerHTML = '<div class="soc-search-state error">Ошибка сети</div>';
+    } catch (e) {
+      out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((e && e.message) || 'Ошибка сети') + '</div>';
     }
   }
 
