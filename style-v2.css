@@ -1535,6 +1535,11 @@ body.in-public-stats .footer-extension-cabinet {
   cursor: not-allowed;
 }
 
+.login-oauth-btn.is-locked {
+  opacity: 0.52;
+  cursor: pointer;
+}
+
 .login-oauth-google {
   background: #fff;
   border-color: #dadce0;
@@ -1569,7 +1574,19 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-oauth-icon--yandex {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M12.185 24 6.653 0H2.055v24h4.598V14.03l4.02 9.97h4.512L12.185 24z'/%3E%3Cpath fill='%23fff' d='M21.945 0h-4.603l-5.53 24h4.603l1.103-5.53h5.53L21.945 0zm-3.06 14.03 1.654-8.275h.046l1.654 8.275h-3.354z'/%3E%3C/svg%3E");
+  width: auto;
+  height: auto;
+  background-image: none;
+}
+.login-oauth-icon--yandex::before {
+  content: 'Я';
+  display: block;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.08em;
 }
 
 .login-oauth-telegram {
@@ -1597,7 +1614,6 @@ body.in-public-stats .footer-extension-cabinet {
 
 .login-tg-widget-wrap--locked {
   opacity: 0.38;
-  pointer-events: none;
 }
 
 .login-tg-widget-mount {
@@ -1627,15 +1643,43 @@ body.in-public-stats .footer-extension-cabinet {
   margin: 12px 0 0;
   cursor: pointer;
   line-height: 1.45;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .login-oauth-privacy input {
   margin-top: 3px;
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #ff2d7b;
 }
 
 .login-oauth-privacy a {
   color: var(--accent, #ff5aa5);
+}
+
+.login-oauth-privacy.needs-attention {
+  border-color: rgba(255, 45, 123, 0.65);
+  background: rgba(255, 45, 123, 0.12);
+  box-shadow: 0 0 0 4px rgba(255, 45, 123, 0.12);
+}
+
+.login-privacy-hint {
+  display: none;
+  margin: 4px 0 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 45, 123, 0.1);
+  border: 1px solid rgba(255, 45, 123, 0.28);
+  color: #ff9ac3;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.login-privacy-hint.is-visible {
+  display: block;
 }
 
 .login-bot-panel {
@@ -4581,6 +4625,36 @@ a.header-settings-nav-item {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* Home preview rows must stay as rows even though app.js reuses film-card-v2. */
+#section-home .home-dash-row.film-card-v2 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  transform: none;
+  box-shadow: none;
+  text-align: left;
+}
+#section-home .home-dash-row.film-card-v2:hover {
+  transform: none;
+  box-shadow: none;
+}
+#section-home .home-dash-row-text {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+#section-home .home-dash-row-main,
+#section-home .home-dash-row-title,
+#section-home .home-dash-row-meta {
+  text-align: left;
 }
 /* Десктоп: два столбца, блоки тянутся по контенту — без обрезания высоты */
 @media (min-width: 900px) {

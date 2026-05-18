@@ -708,25 +708,48 @@
     const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
     const tgWrap = document.getElementById('login-tg-widget-wrap');
+    const privacyHint = document.getElementById('login-privacy-hint');
+    function nudgeOAuthPrivacy() {
+      if (oauthPriv) {
+        oauthPriv.closest('.login-oauth-privacy')?.classList.add('needs-attention');
+        oauthPriv.focus({ preventScroll: true });
+        setTimeout(() => oauthPriv.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
+      }
+      if (privacyHint) privacyHint.classList.add('is-visible');
+      try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
+    }
     function syncOauthPrivButtons() {
       const ok = oauthPriv && oauthPriv.checked;
-      if (oauthG) oauthG.disabled = !ok;
-      if (oauthY) oauthY.disabled = !ok;
+      [oauthG, oauthY].forEach((btn) => {
+        if (!btn) return;
+        btn.classList.toggle('is-locked', !ok);
+        btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+      });
       if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
+      if (privacyHint) privacyHint.classList.toggle('is-visible', !ok);
     }
     if (oauthPriv) oauthPriv.addEventListener('change', syncOauthPrivButtons);
     syncOauthPrivButtons();
     if (oauthG) {
       oauthG.addEventListener('click', () => {
-        if (!oauthPriv || !oauthPriv.checked) return;
+        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
-        if (!oauthPriv || !oauthPriv.checked) return;
+        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
+    }
+    if (tgWrap) {
+      tgWrap.addEventListener('click', (e) => {
+        if (!oauthPriv || !oauthPriv.checked) {
+          e.preventDefault();
+          e.stopPropagation();
+          nudgeOAuthPrivacy();
+        }
+      }, true);
     }
 
     if (openBtn) {

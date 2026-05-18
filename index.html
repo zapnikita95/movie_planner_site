@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260517authfix">
+    <link rel="stylesheet" href="style-v2.css?v=20260518authgrid">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -133,11 +133,11 @@
         <div class="modal-title">Вход в кабинет</div>
 
         <div class="login-methods-grid" role="group" aria-label="Способы входа">
-          <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" disabled title="Google" aria-label="Войти через Google">
+          <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Войти через Google">
             <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
             <span class="visually-hidden">Google</span>
           </button>
-          <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" disabled title="Яндекс" aria-label="Войти через Яндекс">
+          <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Войти через Яндекс">
             <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
             <span class="visually-hidden">Яндекс</span>
           </button>
@@ -152,6 +152,7 @@
           <input type="checkbox" id="login-oauth-privacy"/>
           <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
         </label>
+        <div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы войти через Google, Яндекс или Telegram.</div>
 
         <div id="login-bot-panel" class="login-bot-panel hidden">
           <form id="login-form" class="login-bot-form">
@@ -1233,7 +1234,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260517authfix"></script>
+    <script src="app.js?v=20260518authgrid"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>
