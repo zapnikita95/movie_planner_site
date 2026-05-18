@@ -387,6 +387,22 @@
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }
 
+  function avatarInitial(name) {
+    return String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
+  }
+
+  function setAvatarEl(el, url, name) {
+    if (!el) return;
+    const initial = escapeHtml(avatarInitial(name));
+    if (url) {
+      el.innerHTML = '<img src="' + escapeHtml(url) + '" alt="" loading="lazy">';
+      const img = el.querySelector('img');
+      if (img) img.addEventListener('error', () => { el.textContent = initial; }, { once: true });
+    } else {
+      el.textContent = initial;
+    }
+  }
+
   // ——— UI: шапка, выпадающее меню аккаунтов ———
   function closeAccountDropdown() {
     const dd = document.getElementById('header-settings-dropdown');
@@ -403,19 +419,14 @@
     const extUrl = typeof _chromeExtUrl !== 'undefined' && _chromeExtUrl ? _chromeExtUrl
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">Перейти</div>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
-    if (getToken()) {
-      topNav += '<button type="button" class="header-settings-nav-item" data-action="link-google">🔗 Привязать Google</button>';
-      topNav += '<button type="button" class="header-settings-nav-item" data-action="link-yandex">🔗 Привязать Яндекс</button>';
-    }
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки на сайте</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
-    const activeId = getActiveChatId();
     const personalCount = sessions.filter((s) => s.is_personal).length;
     const groupCount = sessions.filter((s) => !s.is_personal).length;
     const canAddPersonal = personalCount < MAX_PERSONAL;
@@ -423,20 +434,6 @@
     const canAdd = sessions.length < MAX_PERSONAL + MAX_GROUP && (canAddPersonal || canAddGroup);
 
     let html = topNav;
-    if (sessions.length) {
-      html += '<div class="header-dropdown-title">Текущие входы</div>';
-      sessions.forEach((s) => {
-        const isActive = String(s.chat_id) === String(activeId);
-        const typeLabel = s.is_personal ? 'личный' : 'группа';
-        const name = escapeHtml(s.name || 'Кабинет');
-        html += '<div class="header-dropdown-account' + (isActive ? ' is-active' : '') + '" data-chat-id="' + escapeHtml(String(s.chat_id)) + '">';
-        html += '<div class="header-dropdown-account-line">';
-        html += '<span class="header-dropdown-account-name">' + name + '<span class="header-dropdown-account-type"> (' + typeLabel + ')</span></span>';
-        html += '<button type="button" class="header-dropdown-account-remove" data-chat-id="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>';
-        html += '</div></div>';
-      });
-      html += '<div class="header-dropdown-divider"></div>';
-    }
     html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>+ Добавить вход</button>';
     if (sessions.length) {
       html += '<div class="header-dropdown-divider"></div>';
@@ -457,58 +454,11 @@
       });
     });
 
-    dd.querySelectorAll('.header-dropdown-account').forEach((el) => {
-      const chatId = el.getAttribute('data-chat-id');
-      el.addEventListener('click', (e) => {
-        if (e.target.classList.contains('header-dropdown-account-remove')) return;
-        setActiveChatId(chatId);
-        closeAccountDropdown();
-        loadMeAndShowCabinet();
-      });
-    });
-    dd.querySelectorAll('.header-dropdown-account-remove').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const chatId = btn.getAttribute('data-chat-id');
-        const sessions = getSessions().filter((s) => String(s.chat_id) !== String(chatId));
-        const wasActive = String(getActiveChatId()) === String(chatId);
-        setSessions(sessions);
-        if (sessions.length) {
-          if (wasActive) {
-            setActiveChatId(sessions[0].chat_id);
-            loadMeAndShowCabinet();
-          }
-        } else {
-          setActiveChatId(null);
-          renderHeader(null);
-          showScreen('landing');
-        }
-        closeAccountDropdown();
-      });
-    });
     const addBtn = dd.querySelector('[data-action="add-account"]');
     if (addBtn && canAdd) {
       addBtn.addEventListener('click', () => {
         closeAccountDropdown();
         document.getElementById('login-modal')?.classList.remove('hidden');
-      });
-    }
-    const linkGoogleBtn = dd.querySelector('[data-action="link-google"]');
-    if (linkGoogleBtn) {
-      linkGoogleBtn.addEventListener('click', () => {
-        const t = getToken();
-        if (!t) return;
-        closeAccountDropdown();
-        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1&link_token=' + encodeURIComponent(t);
-      });
-    }
-    const linkYandexBtn = dd.querySelector('[data-action="link-yandex"]');
-    if (linkYandexBtn) {
-      linkYandexBtn.addEventListener('click', () => {
-        const t = getToken();
-        if (!t) return;
-        closeAccountDropdown();
-        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1&link_token=' + encodeURIComponent(t);
       });
     }
     const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
@@ -533,6 +483,12 @@
     if (me && me.name) {
       if (loginBtn) loginBtn.classList.add('hidden');
       if (userWrap) userWrap.classList.remove('hidden');
+      const profilePill = document.getElementById('header-profile-pill');
+      const profileName = document.getElementById('header-profile-name');
+      const profileAvatar = document.getElementById('header-profile-avatar');
+      if (profilePill) profilePill.classList.remove('hidden');
+      if (profileName) profileName.textContent = me.name || 'Профиль';
+      setAvatarEl(profileAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');
       const coinsVal = document.getElementById('header-coins-val');
@@ -542,7 +498,7 @@
         coinsBtn.onclick = function() {
           const bal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
           const streak = me.coins.streak_days > 0 ? `\n🔥 Стрик: ${me.coins.streak_days} дн. подряд` : '';
-          alert(`🪙 Ваши монетки: ${bal}${streak}\n\nЗарабатывайте: +15 за фильм, +40 за оценку.\nТратьте: −30 Random KP, −120 Shazam, −35 билет.\n💎 PRO — монетки не нужны.`);
+          alert(`🪙 Монетки: ${bal}${streak}\n\nНачисления: +5 за фильм, +40 за оценку, +2000 за импорт Кинопоиска, +300 за принятого приглашённого.\nТраты: −30 случайный фильм с Кинопоиска, −120 подбор по описанию, −35 билет, −30 отслеживание премьеры, −25 подписка на сериал.\n💎 PRO — без списаний.`);
         };
       }
     } else {
@@ -5514,8 +5470,12 @@
   function updateProfileSwitcherUI(me) {
     const nameEl = document.getElementById('cabinet-profile-name');
     const emojiEl = document.getElementById('cabinet-profile-emoji');
+    const heroName = document.getElementById('cabinet-user-name');
+    const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
     nameEl.textContent = me.name || 'Профиль';
+    if (heroName) heroName.textContent = me.name || 'Профиль';
+    setAvatarEl(heroAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
     if (emojiEl) {
       const em = (me.room_emoji != null && String(me.room_emoji).trim() !== '') ? me.room_emoji : '';
       emojiEl.textContent = em;
@@ -5917,11 +5877,58 @@
       const u = d && d.user;
       const sub = d && d.subscription;
       const name = (u && (u.first_name || u.username)) ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username : 'Профиль';
+      const sessions = getSessions();
+      const activeId = getActiveChatId();
+      const sessionsHtml = sessions.length ? sessions.map((s) => {
+        const isActive = String(s.chat_id) === String(activeId);
+        const typeLabel = s.is_personal ? 'личный' : 'группа';
+        return `<div class="settings-account-row ${isActive ? 'is-active' : ''}" data-settings-account="${escapeHtml(String(s.chat_id))}">
+          <div>
+            <b>${escapeHtml(s.name || 'Кабинет')}</b>
+            <span>${escapeHtml(typeLabel)}${isActive ? ' · активен' : ''}</span>
+          </div>
+          <button type="button" class="settings-account-remove" data-settings-remove-account="${escapeHtml(String(s.chat_id))}" aria-label="Убрать вход">×</button>
+        </div>`;
+      }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
+      const avatarUrl = u && u.photo_url ? u.photo_url : '';
       root.innerHTML = `
-        <p class="cabinet-hint">Настройки аккаунта, главной страницы и устройств для просмотра.</p>
-        <div class="settings-block"><div class="header-dropdown-title" style="margin-top:0">Профиль</div>
-        <p><b>${escapeHtml(name || '')}</b> ${u && u.username ? ' · @' + escapeHtml(u.username) : ''}</p>
-        ${sub ? '<p>💎 Подписка: активна</p>' : '<p>🆓 Бесплатный режим</p>'}
+        <div class="settings-block profile-settings-card">
+        <div class="profile-settings-head">
+          <div class="profile-settings-avatar" id="settings-profile-avatar"></div>
+          <div>
+            <div class="header-dropdown-title" style="margin-top:0">Настройки профиля</div>
+            <p class="profile-settings-name-preview"><b>${escapeHtml(name || 'Профиль')}</b>${u && u.email ? ' · ' + escapeHtml(u.email) : ''}</p>
+            ${sub ? '<p class="muted small">💎 Подписка активна</p>' : '<p class="muted small">Бесплатный режим</p>'}
+          </div>
+        </div>
+        <form class="profile-settings-form" id="profile-settings-form">
+          <label>Имя в кабинете<input type="text" id="profile-settings-name" value="${escapeHtml(name || '')}" maxlength="80" autocomplete="name"></label>
+          <button type="submit" class="btn btn-primary">Сохранить имя</button>
+        </form>
+        <form class="profile-settings-avatar-form" id="profile-settings-avatar-form">
+          <label class="profile-settings-file">Фото профиля<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg"></label>
+          <button type="submit" class="btn btn-secondary">Сохранить фото</button>
+          ${avatarUrl ? '<button type="button" class="btn btn-secondary" id="profile-settings-avatar-delete">Удалить фото</button>' : ''}
+        </form>
+        <p class="profile-settings-status" id="profile-settings-status"></p>
+        </div>
+        <div class="settings-block">
+        <div class="header-dropdown-title" style="margin-top:0">Аккаунты и вход</div>
+        <div class="settings-connectors">
+          <button type="button" class="settings-row" data-profile-link="google">🔗 Привязать Google</button>
+          <button type="button" class="settings-row" data-profile-link="yandex">🔗 Привязать Яндекс</button>
+          <button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>
+        </div>
+        <div class="settings-accounts-list">${sessionsHtml}</div>
+        </div>
+        <div class="settings-block profile-import-card">
+        <div class="header-dropdown-title" style="margin-top:0">Импорт оценок</div>
+        <p class="cabinet-hint">За перенос оценок с Кинопоиска начислим 2000 монеток. Монетки тратятся на подборы, Shazam-поиск, билеты и отслеживание премьер.</p>
+        <form class="profile-import-form" id="profile-import-form">
+          <input type="text" id="profile-import-kp" placeholder="Ссылка на профиль Кинопоиска или ID" autocomplete="off">
+          <button type="submit" class="btn btn-primary">Импортировать оценки</button>
+        </form>
+        <p class="profile-settings-status" id="profile-import-status"></p>
         </div>
         <div class="settings-block" id="settings-api-token-block">
         <div class="header-dropdown-title" style="margin-top:0">Для разработчиков и нейросетей</div>
@@ -5944,6 +5951,8 @@
         <a href="#" class="settings-row" id="settings-app-apk" target="_blank" rel="noopener">Скачать Android-приложение (APK)</a>
         </div>
         <div class="settings-block" id="settings-toggles">Загрузка уведомлений…</div>`;
+      setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
+      bindProfileSettingsControls(root);
       const apk = document.getElementById('settings-app-apk');
       if (apk) {
         fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
@@ -5970,6 +5979,138 @@
       const hintEl = document.getElementById('settings-api-token-hint');
       wireApiAccessCopy(copyBtn, hintEl, baseEl);
     }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
+  }
+
+  function bindProfileSettingsControls(root) {
+    const status = root.querySelector('#profile-settings-status');
+    const setStatus = (msg, ok) => {
+      if (!status) return;
+      status.textContent = msg || '';
+      status.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    };
+    const form = root.querySelector('#profile-settings-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = root.querySelector('#profile-settings-name');
+        const value = input ? input.value.trim() : '';
+        api('/api/miniapp/profile', { method: 'POST', body: JSON.stringify({ display_name: value }) })
+          .then((r) => {
+            if (!r || !r.success) { setStatus('Не удалось сохранить имя', false); return; }
+            setStatus('Имя сохранено', true);
+            loadMeAndShowCabinet();
+          })
+          .catch(() => setStatus('Ошибка сети', false));
+      });
+    }
+    const avatarForm = root.querySelector('#profile-settings-avatar-form');
+    if (avatarForm) {
+      avatarForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fileInput = root.querySelector('#profile-settings-photo');
+        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+        if (!file) { setStatus('Выберите фото', false); return; }
+        const fd = new FormData();
+        fd.append('photo', file);
+        fetch(API_BASE + '/api/miniapp/avatar/upload', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + getToken() },
+          body: fd,
+        })
+          .then((r) => r.json().catch(() => ({})))
+          .then((r) => {
+            if (!r || !r.success) { setStatus('Не удалось сохранить фото', false); return; }
+            setStatus('Фото сохранено', true);
+            loadMeAndShowCabinet();
+          })
+          .catch(() => setStatus('Ошибка сети', false));
+      });
+    }
+    const deleteAvatar = root.querySelector('#profile-settings-avatar-delete');
+    if (deleteAvatar) {
+      deleteAvatar.addEventListener('click', () => {
+        fetch(API_BASE + '/api/miniapp/avatar', {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + getToken() },
+        })
+          .then((r) => r.json().catch(() => ({})))
+          .then((r) => {
+            if (!r || !r.success) { setStatus('Не удалось удалить фото', false); return; }
+            setStatus('Фото удалено', true);
+            loadMeAndShowCabinet();
+          })
+          .catch(() => setStatus('Ошибка сети', false));
+      });
+    }
+    root.querySelectorAll('[data-profile-link]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const provider = btn.getAttribute('data-profile-link');
+        const t = getToken();
+        if (!t || !provider) return;
+        window.location.href = API_BASE + '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
+      });
+    });
+    const addLogin = root.querySelector('#profile-settings-add-login');
+    if (addLogin) {
+      addLogin.addEventListener('click', () => {
+        document.getElementById('login-modal')?.classList.remove('hidden');
+      });
+    }
+    root.querySelectorAll('[data-settings-account]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-settings-remove-account]')) return;
+        const chatId = el.getAttribute('data-settings-account');
+        if (!chatId) return;
+        setActiveChatId(chatId);
+        loadMeAndShowCabinet();
+      });
+    });
+    root.querySelectorAll('[data-settings-remove-account]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const chatId = btn.getAttribute('data-settings-remove-account');
+        const next = getSessions().filter((s) => String(s.chat_id) !== String(chatId));
+        const wasActive = String(getActiveChatId()) === String(chatId);
+        setSessions(next);
+        if (!next.length) {
+          setActiveChatId(null);
+          renderHeader(null);
+          showScreen('landing');
+          return;
+        }
+        if (wasActive) setActiveChatId(next[0].chat_id);
+        loadMeAndShowCabinet();
+      });
+    });
+    const importForm = root.querySelector('#profile-import-form');
+    if (importForm) {
+      importForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = root.querySelector('#profile-import-kp');
+        const importStatus = root.querySelector('#profile-import-status');
+        const raw = input ? input.value.trim() : '';
+        if (!raw) {
+          if (importStatus) importStatus.textContent = 'Вставьте ссылку или ID профиля.';
+          return;
+        }
+        const btn = importForm.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Импортируем…'; }
+        api('/api/miniapp/ratings/import-kinopoisk', {
+          method: 'POST',
+          body: JSON.stringify({ kp_input: raw, max_count: 1500 }),
+        }).then((r) => {
+          if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
+          if (!r || !r.success) {
+            if (importStatus) { importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт'; importStatus.className = 'profile-settings-status error'; }
+            return;
+          }
+          if (importStatus) { importStatus.textContent = 'Импорт запущен. Оценки появятся в базе через пару минут, монетки начислятся автоматически.'; importStatus.className = 'profile-settings-status success'; }
+        }).catch(() => {
+          if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
+          if (importStatus) { importStatus.textContent = 'Ошибка сети'; importStatus.className = 'profile-settings-status error'; }
+        });
+      });
+    }
   }
 
   // ————————————————————————————————————————————————————
