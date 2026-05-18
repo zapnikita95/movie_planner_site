@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.movie_planner",
+      "sha256_cert_fingerprints": [
+        "03:1E:8B:E7:6E:AD:46:9B:5F:02:0E:DE:B5:CC:90:8B:A8:42:49:11:47:0B:2A:DA:1B:E6:81:69:18:C9:DD:10"
+      ]
+    }
+  }
+]

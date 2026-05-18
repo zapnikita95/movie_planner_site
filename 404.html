@@ -10,6 +10,11 @@
     // API и бэкенд — на https://api.movie-planner.ru (см. docs/DNS_RUSSIA_WITHOUT_CLOUDFLARE.md).
     (function () {
       var loc = window.location;
+      var userMatch = loc.pathname.match(/^\/u\/(\d+)\/?$/);
+      if (userMatch) {
+        loc.replace(loc.origin + '/?add=' + encodeURIComponent(userMatch[1]) + loc.hash);
+        return;
+      }
       var target = loc.pathname + loc.search + loc.hash;
       loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
     })();

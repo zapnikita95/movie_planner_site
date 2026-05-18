@@ -6799,7 +6799,18 @@
 
   async function handleAddFriendFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    const addUserId = params.get('add') || params.get('u');
+    let addUserId = params.get('add') || params.get('u');
+    if (!addUserId) {
+      const spa = params.get('__spa') || '';
+      try {
+        const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
+        const m = spaUrl.pathname.match(/^\/u\/(\d+)\/?$/);
+        if (m) addUserId = m[1];
+      } catch (_) {
+        const m = String(spa).match(/^\/u\/(\d+)\/?$/);
+        if (m) addUserId = m[1];
+      }
+    }
     if (!addUserId || !/^\d+$/.test(addUserId)) return;
     const uid = Number(addUserId);
     const token = getToken();
