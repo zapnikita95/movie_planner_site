@@ -6718,6 +6718,7 @@
     const ratings = (profile && profile.ratings_count) || 0;
     const coins = (profile && profile.coins) || 0;
     const fs = profile && profile.friendship_status;
+    const appLink = 'movieplanner://friends/' + encodeURIComponent(String(userId));
 
     let actionHtml;
     if (fs === 'accepted') {
@@ -6744,6 +6745,7 @@
           <span>🎬 ${ratings} оценок</span>
           <span>🪙 ${coins} монет</span>
         </div>
+        <a href="${appLink}" id="mp-aff-open-app" style="display:block;width:100%;padding:13px;background:#2a2a38;color:#fff;border:1px solid rgba(255,255,255,0.12);border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;box-sizing:border-box;margin-bottom:10px">Открыть в приложении</a>
         ${actionHtml}
         <button id="mp-aff-close" style="width:100%;margin-top:10px;padding:12px;background:transparent;color:#888;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:14px;cursor:pointer">Закрыть</button>
       </div>`;
