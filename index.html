@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260518webfirst">
+    <link rel="stylesheet" href="style-v2.css?v=20260518sharesearch">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -682,8 +682,11 @@
                     <!-- Friends tab -->
                     <div id="soc-pane-friends">
                         <div class="soc-search-row">
-                            <input type="text" id="soc-search-input" class="input" placeholder="Найти друга по имени" />
-                            <button type="button" class="btn btn-secondary" id="soc-search-btn">Найти</button>
+                            <div class="soc-search-field">
+                                <span class="soc-search-icon">⌕</span>
+                                <input type="text" id="soc-search-input" placeholder="Найти друга по имени" autocomplete="off" />
+                            </div>
+                            <button type="button" class="soc-search-btn" id="soc-search-btn">Найти</button>
                         </div>
                         <div id="soc-search-results" class="hidden"></div>
                         <div id="soc-friend-requests" class="hidden">
@@ -702,10 +705,9 @@
                     <div id="soc-pane-groups" style="display:none">
                         <div class="groups-header" style="margin-top:0">
                             <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
-                                <span>＋</span> Создать комнату
+                                <span>＋</span> Создать группу
                             </button>
                         </div>
-                        <p class="cabinet-hint">Создайте <b>виртуальную комнату</b> прямо тут — без Telegram-группы, и отправьте другу ссылку. Или добавьте <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">@movie_planner_bot</a> в существующий Telegram-чат.</p>
                         <div id="groups-list" class="groups-list"></div>
                         <div class="groups-howto">
                             <h3>Два способа пригласить друга</h3>
@@ -883,8 +885,8 @@
       <div class="add-film-modal-backdrop" data-action="close-create-room-modal"></div>
       <div class="add-film-modal-body">
         <button type="button" class="add-film-modal-close" data-action="close-create-room-modal" aria-label="Закрыть">&times;</button>
-        <h2 class="add-film-title">Создать виртуальную комнату</h2>
-        <p class="add-film-hint">Это общая база с друзьями без Telegram-группы. После создания вы получите ссылку — отправьте её тем, кого хотите пригласить.</p>
+        <h2 class="add-film-title">Создать группу</h2>
+        <p class="add-film-hint">Выберите формат, задайте название и отправьте ссылку тем, кого хотите пригласить.</p>
         <div class="create-room-form">
           <label class="create-room-label">Эмодзи</label>
           <div class="create-room-emoji-row" id="create-room-emoji-row">
@@ -901,7 +903,7 @@
           <div class="create-room-kind-row" id="create-room-kind-row">
             <button type="button" class="create-room-kind-btn active" data-kind="friends">👥 Друзья</button>
             <button type="button" class="create-room-kind-btn" data-kind="cinema_club">🎬 Киноклуб</button>
-            <button type="button" class="create-room-kind-btn" data-kind="blogger">⭐️ Блоггер</button>
+            <button type="button" class="create-room-kind-btn" data-kind="blogger">⭐️ Медиа</button>
           </div>
           <div id="create-room-kind-extra" class="create-room-kind-extra"></div>
           <label class="create-room-label" for="create-room-name">Название</label>
@@ -909,7 +911,7 @@
           <div id="create-room-status" class="add-film-status"></div>
           <div class="create-room-actions">
             <button type="button" class="btn btn-secondary" data-action="close-create-room-modal">Отмена</button>
-            <button type="button" class="btn btn-primary" id="create-room-submit">Создать комнату</button>
+            <button type="button" class="btn btn-primary" id="create-room-submit">Создать группу</button>
           </div>
         </div>
       </div>
@@ -1259,6 +1261,6 @@
         </div>
     </div>
     </div><!-- /content-wrapper -->
-    <script src="app.js?v=20260518oauthfix"></script>
+    <script src="app.js?v=20260518sharesearch"></script>
 </body>
 </html>

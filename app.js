@@ -247,6 +247,108 @@
     return fetch(API_BASE + url, { ...options, headers }).then((r) => r.json().catch(() => ({})));
   }
 
+  function groupKindLabel(profile) {
+    if (!profile || profile.is_personal) return 'Личный';
+    if (!profile.is_virtual) return 'Telegram-группа';
+    const kind = String(profile.group_kind || 'friends');
+    if (kind === 'cinema_club') return 'Киноклуб';
+    if (kind === 'blogger') return 'Медиа';
+    return 'Группа друзей';
+  }
+
+  function openShareFilmModal(film) {
+    const kpId = film && film.kp_id ? String(film.kp_id) : '';
+    if (!kpId) {
+      showToast('Не удалось открыть шеринг', { type: 'error' });
+      return;
+    }
+    const existing = document.getElementById('mp-share-film-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'mp-share-film-modal';
+    modal.className = 'add-film-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-hidden', 'false');
+    const poster = film.poster || (film.kp_id ? posterUrl(film.kp_id) : '');
+    modal.innerHTML = `
+      <div class="add-film-modal-backdrop" data-share-close="1"></div>
+      <div class="add-film-modal-body share-film-modal-body">
+        <button type="button" class="add-film-modal-close" data-share-close="1" aria-label="Закрыть">&times;</button>
+        <h2 class="add-film-title">Поделиться с группой</h2>
+        <div class="share-film-preview">
+          <div class="share-film-preview-poster">${poster ? `<img src="${escapeHtml(poster)}" alt="">` : '<span>🎬</span>'}</div>
+          <div>
+            <div class="share-film-preview-title">${escapeHtml(film.title || 'Фильм')}</div>
+            <div class="share-film-preview-meta">${escapeHtml([film.year || '', film.genres || ''].filter(Boolean).join(' · '))}</div>
+          </div>
+        </div>
+        <label class="create-room-label" for="share-film-group-select">Куда отправить</label>
+        <select id="share-film-group-select" class="share-film-select"><option value="">Загружаем группы…</option></select>
+        <label class="create-room-label" for="share-film-comment">Комментарий</label>
+        <textarea id="share-film-comment" class="share-film-textarea" maxlength="500" placeholder="Например: вау, погнали смотреть"></textarea>
+        <div id="share-film-status" class="add-film-status"></div>
+        <div class="create-room-actions">
+          <button type="button" class="btn btn-secondary" data-share-close="1">Отмена</button>
+          <button type="button" class="btn btn-primary" id="share-film-submit" disabled>Отправить</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    const close = () => { modal.remove(); document.body.style.overflow = ''; };
+    modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-share-close]')) close();
+    });
+    const select = modal.querySelector('#share-film-group-select');
+    const submit = modal.querySelector('#share-film-submit');
+    const status = modal.querySelector('#share-film-status');
+    api('/api/site/profiles').then((data) => {
+      const profiles = ((data && data.profiles) || []).filter((p) => !p.is_personal && p.can_share_to_group !== false);
+      if (!profiles.length) {
+        select.innerHTML = '<option value="">Нет доступных групп</option>';
+        if (status) status.textContent = 'Создайте группу или примите приглашение, чтобы делиться фильмами.';
+        return;
+      }
+      select.innerHTML = profiles.map((p) => `<option value="${escapeHtml(String(p.chat_id))}">${escapeHtml((p.display_name || p.name || 'Группа') + ' · ' + groupKindLabel(p))}</option>`).join('');
+      if (submit) submit.disabled = false;
+    }).catch(() => {
+      select.innerHTML = '<option value="">Не удалось загрузить группы</option>';
+      if (status) { status.textContent = 'Ошибка загрузки групп'; status.className = 'add-film-status error'; }
+    });
+    if (submit) {
+      submit.addEventListener('click', () => {
+        const chatId = select && select.value;
+        if (!chatId) return;
+        submit.disabled = true;
+        submit.textContent = 'Отправляем…';
+        if (status) { status.textContent = ''; status.className = 'add-film-status'; }
+        const comment = (modal.querySelector('#share-film-comment')?.value || '').trim();
+        api('/api/site/groups/' + encodeURIComponent(chatId) + '/share-film', {
+          method: 'POST',
+          body: JSON.stringify({
+            kp_id: kpId,
+            film_id: film.film_id || null,
+            film_title: film.title || '',
+            message: comment,
+          }),
+        }).then((res) => {
+          if (!res || !res.success) {
+            submit.disabled = false;
+            submit.textContent = 'Отправить';
+            const msg = res && (res.message || res.error);
+            if (status) { status.textContent = msg || 'Не удалось отправить'; status.className = 'add-film-status error'; }
+            return;
+          }
+          showToast('Отправлено в группу');
+          close();
+        }).catch(() => {
+          submit.disabled = false;
+          submit.textContent = 'Отправить';
+          if (status) { status.textContent = 'Ошибка сети'; status.className = 'add-film-status error'; }
+        });
+      });
+    }
+  }
+
   function filmDeepLink(filmId, kpId, isSeries) {
     const chatId = getActiveChatId();
     const session = getActiveSession();
@@ -1325,6 +1427,35 @@
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
   };
 
+  function shortPremiereDescription(text, limit = 128) {
+    const s = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+    if (s.length <= limit) return s;
+    return s.slice(0, limit).replace(/\s+\S*$/, '') + '…';
+  }
+
+  function renderPremiereNotifyButton(it, extraClass) {
+    const kp = escapeHtml(String(it.kp_id || ''));
+    const date = escapeHtml(String(it.premiere_date || ''));
+    const active = !!it.reminder_set;
+    const cls = ['premiere-bell-btn', extraClass || '', active ? 'active' : ''].filter(Boolean).join(' ');
+    const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
+    const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
+    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">🔔</button>';
+  }
+
+  function renderShareFilmIconButton(it, extraClass) {
+    const cls = ['film-share-icon-btn', extraClass || ''].filter(Boolean).join(' ');
+    return '<button type="button" class="' + cls + '" data-action="share-film-modal"'
+      + ' data-kp="' + escapeHtml(String(it.kp_id || '')) + '"'
+      + ' data-film-id="' + escapeHtml(String(it.already_in_base_film_id || it.film_id || '')) + '"'
+      + ' data-title="' + escapeHtml(it.title || '') + '"'
+      + ' data-poster="' + escapeHtml(it.poster || '') + '"'
+      + ' data-year="' + escapeHtml(String(it.year || '')) + '"'
+      + ' data-genres="' + escapeHtml(String(it.genres || '')) + '"'
+      + ' title="Поделиться" aria-label="Поделиться">↗</button>';
+  }
+
   function renderHomeBlockHtml(blockId) {
     const meta = HOME_BLOCK_META[blockId];
     if (!meta) return '';
@@ -1410,21 +1541,41 @@
         const kp = it.kp_id;
         const poster = it.poster || posterUrl(kp);
         const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || '');
+        const meta = [it.genres || '', it.year || ''].filter(Boolean).join(' · ');
+        const desc = shortPremiereDescription(it.description || '', 118);
+        const preview = '<div class="home-premiere-preview">'
+          + '<div class="home-premiere-preview-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
+          + '<div class="home-premiere-preview-body">'
+          + '<div class="home-premiere-preview-title">' + escapeHtml(it.title || '') + '</div>'
+          + '<div class="home-premiere-preview-date">' + escapeHtml(dateLabel) + '</div>'
+          + (desc ? '<div class="home-premiere-preview-desc">' + escapeHtml(desc) + '</div>' : '')
+          + '</div></div>';
         if (fid) {
           return '<div class="home-dash-row film-card-v2" data-film-id="' + fid + '"><div class="home-dash-row-text">'
             + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
             + '<div class="home-dash-row-main">'
             + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
-            + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel) + '</div>'
-            + '</div></div></div>';
+            + '<div class="home-dash-row-meta"><span class="home-premiere-date-pill">' + escapeHtml(dateLabel) + '</span>' + (meta ? '<span class="home-premiere-inline-meta">' + escapeHtml(meta) + '</span>' : '') + '</div>'
+            + (desc ? '<div class="home-premiere-desc">' + escapeHtml(desc) + '</div>' : '')
+            + '</div></div>'
+            + '<div class="home-premiere-actions" data-stop-card-click="1">'
+            + renderShareFilmIconButton(it, 'home-premiere-share')
+            + renderPremiereNotifyButton(it, 'home-premiere-bell')
+            + '</div>'
+            + preview + '</div>';
         }
         return '<div class="home-dash-row home-dash-row--premiere"><div class="home-dash-row-text">'
           + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
           + '<div class="home-dash-row-main">'
           + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + escapeHtml(dateLabel)
-          + '</div></div></div>'
-          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">В премьерах</button></div>';
+          + '<div class="home-dash-row-meta"><span class="home-premiere-date-pill">' + escapeHtml(dateLabel) + '</span>' + (meta ? '<span class="home-premiere-inline-meta">' + escapeHtml(meta) + '</span>' : '') + '</div>'
+          + (desc ? '<div class="home-premiere-desc">' + escapeHtml(desc) + '</div>' : '')
+          + '</div></div>'
+          + '<div class="home-premiere-actions" data-stop-card-click="1">'
+          + renderShareFilmIconButton(it, 'home-premiere-share')
+          + renderPremiereNotifyButton(it, 'home-premiere-bell')
+          + '</div>'
+          + preview + '</div>';
       }).join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
@@ -1470,6 +1621,15 @@
     if (window._mpHomeNavBound) return;
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
+      const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
+      if (premiereBtn && premiereBtn.closest('.home-dashboard-root')) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlePremiereNotifyButton(premiereBtn, () => {
+          renderHomeDashboardFromCache();
+        });
+        return;
+      }
       const t = e.target.closest('[data-home-show-section]');
       if (!t) return;
       if (t.closest('.header-settings-dropdown')) return;
@@ -4853,6 +5013,67 @@
     modal.setAttribute('aria-hidden', 'true');
   }
 
+  function renderAddSearchMovieCard(it) {
+    const poster = it.poster || '';
+    const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
+    const inBase = it.already_in_base_film_id;
+    const addBtn = inBase
+      ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
+      : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
+    return `<div class="add-search-result">
+      <div class="add-search-result-poster-wrap">
+        ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
+        ${addBtn}
+        <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title="Поделиться" aria-label="Поделиться">↗</button>
+      </div>
+      <div class="add-search-result-info">
+        <div class="add-search-result-title">${escapeHtml(it.title || '')}</div>
+        <div class="add-search-result-meta">${escapeHtml(meta)}${inBase ? ' · в базе' : ''}</div>
+      </div>
+    </div>`;
+  }
+
+  function renderAddFilmPeopleBlock(users) {
+    if (!users || !users.length) return '';
+    return `<section class="add-search-section add-search-section-people">
+      <div class="add-search-section-title">Люди</div>
+      <div class="add-search-people-list">${users.map((u) => {
+        const letter = (u.name || '?')[0].toUpperCase();
+        const status = u.friendship_status;
+        const action = status === 'friends' || status === 'accepted'
+          ? '<span class="add-search-person-status">Друзья</span>'
+          : status === 'pending'
+            ? '<span class="add-search-person-status">Запрос отправлен</span>'
+            : `<button type="button" class="add-search-person-add" data-uid="${Number(u.user_id)}">Добавить</button>`;
+        return `<div class="add-search-person-row">
+          <div class="soc-friend-avatar">${escapeHtml(letter)}</div>
+          <div class="add-search-person-name">${escapeHtml(u.name || 'Пользователь')}</div>
+          ${action}
+        </div>`;
+      }).join('')}</div>
+    </section>`;
+  }
+
+  function renderAddFilmSearchResults(items, people) {
+    const inBase = items.filter((it) => it.already_in_base_film_id);
+    const fresh = items.filter((it) => !it.already_in_base_film_id);
+    let html = '';
+    if (inBase.length) {
+      html += `<section class="add-search-section">
+        <div class="add-search-section-title">Уже в базе</div>
+        <div class="add-film-results">${inBase.map(renderAddSearchMovieCard).join('')}</div>
+      </section>`;
+    }
+    html += renderAddFilmPeopleBlock(people);
+    if (fresh.length) {
+      html += `<section class="add-search-section">
+        <div class="add-search-section-title">Общий поиск</div>
+        <div class="add-film-results">${fresh.map(renderAddSearchMovieCard).join('')}</div>
+      </section>`;
+    }
+    return html || '<div class="cabinet-hint">Ничего не нашлось.</div>';
+  }
+
   function runAddFilmSearch(query) {
     const seq = ++_addFilmSearchSeq;
     const status = document.getElementById('add-film-status');
@@ -4863,8 +5084,11 @@
       return;
     }
     if (status) { status.textContent = 'Ищем…'; status.className = 'add-film-status'; }
-    api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(_addFilmType))
-      .then((data) => {
+    Promise.all([
+      api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(_addFilmType)),
+      api('/api/friends/search?q=' + encodeURIComponent(query)).catch(() => ({ success: false, users: [] })),
+    ])
+      .then(([data, peopleData]) => {
         if (seq !== _addFilmSearchSeq) return;
         if (!data || !data.success) {
           if (status) { status.textContent = (data && data.error) || 'Ошибка поиска.'; status.className = 'add-film-status error'; }
@@ -4872,33 +5096,36 @@
           return;
         }
         const items = data.items || [];
-        if (!items.length) {
+        const people = (peopleData && peopleData.success && Array.isArray(peopleData.users)) ? peopleData.users : [];
+        if (!items.length && !people.length) {
           if (status) { status.textContent = 'Ничего не нашлось.'; status.className = 'add-film-status'; }
           if (results) results.innerHTML = '';
           return;
         }
-        if (status) { status.textContent = 'Найдено: ' + items.length; status.className = 'add-film-status'; }
+        if (status) { status.textContent = 'Найдено: ' + (items.length + people.length); status.className = 'add-film-status'; }
         if (results) {
-          results.innerHTML = items.map((it) => {
-            const poster = it.poster || '';
-            const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
-            const inBase = it.already_in_base_film_id;
-            const btn = inBase
-              ? `<button type="button" class="add-search-result-btn" disabled>В базе</button>`
-              : `<button type="button" class="add-search-result-btn" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}">Добавить</button>`;
-            const openBtn = inBase
-              ? `<button type="button" class="add-search-result-btn" data-action="open-film-modal" data-film-id="${escapeHtml(String(inBase))}" style="margin-top:6px;border-color:rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#fff;">Открыть</button>`
-              : '';
-            return `<div class="add-search-result">
-              ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
-              <div class="add-search-result-info">
-                <div class="add-search-result-title">${escapeHtml(it.title || '')}</div>
-                <div class="add-search-result-meta">${escapeHtml(meta)}</div>
-                ${btn}
-                ${openBtn}
-              </div>
-            </div>`;
-          }).join('');
+          results.innerHTML = renderAddFilmSearchResults(items, people);
+          results.querySelectorAll('.add-search-person-add').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const uid = Number(btn.getAttribute('data-uid'));
+              if (!uid) return;
+              btn.disabled = true;
+              btn.textContent = '…';
+              api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) }).then((r) => {
+                if (!r || r.success === false) {
+                  btn.disabled = false;
+                  btn.textContent = 'Добавить';
+                  showToast((r && r.error) || 'Не удалось отправить запрос', { type: 'error' });
+                  return;
+                }
+                btn.textContent = 'Запрос отправлен';
+              }).catch(() => {
+                btn.disabled = false;
+                btn.textContent = 'Добавить';
+                showToast('Ошибка сети', { type: 'error' });
+              });
+            });
+          });
         }
       })
       .catch(() => {
@@ -4910,7 +5137,8 @@
   function pickAddFilm(kpId, btn) {
     if (!kpId) return;
     const origHtml = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'Добавляем…'; }
+    const compactBtn = btn && btn.classList && btn.classList.contains('add-search-poster-action');
+    if (btn) { btn.disabled = true; btn.textContent = compactBtn ? '…' : 'Добавляем…'; }
     api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) })
       .then((data) => {
         if (!data || !data.success) {
@@ -4919,7 +5147,7 @@
           if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
           return;
         }
-        if (btn) { btn.textContent = data.already_existed ? 'Уже в базе' : '✓ Добавлен'; btn.disabled = true; }
+        if (btn) { btn.textContent = compactBtn ? '✓' : (data.already_existed ? 'Уже в базе' : '✓ Добавлен'); btn.disabled = true; }
         // Optimistic refresh
         if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
         // Автозакрыть модалку, если это только что добавленный фильм
@@ -4978,6 +5206,19 @@
       if (close) { e.preventDefault(); closeAddFilmModal(); return; }
       const pick = e.target.closest('[data-action="add-film-pick"]');
       if (pick) { e.preventDefault(); pickAddFilm(pick.getAttribute('data-kp'), pick); return; }
+      const share = e.target.closest('[data-action="share-film-modal"]');
+      if (share) {
+        e.preventDefault();
+        e.stopPropagation();
+        openShareFilmModal({
+          kp_id: share.getAttribute('data-kp'),
+          film_id: share.getAttribute('data-film-id') || null,
+          title: share.getAttribute('data-title') || '',
+          poster: share.getAttribute('data-poster') || '',
+          year: share.getAttribute('data-year') || '',
+          genres: share.getAttribute('data-genres') || '',
+        });
+      }
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -5290,7 +5531,7 @@
         const emoji = p.is_personal
           ? ''
           : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
-        const typeLabel = p.is_personal ? 'личный' : (p.is_virtual ? 'комната' : 'группа');
+        const typeLabel = groupKindLabel(p).toLowerCase();
         const active = p.is_active || String(p.chat_id) === String(activeChatId);
         const disp = escapeHtml(p.display_name || p.name || 'Профиль');
         const nameHtml = active
@@ -5306,7 +5547,7 @@
           </div>
           ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
         </div>`;
-      }).join('') + '<div class="profile-menu-hint">Создавайте новые профили через <code>/invite</code> в Telegram-группе или кнопку «Создать комнату».</div>';
+      }).join('');
 
       menu.querySelectorAll('.profile-menu-item').forEach((el) => {
         el.addEventListener('click', () => {
@@ -6085,23 +6326,27 @@
     const out = document.getElementById('soc-search-results');
     if (!q || q.length < 2 || !out) return;
     out.classList.remove('hidden');
-    out.innerHTML = '<div class="cabinet-hint">Ищем…</div>';
+    out.innerHTML = '<div class="soc-search-state">Ищем…</div>';
     try {
       const data = await api(`/api/friends/search?q=${encodeURIComponent(q)}`);
+      if (!data || data.success === false) {
+        out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || 'Не удалось выполнить поиск') + '</div>';
+        return;
+      }
       const users = (data && data.users) || [];
       if (!users.length) {
-        out.innerHTML = '<div class="cabinet-hint">Никого не найдено</div>';
+        out.innerHTML = '<div class="soc-search-state">Никого не найдено</div>';
         return;
       }
       out.innerHTML = users.map((u) => `
-        <div class="soc-request-row" data-uid="${Number(u.user_id)}">
+        <div class="soc-search-user-row" data-uid="${Number(u.user_id)}">
           <div class="soc-friend-avatar">${escapeHtml((u.name || '?')[0].toUpperCase())}</div>
-          <div style="flex:1"><strong>${escapeHtml(u.name)}</strong></div>
-          ${u.friendship_status === 'accepted'
-            ? '<span style="color:green;font-size:13px;font-weight:700">Друзья ✓</span>'
+          <div class="soc-search-user-main"><strong>${escapeHtml(u.name)}</strong></div>
+          ${u.friendship_status === 'accepted' || u.friendship_status === 'friends'
+            ? '<span class="soc-search-status">Друзья</span>'
             : u.friendship_status === 'pending'
-            ? '<span style="color:#999;font-size:13px">Запрос отправлен</span>'
-            : `<button type="button" class="btn btn-primary soc-add-friend-btn" data-uid="${Number(u.user_id)}" style="padding:7px 12px;font-size:13px">Добавить</button>`
+            ? '<span class="soc-search-status">Запрос отправлен</span>'
+            : `<button type="button" class="soc-search-add-btn soc-add-friend-btn" data-uid="${Number(u.user_id)}">Добавить</button>`
           }
         </div>`).join('');
       out.querySelectorAll('.soc-add-friend-btn').forEach((btn) => {
@@ -6111,11 +6356,11 @@
             await api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) });
             btn.textContent = 'Запрос отправлен';
             btn.disabled = true;
-          } catch (e) { alert((e && e.message) || 'Ошибка'); }
+          } catch (e) { showToast((e && e.message) || 'Ошибка', { type: 'error' }); }
         });
       });
     } catch (_e) {
-      out.innerHTML = '<div class="cabinet-hint">Ошибка поиска</div>';
+      out.innerHTML = '<div class="soc-search-state error">Ошибка сети</div>';
     }
   }
 
@@ -6212,15 +6457,12 @@
       }
       const profiles = data.profiles || [];
       if (!profiles.length) {
-        list.innerHTML = '<div class="cabinet-hint">Пока только этот профиль. Создайте виртуальную комнату кнопкой справа — и позовите друзей.</div>';
+        list.innerHTML = '<div class="cabinet-hint">Пока только этот профиль.</div>';
         return;
       }
       list.innerHTML = profiles.map((p) => {
         const emoji = groupCardEmoji(p);
-        let type;
-        if (p.is_personal) type = 'Личный';
-        else if (p.is_virtual) type = 'Виртуальная комната';
-        else type = 'Telegram-группа';
+        const type = groupKindLabel(p);
         const active = p.is_active;
         const showClose = !p.is_personal;
         const showManage = p.is_virtual;
@@ -6232,8 +6474,8 @@
           <div class="group-card-head">
             <span class="group-card-emoji">${escapeHtml(emoji)}</span>
             <span class="group-card-name">${escapeHtml(p.display_name || p.name || 'Профиль')}</span>
+            <span class="group-card-type">${escapeHtml(type)}</span>
           </div>
-          <div class="group-card-type">${type}</div>
           <div class="group-card-meta"><span>🎬 ${p.movies_count || 0}</span><span>⭐ ${p.ratings_count || 0}</span></div>
           <div class="group-card-actions">
             ${active
@@ -6284,7 +6526,7 @@
     const active = row.querySelector('.create-room-kind-btn.active');
     const kind = (active && active.getAttribute('data-kind')) || 'friends';
     if (kind === 'friends') {
-      box.innerHTML = '<p class="cabinet-hint" style="margin:4px 0 0">Группа друзей не показывается в общем поиске групп.</p>';
+      box.innerHTML = '';
       return;
     }
     const modes = [
@@ -6303,7 +6545,6 @@
       <div class="create-room-approval-row" id="create-room-approval-row">
         ${modes.map(([id, label]) => `<button type="button" class="create-room-approval-btn ${_createRoomApproval === id ? 'active' : ''}" data-approval="${id}">${escapeHtml(label)}</button>`).join('')}
       </div>
-      <p class="cabinet-hint" style="margin-top:8px">Для «Конкретные админы» после создания отметьте одобряющих в «Заявки и доступ» (настраивает создатель).</p>
     `;
     const dis = document.getElementById('create-room-discoverable');
     if (dis) {
@@ -6400,7 +6641,7 @@
     const emojiActive = document.querySelector('#create-room-emoji-row .create-room-emoji-btn.active');
     const name = (nameInput && nameInput.value || '').trim();
     const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
-    if (!name) { if (statusEl) { statusEl.textContent = 'Введите название комнаты'; statusEl.className = 'add-film-status error'; } return; }
+    if (!name) { if (statusEl) { statusEl.textContent = 'Введите название группы'; statusEl.className = 'add-film-status error'; } return; }
     const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
     const groupKind = (kindBtn && kindBtn.getAttribute('data-kind')) || 'friends';
     const body = { name, emoji, group_kind: groupKind };
@@ -6413,9 +6654,9 @@
     }
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать комнату'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
       if (!data || !data.success) {
-        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать комнату'; statusEl.className = 'add-film-status error'; }
+        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать группу'; statusEl.className = 'add-film-status error'; }
         return;
       }
       closeCreateRoomModal();
@@ -6430,7 +6671,7 @@
       });
       // После закрытия share-modal — обновим кабинет
     }).catch(() => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать комнату'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
       if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'add-film-status error'; }
     });
   }
@@ -6551,6 +6792,48 @@
   let _premieresPeriod = 'current_month';
   let _premieresSort = 'date';
 
+  function updatePremiereReminderState(kp, data, reminderSet) {
+    [_premieresData, _homePremierePreview].forEach((arr) => {
+      (arr || []).forEach((it) => {
+        if (String(it.kp_id) !== String(kp)) return;
+        it.reminder_set = !!reminderSet;
+        if (data && data.film_id) it.already_in_base_film_id = it.already_in_base_film_id || data.film_id;
+      });
+    });
+  }
+
+  function handlePremiereNotifyButton(button, onDone) {
+    if (!button || button.disabled) return;
+    const action = button.getAttribute('data-action');
+    const kp = button.getAttribute('data-kp');
+    const date = button.getAttribute('data-date');
+    if (!kp || !action) return;
+    const isOn = action === 'premiere-notify-on';
+    const oldHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '…';
+    const options = isOn
+      ? { method: 'POST', body: JSON.stringify({ premiere_date: date }) }
+      : { method: 'DELETE' };
+    api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', options).then((data) => {
+      if (!data || !data.success) {
+        const msg = data && (data.message || data.error);
+        showToast(msg || 'Не удалось изменить напоминание', { type: 'error' });
+        button.disabled = false;
+        button.innerHTML = oldHtml;
+        return;
+      }
+      updatePremiereReminderState(kp, data, isOn);
+      if (typeof onDone === 'function') onDone(kp, data);
+      else renderPremieresList();
+      showToast(isOn ? 'Премьера отслеживается' : 'Напоминание отключено');
+    }).catch(() => {
+      showToast('Ошибка сети', { type: 'error' });
+      button.disabled = false;
+      button.innerHTML = oldHtml;
+    });
+  }
+
   function renderPremieresSection(forceReload) {
     const periodSel = document.getElementById('premieres-period');
     const sortSel = document.getElementById('premieres-sort');
@@ -6609,21 +6892,20 @@
       const year = it.year ? ` · ${it.year}` : '';
       const dateLabel = formatPremiereDate(it.premiere_date);
       const inBase = it.already_in_base_film_id;
-      const reminder = it.reminder_set;
-      const reminderBtn = reminder
-        ? `<button type="button" class="active" data-action="premiere-notify-off" data-kp="${escapeHtml(String(it.kp_id))}" data-film-id="${escapeHtml(String(inBase||''))}">🔔 Отключить</button>`
-        : `<button type="button" data-action="premiere-notify-on" data-kp="${escapeHtml(String(it.kp_id))}" data-date="${escapeHtml(String(it.premiere_date||''))}">🔔 Напомнить</button>`;
       const addBtn = inBase
         ? `<button type="button" disabled>В базе</button>`
         : `<button type="button" data-action="premiere-add" data-kp="${escapeHtml(String(it.kp_id))}">＋ В базу</button>`;
+      const desc = shortPremiereDescription(it.description || '', 180);
       return `<div class="premiere-card" data-film-id="${escapeHtml(String(inBase||''))}" data-kp="${escapeHtml(String(it.kp_id))}">
         ${poster ? `<img class="premiere-card-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-card-poster"></div>'}
         <div class="premiere-card-body">
           <div class="premiere-card-title">${escapeHtml(it.title || '')}</div>
-          ${dateLabel ? `<div class="premiere-card-date">🎬 ${escapeHtml(dateLabel)}</div>` : ''}
+          ${dateLabel ? `<div class="premiere-card-date">${escapeHtml(dateLabel)}</div>` : ''}
           <div class="premiere-card-meta">${escapeHtml(it.genres || '')}${year}</div>
+          ${desc ? `<div class="premiere-card-desc">${escapeHtml(desc)}</div>` : ''}
           <div class="premiere-card-actions" data-stop-card-click="1">
-            ${reminderBtn}
+            ${renderShareFilmIconButton(it, 'premiere-card-share')}
+            ${renderPremiereNotifyButton(it, 'premiere-card-bell')}
             ${addBtn}
           </div>
         </div>
@@ -6633,30 +6915,13 @@
     grid.querySelectorAll('[data-action="premiere-notify-on"]').forEach((b) => {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        const kp = b.getAttribute('data-kp');
-        const date = b.getAttribute('data-date');
-        b.disabled = true; b.textContent = '…';
-        api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', {
-          method: 'POST', body: JSON.stringify({ premiere_date: date }),
-        }).then((data) => {
-          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; b.textContent = '🔔 Напомнить'; return; }
-          const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
-          if (it) { it.reminder_set = true; it.already_in_base_film_id = it.already_in_base_film_id || data.film_id; }
-          renderPremieresList();
-        });
+        handlePremiereNotifyButton(b, () => renderPremieresList());
       });
     });
     grid.querySelectorAll('[data-action="premiere-notify-off"]').forEach((b) => {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        const kp = b.getAttribute('data-kp');
-        b.disabled = true; b.textContent = '…';
-        api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', { method: 'DELETE' }).then((data) => {
-          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; return; }
-          const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
-          if (it) it.reminder_set = false;
-          renderPremieresList();
-        });
+        handlePremiereNotifyButton(b, () => renderPremieresList());
       });
     });
     grid.querySelectorAll('[data-action="premiere-add"]').forEach((b) => {
