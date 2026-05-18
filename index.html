@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260518authgrid">
+    <link rel="stylesheet" href="style-v2.css?v=20260518webfirst">
     <link rel="stylesheet" href="maps-suggest.css?v=20260418a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -130,15 +130,36 @@
       <div data-action="close-login" style="position:absolute;inset:0;z-index:0;cursor:pointer"></div>
       <div class="modal-content" style="position:relative;z-index:1">
         <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
-        <div class="modal-title">Вход в кабинет</div>
+        <div class="modal-title">Вход или регистрация</div>
 
+        <div class="login-register-card">
+          <div class="login-register-title">Создать аккаунт</div>
+          <form id="login-register-form" class="login-register-form">
+            <div class="login-register-name-row">
+              <input type="text" id="login-register-first" name="first_name" placeholder="Имя" autocomplete="given-name" class="modal-input login-register-input">
+              <input type="text" id="login-register-last" name="last_name" placeholder="Фамилия" autocomplete="family-name" class="modal-input login-register-input">
+            </div>
+            <div class="login-email-request-row">
+              <input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
+              <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>
+            </div>
+            <p class="login-status" id="login-register-status"></p>
+          </form>
+          <form id="login-register-code-form" class="login-email-code-row hidden">
+            <input type="text" id="login-register-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
+            <button type="submit" class="modal-button modal-button-primary">Завершить</button>
+            <button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>
+          </form>
+        </div>
+
+        <div class="login-oauth-caption">Или войти с помощью</div>
         <div class="login-methods-grid" role="group" aria-label="Способы входа">
           <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Войти через Google">
             <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
             <span class="visually-hidden">Google</span>
           </button>
           <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Войти через Яндекс">
-            <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
+            <img src="images/yandex-id.png" class="login-oauth-img login-oauth-img--yandex" alt="" aria-hidden="true">
             <span class="visually-hidden">Яндекс</span>
           </button>
           <div id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Войти через Telegram">
@@ -164,6 +185,7 @@
         </div>
 
         <div class="login-email-section">
+          <div class="login-email-caption">Войти по почте</div>
           <form id="login-email-form" class="login-email-request-row">
             <input type="email" id="login-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
             <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-email-request-btn">Код</button>
@@ -1006,34 +1028,39 @@
             <div class="cabinet-sections onboarding-sections">
                 <section id="section-onboard-main" class="cabinet-section">
                     <h1 class="cabinet-welcome">👋 Добро пожаловать в Movie Planner</h1>
-                    <p class="cabinet-empty-lead">У вас пока нет фильмов в базе</p>
-                    <p class="cabinet-onboard-intro">Два способа начать:</p>
+                    <p class="cabinet-empty-lead">Это полноценный веб-кабинет: фильмы можно искать и добавлять прямо здесь.</p>
+                    <div class="onboard-hero-actions">
+                        <button type="button" class="btn btn-primary" data-plans-action="open-add-film">Добавить первый фильм</button>
+                        <button type="button" class="btn btn-secondary" data-home-show-section="whattowatch">Подобрать фильм</button>
+                        <button type="button" class="btn btn-secondary" data-onboard-skip>Пропустить</button>
+                    </div>
+                    <div class="onboard-feature-strip">
+                        <div><b>🔍 Поиск</b><span>добавляйте фильмы и сериалы с сайта</span></div>
+                        <div><b>🪙 Монетки</b><span>копятся за оценки, планы и активность</span></div>
+                        <div><b>📥 Импорт</b><span>переносите оценки с Кинопоиска</span></div>
+                    </div>
+                    <p class="cabinet-onboard-intro">Что можно делать дальше:</p>
                     <div class="onboard-scenarios">
                         <div class="onboard-card">
-                            <h3>📲 Telegram</h3>
-                            <p><a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">Откройте Telegram-бота</a></p>
+                            <h3>🎬 Собрать базу</h3>
                             <ul>
-                                <li>Откройте Telegram-бота</li>
-                                <li>Найдите интересный фильм</li>
-                                <li>Или пришлите ссылку с Кинопоиска / IMDb</li>
-                                <li>Планируйте просмотр на выходные</li>
+                                <li>Ищите фильмы в строке сверху</li>
+                                <li>Добавляйте в непросмотренные</li>
+                                <li>Ставьте оценки и отмечайте просмотр</li>
                             </ul>
-                            <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть бота</a>
+                            <button type="button" class="btn btn-primary" data-plans-action="open-add-film">Добавить фильм</button>
                         </div>
                         <div class="onboard-card">
-                            <h3>💻 Расширение</h3>
-                            <p><a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" target="_blank" rel="noopener">Установите расширение</a></p>
+                            <h3>📥 Перенести Кинопоиск</h3>
                             <ul>
-                                <li>Установите расширение</li>
-                                <li>Найдите фильм на Kinopoisk или IMDb</li>
-                                <li>Смотрите любимые стриминги</li>
-                                <li>Добавляйте фильмы в базу</li>
-                                <li>Планируйте просмотр на выходные</li>
+                                <li>Импортируйте оценки</li>
+                                <li>Получите статистику по жанрам</li>
+                                <li>Продолжайте вести базу в Movie Planner</li>
                             </ul>
-                            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" class="btn btn-secondary" target="_blank" rel="noopener">Установить расширение</a>
+                            <button type="button" class="btn btn-secondary" data-home-show-section="settings">Открыть импорт</button>
                         </div>
                     </div>
-                    <p class="cabinet-onboard-note">💡 Это онбординг — начните с бота или расширения, и здесь появятся ваши фильмы.</p>
+                    <p class="cabinet-onboard-note">Бот и расширение необязательны. Они просто дополнительные способы добавлять фильмы быстрее.</p>
                 </section>
                 <section id="section-onboard-plans" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
@@ -1234,7 +1261,7 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="maps-suggest.js?v=20260418a"></script>
-    <script src="app.js?v=20260518authgrid"></script>
+    <script src="app.js?v=20260518webfirst"></script>
     <script src="site-extras.js?v=20260418a"></script>
 </body>
 </html>

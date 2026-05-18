@@ -304,6 +304,10 @@
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
+    if (getToken()) {
+      topNav += '<button type="button" class="header-settings-nav-item" data-action="link-google">🔗 Привязать Google</button>';
+      topNav += '<button type="button" class="header-settings-nav-item" data-action="link-yandex">🔗 Привязать Яндекс</button>';
+    }
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">⚙️ Все настройки на сайте</button>';
@@ -387,6 +391,24 @@
         document.getElementById('login-modal')?.classList.remove('hidden');
       });
     }
+    const linkGoogleBtn = dd.querySelector('[data-action="link-google"]');
+    if (linkGoogleBtn) {
+      linkGoogleBtn.addEventListener('click', () => {
+        const t = getToken();
+        if (!t) return;
+        closeAccountDropdown();
+        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1&link_token=' + encodeURIComponent(t);
+      });
+    }
+    const linkYandexBtn = dd.querySelector('[data-action="link-yandex"]');
+    if (linkYandexBtn) {
+      linkYandexBtn.addEventListener('click', () => {
+        const t = getToken();
+        if (!t) return;
+        closeAccountDropdown();
+        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1&link_token=' + encodeURIComponent(t);
+      });
+    }
     const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
     if (logoutAllBtn) {
       logoutAllBtn.addEventListener('click', () => {
@@ -441,7 +463,7 @@
     document.body.classList.toggle('in-cabinet', inCabinet);
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     const hs = document.getElementById('header-search');
-    if (hs) hs.classList.toggle('hidden', !(screenId === 'cabinet-readonly'));
+    if (hs) hs.classList.toggle('hidden', !(screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding'));
   }
 
   // P4.3: маппинг между разделами кабинета и URL-путями
@@ -820,11 +842,44 @@
     const statusEl = document.getElementById('login-email-status');
     const reqBtn = document.getElementById('login-email-request-btn');
     const backBtn = document.getElementById('login-email-back-btn');
+    const regForm = document.getElementById('login-register-form');
+    const regCodeForm = document.getElementById('login-register-code-form');
+    const regFirst = document.getElementById('login-register-first');
+    const regLast = document.getElementById('login-register-last');
+    const regEmail = document.getElementById('login-register-email');
+    const regCode = document.getElementById('login-register-code');
+    const regStatus = document.getElementById('login-register-status');
+    const regBtn = document.getElementById('login-register-request-btn');
+    const regBack = document.getElementById('login-register-back-btn');
+    const regPrivacy = document.getElementById('login-oauth-privacy');
 
     function setStatus(text, kind) {
       if (!statusEl) return;
       statusEl.textContent = text || '';
       statusEl.className = 'login-status' + (kind ? ' ' + kind : '');
+    }
+    function setRegStatus(text, kind) {
+      if (!regStatus) return;
+      regStatus.textContent = text || '';
+      regStatus.className = 'login-status' + (kind ? ' ' + kind : '');
+    }
+    function registrationName() {
+      return [regFirst && regFirst.value, regLast && regLast.value]
+        .map((x) => (x || '').trim())
+        .filter(Boolean)
+        .join(' ')
+        .slice(0, 80);
+    }
+    async function applyDisplayNameIfNeeded(token, name) {
+      const n = (name || '').trim();
+      if (!token || !n) return;
+      try {
+        await fetch(API_BASE + '/api/miniapp/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ display_name: n }),
+        });
+      } catch (_) {}
     }
 
     if (reqForm) {
@@ -856,6 +911,98 @@
         } catch (_) {
           if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
           setStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        }
+      });
+    }
+
+    if (regForm) {
+      regForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (regEmail && regEmail.value || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          setRegStatus('Укажите корректный email', 'error');
+          return;
+        }
+        const name = registrationName();
+        if (!name) {
+          setRegStatus('Укажите имя', 'error');
+          return;
+        }
+        if (!regPrivacy || !regPrivacy.checked) {
+          try { regPrivacy.closest('.login-oauth-privacy')?.classList.add('needs-attention'); } catch (_) {}
+          setRegStatus('Нужно согласие с политикой', 'error');
+          return;
+        }
+        if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
+        setRegStatus('');
+        try {
+          const resp = await fetch(API_BASE + '/api/auth/email/request-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, accept_privacy: true, acceptPrivacy: true }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
+          if (!data.success) {
+            setRegStatus(data.error === 'rate_limit' ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить код', 'error');
+            return;
+          }
+          setRegStatus('Код отправлен', 'success');
+          regForm.classList.add('hidden');
+          if (regCodeForm) regCodeForm.classList.remove('hidden');
+          if (regCode) setTimeout(() => regCode.focus(), 80);
+        } catch (_) {
+          if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
+          setRegStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        }
+      });
+    }
+
+    if (regBack) {
+      regBack.addEventListener('click', () => {
+        if (regCodeForm) regCodeForm.classList.add('hidden');
+        if (regForm) regForm.classList.remove('hidden');
+        if (regCode) regCode.value = '';
+        setRegStatus('');
+      });
+    }
+
+    if (regCodeForm) {
+      regCodeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (regEmail && regEmail.value || '').trim().toLowerCase();
+        const code = (regCode && regCode.value || '').trim();
+        if (!/^\d{4,8}$/.test(code)) {
+          setRegStatus('Введите код из письма', 'error');
+          return;
+        }
+        setRegStatus('Проверка…');
+        try {
+          const verifyResp = await fetch(API_BASE + '/api/auth/email/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code }),
+          });
+          const verifyData = await verifyResp.json().catch(() => ({}));
+          if (!verifyData.success || !verifyData.access) {
+            setRegStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
+            return;
+          }
+          const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access: verifyData.access }),
+          });
+          const exchangeData = await exchangeResp.json().catch(() => ({}));
+          if (!exchangeData.success || !exchangeData.token) {
+            setRegStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
+            return;
+          }
+          await applyDisplayNameIfNeeded(exchangeData.token, registrationName());
+          applySiteSessionLogin({ ...exchangeData, name: registrationName() || exchangeData.name, is_personal: true }, modal, regStatus);
+          setRegStatus('Готово', 'success');
+        } catch (_) {
+          setRegStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
         }
       });
     }
@@ -1004,7 +1151,21 @@
         }
         if (deepSection) showSection(deepSection, { replace: true });
         else showSection('onboard-main', { replace: true });
+        try { bindHomeSectionNavOnce(); bindPlansGotoOnce(); bindOnboardingActionsOnce(); } catch (_) {}
       }
+    });
+  }
+
+  function bindOnboardingActionsOnce() {
+    if (window._mpOnboardingActionsBound) return;
+    window._mpOnboardingActionsBound = true;
+    document.addEventListener('click', (e) => {
+      const skip = e.target.closest('[data-onboard-skip]');
+      if (!skip) return;
+      e.preventDefault();
+      showToast('Можно начать с поиска сверху');
+      const input = document.getElementById('header-search-input');
+      if (input) setTimeout(() => input.focus(), 80);
     });
   }
 
