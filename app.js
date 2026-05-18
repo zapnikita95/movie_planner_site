@@ -852,17 +852,14 @@
     }
     if (tgWrap) {
       tgWrap.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (!oauthPriv || !oauthPriv.checked) {
-          e.preventDefault();
-          e.stopPropagation();
           nudgeOAuthPrivacy();
           return;
         }
-        setTimeout(() => {
-          const hasTelegramFrame = !!tgWrap.querySelector('iframe');
-          if (!hasTelegramFrame) openTelegramLoginFallback();
-        }, 700);
-      }, true);
+        openTelegramLoginFallback();
+      });
     }
 
     if (openBtn) {
@@ -936,8 +933,7 @@
     const backBtn = document.getElementById('login-email-back-btn');
     const regForm = document.getElementById('login-register-form');
     const regCodeForm = document.getElementById('login-register-code-form');
-    const regFirst = document.getElementById('login-register-first');
-    const regLast = document.getElementById('login-register-last');
+    const regName = document.getElementById('login-register-name');
     const regEmail = document.getElementById('login-register-email');
     const regCode = document.getElementById('login-register-code');
     const regStatus = document.getElementById('login-register-status');
@@ -956,11 +952,7 @@
       regStatus.className = 'login-status' + (kind ? ' ' + kind : '');
     }
     function registrationName() {
-      return [regFirst && regFirst.value, regLast && regLast.value]
-        .map((x) => (x || '').trim())
-        .filter(Boolean)
-        .join(' ')
-        .slice(0, 80);
+      return ((regName && regName.value) || '').trim().slice(0, 80);
     }
     async function applyDisplayNameIfNeeded(token, name) {
       const n = (name || '').trim();
@@ -5910,6 +5902,13 @@
           <button type="submit" class="btn btn-secondary">Сохранить фото</button>
           ${avatarUrl ? '<button type="button" class="btn btn-secondary" id="profile-settings-avatar-delete">Удалить фото</button>' : ''}
         </form>
+        <label class="profile-searchable-toggle">
+          <input type="checkbox" id="profile-settings-searchable" ${!u || u.profile_searchable !== false ? 'checked' : ''}>
+          <span>
+            <b>Показывать профиль в поиске друзей</b>
+            <small>Если выключить, профиль не будет находиться по имени.</small>
+          </span>
+        </label>
         <p class="profile-settings-status" id="profile-settings-status"></p>
         </div>
         <div class="settings-block">
@@ -6038,6 +6037,20 @@
             if (!r || !r.success) { setStatus('Не удалось удалить фото', false); return; }
             setStatus('Фото удалено', true);
             loadMeAndShowCabinet();
+          })
+          .catch(() => setStatus('Ошибка сети', false));
+      });
+    }
+    const searchable = root.querySelector('#profile-settings-searchable');
+    if (searchable) {
+      searchable.addEventListener('change', () => {
+        api('/api/miniapp/profile', {
+          method: 'POST',
+          body: JSON.stringify({ profile_searchable: !!searchable.checked }),
+        })
+          .then((r) => {
+            if (!r || !r.success) { setStatus('Не удалось сохранить настройку поиска', false); return; }
+            setStatus(searchable.checked ? 'Профиль виден в поиске' : 'Профиль скрыт из поиска', true);
           })
           .catch(() => setStatus('Ошибка сети', false));
       });

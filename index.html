@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260518profilesettings">
+    <link rel="stylesheet" href="style-v2.css?v=20260518searchprivacy">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -151,10 +151,10 @@
               <img src="images/yandex-id.png" class="login-oauth-img login-oauth-img--yandex" alt="" aria-hidden="true">
               <span class="visually-hidden">Яндекс</span>
             </button>
-            <div id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Войти через Telegram">
+            <button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Войти через Telegram">
               <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
               <div id="login-tg-widget-mount" class="login-tg-widget-mount"></div>
-            </div>
+            </button>
             <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" aria-expanded="false" aria-controls="login-bot-panel" title="Код из бота" aria-label="Код из бота">🤖</button>
           </div>
 
@@ -192,10 +192,7 @@
           <div class="login-register-card">
             <div class="login-register-title">Создать аккаунт</div>
             <form id="login-register-form" class="login-register-form">
-              <div class="login-register-name-row">
-                <input type="text" id="login-register-first" name="first_name" placeholder="Имя" autocomplete="given-name" class="modal-input login-register-input">
-                <input type="text" id="login-register-last" name="last_name" placeholder="Фамилия" autocomplete="family-name" class="modal-input login-register-input">
-              </div>
+              <input type="text" id="login-register-name" name="display_name" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">
               <div class="login-email-request-row">
                 <input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
                 <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>
@@ -1286,6 +1283,6 @@
         </div>
     </div>
     </div><!-- /content-wrapper -->
-    <script src="app.js?v=20260518profilesettings"></script>
+    <script src="app.js?v=20260518searchprivacy"></script>
 </body>
 </html>
