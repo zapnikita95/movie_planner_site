@@ -777,6 +777,25 @@
     const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
 
+    function setLoginTab(tabName) {
+      const tab = tabName === 'register' ? 'register' : 'login';
+      document.querySelectorAll('[data-login-tab]').forEach((btn) => {
+        const active = btn.getAttribute('data-login-tab') === tab;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-login-pane]').forEach((pane) => {
+        pane.classList.toggle('hidden', pane.getAttribute('data-login-pane') !== tab);
+      });
+    }
+
+    document.querySelectorAll('[data-login-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab')));
+    });
+    document.querySelectorAll('[data-login-tab-jump]').forEach((btn) => {
+      btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab-jump')));
+    });
+
     let loginTgWidgetMounted = false;
     /** Виджет Telegram Login: домен страницы должен быть в BotFather → /setdomain (movie-planner.ru). */
     function mountTelegramLoginWidget() {
@@ -892,6 +911,7 @@
 
     if (openBtn) {
       openBtn.addEventListener('click', () => {
+        setLoginTab('login');
         if (modal) modal.classList.remove('hidden');
         mountTelegramLoginWidget();
       });
@@ -967,7 +987,7 @@
     const regStatus = document.getElementById('login-register-status');
     const regBtn = document.getElementById('login-register-request-btn');
     const regBack = document.getElementById('login-register-back-btn');
-    const regPrivacy = document.getElementById('login-oauth-privacy');
+    const regPrivacy = document.getElementById('login-register-privacy');
 
     function setStatus(text, kind) {
       if (!statusEl) return;
