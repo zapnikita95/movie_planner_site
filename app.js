@@ -71,6 +71,90 @@
     } catch (_) {}
   }
 
+  let _headerCoinsPrevNum = null;
+
+  function _coinAnchorRect(anchorOrRect) {
+    if (!anchorOrRect) return null;
+    if (typeof anchorOrRect.left === 'number' && typeof anchorOrRect.top === 'number') {
+      return anchorOrRect;
+    }
+    try {
+      if (typeof anchorOrRect.getBoundingClientRect === 'function') {
+        const r = anchorOrRect.getBoundingClientRect();
+        if (r && (r.width || r.height)) return r;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function showCoinActionPopAt(anchorOrRect, delta) {
+    const d = Number(delta);
+    if (!Number.isFinite(d) || d === 0) return;
+    const rect = _coinAnchorRect(anchorOrRect);
+    if (!rect) return;
+    const pop = document.createElement('div');
+    pop.className = 'coin-action-pop ' + (d > 0 ? 'coin-action-pop--up' : 'coin-action-pop--down');
+    pop.innerHTML =
+      '<span class="coin-action-pop-sprite"></span>' +
+      '<span class="coin-action-pop-value">' + (d > 0 ? '+' : '') + String(d) + '</span>';
+    pop.style.left = Math.round(rect.left + rect.width / 2) + 'px';
+    pop.style.top = Math.round(rect.top + rect.height / 2) + 'px';
+    document.body.appendChild(pop);
+    setTimeout(function () {
+      try { pop.remove(); } catch (_) {}
+    }, 1100);
+  }
+
+  function flashHeaderCoins(delta) {
+    const d = Number(delta);
+    if (!Number.isFinite(d) || d === 0) return;
+    const btn = document.getElementById('header-coins-btn');
+    if (!btn) return;
+    btn.classList.remove('coins-flash-up', 'coins-flash-down');
+    btn.classList.add(d > 0 ? 'coins-flash-up' : 'coins-flash-down');
+    const badge = document.getElementById('header-coins-delta');
+    if (badge) {
+      badge.textContent = (d > 0 ? '+' : '') + String(d);
+      badge.classList.remove('hidden', 'coins-flash-up', 'coins-flash-down');
+      badge.classList.add(d > 0 ? 'coins-flash-up' : 'coins-flash-down');
+      setTimeout(function () {
+        badge.classList.add('hidden');
+        badge.textContent = '';
+      }, 1100);
+    }
+    setTimeout(function () {
+      btn.classList.remove('coins-flash-up', 'coins-flash-down');
+    }, 1000);
+  }
+
+  function applyCoinsFeedback(anchorOrRect, coinsAddedHint) {
+    const hint = Number(coinsAddedHint);
+    const rect = _coinAnchorRect(anchorOrRect);
+    const headerBtn = document.getElementById('header-coins-btn');
+    if (Number.isFinite(hint) && hint > 0) {
+      showCoinActionPopAt(rect || anchorOrRect, hint);
+      flashHeaderCoins(hint);
+    }
+    return api('/api/miniapp/coins').then(function (data) {
+      if (!data || !data.success) return;
+      const val = document.getElementById('header-coins-val');
+      const btn = document.getElementById('header-coins-btn');
+      if (!val) return;
+      const nextText = data.is_infinite ? '∞' : String(data.balance != null ? data.balance : '—');
+      const nextNum = data.is_infinite ? null : Number(nextText);
+      if (!(Number.isFinite(hint) && hint > 0) && _headerCoinsPrevNum != null && nextNum != null && nextNum !== _headerCoinsPrevNum) {
+        const d = nextNum - _headerCoinsPrevNum;
+        if (d !== 0) {
+          showCoinActionPopAt(rect || headerBtn, d);
+          flashHeaderCoins(d);
+        }
+      }
+      val.textContent = nextText;
+      if (btn) btn.classList.remove('hidden');
+      if (nextNum != null) _headerCoinsPrevNum = nextNum;
+    }).catch(function () {});
+  }
+
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
   /** Публичный base URL для Bearer/curl (совпадает с API_BASE на проде). */
@@ -544,6 +628,8 @@
       const coinsVal = document.getElementById('header-coins-val');
       if (coinsBtn && me.coins) {
         coinsVal.textContent = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
+        const n = me.coins.is_infinite ? null : Number(me.coins.balance);
+        if (Number.isFinite(n)) _headerCoinsPrevNum = n;
         coinsBtn.classList.remove('hidden');
         coinsBtn.onclick = function() {
           const bal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
@@ -4010,6 +4096,7 @@
         showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
+      applyCoinsFeedback(starBtn, Number(res.coins_added) || 0);
       closeRatePopover();
       // Обновляем локальные кэши карточек
       if (typeof _filmModalCache !== 'undefined' && _filmModalCache[filmId]) {
@@ -4849,7 +4936,7 @@
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           const v = Number(btn.getAttribute('data-rating-value'));
-          setRating(film.film_id, v);
+          setRating(film.film_id, v, btn);
         });
       });
     }
@@ -4930,7 +5017,7 @@
     if (curEl) curEl.textContent = v ? v + '/10' : '';
   }
 
-  function setRating(filmId, rating) {
+  function setRating(filmId, rating, anchorBtn) {
     const cache = _filmModalCache[filmId];
     if (cache && cache.film && cache.film.is_virtual_room && cache.film.can_rate_in_group === false) {
       showToast('В группе оценки ставят только админы и создатель.', { type: 'error' });
@@ -4944,6 +5031,7 @@
         showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
+      applyCoinsFeedback(anchorBtn, Number(res.coins_added) || 0);
       applyRatingToLists(filmId, rating);
       if (rating >= HIGH_RATING_SIMILAR_MIN && res.similar && _filmModalCache[filmId]) {
         _filmModalCache[filmId].similar = res.similar;
@@ -5197,6 +5285,7 @@
           return;
         }
         if (btn) { btn.textContent = compactBtn ? '✓' : (data.already_existed ? 'Уже в базе' : '✓ Добавлен'); btn.disabled = true; }
+        applyCoinsFeedback(btn, Number(data.coins_added) || 0);
         // Optimistic refresh
         if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
         // Автозакрыть модалку, если это только что добавленный фильм
@@ -5988,8 +6077,8 @@
         <label class="profile-searchable-toggle">
           <input type="checkbox" id="profile-settings-searchable" ${!u || u.profile_searchable !== false ? 'checked' : ''}>
           <span>
-            <b>Показывать профиль в поиске друзей</b>
-            <small>Если выключить, посторонние не найдут профиль по имени, почте или Telegram.</small>
+            <b>Профиль можно найти в поиске по людям</b>
+            <small>Если выключить, вас не найдут по имени, почте или Telegram.</small>
           </span>
         </label>
         <p class="profile-settings-status" id="profile-settings-status"></p>

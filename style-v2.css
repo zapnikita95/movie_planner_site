@@ -5811,6 +5811,71 @@ a.header-settings-nav-item {
   from { background-position: 0 0; }
   to   { background-position: calc(-8 * 20px) 0; }
 }
+.header-coins-btn {
+  position: relative;
+}
+#header-coins-delta {
+  position: absolute;
+  right: -4px;
+  top: -10px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  animation: header-coins-delta-float 1s ease-out forwards;
+}
+#header-coins-delta.coins-flash-up { color: #4ade80; }
+#header-coins-delta.coins-flash-down { color: #ff6b6b; }
+.header-coins-btn.coins-flash-up {
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.45), 0 0 18px rgba(74, 222, 128, 0.35);
+}
+.header-coins-btn.coins-flash-down {
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.45), 0 0 18px rgba(255, 107, 107, 0.35);
+}
+@keyframes header-coins-delta-float {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  20% { opacity: 1; transform: translateY(0) scale(1.08); }
+  100% { opacity: 0; transform: translateY(-14px) scale(1); }
+}
+.coin-action-pop {
+  position: fixed;
+  z-index: 10050;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px 5px 5px;
+  border-radius: 999px;
+  background: rgba(20, 22, 28, 0.94);
+  border: 1px solid rgba(255, 45, 123, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  animation: coin-action-float 1.05s ease-out forwards;
+}
+.coin-action-pop--up {
+  color: #4ade80;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px rgba(74, 222, 128, 0.35);
+}
+.coin-action-pop--down { color: #ff6b6b; }
+.coin-action-pop-sprite {
+  width: 18px;
+  height: 18px;
+  background-image: url('coin_gold.png');
+  background-size: calc(8 * 18px) 18px;
+  image-rendering: pixelated;
+  animation: site-coin-spin .65s steps(8) infinite;
+}
+.coin-action-pop-value {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+@keyframes coin-action-float {
+  0% { opacity: 0; transform: translate(-50%, -38%) scale(0.88); }
+  15% { opacity: 1; transform: translate(-50%, -68%) scale(1.06); }
+  75% { opacity: 1; transform: translate(-50%, -130%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -165%) scale(0.98); }
+}
 /* ── /Coins widget ───────────────────────────────────────────────────── */
 
 /* ── Friends / Social (Друзья и группы) ──────────────────────────────── */
