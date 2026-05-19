@@ -4,6 +4,28 @@
 #login-modal { display: none; }
 #login-modal:not(.hidden) { display: flex !important; }
 .cabinet-section.hidden { display: none !important; }
+.parallax-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+}
+.parallax-emoji {
+  position: absolute;
+  user-select: none;
+  will-change: transform;
+  filter: blur(0.1px);
+  animation: parallaxEmojiDrift 12s ease-in-out infinite alternate;
+}
+@keyframes parallaxEmojiDrift {
+  from { margin-top: -4px; }
+  to { margin-top: 8px; }
+}
 .header-dropdown-title { font-size: 12px; color: var(--text-muted); padding: 8px 12px; }
 .header-dropdown-account { padding: 10px 14px; border-radius: 8px; cursor: pointer; }
 .header-dropdown-account .header-dropdown-account-line {
