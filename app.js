@@ -410,16 +410,33 @@
     return String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
   }
 
+  function resolveMediaUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
+    if (raw.startsWith('/api/')) return API_BASE + raw;
+    return raw;
+  }
+
   function setAvatarEl(el, url, name) {
     if (!el) return;
     const initial = escapeHtml(avatarInitial(name));
-    if (url) {
-      el.innerHTML = '<img src="' + escapeHtml(url) + '" alt="" loading="lazy">';
+    const src = resolveMediaUrl(url);
+    if (src) {
+      el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy">';
       const img = el.querySelector('img');
       if (img) img.addEventListener('error', () => { el.textContent = initial; }, { once: true });
     } else {
       el.textContent = initial;
     }
+  }
+
+  function greetingByHour() {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return 'Доброе утро';
+    if (h >= 12 && h < 18) return 'Добрый день';
+    if (h >= 18 && h < 23) return 'Добрый вечер';
+    return 'Доброй ночи';
   }
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
@@ -456,7 +473,7 @@
     html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>+ Добавить вход</button>';
     if (sessions.length) {
       html += '<div class="header-dropdown-divider"></div>';
-      html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти из всех</button>';
+      html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти</button>';
     }
     dd.innerHTML = html;
 
@@ -5511,12 +5528,14 @@
 
   function updateProfileSwitcherUI(me) {
     const nameEl = document.getElementById('cabinet-profile-name');
+    const kickerEl = document.querySelector('.cabinet-user-kicker');
     const emojiEl = document.getElementById('cabinet-profile-emoji');
     const heroName = document.getElementById('cabinet-user-name');
     const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
     nameEl.textContent = me.name || 'Профиль';
-    if (heroName) heroName.textContent = me.name || 'Профиль';
+    if (kickerEl) kickerEl.textContent = greetingByHour();
+    if (heroName) heroName.textContent = (me.name || 'Профиль') + '!';
     setAvatarEl(heroAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
     if (emojiEl) {
       const em = (me.room_emoji != null && String(me.room_emoji).trim() !== '') ? me.room_emoji : '';
