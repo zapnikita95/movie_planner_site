@@ -7733,15 +7733,15 @@
     const parallaxBg = document.getElementById('parallaxBg');
     if (parallaxBg) {
       const emojis = ['🍿', '🎬', '🎞️', '🎥', '🎫', '⭐', '🎭'];
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 38; i++) {
         const el = document.createElement('div');
         el.className = 'parallax-emoji';
         el.textContent = emojis[i % emojis.length];
-        const size = 18 + Math.random() * 27;
+        const size = 28 + Math.random() * 42;
         const left = Math.random() * 100;
         const top = Math.random() * 200;
         const speed = 0.02 + Math.random() * 0.06;
-        const opacity = 0.06 + Math.random() * 0.09;
+        const opacity = 0.1 + Math.random() * 0.14;
         el.style.cssText = 'font-size:' + size + 'px; left:' + left + '%; top:' + top + '%; opacity:' + opacity + ';';
         parallaxBg.appendChild(el);
         el._parallaxSpeed = speed;
