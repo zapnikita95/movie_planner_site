@@ -186,6 +186,13 @@
     setActiveChatId(chatId);
     if (modalEl) modalEl.classList.add('hidden');
     loadMeAndShowCabinet();
+    try {
+      const pendingInvite = localStorage.getItem('mp_pending_accept_friend_invite');
+      if (pendingInvite && /^\d+$/.test(pendingInvite)) {
+        localStorage.removeItem('mp_pending_accept_friend_invite');
+        setTimeout(() => acceptFriendInviteFromLink(Number(pendingInvite), null), 250);
+      }
+    } catch (_) {}
     return { ok: true };
   }
 
@@ -5982,7 +5989,7 @@
           <input type="checkbox" id="profile-settings-searchable" ${!u || u.profile_searchable !== false ? 'checked' : ''}>
           <span>
             <b>Показывать профиль в поиске друзей</b>
-            <small>Если выключить, профиль не будет находиться по имени.</small>
+            <small>Если выключить, посторонние не найдут профиль по имени, почте или Telegram.</small>
           </span>
         </label>
         <p class="profile-settings-status" id="profile-settings-status"></p>
@@ -7436,19 +7443,15 @@
     const ratings = (profile && profile.ratings_count) || 0;
     const coins = (profile && profile.coins) || 0;
     const fs = profile && profile.friendship_status;
-    const appLink = 'movieplanner://friends/' + encodeURIComponent(String(userId));
+    const appLink = 'movieplanner://friends/' + encodeURIComponent(String(userId)) + '?invite=1';
 
     let actionHtml;
     if (fs === 'accepted') {
       actionHtml = '<p style="text-align:center;color:#aaa;margin:0">Вы уже друзья ✓</p>';
-    } else if (fs === 'pending_outgoing') {
-      actionHtml = '<p style="text-align:center;color:#aaa;margin:0">Запрос уже отправлен</p>';
-    } else if (fs === 'pending_incoming') {
-      actionHtml = '<button id="mp-aff-accept" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Принять запрос</button>';
     } else if (isLoggedIn) {
-      actionHtml = '<button id="mp-aff-add" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Добавить в друзья</button>';
+      actionHtml = '<button id="mp-aff-accept-invite" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Принять приглашение</button>';
     } else {
-      actionHtml = '<button id="mp-aff-login" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Войти и добавить в друзья</button>';
+      actionHtml = '<button id="mp-aff-login" style="width:100%;padding:14px;background:#ff2d7b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Войти и принять</button>';
     }
 
     const ov = document.createElement('div');
@@ -7472,48 +7475,44 @@
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
     document.getElementById('mp-aff-close').addEventListener('click', () => ov.remove());
 
-    const addBtn = document.getElementById('mp-aff-add');
-    if (addBtn) {
-      addBtn.addEventListener('click', async () => {
-        addBtn.disabled = true; addBtn.textContent = 'Отправляем…';
-        try {
-          const r = await fetch(API_BASE + '/api/friends/request', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to_user_id: userId }),
-          });
-          const d = await r.json().catch(() => ({}));
-          if (d.success || r.ok) { showToast('Запрос отправлен!'); ov.remove(); }
-          else { showToast(d.error || 'Ошибка', { type: 'error' }); addBtn.disabled = false; addBtn.textContent = 'Добавить в друзья'; }
-        } catch (_) { showToast('Сетевая ошибка', { type: 'error' }); addBtn.disabled = false; addBtn.textContent = 'Добавить в друзья'; }
-      });
-    }
-
-    const acceptBtn = document.getElementById('mp-aff-accept');
-    if (acceptBtn) {
-      acceptBtn.addEventListener('click', async () => {
-        acceptBtn.disabled = true; acceptBtn.textContent = 'Принимаем…';
-        try {
-          const r = await fetch(API_BASE + '/api/friends/accept', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from_user_id: userId }),
-          });
-          const d = await r.json().catch(() => ({}));
-          if (d.success || r.ok) { showToast('Теперь вы друзья! 🎉'); ov.remove(); }
-          else { showToast(d.error || 'Ошибка', { type: 'error' }); acceptBtn.disabled = false; acceptBtn.textContent = 'Принять запрос'; }
-        } catch (_) { showToast('Сетевая ошибка', { type: 'error' }); acceptBtn.disabled = false; acceptBtn.textContent = 'Принять запрос'; }
-      });
+    const acceptInviteBtn = document.getElementById('mp-aff-accept-invite');
+    if (acceptInviteBtn) {
+      acceptInviteBtn.addEventListener('click', () => acceptFriendInviteFromLink(userId, acceptInviteBtn, ov));
     }
 
     const loginBtn = document.getElementById('mp-aff-login');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
-        try { localStorage.setItem('mp_pending_add_friend', String(userId)); } catch (_) {}
+        try { localStorage.setItem('mp_pending_accept_friend_invite', String(userId)); } catch (_) {}
         ov.remove();
         const hdr = document.getElementById('header-login-btn') || document.querySelector('[data-action="login"]');
         if (hdr) hdr.click();
       });
+    }
+  }
+
+  async function acceptFriendInviteFromLink(userId, buttonEl, overlayEl) {
+    if (!userId) return;
+    const btn = buttonEl || document.getElementById('mp-aff-accept-invite');
+    if (btn) { btn.disabled = true; btn.textContent = 'Принимаем…'; }
+    try {
+      const r = await fetch(API_BASE + '/api/friends/invite/accept', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviter_user_id: userId }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (d.success || r.ok) {
+        showToast('Теперь вы друзья! 🎉');
+        if (overlayEl) overlayEl.remove();
+        try { loadMeAndShowCabinet(); } catch (_) {}
+      } else {
+        showToast(d.error || 'Ошибка', { type: 'error' });
+        if (btn) { btn.disabled = false; btn.textContent = 'Принять приглашение'; }
+      }
+    } catch (_) {
+      showToast('Сетевая ошибка', { type: 'error' });
+      if (btn) { btn.disabled = false; btn.textContent = 'Принять приглашение'; }
     }
   }
 
