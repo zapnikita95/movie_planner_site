@@ -34,7 +34,6 @@
       font-size: 13px;
     }
   </style>
-  <script async src="https://telegram.org/js/telegram-widget.js?22"></script>
 </head>
 <body>
   <main>
@@ -43,7 +42,7 @@
   </main>
   <script>
     (function () {
-      var CLIENT_ID = 8554485843;
+      var BOT_ID = "8554485843";
       var statusEl = document.getElementById('telegram-status');
       function send(payload) {
         try {
@@ -56,7 +55,7 @@
           return;
         }
         window.Telegram.Login.auth(
-          { client_id: CLIENT_ID, request_access: ['write'] },
+          { bot_id: BOT_ID, request_access: true },
           function (payload) {
             if (!payload) {
               if (statusEl) statusEl.textContent = 'Вход отменён.';
@@ -67,7 +66,14 @@
         );
       }
       document.getElementById('telegram-login').addEventListener('click', openTelegram);
-      setTimeout(openTelegram, 500);
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.onload = function () { setTimeout(openTelegram, 100); };
+      script.onerror = function () {
+        if (statusEl) statusEl.textContent = 'Не удалось загрузить Telegram Login.';
+      };
+      document.body.appendChild(script);
     })();
   </script>
 </body>
