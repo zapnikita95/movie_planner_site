@@ -17,7 +17,7 @@
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
   const BOT_CODE_LINK = 'https://t.me/movie_planner_bot?start=code';
-  const TELEGRAM_BOT_ID = '8554485843';
+  const TELEGRAM_CLIENT_ID = 8554485843;
   const BOT_SEARCH_LINK = BOT_LINK + '?start=search';
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
@@ -799,7 +799,7 @@
         .then(() => {
           const tg = window.Telegram && window.Telegram.Login;
           if (!tg || typeof tg.auth !== 'function') throw new Error('telegram_unavailable');
-          tg.auth({ bot_id: TELEGRAM_BOT_ID, request_access: true }, (user) => {
+          tg.auth({ client_id: TELEGRAM_CLIENT_ID, request_access: ['write'] }, (user) => {
             if (!user) {
               try { showToast('Вход через Telegram отменён', { type: 'error', duration: 2600 }); } catch (_) {}
               return;
