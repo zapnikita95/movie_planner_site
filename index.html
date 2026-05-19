@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260519profile">
+    <link rel="stylesheet" href="style-v2.css?v=20260519invites">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -736,8 +736,8 @@
                             <div class="groups-howto-grid">
                                 <div class="groups-howto-card">
                                     <div class="groups-howto-emoji">🧩</div>
-                                    <div class="groups-howto-title">Виртуальная комната</div>
-                                    <div class="groups-howto-text">Создайте комнату одной кнопкой, получите ссылку и отправьте другу. Telegram-чат не нужен.</div>
+                                    <div class="groups-howto-title">Группа</div>
+                                    <div class="groups-howto-text">Создайте группу одной кнопкой, получите ссылку и отправьте друзьям. Telegram-чат не нужен.</div>
                                 </div>
                                 <div class="groups-howto-card">
                                     <div class="groups-howto-emoji">💬</div>
@@ -975,8 +975,8 @@
       <div class="add-film-modal-backdrop" data-action="close-share-invite-modal"></div>
       <div class="add-film-modal-body">
         <button type="button" class="add-film-modal-close" data-action="close-share-invite-modal" aria-label="Закрыть">&times;</button>
-        <h2 class="add-film-title" id="share-invite-title">Пригласить друга</h2>
-        <p class="add-film-hint" id="share-invite-hint">Отправьте эту ссылку — друг попадёт в вашу комнату прямо с сайта, без Telegram.</p>
+        <h2 class="add-film-title" id="share-invite-title">Пригласить в группу</h2>
+        <p class="add-film-hint" id="share-invite-hint">Отправьте эту ссылку, чтобы человек присоединился к группе.</p>
         <div class="share-invite-box">
           <code class="share-invite-url" id="share-invite-url"></code>
           <div class="share-invite-actions">
@@ -993,7 +993,7 @@
       <div class="add-film-modal-backdrop" data-action="close-room-members-modal"></div>
       <div class="add-film-modal-body room-members-modal-body">
         <button type="button" class="add-film-modal-close" data-action="close-room-members-modal" aria-label="Закрыть">&times;</button>
-        <h2 class="add-film-title" id="room-members-title">Участники комнаты</h2>
+        <h2 class="add-film-title" id="room-members-title">Участники группы</h2>
         <div id="room-members-body" class="room-members-body"></div>
       </div>
     </div>
@@ -1284,6 +1284,6 @@
     </div>
     </div><!-- /content-wrapper -->
     <script src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <script src="app.js?v=20260519profile"></script>
+    <script src="app.js?v=20260519invites"></script>
 </body>
 </html>

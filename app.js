@@ -132,6 +132,13 @@
     return sessions.find((s) => String(s.chat_id) === String(active)) || null;
   }
 
+  function getPersonalSessionName() {
+    const sessions = getSessions();
+    const personal = sessions.find((s) => s && s.is_personal !== false && s.name);
+    const active = getActiveSession();
+    return (personal && personal.name) || (active && active.is_personal !== false && active.name) || 'Пользователь';
+  }
+
   function setActiveChatId(chatId) {
     if (chatId != null && chatId !== '') localStorage.setItem(STORAGE_ACTIVE, String(chatId));
     else localStorage.removeItem(STORAGE_ACTIVE);
@@ -6909,8 +6916,9 @@
       showShareInvite({
         chat_id: data.chat_id,
         url: data.invite_url,
-        name: `${data.emoji || '🎬'} ${data.name}`.trim(),
+        name: data.name || 'Группа',
         is_virtual: true,
+        inviter_name: getPersonalSessionName(),
       });
       // После закрытия share-modal — обновим кабинет
     }).catch(() => {
@@ -6936,6 +6944,7 @@
         url: data.invite_url,
         name: '',
         is_virtual: !!isVirtual,
+        inviter_name: getPersonalSessionName(),
         expires_at: data.expires_at,
       });
     });
@@ -6952,16 +6961,16 @@
     const tgLink = document.getElementById('share-invite-telegram');
     const waLink = document.getElementById('share-invite-whatsapp');
     if (urlEl) urlEl.textContent = info.url || '';
-    if (titleEl) titleEl.textContent = info.name ? `Пригласить в «${info.name}»` : 'Ссылка для приглашения';
-    if (hintEl) hintEl.textContent = info.is_virtual
-      ? 'Отправьте эту ссылку — друг попадёт в вашу виртуальную комнату прямо с сайта, без Telegram.'
-      : 'Отправьте эту ссылку — друг получит доступ к этой группе в личном кабинете на сайте.';
+    const groupName = (info.name || 'группу').trim();
+    const inviterName = (info.inviter_name || getPersonalSessionName()).trim();
+    if (titleEl) titleEl.textContent = `Пригласить в «${groupName}»`;
+    if (hintEl) hintEl.textContent = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner.`;
     if (metaEl) {
       const parts = ['Ссылка действует 7 дней', 'до 10 приглашений'];
       metaEl.textContent = parts.join(' · ');
     }
-    const text = `Присоединяйся к моей комнате на movie-planner.ru: ${info.url}`;
-    if (tgLink) tgLink.href = `https://t.me/share/url?url=${encodeURIComponent(info.url || '')}&text=${encodeURIComponent('Присоединяйся к моей комнате на Movie Planner')}`;
+    const text = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner. Вступить?`;
+    if (tgLink) tgLink.href = `https://t.me/share/url?url=${encodeURIComponent(info.url || '')}&text=${encodeURIComponent(text)}`;
     if (waLink) waLink.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
     if (copyBtn && !copyBtn._bound) {
       copyBtn._bound = true;
@@ -7278,9 +7287,8 @@
         if (emojiEl) emojiEl.textContent = info.emoji || '👥';
         if (titleEl) titleEl.textContent = 'Присоединиться к «' + (info.name || 'Группа') + '»?';
         if (hintEl) {
-          hintEl.textContent = info.is_virtual
-            ? 'Это виртуальная комната — общая база планов и фильмов с друзьями, без Telegram-чата.'
-            : 'Это Telegram-группа с общей базой фильмов и планов.';
+          const inviterName = info.inviter_name || 'Пользователь';
+          hintEl.textContent = inviterName + ' приглашает Вас в «' + (info.name || 'Группа') + '» в Movie Planner.';
         }
         if (metaEl) {
           const parts = [];
@@ -7421,6 +7429,10 @@
 
     const name = (profile && profile.name) || 'Пользователь';
     const initials = name[0].toUpperCase();
+    const photoUrl = resolveMediaUrl(profile && profile.photo_url);
+    const avatarHtml = photoUrl
+      ? `<img src="${escapeHtml(photoUrl)}" alt="" data-initial="${escapeHtml(initials)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none';this.parentNode.textContent=this.getAttribute('data-initial')||'?'">`
+      : escapeHtml(initials);
     const ratings = (profile && profile.ratings_count) || 0;
     const coins = (profile && profile.coins) || 0;
     const fs = profile && profile.friendship_status;
@@ -7444,9 +7456,9 @@
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
     ov.innerHTML = `
       <div style="background:#1c1c28;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.7);text-align:center">
-        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ff2d7b,#7b2fff);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 16px">${initials}</div>
+        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#ff2d7b,#7b2fff);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 16px;overflow:hidden">${avatarHtml}</div>
         <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">${name}</div>
-        <div style="font-size:13px;color:#888;margin-bottom:4px">приглашает тебя в Movie Planner 🎬</div>
+        <div style="font-size:13px;color:#888;margin-bottom:4px">хочет добавить Вас в друзья в Movie Planner 🎬</div>
         <div style="display:flex;gap:16px;justify-content:center;margin:12px 0 20px;font-size:13px;color:#aaa">
           <span>🎬 ${ratings} оценок</span>
           <span>🪙 ${coins} монет</span>
