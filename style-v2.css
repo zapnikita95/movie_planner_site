@@ -1767,12 +1767,13 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-oauth-yandex {
-  background: #fc3f1e;
-  border-color: #fc3f1e;
+  background: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .login-oauth-yandex:hover:not(:disabled) {
-  filter: brightness(1.06);
+  background: #f8f9fa;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .login-oauth-icon {
@@ -1795,13 +1796,13 @@ body.in-public-stats .footer-extension-cabinet {
 }
 .login-oauth-img {
   display: block;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 .login-oauth-img--yandex {
   border-radius: 50%;
-  background: #fc3f1e;
+  background: transparent;
 }
 .login-oauth-telegram {
   background: #229ed9;

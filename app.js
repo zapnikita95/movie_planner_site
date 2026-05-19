@@ -17,6 +17,7 @@
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
   const BOT_CODE_LINK = 'https://t.me/movie_planner_bot?start=code';
+  const TELEGRAM_BOT_ID = '8554485843';
   const BOT_SEARCH_LINK = BOT_LINK + '?start=search';
   const BOT_PREMIERES_LINK = BOT_LINK + '?start=premieres';
   const BOT_RANDOM_LINK = BOT_LINK + '?start=random';
@@ -770,31 +771,45 @@
       btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab-jump')));
     });
 
-    let loginTgWidgetMounted = false;
-    /** Виджет Telegram Login: домен страницы должен быть в BotFather → /setdomain (movie-planner.ru). */
-    function mountTelegramLoginWidget() {
+    let telegramLoginScriptPromise = null;
+    /** Официальный Telegram Login JS: домен должен быть в BotFather → /setdomain (movie-planner.ru). */
+    function loadTelegramLoginScript() {
+      if (window.Telegram && window.Telegram.Login && typeof window.Telegram.Login.auth === 'function') {
+        return Promise.resolve();
+      }
+      if (telegramLoginScriptPromise) return telegramLoginScriptPromise;
       const wrap = document.getElementById('login-tg-widget-mount');
-      if (!wrap || loginTgWidgetMounted) return;
-      if (wrap.querySelector('script')) return;
-      loginTgWidgetMounted = true;
-      const s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://telegram.org/js/telegram-widget.js?22';
-      s.setAttribute('data-telegram-login', 'movie_planner_bot');
-      s.setAttribute('data-size', 'large');
-      s.setAttribute('data-radius', '14');
-      s.setAttribute('data-onauth', 'mpTelegramLogin(user)');
-      s.setAttribute('data-request-access', 'write');
-      wrap.appendChild(s);
+      telegramLoginScriptPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://telegram.org/js/telegram-widget.js?22';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('telegram_script_failed'));
+        (wrap || document.head || document.body).appendChild(s);
+      });
+      return telegramLoginScriptPromise;
     }
 
-    function openTelegramLoginFallback() {
-      window.open('https://t.me/movie_planner_bot?start=site_login', '_blank', 'noopener');
-      const botPanel = document.getElementById('login-bot-panel');
-      const botToggle = document.getElementById('login-bot-toggle');
-      if (botPanel) botPanel.classList.remove('hidden');
-      if (botToggle) botToggle.setAttribute('aria-expanded', 'true');
-      try { showToast('Открыл Telegram. Возьмите код у бота и вставьте ниже.', { duration: 3600 }); } catch (_) {}
+    function mountTelegramLoginWidget() {
+      void loadTelegramLoginScript().catch(() => {});
+    }
+
+    function startTelegramOfficialLogin() {
+      loadTelegramLoginScript()
+        .then(() => {
+          const tg = window.Telegram && window.Telegram.Login;
+          if (!tg || typeof tg.auth !== 'function') throw new Error('telegram_unavailable');
+          tg.auth({ bot_id: TELEGRAM_BOT_ID, request_access: true }, (user) => {
+            if (!user) {
+              try { showToast('Вход через Telegram отменён', { type: 'error', duration: 2600 }); } catch (_) {}
+              return;
+            }
+            window.mpTelegramLogin(user);
+          });
+        })
+        .catch(() => {
+          try { showToast('Не удалось открыть вход через Telegram', { type: 'error', duration: 3200 }); } catch (_) {}
+        });
     }
 
     window.mpTelegramLogin = function (user) {
@@ -876,7 +891,7 @@
           nudgeOAuthPrivacy();
           return;
         }
-        openTelegramLoginFallback();
+        startTelegramOfficialLogin();
       });
     }
 
