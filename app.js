@@ -6772,8 +6772,18 @@
         <div class="soc-friend-avatar">${escapeHtml((data.name || '?')[0].toUpperCase())}</div>
         <div>
           <div style="font-size:18px;font-weight:800">${escapeHtml(data.name || '')}</div>
-          <div style="font-size:12px;color:#888">${data.ratings_count || 0} оценок · ${data.coins || 0} монет · ${data.achievements_count || 0} ачивок</div>
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <button type="button" data-friend-ratings style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
+          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.ratings_count || 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">оценок</div>
+        </button>
+        <button type="button" data-friend-unwatched style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
+          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.unwatched_count != null ? data.unwatched_count : 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">непросмотр.</div>
+        </button>
+        <button type="button" data-friend-ach style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
+          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.achievements_count || 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">ачивок</div>
+        </button>
       </div>
       ${data.taste_match != null ? `<button type="button" class="btn btn-secondary" data-friend-taste style="width:100%;margin-bottom:8px">${data.taste_match}% совпадение вкусов</button>` : ''}
       <button type="button" class="btn btn-secondary" data-friend-mutual style="width:100%;margin-bottom:14px">🎬 Смотрим вместе</button>
@@ -6786,6 +6796,38 @@
     `);
     modal.querySelector('[data-friend-taste]')?.addEventListener('click', () => _openFriendTaste(userId));
     modal.querySelector('[data-friend-mutual]')?.addEventListener('click', () => _openMutualWatchlist(userId));
+    modal.querySelector('[data-friend-ratings]')?.addEventListener('click', async () => {
+      const rd = await api('/api/friends/' + encodeURIComponent(userId) + '/ratings?limit=100');
+      const items = (rd && rd.ratings) || [];
+      _friendModal(`
+        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Оценки друга</div>
+        ${items.length ? items.map((r) => `
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
+            <span>${escapeHtml(r.film_title || 'Фильм')}</span>
+            <strong style="color:var(--accent,#ff2d7b)">${r.rating}/10</strong>
+          </div>`).join('') : '<div class="cabinet-hint">Нет оценок</div>'}
+      `);
+    });
+    modal.querySelector('[data-friend-unwatched]')?.addEventListener('click', async () => {
+      const uw = await api('/api/friends/' + encodeURIComponent(userId) + '/unwatched?limit=100');
+      const films = (uw && uw.films) || [];
+      _friendModal(`
+        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Непросмотренные</div>
+        ${films.length ? films.map((f) => `
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
+            <span>${escapeHtml(f.title || 'Фильм')}</span>
+            <span style="color:#888">${escapeHtml(f.year || '')}</span>
+          </div>`).join('') : '<div class="cabinet-hint">Всё просмотрено</div>'}
+      `);
+    });
+    modal.querySelector('[data-friend-ach]')?.addEventListener('click', () => {
+      if (!achievements.length) return;
+      _friendModal(`
+        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Достижения</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${achievements.map((a) => `
+          <span class="soc-search-status">${escapeHtml((a.icon || '🏅') + ' ' + (a.name || a.achievement_id || 'Ачивка'))}</span>`).join('')}</div>
+      `);
+    });
   }
 
   async function _openFriendsActivity() {
