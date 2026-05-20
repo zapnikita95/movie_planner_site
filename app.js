@@ -6758,6 +6758,21 @@
     `);
   }
 
+  function _friendAchDisplayName(a) {
+    const id = String((a && (a.id || a.achievement_id)) || '').trim();
+    const raw = (a && a.name) || '';
+    return raw && raw !== id ? raw : 'Ачивка';
+  }
+  function _friendAchCircleHtml(a) {
+    const name = _friendAchDisplayName(a);
+    const icon = (a && a.icon) || '🏅';
+    const cap = (name || '').split(' ')[0] || '…';
+    return `<button type="button" title="${escapeHtml(name)}" style="width:52px;height:52px;border-radius:50%;border:2px solid var(--accent,#ff2d7b);background:#fafafa;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;margin:0 6px 8px 0;cursor:default;font-size:22px;line-height:1;vertical-align:top">
+      <span aria-hidden="true">${escapeHtml(icon)}</span>
+      <span style="font-size:9px;color:#888;margin-top:2px;max-width:48px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(cap)}</span>
+    </button>`;
+  }
+
   async function _openFriendProfile(userId) {
     if (!userId) return;
     const data = await api('/api/friends/' + encodeURIComponent(userId) + '/profile');
@@ -6791,8 +6806,7 @@
         <div style="display:flex;justify-content:space-between;gap:12px;padding:9px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
           <span>${escapeHtml(r.film_title || 'Фильм')}</span><strong style="color:var(--accent,#ff2d7b)">${r.rating}/10</strong>
         </div>`).join('') : ''}
-      ${achievements.length ? '<div style="font-weight:700;margin:14px 0 8px">Достижения</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + achievements.map((a) => `
-        <span class="soc-search-status">${escapeHtml((a.icon || '🏅') + ' ' + (a.name || a.achievement_id || 'Ачивка'))}</span>`).join('') + '</div>' : ''}
+      ${achievements.length ? '<div style="font-weight:700;margin:14px 0 8px">Достижения</div><div style="display:flex;flex-wrap:wrap;align-items:flex-start">' + achievements.map((a) => _friendAchCircleHtml(a)).join('') + '</div>' : ''}
     `);
     modal.querySelector('[data-friend-taste]')?.addEventListener('click', () => _openFriendTaste(userId));
     modal.querySelector('[data-friend-mutual]')?.addEventListener('click', () => _openMutualWatchlist(userId));
@@ -6824,8 +6838,7 @@
       if (!achievements.length) return;
       _friendModal(`
         <div style="font-size:17px;font-weight:700;margin-bottom:12px">Достижения</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">${achievements.map((a) => `
-          <span class="soc-search-status">${escapeHtml((a.icon || '🏅') + ' ' + (a.name || a.achievement_id || 'Ачивка'))}</span>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start">${achievements.map((a) => _friendAchCircleHtml(a)).join('')}</div>
       `);
     });
   }
