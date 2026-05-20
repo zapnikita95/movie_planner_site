@@ -3425,6 +3425,8 @@ body.in-public-stats .footer-extension-cabinet {
 }
 .cabinet-user-copy {
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 .cabinet-user-kicker {
   color: var(--text-muted, #999);
@@ -3680,7 +3682,20 @@ body.in-public-stats .footer-extension-cabinet {
   cursor: pointer;
 }
 .soc-search-btn:hover { background: linear-gradient(135deg, rgba(255,45,123,0.28), rgba(64,178,255,0.18)); }
-#soc-search-results { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+#soc-search-results,
+#grp-search-results { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+#grp-search-results.hidden { display: none; }
+.grp-discover-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.grp-discover-pill--club { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.grp-discover-pill--media { background: rgba(64, 178, 255, 0.15); color: #40b2ff; }
 .soc-search-user-row {
   display: flex;
   align-items: center;
@@ -5779,6 +5794,35 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
+/* ── Coins + план в группу (строка без увеличения высоты шапки) ─────── */
+.header-util-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.header-plan-target {
+  max-width: 132px;
+  height: 28px;
+  padding: 0 22px 0 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 181, 71, 0.35);
+  background: rgba(20, 22, 28, 0.92);
+  color: #f3f4f6;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 28px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23a1a1aa' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.header-plan-target.hidden { display: none; }
+.header-util-row .header-coins-btn { margin-right: 0; }
+
 /* ── Coins widget ────────────────────────────────────────────────────── */
 .header-coins-btn {
   display: inline-flex;
@@ -5994,3 +6038,50 @@ a.header-settings-nav-item {
   .group-card-actions { justify-content: flex-start; }
 }
 /* ── /Friends / Social ────────────────────────────────────────────────── */
+
+/* Круглая кнопка «в личный профиль» при активной группе */
+.group-context-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: 1200;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, var(--accent, #ff2d7b), var(--accent-end, #9b4dff));
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.group-context-fab:active { transform: scale(0.94); }
+.group-context-fab.hidden { display: none !important; }
+
+.home-group-suggestions.hidden { display: none !important; }
+.home-group-suggestions .home-dash-block { margin-bottom: 1rem; }
+.home-suggestion-row { cursor: pointer; }
+
+.inbox-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.inbox-tab-btn { flex: 1; min-width: 120px; }
+.site-inbox-panel.hidden { display: none !important; }
+.site-inbox-act-day { margin-bottom: 12px; }
+.site-inbox-act-day-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hint, #888);
+  margin-bottom: 6px;
+}
+.site-inbox-act-row { margin-bottom: 4px; }

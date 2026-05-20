@@ -20,7 +20,7 @@
       })();
     </script>
     <title>Movie Planner — фильмы и сериалы: приложение, Mini App, сайт</title>
-    <meta name="description" content="Movie Planner: учёт фильмов и сериалов, планы и напоминания. Клиенты: приложение для Android, Telegram Mini App, веб-кабинет на movie-planner.ru, Telegram-бот и расширение Chrome (Kinopoisk, IMDb).">
+    <meta name="description" content="Movie Planner — личный кино-шкаф: watchlist, планы, билеты и напоминания. Один аккаунт: Android-приложение, Telegram Mini App и бот, веб-кабинет movie-planner.ru, расширение Chrome; фильмы с Kinopoisk, IMDb и Letterboxd, данные синхронизируются.">
     <meta name="keywords" content="movie planner, планировщик фильмов, watchlist telegram, трекер сериалов, трекер сериалов telegram, уведомления о новых сериях, бот трекер сериалов telegram, список сериалов telegram, планирование кино, movie planner telegram">
     <meta name="google-site-verification" content="BUJSpGPrPkPnVgLV2eHrFrPVTuumNdtDUwbI9CzQVwM" />
     <!-- Open Graph -->
@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260520friendach">
+    <link rel="stylesheet" href="style-v2.css?v=20260520herocopy">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -118,10 +118,13 @@
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
               <span class="header-profile-name" id="header-profile-name"></span>
             </button>
-            <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
-              <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
-              <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
-            </button>
+            <div class="header-util-row" id="header-util-row">
+              <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+                <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
+              </button>
+              <select id="header-plan-target" class="header-plan-target hidden" aria-label="Куда сохранить план"></select>
+            </div>
             <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">⚙️<span class="header-settings-btn-text"> Настройки</span></button>
             <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
           </div>
@@ -221,7 +224,8 @@
         <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
         <h1 class="hero-title">Ваш кинотеатр<br>Ваши <span class="gradient">правила</span></h1>
         <p class="hero-subtitle">Личная база фильмов и сериалов, планы просмотра, билеты, напоминания и общий watchlist с друзьями</p>
-        <p class="hero-description">Один аккаунт для Android-приложения, Telegram Mini App, сайта с кабинетом, бота и расширения браузера: добавляйте фильмы с Kinopoisk, IMDb и Letterboxd, а данные остаются общими</p>
+        <p class="hero-description">Список «посмотреть», планы на вечер и билеты — в одном месте. Откройте с телефона, из Telegram или браузера: всё подхватится само, без «где я это записал».</p>
+        <p hidden id="hero-product-matrix">Movie Planner: единый аккаунт для Android-приложения, Telegram Mini App, веб-кабинета на movie-planner.ru, Telegram-бота @movie_planner_bot и расширения Chrome; добавление фильмов с Kinopoisk, IMDb и Letterboxd; общая база между клиентами.</p>
         <div class="hero-buttons">
           <a href="/download" class="btn-primary">Скачать для Android</a>
           <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
@@ -238,7 +242,7 @@
             с <span class="gradient-text">планированием<wbr> просмотров</span>
           </div>
           <div class="what-is-v2-text">
-            Собирайте личную базу фильмов и сериалов или общий watchlist с друзьями, планируйте просмотры дома и в кино, храните билеты и получайте напоминания. Работайте там, где удобно: Android, Telegram Mini App, бот, сайт или расширение браузера — данные остаются общими
+            Собирайте личную базу или общий watchlist с друзьями, планируйте дома и в кино, прикрепляйте билеты — сервис напомнит вовремя. Оценивайте, сравнивайте вкусы и не теряйте фильмы в длинном списке «когда-нибудь».
           </div>
           <div class="what-is-v2-features">
             <div class="what-is-v2-feature"><span class="feat-icon">📚</span> Watchlist</div>
@@ -524,6 +528,7 @@
                         <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм">🎲</button>
                         <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Подбор по описанию (Шазам)">🔮</button>
                     </div>
+                    <div id="home-group-suggestions" class="home-group-suggestions hidden" aria-live="polite"></div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
                 </section>
                 <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
@@ -707,7 +712,7 @@
                         <div class="soc-search-row">
                             <div class="soc-search-field">
                                 <span class="soc-search-icon">⌕</span>
-                                <input type="text" id="soc-search-input" placeholder="Найти друга по имени" autocomplete="off" />
+                                <input type="text" id="soc-search-input" placeholder="Найти новых друзей" autocomplete="off" />
                             </div>
                             <button type="button" class="soc-search-btn" id="soc-search-btn">Найти</button>
                         </div>
@@ -719,13 +724,21 @@
                         <div id="soc-friends-list-wrap">
                             <div class="list-title-section" id="soc-friends-label" style="display:none">Мои друзья</div>
                             <div id="soc-friends-list"></div>
-                            <div id="soc-friends-empty" class="cabinet-hint hidden">Нет друзей — найдите кого-нибудь выше</div>
+                            <div id="soc-friends-empty" class="cabinet-hint hidden">Нет друзей — найдите новых друзей выше</div>
                         </div>
                         <div id="soc-friends-actions" style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"></div>
                     </div>
 
                     <!-- Groups tab -->
                     <div id="soc-pane-groups" style="display:none">
+                        <div class="soc-search-row">
+                            <div class="soc-search-field">
+                                <span class="soc-search-icon">⌕</span>
+                                <input type="text" id="grp-search-input" placeholder="Найти группу" autocomplete="off" />
+                            </div>
+                            <button type="button" class="soc-search-btn" id="grp-search-btn">Найти</button>
+                        </div>
+                        <div id="grp-search-results" class="hidden"></div>
                         <div class="groups-header" style="margin-top:0">
                             <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
                                 <span>＋</span> Создать группу
@@ -1283,8 +1296,10 @@
             <p class="lightbox-hint">← → листать · клик по центру — zoom · свайп или стрелки</p>
         </div>
     </div>
+    <button type="button" id="group-context-fab" class="group-context-fab hidden" aria-label="Личный профиль" title="Личный профиль">👤</button>
+
     </div><!-- /content-wrapper -->
     <script src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <script src="app.js?v=20260520friendach"></script>
+    <script src="app.js?v=20260520inboxtabs"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 ## What it is
 
-Movie Planner (Russian-language) helps users maintain a film and TV database, plan watches at home or in cinemas, track series, share lists in Telegram groups, store cinema tickets, and receive reminders. Integration with Kinopoisk-shaped workflows is a core part of the product.
+Movie Planner (Russian-language) helps users maintain a film and TV database, plan watches at home or in cinemas, track series, share lists in Telegram groups, store cinema tickets, and receive reminders. One account syncs across Android app, Telegram Mini App, web cabinet at movie-planner.ru, Telegram bot, and Chrome extension; films can be added from Kinopoisk, IMDb, and Letterboxd links or search.
 
 ## Official clients
 
