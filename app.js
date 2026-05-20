@@ -35,6 +35,40 @@
     return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
   }
 
+  const FILM_SHARE_SITE = 'https://movie-planner.ru';
+  function buildFilmShareUrl(kpId) {
+    const k = String(kpId || '').replace(/\D/g, '');
+    return k ? FILM_SHARE_SITE + '/f/' + k : '';
+  }
+
+  function consumeKpOpenDeepLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const kp = params.get('kp_open');
+      if (!kp || !/^\d+$/.test(kp)) return;
+      params.delete('kp_open');
+      const rest = params.toString();
+      const clean = window.location.pathname + (rest ? '?' + rest : '') + window.location.hash;
+      history.replaceState({}, '', clean);
+      if (!getToken()) {
+        sessionStorage.setItem('mp_pending_kp_open', kp);
+        return;
+      }
+      api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+        .then(function (res) {
+          if (res && res.success && res.film_id) {
+            showScreen('cabinet-readonly');
+            openFilmPage(Number(res.film_id), { replace: true });
+          } else {
+            showToast('Не удалось открыть фильм', { type: 'error' });
+          }
+        })
+        .catch(function () {
+          showToast('Ошибка сети', { type: 'error' });
+        });
+    } catch (_) {}
+  }
+
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
   // Использование: showToast('📋 Ссылка скопирована').
   function showToast(message, opts) {
@@ -1617,6 +1651,20 @@
         loadUnwatched();
         loadSeries();
         loadRatings();
+        try {
+          const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          if (pendingKp && /^\d+$/.test(pendingKp)) {
+            sessionStorage.removeItem('mp_pending_kp_open');
+            api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: pendingKp }) })
+              .then(function (res) {
+                if (res && res.success && res.film_id) {
+                  openFilmPage(Number(res.film_id), { replace: true });
+                }
+              })
+              .catch(function () {});
+          }
+        } catch (_) {}
+        consumeKpOpenDeepLink();
         // P4.3: deep-link — страница фильма /film/:id или раздел
         const pathFid = filmIdFromPathname(window.location.pathname);
         if (pathFid) {

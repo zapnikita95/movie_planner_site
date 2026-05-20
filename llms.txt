@@ -6,6 +6,11 @@
 
 Movie Planner (Russian-language) helps users maintain a film and TV database, plan watches at home or in cinemas, track series, share lists in Telegram groups, store cinema tickets, and receive reminders. One account syncs across Android app, Telegram Mini App, web cabinet at movie-planner.ru, Telegram bot, and Chrome extension; films can be added from Kinopoisk, IMDb, and Letterboxd links or search.
 
+## Film share links (canonical)
+
+- Public film card with Open Graph preview: `https://movie-planner.ru/f/<kinopoisk_id>`
+- Resolves to web cabinet, native app (Android App Links), or Telegram Mini App when opened inside Telegram.
+
 ## Official clients
 
 - Website and web cabinet: https://movie-planner.ru/
