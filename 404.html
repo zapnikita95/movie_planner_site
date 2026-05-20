@@ -27,7 +27,7 @@
     .poster { width: 120px; height: 178px; border-radius: 10px; object-fit: cover; background: #1a1f33; }
     h1 { margin: 0; font-size: 22px; line-height: 1.25; }
     p { margin: 10px 0 0; color: #aab3d2; line-height: 1.45; font-size: 14px; }
-    .actions { margin-top: 14px; display: grid; gap: 8px; }
+    .actions { margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
     .btn {
       display: inline-block; text-decoration: none; text-align: center;
       color: #fff; padding: 12px 14px; border-radius: 12px; font-weight: 600; font-size: 14px;
@@ -35,11 +35,25 @@
     }
     .btn-main { background: linear-gradient(135deg,#a855f7,#ec4899); }
     .btn-sec { background: rgba(255,255,255,.1); }
+    .rate-grid { margin-top: 12px; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 6px; }
+    .rate-btn {
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 10px;
+      background: rgba(255,255,255,.04);
+      color: #fff;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    .facts { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.12); padding-top: 12px; display:none; }
+    .facts h2 { margin: 0 0 8px; font-size: 15px; }
+    .facts ul { margin: 0; padding-left: 18px; color: #aab3d2; display: grid; gap: 7px; font-size: 14px; line-height: 1.4; }
     .hint { margin-top: 10px; color: #aab3d2; font-size: 12px; }
     @media (max-width: 620px) {
       .card { grid-template-columns: 1fr; }
       .poster { width: 138px; height: 205px; margin: 0 auto; }
       .meta { text-align: center; }
+      .actions { grid-template-columns: 1fr; }
+      .facts { text-align: left; }
     }
   </style>
   <script>
@@ -57,7 +71,6 @@
         var kpId = filmMatch[1];
         var poster = 'https://st.kp.yandex.net/images/film_big/' + kpId + '.jpg';
         var appScheme = 'movieplanner://film/' + encodeURIComponent(kpId);
-        var webOpen = loc.origin + '/?kp_open=' + encodeURIComponent(kpId);
         var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent('film_' + kpId);
         document.title = 'Фильм · Movie Planner';
         document.body.innerHTML =
@@ -67,25 +80,152 @@
           '<img class="poster" src="' + poster + '" alt="Постер" onerror="this.style.visibility=\'hidden\'">' +
           '<div class="meta">' +
           '<h1>Фильм #' + kpId + '</h1>' +
-          '<p>Откройте фильм в приложении, браузере или Telegram Mini App.</p>' +
+          '<p>Добавьте фильм в базу, оцените и посмотрите факты. Для действий нужна авторизация.</p>' +
           '<div class="actions">' +
-          '<a class="btn btn-main" id="open-app" href="' + webOpen + '">Открыть в Movie Planner</a>' +
-          '<a class="btn btn-sec" href="' + webOpen + '">Открыть в браузере</a>' +
+          '<button class="btn btn-main" id="add-btn" type="button">Добавить в базу</button>' +
+          '<button class="btn btn-sec" id="watched-btn" type="button">Отметить просмотр</button>' +
+          '<button class="btn btn-sec" id="facts-btn" type="button">Интересные факты</button>' +
           '<a class="btn btn-sec" href="' + tgMini + '">Открыть в Telegram Mini App</a>' +
           '</div>' +
-          '<p class="hint" id="hint">Выберите способ открытия.</p>' +
+          '<div class="rate-grid" id="rate-grid">' +
+          '<button class="rate-btn" data-rate="6" type="button">6</button>' +
+          '<button class="rate-btn" data-rate="7" type="button">7</button>' +
+          '<button class="rate-btn" data-rate="8" type="button">8</button>' +
+          '<button class="rate-btn" data-rate="9" type="button">9</button>' +
+          '<button class="rate-btn" data-rate="10" type="button">10</button>' +
+          '</div>' +
+          '<div class="facts" id="facts-block"><h2>Интересные факты</h2><ul id="facts-list"></ul></div>' +
+          '<p class="hint" id="hint">Откройте Telegram Mini App или войдите на сайте movie-planner.ru для действий.</p>' +
           '</div>' +
           '</div>' +
           '</div>';
-        var ua = navigator.userAgent || '';
-        var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-        var openApp = document.getElementById('open-app');
         var hint = document.getElementById('hint');
-        if (openApp && isMobile) {
-          openApp.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (hint) hint.textContent = 'Пытаемся открыть приложение…';
-            try { window.location.href = appScheme; } catch (_e) {}
+        function getSessions() {
+          try {
+            var raw = localStorage.getItem('mp_site_sessions');
+            return raw ? JSON.parse(raw) : [];
+          } catch (_e) { return []; }
+        }
+        function token() {
+          try {
+            var s = getSessions();
+            var active = localStorage.getItem('mp_site_active_chat_id');
+            var row = s.find(function (x) { return String(x.chat_id) === String(active); });
+            return row ? row.token : null;
+          } catch (_e) { return null; }
+        }
+        function authHeaders(extra) {
+          var h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+          var t = token();
+          if (t) h.Authorization = 'Bearer ' + t;
+          return h;
+        }
+        function loginUrl() {
+          return loc.origin + '/api/site/login?next=' + encodeURIComponent(loc.href);
+        }
+        function askLogin() {
+          if (hint) hint.textContent = 'Нужна авторизация. Перенаправляем на вход…';
+          setTimeout(function () {
+            try { loc.href = loginUrl(); } catch (_e) {}
+          }, 260);
+          return Promise.resolve(null);
+        }
+        function addFilm() {
+          if (!token()) return askLogin();
+          return fetch('https://api.movie-planner.ru/api/site/add-film', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ kp_id: Number(kpId) })
+          })
+          .then(function (r) { if (r.status === 401) return askLogin(); return r.json(); })
+          .then(function (d) {
+            if (!d || !d.success) throw new Error((d && d.error) || 'Не удалось добавить');
+            if (hint) hint.textContent = 'Добавили в базу';
+            return d;
+          })
+          .catch(function (e) { if (hint) hint.textContent = (e && e.message) || 'Ошибка'; return null; });
+        }
+        function rateFilm(v) {
+          if (!token()) return askLogin();
+          return fetch('https://api.movie-planner.ru/api/site/add-film', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ kp_id: Number(kpId) })
+          })
+          .then(function (r) { if (r.status === 401) return askLogin(); return r.json(); })
+          .then(function (d) {
+            if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+            return fetch('https://api.movie-planner.ru/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/rating', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({ rating: Number(v) })
+            });
+          })
+          .then(function (r) { if (!r) return null; if (r.status === 401) return askLogin(); return r.json(); })
+          .then(function (d) {
+            if (!d || d.success !== true) throw new Error((d && d.error) || 'Ошибка оценки');
+            if (hint) hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
+            return d;
+          })
+          .catch(function (e) { if (hint) hint.textContent = (e && e.message) || 'Ошибка'; return null; });
+        }
+        function markWatched() {
+          if (!token()) return askLogin();
+          return fetch('https://api.movie-planner.ru/api/site/add-film', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ kp_id: Number(kpId) })
+          })
+          .then(function (r) { if (r.status === 401) return askLogin(); return r.json(); })
+          .then(function (d) {
+            if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+            return fetch('https://api.movie-planner.ru/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/watched', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({ watched: true })
+            });
+          })
+          .then(function (r) { if (!r) return null; if (r.status === 401) return askLogin(); return r.json(); })
+          .then(function (d) {
+            if (!d || d.success !== true) throw new Error((d && d.error) || 'Не удалось отметить');
+            if (hint) hint.textContent = 'Отметили как просмотренный';
+            return d;
+          })
+          .catch(function (e) { if (hint) hint.textContent = (e && e.message) || 'Ошибка'; return null; });
+        }
+        function loadFacts() {
+          return fetch('https://api.movie-planner.ru/api/public/film/' + encodeURIComponent(String(kpId)) + '/facts', {
+            method: 'GET'
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var block = document.getElementById('facts-block');
+            var list = document.getElementById('facts-list');
+            if (!block || !list) return;
+            list.innerHTML = '';
+            var arr = [];
+            if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 5);
+            if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 5);
+            if (!arr.length) list.innerHTML = '<li>Пока нет фактов для этого фильма.</li>';
+            else arr.forEach(function (x) { var li = document.createElement('li'); li.textContent = String(x || ''); list.appendChild(li); });
+            block.style.display = '';
+            if (hint) hint.textContent = 'Факты загружены';
+          })
+          .catch(function (e) { if (hint) hint.textContent = (e && e.message) || 'Не удалось загрузить факты'; });
+        }
+        var addBtn = document.getElementById('add-btn');
+        var watchedBtn = document.getElementById('watched-btn');
+        var factsBtn = document.getElementById('facts-btn');
+        if (addBtn) addBtn.addEventListener('click', function () { addFilm(); });
+        if (watchedBtn) watchedBtn.addEventListener('click', function () { markWatched(); });
+        if (factsBtn) factsBtn.addEventListener('click', function () { loadFacts(); });
+        var rg = document.getElementById('rate-grid');
+        if (rg) {
+          rg.querySelectorAll('[data-rate]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var v = Number(btn.getAttribute('data-rate'));
+              if (v >= 1 && v <= 10) rateFilm(v);
+            });
           });
         }
         return;
