@@ -5933,6 +5933,7 @@ a.header-settings-nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
@@ -5942,6 +5943,8 @@ a.header-settings-nav-item {
   transition: background 0.1s;
   text-decoration: none;
   color: inherit;
+  font: inherit;
+  text-align: left;
 }
 .soc-friend-card:hover { background: rgba(255,255,255,0.07); }
 .soc-friend-avatar {

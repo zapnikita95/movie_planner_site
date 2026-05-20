@@ -235,6 +235,12 @@
     return session ? session.token : null;
   }
 
+  function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs || 32000);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(() => clearTimeout(timer));
+  }
+
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
   function applySiteSessionLogin(data, modalEl, statusEl) {
     const sessions = getSessions();
@@ -332,7 +338,7 @@
     const token = getToken();
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
-    return fetch(API_BASE + url, { ...options, headers }).then((r) => {
+    return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => {
       if (r.status === 401 && token) {
         removeSessionByToken(token);
         if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
@@ -345,7 +351,7 @@
     const token = getToken();
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
-    return fetch(API_BASE + url, { ...options, headers }).then(async (r) => {
+    return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then(async (r) => {
       const text = await r.text().catch(() => '');
       let data = {};
       try {
@@ -361,7 +367,7 @@
 
   function apiPublic(url, options = {}) {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
-    return fetch(API_BASE + url, { ...options, headers }).then((r) => r.json().catch(() => ({})));
+    return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => r.json().catch(() => ({})));
   }
 
   function groupKindLabel(profile) {
@@ -6573,13 +6579,13 @@
 
   function _renderFriendCard(f) {
     const letter = (f.name || '?')[0].toUpperCase();
-    return `<div class="soc-friend-card" style="cursor:default">
+    return `<button type="button" class="soc-friend-card" data-friend-profile="${Number(f.user_id)}">
       <div class="soc-friend-avatar">${letter}</div>
       <div style="flex:1">
         <div class="soc-friend-name">${escapeHtml(f.name)}</div>
         <div class="soc-friend-meta">${f.ratings_count || 0} оценок · ${f.coins || 0} монет · ${f.achievements_count || 0} ачивок</div>
       </div>
-    </div>`;
+    </button>`;
   }
 
   function _renderRequestRow(r, onAccept, onDecline) {
@@ -6646,6 +6652,9 @@
     if (friendsListEl) {
       if (friends.length) {
         friendsListEl.innerHTML = friends.map(_renderFriendCard).join('');
+        friendsListEl.querySelectorAll('[data-friend-profile]').forEach((btn) => {
+          btn.addEventListener('click', () => _openFriendProfile(Number(btn.getAttribute('data-friend-profile'))));
+        });
         if (friendsLabelEl) friendsLabelEl.style.display = '';
         if (friendsEmptyEl) friendsEmptyEl.classList.add('hidden');
       } else {
@@ -6710,6 +6719,75 @@
     }
   }
 
+  function _friendModal(html) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `<div style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:80vh;overflow:auto">
+      ${html}
+      <button type="button" style="margin-top:16px;width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;background:none;cursor:pointer">Закрыть</button>
+    </div>`;
+    modal.querySelector('button').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  async function _openFriendTaste(userId) {
+    const data = await api('/api/friends/' + encodeURIComponent(userId) + '/taste');
+    const items = (data && data.items) || [];
+    _friendModal(`
+      <div style="font-size:17px;font-weight:700;margin-bottom:12px">Совпадение вкусов${data && data.taste_match != null ? ' · ' + data.taste_match + '%' : ''}</div>
+      ${items.length ? items.map((it) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
+          <span>${escapeHtml(it.film_title || 'Фильм')}</span>
+          <strong style="color:var(--accent,#ff2d7b)">${it.my_rating}/10 · ${it.friend_rating}/10</strong>
+        </div>`).join('') : '<div class="cabinet-hint">Пока нет фильмов, которые вы оба оценили</div>'}
+    `);
+  }
+
+  async function _openMutualWatchlist(userId) {
+    const data = await api('/api/friends/mutual-watchlist?with_user_id=' + encodeURIComponent(userId));
+    const films = (data && data.films) || [];
+    _friendModal(`
+      <div style="font-size:17px;font-weight:700;margin-bottom:12px">Смотрим вместе</div>
+      ${films.length ? films.map((f) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
+          <span>${escapeHtml(f.title || 'Фильм')}</span>
+          <span style="color:#888">${escapeHtml(f.year || '')}</span>
+        </div>`).join('') : '<div class="cabinet-hint">Нет общих фильмов в списке «Хочу посмотреть»</div>'}
+    `);
+  }
+
+  async function _openFriendProfile(userId) {
+    if (!userId) return;
+    const data = await api('/api/friends/' + encodeURIComponent(userId) + '/profile');
+    if (!data || data.success === false) {
+      showToast((data && data.error) || 'Не удалось открыть профиль', { type: 'error' });
+      return;
+    }
+    const ratings = (data.recent_ratings || []).slice(0, 8);
+    const achievements = (data.achievements || []).slice(0, 8);
+    const modal = _friendModal(`
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div class="soc-friend-avatar">${escapeHtml((data.name || '?')[0].toUpperCase())}</div>
+        <div>
+          <div style="font-size:18px;font-weight:800">${escapeHtml(data.name || '')}</div>
+          <div style="font-size:12px;color:#888">${data.ratings_count || 0} оценок · ${data.coins || 0} монет · ${data.achievements_count || 0} ачивок</div>
+        </div>
+      </div>
+      ${data.taste_match != null ? `<button type="button" class="btn btn-secondary" data-friend-taste style="width:100%;margin-bottom:8px">${data.taste_match}% совпадение вкусов</button>` : ''}
+      <button type="button" class="btn btn-secondary" data-friend-mutual style="width:100%;margin-bottom:14px">🎬 Смотрим вместе</button>
+      ${ratings.length ? '<div style="font-weight:700;margin-bottom:8px">Последние оценки</div>' + ratings.map((r) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:9px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
+          <span>${escapeHtml(r.film_title || 'Фильм')}</span><strong style="color:var(--accent,#ff2d7b)">${r.rating}/10</strong>
+        </div>`).join('') : ''}
+      ${achievements.length ? '<div style="font-weight:700;margin:14px 0 8px">Достижения</div><div style="display:flex;flex-wrap:wrap;gap:6px">' + achievements.map((a) => `
+        <span class="soc-search-status">${escapeHtml((a.icon || '🏅') + ' ' + (a.name || a.achievement_id || 'Ачивка'))}</span>`).join('') + '</div>' : ''}
+    `);
+    modal.querySelector('[data-friend-taste]')?.addEventListener('click', () => _openFriendTaste(userId));
+    modal.querySelector('[data-friend-mutual]')?.addEventListener('click', () => _openMutualWatchlist(userId));
+  }
+
   async function _openFriendsActivity() {
     const data = await api('/api/friends/activity?limit=20');
     const items = (data && data.items) || [];
@@ -6717,10 +6795,11 @@
       ? items.map((it) => {
           const letter = (it.name || '?')[0].toUpperCase();
           const ts = it.happened_at ? new Date(it.happened_at).toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '';
+          const ach = it.achievement || {};
           const desc = it.event_type === 'rating'
-            ? `оценил${it.value != null ? ' ' + it.value + '/10' : ''} — ${escapeHtml(it.film_title || String(it.kp_id || ''))}`
+            ? `оценил${it.value != null ? ' ' + it.value + '/10' : ''} — ${escapeHtml(it.film_title || 'фильм')}`
             : it.event_type === 'achievement'
-            ? `получил достижение «${escapeHtml(it.extra || '')}»`
+            ? `получил достижение «${escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || 'Ачивка'))}»`
             : escapeHtml(it.event_type || '');
           return `<div class="soc-activity-row">
             <div class="soc-friend-avatar" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${escapeHtml(letter)}</div>
