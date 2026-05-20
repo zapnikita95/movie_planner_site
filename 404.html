@@ -15,6 +15,11 @@
         loc.replace(loc.origin + '/?add=' + encodeURIComponent(userMatch[1]) + loc.hash);
         return;
       }
+      var filmMatch = loc.pathname.match(/^\/f\/(\d+)\/?$/);
+      if (filmMatch) {
+        loc.replace('https://api.movie-planner.ru/f/' + filmMatch[1] + loc.search + loc.hash);
+        return;
+      }
       var target = loc.pathname + loc.search + loc.hash;
       loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
     })();
