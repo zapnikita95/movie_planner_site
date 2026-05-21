@@ -857,6 +857,7 @@
   function showFilmPageLayout() {
     const ro = document.getElementById('cabinet-readonly');
     if (!ro || ro.classList.contains('hidden')) return;
+    ro.classList.add('film-page-mode');
     ro.querySelectorAll('.cabinet-section').forEach((el) => {
       el.classList.toggle('hidden', el.id !== 'section-film');
     });
@@ -914,6 +915,7 @@
     }
     if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
       _filmModalCurrentId = null;
+      if (readonly) readonly.classList.remove('film-page-mode');
       try { restoreDocumentTitle(); } catch (e) {}
     }
     if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
@@ -5159,9 +5161,107 @@
     });
   }
 
+  function renderFilmDetailHero(film, ratings, similar, me, content) {
+    const myUserId = (me && me.user_id) || cabinetUserId;
+    const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
+    const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    const isVirtualRoom = !!film.is_virtual_room;
+    const canRateInGroup = film.can_rate_in_group !== false;
+    const poster = posterUrl(film.kp_id);
+    const year = film.year ? `(${film.year})` : '';
+    const chips = [
+      film.is_series ? 'Сериал' : 'Фильм',
+      film.genres || '',
+      film.rating_kp != null ? '★ КП ' + Number(film.rating_kp).toFixed(1) : '',
+      film.rating_imdb != null ? 'IMDb ' + Number(film.rating_imdb).toFixed(1) : '',
+      film.progress ? '📺 ' + film.progress : '',
+    ].filter(Boolean).map((x) => '<span class="film-hero-chip">' + escapeHtml(x) + '</span>').join('');
+    const desc = film.description ? '<p class="film-hero-desc">' + escapeHtml(film.description) + '</p>' : '';
+    const crewParts = [];
+    if (film.director && film.director !== 'Не указан') crewParts.push('<div><b>Режиссёр:</b> ' + escapeHtml(film.director) + '</div>');
+    if (film.actors) crewParts.push('<div><b>В ролях:</b> ' + escapeHtml(String(film.actors || '')) + '</div>');
+    const crew = crewParts.length ? '<div class="film-hero-crew">' + crewParts.join('') + '</div>' : '';
+    let ratingBlock = '';
+    if (isVirtualRoom && !canRateInGroup) {
+      ratingBlock = '<div class="film-hero-rating film-rating-locked"><h3>Ваша оценка</h3><p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p></div>';
+    } else {
+      ratingBlock =
+        '<div class="film-hero-rating">' +
+          '<h3>Ваша оценка</h3>' +
+          '<div class="rating-stars" data-rating-stars="1">' + buildRatingStars(myRating) + '</div>' +
+          (myRating ? '<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' : '') +
+        '</div>';
+    }
+    const watchedHtml =
+      '<button type="button" class="watched-toggle ' + (film.watched ? 'on' : '') + '" data-action="toggle-watched">' +
+        '<span class="wt-mark">' + (film.watched ? '✓' : '') + '</span>' +
+        '<span>' + (film.watched ? 'Просмотрен' : 'Отметить просмотренным') + '</span>' +
+      '</button>';
+    const actions =
+      '<div class="film-modal-actions film-hero-actions">' +
+        watchedHtml +
+        '<a class="btn btn-small btn-secondary" href="' + filmDeepLink(film.film_id, film.kp_id, film.is_series) + '" target="_blank" rel="noopener">↗ В Telegram</a>' +
+        buildFilmExtraButtons({
+          kp_id: film.kp_id,
+          title: film.title,
+          year: film.year,
+          plan_type: film.plan_type,
+          online_link: film.online_link,
+        }) +
+      '</div>';
+    const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
+      ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'
+      : '';
+
+    content.className = 'container film-page-container film-hero-content';
+    content.innerHTML =
+      '<section class="film-hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+        '<div class="film-hero-poster-wrap">' + (poster ? '<img class="film-hero-poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<div class="film-hero-poster film-hero-poster-empty">🎬</div>') + '</div>' +
+        '<div class="film-hero-main">' +
+          '<div class="film-hero-chips">' + chips + '</div>' +
+          '<h2>' + escapeHtml(film.title || '') + ' <span>' + escapeHtml(year) + '</span></h2>' +
+          crew +
+          desc +
+          ratingBlock +
+          actions +
+        '</div>' +
+      '</section>' +
+      similarHtml +
+      '<div id="film-friends-social-block"></div>';
+
+    bindFilmModalInteractions(film, content);
+    loadFilmFriendsSocial(film);
+  }
+
+  function loadFilmFriendsSocial(film) {
+    if (!film || !film.kp_id) return;
+    api(`/api/friends/film/${film.kp_id}/social`).then((social) => {
+      const el = document.getElementById('film-friends-social-block');
+      if (!el) return;
+      const watchers = (social && social.watchers) || [];
+      if (!watchers.length) return;
+      el.innerHTML = `
+        <div class="film-modal-section">
+          <h3>👥 Друзья смотрели (${watchers.length})</h3>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${watchers.map((w) => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.06);border-radius:8px">
+                <div class="soc-friend-avatar" style="width:30px;height:30px;font-size:12px">${escapeHtml((w.name || '?')[0].toUpperCase())}</div>
+                <span style="flex:1;font-weight:600;font-size:13px">${escapeHtml(w.name)}</span>
+                ${w.rating != null ? `<span style="font-weight:700;color:var(--accent,#ff2d7b)">${w.rating}/10</span>` : '<span style="color:#aaa;font-size:12px">смотрел</span>'}
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }).catch(() => {});
+  }
+
   function renderFilmDetail(film, ratings, similar, me, content) {
     if (!content) return;
     const isPage = content.getAttribute && content.getAttribute('data-film-page-root');
+    if (isPage) {
+      renderFilmDetailHero(film, ratings || [], similar || [], me, content);
+      return;
+    }
     content.className = isPage
       ? 'container film-page-container film-modal-content'
       : 'film-modal-content';
@@ -5300,27 +5400,7 @@
 
     bindFilmModalInteractions(film, content);
 
-    // Async-load friend social (non-blocking)
-    if (film.kp_id) {
-      api(`/api/friends/film/${film.kp_id}/social`).then((social) => {
-        const el = document.getElementById('film-friends-social-block');
-        if (!el) return;
-        const watchers = (social && social.watchers) || [];
-        if (!watchers.length) return;
-        el.innerHTML = `
-          <div class="film-modal-section">
-            <h3>👥 Друзья смотрели (${watchers.length})</h3>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              ${watchers.map((w) => `
-                <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface-2,#f8f8f8);border-radius:8px">
-                  <div class="soc-friend-avatar" style="width:30px;height:30px;font-size:12px">${escapeHtml((w.name || '?')[0].toUpperCase())}</div>
-                  <span style="flex:1;font-weight:600;font-size:13px">${escapeHtml(w.name)}</span>
-                  ${w.rating != null ? `<span style="font-weight:700;color:var(--accent,#ff2d7b)">${w.rating}/10</span>` : '<span style="color:#aaa;font-size:12px">смотрел</span>'}
-                </div>`).join('')}
-            </div>
-          </div>`;
-      }).catch(() => {});
-    }
+    loadFilmFriendsSocial(film);
   }
 
   function buildRatingStars(current) {
