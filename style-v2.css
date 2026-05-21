@@ -6341,3 +6341,42 @@ a.header-settings-nav-item {
   margin-bottom: 6px;
 }
 .site-inbox-act-row { margin-bottom: 4px; }
+
+/* Final search geometry override: icons occupy fixed lanes, text never overlaps them. */
+.header-search {
+  --search-left-lane: 52px;
+  --search-right-lane: 72px;
+}
+.header-search .header-search-icon {
+  left: 18px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  opacity: .68;
+}
+.header-search .header-search-input {
+  min-height: 48px;
+  padding-left: var(--search-left-lane) !important;
+  padding-right: var(--search-right-lane) !important;
+  line-height: 48px;
+}
+.header-search .header-search-mic,
+.header-search .header-search-clear {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  background: rgba(255,255,255,.08);
+}
+.header-search .header-search-mic { right: 14px; }
+.header-search .header-search-clear { right: 14px; }
+.header-search .header-search-mic:not(.hidden) + .header-search-clear:not(.hidden) {
+  right: 54px;
+}
