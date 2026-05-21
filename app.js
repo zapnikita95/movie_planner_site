@@ -46,12 +46,15 @@
       const params = new URLSearchParams(window.location.search);
       const kp = params.get('kp_open');
       if (!kp || !/^\d+$/.test(kp)) return;
+      const action = (params.get('action') || '').trim();
       params.delete('kp_open');
+      params.delete('action');
       const rest = params.toString();
       const clean = window.location.pathname + (rest ? '?' + rest : '') + window.location.hash;
       history.replaceState({}, '', clean);
       if (!getToken()) {
         sessionStorage.setItem('mp_pending_kp_open', kp);
+        if (action) sessionStorage.setItem('mp_pending_kp_action', action);
         return;
       }
       api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
@@ -797,7 +800,7 @@
     document.body.classList.toggle('in-cabinet', inCabinet);
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     const hs = document.getElementById('header-search');
-    if (hs) hs.classList.toggle('hidden', !(screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding'));
+    if (hs) hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding'));
   }
 
   // P4.3: маппинг между разделами кабинета и URL-путями
@@ -1655,6 +1658,7 @@
           const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
           if (pendingKp && /^\d+$/.test(pendingKp)) {
             sessionStorage.removeItem('mp_pending_kp_open');
+            sessionStorage.removeItem('mp_pending_kp_action');
             api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: pendingKp }) })
               .then(function (res) {
                 if (res && res.success && res.film_id) {
@@ -5823,7 +5827,10 @@
       const poster = it.poster || '';
       const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
       const inBase = it.already_in_base_film_id;
-      const actionBtn = inBase
+      const isPublicSearch = !getToken();
+      const actionBtn = isPublicSearch
+        ? `<a class="hs-result-btn hs-btn-open" href="${buildFilmShareUrl(it.kp_id)}">Открыть</a>`
+        : inBase
         ? `<button type="button" class="hs-result-btn hs-btn-open" data-hs-open-film="${escapeHtml(String(inBase))}">Открыть</button>`
         : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}">＋ Добавить</button>`;
       return `<div class="hs-result">
@@ -5856,7 +5863,10 @@
       if (dd) dd.innerHTML = '<div class="header-search-empty">Распознали ссылку — откройте полную форму для добавления.</div>';
       return;
     }
-    api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
+    const searchPromise = getToken()
+      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)), { method: 'GET', mode: 'cors' }).then((r) => r.json());
+    searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
         if (!data || !data.success) {

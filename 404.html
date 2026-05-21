@@ -22,14 +22,25 @@
       min-height: 100vh;
     }
     a { color: inherit; }
-    .page-shell { min-height: 100vh; padding: 18px clamp(16px, 4vw, 56px) 48px; }
-    .site-header {
+    .page-shell { min-height: 100vh; padding: 18px clamp(16px, 4vw, 56px) 0; }
+    #site-header {
       max-width: 1180px;
       margin: 0 auto 28px;
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+    }
+    .header-content {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 24px;
+      background: rgba(7,7,17,.72);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 18px 48px rgba(0,0,0,.28);
     }
     .logo {
       display: inline-flex;
@@ -40,21 +51,86 @@
       font-weight: 800;
       letter-spacing: -.04em;
     }
-    .logo-mark {
-      width: 36px;
-      height: 36px;
-      display: inline-grid;
-      place-items: center;
-      border-radius: 12px;
-      background: linear-gradient(135deg,#a855f7,#ec4899);
-      box-shadow: 0 10px 28px rgba(236,72,153,.28);
+    .logo img { width: 34px; height: 34px; border-radius: 10px; }
+    .header-search {
+      position: relative;
+      flex: 1;
+      max-width: 520px;
+      min-width: 180px;
     }
-    .top-actions { display: flex; align-items: center; gap: 10px; }
-    .nav-link {
-      color: rgba(244,246,255,.72);
+    .header-search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(244,246,255,.56);
+      pointer-events: none;
+    }
+    .header-search-input {
+      width: 100%;
+      height: 46px;
+      padding: 0 44px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      outline: none;
+      font: inherit;
+      font-weight: 700;
+    }
+    .header-search-input:focus { border-color: rgba(236,72,153,.55); box-shadow: 0 0 0 4px rgba(236,72,153,.1); }
+    .header-search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      cursor: pointer;
+    }
+    .header-search-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 10px);
+      display: grid;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: rgba(13,13,26,.96);
+      box-shadow: 0 22px 58px rgba(0,0,0,.42);
+      z-index: 40;
+    }
+    .search-result {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 14px;
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
+      color: #fff;
+    }
+    .search-result:hover { background: rgba(255,255,255,.08); }
+    .search-result img { width: 42px; height: 58px; border-radius: 8px; object-fit: cover; background: rgba(255,255,255,.08); }
+    .search-result-title { font-weight: 800; }
+    .search-result-meta { margin-top: 3px; color: rgba(244,246,255,.58); font-size: 12px; }
+    .header-buttons { display: flex; align-items: center; gap: 10px; }
+    .btn-primary {
+      min-height: 46px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg,#a855f7,#ec4899);
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 14px 36px rgba(236,72,153,.22);
     }
     .movie-page { max-width: 1180px; margin: 0 auto; }
     .hero {
@@ -161,10 +237,50 @@
     .btn-main { background: linear-gradient(135deg,#a855f7,#ec4899); box-shadow: 0 18px 42px rgba(236,72,153,.24); }
     .btn-secondary { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12); }
     .btn-ghost { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); color: rgba(244,246,255,.86); }
+    .icon-actions {
+      margin-top: 26px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .icon-action {
+      width: 54px;
+      min-width: 54px;
+      height: 54px;
+      padding: 0;
+      overflow: hidden;
+      gap: 10px;
+      border-radius: 18px;
+      white-space: nowrap;
+    }
+    .icon-action .ico { flex: 0 0 auto; font-size: 22px; line-height: 1; }
+    .icon-action .label {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-width .22s ease, opacity .18s ease;
+    }
+    .icon-action:hover,
+    .icon-action:focus-visible {
+      width: auto;
+      min-width: 190px;
+      padding: 0 18px;
+    }
+    .icon-action:hover .label,
+    .icon-action:focus-visible .label {
+      max-width: 220px;
+      opacity: 1;
+    }
+    .plan-action {
+      min-width: 230px;
+      height: 54px;
+      border-radius: 18px;
+    }
     .sections {
       margin-top: 22px;
       display: grid;
-      grid-template-columns: 1.15fr .85fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 18px;
     }
     .panel {
@@ -195,12 +311,12 @@
       color: rgba(244,246,255,.8);
       line-height: 1.48;
     }
-    .quick-grid { display: grid; gap: 10px; }
     .rating-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(72px, 1fr));
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 16px;
+      max-width: 620px;
     }
     .rate-btn {
       min-height: 44px;
@@ -217,6 +333,23 @@
       color: rgba(244,246,255,.64);
       font-size: 13px;
     }
+    .footer {
+      margin-top: 42px;
+      padding: 32px clamp(16px,4vw,56px);
+      border-top: 1px solid rgba(255,255,255,.1);
+      background: rgba(4,4,12,.72);
+    }
+    .footer-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      color: rgba(244,246,255,.66);
+      font-size: 14px;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .footer a { color: rgba(244,246,255,.76); text-decoration: none; }
     .skeleton {
       position: relative;
       overflow: hidden;
@@ -235,8 +368,9 @@
     @keyframes shimmer { 100% { transform: translateX(100%); } }
     @media (max-width: 860px) {
       .page-shell { padding: 14px 12px 32px; }
-      .site-header { margin-bottom: 16px; }
-      .nav-link { display: none; }
+      #site-header { top: 8px; margin-bottom: 16px; }
+      .header-content { flex-wrap: wrap; border-radius: 20px; }
+      .header-search { order: 3; max-width: none; flex-basis: 100%; }
       .hero {
         grid-template-columns: 1fr;
         min-height: 0;
@@ -245,8 +379,10 @@
       }
       .poster-wrap { max-width: 230px; }
       .sections { grid-template-columns: 1fr; }
-      .hero-actions { display: grid; grid-template-columns: 1fr; }
+      .hero-actions, .icon-actions { display: flex; }
+      .plan-action { min-width: 0; flex: 1 1 220px; }
       h1 { font-size: clamp(32px, 11vw, 54px); }
+      .footer-inner { display: grid; }
     }
   </style>
   <script>
@@ -287,27 +423,32 @@
       document.documentElement.style.setProperty('--film-backdrop', 'url("' + poster + '")');
       document.body.innerHTML =
         '<div class="page-shell">' +
-          '<header class="site-header">' +
-            '<a class="logo" href="/"><span class="logo-mark">MP</span><span>Movie Planner</span></a>' +
-            '<div class="top-actions">' +
-              '<a class="nav-link" href="/">Главная</a>' +
-              '<a class="nav-link" href="/?kp_open=' + encodeURIComponent(kpId) + '">Кабинет</a>' +
-              '<button class="btn btn-secondary" id="login-btn" type="button">Войти</button>' +
+          '<header id="site-header">' +
+            '<div class="header-content">' +
+              '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
+              '<div class="header-search" id="header-search" role="search">' +
+                '<span class="header-search-icon" aria-hidden="true">⌕</span>' +
+                '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+                '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+                '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
+              '</div>' +
+              '<div class="header-buttons">' +
+                '<button type="button" class="btn-primary" id="login-btn">Войти</button>' +
+              '</div>' +
             '</div>' +
           '</header>' +
           '<main class="movie-page">' +
             '<section class="hero">' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
               '<div class="hero-content">' +
-                '<div class="eyebrow" id="chips"><span class="chip">Movie Planner</span><span class="chip skeleton" id="genre-chip">жанр</span></div>' +
+                '<div class="eyebrow" id="chips"><span class="chip skeleton" id="genre-chip">жанр</span></div>' +
                 '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
-                '<div class="hero-actions">' +
-                  '<button class="btn btn-main" id="add-btn" type="button">Добавить в базу</button>' +
-                  '<button class="btn btn-secondary" id="plan-home-btn" type="button">Запланировать дома</button>' +
-                  '<button class="btn btn-secondary" id="plan-cinema-btn" type="button">Запланировать в кино</button>' +
-                  '<button class="btn btn-ghost" id="share-btn" type="button">Поделиться</button>' +
-                  '<a class="btn btn-ghost" href="' + tgMini + '">Открыть в Telegram</a>' +
+                '<div class="icon-actions">' +
+                  '<button class="btn btn-main icon-action" id="add-btn" type="button" aria-label="Добавить в базу"><span class="ico">＋</span><span class="label">Добавить в базу</span></button>' +
+                  '<button class="btn btn-secondary plan-action" id="plan-watch-btn" type="button"><span class="ico">📅</span><span>Запланировать просмотр</span></button>' +
+                  '<a class="btn btn-ghost icon-action" href="' + tgMini + '" aria-label="Открыть в Telegram"><span class="ico">↗</span><span class="label">Открыть в Telegram</span></a>' +
+                  '<a class="btn btn-ghost icon-action" href="https://www.kinopoisk.ru/film/' + encodeURIComponent(kpId) + '/" target="_blank" rel="noopener" aria-label="Кинопоиск"><span class="ico">КП</span><span class="label">Кинопоиск</span></a>' +
                 '</div>' +
               '</div>' +
             '</section>' +
@@ -318,13 +459,8 @@
                   fallbackFacts.map(function (x) { return '<li>' + x + '</li>'; }).join('') +
                 '</ul>' +
               '</div>' +
-              '<aside class="panel">' +
-                '<h2>Действия</h2>' +
-                '<div class="quick-grid">' +
-                  '<a class="btn btn-secondary" href="/?kp_open=' + encodeURIComponent(kpId) + '">Открыть в кабинете</a>' +
-                  '<a class="btn btn-secondary" href="https://www.kinopoisk.ru/film/' + encodeURIComponent(kpId) + '/" target="_blank" rel="noopener">Кинопоиск</a>' +
-                  '<button class="btn btn-secondary" id="facts-refresh-btn" type="button">Обновить факты</button>' +
-                '</div>' +
+              '<div class="panel">' +
+                '<h2>Оценка</h2>' +
                 '<div class="rating-grid" id="rate-grid">' +
                   '<button class="rate-btn" data-rate="6" type="button">6</button>' +
                   '<button class="rate-btn" data-rate="7" type="button">7</button>' +
@@ -333,9 +469,21 @@
                   '<button class="rate-btn" data-rate="10" type="button">10</button>' +
                 '</div>' +
                 '<p class="status" id="hint"></p>' +
-              '</aside>' +
+              '</div>' +
             '</section>' +
           '</main>' +
+          '<footer class="footer">' +
+            '<div class="footer-inner">' +
+              '<div><strong>Контакты</strong><br><a href="mailto:movie_planner_bot@yandex.com">movie_planner_bot@yandex.com</a><br><a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></div>' +
+              '<div><strong>Мы в соцсетях</strong><br><a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener">Telegram</a> · <a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener">VC.ru</a></div>' +
+              '<div class="footer-links">' +
+                '<span>© ' + String(new Date().getFullYear()) + ' Movie Planner</span>' +
+                '<a href="/usloviya-ispolzovaniya.html">Условия использования</a>' +
+                '<a href="/politika-konfidentsialnosti.html">Политика конфиденциальности</a>' +
+                '<a href="/oferta-i-oplata.html">Оплата и оферта</a>' +
+              '</div>' +
+            '</div>' +
+          '</footer>' +
         '</div>';
 
       var hint = document.getElementById('hint');
@@ -385,6 +533,9 @@
         setTimeout(function () {
           window.location.href = apiBase + '/api/site/login?next=' + encodeURIComponent(pageUrl);
         }, 260);
+      }
+      function rememberAction(action) {
+        try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
       }
       function apiGet(path) {
         return fetch(apiBase + path, { method: 'GET', mode: 'cors' }).then(function (r) {
@@ -460,44 +611,51 @@
           return r.json();
         });
       }
+      function goCabinet(action) {
+        var suffix = action ? '&action=' + encodeURIComponent(action) : '';
+        window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + suffix;
+      }
+      function addCurrentFilm() {
+        if (!token()) { rememberAction('add'); loginNow(); return; }
+        ensureFilm()
+          .then(function (d) {
+            if (!d) return;
+            if (d.success) {
+              if (hint) hint.textContent = 'Фильм добавлен';
+              goCabinet('');
+            } else if (hint) {
+              hint.textContent = d.error || 'Не удалось добавить';
+            }
+          })
+          .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
+      }
+      function planCurrentFilm() {
+        if (!token()) { rememberAction('plan'); loginNow(); return; }
+        ensureFilm()
+          .then(function (d) {
+            if (!d) return;
+            if (d.success) goCabinet('plan');
+            else if (hint) hint.textContent = d.error || 'Не удалось подготовить фильм';
+          })
+          .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
+      }
+      function consumePendingAction() {
+        try {
+          var pending = sessionStorage.getItem('mp_public_film_action') || '';
+          if (!pending || pending.split(':')[1] !== kpId || !token()) return;
+          sessionStorage.removeItem('mp_public_film_action');
+          if (pending.indexOf('plan:') === 0) planCurrentFilm();
+          else if (pending.indexOf('add:') === 0) addCurrentFilm();
+        } catch (_e) {}
+      }
 
       var addBtn = document.getElementById('add-btn');
-      if (addBtn) {
-        addBtn.addEventListener('click', function () {
-          if (!token()) { loginNow(); return; }
-          ensureFilm()
-            .then(function (d) {
-              if (!d) return;
-              if (d.success) hint.textContent = 'Фильм добавлен в базу';
-              else hint.textContent = d.error || 'Не удалось добавить';
-            })
-            .catch(function () { hint.textContent = 'Ошибка сети'; });
-        });
-      }
+      if (addBtn) addBtn.addEventListener('click', addCurrentFilm);
       var loginBtn = document.getElementById('login-btn');
       if (loginBtn) loginBtn.addEventListener('click', loginNow);
 
-      function openPlan(kind) {
-        if (!token()) { loginNow(); return; }
-        window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + '&plan=' + encodeURIComponent(kind);
-      }
-      var planHomeBtn = document.getElementById('plan-home-btn');
-      var planCinemaBtn = document.getElementById('plan-cinema-btn');
-      if (planHomeBtn) planHomeBtn.addEventListener('click', function () { openPlan('home'); });
-      if (planCinemaBtn) planCinemaBtn.addEventListener('click', function () { openPlan('cinema'); });
-
-      var shareBtn = document.getElementById('share-btn');
-      if (shareBtn) {
-        shareBtn.addEventListener('click', function () {
-          if (navigator.share) {
-            navigator.share({ title: document.title, url: pageUrl }).catch(function () {});
-            return;
-          }
-          navigator.clipboard && navigator.clipboard.writeText(pageUrl).then(function () {
-            if (hint) hint.textContent = 'Ссылка скопирована';
-          });
-        });
-      }
+      var planWatchBtn = document.getElementById('plan-watch-btn');
+      if (planWatchBtn) planWatchBtn.addEventListener('click', planCurrentFilm);
 
       var rg = document.getElementById('rate-grid');
       if (rg) {
@@ -532,8 +690,92 @@
         });
       }
 
-      var factsBtn = document.getElementById('facts-refresh-btn');
-      if (factsBtn) factsBtn.addEventListener('click', loadFacts);
+      function bindPublicSearch() {
+        var input = document.getElementById('header-search-input');
+        var dd = document.getElementById('header-search-dropdown');
+        var clearBtn = document.getElementById('header-search-clear');
+        var timer = null;
+        var lastAt = 0;
+        var controller = null;
+        var seq = 0;
+        if (!input || !dd) return;
+        function escapeText(v) {
+          return String(v || '').replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+          });
+        }
+        function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
+        function render(items) {
+          if (!items || !items.length) {
+            dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
+            dd.classList.remove('hidden');
+            return;
+          }
+          dd.innerHTML = items.slice(0, 6).map(function (it) {
+            var meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
+            var posterSafe = String(it.poster || '').replace(/"/g, '&quot;');
+            return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
+              (posterSafe ? '<img src="' + posterSafe + '" alt="" loading="lazy">' : '<span></span>') +
+              '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
+              '<span class="search-result-meta">' + escapeText(meta) + '</span></span></a>';
+          }).join('');
+          dd.classList.remove('hidden');
+        }
+        function run(q) {
+          q = String(q || '').trim();
+          if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+          if (q.length < 2) { hide(); return; }
+          var wait = Math.max(0, 1000 - (Date.now() - lastAt));
+          clearTimeout(timer);
+          timer = setTimeout(function () {
+            lastAt = Date.now();
+            var mySeq = ++seq;
+            if (controller) controller.abort();
+            controller = window.AbortController ? new AbortController() : null;
+            dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
+            dd.classList.remove('hidden');
+            fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)), {
+              method: 'GET',
+              mode: 'cors',
+              signal: controller ? controller.signal : undefined
+            })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (mySeq !== seq) return;
+                render((data && data.items) || []);
+              })
+              .catch(function (e) {
+                if (e && e.name === 'AbortError') return;
+                if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">Не удалось найти</div>';
+              });
+          }, wait || 260);
+        }
+        input.addEventListener('input', function () { run(input.value); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); }
+          if (e.key === 'Enter') {
+            var first = dd.querySelector('a.search-result');
+            if (first) window.location.href = first.href;
+          }
+        });
+        input.addEventListener('focus', function () {
+          if (input.value.trim().length >= 2 && dd.innerHTML) dd.classList.remove('hidden');
+        });
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            input.value = '';
+            clearBtn.classList.add('hidden');
+            hide();
+            input.focus();
+          });
+        }
+        document.addEventListener('click', function (e) {
+          var wrap = document.getElementById('header-search');
+          if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
+        });
+      }
+      bindPublicSearch();
+      consumePendingAction();
     })();
   </script>
 </body>
