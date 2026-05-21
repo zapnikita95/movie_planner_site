@@ -698,9 +698,11 @@
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="stats">📊 Статистика</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const personalCount = sessions.filter((s) => s.is_personal).length;
@@ -724,6 +726,8 @@
         closeAccountDropdown();
         if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); return; }
         if (go === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); return; }
+        if (go === 'stats') { showSection('stats'); return; }
+        if (go === 'shazam') { showSection('shazam'); return; }
         if (go === 'about') { showSection('about'); return; }
         if (go === 'developer') { showSection('developer'); return; }
         if (go === 'settings') { showSection('settings'); if (typeof renderSettingsSection === 'function') renderSettingsSection(); }
@@ -889,9 +893,10 @@
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
       tShown = t;
+      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings') ? 'unwatched' : sectionId;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
-        if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
+        if (b.getAttribute('data-section') === activeNavSection) b.classList.add('active');
       });
       rendered = true;
     } else if (onboarding && !onboarding.classList.contains('hidden')) {
@@ -2151,6 +2156,39 @@
     if (window._mpHomeNavBound) return;
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-film-id],[data-kp-id]');
+      if (card && !e.target.closest('button,a,input,select,textarea,[data-stop-card-click]')) {
+        const filmId = card.getAttribute('data-film-id');
+        const kpId = card.getAttribute('data-kp-id');
+        if (filmId) {
+          e.preventDefault();
+          openFilmPage(Number(filmId));
+          return;
+        }
+        if (kpId) {
+          e.preventDefault();
+          api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) })
+            .then((res) => {
+              if (res && res.success && res.film_id) openFilmPage(Number(res.film_id));
+            })
+            .catch(() => showToast('Не удалось открыть фильм', { type: 'error' }));
+          return;
+        }
+      }
+      const inboxFab = e.target.closest('#inbox-fab');
+      if (inboxFab) {
+        e.preventDefault();
+        showSection('inbox');
+        if (typeof loadSiteInbox === 'function') loadSiteInbox();
+        return;
+      }
+      const baseTab = e.target.closest('[data-base-section]');
+      if (baseTab) {
+        e.preventDefault();
+        const sec = baseTab.getAttribute('data-base-section');
+        if (sec) showSection(sec);
+        return;
+      }
       const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
       if (premiereBtn && premiereBtn.closest('.home-dashboard-root')) {
         e.preventDefault();
