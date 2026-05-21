@@ -217,6 +217,19 @@
       flex-wrap: wrap;
       gap: 10px;
     }
+    .public-rating-panel {
+      margin-top: 24px;
+      max-width: 620px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 22px;
+      background: rgba(255,255,255,.055);
+    }
+    .public-rating-title {
+      margin: 0 0 12px;
+      font-weight: 900;
+      color: #fff;
+    }
     .btn {
       appearance: none;
       border: 0;
@@ -245,8 +258,8 @@
       gap: 12px;
     }
     .icon-action {
-      width: 54px;
-      min-width: 54px;
+      width: 58px;
+      min-width: 58px;
       height: 54px;
       padding: 0;
       overflow: hidden;
@@ -273,9 +286,10 @@
       opacity: 1;
     }
     .plan-action {
-      min-width: 230px;
-      height: 54px;
+      min-width: 280px;
+      height: 58px;
       border-radius: 18px;
+      font-size: 16px;
     }
     .sections {
       margin-top: 22px;
@@ -315,7 +329,7 @@
       display: grid;
       grid-template-columns: repeat(5, minmax(72px, 1fr));
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 0;
       max-width: 620px;
     }
     .rate-btn {
@@ -332,6 +346,49 @@
       min-height: 20px;
       color: rgba(244,246,255,.64);
       font-size: 13px;
+    }
+    .public-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 9999;
+      max-width: min(520px, 88vw);
+      padding: 12px 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: rgba(16,16,30,.96);
+      color: #fff;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 18px 50px rgba(0,0,0,.42);
+      transform: translateX(-50%) translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .public-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .public-coin-pop {
+      position: fixed;
+      z-index: 10000;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(20,22,28,.95);
+      border: 1px solid rgba(74,222,128,.46);
+      color: #4ade80;
+      font-weight: 900;
+      box-shadow: 0 14px 36px rgba(0,0,0,.38), 0 0 22px rgba(74,222,128,.28);
+      transform: translate(-50%, -50%);
+      animation: publicCoinFloat 1.25s cubic-bezier(.16,1,.3,1) forwards;
+    }
+    @keyframes publicCoinFloat {
+      0% { opacity: 0; transform: translate(-50%, -30%) scale(.74) rotate(-8deg); }
+      16% { opacity: 1; transform: translate(-50%, -76%) scale(1.16) rotate(5deg); }
+      76% { opacity: 1; transform: translate(-50%, -154%) scale(1.02); }
+      100% { opacity: 0; transform: translate(-50%, -196%) scale(.94); }
     }
     .footer {
       margin-top: 42px;
@@ -444,6 +501,17 @@
                 '<div class="eyebrow" id="chips"><span class="chip skeleton" id="genre-chip">жанр</span></div>' +
                 '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
+                '<div class="public-rating-panel">' +
+                  '<div class="public-rating-title">Ваша оценка</div>' +
+                  '<div class="rating-grid" id="rate-grid">' +
+                    '<button class="rate-btn" data-rate="6" type="button">6</button>' +
+                    '<button class="rate-btn" data-rate="7" type="button">7</button>' +
+                    '<button class="rate-btn" data-rate="8" type="button">8</button>' +
+                    '<button class="rate-btn" data-rate="9" type="button">9</button>' +
+                    '<button class="rate-btn" data-rate="10" type="button">10</button>' +
+                  '</div>' +
+                  '<p class="status" id="hint"></p>' +
+                '</div>' +
                 '<div class="icon-actions">' +
                   '<button class="btn btn-main icon-action" id="add-btn" type="button" aria-label="Добавить в базу"><span class="ico">＋</span><span class="label">Добавить в базу</span></button>' +
                   '<button class="btn btn-secondary plan-action" id="plan-watch-btn" type="button"><span class="ico">📅</span><span>Запланировать просмотр</span></button>' +
@@ -458,17 +526,6 @@
                 '<ul class="facts-list" id="facts-list">' +
                   fallbackFacts.map(function (x) { return '<li>' + x + '</li>'; }).join('') +
                 '</ul>' +
-              '</div>' +
-              '<div class="panel">' +
-                '<h2>Оценка</h2>' +
-                '<div class="rating-grid" id="rate-grid">' +
-                  '<button class="rate-btn" data-rate="6" type="button">6</button>' +
-                  '<button class="rate-btn" data-rate="7" type="button">7</button>' +
-                  '<button class="rate-btn" data-rate="8" type="button">8</button>' +
-                  '<button class="rate-btn" data-rate="9" type="button">9</button>' +
-                  '<button class="rate-btn" data-rate="10" type="button">10</button>' +
-                '</div>' +
-                '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
           '</main>' +
@@ -553,6 +610,30 @@
           li.textContent = String(x || '');
           list.appendChild(li);
         });
+      }
+      function showPublicToast(message) {
+        var el = document.getElementById('public-toast');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'public-toast';
+          el.className = 'public-toast';
+          document.body.appendChild(el);
+        }
+        el.textContent = message || '';
+        requestAnimationFrame(function () { el.classList.add('show'); });
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(function () { el.classList.remove('show'); }, 2800);
+      }
+      function showPublicCoinPop(anchor, delta) {
+        var rect = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+        if (!rect) return;
+        var pop = document.createElement('div');
+        pop.className = 'public-coin-pop';
+        pop.textContent = '🪙 +' + String(delta || 40);
+        pop.style.left = Math.round(rect.left + rect.width / 2) + 'px';
+        pop.style.top = Math.round(rect.top + rect.height / 2) + 'px';
+        document.body.appendChild(pop);
+        setTimeout(function () { try { pop.remove(); } catch (_e) {} }, 1300);
       }
 
       apiGet('/api/public/film/' + encodeURIComponent(kpId))
@@ -680,8 +761,11 @@
               })
               .then(function (d) {
                 if (!d) return;
-                if (d.success) hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
-                else hint.textContent = d.error || 'Не удалось поставить оценку';
+                if (d.success) {
+                  hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
+                  showPublicCoinPop(btn, Number(d.coins_added) || 40);
+                  showPublicToast('Оценка сохранена. Начислили монетки за активность.');
+                } else hint.textContent = d.error || 'Не удалось поставить оценку';
               })
               .catch(function (e) {
                 hint.textContent = (e && e.message) || 'Ошибка оценки';

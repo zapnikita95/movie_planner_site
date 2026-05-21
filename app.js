@@ -108,6 +108,12 @@
     } catch (_) {}
   }
 
+  function showCoinsInfoToast(coins) {
+    const bal = coins && coins.is_infinite ? '∞' : (coins && coins.balance != null ? coins.balance : '—');
+    const streak = coins && Number(coins.streak_days) > 0 ? ' · стрик ' + Number(coins.streak_days) + ' дн.' : '';
+    showToast('🪙 Монетки: ' + bal + streak + '. +5 за фильм, +40 за оценку. Списания: подборы, билеты, премьеры и сериалы. PRO — без списаний.', { duration: 5200 });
+  }
+
   let _headerCoinsPrevNum = null;
 
   function _coinAnchorRect(anchorOrRect) {
@@ -778,11 +784,7 @@
         if (Number.isFinite(n)) _headerCoinsPrevNum = n;
         coinsBtn.classList.remove('hidden');
         try { initHeaderPlanTarget(); } catch (_) {}
-        coinsBtn.onclick = function() {
-          const bal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? me.coins.balance : '—');
-          const streak = me.coins.streak_days > 0 ? `\n🔥 Стрик: ${me.coins.streak_days} дн. подряд` : '';
-          alert(`🪙 Монетки: ${bal}${streak}\n\nНачисления: +5 за фильм, +40 за оценку, +2000 за импорт Кинопоиска, +300 за принятого приглашённого.\nТраты: −30 случайный фильм с Кинопоиска, −120 подбор по описанию, −35 билет, −30 отслеживание премьеры, −25 подписка на сериал.\n💎 PRO — без списаний.`);
-        };
+        coinsBtn.onclick = function() { showCoinsInfoToast(me.coins); };
       }
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
@@ -2457,7 +2459,7 @@
               </div>
               <div class="film-card-v2-title">${titleSafe}</div>
               ${shareRow}
-              ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type })}
+              ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type, online_link: p.online_link || p.streaming_url })}
             </div>
           </div>`;
   }
@@ -2674,7 +2676,7 @@
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
           ${progressHtml}
-          ${buildFilmActionBar({ kp_id: m.kp_id, title: m.title, year: m.year })}
+          ${buildFilmActionBar({ kp_id: m.kp_id, title: m.title, year: m.year, online_link: m.online_link })}
         </div>
       </div>`;
   }
@@ -2761,7 +2763,7 @@
           <div class="film-card-v2-title">${escapeHtml(s.title)}</div>
           <div class="film-card-v2-status">${progress}</div>
           <div style="margin:8px 0 6px">${subToggleBtn}</div>
-          ${buildFilmActionBar({ kp_id: s.kp_id, title: s.title, is_series: true })}
+          ${buildFilmActionBar({ kp_id: s.kp_id, title: s.title, is_series: true, online_link: s.online_link })}
         </div>
       </div>`;
   }
@@ -2861,7 +2863,7 @@
           <div class="film-card-v2-title">${escapeHtml(r.title)}${year}${ratingKpStr}</div>
           <div class="film-card-v2-status">⭐ ${r.rating}${raterStr}</div>
           ${ratedDateHtml}
-          ${buildFilmActionBar({ kp_id: r.kp_id, title: r.title, year: r.year })}
+          ${buildFilmActionBar({ kp_id: r.kp_id, title: r.title, year: r.year, online_link: r.online_link })}
         </div>
       </div>`;
   }
@@ -4350,7 +4352,7 @@
     );
   }
 
-  // Единая панель действий: «Запланировать ▾» + «Смотреть ▾».
+  // Единая панель действий: планирование всегда доступно; «Смотреть» показываем только когда есть источник.
   // item: { kp_id, title, year, is_series?, plan_type? ('cinema'|'home'), in_cinema? }
   function buildFilmActionBar(item) {
     if (!item || !item.kp_id) return '';
@@ -4367,9 +4369,11 @@
     ].join('');
 
     const watchItems = [];
-    watchItems.push(
-      `<button type="button" class="action-dropdown-item" data-streaming="1" data-kp="${kp}">🎞 Онлайн</button>`
-    );
+    if (item.online_link) {
+      watchItems.push(
+        `<a class="action-dropdown-item" href="${escapeHtml(item.online_link)}" target="_blank" rel="noopener">🎞 Онлайн-кинотеатр</a>`
+      );
+    }
     if (tvSettings && tvSettings.tv_type) {
       watchItems.push(
         `<button type="button" class="action-dropdown-item" data-tv-launch="1" data-kp="${kp}" data-title="${titleAttr}">📺 На ТВ</button>`
@@ -4390,13 +4394,13 @@
           `</button>` +
           `<div class="action-dropdown-menu">${planItems}</div>` +
         `</div>` +
-        `<div class="action-dropdown" data-dropdown-root="watch">` +
+        (watchItems.length ? `<div class="action-dropdown" data-dropdown-root="watch">` +
           `<button type="button" class="action-dropdown-btn action-dropdown-btn-watch" data-dropdown-toggle="1">` +
             `<span class="action-dropdown-btn-label">▶️ Смотреть</span>` +
             `<span class="action-dropdown-caret">▾</span>` +
           `</button>` +
           `<div class="action-dropdown-menu">${watchItems.join('')}</div>` +
-        `</div>` +
+        `</div>` : '') +
       `</div>`
     );
   }
@@ -5259,6 +5263,7 @@
     const extra = buildFilmExtraButtons({
       kp_id: film.kp_id, title: film.title, year: film.year,
       plan_type: film.plan_type,
+      online_link: film.online_link,
     });
     const actions = `
       <div class="film-modal-actions">
@@ -5270,12 +5275,6 @@
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? buildSimilarRailHtml(similar)
       : '';
-
-    const trailerHtml = `
-      <div class="film-modal-section film-modal-trailer" data-trailer-wrap="1">
-        <button type="button" class="film-modal-trailer-btn" data-action="load-trailer" data-film-id="${film.film_id}">▶ Смотреть трейлер</button>
-        <div class="film-modal-trailer-embed hidden" data-trailer-embed="1"></div>
-      </div>`;
 
     content.innerHTML = `
       <div class="film-modal-poster-wrap">
@@ -5292,10 +5291,9 @@
         </div>
         ${crew}
         ${desc}
-        ${actions}
-        ${trailerHtml}
-        ${adminBreakdownHtml}
         ${ratingBlock}
+        ${actions}
+        ${adminBreakdownHtml}
         ${groupHtml}
         <div id="film-friends-social-block"></div>
       </div>`;
@@ -5414,30 +5412,6 @@
       });
     });
 
-    // Trailer: ленивая подгрузка
-    const trailerBtn = content.querySelector('[data-action="load-trailer"]');
-    if (trailerBtn) {
-      trailerBtn.addEventListener('click', () => {
-        const wrap = content.querySelector('[data-trailer-wrap="1"]');
-        const embed = wrap && wrap.querySelector('[data-trailer-embed="1"]');
-        if (!wrap || !embed) return;
-        trailerBtn.disabled = true;
-        trailerBtn.textContent = 'Ищем трейлер…';
-        api('/api/site/film/' + film.film_id + '/trailer').then((data) => {
-          if (!data || !data.success || !data.youtube_id) {
-            trailerBtn.disabled = false;
-            trailerBtn.textContent = 'Трейлер не найден';
-            return;
-          }
-          embed.innerHTML = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(data.youtube_id) + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
-          embed.classList.remove('hidden');
-          trailerBtn.style.display = 'none';
-        }).catch(() => {
-          trailerBtn.disabled = false;
-          trailerBtn.textContent = 'Ошибка. Повторите';
-        });
-      });
-    }
     // Похожие фильмы, которые уже в базе — откроются автоматически делегированным обработчиком
   }
 
