@@ -58,7 +58,7 @@
   </style>
   <script>
     // SPA shim для GitHub Pages: неизвестные пути → /?__spa=…
-    // API и бэкенд — на https://api.movie-planner.ru (см. docs/DNS_RUSSIA_WITHOUT_CLOUDFLARE.md).
+    // /f/<kp_id> рендерим как полноценную страницу фильма прямо здесь.
     (function () {
       var loc = window.location;
       var userMatch = loc.pathname.match(/^\/u\/(\d+)\/?$/);
@@ -69,7 +69,157 @@
       var filmMatch = loc.pathname.match(/^\/f\/(\d+)\/?$/);
       if (filmMatch) {
         var kpId = filmMatch[1];
-        loc.replace('https://api.movie-planner.ru/f/' + encodeURIComponent(kpId) + loc.search + loc.hash);
+        var poster = 'https://st.kp.yandex.net/images/film_big/' + kpId + '.jpg';
+        var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent('film_' + kpId);
+        var apiBase = 'https://api.movie-planner.ru';
+        document.title = 'Фильм · Movie Planner';
+        document.body.innerHTML =
+          '<div class="wrap">' +
+          '<div class="brand">Movie Planner</div>' +
+          '<div class="card">' +
+          '<img class="poster" src="' + poster + '" alt="Постер" onerror="this.style.visibility=\'hidden\'">' +
+          '<div class="meta">' +
+          '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
+          '<p id="film-desc">Загружаем карточку фильма…</p>' +
+          '<div class="actions">' +
+          '<button class="btn btn-main" id="add-btn" type="button">Добавить в базу</button>' +
+          '<button class="btn btn-sec" id="facts-btn" type="button">Интересные факты</button>' +
+          '<a class="btn btn-sec" href="/?kp_open=' + encodeURIComponent(kpId) + '">Открыть кабинет</a>' +
+          '<a class="btn btn-sec" href="' + tgMini + '">Открыть в Telegram Mini App</a>' +
+          '</div>' +
+          '<div class="rate-grid" id="rate-grid">' +
+          '<button class="rate-btn" data-rate="6" type="button">6</button>' +
+          '<button class="rate-btn" data-rate="7" type="button">7</button>' +
+          '<button class="rate-btn" data-rate="8" type="button">8</button>' +
+          '<button class="rate-btn" data-rate="9" type="button">9</button>' +
+          '<button class="rate-btn" data-rate="10" type="button">10</button>' +
+          '</div>' +
+          '<div class="facts" id="facts-block"><h2>Интересные факты</h2><ul id="facts-list"></ul></div>' +
+          '<p class="hint" id="hint">Для добавления и оценки нужна авторизация.</p>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+
+        var hint = document.getElementById('hint');
+        function sessions() {
+          try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
+        }
+        function token() {
+          try {
+            var active = localStorage.getItem('mp_site_active_chat_id');
+            var row = sessions().find(function (x) { return String(x.chat_id) === String(active); });
+            return row ? row.token : null;
+          } catch (_e) { return null; }
+        }
+        function authHeaders() {
+          var h = { 'Content-Type': 'application/json' };
+          var t = token();
+          if (t) h.Authorization = 'Bearer ' + t;
+          return h;
+        }
+        function loginNow() {
+          if (hint) hint.textContent = 'Нужна авторизация. Перенаправляем на вход…';
+          setTimeout(function () {
+            loc.href = '/api/site/login?next=' + encodeURIComponent(loc.href);
+          }, 260);
+        }
+
+        fetch(apiBase + '/api/public/film/' + encodeURIComponent(kpId))
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.success || !data.film) return;
+            var f = data.film;
+            var tEl = document.getElementById('film-title');
+            var dEl = document.getElementById('film-desc');
+            if (tEl) tEl.textContent = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
+            if (dEl) dEl.textContent = f.description || 'Откройте фильм в Movie Planner.';
+            document.title = (f.title || 'Фильм') + ' · Movie Planner';
+          })
+          .catch(function () {});
+
+        function ensureFilm() {
+          return fetch(apiBase + '/api/site/add-film', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ kp_id: Number(kpId) })
+          }).then(function (r) {
+            if (r.status === 401) { loginNow(); return null; }
+            return r.json();
+          });
+        }
+
+        var addBtn = document.getElementById('add-btn');
+        if (addBtn) {
+          addBtn.addEventListener('click', function () {
+            if (!token()) { loginNow(); return; }
+            ensureFilm()
+              .then(function (d) {
+                if (!d) return;
+                if (d.success) hint.textContent = 'Фильм добавлен в базу';
+                else hint.textContent = d.error || 'Не удалось добавить';
+              })
+              .catch(function () { hint.textContent = 'Ошибка сети'; });
+          });
+        }
+
+        var rg = document.getElementById('rate-grid');
+        if (rg) {
+          rg.querySelectorAll('[data-rate]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              if (!token()) { loginNow(); return; }
+              var v = Number(btn.getAttribute('data-rate'));
+              if (!(v >= 1 && v <= 10)) return;
+              ensureFilm()
+                .then(function (d) {
+                  if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+                  return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/rating', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ rating: v })
+                  });
+                })
+                .then(function (r) {
+                  if (!r) return null;
+                  if (r.status === 401) { loginNow(); return null; }
+                  return r.json();
+                })
+                .then(function (d) {
+                  if (!d) return;
+                  if (d.success) hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
+                  else hint.textContent = d.error || 'Не удалось поставить оценку';
+                })
+                .catch(function (e) {
+                  hint.textContent = (e && e.message) || 'Ошибка оценки';
+                });
+            });
+          });
+        }
+
+        var factsBtn = document.getElementById('facts-btn');
+        if (factsBtn) {
+          factsBtn.addEventListener('click', function () {
+            fetch(apiBase + '/api/public/film/' + encodeURIComponent(kpId) + '/facts')
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                var block = document.getElementById('facts-block');
+                var list = document.getElementById('facts-list');
+                if (!block || !list) return;
+                list.innerHTML = '';
+                var arr = [];
+                if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 5);
+                if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 5);
+                if (!arr.length) arr = ['Пока нет фактов для этого фильма.'];
+                arr.forEach(function (x) {
+                  var li = document.createElement('li');
+                  li.textContent = String(x || '');
+                  list.appendChild(li);
+                });
+                block.style.display = '';
+                hint.textContent = 'Факты загружены';
+              })
+              .catch(function () { hint.textContent = 'Не удалось загрузить факты'; });
+          });
+        }
         return;
       }
       var target = loc.pathname + loc.search + loc.hash;
