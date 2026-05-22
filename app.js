@@ -47,6 +47,27 @@
     return s;
   }
 
+  function showLoginModalOverlay() {
+    try {
+      document.body.classList.add('login-only-overlay');
+      const landing = document.getElementById('landing');
+      if (landing) landing.classList.add('hidden');
+      const modal = document.getElementById('login-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+    } catch (_) {}
+  }
+
+  function tryOpenLoginOnlyOverlay() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('open_login') !== '1' || getToken()) return;
+      showLoginModalOverlay();
+    } catch (_) {}
+  }
+
   function consumeKpOpenDeepLink() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -61,13 +82,7 @@
       if (!getToken()) {
         sessionStorage.setItem('mp_pending_kp_open', kp);
         if (action) sessionStorage.setItem('mp_pending_kp_action', action);
-        setTimeout(function () {
-          const modal = document.getElementById('login-modal');
-          if (modal) {
-            modal.classList.remove('hidden');
-            modal.setAttribute('aria-hidden', 'false');
-          }
-        }, 0);
+        showLoginModalOverlay();
         return;
       }
       api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
@@ -1743,7 +1758,11 @@
                 if (res && res.success && res.film_id) {
                   openFilmPage(Number(res.film_id), { replace: true });
                   if (pendingAction === 'plan') {
-                    showToast('Фильм добавлен. Выберите планирование в действиях.');
+                    setTimeout(function () {
+                      const planBtn = document.querySelector('[data-dropdown-root="plan"] .action-dropdown-btn');
+                      if (planBtn) planBtn.click();
+                      else showSection('plans');
+                    }, 400);
                   } else if (/^rate([1-9]|10)$/.test(pendingAction)) {
                     const rating = Number(pendingAction.replace('rate', ''));
                     setTimeout(function () { setRating(Number(res.film_id), rating); }, 350);
@@ -1753,6 +1772,7 @@
               .catch(function () {});
           }
         } catch (_) {}
+        tryOpenLoginOnlyOverlay();
         consumeKpOpenDeepLink();
         // P4.3: deep-link — страница фильма /film/:id или раздел
         const pathFid = filmIdFromPathname(window.location.pathname);
@@ -4430,22 +4450,18 @@
     );
   }
 
-  // Единая панель действий: планирование всегда доступно; «Смотреть» показываем только когда есть источник.
-  // item: { kp_id, title, year, is_series?, plan_type? ('cinema'|'home'), in_cinema? }
-  function buildFilmActionBar(item) {
+  function buildFilmPlanDropdown(item) {
     if (!item || !item.kp_id) return '';
     const kp = String(item.kp_id).replace(/\D/g, '');
     if (!kp) return '';
     const titleAttr = escapeHtml(item.title || '');
     const yearAttr = escapeHtml(String(item.year || ''));
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
-
     const planItems = [
       `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
       `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>`,
       `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
-
     const watchItems = [];
     if (item.online_link) {
       watchItems.push(
@@ -4462,25 +4478,128 @@
         `<button type="button" class="action-dropdown-item" data-tickets="1" data-kp="${kp}" data-title="${titleAttr}" data-year="${yearAttr}">🎫 В кино (билет)</button>`
       );
     }
-
+    const menuItems = planItems + (watchItems.length ? watchItems.join('') : '');
     return (
-      `<div class="film-action-bar">` +
-        `<div class="action-dropdown" data-dropdown-root="plan">` +
-          `<button type="button" class="action-dropdown-btn action-dropdown-btn-plan" data-dropdown-toggle="1">` +
-            `<span class="action-dropdown-btn-label">📅 Запланировать</span>` +
-            `<span class="action-dropdown-caret">▾</span>` +
-          `</button>` +
-          `<div class="action-dropdown-menu">${planItems}</div>` +
-        `</div>` +
-        (watchItems.length ? `<div class="action-dropdown" data-dropdown-root="watch">` +
-          `<button type="button" class="action-dropdown-btn action-dropdown-btn-watch" data-dropdown-toggle="1">` +
-            `<span class="action-dropdown-btn-label">▶️ Смотреть</span>` +
-            `<span class="action-dropdown-caret">▾</span>` +
-          `</button>` +
-          `<div class="action-dropdown-menu">${watchItems.join('')}</div>` +
-        `</div>` : '') +
+      `<div class="action-dropdown" data-dropdown-root="plan">` +
+        `<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">` +
+          `<span class="action-dropdown-btn-label">📅 Запланировать просмотр</span>` +
+          `<span class="action-dropdown-caret">▾</span>` +
+        `</button>` +
+        `<div class="action-dropdown-menu">${menuItems}</div>` +
       `</div>`
     );
+  }
+
+  function buildFilmPageToolbar(item, opts) {
+    opts = opts || {};
+    const isPublic = !!opts.public;
+    const myRating = Number(opts.myRating) || 0;
+    const canRate = opts.canRate !== false;
+    const ratingLocked = !!opts.ratingLocked;
+    let ratingInner = '';
+    if (ratingLocked) {
+      ratingInner = '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p>';
+    } else if (isPublic) {
+      ratingInner = '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
+        [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn" data-rate="${n}">${n}</button>`).join('') +
+        '</div>';
+    } else {
+      ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
+        buildRatingStars(myRating) + '</div></div>' +
+        (myRating ? '<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' : '');
+    }
+    const planBlock = isPublic
+      ? '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>'
+      : '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>';
+    const addBtn = isPublic
+      ? '<button type="button" class="film-icon-btn film-icon-btn--add" id="add-btn" aria-label="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">Добавить в базу</span></button>'
+      : '';
+    const rateBtn = canRate && !ratingLocked
+      ? '<button type="button" class="film-icon-btn" id="rate-toggle-btn" data-rate-toggle="1" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>'
+      : '';
+    return (
+      '<div class="film-page-toolbar">' +
+        planBlock +
+        '<div class="film-toolbar-icons">' +
+          addBtn +
+          rateBtn +
+          '<button type="button" class="film-icon-btn" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+          '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
+        '</div>' +
+        '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
+          '<div class="public-rating-title">Ваша оценка</div>' + ratingInner +
+        '</div>' +
+        '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
+      '</div>'
+    );
+  }
+
+  function bindFilmPageToolbar(root, film, opts) {
+    if (!root) return;
+    opts = opts || {};
+    const rateToggle = root.querySelector('[data-rate-toggle]');
+    const factsToggle = root.querySelector('[data-facts-toggle]');
+    const shareBtn = root.querySelector('[data-share-film]');
+    const ratingPanel = root.querySelector('#rating-expand-panel');
+    const factsPanel = root.querySelector('#facts-expand-panel');
+    const factsList = root.querySelector('#facts-list');
+    function togglePanel(btn, panel) {
+      if (!btn || !panel) return;
+      const open = !panel.classList.contains('hidden');
+      if (ratingPanel && panel !== ratingPanel) ratingPanel.classList.add('hidden');
+      if (factsPanel && panel !== factsPanel) factsPanel.classList.add('hidden');
+      root.querySelectorAll('[data-rate-toggle],[data-facts-toggle]').forEach((b) => b.classList.remove('is-active'));
+      if (open) {
+        panel.classList.add('hidden');
+        btn.classList.remove('is-active');
+        return;
+      }
+      panel.classList.remove('hidden');
+      btn.classList.add('is-active');
+    }
+    if (rateToggle) {
+      rateToggle.addEventListener('click', () => togglePanel(rateToggle, ratingPanel));
+    }
+    if (factsToggle) {
+      let factsLoaded = false;
+      factsToggle.addEventListener('click', () => {
+        const willOpen = factsPanel && factsPanel.classList.contains('hidden');
+        togglePanel(factsToggle, factsPanel);
+        if (!willOpen || factsLoaded || !factsList) return;
+        factsLoaded = true;
+        factsList.innerHTML = '<li>Загружаем…</li>';
+        const kp = factsToggle.getAttribute('data-kp') || (film && film.kp_id);
+        fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(kp)) + '/facts', { method: 'GET', mode: 'cors' })
+          .then((r) => r.json())
+          .then((d) => {
+            const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
+            factsList.innerHTML = arr.length
+              ? arr.map((x) => '<li>' + escapeHtml(String(x)) + '</li>').join('')
+              : '<li>Пока нет фактов для этого фильма.</li>';
+          })
+          .catch(() => { factsList.innerHTML = '<li>Не удалось загрузить факты.</li>'; });
+      });
+    }
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        const kp = shareBtn.getAttribute('data-kp') || (film && film.kp_id);
+        const url = buildFilmShareUrl(kp) || window.location.href.split('#')[0];
+        copyToClipboard(url)
+          .then(() => showToast('Ссылка скопирована'))
+          .catch(() => showToast('Не удалось скопировать', { type: 'error' }));
+      });
+    }
+  }
+
+  // Единая панель действий: планирование всегда доступно; «Смотреть» показываем только когда есть источник.
+  // item: { kp_id, title, year, is_series?, plan_type? ('cinema'|'home'), in_cinema? }
+  function buildFilmActionBar(item) {
+    if (!item || !item.kp_id) return '';
+    const kp = String(item.kp_id).replace(/\D/g, '');
+    if (!kp) return '';
+    const titleAttr = escapeHtml(item.title || '');
+    const yearAttr = escapeHtml(String(item.year || ''));
+    return `<div class="film-action-bar">${buildFilmPlanDropdown(item)}</div>`;
   }
 
   function closeAllActionDropdowns(except) {
@@ -5257,34 +5376,24 @@
     if (film.director && film.director !== 'Не указан') crewParts.push('<div><b>Режиссёр:</b> ' + escapeHtml(film.director) + '</div>');
     if (film.actors) crewParts.push('<div><b>В ролях:</b> ' + escapeHtml(String(film.actors || '')) + '</div>');
     const crew = crewParts.length ? '<div class="film-hero-crew">' + crewParts.join('') + '</div>' : '';
-    let ratingBlock = '';
-    if (isVirtualRoom && !canRateInGroup) {
-      ratingBlock = '<div class="film-hero-rating film-rating-locked"><h3>Ваша оценка</h3><p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p></div>';
-    } else {
-      ratingBlock =
-        '<div class="film-hero-rating">' +
-          '<h3>Ваша оценка</h3>' +
-          '<div class="rating-stars" data-rating-stars="1">' + buildRatingStars(myRating) + '</div>' +
-          (myRating ? '<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' : '') +
-        '</div>';
-    }
+    const toolbarHtml = buildFilmPageToolbar({
+      kp_id: film.kp_id,
+      title: film.title,
+      year: film.year,
+      plan_type: film.plan_type,
+      online_link: film.online_link,
+      in_cinema: film.in_cinema,
+    }, {
+      public: false,
+      myRating,
+      canRate: !(isVirtualRoom && !canRateInGroup),
+      ratingLocked: isVirtualRoom && !canRateInGroup,
+    });
     const watchedHtml =
       '<button type="button" class="watched-toggle ' + (film.watched ? 'on' : '') + '" data-action="toggle-watched">' +
         '<span class="wt-mark">' + (film.watched ? '✓' : '') + '</span>' +
         '<span>' + (film.watched ? 'Просмотрен' : 'Отметить просмотренным') + '</span>' +
       '</button>';
-    const actions =
-      '<div class="film-modal-actions film-hero-actions">' +
-        watchedHtml +
-        '<a class="btn btn-small btn-secondary" href="' + filmDeepLink(film.film_id, film.kp_id, film.is_series) + '" target="_blank" rel="noopener">↗ В Telegram</a>' +
-        buildFilmExtraButtons({
-          kp_id: film.kp_id,
-          title: film.title,
-          year: film.year,
-          plan_type: film.plan_type,
-          online_link: film.online_link,
-        }) +
-      '</div>';
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'
       : '';
@@ -5298,14 +5407,15 @@
           '<h2>' + escapeHtml(film.title || '') + ' <span>' + escapeHtml(year) + '</span></h2>' +
           crew +
           desc +
-          ratingBlock +
-          actions +
+          '<div class="film-hero-watched">' + watchedHtml + '</div>' +
+          toolbarHtml +
         '</div>' +
       '</section>' +
       similarHtml +
       '<div id="film-friends-social-block"></div>';
 
     bindFilmModalInteractions(film, content);
+    bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { public: false });
     loadFilmFriendsSocial(film);
   }
 
@@ -8737,6 +8847,7 @@
     } else {
       showScreen('landing');
       renderHeader(null);
+      tryOpenLoginOnlyOverlay();
     }
     }
 

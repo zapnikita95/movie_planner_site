@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style-v2.css?v=20260522filmpage">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -513,6 +514,17 @@
       #site-header { top: 8px; margin-bottom: 16px; }
       .header-content { flex-wrap: wrap; border-radius: 20px; }
       .header-search { order: 3; max-width: none; flex-basis: 100%; margin: 8px 0 0; min-width: 0; }
+      .header-search-input {
+        min-height: 40px;
+        padding-top: 0;
+        padding-bottom: 0;
+        font-size: 14px;
+        line-height: 40px;
+      }
+      .hero::before {
+        background: linear-gradient(180deg, rgba(7,7,17,.98) 0%, rgba(7,7,17,.94) 100%);
+        opacity: 1;
+      }
       .hero {
         grid-template-columns: 1fr;
         min-height: 0;
@@ -558,6 +570,22 @@
       if (!filmMatch) return;
 
       var kpId = filmMatch[1];
+
+      function sessionsEarly() {
+        try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
+      }
+      function tokenEarly() {
+        try {
+          var active = localStorage.getItem('mp_site_active_chat_id');
+          var row = sessionsEarly().find(function (x) { return String(x.chat_id) === String(active); });
+          return row ? row.token : null;
+        } catch (_e) { return null; }
+      }
+      if (tokenEarly()) {
+        window.location.replace('/?kp_open=' + encodeURIComponent(kpId));
+        return;
+      }
+
       var poster = 'https://st.kp.yandex.net/images/film_big/' + kpId + '.jpg';
       var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent('film_' + kpId);
       var apiBase = 'https://api.movie-planner.ru';
@@ -587,6 +615,13 @@
               '</div>' +
             '</div>' +
           '</header>' +
+          '<div id="app-open-banner" class="app-open-banner hidden">' +
+            '<span class="app-open-text">Открыть в приложении Movie Planner?</span>' +
+            '<div class="app-open-actions">' +
+              '<button type="button" class="btn-app-open" id="app-open-btn">Открыть</button>' +
+              '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">Позже</button>' +
+            '</div>' +
+          '</div>' +
           '<main class="movie-page">' +
             '<section class="hero">' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
@@ -594,34 +629,25 @@
                 '<div class="eyebrow" id="chips"><span class="chip skeleton" id="genre-chip">жанр</span></div>' +
                 '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
-                '<div class="public-rating-panel">' +
-                  '<div class="public-rating-title">Ваша оценка</div>' +
-                  '<div class="rating-grid" id="rate-grid">' +
-                    '<button class="rate-btn" data-rate="1" type="button">1</button>' +
-                    '<button class="rate-btn" data-rate="2" type="button">2</button>' +
-                    '<button class="rate-btn" data-rate="3" type="button">3</button>' +
-                    '<button class="rate-btn" data-rate="4" type="button">4</button>' +
-                    '<button class="rate-btn" data-rate="5" type="button">5</button>' +
-                    '<button class="rate-btn" data-rate="6" type="button">6</button>' +
-                    '<button class="rate-btn" data-rate="7" type="button">7</button>' +
-                    '<button class="rate-btn" data-rate="8" type="button">8</button>' +
-                    '<button class="rate-btn" data-rate="9" type="button">9</button>' +
-                    '<button class="rate-btn" data-rate="10" type="button">10</button>' +
+                '<div class="film-page-toolbar">' +
+                  '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
+                  '<div class="film-toolbar-icons">' +
+                    '<button type="button" class="film-icon-btn film-icon-btn--add" id="add-btn" aria-label="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">Добавить</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
                   '</div>' +
-                  '<p class="status" id="hint"></p>' +
+                  '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
+                    '<div class="public-rating-title">Ваша оценка</div>' +
+                    '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
+                      [1,2,3,4,5,6,7,8,9,10].map(function (n) {
+                        return '<button class="rate-btn" data-rate="' + n + '" type="button">' + n + '</button>';
+                      }).join('') +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
                 '</div>' +
-                '<div class="icon-actions">' +
-                  '<button class="btn btn-main icon-action" id="add-btn" type="button" aria-label="Добавить в базу"><span class="ico">+</span><span class="label">Добавить в базу</span></button>' +
-                  '<button class="btn btn-secondary plan-action" id="plan-watch-btn" type="button"><span class="ico">📅</span><span>Запланировать просмотр</span></button>' +
-                  '<a class="btn btn-ghost icon-action" href="' + tgMini + '" aria-label="Открыть в Telegram"><span class="ico">↗</span><span class="label">Открыть в Telegram</span></a>' +
-                  '<a class="btn btn-ghost icon-action" href="https://www.kinopoisk.ru/film/' + encodeURIComponent(kpId) + '/" target="_blank" rel="noopener" aria-label="Кинопоиск"><span class="ico">КП</span><span class="label">Кинопоиск</span></a>' +
-                '</div>' +
-                '<div class="facts-inline">' +
-                  '<div class="facts-inline-title"><span class="emoji">🤔</span><span>Интересные факты</span></div>' +
-                  '<ul class="facts-list" id="facts-list">' +
-                    fallbackFacts.map(function (x) { return '<li>' + x + '</li>'; }).join('') +
-                  '</ul>' +
-                '</div>' +
+                '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
           '</main>' +
@@ -703,8 +729,8 @@
         if (hint) hint.textContent = 'Открываем вход…';
         var suffix = action ? '&action=' + encodeURIComponent(action) : '';
         setTimeout(function () {
-          window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + suffix;
-        }, 260);
+          window.location.href = '/?open_login=1&kp_open=' + encodeURIComponent(kpId) + suffix;
+        }, 180);
       }
       function rememberAction(action) {
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
@@ -792,10 +818,10 @@
             if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 6);
             if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
             renderFacts(arr);
+            return arr;
           })
-          .catch(function () { renderFacts(fallbackFacts); });
+          .catch(function () { renderFacts(fallbackFacts); return fallbackFacts; });
       }
-      loadFacts();
 
       function ensureFilm() {
         return fetch(apiBase + '/api/site/add-film', {
@@ -891,6 +917,12 @@
           else if (pending.indexOf('add:') === 0) addCurrentFilm();
           else if (pending.indexOf('rate') === 0) {
             var rating = Number((pending.split(':')[0] || '').replace('rate', ''));
+            var rateToggle = document.getElementById('rate-toggle-btn');
+            var ratingPanel = document.getElementById('rating-expand-panel');
+            if (rateToggle && ratingPanel) {
+              ratingPanel.classList.remove('hidden');
+              rateToggle.classList.add('is-active');
+            }
             if (rating >= 1 && rating <= 10) setCurrentRating(rating, document.querySelector('[data-rate="' + rating + '"]'));
           }
         } catch (_e) {}
@@ -985,6 +1017,83 @@
           if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
         });
       }
+      function setupAppOpenBanner() {
+        var banner = document.getElementById('app-open-banner');
+        if (!banner) return;
+        var dismissed = false;
+        try { dismissed = sessionStorage.getItem('mp_app_banner_dismiss') === '1'; } catch (_e) {}
+        var ua = navigator.userAgent || '';
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+        if (!isMobile || dismissed) return;
+        banner.classList.remove('hidden');
+        var openBtn = document.getElementById('app-open-btn');
+        var dismissBtn = document.getElementById('app-dismiss-btn');
+        var appUrl = 'movieplanner://film/' + kpId;
+        var androidIntent = 'intent://film/' + kpId + '#Intent;scheme=movieplanner;package=ru.movieplanner.mobile;end';
+        if (openBtn) {
+          openBtn.addEventListener('click', function () {
+            if (/Android/i.test(ua)) window.location.href = androidIntent;
+            else window.location.href = appUrl;
+          });
+        }
+        if (dismissBtn) {
+          dismissBtn.addEventListener('click', function () {
+            try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
+            banner.classList.add('hidden');
+          });
+        }
+      }
+      function bindPublicFilmToolbar() {
+        var rateToggle = document.getElementById('rate-toggle-btn');
+        var factsToggle = document.getElementById('facts-toggle-btn');
+        var shareBtn = document.getElementById('share-film-btn');
+        var ratingPanel = document.getElementById('rating-expand-panel');
+        var factsPanel = document.getElementById('facts-expand-panel');
+        var factsLoaded = false;
+        function togglePanel(btn, panel) {
+          if (!btn || !panel) return;
+          var open = !panel.classList.contains('hidden');
+          if (ratingPanel && panel !== ratingPanel) ratingPanel.classList.add('hidden');
+          if (factsPanel && panel !== factsPanel) factsPanel.classList.add('hidden');
+          [rateToggle, factsToggle].forEach(function (b) { if (b) b.classList.remove('is-active'); });
+          if (open) {
+            panel.classList.add('hidden');
+            btn.classList.remove('is-active');
+            return;
+          }
+          panel.classList.remove('hidden');
+          btn.classList.add('is-active');
+        }
+        if (rateToggle) {
+          rateToggle.addEventListener('click', function () {
+            if (!token()) { rememberAction('rate'); loginNow(); return; }
+            togglePanel(rateToggle, ratingPanel);
+          });
+        }
+        if (factsToggle) {
+          factsToggle.addEventListener('click', function () {
+            var willOpen = factsPanel && factsPanel.classList.contains('hidden');
+            togglePanel(factsToggle, factsPanel);
+            if (!willOpen || factsLoaded) return;
+            factsLoaded = true;
+            loadFacts();
+          });
+        }
+        if (shareBtn) {
+          shareBtn.addEventListener('click', function () {
+            var url = pageUrl;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(url).then(function () {
+                showPublicToast('Ссылка скопирована');
+              }).catch(function () { showPublicToast(url); });
+            } else {
+              showPublicToast(url);
+            }
+          });
+        }
+      }
+      setupAppOpenBanner();
+      bindPublicFilmToolbar();
       bindPublicSearch();
       consumePendingAction();
     })();
