@@ -11,6 +11,7 @@
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
+    .hidden { display: none !important; }
     body {
       margin: 0;
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -22,7 +23,7 @@
       min-height: 100vh;
     }
     a { color: inherit; }
-    .page-shell { min-height: 100vh; padding: 18px clamp(16px, 4vw, 56px) 0; }
+    .page-shell { min-height: 100vh; padding: 18px clamp(16px, 4vw, 56px) 0; overflow-x: hidden; }
     #site-header {
       max-width: 1180px;
       margin: 0 auto 28px;
@@ -53,10 +54,13 @@
     }
     .logo img { width: 34px; height: 34px; border-radius: 10px; }
     .header-search {
+      --search-left-lane: 52px;
+      --search-right-lane: 72px;
       position: relative;
-      flex: 1;
-      max-width: 520px;
-      min-width: 180px;
+      flex: 1 1 420px;
+      max-width: 560px;
+      min-width: 220px;
+      margin: 0 18px;
     }
     .header-search-icon {
       position: absolute;
@@ -75,8 +79,8 @@
     }
     .header-search-input {
       width: 100%;
-      height: 46px;
-      padding: 0 54px 0 52px;
+      min-height: 48px;
+      padding: 0 var(--search-right-lane) 0 var(--search-left-lane);
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 999px;
       background: rgba(255,255,255,.07);
@@ -86,19 +90,27 @@
       font-weight: 700;
     }
     .header-search-input:focus { border-color: rgba(236,72,153,.55); box-shadow: 0 0 0 4px rgba(236,72,153,.1); }
+    .header-search-mic,
     .header-search-clear {
       position: absolute;
-      right: 12px;
       top: 50%;
       transform: translateY(-50%);
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
       border: 0;
       border-radius: 50%;
       background: rgba(255,255,255,.1);
       color: #fff;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
     }
+    .header-search-mic { right: 14px; }
+    .header-search-clear { right: 14px; }
+    .header-search-mic:not(.hidden) + .header-search-clear:not(.hidden) { right: 54px; }
     .header-search-dropdown {
       position: absolute;
       left: 0;
@@ -251,7 +263,7 @@
       text-decoration: none;
       color: #fff;
       cursor: pointer;
-      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
     .btn:hover { transform: translateY(-1px); }
     .btn-main { background: linear-gradient(135deg,#a855f7,#ec4899); box-shadow: 0 18px 42px rgba(236,72,153,.24); }
@@ -279,7 +291,7 @@
       max-width: 0;
       opacity: 0;
       overflow: hidden;
-      transition: max-width .22s ease, opacity .18s ease;
+      transition: max-width .32s cubic-bezier(.16,1,.3,1), opacity .22s ease;
     }
     .icon-action:hover,
     .icon-action:focus-visible {
@@ -334,7 +346,7 @@
     }
     .rating-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(72px, 1fr));
+      grid-template-columns: repeat(10, minmax(42px, 1fr));
       gap: 8px;
       margin-top: 0;
       max-width: 620px;
@@ -398,22 +410,51 @@
       100% { opacity: 0; transform: translate(-50%, -196%) scale(.94); }
     }
     .footer {
-      margin-top: 42px;
-      padding: 32px clamp(16px,4vw,56px);
-      border-top: 1px solid rgba(255,255,255,.1);
-      background: rgba(4,4,12,.72);
+      margin: 42px calc(-1 * clamp(16px, 4vw, 56px)) 0;
+      padding: 34px clamp(16px,4vw,56px) 22px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      background:
+        radial-gradient(720px 220px at 78% 0%, rgba(168,85,247,.1), transparent 60%),
+        rgba(4,4,12,.86);
     }
-    .footer-inner {
+    .footer .container {
       max-width: 1180px;
       margin: 0 auto;
-      display: flex;
+    }
+    .footer-content {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       justify-content: space-between;
-      gap: 18px;
+      gap: 28px;
       color: rgba(244,246,255,.66);
       font-size: 14px;
     }
-    .footer-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .footer h3 { margin: 0 0 10px; color: rgba(244,246,255,.8); font-size: 14px; }
+    .footer p { margin: 5px 0; }
+    .footer-bottom {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      text-align: center;
+      color: rgba(244,246,255,.5);
+      font-size: 12px;
+    }
+    .footer-bottom p { margin: 0; }
     .footer a { color: rgba(244,246,255,.76); text-decoration: none; }
+    .social-links { display: flex; gap: 10px; align-items: center; }
+    .social-link {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+      color: #fff;
+    }
+    .social-link img { width: 20px; height: 20px; object-fit: contain; }
     .skeleton {
       position: relative;
       overflow: hidden;
@@ -434,19 +475,27 @@
       .page-shell { padding: 14px 12px 32px; }
       #site-header { top: 8px; margin-bottom: 16px; }
       .header-content { flex-wrap: wrap; border-radius: 20px; }
-      .header-search { order: 3; max-width: none; flex-basis: 100%; }
+      .header-search { order: 3; max-width: none; flex-basis: 100%; margin: 8px 0 0; min-width: 0; }
       .hero {
         grid-template-columns: 1fr;
         min-height: 0;
         padding: 16px;
         border-radius: 26px;
       }
-      .poster-wrap { max-width: 230px; }
+      .poster-wrap { width: min(230px, 100%); margin: 0 auto; }
       .sections { grid-template-columns: 1fr; }
       .hero-actions, .icon-actions { display: flex; }
+      .icon-actions { align-items: stretch; }
       .plan-action { min-width: 0; flex: 1 1 220px; }
+      .icon-action { flex: 0 0 58px; }
+      .icon-action:hover,
+      .icon-action:focus-visible {
+        flex-basis: 190px;
+      }
+      .rating-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .rate-btn { min-width: 0; }
       h1 { font-size: clamp(32px, 11vw, 54px); }
-      .footer-inner { display: grid; }
+      .footer-content { grid-template-columns: 1fr; }
     }
   </style>
   <script>
@@ -491,8 +540,9 @@
             '<div class="header-content">' +
               '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
               '<div class="header-search" id="header-search" role="search">' +
-                '<span class="header-search-icon" aria-hidden="true">⌕</span>' +
+                '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
                 '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+                '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
                 '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
                 '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
               '</div>' +
@@ -511,6 +561,11 @@
                 '<div class="public-rating-panel">' +
                   '<div class="public-rating-title">Ваша оценка</div>' +
                   '<div class="rating-grid" id="rate-grid">' +
+                    '<button class="rate-btn" data-rate="1" type="button">1</button>' +
+                    '<button class="rate-btn" data-rate="2" type="button">2</button>' +
+                    '<button class="rate-btn" data-rate="3" type="button">3</button>' +
+                    '<button class="rate-btn" data-rate="4" type="button">4</button>' +
+                    '<button class="rate-btn" data-rate="5" type="button">5</button>' +
                     '<button class="rate-btn" data-rate="6" type="button">6</button>' +
                     '<button class="rate-btn" data-rate="7" type="button">7</button>' +
                     '<button class="rate-btn" data-rate="8" type="button">8</button>' +
@@ -537,14 +592,32 @@
             '</section>' +
           '</main>' +
           '<footer class="footer">' +
-            '<div class="footer-inner">' +
-              '<div><strong>Контакты</strong><br><a href="mailto:movie_planner_bot@yandex.com">movie_planner_bot@yandex.com</a><br><a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></div>' +
-              '<div><strong>Мы в соцсетях</strong><br><a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener">Telegram</a> · <a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener">VC.ru</a></div>' +
-              '<div class="footer-links">' +
-                '<span>© ' + String(new Date().getFullYear()) + ' Movie Planner</span>' +
-                '<a href="/usloviya-ispolzovaniya.html">Условия использования</a>' +
-                '<a href="/politika-konfidentsialnosti.html">Политика конфиденциальности</a>' +
-                '<a href="/oferta-i-oplata.html">Оплата и оферта</a>' +
+            '<div class="container">' +
+              '<div class="footer-content">' +
+                '<div class="footer-info">' +
+                  '<h3>Контакты</h3>' +
+                  '<p>📍 Москва</p>' +
+                  '<p>📞 +7 (977) 613-45-08</p>' +
+                  '<p>✉️ <a href="mailto:movie_planner_bot@yandex.com">movie_planner_bot@yandex.com</a></p>' +
+                  '<p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></p>' +
+                '</div>' +
+                '<div class="footer-social">' +
+                  '<h3>Мы в соцсетях</h3>' +
+                  '<div class="social-links">' +
+                    '<a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener" class="social-link" aria-label="Telegram канал"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg></a>' +
+                    '<a href="https://instagram.com/movie_planner_bot" target="_blank" rel="noopener" class="social-link" aria-label="Instagram"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>' +
+                    '<a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener" class="social-link social-link-vc" aria-label="VC.ru"><img src="/images/vc.png" alt="VC.ru"></a>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="footer-bottom">' +
+                '<p>© ' + String(new Date().getFullYear()) + ' Movie Planner. Все права защищены. · ' +
+                  '<a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a>' +
+                  ' · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Политика конфиденциальности</a>' +
+                  ' · <a href="/oferta-i-oplata.html" class="footer-link-muted">Оплата и оферта</a>' +
+                  ' · <a href="/agents.html" class="footer-link-muted">API и нейросети</a>' +
+                  ' · <a href="https://movie-planner.ru/developer" class="footer-link-muted">Документация API</a>' +
+                '</p>' +
               '</div>' +
             '</div>' +
           '</footer>' +
@@ -592,10 +665,11 @@
         if (t) h.Authorization = 'Bearer ' + t;
         return h;
       }
-      function loginNow() {
+      function loginNow(action) {
         if (hint) hint.textContent = 'Открываем вход…';
+        var suffix = action ? '&action=' + encodeURIComponent(action) : '';
         setTimeout(function () {
-          window.location.href = apiBase + '/api/site/login?next=' + encodeURIComponent(pageUrl);
+          window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + suffix;
         }, 260);
       }
       function rememberAction(action) {
@@ -704,7 +778,7 @@
         window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + suffix;
       }
       function addCurrentFilm() {
-        if (!token()) { rememberAction('add'); loginNow(); return; }
+        if (!token()) { rememberAction('add'); loginNow('add'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d) return;
@@ -718,7 +792,7 @@
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
       function planCurrentFilm() {
-        if (!token()) { rememberAction('plan'); loginNow(); return; }
+        if (!token()) { rememberAction('plan'); loginNow('plan'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d) return;
@@ -727,6 +801,53 @@
           })
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
+      var addBtn = document.getElementById('add-btn');
+      if (addBtn) addBtn.addEventListener('click', addCurrentFilm);
+      var loginBtn = document.getElementById('login-btn');
+      if (loginBtn) loginBtn.addEventListener('click', function () { loginNow(); });
+
+      var planWatchBtn = document.getElementById('plan-watch-btn');
+      if (planWatchBtn) planWatchBtn.addEventListener('click', planCurrentFilm);
+
+      var rg = document.getElementById('rate-grid');
+      function setCurrentRating(v, anchor) {
+        if (!token()) { rememberAction('rate' + String(v)); loginNow('rate' + String(v)); return; }
+        ensureFilm()
+          .then(function (d) {
+            if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+            return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/rating', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({ rating: v })
+            });
+          })
+          .then(function (r) {
+            if (!r) return null;
+            if (r.status === 401) { loginNow(); return null; }
+            return r.json();
+          })
+          .then(function (d) {
+            if (!d) return;
+            if (d.success) {
+              hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
+              if (anchor) showPublicCoinPop(anchor, Number(d.coins_added) || 40);
+              showPublicToast('Оценка сохранена. Начислили монетки за активность.');
+            } else hint.textContent = d.error || 'Не удалось поставить оценку';
+          })
+          .catch(function (e) {
+            hint.textContent = (e && e.message) || 'Ошибка оценки';
+          });
+      }
+      if (rg) {
+        rg.querySelectorAll('[data-rate]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = Number(btn.getAttribute('data-rate'));
+            if (!(v >= 1 && v <= 10)) return;
+            setCurrentRating(v, btn);
+          });
+        });
+      }
+
       function consumePendingAction() {
         try {
           var pending = sessionStorage.getItem('mp_public_film_action') || '';
@@ -734,51 +855,11 @@
           sessionStorage.removeItem('mp_public_film_action');
           if (pending.indexOf('plan:') === 0) planCurrentFilm();
           else if (pending.indexOf('add:') === 0) addCurrentFilm();
+          else if (pending.indexOf('rate') === 0) {
+            var rating = Number((pending.split(':')[0] || '').replace('rate', ''));
+            if (rating >= 1 && rating <= 10) setCurrentRating(rating, document.querySelector('[data-rate="' + rating + '"]'));
+          }
         } catch (_e) {}
-      }
-
-      var addBtn = document.getElementById('add-btn');
-      if (addBtn) addBtn.addEventListener('click', addCurrentFilm);
-      var loginBtn = document.getElementById('login-btn');
-      if (loginBtn) loginBtn.addEventListener('click', loginNow);
-
-      var planWatchBtn = document.getElementById('plan-watch-btn');
-      if (planWatchBtn) planWatchBtn.addEventListener('click', planCurrentFilm);
-
-      var rg = document.getElementById('rate-grid');
-      if (rg) {
-        rg.querySelectorAll('[data-rate]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            if (!token()) { loginNow(); return; }
-            var v = Number(btn.getAttribute('data-rate'));
-            if (!(v >= 1 && v <= 10)) return;
-            ensureFilm()
-              .then(function (d) {
-                if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
-                return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/rating', {
-                  method: 'POST',
-                  headers: authHeaders(),
-                  body: JSON.stringify({ rating: v })
-                });
-              })
-              .then(function (r) {
-                if (!r) return null;
-                if (r.status === 401) { loginNow(); return null; }
-                return r.json();
-              })
-              .then(function (d) {
-                if (!d) return;
-                if (d.success) {
-                  hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
-                  showPublicCoinPop(btn, Number(d.coins_added) || 40);
-                  showPublicToast('Оценка сохранена. Начислили монетки за активность.');
-                } else hint.textContent = d.error || 'Не удалось поставить оценку';
-              })
-              .catch(function (e) {
-                hint.textContent = (e && e.message) || 'Ошибка оценки';
-              });
-          });
-        });
       }
 
       function bindPublicSearch() {

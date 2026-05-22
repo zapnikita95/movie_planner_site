@@ -55,6 +55,13 @@
       if (!getToken()) {
         sessionStorage.setItem('mp_pending_kp_open', kp);
         if (action) sessionStorage.setItem('mp_pending_kp_action', action);
+        setTimeout(function () {
+          const modal = document.getElementById('login-modal');
+          if (modal) {
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+          }
+        }, 0);
         return;
       }
       api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
@@ -1666,12 +1673,19 @@
         try {
           const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
           if (pendingKp && /^\d+$/.test(pendingKp)) {
+            const pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
             sessionStorage.removeItem('mp_pending_kp_open');
             sessionStorage.removeItem('mp_pending_kp_action');
             api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: pendingKp }) })
               .then(function (res) {
                 if (res && res.success && res.film_id) {
                   openFilmPage(Number(res.film_id), { replace: true });
+                  if (pendingAction === 'plan') {
+                    showToast('Фильм добавлен. Выберите планирование в действиях.');
+                  } else if (/^rate([1-9]|10)$/.test(pendingAction)) {
+                    const rating = Number(pendingAction.replace('rate', ''));
+                    setTimeout(function () { setRating(Number(res.film_id), rating); }, 350);
+                  }
                 }
               })
               .catch(function () {});
