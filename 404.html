@@ -239,10 +239,10 @@
     .public-rating-panel {
       margin-top: 24px;
       max-width: 620px;
-      padding: 16px;
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 22px;
-      background: rgba(255,255,255,.055);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
     }
     .public-rating-title {
       margin: 0 0 12px;
@@ -286,7 +286,17 @@
       border-radius: 18px;
       white-space: nowrap;
     }
-    .icon-action .ico { flex: 0 0 auto; font-size: 22px; line-height: 1; }
+    .icon-action .ico {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      font-size: 24px;
+      line-height: 1;
+      text-align: center;
+    }
     .icon-action .label {
       max-width: 0;
       opacity: 0;
@@ -309,40 +319,43 @@
       height: 58px;
       border-radius: 18px;
       font-size: 16px;
+      gap: 10px;
     }
-    .sections {
-      margin-top: 22px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 18px;
+    .sections { display: none; }
+    .facts-inline {
+      margin-top: 24px;
+      max-width: 780px;
     }
-    .panel {
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 28px;
-      padding: 22px;
-      background: rgba(16,16,31,.78);
-      box-shadow: 0 16px 54px rgba(0,0,0,.28);
-      backdrop-filter: blur(18px);
+    .facts-inline-title {
+      margin: 0 0 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      font-weight: 900;
+      font-size: 16px;
     }
-    .panel h2 {
-      margin: 0 0 14px;
-      font-family: Unbounded, Inter, sans-serif;
-      font-size: 22px;
-      letter-spacing: -.04em;
-    }
+    .facts-inline-title .emoji { font-size: 22px; }
     .facts-list {
       display: grid;
-      gap: 12px;
+      gap: 8px;
       margin: 0;
       padding: 0;
       list-style: none;
     }
     .facts-list li {
-      padding: 14px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.055);
-      color: rgba(244,246,255,.8);
-      line-height: 1.48;
+      position: relative;
+      padding-left: 22px;
+      color: rgba(244,246,255,.74);
+      line-height: 1.5;
+      font-size: 14.5px;
+    }
+    .facts-list li::before {
+      content: "•";
+      position: absolute;
+      left: 7px;
+      color: rgba(236,72,153,.78);
+      font-weight: 900;
     }
     .rating-grid {
       display: grid;
@@ -455,6 +468,19 @@
       color: #fff;
     }
     .social-link img { width: 20px; height: 20px; object-fit: contain; }
+    .social-link:has(img) {
+      background: rgba(255,255,255,.92);
+      color: #111;
+    }
+    .social-link-vc {
+      background: rgba(255,255,255,.92);
+      color: #111;
+    }
+    .social-link-vc img {
+      width: 22px;
+      height: 22px;
+      filter: none;
+    }
     .skeleton {
       position: relative;
       overflow: hidden;
@@ -483,7 +509,6 @@
         border-radius: 26px;
       }
       .poster-wrap { width: min(230px, 100%); margin: 0 auto; }
-      .sections { grid-template-columns: 1fr; }
       .hero-actions, .icon-actions { display: flex; }
       .icon-actions { align-items: stretch; }
       .plan-action { min-width: 0; flex: 1 1 220px; }
@@ -575,19 +600,17 @@
                   '<p class="status" id="hint"></p>' +
                 '</div>' +
                 '<div class="icon-actions">' +
-                  '<button class="btn btn-main icon-action" id="add-btn" type="button" aria-label="Добавить в базу"><span class="ico">＋</span><span class="label">Добавить в базу</span></button>' +
+                  '<button class="btn btn-main icon-action" id="add-btn" type="button" aria-label="Добавить в базу"><span class="ico">+</span><span class="label">Добавить в базу</span></button>' +
                   '<button class="btn btn-secondary plan-action" id="plan-watch-btn" type="button"><span class="ico">📅</span><span>Запланировать просмотр</span></button>' +
                   '<a class="btn btn-ghost icon-action" href="' + tgMini + '" aria-label="Открыть в Telegram"><span class="ico">↗</span><span class="label">Открыть в Telegram</span></a>' +
                   '<a class="btn btn-ghost icon-action" href="https://www.kinopoisk.ru/film/' + encodeURIComponent(kpId) + '/" target="_blank" rel="noopener" aria-label="Кинопоиск"><span class="ico">КП</span><span class="label">Кинопоиск</span></a>' +
                 '</div>' +
-              '</div>' +
-            '</section>' +
-            '<section class="sections">' +
-              '<div class="panel">' +
-                '<h2>Интересные факты</h2>' +
-                '<ul class="facts-list" id="facts-list">' +
-                  fallbackFacts.map(function (x) { return '<li>' + x + '</li>'; }).join('') +
-                '</ul>' +
+                '<div class="facts-inline">' +
+                  '<div class="facts-inline-title"><span class="emoji">🤔</span><span>Интересные факты</span></div>' +
+                  '<ul class="facts-list" id="facts-list">' +
+                    fallbackFacts.map(function (x) { return '<li>' + x + '</li>'; }).join('') +
+                  '</ul>' +
+                '</div>' +
               '</div>' +
             '</section>' +
           '</main>' +
