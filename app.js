@@ -41,6 +41,12 @@
     return k ? FILM_SHARE_SITE + '/f/' + k : '';
   }
 
+  function cleanPosterUrl(src) {
+    const s = String(src || '');
+    if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
+    return s;
+  }
+
   function consumeKpOpenDeepLink() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -801,7 +807,7 @@
   }
 
   function showScreen(screenId) {
-    ['landing', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
+    ['landing', 'site-search-root', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
@@ -812,8 +818,36 @@
     const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
     document.body.classList.toggle('in-cabinet', inCabinet);
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
+    document.body.classList.toggle('in-search-page', isSearchLocation());
     const hs = document.getElementById('header-search');
     if (hs) hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding'));
+  }
+
+  function getSiteSearchRoot() {
+    let root = document.getElementById('site-search-root');
+    if (root) return root;
+    root = document.createElement('main');
+    root.id = 'site-search-root';
+    root.className = 'hidden';
+    const landing = document.getElementById('landing');
+    if (landing && landing.parentNode) landing.parentNode.insertBefore(root, landing.nextSibling);
+    else document.body.appendChild(root);
+    return root;
+  }
+
+  function showSiteSearchScreen() {
+    ['landing', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+    const root = getSiteSearchRoot();
+    root.classList.remove('hidden');
+    const header = document.getElementById('site-header');
+    if (header) header.classList.remove('hidden');
+    document.body.classList.remove('in-cabinet', 'in-public-stats');
+    document.body.classList.add('in-search-page');
+    const hs = document.getElementById('header-search');
+    if (hs) hs.classList.remove('hidden');
   }
 
   // P4.3: маппинг между разделами кабинета и URL-путями
@@ -844,6 +878,7 @@
   }
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
+  const _searchPathRe = /^\/search(?:\/?)?$/;
   const DEFAULT_DOC_TITLE = typeof document !== 'undefined' && document.title ? document.title : 'Movie Planner';
   function filmIdFromPathname(pathname) {
     if (!pathname) return null;
@@ -854,6 +889,33 @@
   function isFilmPageOpen() {
     const s = document.getElementById('section-film');
     return s && !s.classList.contains('hidden');
+  }
+  function isSearchPath(pathname) {
+    return _searchPathRe.test((pathname || '').replace(/\/$/, '') || '/');
+  }
+  function searchQueryFromLocation() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const spa = params.get('__spa') || '';
+      if (spa) {
+        const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
+        if (isSearchPath(spaUrl.pathname)) return new URLSearchParams(spaUrl.search).get('q') || '';
+      }
+      return params.get('q') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+  function isSearchLocation() {
+    if (isSearchPath(window.location.pathname)) return true;
+    try {
+      const spa = new URLSearchParams(window.location.search).get('__spa') || '';
+      if (!spa) return false;
+      const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
+      return isSearchPath(spaUrl.pathname);
+    } catch (_) {
+      return false;
+    }
   }
   function getFilmRenderRoot() {
     if (isFilmPageOpen()) {
@@ -5930,8 +5992,9 @@
     }
     const top = items.slice(0, 6);
     dd.innerHTML = top.map((it) => {
-      const poster = it.poster || '';
-      const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
+      const poster = cleanPosterUrl(it.poster);
+      const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
+      const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
       const inBase = it.already_in_base_film_id;
       const isPublicSearch = !getToken();
       const actionBtn = isPublicSearch
@@ -5940,10 +6003,10 @@
         ? `<button type="button" class="hs-result-btn hs-btn-open" data-hs-open-film="${escapeHtml(String(inBase))}">Открыть</button>`
         : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}">＋ Добавить</button>`;
       return `<div class="hs-result">
-        ${poster ? `<img class="hs-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="hs-result-poster"></div>'}
+        ${poster ? `<img class="hs-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hs-result-poster',textContent:'🎬'}))">` : '<span class="hs-result-poster">🎬</span>'}
         <div class="hs-result-info">
           <div class="hs-result-title">${escapeHtml(it.title || '')}</div>
-          <div class="hs-result-meta">${escapeHtml(meta)}${inBase ? ' · <span class="hs-in-base">в базе</span>' : ''}</div>
+          <div class="hs-result-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}${inBase ? '<span>·</span><span class="hs-in-base">в базе</span>' : ''}</div>
         </div>
         ${actionBtn}
       </div>`;
@@ -5971,7 +6034,7 @@
     }
     const searchPromise = getToken()
       ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
-      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)), { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6', { method: 'GET', mode: 'cors' }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
@@ -5985,6 +6048,128 @@
       .catch(() => {
         if (seq !== _headerSearchSeq) return;
         if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка сети</div>';
+      });
+  }
+
+  let _siteSearchSeq = 0;
+  function openSiteSearchPage(query, opts) {
+    const q = String(query || '').trim();
+    if (!q) return;
+    try {
+      const url = '/search?q=' + encodeURIComponent(q);
+      if (!(opts && opts.skipHistory)) history.pushState({ view: 'search', q }, '', url);
+    } catch (_) {}
+    renderSiteSearchPage({ q });
+  }
+
+  function renderSiteSearchPage(initial) {
+    const root = getSiteSearchRoot();
+    if (!root) return;
+    showSiteSearchScreen();
+    try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
+    const q = String((initial && initial.q) || '').trim();
+    root.innerHTML = `
+      <section class="site-search-page" id="site-search-page">
+        <div class="site-search-hero">
+          <h1 class="site-search-title">Поиск</h1>
+          <form class="site-search-controls" id="site-search-form">
+            <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
+            <button class="site-search-submit" type="submit">Найти</button>
+          </form>
+          <div class="site-search-filters" id="site-search-filters">
+            <button type="button" class="site-search-filter active" data-search-type="any">Все</button>
+            <button type="button" class="site-search-filter" data-search-type="film">Фильмы</button>
+            <button type="button" class="site-search-filter" data-search-type="series">Сериалы</button>
+            <input class="site-search-year" id="site-search-year-from" inputmode="numeric" placeholder="Год от">
+            <input class="site-search-year" id="site-search-year-to" inputmode="numeric" placeholder="Год до">
+            <input class="site-search-genre" id="site-search-genre" placeholder="Жанр">
+          </div>
+          <div class="site-search-status" id="site-search-status"></div>
+        </div>
+        <div class="site-search-results" id="site-search-results"></div>
+      </section>`;
+    bindSiteSearchPage();
+    if (q.length >= 2) runSiteSearchPage();
+    const input = document.getElementById('site-search-input');
+    if (input) setTimeout(() => input.focus(), 50);
+  }
+
+  function bindSiteSearchPage() {
+    const form = document.getElementById('site-search-form');
+    const filters = document.getElementById('site-search-filters');
+    const input = document.getElementById('site-search-input');
+    let timer = null;
+    function schedule() {
+      clearTimeout(timer);
+      timer = setTimeout(runSiteSearchPage, 260);
+    }
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        runSiteSearchPage();
+      });
+    }
+    if (filters) {
+      filters.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-search-type]');
+        if (!btn) return;
+        filters.querySelectorAll('[data-search-type]').forEach((b) => b.classList.toggle('active', b === btn));
+        runSiteSearchPage();
+      });
+      filters.querySelectorAll('input').forEach((el) => el.addEventListener('input', schedule));
+    }
+    if (input) input.addEventListener('input', schedule);
+  }
+
+  function runSiteSearchPage() {
+    const input = document.getElementById('site-search-input');
+    const results = document.getElementById('site-search-results');
+    const status = document.getElementById('site-search-status');
+    const filters = document.getElementById('site-search-filters');
+    if (!input || !results) return;
+    const q = input.value.trim();
+    if (q.length < 2) {
+      results.innerHTML = '';
+      if (status) status.textContent = 'Введите не менее 2 символов';
+      return;
+    }
+    const typeBtn = filters && filters.querySelector('[data-search-type].active');
+    const type = typeBtn ? typeBtn.getAttribute('data-search-type') : 'any';
+    const yearFrom = (document.getElementById('site-search-year-from') || {}).value || '';
+    const yearTo = (document.getElementById('site-search-year-to') || {}).value || '';
+    const genre = (document.getElementById('site-search-genre') || {}).value || '';
+    const seq = ++_siteSearchSeq;
+    if (status) status.textContent = 'Ищем…';
+    try {
+      history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
+    } catch (_) {}
+    const params = new URLSearchParams({ q: q.slice(0, 80), limit: '36' });
+    if (type && type !== 'any') params.set('type', type);
+    if (yearFrom) params.set('year_from', yearFrom);
+    if (yearTo) params.set('year_to', yearTo);
+    if (genre) params.set('genre', genre);
+    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (seq !== _siteSearchSeq) return;
+        const items = (data && data.items) || [];
+        if (status) status.textContent = items.length ? 'Найдено: ' + items.length : 'Ничего не нашлось';
+        results.innerHTML = items.map((it) => {
+          const poster = cleanPosterUrl(it.poster);
+          const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
+          const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
+          return `<a class="site-search-card" href="${buildFilmShareUrl(it.kp_id)}">
+            ${poster ? `<img class="site-search-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'site-search-poster',textContent:'🎬'}))">` : '<span class="site-search-poster">🎬</span>'}
+            <span>
+              <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
+              <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
+            </span>
+          </a>`;
+        }).join('');
+      })
+      .catch(() => {
+        if (seq !== _siteSearchSeq) return;
+        if (status) status.textContent = 'Ошибка поиска';
       });
   }
 
@@ -6012,9 +6197,7 @@
         const v = input.value.trim();
         if (v.length >= 2) {
           if (dd) dd.classList.add('hidden');
-          openAddFilmModal();
-          const modalInput = document.getElementById('add-film-input');
-          if (modalInput) { modalInput.value = v; runAddFilmSearch(v); }
+          openSiteSearchPage(v);
         }
       }
     });
@@ -6077,9 +6260,7 @@
           e.preventDefault();
           const v = input.value.trim();
           if (dd) dd.classList.add('hidden');
-          openAddFilmModal();
-          const modalInput = document.getElementById('add-film-input');
-          if (modalInput) { modalInput.value = v; runAddFilmSearch(v); }
+          openSiteSearchPage(v);
         }
       });
     }
@@ -8428,6 +8609,11 @@
     // P4.3: History API — кабинет, /film/:id, разделы
     window.addEventListener('popstate', () => {
       if (handleHash()) return;
+      if (isSearchLocation()) {
+        const q = searchQueryFromLocation();
+        renderSiteSearchPage({ q });
+        return;
+      }
       if (!getToken()) return;
       const pathF = filmIdFromPathname(window.location.pathname);
       if (pathF) {
@@ -8507,6 +8693,12 @@
     });
 
     if (!isPublicStats) {
+    if (isSearchLocation()) {
+      const q = searchQueryFromLocation();
+      renderHeader(null);
+      renderSiteSearchPage({ q });
+      return;
+    }
     // Миграция: старый одиночный токен -> одна сессия в списке
     const oldToken = localStorage.getItem('mp_site_token');
     if (!getToken() && oldToken) {

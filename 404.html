@@ -36,12 +36,11 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 24px;
-      background: rgba(7,7,17,.72);
-      backdrop-filter: blur(22px);
-      box-shadow: 0 18px 48px rgba(0,0,0,.28);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
     }
     .logo {
       display: inline-flex;
@@ -127,18 +126,30 @@
     }
     .search-result {
       display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 10px;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 14px;
       align-items: center;
-      padding: 8px;
+      padding: 10px;
       border-radius: 14px;
       text-decoration: none;
       color: #fff;
     }
     .search-result:hover { background: rgba(255,255,255,.08); }
-    .search-result img { width: 42px; height: 58px; border-radius: 8px; object-fit: cover; background: rgba(255,255,255,.08); }
-    .search-result-title { font-weight: 800; }
-    .search-result-meta { margin-top: 3px; color: rgba(244,246,255,.58); font-size: 12px; }
+    .search-result-poster {
+      width: 52px;
+      height: 74px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: rgba(255,255,255,.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(244,246,255,.54);
+      font-size: 24px;
+    }
+    .search-result-title { display: block; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-result-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; color: rgba(244,246,255,.58); font-size: 12px; }
+    .search-result-meta span { display: inline-flex; }
     .header-buttons { display: flex; align-items: center; gap: 10px; }
     .btn-primary {
       min-height: 46px;
@@ -900,6 +911,10 @@
           });
         }
         function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
+        function cleanPoster(src) {
+          var s = String(src || '');
+          return s && s.indexOf('/no-poster') === -1 ? s : '';
+        }
         function render(items) {
           if (!items || !items.length) {
             dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
@@ -907,12 +922,13 @@
             return;
           }
           dd.innerHTML = items.slice(0, 6).map(function (it) {
-            var meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
-            var posterSafe = String(it.poster || '').replace(/"/g, '&quot;');
+            var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
+            var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
+            var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
             return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
-              (posterSafe ? '<img src="' + posterSafe + '" alt="" loading="lazy">' : '<span></span>') +
+              (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy">' : '<span class="search-result-poster">🎬</span>') +
               '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
-              '<span class="search-result-meta">' + escapeText(meta) + '</span></span></a>';
+              '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
           }).join('');
           dd.classList.remove('hidden');
         }
@@ -929,7 +945,7 @@
             controller = window.AbortController ? new AbortController() : null;
             dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
             dd.classList.remove('hidden');
-            fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)), {
+            fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
               method: 'GET',
               mode: 'cors',
               signal: controller ? controller.signal : undefined
@@ -949,8 +965,8 @@
         input.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); }
           if (e.key === 'Enter') {
-            var first = dd.querySelector('a.search-result');
-            if (first) window.location.href = first.href;
+            var q = input.value.trim();
+            if (q.length >= 2) window.location.href = '/search?q=' + encodeURIComponent(q);
           }
         });
         input.addEventListener('focus', function () {
