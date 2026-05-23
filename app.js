@@ -68,6 +68,29 @@
     } catch (_) {}
   }
 
+  function hasAuthEntryDeepLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const kp = params.get('kp_open');
+      return params.get('open_login') === '1' || !!(kp && /^\d+$/.test(kp));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearStaleSiteSession() {
+    try {
+      const tok = getToken();
+      if (tok) removeSessionByToken(tok);
+      localStorage.removeItem('mp_site_token');
+    } catch (_) {}
+  }
+
+  function handleAuthEntryDeepLinks() {
+    consumeKpOpenDeepLink();
+    tryOpenLoginOnlyOverlay();
+  }
+
   function consumeKpOpenDeepLink() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -76,8 +99,9 @@
       const action = (params.get('action') || '').trim();
       params.delete('kp_open');
       params.delete('action');
+      params.delete('open_login');
       const rest = params.toString();
-      const clean = window.location.pathname + (rest ? '?' + rest : '') + window.location.hash;
+      const clean = filmCanonicalPath(null, kp) + (rest ? '?' + rest : '') + window.location.hash;
       history.replaceState({}, '', clean);
       if (!getToken()) {
         sessionStorage.setItem('mp_pending_kp_open', kp);
@@ -85,19 +109,50 @@
         showLoginModalOverlay();
         return;
       }
-      api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
-        .then(function (res) {
-          if (res && res.success && res.film_id) {
-            showScreen('cabinet-readonly');
-            openFilmPage(Number(res.film_id), { replace: true });
-          } else {
-            showToast('Не удалось открыть фильм', { type: 'error' });
-          }
-        })
-        .catch(function () {
-          showToast('Ошибка сети', { type: 'error' });
-        });
+      openFilmPageByKp(kp, { replace: true, action: action });
     } catch (_) {}
+  }
+
+  function openFilmPageByKp(kpId, opts) {
+    const o = opts || {};
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve();
+    if (!getToken()) {
+      sessionStorage.setItem('mp_pending_kp_open', kp);
+      if (o.action) sessionStorage.setItem('mp_pending_kp_action', o.action);
+      showLoginModalOverlay();
+      return Promise.resolve();
+    }
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) {
+      showToast('Страница фильма недоступна');
+      return Promise.resolve();
+    }
+    showScreen('cabinet-readonly');
+    showFilmPageLayout();
+    pageRoot.className = 'container film-page-container film-hero-content loading';
+    pageRoot.innerHTML = 'Загрузка…';
+    setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
+    try {
+      const url = filmCanonicalPath(null, kp);
+      (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', kpId: kp }, '', url);
+    } catch (_) {}
+    return api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+      .then(function (res) {
+        if (!res || !res.success || !res.film_id) {
+          showToast((res && res.error) || 'Не удалось открыть фильм', { type: 'error' });
+          return;
+        }
+        return openFilmPage(Number(res.film_id), {
+          skipHistory: true,
+          replace: true,
+          kpId: kp,
+          pendingAction: o.action || '',
+        });
+      })
+      .catch(function () {
+        showToast('Ошибка сети', { type: 'error' });
+      });
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
@@ -893,8 +948,21 @@
   }
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
+  const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
   const DEFAULT_DOC_TITLE = typeof document !== 'undefined' && document.title ? document.title : 'Movie Planner';
+  function kpIdFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_filmKpPathRe);
+    return m ? m[1] : null;
+  }
+  function filmCanonicalPath(filmId, kpId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (kp) return '/f/' + kp;
+    if (filmId) return '/film/' + filmId;
+    return '/';
+  }
   function filmIdFromPathname(pathname) {
     if (!pathname) return null;
     const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
@@ -1709,8 +1777,10 @@
   function loadMeAndShowCabinet() {
     api('/api/site/me').then((me) => {
       if (!me.success) {
+        if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
         showScreen('landing');
         renderHeader(null);
+        handleAuthEntryDeepLinks();
         return;
       }
       cabinetHasData = !!me.has_data;
@@ -1743,52 +1813,54 @@
       } catch (_) {}
       if (me.has_data) {
         showScreen('cabinet-readonly');
-        loadPlans();
-        loadUnwatched();
-        loadSeries();
-        loadRatings();
+        const params = new URLSearchParams(window.location.search);
+        const pathKp = kpIdFromPathname(window.location.pathname);
+        const queryKp = params.get('kp_open');
+        let pendingKp = null;
+        let pendingAction = '';
         try {
-          const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
           if (pendingKp && /^\d+$/.test(pendingKp)) {
-            const pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
             sessionStorage.removeItem('mp_pending_kp_open');
             sessionStorage.removeItem('mp_pending_kp_action');
-            api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: pendingKp }) })
-              .then(function (res) {
-                if (res && res.success && res.film_id) {
-                  openFilmPage(Number(res.film_id), { replace: true });
-                  if (pendingAction === 'plan') {
-                    setTimeout(function () {
-                      const planBtn = document.querySelector('[data-dropdown-root="plan"] .action-dropdown-btn');
-                      if (planBtn) planBtn.click();
-                      else showSection('plans');
-                    }, 400);
-                  } else if (/^rate([1-9]|10)$/.test(pendingAction)) {
-                    const rating = Number(pendingAction.replace('rate', ''));
-                    setTimeout(function () { setRating(Number(res.film_id), rating); }, 350);
-                  }
-                }
-              })
-              .catch(function () {});
+          } else {
+            pendingKp = null;
           }
         } catch (_) {}
-        tryOpenLoginOnlyOverlay();
-        consumeKpOpenDeepLink();
-        // P4.3: deep-link — страница фильма /film/:id или раздел
-        const pathFid = filmIdFromPathname(window.location.pathname);
-        if (pathFid) {
-          openFilmPage(pathFid, { skipHistory: true, replace: true });
+        const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
+          || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
+          || pendingKp;
+        if (filmKp) {
+          if (queryKp) handleAuthEntryDeepLinks();
+          else {
+            openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+          }
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
         } else {
-          const deepSection = sectionFromPath(window.location.pathname);
-          if (deepSection) {
-            showSection(deepSection, { replace: true, skipPush: false });
-            if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
-            if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
-            if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
-            if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
-            if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+          handleAuthEntryDeepLinks();
+          const pathFid = filmIdFromPathname(window.location.pathname);
+          if (pathFid) {
+            openFilmPage(pathFid, { skipHistory: true, replace: true });
           } else {
-            showSection('home', { replace: true });
+            const deepSection = sectionFromPath(window.location.pathname);
+            if (deepSection) {
+              showSection(deepSection, { replace: true, skipPush: false });
+              if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
+              if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+              if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+              if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
+              if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+            } else {
+              showSection('home', { replace: true });
+            }
           }
         }
         // Если открыта вкладка статистики — перезагрузить её
@@ -1811,7 +1883,34 @@
         if (deepSection) showSection(deepSection, { replace: true });
         else showSection('onboard-main', { replace: true });
         try { bindHomeSectionNavOnce(); bindPlansGotoOnce(); bindOnboardingActionsOnce(); } catch (_) {}
+        const onboardParams = new URLSearchParams(window.location.search);
+        const onboardQueryKp = onboardParams.get('kp_open');
+        let onboardPendingKp = null;
+        let onboardPendingAction = '';
+        try {
+          onboardPendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          onboardPendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
+          if (onboardPendingKp && /^\d+$/.test(onboardPendingKp)) {
+            sessionStorage.removeItem('mp_pending_kp_open');
+            sessionStorage.removeItem('mp_pending_kp_action');
+          } else {
+            onboardPendingKp = null;
+          }
+        } catch (_) {}
+        const onboardPathKp = kpIdFromPathname(window.location.pathname);
+        const onboardFilmKp = (onboardPathKp && /^\d+$/.test(onboardPathKp) ? onboardPathKp : null)
+          || (onboardQueryKp && /^\d+$/.test(onboardQueryKp) ? onboardQueryKp : null)
+          || onboardPendingKp;
+        if (onboardFilmKp) {
+          if (onboardQueryKp) handleAuthEntryDeepLinks();
+          else openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
+        }
       }
+    }).catch(function () {
+      if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
+      showScreen('landing');
+      renderHeader(null);
+      handleAuthEntryDeepLinks();
     });
   }
 
@@ -8847,7 +8946,7 @@
     } else {
       showScreen('landing');
       renderHeader(null);
-      tryOpenLoginOnlyOverlay();
+      handleAuthEntryDeepLinks();
     }
     }
 

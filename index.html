@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260522filmpage">
+    <link rel="stylesheet" href="style-v2.css?v=20260523filmauth">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -114,10 +114,11 @@
         <div class="header-buttons">
           <button type="button" class="btn-primary" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
-            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
               <span class="header-profile-name" id="header-profile-name"></span>
             </button>
+            <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <div class="header-util-row" id="header-util-row">
               <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
                 <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
@@ -479,13 +480,11 @@
                         <div class="cabinet-user-name" id="cabinet-user-name">Профиль</div>
                     </div>
                 </div>
-                <div class="cabinet-profile-switcher" id="cabinet-profile-switcher">
-                    <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" aria-haspopup="true" aria-expanded="false">
+                <div class="cabinet-profile-switcher hidden" id="cabinet-profile-switcher" aria-hidden="true">
+                    <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" tabindex="-1" aria-hidden="true">
                         <span class="cabinet-profile-emoji" id="cabinet-profile-emoji"></span>
                         <span class="cabinet-profile-name" id="cabinet-profile-name">Личный</span>
-                        <span class="cabinet-profile-caret">▾</span>
                     </button>
-                    <div class="cabinet-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
                 </div>
             </div>
             <div class="cabinet-nav">
@@ -1309,6 +1308,6 @@
 
     </div><!-- /content-wrapper -->
     <script src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <script src="app.js?v=20260522filmpage"></script>
+    <script src="app.js?v=20260523filmauth"></script>
 </body>
 </html>
