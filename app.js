@@ -868,11 +868,10 @@
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">Перейти</div>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="tv">📺 Телевизор</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="stats">📊 Статистика</button>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="developer">🔌 API и нейросети</button>';
+    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">🔌 Интеграции</button>';
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>';
     topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
     topNav += '<div class="header-dropdown-divider"></div>';
@@ -902,6 +901,7 @@
         if (go === 'shazam') { showSection('shazam'); return; }
         if (go === 'about') { showSection('about'); return; }
         if (go === 'developer') { showSection('developer'); return; }
+        if (go === 'integrations') { showSection('integrations'); return; }
         if (go === 'settings') { showSection('settings'); if (typeof renderSettingsSection === 'function') renderSettingsSection(); }
       });
     });
@@ -1015,6 +1015,7 @@
     stats: '/stats',
     premieres: '/premieres',
     groups: '/groups',
+    integrations: '/integrations',
     tv: '/tv',
     about: '/about',
     settings: '/settings',
@@ -1460,6 +1461,17 @@
     if (rendered && sectionId === 'developer') {
       try {
         if (typeof renderDeveloperSection === 'function') renderDeveloperSection();
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'integrations') {
+      try {
+        document.querySelectorAll('#section-integrations [data-int-go]').forEach((btn) => {
+          btn.onclick = () => {
+            const go = btn.getAttribute('data-int-go');
+            if (go === 'developer') { showSection('developer'); return; }
+            if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); }
+          };
+        });
       } catch (_) {}
     }
     if (rendered && sectionId === 'inbox') {
@@ -5995,14 +6007,16 @@
 
   function loadFilmFriendsSocial(film) {
     if (!film || !film.kp_id) return;
-    api(`/api/friends/film/${film.kp_id}/social`).then((social) => {
+    const kpNorm = String(film.kp_id).replace(/\D/g, '');
+    if (!kpNorm) return;
+    api(`/api/friends/film/${encodeURIComponent(kpNorm)}/social`).then((social) => {
       const el = document.getElementById('film-friends-social-block');
       if (!el) return;
       const watchers = (social && social.watchers) || [];
       if (!watchers.length) return;
       el.innerHTML = `
         <div class="film-modal-section">
-          <h3>👥 Друзья смотрели (${watchers.length})</h3>
+          <h3>👥 Оценки друзей (${watchers.length})</h3>
           <div style="display:flex;flex-direction:column;gap:6px">
             ${watchers.map((w) => `
               <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.06);border-radius:8px">
@@ -7488,25 +7502,12 @@
           <input type="text" id="profile-import-kp" placeholder="Ссылка на профиль Кинопоиска или ID" autocomplete="off">
           <button type="submit" class="btn btn-primary">Импортировать оценки</button>
         </form>
+        <div id="profile-import-progress" class="profile-import-progress hidden"></div>
         <p class="profile-settings-status" id="profile-import-status"></p>
-        </div>
-        <div class="settings-block" id="settings-api-token-block">
-        <div class="header-dropdown-title" style="margin-top:0">Для разработчиков и нейросетей</div>
-        <p class="cabinet-hint" style="margin-bottom:10px;line-height:1.45">
-        Тот же ключ, что использует этот кабинет. Полный экран — вкладка <b>«Нейросети»</b> внизу. Укажите в ИИ или curl заголовок
-        <code style="font-size:12px">Authorization: Bearer …</code>. Не публикуйте токен.
-        </p>
-        <p class="muted small" style="margin-bottom:8px">Адрес API: <code id="settings-api-base" style="font-size:12px"></code></p>
-        <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
-        <button type="button" class="settings-row" id="settings-copy-api-token">🔑 Скопировать токен</button>
-        <a href="${API_BASE}/developer" class="settings-row" rel="noopener">Документация и OAuth</a>
-        <a href="${API_BASE}/integration" class="settings-row" rel="noopener">Страница токена (как в браузере)</a>
-        </div>
-        <p class="muted small" id="settings-api-token-hint" style="margin-top:8px"></p>
         </div>
         <div class="settings-block settings-list">
         <button type="button" class="settings-row" data-sets-go="home-layout">🏠 Настроить главную</button>
-        <button type="button" class="settings-row" data-sets-go="tv">📺 Телевизор</button>
+        <button type="button" class="settings-row" data-sets-go="integrations">🔌 Интеграции</button>
         <button type="button" class="settings-row" data-sets-go="groups">Друзья и группы</button>
         <a href="#" class="settings-row" id="settings-app-apk" target="_blank" rel="noopener">Скачать Android-приложение (APK)</a>
         </div>
@@ -7530,6 +7531,7 @@
         btn.addEventListener('click', () => {
           const g = btn.getAttribute('data-sets-go');
           if (g === 'home-layout') { openHomeLayoutModal(); return; }
+          if (g === 'integrations') { showSection('integrations'); }
           if (g === 'tv') { showSection('tv'); if (renderTvSection) renderTvSection(); }
           if (g === 'groups') { showSection('groups'); if (renderGroupsSection) renderGroupsSection(); }
         });
@@ -7537,8 +7539,93 @@
       const baseEl = document.getElementById('settings-api-base');
       const copyBtn = document.getElementById('settings-copy-api-token');
       const hintEl = document.getElementById('settings-api-token-hint');
-      wireApiAccessCopy(copyBtn, hintEl, baseEl);
+      if (copyBtn && hintEl && baseEl) wireApiAccessCopy(copyBtn, hintEl, baseEl);
     }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
+  }
+
+  let _profileImportPoll = null;
+
+  function stopProfileImportPoll() {
+    if (_profileImportPoll) {
+      clearInterval(_profileImportPoll);
+      _profileImportPoll = null;
+    }
+  }
+
+  function kpImportProgressLabel(job) {
+    if (!job) return '';
+    const imported = Number(job.imported || 0);
+    const skipped = Number(job.skipped || 0);
+    const processed = Number(job.processed || 0);
+    const target = Number(job.target || 0);
+    if (job.status === 'running') {
+      if (job.phase === 'loading' && processed === 0) return 'Загружаем оценки с Кинопоиска…';
+      return 'Обработано ' + processed + ' из ' + target + ' · добавлено ' + imported + ', пропущено ' + skipped;
+    }
+    if (job.status === 'done') {
+      return 'Готово: добавлено ' + imported + (skipped ? ', пропущено ' + skipped + ' (уже в профиле)' : '');
+    }
+    if (job.status === 'error') return job.error || 'Не удалось завершить импорт';
+    return '';
+  }
+
+  function renderProfileImportProgress(root, job) {
+    const host = root.querySelector('#profile-import-progress');
+    const importStatus = root.querySelector('#profile-import-status');
+    const btn = root.querySelector('#profile-import-form button[type="submit"]');
+    const input = root.querySelector('#profile-import-kp');
+    const running = job && job.status === 'running';
+    if (btn) {
+      btn.disabled = !!running;
+      btn.textContent = running ? 'Импорт…' : 'Импортировать оценки';
+    }
+    if (input) input.disabled = !!running;
+    if (!host) return;
+    if (!job || !job.status) {
+      host.classList.add('hidden');
+      host.innerHTML = '';
+      if (importStatus && !importStatus.textContent) importStatus.className = 'profile-settings-status';
+      return;
+    }
+    const target = Math.max(1, Number(job.target || 1));
+    const processed = Number(job.processed || 0);
+    const pct = job.status === 'running' ? Math.min(100, Math.round((processed / target) * 100)) : 100;
+    const indeterminate = job.status === 'running' && processed === 0;
+    const label = kpImportProgressLabel(job);
+    host.classList.remove('hidden');
+    host.innerHTML =
+      '<div class="profile-import-progress-track">' +
+      '<div class="profile-import-progress-fill' + (indeterminate ? ' indeterminate' : '') + '" style="width:' + (indeterminate ? '35' : pct) + '%"></div>' +
+      '</div>' +
+      (label ? '<p class="profile-import-progress-label' + (job.status === 'error' ? ' error' : job.status === 'done' ? ' success' : '') + '">' + escapeHtml(label) + '</p>' : '');
+    if (importStatus) {
+      importStatus.textContent = '';
+      importStatus.className = 'profile-settings-status';
+    }
+  }
+
+  function pollProfileImportProgress(root) {
+    api('/api/miniapp/ratings/import-status').then((s) => {
+      if (!s || !s.success) return;
+      const job = s.job || null;
+      renderProfileImportProgress(root, job);
+      if (job && job.status === 'running') return;
+      stopProfileImportPoll();
+    }).catch(() => {});
+  }
+
+  function startProfileImportPoll(root) {
+    stopProfileImportPoll();
+    pollProfileImportProgress(root);
+    _profileImportPoll = setInterval(() => pollProfileImportProgress(root), 1200);
+  }
+
+  function resumeProfileImportPollIfNeeded(root) {
+    api('/api/miniapp/ratings/import-status').then((s) => {
+      if (!s || !s.success || !s.job || s.job.status !== 'running') return;
+      renderProfileImportProgress(root, s.job);
+      startProfileImportPoll(root);
+    }).catch(() => {});
   }
 
   function bindProfileSettingsControls(root) {
@@ -7657,6 +7744,7 @@
       });
     });
     const importForm = root.querySelector('#profile-import-form');
+    resumeProfileImportPollIfNeeded(root);
     if (importForm) {
       importForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -7664,24 +7752,43 @@
         const importStatus = root.querySelector('#profile-import-status');
         const raw = input ? input.value.trim() : '';
         if (!raw) {
-          if (importStatus) importStatus.textContent = 'Вставьте ссылку или ID профиля.';
+          if (importStatus) {
+            importStatus.textContent = 'Вставьте ссылку или ID профиля.';
+            importStatus.className = 'profile-settings-status error';
+          }
           return;
         }
-        const btn = importForm.querySelector('button[type="submit"]');
-        if (btn) { btn.disabled = true; btn.textContent = 'Импортируем…'; }
+        renderProfileImportProgress(root, {
+          status: 'running',
+          target: 1500,
+          processed: 0,
+          imported: 0,
+          skipped: 0,
+          phase: 'starting',
+        });
         api('/api/miniapp/ratings/import-kinopoisk', {
           method: 'POST',
           body: JSON.stringify({ kp_input: raw, max_count: 1500 }),
         }).then((r) => {
-          if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
           if (!r || !r.success) {
-            if (importStatus) { importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт'; importStatus.className = 'profile-settings-status error'; }
+            renderProfileImportProgress(root, null);
+            const btn = importForm.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
+            if (importStatus) {
+              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
+              importStatus.className = 'profile-settings-status error';
+            }
             return;
           }
-          if (importStatus) { importStatus.textContent = 'Импорт запущен. Оценки появятся в базе через пару минут, монетки начислятся автоматически.'; importStatus.className = 'profile-settings-status success'; }
+          startProfileImportPoll(root);
         }).catch(() => {
+          renderProfileImportProgress(root, null);
+          const btn = importForm.querySelector('button[type="submit"]');
           if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
-          if (importStatus) { importStatus.textContent = 'Ошибка сети'; importStatus.className = 'profile-settings-status error'; }
+          if (importStatus) {
+            importStatus.textContent = 'Ошибка сети';
+            importStatus.className = 'profile-settings-status error';
+          }
         });
       });
     }

@@ -5125,6 +5125,42 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 }
 .profile-settings-status.success { color: #6ee7a8; }
 .profile-settings-status.error { color: #ff6b8a; }
+.profile-import-progress {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.profile-import-progress.hidden { display: none; }
+.profile-import-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.profile-import-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ff2d7b, #ff6b9d);
+  transition: width 0.25s ease;
+}
+.profile-import-progress-fill.indeterminate {
+  width: 35% !important;
+  animation: profile-import-indeterminate 1.1s ease-in-out infinite;
+}
+@keyframes profile-import-indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+.profile-import-progress-label {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted, #999);
+}
+.profile-import-progress-label.success { color: #6ee7a8; }
+.profile-import-progress-label.error { color: #ff6b8a; }
 .profile-searchable-toggle {
   display: flex;
   align-items: flex-start;
