@@ -2,6 +2,26 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <script>
+    (function () {
+      var m = (location.pathname || '').match(/^\/f\/(\d+)\/?$/);
+      if (!m) return;
+      var kp = m[1];
+      var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+      var page = location.origin + '/f/' + kp;
+      var api = 'https://api.movie-planner.ru/f/' + kp;
+      document.write(
+        '<meta property="og:type" content="video.movie">' +
+        '<meta property="og:url" content="' + page + '">' +
+        '<meta property="og:site_name" content="Movie Planner">' +
+        '<meta property="og:image" content="' + poster + '">' +
+        '<meta property="og:title" content="Фильм · Movie Planner">' +
+        '<meta name="twitter:card" content="summary_large_image">' +
+        '<meta name="twitter:image" content="' + poster + '">' +
+        '<link rel="canonical" href="' + api + '">'
+      );
+    })();
+  </script>
   <title>Movie Planner</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
@@ -580,6 +600,11 @@
 
       var kpId = filmMatch[1];
 
+      // Ссылки на магазины приложения (пустая строка = не открывать магазин, только закрыть баннер).
+      var MP_APP_STORE_URL_IOS = '';
+      var MP_APP_STORE_URL_ANDROID = '';
+      var MP_ANDROID_APP_PACKAGE = 'com.movie_planner';
+
       function sessionsEarly() {
         try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
       }
@@ -1041,19 +1066,81 @@
         banner.classList.remove('hidden');
         var openBtn = document.getElementById('app-open-btn');
         var dismissBtn = document.getElementById('app-dismiss-btn');
-        var appUrl = 'movieplanner://film/' + kpId;
-        var androidIntent = 'intent://film/' + kpId + '#Intent;scheme=movieplanner;package=ru.movieplanner.mobile;end';
+        var deepLink = 'movieplanner://film/' + kpId;
+
+        function dismissBanner() {
+          try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
+          banner.classList.add('hidden');
+        }
+
+        function tryOpenNativeApp() {
+          var isAndroid = /Android/i.test(ua);
+          var isIOS = /iPhone|iPad|iPod/i.test(ua);
+          if (!isAndroid && !isIOS) {
+            dismissBanner();
+            return;
+          }
+          var storeUrl = (isAndroid ? MP_APP_STORE_URL_ANDROID : MP_APP_STORE_URL_IOS) || '';
+          storeUrl = String(storeUrl).trim();
+          var opened = false;
+          var fallbackTimer = null;
+
+          function cleanup() {
+            document.removeEventListener('visibilitychange', onPageHide);
+            window.removeEventListener('pagehide', onPageHide);
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+          }
+
+          function onPageHide() {
+            if (document.hidden) {
+              opened = true;
+              cleanup();
+            }
+          }
+
+          function onFallback() {
+            if (opened || document.hidden) {
+              cleanup();
+              return;
+            }
+            cleanup();
+            dismissBanner();
+            if (storeUrl) window.location.href = storeUrl;
+          }
+
+          document.addEventListener('visibilitychange', onPageHide);
+          window.addEventListener('pagehide', onPageHide);
+          fallbackTimer = setTimeout(onFallback, 2200);
+
+          if (isAndroid) {
+            var intent = 'intent://film/' + encodeURIComponent(kpId)
+              + '#Intent;scheme=movieplanner;package=' + encodeURIComponent(MP_ANDROID_APP_PACKAGE) + ';';
+            if (storeUrl) intent += 'S.browser_fallback_url=' + encodeURIComponent(storeUrl) + ';';
+            intent += 'end';
+            window.location.href = intent;
+            return;
+          }
+
+          var iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.setAttribute('aria-hidden', 'true');
+          iframe.src = deepLink;
+          document.body.appendChild(iframe);
+          setTimeout(function () {
+            try { iframe.remove(); } catch (_e) {}
+          }, 1800);
+          setTimeout(function () {
+            if (!opened && !document.hidden) window.location.href = deepLink;
+          }, 120);
+        }
+
         if (openBtn) {
           openBtn.addEventListener('click', function () {
-            if (/Android/i.test(ua)) window.location.href = androidIntent;
-            else window.location.href = appUrl;
+            tryOpenNativeApp();
           });
         }
         if (dismissBtn) {
-          dismissBtn.addEventListener('click', function () {
-            try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
-            banner.classList.add('hidden');
-          });
+          dismissBtn.addEventListener('click', dismissBanner);
         }
       }
       function bindPublicFilmToolbar() {
