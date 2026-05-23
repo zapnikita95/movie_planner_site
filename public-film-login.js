@@ -2,7 +2,80 @@
   'use strict';
 
   var TELEGRAM_BOT_ID = '8554485843';
+  var TELEGRAM_BOT_USERNAME = 'movie_planner_bot';
   var cfg = { kpId: '', apiBase: 'https://api.movie-planner.ru', onSuccess: function () {} };
+  var pfBotPoll = null;
+  var pfBotDeepLink = null;
+
+  function stopPfBotPoll() {
+    if (pfBotPoll) {
+      clearInterval(pfBotPoll);
+      pfBotPoll = null;
+    }
+  }
+
+  function pollPfBotOnce(code, statusEl) {
+    return fetch(cfg.apiBase + '/api/auth/telegram-mobile/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (checkData) {
+        if (checkData.success && checkData.verified === false) return false;
+        if (!checkData.success || !checkData.access) {
+          if (checkData.error === 'expired') {
+            stopPfBotPoll();
+            setStatus(statusEl, 'Время истекло — нажмите 🤖 ещё раз', 'error');
+          }
+          return false;
+        }
+        stopPfBotPoll();
+        return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access: checkData.access }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (exchangeData) {
+            if (exchangeData.success && exchangeData.token) {
+              finishLogin(exchangeData);
+              setStatus(statusEl, 'Готово', 'success');
+              return true;
+            }
+            setStatus(statusEl, exchangeData.error || 'Не удалось создать сессию', 'error');
+            return true;
+          });
+      });
+  }
+
+  function startPfBotAuth(statusEl, botPanel) {
+    stopPfBotPoll();
+    pfBotDeepLink = null;
+    if (botPanel) botPanel.classList.remove('hidden');
+    setStatus(statusEl, 'Открываем Telegram…');
+    fetch(cfg.apiBase + '/api/auth/telegram-mobile/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (startData) {
+        if (!startData.success || !startData.code) {
+          setStatus(statusEl, 'Не удалось начать вход через бота', 'error');
+          return;
+        }
+        var code = String(startData.code);
+        pfBotDeepLink = startData.deep_link
+          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(code));
+        try { global.open(pfBotDeepLink, '_blank', 'noopener'); } catch (_e) {}
+        setStatus(statusEl, 'Нажмите Start в боте — войдём автоматически');
+        pfBotPoll = setInterval(function () {
+          pollPfBotOnce(code, statusEl).catch(function () {});
+        }, 2500);
+        pollPfBotOnce(code, statusEl).catch(function () {});
+      })
+      .catch(function () { setStatus(statusEl, 'Ошибка сети', 'error'); });
+  }
 
   function injectModal() {
     if (document.getElementById('public-login-modal')) return;
@@ -24,7 +97,7 @@
             '<button type="button" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap" id="pf-login-telegram" title="Telegram" aria-label="Telegram">' +
               '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
             '</button>' +
-            '<button type="button" class="login-oauth-btn login-oauth-bot" id="pf-login-bot-toggle" aria-expanded="false" aria-controls="pf-login-bot-panel" title="Код из бота" aria-label="Код из бота">🤖</button>' +
+            '<button type="button" class="login-oauth-btn login-oauth-bot" id="pf-login-bot-toggle" title="Войти через Telegram-бота" aria-label="Войти через Telegram-бота">🤖</button>' +
           '</div>' +
           '<label class="login-oauth-privacy">' +
             '<input type="checkbox" id="pf-login-privacy"/>' +
@@ -32,12 +105,9 @@
           '</label>' +
           '<div class="login-privacy-hint" id="pf-login-privacy-hint">Отметьте согласие для Google, Яндекс и Telegram.</div>' +
           '<div id="pf-login-bot-panel" class="login-bot-panel hidden">' +
-            '<form id="pf-login-code-form" class="login-bot-form">' +
-              '<input type="text" id="pf-login-code" name="code" placeholder="Код из бота" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-bot-code-input">' +
-              '<button type="submit" class="modal-button modal-button-primary login-bot-submit">Войти</button>' +
-            '</form>' +
+            '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
             '<p class="login-status" id="pf-login-status"></p>' +
-            '<a href="https://t.me/movie_planner_bot?start=code" class="login-bot-tg-link" target="_blank" rel="noopener">Открыть бота</a>' +
+            '<button type="button" class="modal-button modal-button-secondary login-bot-reopen" id="pf-login-bot-reopen">Открыть бота ещё раз</button>' +
           '</div>' +
           '<div class="login-email-section">' +
             '<div class="login-email-caption">Войти по почте</div>' +
@@ -216,35 +286,19 @@
 
     var botToggle = $('pf-login-bot-toggle');
     var botPanel = $('pf-login-bot-panel');
-    if (botToggle && botPanel) {
+    var botReopen = $('pf-login-bot-reopen');
+    if (botToggle) {
       botToggle.addEventListener('click', function () {
-        botPanel.classList.toggle('hidden');
-        botToggle.setAttribute('aria-expanded', botPanel.classList.contains('hidden') ? 'false' : 'true');
+        startPfBotAuth($('pf-login-status'), botPanel);
       });
     }
-
-    var codeForm = $('pf-login-code-form');
-    if (codeForm) {
-      codeForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var code = (($('pf-login-code') && $('pf-login-code').value) || '').trim().toUpperCase();
-        if (!code) { setStatus($('pf-login-status'), 'Введите код', 'error'); return; }
-        setStatus($('pf-login-status'), 'Проверка…');
-        fetch(cfg.apiBase + '/api/site/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: code }),
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (d.success && d.token) {
-              finishLogin(d);
-              setStatus($('pf-login-status'), 'Готово', 'success');
-            } else {
-              setStatus($('pf-login-status'), d.error || 'Неверный код', 'error');
-            }
-          })
-          .catch(function () { setStatus($('pf-login-status'), 'Ошибка сети', 'error'); });
+    if (botReopen) {
+      botReopen.addEventListener('click', function () {
+        if (pfBotDeepLink) {
+          try { global.open(pfBotDeepLink, '_blank', 'noopener'); } catch (_e) {}
+        } else {
+          startPfBotAuth($('pf-login-status'), botPanel);
+        }
       });
     }
 
@@ -338,6 +392,7 @@
   }
 
   function close() {
+    stopPfBotPoll();
     var modal = $('public-login-modal');
     if (modal) {
       modal.classList.add('hidden');

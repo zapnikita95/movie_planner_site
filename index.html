@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="style-v2.css?v=20260523filmauth">
+    <link rel="stylesheet" href="style-v2.css?v=20260523staff">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -160,7 +160,7 @@
               <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
               <div id="login-tg-widget-mount" class="login-tg-widget-mount"></div>
             </button>
-            <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" aria-expanded="false" aria-controls="login-bot-panel" title="Код из бота" aria-label="Код из бота">🤖</button>
+            <button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" title="Войти через Telegram-бота" aria-label="Войти через Telegram-бота">🤖</button>
           </div>
 
           <label class="login-oauth-privacy">
@@ -170,12 +170,9 @@
           <div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы войти через Google, Яндекс или Telegram.</div>
 
           <div id="login-bot-panel" class="login-bot-panel hidden">
-            <form id="login-form" class="login-bot-form">
-              <input type="text" id="login-code" name="code" placeholder="Код из бота" maxlength="12" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-bot-code-input">
-              <button type="submit" class="modal-button modal-button-primary login-bot-submit">Войти</button>
-            </form>
+            <p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>
             <p class="login-status" id="login-status"></p>
-            <a href="https://t.me/movie_planner_bot?start=code" class="login-bot-tg-link" target="_blank" rel="noopener">Открыть бота</a>
+            <button type="button" class="modal-button modal-button-secondary login-bot-reopen" id="login-bot-reopen">Открыть бота ещё раз</button>
           </div>
 
           <div class="login-email-section">

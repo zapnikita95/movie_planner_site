@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260523filmoverlay">
+  <link rel="stylesheet" href="/style-v2.css?v=20260523filmpage">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -51,26 +51,36 @@
       position: sticky;
       top: 14px;
       z-index: 20;
-      padding: 0;
-      background: transparent;
-      border: 0;
-      border-bottom: 0;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      box-shadow: none;
+      padding: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-bottom: 0 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+    }
+    header#site-header {
+      background: transparent !important;
+      border: 0 !important;
+      padding: 0 !important;
     }
     .header-content {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr minmax(280px, 560px) 1fr;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
+      gap: clamp(12px, 2vw, 20px);
+      max-width: 1180px;
+      margin: 0 auto;
       padding: 0;
       border: 0;
       border-radius: 0;
-      background: transparent;
+      background: transparent !important;
       box-shadow: none;
     }
     .logo {
+      grid-column: 1;
+      justify-self: start;
+      min-width: 0;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -79,15 +89,22 @@
       font-weight: 800;
       letter-spacing: -.04em;
     }
+    .header-buttons {
+      grid-column: 3;
+      justify-self: end;
+      flex-shrink: 0;
+    }
     .logo img { width: 34px; height: 34px; border-radius: 10px; }
     .header-search {
       --search-left-lane: 52px;
       --search-right-lane: 72px;
+      grid-column: 2;
       position: relative;
-      flex: 1 1 420px;
-      max-width: 560px;
-      min-width: 220px;
-      margin: 0 18px;
+      justify-self: stretch;
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      margin: 0 !important;
     }
     .header-search-icon {
       position: absolute;
@@ -226,6 +243,10 @@
     }
     .poster-wrap,
     .hero-content { position: relative; z-index: 1; }
+    .hero-content {
+      min-width: 0;
+      overflow: hidden;
+    }
     .poster {
       width: 100%;
       aspect-ratio: 2 / 3;
@@ -239,7 +260,7 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
-      margin-bottom: 14px;
+      margin: 14px 0 0;
     }
     .chip {
       display: inline-flex;
@@ -263,11 +284,54 @@
       letter-spacing: -.07em;
     }
     .description {
-      margin: 20px 0 0;
+      margin: 16px 0 0;
       max-width: 760px;
       color: rgba(244,246,255,.78);
       font-size: clamp(16px, 1.7vw, 20px);
       line-height: 1.6;
+    }
+    .film-page-toolbar .film-icon-btn.is-active .film-icon-label {
+      max-width: 0 !important;
+      opacity: 0 !important;
+      margin-left: 0 !important;
+    }
+    .movie-page .film-icon-btn.is-active,
+    .movie-page .film-icon-btn.is-active:hover,
+    .movie-page .film-icon-btn.is-active:focus-visible {
+      width: 58px !important;
+      min-width: 58px !important;
+      padding: 0 !important;
+    }
+    .film-toolbar-expand {
+      padding: 12px 0 0;
+      background: transparent !important;
+      border: 0 !important;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .film-toolbar-facts-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      max-width: 760px;
+      width: 100%;
+    }
+    .film-toolbar-facts-list li {
+      position: relative;
+      padding-left: 18px;
+      color: rgba(244,246,255,.78);
+      font-size: 14.5px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .film-toolbar-facts-list li::before {
+      content: "•";
+      position: absolute;
+      left: 4px;
+      color: rgba(236,72,153,.78);
     }
     .hero-actions {
       margin-top: 26px;
@@ -540,8 +604,21 @@
     @media (max-width: 860px) {
       .page-shell { padding: 14px 12px 32px; }
       #site-header { top: 8px; margin-bottom: 12px; }
-      .header-content { flex-wrap: wrap; }
-      .header-search { order: 3; max-width: none; flex-basis: 100%; margin: 8px 0 0; min-width: 0; }
+      .header-content {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+          "logo login"
+          "search search";
+      }
+      .logo { grid-area: logo; }
+      .header-buttons { grid-area: login; }
+      .header-search {
+        grid-area: search;
+        justify-self: stretch;
+        width: 100%;
+        max-width: none;
+        margin: 8px 0 0 !important;
+      }
       .header-search-input {
         min-height: 40px;
         padding-top: 0;
@@ -660,8 +737,8 @@
             '<section class="hero">' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
               '<div class="hero-content">' +
-                '<div class="eyebrow" id="chips"><span class="chip skeleton" id="genre-chip">жанр</span></div>' +
                 '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
+                '<div class="eyebrow" id="chips"></div>' +
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
@@ -779,6 +856,22 @@
           return r.json();
         });
       }
+      function renderGenreChips(genresStr, isSeries) {
+        var container = document.getElementById('chips');
+        if (!container) return;
+        container.innerHTML = '';
+        var parts = String(genresStr || '')
+          .split(/[,;/|]+/)
+          .map(function (s) { return s.trim(); })
+          .filter(Boolean);
+        if (!parts.length) parts = [isSeries ? 'сериал' : 'фильм'];
+        parts.slice(0, 8).forEach(function (label) {
+          var chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = label;
+          container.appendChild(chip);
+        });
+      }
       function renderFacts(items) {
         var list = document.getElementById('facts-list');
         if (!list) return;
@@ -822,16 +915,12 @@
           var title = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
-          var gEl = document.getElementById('genre-chip');
           if (tEl) tEl.textContent = title;
           if (dEl) {
             dEl.textContent = f.description || 'Откройте фильм в Movie Planner.';
             dEl.classList.remove('skeleton');
           }
-          if (gEl) {
-            gEl.textContent = f.genres || (f.is_series ? 'сериал' : 'фильм');
-            gEl.classList.remove('skeleton');
-          }
+          renderGenreChips(f.genres, f.is_series);
           if (f.poster_url) {
             var pEl = document.getElementById('poster');
             if (pEl) pEl.src = f.poster_url;
@@ -860,6 +949,7 @@
           })
           .catch(function () { renderFacts(fallbackFacts); return fallbackFacts; });
       }
+      loadFacts();
 
       function ensureFilm() {
         return fetch(apiBase + '/api/site/add-film', {
@@ -1149,7 +1239,6 @@
         var shareBtn = document.getElementById('share-film-btn');
         var ratingPanel = document.getElementById('rating-expand-panel');
         var factsPanel = document.getElementById('facts-expand-panel');
-        var factsLoaded = false;
         function togglePanel(btn, panel) {
           if (!btn || !panel) return;
           var open = !panel.classList.contains('hidden');
@@ -1172,11 +1261,7 @@
         }
         if (factsToggle) {
           factsToggle.addEventListener('click', function () {
-            var willOpen = factsPanel && factsPanel.classList.contains('hidden');
             togglePanel(factsToggle, factsPanel);
-            if (!willOpen || factsLoaded) return;
-            factsLoaded = true;
-            loadFacts();
           });
         }
         if (shareBtn) {

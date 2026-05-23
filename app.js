@@ -1052,6 +1052,291 @@
     const m = p.match(_filmPathRe);
     return m ? parseInt(m[1], 10) : null;
   }
+  const _staffPathRe = /^\/s\/(\d+)(?:\/?)?$/;
+  let _staffPageKpId = null;
+
+  function staffIdFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_staffPathRe);
+    return m ? m[1] : null;
+  }
+
+  function filterPersonFilmsSite(films, state) {
+    const st = state || {};
+    const genreL = String(st.genre || '').trim().toLowerCase();
+    const yearExact = st.year != null && st.year !== '' ? parseInt(st.year, 10) : null;
+    return (films || []).filter(function (f) {
+      if (!f || !f.kp_id) return false;
+      const yr = f.year != null ? parseInt(f.year, 10) : null;
+      if (yearExact != null && yr !== yearExact) return false;
+      if (genreL) {
+        const gblob = (f.genres || []).join(' ').toLowerCase();
+        if (!gblob.includes(genreL)) return false;
+      }
+      if (st.mainRolesOnly) {
+        const cr = f.cast_rank;
+        if (cr == null || parseInt(cr, 10) > 3) return false;
+      }
+      if (st.friendsRatedOnly) {
+        if (!f.friend_rated_high) return false;
+        if (f.watched || f.has_rating) return false;
+      }
+      return true;
+    });
+  }
+
+  function bindStaffCastLinks(root) {
+    if (!root) return;
+    let hoverEl = document.getElementById('staff-hover-preview');
+    if (!hoverEl) {
+      hoverEl = document.createElement('div');
+      hoverEl.id = 'staff-hover-preview';
+      hoverEl.className = 'staff-hover-preview hidden';
+      hoverEl.innerHTML = '<img alt="" class="staff-hover-photo"><div class="staff-hover-name"></div>';
+      document.body.appendChild(hoverEl);
+    }
+    let hoverTimer = null;
+    let hoverKp = null;
+
+    function hidePreview() {
+      hoverEl.classList.add('hidden');
+      hoverKp = null;
+    }
+
+    root.querySelectorAll('.staff-cast-link').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const kp = link.getAttribute('data-staff-kp');
+        if (kp) openStaffPage(kp, { replace: false });
+      });
+      link.addEventListener('mouseenter', function (e) {
+        if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
+        const kp = link.getAttribute('data-staff-kp');
+        const nm = link.getAttribute('data-staff-name') || link.textContent || '';
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function () {
+          hoverKp = kp;
+          hoverEl.querySelector('.staff-hover-name').textContent = nm;
+          const img = hoverEl.querySelector('.staff-hover-photo');
+          img.style.display = 'none';
+          hoverEl.classList.remove('hidden');
+          hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
+          hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
+          if (kp) {
+            api('/api/site/persons/' + kp).then(function (d) {
+              if (hoverKp !== kp) return;
+              const photo = d && d.person && d.person.photo;
+              if (photo) {
+                img.src = photo;
+                img.style.display = 'block';
+              }
+            }).catch(function () {});
+          }
+        }, 180);
+      });
+      link.addEventListener('mouseleave', function () {
+        clearTimeout(hoverTimer);
+        hidePreview();
+      });
+    });
+  }
+
+  function staffCastLink(entry) {
+    if (!entry || entry.kp_person_id == null) return '';
+    const nm = escapeHtml(entry.name_ru || entry.name_en || '');
+    const kp = String(entry.kp_person_id);
+    return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '">' + nm + '</a>';
+  }
+
+  function renderStaffPageContent(data, root) {
+    const person = data.person || {};
+    const roles = data.films_by_role || [];
+    const meta = data.filters || { years: [], genres: [] };
+    const filterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+
+    function yearOpts() {
+      return ['<option value="">Любой</option>'].concat((meta.years || []).map(function (y) {
+        return '<option value="' + y + '">' + y + '</option>';
+      })).join('');
+    }
+    function genreOpts() {
+      return ['<option value="">Любой</option>'].concat((meta.genres || []).map(function (g) {
+        return '<option value="' + escapeHtml(g) + '">' + escapeHtml(g) + '</option>';
+      })).join('');
+    }
+    function gridHtml(films) {
+      const chunk = (films || []).slice(0, 60);
+      if (!chunk.length) return '<p class="muted small">Нет фильмов по фильтрам</p>';
+      return '<div class="staff-film-grid">' + chunk.map(function (f) {
+        const fid = f.already_in_base_film_id || f.film_id;
+        const clickAttr = fid
+          ? 'data-film-id="' + fid + '"'
+          : 'data-similar-kp="' + escapeHtml(String(f.kp_id)) + '"';
+        return (
+          '<button type="button" class="staff-film-card" ' + clickAttr + '>' +
+            (f.poster ? '<img src="' + escapeHtml(f.poster) + '" alt="" loading="lazy">' : '<div class="staff-film-ph">🎬</div>') +
+            '<div class="staff-film-title">' + escapeHtml(f.title || '—') + '</div>' +
+            (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
+          '</button>'
+        );
+      }).join('') + '</div>';
+    }
+    function paintRoles() {
+      root.querySelectorAll('.staff-role-block').forEach(function (sec, idx) {
+        const block = roles[idx];
+        if (!block) return;
+        const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const importable = filtered.filter(function (f) { return f.importable; }).map(function (f) { return String(f.kp_id); });
+        const grid = sec.querySelector('.staff-role-grid');
+        if (grid) grid.innerHTML = gridHtml(filtered);
+        const btn = sec.querySelector('.staff-import-btn');
+        if (btn) {
+          btn.disabled = !importable.length;
+          btn.textContent = importable.length ? 'В базу → (' + importable.length + ')' : 'В базу →';
+          btn.setAttribute('data-role-key', block.role_key || '');
+          btn._importIds = importable;
+        }
+      });
+      root.querySelector('#staff-toggle-main')?.classList.toggle('chip-on', !!filterState.mainRolesOnly);
+      root.querySelector('#staff-toggle-friends')?.classList.toggle('chip-on', !!filterState.friendsRatedOnly);
+    }
+
+    const photo = person.photo
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer">'
+      : '<div class="staff-hero-photo staff-hero-ph">👤</div>';
+    root.innerHTML =
+      '<div class="staff-hero">' + photo +
+        '<div><h2 class="staff-hero-name">' + escapeHtml(person.name_ru || person.name_en || '—') + '</h2>' +
+        (person.name_en && person.name_ru && person.name_en !== person.name_ru
+          ? '<div class="staff-hero-sub">' + escapeHtml(person.name_en) + '</div>' : '') +
+        '</div></div>' +
+      '<div class="staff-filters">' +
+        '<label class="staff-filter"><span>Год</span><select id="staff-filter-year">' + yearOpts() + '</select></label>' +
+        '<label class="staff-filter"><span>Жанр</span><select id="staff-filter-genre">' + genreOpts() + '</select></label>' +
+        '<div class="staff-filter-toggles">' +
+          '<button type="button" class="chip" id="staff-toggle-main">Главные роли</button>' +
+          '<button type="button" class="chip" id="staff-toggle-friends">Друзья хорошо оценили</button>' +
+        '</div></div>' +
+      roles.map(function (block, idx) {
+        const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const importable = filtered.filter(function (f) { return f.importable; });
+        return (
+          '<section class="staff-role-block" data-idx="' + idx + '">' +
+            '<div class="staff-role-head">' +
+              '<h3>' + escapeHtml(block.role_name || block.role_key || '') + '</h3>' +
+              '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '"' +
+                (importable.length ? '' : ' disabled') + '>В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
+            '</div>' +
+            '<div class="staff-role-grid">' + gridHtml(filtered) + '</div>' +
+          '</section>'
+        );
+      }).join('');
+
+    root.querySelector('#staff-filter-year')?.addEventListener('change', function (e) {
+      filterState.year = e.target.value || '';
+      paintRoles();
+    });
+    root.querySelector('#staff-filter-genre')?.addEventListener('change', function (e) {
+      filterState.genre = e.target.value || '';
+      paintRoles();
+    });
+    root.querySelector('#staff-toggle-main')?.addEventListener('click', function (e) {
+      filterState.mainRolesOnly = !filterState.mainRolesOnly;
+      e.currentTarget.classList.toggle('chip-on', filterState.mainRolesOnly);
+      paintRoles();
+    });
+    root.querySelector('#staff-toggle-friends')?.addEventListener('click', function (e) {
+      filterState.friendsRatedOnly = !filterState.friendsRatedOnly;
+      e.currentTarget.classList.toggle('chip-on', filterState.friendsRatedOnly);
+      paintRoles();
+    });
+    root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const rk = btn.getAttribute('data-role-key') || '';
+        const ids = btn._importIds || [];
+        if (!rk || !ids.length) {
+          showToast('Нет фильмов для добавления');
+          return;
+        }
+        if (!window.confirm('Добавить ' + ids.length + ' фильмов в базу?')) return;
+        btn.disabled = true;
+        api('/api/site/persons/' + person.kp_person_id + '/import', {
+          method: 'POST',
+          body: JSON.stringify({ role_key: rk, film_kp_ids: ids }),
+        }).then(function (res) {
+          if (res && res.success) {
+            showToast('Добавлено: ' + (res.added || 0));
+            openStaffPage(person.kp_person_id, { replace: true, skipHistory: true });
+          } else {
+            showToast((res && res.error) || 'Импорт не удался', { type: 'error' });
+          }
+        }).catch(function () {
+          showToast('Ошибка сети', { type: 'error' });
+        }).finally(function () { btn.disabled = false; });
+      });
+    });
+    root.querySelectorAll('.staff-film-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        const fid = card.getAttribute('data-film-id');
+        const kp = card.getAttribute('data-similar-kp');
+        if (fid) openFilmPage(Number(fid), {});
+        else if (kp) openFilmPageByKp(kp, {});
+      });
+    });
+  }
+
+  function openStaffPage(kpId, opts) {
+    const o = opts || {};
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve();
+    if (!getToken()) {
+      showLoginModalOverlay();
+      return Promise.resolve();
+    }
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) {
+      showToast('Страница недоступна');
+      return Promise.resolve();
+    }
+    _staffPageKpId = kp;
+    _filmModalCurrentId = null;
+    showScreen('cabinet-readonly');
+    showFilmPageLayout();
+    pageRoot.className = 'container film-page-container staff-page-content loading';
+    pageRoot.innerHTML = 'Загрузка…';
+    setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
+    const kicker = document.getElementById('film-page-kicker');
+    if (kicker) kicker.textContent = '👤 Персона';
+    if (!o.skipHistory) {
+      try {
+        const path = '/s/' + kp;
+        (o.replace ? history.replaceState : history.pushState).call(history, { view: 'staff', kpId: kp }, '', path);
+      } catch (_) {}
+    }
+    return api('/api/site/persons/' + kp).then(function (detail) {
+      if (_staffPageKpId !== kp) return;
+      if (!detail || !detail.success) {
+        pageRoot.className = 'container film-page-container staff-page-content';
+        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
+        return;
+      }
+      pageRoot.className = 'container film-page-container staff-page-content';
+      try {
+        document.title = ((detail.person && detail.person.name_ru) || 'Персона') + ' · Movie Planner';
+      } catch (_) {}
+      setFilmPageToolbar({ title: (detail.person && (detail.person.name_ru || detail.person.name_en)) || 'Персона', is_series: false });
+      renderStaffPageContent(detail, pageRoot);
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
+    }).catch(function () {
+      showToast('Ошибка сети', { type: 'error' });
+    });
+  }
+
+  function closeStaffPage() {
+    _staffPageKpId = null;
+    closeFilmPage();
+  }
   function isFilmPageOpen() {
     const s = document.getElementById('section-film');
     return s && !s.classList.contains('hidden');
@@ -1390,12 +1675,92 @@
     if (tab === 'activity' && activityPanel) loadSiteInboxActivityPanel(activityPanel);
   }
 
+  // ——— Вход через Telegram-бота (mobileauth deep link) ———
+  let _siteBotAuthPoll = null;
+  let _siteBotAuthDeepLink = null;
+
+  function stopSiteBotAuthPoll() {
+    if (_siteBotAuthPoll) {
+      clearInterval(_siteBotAuthPoll);
+      _siteBotAuthPoll = null;
+    }
+  }
+
+  async function pollSiteBotAuthOnce(code, modalEl, statusEl) {
+    const checkResp = await fetch(API_BASE + '/api/auth/telegram-mobile/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const checkData = await checkResp.json().catch(() => ({}));
+    if (checkData.success && checkData.verified === false) return false;
+    if (!checkData.success || !checkData.access) {
+      if (checkData.error === 'expired') {
+        stopSiteBotAuthPoll();
+        if (statusEl) { statusEl.textContent = 'Время истекло — нажмите 🤖 ещё раз'; statusEl.className = 'login-status error'; }
+      }
+      return false;
+    }
+    stopSiteBotAuthPoll();
+    const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access: checkData.access }),
+    });
+    const exchangeData = await exchangeResp.json().catch(() => ({}));
+    if (!exchangeData.success || !exchangeData.token) {
+      if (statusEl) { statusEl.textContent = exchangeData.error || 'Не удалось создать сессию'; statusEl.className = 'login-status error'; }
+      return true;
+    }
+    applySiteSessionLogin(
+      {
+        token: exchangeData.token,
+        chat_id: exchangeData.chat_id,
+        name: exchangeData.name,
+        has_data: exchangeData.has_data,
+        is_personal: exchangeData.is_personal !== undefined ? !!exchangeData.is_personal : true,
+      },
+      modalEl,
+      statusEl,
+    );
+    if (statusEl) { statusEl.textContent = 'Готово'; statusEl.className = 'login-status success'; }
+    return true;
+  }
+
+  async function startSiteBotAuth(modalEl, statusEl, botPanel) {
+    stopSiteBotAuthPoll();
+    _siteBotAuthDeepLink = null;
+    if (botPanel) botPanel.classList.remove('hidden');
+    if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
+    try {
+      const startResp = await fetch(API_BASE + '/api/auth/telegram-mobile/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const startData = await startResp.json().catch(() => ({}));
+      if (!startData.success || !startData.code) {
+        if (statusEl) { statusEl.textContent = 'Не удалось начать вход через бота'; statusEl.className = 'login-status error'; }
+        return;
+      }
+      const code = String(startData.code);
+      _siteBotAuthDeepLink = startData.deep_link
+        || ('https://t.me/movie_planner_bot?start=mobileauth_' + encodeURIComponent(code));
+      try { window.open(_siteBotAuthDeepLink, '_blank', 'noopener'); } catch (_) {}
+      if (statusEl) { statusEl.textContent = 'Нажмите Start в боте — войдём автоматически'; statusEl.className = 'login-status'; }
+      _siteBotAuthPoll = setInterval(function () {
+        pollSiteBotAuthOnce(code, modalEl, statusEl).catch(function () {});
+      }, 2500);
+      void pollSiteBotAuthOnce(code, modalEl, statusEl);
+    } catch (_) {
+      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'login-status error'; }
+    }
+  }
+
   // ——— Вход по коду ———
   function bindLogin() {
     const modal = document.getElementById('login-modal');
     const openBtn = document.querySelector('[data-action="login"]');
     const closeElements = document.querySelectorAll('[data-action="close-login"]');
-    const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
 
     function setLoginTab(tabName) {
@@ -1566,58 +1931,35 @@
       });
     }
     closeElements.forEach((el) => el.addEventListener('click', () => {
+      stopSiteBotAuthPoll();
       if (modal) modal.classList.add('hidden');
       document.body.classList.remove('login-only-overlay');
       if (tryReturnToPublicFilmOnLoginDismiss()) return;
       const landing = document.getElementById('landing');
       if (landing && !getToken()) landing.classList.remove('hidden');
       const bp = document.getElementById('login-bot-panel');
-      const bt = document.getElementById('login-bot-toggle');
       if (bp) bp.classList.add('hidden');
-      if (bt) bt.setAttribute('aria-expanded', 'false');
     }));
 
     const botToggle = document.getElementById('login-bot-toggle');
     const botPanel = document.getElementById('login-bot-panel');
-    if (botToggle && botPanel) {
+    const botReopen = document.getElementById('login-bot-reopen');
+    if (botToggle) {
       botToggle.addEventListener('click', () => {
-        botPanel.classList.toggle('hidden');
-        const open = !botPanel.classList.contains('hidden');
-        botToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        startSiteBotAuth(modal, status, botPanel);
+      });
+    }
+    if (botReopen) {
+      botReopen.addEventListener('click', () => {
+        if (_siteBotAuthDeepLink) {
+          try { window.open(_siteBotAuthDeepLink, '_blank', 'noopener'); } catch (_) {}
+        } else {
+          startSiteBotAuth(modal, status, botPanel);
+        }
       });
     }
 
     bindEmailLogin();
-
-    if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const code = (form.code && form.code.value || '').trim().toUpperCase();
-        if (!code) {
-          if (status) { status.textContent = 'Введите код'; status.className = 'login-status error'; }
-          return;
-        }
-        if (status) { status.textContent = 'Проверка...'; status.className = 'login-status'; }
-        const data = await api('/api/site/validate', { method: 'POST', body: JSON.stringify({ code: code }) });
-        if (data.success && data.token) {
-          const r = applySiteSessionLogin(
-            {
-              token: data.token,
-              chat_id: data.chat_id,
-              name: data.name,
-              has_data: data.has_data,
-              is_personal: !!data.is_personal,
-            },
-            modal,
-            status,
-          );
-          if (!r.ok) return;
-          if (status) { status.textContent = 'Успешно!'; status.className = 'login-status success'; }
-        } else {
-          if (status) { status.textContent = data.error || 'Неверный код'; status.className = 'login-status error'; }
-        }
-      });
-    }
   }
 
   // P4.2: email-логин на сайте — переиспользуем mobile /api/auth/email/*
@@ -1918,7 +2260,14 @@
         const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
           || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
           || pendingKp;
-        if (filmKp) {
+        const pathStaff = staffIdFromPathname(window.location.pathname);
+        if (pathStaff) {
+          openStaffPage(pathStaff, { replace: true });
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+        } else if (filmKp) {
           if (queryKp) handleAuthEntryDeepLinks();
           else {
             openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
@@ -1933,7 +2282,12 @@
           loadSeries();
           loadRatings();
           handleAuthEntryDeepLinks();
-          const pathFid = filmIdFromPathname(window.location.pathname);
+          const pathStaff = staffIdFromPathname(window.location.pathname);
+          let pathFid = null;
+          if (pathStaff) {
+            openStaffPage(pathStaff, { skipHistory: true, replace: true });
+          } else {
+          pathFid = filmIdFromPathname(window.location.pathname);
           if (pathFid) {
             openFilmPage(pathFid, { skipHistory: true, replace: true });
           } else {
@@ -1948,6 +2302,7 @@
             } else {
               showSection('home', { replace: true });
             }
+          }
           }
         }
         // Если открыта вкладка статистики — перезагрузить её
@@ -5484,6 +5839,7 @@
   }
 
   function closeFilmPage() {
+    _staffPageKpId = null;
     restoreDocumentTitle();
     if (window.history.length > 1) {
       try { window.history.back(); } catch (e) { showSection('home', { replace: true }); try { scheduleHomeDashboardRefresh(); } catch (_) {} }
@@ -5558,10 +5914,7 @@
       film.progress ? '📺 ' + film.progress : '',
     ].filter(Boolean).map((x) => '<span class="film-hero-chip">' + escapeHtml(x) + '</span>').join('');
     const desc = film.description ? '<p class="film-hero-desc">' + escapeHtml(film.description) + '</p>' : '';
-    const crewParts = [];
-    if (film.director && film.director !== 'Не указан') crewParts.push('<div><b>Режиссёр:</b> ' + escapeHtml(film.director) + '</div>');
-    if (film.actors) crewParts.push('<div><b>В ролях:</b> ' + escapeHtml(String(film.actors || '')) + '</div>');
-    const crew = crewParts.length ? '<div class="film-hero-crew">' + crewParts.join('') + '</div>' : '';
+    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"><span class="muted small">Загрузка команды…</span></div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
       title: film.title,
@@ -5603,6 +5956,41 @@
     bindFilmModalInteractions(film, content);
     bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { public: false });
     loadFilmFriendsSocial(film);
+    loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
+  }
+
+  function loadFilmCastSection(kpId, root, filmFallback) {
+    if (!root) return;
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) {
+      root.innerHTML = buildFilmCrewFallback(filmFallback);
+      return;
+    }
+    api('/api/site/film/cast/' + kp).then(function (cast) {
+      const director = cast && cast.director;
+      const actors = (cast && cast.actors) || [];
+      if (!director && !actors.length) {
+        root.innerHTML = buildFilmCrewFallback(filmFallback);
+        return;
+      }
+      const parts = [];
+      if (director) parts.push('<div><b>Режиссёр:</b> ' + staffCastLink(director) + '</div>');
+      if (actors.length) {
+        parts.push('<div><b>В ролях:</b> ' + actors.map(staffCastLink).join('<span class="muted">, </span>') + '</div>');
+      }
+      root.innerHTML = parts.join('');
+      bindStaffCastLinks(root);
+    }).catch(function () {
+      root.innerHTML = buildFilmCrewFallback(filmFallback);
+    });
+  }
+
+  function buildFilmCrewFallback(film) {
+    if (!film) return '';
+    const parts = [];
+    if (film.director && film.director !== 'Не указан') parts.push('<div><b>Режиссёр:</b> ' + escapeHtml(film.director) + '</div>');
+    if (film.actors) parts.push('<div><b>В ролях:</b> ' + escapeHtml(String(film.actors || '')) + '</div>');
+    return parts.length ? parts.join('') : '';
   }
 
   function loadFilmFriendsSocial(film) {
@@ -5650,19 +6038,7 @@
     const imdbRating = film.rating_imdb != null ? `<span class="film-modal-rkp" style="background:rgba(200,200,200,0.12);color:#e0e0e0">IMDb ${Number(film.rating_imdb).toFixed(1)}</span>` : '';
     const progress = film.progress ? `<span>📺 ${escapeHtml(film.progress)}</span>` : '';
     const desc = film.description ? `<div class="film-modal-desc">${escapeHtml(film.description)}</div>` : '';
-    const crewParts = [];
-    if (film.director && film.director !== 'Не указан') crewParts.push(`<div><b>Режиссёр:</b> ${escapeHtml(film.director)}</div>`);
-    if (film.actors) {
-      const actorsRaw = String(film.actors || '');
-      if (actorsRaw.length > 180) {
-        const shortActors = escapeHtml(actorsRaw.slice(0, 180));
-        const fullActors = escapeHtml(actorsRaw);
-        crewParts.push(`<div><b>В ролях:</b> <span class="film-actors-short">${shortActors}…</span><span class="film-actors-full hidden">${fullActors}</span> <button type="button" class="film-actors-more-btn">ещё</button></div>`);
-      } else {
-        crewParts.push(`<div><b>В ролях:</b> ${escapeHtml(film.actors)}</div>`);
-      }
-    }
-    const crew = crewParts.length ? `<div class="film-modal-crew">${crewParts.join('')}</div>` : '';
+    const crew = '<div class="film-modal-crew" id="film-modal-cast-root"><span class="muted small">Загрузка команды…</span></div>';
 
     const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
 
@@ -5772,6 +6148,7 @@
 
     bindFilmModalInteractions(film, content);
 
+    loadFilmCastSection(film.kp_id, content.querySelector('#film-modal-cast-root'), film);
     loadFilmFriendsSocial(film);
   }
 
@@ -8929,6 +9306,11 @@
         return;
       }
       if (!getToken()) return;
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      if (pathStaff) {
+        try { openStaffPage(pathStaff, { skipHistory: true, replace: true }); } catch (e) {}
+        return;
+      }
       const pathF = filmIdFromPathname(window.location.pathname);
       if (pathF) {
         try { openFilmPage(pathF, { skipHistory: true, replace: true }); } catch (e) {}
