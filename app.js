@@ -30,6 +30,56 @@
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
   let tvSettings = { tv_type: null, agent_token_exists: false, agent_online: false };
 
+  /** In-flight / результат «добавить в базу» по kp_id (поиск → карточка). */
+  const kpAddSync = (function () {
+    const pending = new Map();
+    const done = new Map();
+    const TTL = 600000;
+    function prune() {
+      const now = Date.now();
+      done.forEach(function (v, k) {
+        if (now - v.at > TTL) done.delete(k);
+      });
+    }
+    function register(kpId, promise) {
+      const kp = String(kpId);
+      const tracked = promise
+        .then(function (res) {
+          if (res && res.success && res.film_id) {
+            done.set(kp, { film_id: res.film_id, at: Date.now() });
+          }
+          pending.delete(kp);
+          return res;
+        })
+        .catch(function (err) {
+          pending.delete(kp);
+          throw err;
+        });
+      pending.set(kp, tracked);
+      return tracked;
+    }
+    function getFilmId(kpId) {
+      prune();
+      const d = done.get(String(kpId));
+      return d ? d.film_id : null;
+    }
+    function waitFor(kpId) {
+      const fid = getFilmId(kpId);
+      if (fid) return Promise.resolve(fid);
+      const p = pending.get(String(kpId));
+      if (!p) return Promise.resolve(null);
+      return p
+        .then(function (res) {
+          if (res && res.success && res.film_id) return res.film_id;
+          return getFilmId(kpId);
+        })
+        .catch(function () {
+          return getFilmId(kpId);
+        });
+    }
+    return { register: register, getFilmId: getFilmId, waitFor: waitFor };
+  })();
+
   function posterUrl(kpId) {
     if (!kpId) return '';
     return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
@@ -137,8 +187,17 @@
       const url = filmCanonicalPath(null, kp);
       (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', kpId: kp }, '', url);
     } catch (_) {}
-    return api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
-      .then(function (res) {
+    return kpAddSync.waitFor(kp).then(function (knownFid) {
+      if (knownFid) {
+        return openFilmPage(Number(knownFid), {
+          skipHistory: true,
+          replace: true,
+          kpId: kp,
+          pendingAction: o.action || '',
+        });
+      }
+      const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
+      return kpAddSync.register(kp, addPromise).then(function (res) {
         if (!res || !res.success || !res.film_id) {
           showToast((res && res.error) || 'Не удалось открыть фильм', { type: 'error' });
           return;
@@ -149,10 +208,10 @@
           kpId: kp,
           pendingAction: o.action || '',
         });
-      })
-      .catch(function () {
-        showToast('Ошибка сети', { type: 'error' });
       });
+    }).catch(function () {
+      showToast('Ошибка сети', { type: 'error' });
+    });
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
@@ -5930,7 +5989,7 @@
       ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
       : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
     return `<div class="add-search-result">
-      <div class="add-search-result-poster-wrap">
+      <div class="add-search-result-poster-wrap" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
         ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
         ${addBtn}
         <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title="Поделиться" aria-label="Поделиться">↗</button>
@@ -6048,7 +6107,9 @@
     const origHtml = btn ? btn.innerHTML : '';
     const compactBtn = btn && btn.classList && btn.classList.contains('add-search-poster-action');
     if (btn) { btn.disabled = true; btn.textContent = compactBtn ? '…' : 'Добавляем…'; }
-    api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) })
+    const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) });
+    kpAddSync.register(kpId, addPromise);
+    addPromise
       .then((data) => {
         if (!data || !data.success) {
           if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
@@ -6056,11 +6117,18 @@
           if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
           return;
         }
-        if (btn) { btn.textContent = compactBtn ? '✓' : (data.already_existed ? 'Уже в базе' : '✓ Добавлен'); btn.disabled = true; }
+        if (btn) {
+          btn.textContent = compactBtn ? '✓' : (data.already_existed ? 'Уже в базе' : '✓ Добавлен');
+          btn.disabled = true;
+          if (compactBtn && data.film_id) {
+            btn.classList.add('is-open');
+            btn.setAttribute('data-action', 'open-film-modal');
+            btn.setAttribute('data-film-id', String(data.film_id));
+            btn.removeAttribute('data-kp');
+          }
+        }
         applyCoinsFeedback(btn, Number(data.coins_added) || 0);
-        // Optimistic refresh
         if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
-        // Автозакрыть модалку, если это только что добавленный фильм
         if (!data.already_existed) {
           setTimeout(() => { closeAddFilmModal(); showSection('unwatched'); }, 700);
         }
@@ -6116,6 +6184,13 @@
       if (close) { e.preventDefault(); closeAddFilmModal(); return; }
       const pick = e.target.closest('[data-action="add-film-pick"]');
       if (pick) { e.preventDefault(); pickAddFilm(pick.getAttribute('data-kp'), pick); return; }
+      const openCard = e.target.closest('[data-action="open-add-search-card"]');
+      if (openCard && !e.target.closest('[data-action="add-film-pick"],[data-action="share-film-modal"],[data-action="open-film-modal"]')) {
+        e.preventDefault();
+        const kp = openCard.getAttribute('data-kp');
+        if (kp) openFilmPageByKp(kp);
+        return;
+      }
       const share = e.target.closest('[data-action="share-film-modal"]');
       if (share) {
         e.preventDefault();
@@ -6441,7 +6516,9 @@
           addBtn.disabled = true;
           const prev = addBtn.textContent;
           addBtn.textContent = '…';
-          api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+          const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
+          kpAddSync.register(kp, addPromise);
+          addPromise
             .then((data) => {
               if (data && data.success) {
                 addBtn.textContent = data.already_existed ? 'Уже в базе' : '✓ Добавлен';
@@ -8931,12 +9008,14 @@
             localStorage.removeItem('mp_site_token');
             showScreen('landing');
             renderHeader(null);
+            handleAuthEntryDeepLinks();
           }
         })
         .catch(() => {
           localStorage.removeItem('mp_site_token');
           showScreen('landing');
           renderHeader(null);
+          handleAuthEntryDeepLinks();
         });
       return;
     }
