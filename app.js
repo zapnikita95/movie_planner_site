@@ -8181,18 +8181,18 @@
     const mutual = data.mutual_films || [];
     const fromFriend = data.from_friend_library || [];
     const fromMe = data.from_my_library || [];
-    const hint = !mutual.length
-      ? '<div class="cabinet-hint" style="margin-bottom:12px">Можно добавить фильм из подборки ниже или предложить свой.</div>'
-      : '';
+    const fillActions = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+      '<button type="button" class="btn btn-secondary" data-wt-go-search>🔍 Поиск</button>' +
+      '<button type="button" class="btn btn-secondary" data-wt-go-premieres>🎟 Премьеры</button>' +
+      '</div>';
     const modal = _friendModal(`
       <div style="font-size:17px;font-weight:700;margin-bottom:14px">Смотрим вместе</div>
       <div style="font-weight:700;margin-bottom:8px">Вместе в базе</div>
-      ${mutual.length ? _wtPosterRail(mutual, 'open') : '<div class="cabinet-hint">Нет общих непросмотренных фильмов в ваших базах.</div>'}
-      ${hint}
+      ${mutual.length ? _wtPosterRail(mutual, 'open') : fillActions}
       <div style="font-weight:700;margin:16px 0 8px">Из базы ${friendName}</div>
-      ${fromFriend.length ? _wtPosterRail(fromFriend, 'add') : '<div class="cabinet-hint">Пока нет подходящих фильмов в базе друга.</div>'}
+      ${fromFriend.length ? _wtPosterRail(fromFriend, 'add') : ''}
       <div style="font-weight:700;margin:16px 0 8px">Предложить из вашей базы</div>
-      ${fromMe.length ? _wtPosterRail(fromMe, 'suggest') : '<div class="cabinet-hint">Пока нет подходящих фильмов в вашей базе.</div>'}
+      ${fromMe.length ? _wtPosterRail(fromMe, 'suggest') : ''}
     `);
     const box = modal.querySelector('.friend-modal-panel');
     if (!box) return;
