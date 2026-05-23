@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260523filmheader">
+  <link rel="stylesheet" href="/style-v2.css?v=20260523filmoverlay">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -418,6 +418,7 @@
       transition: opacity .18s ease, transform .18s ease;
     }
     .public-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #public-login-modal:not(.hidden) { display: flex !important; }
     .public-coin-pop {
       position: fixed;
       z-index: 10000;
@@ -570,6 +571,7 @@
 </head>
 <body>
   <noscript><p style="color:#fff;background:#111;padding:20px;font-family:sans-serif">Откройте Movie Planner с включённым JavaScript.</p></noscript>
+  <script src="/public-film-login.js?v=20260523filmoverlay"></script>
   <script>
     (function () {
       var loc = window.location;
@@ -733,6 +735,10 @@
         return h;
       }
       function loginNow(action) {
+        if (window.MpPublicFilmLogin) {
+          MpPublicFilmLogin.open(action || '');
+          return;
+        }
         if (hint) hint.textContent = 'Открываем вход…';
         var suffix = action ? '&action=' + encodeURIComponent(action) : '';
         setTimeout(function () {
@@ -1102,6 +1108,13 @@
       setupAppOpenBanner();
       bindPublicFilmToolbar();
       bindPublicSearch();
+      if (window.MpPublicFilmLogin) {
+        MpPublicFilmLogin.init({
+          kpId: kpId,
+          apiBase: apiBase,
+          onSuccess: function () { consumePendingAction(); },
+        });
+      }
       consumePendingAction();
     })();
   </script>

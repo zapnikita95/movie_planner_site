@@ -473,6 +473,29 @@
     return { ok: true };
   }
 
+  function tryReturnToPublicFilmAfterAuth() {
+    try {
+      const dest = sessionStorage.getItem('mp_oauth_return');
+      if (!dest || !/^\/f\/\d+/.test(dest.split('?')[0])) return false;
+      sessionStorage.removeItem('mp_oauth_return');
+      window.location.replace(dest);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function tryReturnToPublicFilmOnLoginDismiss() {
+    try {
+      const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+      if (pendingKp && /^\d+$/.test(pendingKp) && !getToken()) {
+        window.location.href = '/f/' + pendingKp;
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   /** Редирект после Google/Яндекс OAuth: /#token=…&chat_id=…&name=… */
   function consumeOAuthReturnFromHash() {
     try {
@@ -502,6 +525,7 @@
         return false;
       }
       history.replaceState(null, '', location.pathname + location.search);
+      if (tryReturnToPublicFilmAfterAuth()) return true;
       return true;
     } catch (_) {
       return false;
@@ -1543,6 +1567,10 @@
     }
     closeElements.forEach((el) => el.addEventListener('click', () => {
       if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('login-only-overlay');
+      if (tryReturnToPublicFilmOnLoginDismiss()) return;
+      const landing = document.getElementById('landing');
+      if (landing && !getToken()) landing.classList.remove('hidden');
       const bp = document.getElementById('login-bot-panel');
       const bt = document.getElementById('login-bot-toggle');
       if (bp) bp.classList.add('hidden');
