@@ -687,97 +687,340 @@
     return 'Группа друзей';
   }
 
-  function openShareFilmModal(film) {
-    const kpId = film && film.kp_id ? String(film.kp_id) : '';
-    if (!kpId) {
+  const MODAL_SHEET_HANDLE_HTML =
+    '<' + 'div class="modal-sheet-handle" aria-hidden="true"><span class="modal-sheet-handle-bar"></span></' + 'div>';
+
+  function attachBottomSheetSwipeDismiss(overlay, close) {
+    const sheet = overlay && overlay.querySelector('.modal-sheet');
+    if (!sheet) return;
+    const handle = sheet.querySelector('.modal-sheet-handle');
+    if (!handle) return;
+    let startY = 0;
+    let dragging = false;
+    let lastDy = 0;
+    function applyDrag(dy) {
+      const y = Math.max(0, dy);
+      lastDy = y;
+      sheet.style.transform = 'translateY(' + y + 'px)';
+      overlay.style.background = 'rgba(0,0,0,' + Math.max(0, 0.6 * (1 - y / 320)) + ')';
+    }
+    function finishDrag() {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = 'transform 0.22s ease-out';
+      overlay.style.transition = 'background 0.22s ease-out';
+      if (lastDy > 72) {
+        sheet.style.transform = 'translateY(110%)';
+        overlay.style.background = 'rgba(0,0,0,0)';
+        setTimeout(close, 220);
+      } else {
+        sheet.style.transform = '';
+        overlay.style.background = '';
+        setTimeout(function () {
+          sheet.style.transition = '';
+          overlay.style.transition = '';
+        }, 240);
+      }
+    }
+    function onStart(clientY) {
+      startY = clientY;
+      lastDy = 0;
+      dragging = true;
+      sheet.style.transition = 'none';
+      overlay.style.transition = 'none';
+    }
+    handle.addEventListener(
+      'touchstart',
+      function (e) {
+        if (e.touches && e.touches[0]) onStart(e.touches[0].clientY);
+      },
+      { passive: true },
+    );
+    handle.addEventListener(
+      'touchmove',
+      function (e) {
+        if (dragging && e.touches && e.touches[0]) applyDrag(e.touches[0].clientY - startY);
+      },
+      { passive: true },
+    );
+    handle.addEventListener('touchend', finishDrag);
+    handle.addEventListener('touchcancel', finishDrag);
+    handle.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      onStart(e.clientY);
+      function onMove(ev) {
+        applyDrag(ev.clientY - startY);
+      }
+      function onUp() {
+        finishDrag();
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+  }
+
+  function _shareGroupEmoji(p) {
+    return (p && (p.emoji || (p.is_virtual ? '👥' : '💬'))) || '💬';
+  }
+
+  async function openShareInAppModal(film, opts) {
+    opts = opts || {};
+    const mode = opts.mode === 'rating' ? 'rating' : 'film';
+    const ratingVal = opts.ratingVal;
+    const filmId = opts.filmId != null ? opts.filmId : (film && film.film_id) || null;
+    if (!film || !film.kp_id) {
       showToast('Не удалось открыть шеринг', { type: 'error' });
       return;
     }
-    const existing = document.getElementById('mp-share-film-modal');
-    if (existing) existing.remove();
-    const modal = document.createElement('div');
-    modal.id = 'mp-share-film-modal';
-    modal.className = 'add-film-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-hidden', 'false');
-    const poster = film.poster || (film.kp_id ? posterUrl(film.kp_id) : '');
-    modal.innerHTML = `
-      <div class="add-film-modal-backdrop" data-share-close="1"></div>
-      <div class="add-film-modal-body share-film-modal-body">
-        <button type="button" class="add-film-modal-close" data-share-close="1" aria-label="Закрыть">&times;</button>
-        <h2 class="add-film-title">Поделиться с группой</h2>
-        <div class="share-film-preview">
-          <div class="share-film-preview-poster">${poster ? `<img src="${escapeHtml(poster)}" alt="">` : '<span>🎬</span>'}</div>
-          <div>
-            <div class="share-film-preview-title">${escapeHtml(film.title || 'Фильм')}</div>
-            <div class="share-film-preview-meta">${escapeHtml([film.year || '', film.genres || ''].filter(Boolean).join(' · '))}</div>
-          </div>
-        </div>
-        <label class="create-room-label" for="share-film-group-select">Куда отправить</label>
-        <select id="share-film-group-select" class="share-film-select"><option value="">Загружаем группы…</option></select>
-        <label class="create-room-label" for="share-film-comment">Комментарий</label>
-        <textarea id="share-film-comment" class="share-film-textarea" maxlength="500" placeholder="Например: вау, погнали смотреть"></textarea>
-        <div id="share-film-status" class="add-film-status"></div>
-        <div class="create-room-actions">
-          <button type="button" class="btn btn-secondary" data-share-close="1">Отмена</button>
-          <button type="button" class="btn btn-primary" id="share-film-submit" disabled>Отправить</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    const close = () => { modal.remove(); document.body.style.overflow = ''; };
-    modal.addEventListener('click', (e) => {
-      if (e.target.closest('[data-share-close]')) close();
+    if (mode === 'rating' && (filmId == null || ratingVal == null)) {
+      showToast('Нет данных оценки', { type: 'error' });
+      return;
+    }
+    let friends = [];
+    let profiles = [];
+    try {
+      const frData = await api('/api/friends').catch(function () {
+        return { friends: [] };
+      });
+      const grData = await api('/api/site/profiles?lite=1');
+      friends = ((frData && frData.friends) || []).filter(function (f) {
+        return f && f.user_id;
+      });
+      profiles = ((grData && grData.profiles) || []).filter(function (p) {
+        return !p.is_personal;
+      });
+    } catch (e) {
+      showToast('Не удалось загрузить список', { type: 'error' });
+      return;
+    }
+    const shareable = profiles.filter(function (p) {
+      return p.can_share_to_group !== false;
     });
-    const select = modal.querySelector('#share-film-group-select');
-    const submit = modal.querySelector('#share-film-submit');
-    const status = modal.querySelector('#share-film-status');
-    api('/api/site/profiles').then((data) => {
-      const profiles = ((data && data.profiles) || []).filter((p) => !p.is_personal && p.can_share_to_group !== false);
-      if (!profiles.length) {
-        select.innerHTML = '<option value="">Нет доступных групп</option>';
-        if (status) status.textContent = 'Создайте группу или примите приглашение, чтобы делиться фильмами.';
+    if (!friends.length && !shareable.length) {
+      showToast('Добавьте друзей или создайте группу в разделе «Друзья и группы».', { type: 'error' });
+      return;
+    }
+    let tab = friends.length ? 'friends' : 'groups';
+    const tabsHtml =
+      friends.length && shareable.length
+        ? '<div class="share-film-tabs" role="tablist">' +
+          '<button type="button" class="chip share-film-tab ' +
+          (tab === 'friends' ? 'active' : '') +
+          '" data-share-tab="friends" role="tab">Друзья</button>' +
+          '<button type="button" class="chip share-film-tab ' +
+          (tab === 'groups' ? 'active' : '') +
+          '" data-share-tab="groups" role="tab">Группы</button>' +
+          '</div>'
+        : '';
+    const friendsPanelHtml = friends.length
+      ? '<div id="share-panel-friends" class="' +
+        (tab === 'friends' ? '' : 'hidden') +
+        '"><div class="list-title-section">Друг</div><div class="list" id="share-fr-list">' +
+        friends
+          .map(function (f, i) {
+            return (
+              '<label class="list-item" style="cursor:pointer">' +
+              '<input type="radio" name="share-fr" value="' +
+              f.user_id +
+              '" ' +
+              (i === 0 ? 'checked' : '') +
+              ' style="margin-right:10px">' +
+              '<span class="list-emoji">' +
+              escapeHtml((f.name || '?')[0].toUpperCase()) +
+              '</span>' +
+              '<span class="list-text"><span class="list-title">' +
+              escapeHtml(f.name || 'Друг') +
+              '</span></span></label>'
+            );
+          })
+          .join('') +
+        '</div></div>'
+      : '';
+    const groupsPanelHtml = shareable.length
+      ? '<div id="share-panel-groups" class="' +
+        (tab === 'groups' ? '' : 'hidden') +
+        '"><div class="list-title-section">Группа</div><div class="list" id="share-grp-list">' +
+        shareable
+          .map(function (p, i) {
+            const nm =
+              p.display_name != null && p.display_name !== '' ? p.display_name : p.name || 'Группа';
+            return (
+              '<label class="list-item" style="cursor:pointer">' +
+              '<input type="radio" name="share-grp" value="' +
+              p.chat_id +
+              '" ' +
+              (i === 0 ? 'checked' : '') +
+              ' style="margin-right:10px">' +
+              '<span class="list-emoji">' +
+              escapeHtml(_shareGroupEmoji(p)) +
+              '</span>' +
+              '<span class="list-text"><span class="list-title">' +
+              escapeHtml(nm) +
+              '</span></span></label>'
+            );
+          })
+          .join('') +
+        '</div></div>'
+      : '';
+    const existing = document.getElementById('mp-share-inapp-overlay');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'mp-share-inapp-overlay';
+    overlay.className = 'modal-overlay mp-share-inapp-overlay';
+    overlay.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;z-index:1200';
+    overlay.innerHTML =
+      '<div class="modal-sheet mp-share-inapp-sheet" style="width:100%;background:var(--bg-elevated,#1a1a22);border-radius:20px 20px 0 0;padding:18px;max-height:80vh;overflow:auto">' +
+      MODAL_SHEET_HANDLE_HTML +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:6px">Поделиться</div>' +
+      '<div class="muted small" style="margin-bottom:14px">' +
+      escapeHtml(film.title || '') +
+      '</div>' +
+      tabsHtml +
+      friendsPanelHtml +
+      groupsPanelHtml +
+      '<div class="list-title-section" style="margin-top:14px">Сообщение (необязательно)</div>' +
+      '<textarea id="share-grp-msg" class="input-primary share-film-textarea" placeholder="Например: «Посмотрим завтра в 21:00?»" rows="3" style="resize:vertical;width:100%"></textarea>' +
+      '<div style="display:flex;gap:10px;margin-top:16px">' +
+      '<button class="btn btn-secondary" style="flex:1" id="share-grp-cancel" type="button">Отмена</button>' +
+      '<button class="btn btn-primary" style="flex:1" id="share-grp-send" type="button">Отправить</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    const close = function () {
+      try {
+        overlay.remove();
+      } catch (_e) {}
+      document.body.style.overflow = '';
+    };
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+    overlay.querySelector('#share-grp-cancel').addEventListener('click', close);
+    attachBottomSheetSwipeDismiss(overlay, close);
+    overlay.querySelectorAll('[data-share-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        tab = btn.getAttribute('data-share-tab') || 'groups';
+        overlay.querySelectorAll('.share-film-tab').forEach(function (t) {
+          t.classList.toggle('active', t.getAttribute('data-share-tab') === tab);
+        });
+        const frPanel = overlay.querySelector('#share-panel-friends');
+        const grPanel = overlay.querySelector('#share-panel-groups');
+        if (frPanel) frPanel.classList.toggle('hidden', tab !== 'friends');
+        if (grPanel) grPanel.classList.toggle('hidden', tab !== 'groups');
+      });
+    });
+    overlay.querySelector('#share-grp-send').addEventListener('click', async function () {
+      const msgEl = overlay.querySelector('#share-grp-msg');
+      const msg = ((msgEl && msgEl.value) || '').trim();
+      const sendBtn = overlay.querySelector('#share-grp-send');
+      if (tab === 'friends') {
+        const fr = overlay.querySelector('input[name="share-fr"]:checked');
+        const toUser = Number((fr && fr.value) || 0);
+        if (!toUser) {
+          showToast('Выберите друга', { type: 'error' });
+          return;
+        }
+        try {
+          if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Отправка…';
+          }
+          const res = await api('/api/friends/recommend', {
+            method: 'POST',
+            body: JSON.stringify({ to_user_id: toUser, kp_id: String(film.kp_id), message: msg }),
+          });
+          if (res && res.success) {
+            close();
+            showToast('Фильм отправлен другу');
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
+          }
+        } catch (e) {
+          showToast('Ошибка отправки', { type: 'error' });
+        } finally {
+          if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Отправить';
+          }
+        }
         return;
       }
-      select.innerHTML = profiles.map((p) => `<option value="${escapeHtml(String(p.chat_id))}">${escapeHtml((p.display_name || p.name || 'Группа') + ' · ' + groupKindLabel(p))}</option>`).join('');
-      if (submit) submit.disabled = false;
-    }).catch(() => {
-      select.innerHTML = '<option value="">Не удалось загрузить группы</option>';
-      if (status) { status.textContent = 'Ошибка загрузки групп'; status.className = 'add-film-status error'; }
-    });
-    if (submit) {
-      submit.addEventListener('click', () => {
-        const chatId = select && select.value;
-        if (!chatId) return;
-        submit.disabled = true;
-        submit.textContent = 'Отправляем…';
-        if (status) { status.textContent = ''; status.className = 'add-film-status'; }
-        const comment = (modal.querySelector('#share-film-comment')?.value || '').trim();
-        api('/api/site/groups/' + encodeURIComponent(chatId) + '/share-film', {
+      const rad = overlay.querySelector('input[name="share-grp"]:checked');
+      const chatId = Number((rad && rad.value) || 0);
+      if (!chatId) {
+        showToast('Выберите группу', { type: 'error' });
+        return;
+      }
+      if (mode === 'rating') {
+        try {
+          if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Отправка…';
+          }
+          const res = await api('/api/site/film/' + filmId + '/rating/broadcast-to-group', {
+            method: 'POST',
+            body: JSON.stringify({ chat_id: chatId }),
+          });
+          if (res && res.success !== false) {
+            close();
+            showToast('Оценка ' + ratingVal + '/10 сохранена в группе');
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
+          }
+        } catch (e) {
+          showToast('Ошибка отправки', { type: 'error' });
+        } finally {
+          if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Отправить';
+          }
+        }
+        return;
+      }
+      try {
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Отправка…';
+        }
+        const res = await api('/api/site/groups/' + encodeURIComponent(chatId) + '/share-film', {
           method: 'POST',
           body: JSON.stringify({
-            kp_id: kpId,
-            film_id: film.film_id || null,
+            kp_id: String(film.kp_id),
+            film_id: filmId || null,
             film_title: film.title || '',
-            message: comment,
+            message: msg,
           }),
-        }).then((res) => {
-          if (!res || !res.success) {
-            submit.disabled = false;
-            submit.textContent = 'Отправить';
-            const msg = res && (res.message || res.error);
-            if (status) { status.textContent = msg || 'Не удалось отправить'; status.className = 'add-film-status error'; }
-            return;
-          }
-          showToast('Отправлено в группу');
-          close();
-        }).catch(() => {
-          submit.disabled = false;
-          submit.textContent = 'Отправить';
-          if (status) { status.textContent = 'Ошибка сети'; status.className = 'add-film-status error'; }
         });
-      });
-    }
+        if (res && res.success) {
+          close();
+          showToast('Отправлено в группу');
+        } else {
+          showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
+        }
+      } catch (e) {
+        showToast('Ошибка сети', { type: 'error' });
+      } finally {
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Отправить';
+        }
+      }
+    });
+  }
+
+  function openShareFilmModal(film) {
+    openShareInAppModal(film, { mode: 'film', filmId: film && film.film_id });
+  }
+
+  function openShareRatingModal(film, ratingVal) {
+    openShareInAppModal(film, {
+      mode: 'rating',
+      filmId: film && film.film_id,
+      ratingVal: ratingVal,
+    });
   }
 
   function filmDeepLink(filmId, kpId, isSeries) {
@@ -5059,7 +5302,7 @@
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
         buildRatingStars(myRating) + '</div></div>' +
-        (myRating ? '<button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' : '');
+        (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title="Поделиться оценкой" aria-label="Поделиться оценкой">↗</button>' : '') + '</div>' : '');
     }
     const planBlock = isPublic
       ? '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>'
@@ -5135,11 +5378,7 @@
     }
     if (shareBtn) {
       shareBtn.addEventListener('click', () => {
-        const kp = shareBtn.getAttribute('data-kp') || (film && film.kp_id);
-        const url = buildFilmShareUrl(kp) || window.location.href.split('#')[0];
-        copyToClipboard(url)
-          .then(() => showToast('Ссылка скопирована'))
-          .catch(() => showToast('Не удалось скопировать', { type: 'error' }));
+        openShareFilmModal({ kp_id: film.kp_id, film_id: film.film_id, title: film.title, poster: film.poster, year: film.year, genres: film.genres });
       });
     }
   }
@@ -6212,6 +6451,21 @@
           const v = Number(btn.getAttribute('data-rating-value'));
           setRating(film.film_id, v, btn);
         });
+      });
+    }
+
+    const shareRatingBtn = content.querySelector('[data-action="share-rating-modal"]');
+    if (shareRatingBtn) {
+      shareRatingBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const cache = _filmModalCache[film.film_id];
+        const myUserId = (cache && cache.me && cache.me.user_id) || cabinetUserId;
+        const mine = cache && cache.ratings && cache.ratings.find(function (r) {
+          return myUserId && String(r.user_id) === String(myUserId);
+        });
+        const rv = mine ? Number(mine.rating) : 0;
+        if (!rv) return;
+        openShareRatingModal(film, rv);
       });
     }
 
