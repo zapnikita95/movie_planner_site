@@ -8105,7 +8105,7 @@
   function _friendModal(html) {
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
-    modal.innerHTML = `<div style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:80vh;overflow:auto">
+    modal.innerHTML = `<div class="friend-modal-panel" style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:640px;width:100%;max-height:80vh;overflow:auto">
       ${html}
       <button type="button" style="margin-top:16px;width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;background:none;cursor:pointer">Закрыть</button>
     </div>`;
@@ -8128,17 +8128,111 @@
     `);
   }
 
+  function _wtPosterUrl(kp) {
+    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + encodeURIComponent(String(kp)) + '.jpg';
+  }
+
+  function _wtFilmTileHtml(f, mode) {
+    const kp = f && f.kp_id;
+    if (!kp) return '';
+    const title = escapeHtml(f.title || 'Фильм');
+    const year = f.year ? '<div style="font-size:11px;color:#888">' + escapeHtml(String(f.year)) + '</div>' : '';
+    let action = '';
+    if (mode === 'add' && !f.in_my_library) {
+      action = '<button type="button" data-wt-add="' + kp + '" style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;border:0;background:var(--accent,#ff2d7b);color:#fff;font-weight:800;cursor:pointer">+</button>';
+    } else if (mode === 'add' && f.in_my_library) {
+      action = '<span style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px">✓</span>';
+    } else if (mode === 'suggest') {
+      action = '<button type="button" data-wt-suggest="' + kp + '" style="position:absolute;left:4px;right:4px;bottom:6px;padding:4px 6px;border:0;border-radius:8px;background:rgba(0,0,0,.72);color:#fff;font-size:10px;font-weight:700;cursor:pointer">Предложить</button>';
+    }
+    return '<button type="button" data-wt-open="' + kp + '" style="flex:0 0 108px;width:108px;border:0;background:none;padding:0;cursor:pointer;text-align:left">' +
+      '<div style="position:relative;width:108px;height:162px;border-radius:10px;overflow:hidden;background:#eee;margin-bottom:6px">' +
+      '<img src="' + escapeHtml(_wtPosterUrl(kp)) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">' +
+      action +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:700;line-height:1.25;color:inherit">' + title + '</div>' +
+      year +
+      '</button>';
+  }
+
+  function _wtPosterRail(films, mode) {
+    if (!films || !films.length) return '';
+    return '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px">' +
+      films.map((f) => _wtFilmTileHtml(f, mode)).join('') +
+      '</div>';
+  }
+
   async function _openMutualWatchlist(userId) {
-    const data = await api('/api/friends/mutual-watchlist?with_user_id=' + encodeURIComponent(userId));
-    const films = (data && data.films) || [];
-    _friendModal(`
-      <div style="font-size:17px;font-weight:700;margin-bottom:12px">Смотрим вместе</div>
-      ${films.length ? films.map((f) => `
-        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
-          <span>${escapeHtml(f.title || 'Фильм')}</span>
-          <span style="color:#888">${escapeHtml(f.year || '')}</span>
-        </div>`).join('') : '<div class="cabinet-hint">Нет общих фильмов в списке «Хочу посмотреть»</div>'}
+    let data;
+    try {
+      data = await api('/api/friends/watch-together?with_user_id=' + encodeURIComponent(userId));
+    } catch (e) {
+      showToast('Не удалось загрузить подборку', { type: 'error' });
+      return;
+    }
+    if (!data || data.success === false) {
+      showToast(data && data.error === 'not_friends' ? 'Сначала добавьте в друзья' : 'Не удалось загрузить подборку', { type: 'error' });
+      return;
+    }
+    const friendName = escapeHtml((data.friend_name || 'друга').trim());
+    const mutual = data.mutual_films || [];
+    const fromFriend = data.from_friend_library || [];
+    const fromMe = data.from_my_library || [];
+    const hint = !mutual.length
+      ? '<div class="cabinet-hint" style="margin-bottom:12px">Можно добавить фильм из подборки ниже или предложить свой.</div>'
+      : '';
+    const modal = _friendModal(`
+      <div style="font-size:17px;font-weight:700;margin-bottom:14px">Смотрим вместе</div>
+      <div style="font-weight:700;margin-bottom:8px">Вместе в базе</div>
+      ${mutual.length ? _wtPosterRail(mutual, 'open') : '<div class="cabinet-hint">Нет общих непросмотренных фильмов в ваших базах.</div>'}
+      ${hint}
+      <div style="font-weight:700;margin:16px 0 8px">Из базы ${friendName}</div>
+      ${fromFriend.length ? _wtPosterRail(fromFriend, 'add') : '<div class="cabinet-hint">Пока нет подходящих фильмов в базе друга.</div>'}
+      <div style="font-weight:700;margin:16px 0 8px">Предложить из вашей базы</div>
+      ${fromMe.length ? _wtPosterRail(fromMe, 'suggest') : '<div class="cabinet-hint">Пока нет подходящих фильмов в вашей базе.</div>'}
     `);
+    const box = modal.querySelector('.friend-modal-panel');
+    if (!box) return;
+    box.querySelectorAll('[data-wt-open]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        if (e.target.closest('[data-wt-add],[data-wt-suggest]')) return;
+        const kp = btn.getAttribute('data-wt-open');
+        if (kp) openFilmPageByKp(kp);
+      });
+    });
+    box.querySelectorAll('[data-wt-add]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const kp = Number(btn.getAttribute('data-wt-add'));
+        if (!kp) return;
+        btn.disabled = true;
+        try {
+          await api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
+          btn.textContent = '✓';
+          btn.style.background = '#22c55e';
+          showToast('Фильм добавлен', { type: 'success' });
+        } catch (err) {
+          btn.disabled = false;
+          showToast('Не удалось добавить', { type: 'error' });
+        }
+      });
+    });
+    box.querySelectorAll('[data-wt-suggest]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const kp = Number(btn.getAttribute('data-wt-suggest'));
+        if (!kp || btn.disabled) return;
+        btn.disabled = true;
+        try {
+          await api('/api/friends/recommend', { method: 'POST', body: JSON.stringify({ to_user_id: userId, kp_id: kp }) });
+          btn.textContent = '✓';
+          showToast('Приглашение отправлено', { type: 'success' });
+        } catch (err) {
+          btn.disabled = false;
+          showToast('Не удалось отправить', { type: 'error' });
+        }
+      });
+    });
   }
 
   function _friendAchDisplayName(a) {
