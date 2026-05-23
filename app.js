@@ -8137,24 +8137,27 @@
     if (!kp) return '';
     const title = escapeHtml(f.title || 'Фильм');
     const year = f.year ? '<div style="font-size:11px;color:#888">' + escapeHtml(String(f.year)) + '</div>' : '';
-    let action = '';
+    let posterAction = '';
     if (mode === 'add' && !f.in_my_library) {
-      action = '<button type="button" data-wt-add="' + kp + '" style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;border:0;background:var(--accent,#ff2d7b);color:#fff;font-weight:800;cursor:pointer">+</button>';
+      posterAction = '<button type="button" data-wt-add="' + kp + '" style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;border:0;background:var(--accent,#ff2d7b);color:#fff;font-weight:800;cursor:pointer">+</button>';
     } else if (mode === 'add' && f.in_my_library) {
-      action = '<span style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px">✓</span>';
-    } else if (mode === 'suggest') {
-      action = '<button type="button" data-wt-suggest="' + kp + '" style="position:absolute;left:4px;right:4px;bottom:6px;padding:4px 6px;border:0;border-radius:8px;background:rgba(0,0,0,.72);color:#fff;font-size:10px;font-weight:700;cursor:pointer">Предложить</button>';
+      posterAction = '<span style="position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px">✓</span>';
     }
-    return '<button type="button" data-wt-open="' + kp + '" style="flex:0 0 108px;width:108px;border:0;background:none;padding:0;cursor:pointer;text-align:left">' +
-      '<div style="position:relative;width:108px;height:162px;border-radius:10px;overflow:hidden;background:#eee;margin-bottom:6px">' +
+    const suggestBelow = mode === 'suggest'
+      ? '<button type="button" data-wt-suggest="' + kp + '" style="display:block;width:100%;margin-top:6px;padding:7px 8px;border:1px solid #ddd;border-radius:10px;background:#fafafa;font-size:11px;font-weight:700;cursor:pointer">Предложить</button>'
+      : '';
+    return '<div style="flex:0 0 108px;width:108px">' +
+      '<button type="button" data-wt-open="' + kp + '" style="width:100%;border:0;background:none;padding:0;cursor:pointer;text-align:left">' +
+      '<div style="position:relative;width:108px;height:162px;border-radius:10px;overflow:hidden;background:#eee">' +
       '<img src="' + escapeHtml(_wtPosterUrl(kp)) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">' +
-      action +
+      posterAction +
       '</div>' +
-      '<div style="font-size:12px;font-weight:700;line-height:1.25;color:inherit">' + title + '</div>' +
+      '<div style="font-size:12px;font-weight:700;line-height:1.25;color:inherit;margin-top:6px">' + title + '</div>' +
       year +
-      '</button>';
+      '</button>' +
+      suggestBelow +
+      '</div>';
   }
-
   function _wtPosterRail(films, mode) {
     if (!films || !films.length) return '';
     return '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px">' +
