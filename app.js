@@ -1726,10 +1726,9 @@
     });
     root.querySelectorAll('.staff-film-card').forEach(function (card) {
       card.addEventListener('click', function () {
+        const kp = card.getAttribute('data-similar-kp') || card.getAttribute('data-kp-id');
         const fid = card.getAttribute('data-film-id');
-        const kp = card.getAttribute('data-similar-kp');
-        if (fid) openFilmPage(Number(fid), {});
-        else if (kp) openFilmPageByKp(kp, {});
+        openFilmNav(kp, fid);
       });
     });
   }
@@ -2045,8 +2044,11 @@
         ? ('⭐ Пора оценить: ' + ((pl.film_title && String(pl.film_title)) || it.title || 'фильм'))
         : ((it.title || '').trim() || kindLabel(it.kind));
       let actions = '';
-      if (it.kind === 'rate_reminder' && fid) {
-        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-open-film" data-film-id="' + escapeHtml(fid) + '">Открыть фильм</button>';
+      if (it.kind === 'rate_reminder' && (kp || fid)) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-open-film"'
+          + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
+          + (fid ? ' data-film-id="' + escapeHtml(fid) + '"' : '')
+          + '>Открыть фильм</button>';
       } else if (kp && String(kp).trim() !== '') {
         actions = '<button type="button" class="btn btn-small btn-secondary site-inbox-open-kp" data-kp-id="' + escapeHtml(kp) + '">Кинопоиск</button>';
       }
@@ -2060,9 +2062,7 @@
     }).join('');
     root.querySelectorAll('.site-inbox-open-film').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-film-id');
-        if (id && typeof openFilmPage === 'function') openFilmPage(Number(id));
-        else if (id && typeof openFilmModal === 'function') openFilmModal(Number(id));
+        openFilmNav(btn.getAttribute('data-kp-id'), btn.getAttribute('data-film-id'));
       });
     });
     root.querySelectorAll('.site-inbox-open-kp').forEach((btn) => {
@@ -3000,6 +3000,17 @@
     if (filmId && filmId !== 'null') {
       openFilmPageFromLegacyPath(Number(filmId));
     }
+  }
+
+  /** Открыть фильм в кабинете по kp_id (канонический /f/:kp). */
+  function openFilmNav(kpId, filmId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (kp) {
+      openFilmPageByKp(kp);
+      return;
+    }
+    const fid = Number(filmId);
+    if (fid) openFilmPageFromLegacyPath(fid);
   }
 
   function renderPremiereNotifyButton(it, extraClass) {
@@ -6080,10 +6091,11 @@
     const openBtn = e.target.closest('[data-action="open-film-modal"]');
     if (openBtn) {
       e.preventDefault();
+      const kp = openBtn.getAttribute('data-kp');
       const fid = openBtn.getAttribute('data-film-id');
-      if (fid) {
+      if (kp || fid) {
         closeAddFilmModal();
-        if (typeof openFilmModal === 'function') openFilmModal(Number(fid));
+        openFilmNav(kp, fid);
       }
       return;
     }
@@ -6151,9 +6163,7 @@
             ? '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
             : '';
           const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
-          const clickAttr = s.in_base_film_id
-            ? 'data-film-id="' + s.in_base_film_id + '"'
-            : 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
+          const clickAttr = 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
           const em = s.is_series ? '📺 ' : '🎬 ';
           return (
             '<button type="button" class="similar-rail-card" ' + clickAttr +
@@ -6647,27 +6657,10 @@
       });
     }
 
-    content.querySelectorAll('.similar-rail-card[data-film-id]').forEach(function (card) {
-      card.addEventListener('click', function () {
-        const fid = card.getAttribute('data-film-id');
-        if (fid) openFilmModal(Number(fid));
-      });
-    });
     content.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
       card.addEventListener('click', function () {
         const kp = card.getAttribute('data-similar-kp');
-        if (!kp) return;
-        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
-          .then(function (res) {
-            if (res && res.success && res.film_id) {
-              openFilmModal(Number(res.film_id));
-            } else {
-              showToast('Не удалось открыть фильм', { type: 'error' });
-            }
-          })
-          .catch(function () {
-            showToast('Ошибка сети', { type: 'error' });
-          });
+        if (kp) openFilmPageByKp(kp);
       });
     });
 
@@ -6821,7 +6814,7 @@
     const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
     const inBase = it.already_in_base_film_id;
     const addBtn = inBase
-      ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
+      ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
       : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
     return `<div class="add-search-result">
       <div class="add-search-result-poster-wrap" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
@@ -7093,7 +7086,7 @@
       h += '<div class="header-search-recent-title">Недавние карточки</div>';
       recF.forEach((f) => {
         const kpAttr = f.kp_id ? (' data-hs-row-kp="' + escapeHtml(String(f.kp_id)) + '"') : '';
-        h += '<div class="hs-result"' + kpAttr + ' data-hs-open-film="' + escapeHtml(String(f.film_id)) + '">'
+        h += '<div class="hs-result" role="option" tabindex="0"' + kpAttr + '>'
         + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="">' ) : '<div class="hs-result-poster"></div>')
         + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div></div></div>';
       });
@@ -7136,7 +7129,7 @@
       const actionBtn = isPublicSearch
         ? `<a class="hs-result-btn hs-btn-open" href="${buildFilmShareUrl(it.kp_id)}" data-stop-hs-row="1">Открыть</a>`
         : inBase
-        ? `<button type="button" class="hs-result-btn hs-btn-open" data-hs-open-film="${escapeHtml(String(inBase))}" data-stop-hs-row="1">Открыть</button>`
+        ? `<button type="button" class="hs-result-btn hs-btn-open">Открыть</button>`
         : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}" data-stop-hs-row="1">＋ Добавить</button>`;
       return `<div class="hs-result" role="option" tabindex="0" data-hs-row-kp="${escapeHtml(String(it.kp_id || ''))}">
         ${poster ? `<img class="hs-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hs-result-poster',textContent:'🎬'}))">` : '<span class="hs-result-poster">🎬</span>'}
@@ -7385,7 +7378,7 @@
           return;
         }
         const row = e.target.closest('.hs-result[data-hs-row-kp]');
-        if (row && !e.target.closest('[data-stop-hs-row],[data-hs-add-kp],[data-hs-open-film],.hs-result-btn,a.hs-result-btn')) {
+        if (row && !e.target.closest('[data-hs-add-kp]')) {
           e.preventDefault();
           openHeaderSearchResult(row.getAttribute('data-hs-row-kp'));
           return;
@@ -7394,15 +7387,14 @@
         if (openFilm) {
           e.preventDefault();
           e.stopPropagation();
-          const id = openFilm.getAttribute('data-hs-open-film');
           const rowKp = openFilm.closest('[data-hs-row-kp]');
           if (dd) dd.classList.add('hidden');
           input.value = '';
           if (clearBtn) clearBtn.classList.add('hidden');
           if (rowKp && rowKp.getAttribute('data-hs-row-kp')) {
             openHeaderSearchResult(rowKp.getAttribute('data-hs-row-kp'));
-          } else if (typeof openFilmModal === 'function') {
-            openFilmModal(id);
+          } else {
+            openFilmPageFromLegacyPath(Number(openFilm.getAttribute('data-hs-open-film')));
           }
           return;
         }
@@ -7639,7 +7631,7 @@
           );
           const o = document.getElementById('wtw-open');
           const a = document.getElementById('wtw-again');
-          if (o) o.addEventListener('click', () => openFilmModal(Number(f.film_id)));
+          if (o) o.addEventListener('click', () => openFilmNav(f.kp_id, f.film_id));
           if (a) a.addEventListener('click', () => runSiteRandomMode(mode));
         } else {
           setWhatchtwatchResult('<div class="cabinet-hint">Найден «' + escapeHtml(title) + '». Добавьте в базу через кнопку ниже.</div><button type="button" class="btn btn-primary" id="wtw-add-kp">Добавить в базу</button>');
@@ -7759,7 +7751,7 @@
       const genres = f.genres || '';
       const filmId = f.film_id ? String(f.film_id) : '';
       const cardAction = filmId
-        ? '<button type="button" class="btn btn-small btn-primary" data-wtw-open-film="' + escapeHtml(filmId) + '">Открыть</button>'
+        ? '<button type="button" class="btn btn-small btn-primary" data-wtw-open-kp="' + escapeHtml(String(f.kp_id || '')) + '" data-wtw-open-film="' + escapeHtml(filmId) + '">Открыть</button>'
         : '<button type="button" class="btn btn-small btn-secondary" data-wtw-add-kp="' + escapeHtml(String(f.kp_id || '')) + '">Добавить в базу</button>';
       return '<div class="wtw-card">' +
         '<div class="wtw-card-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<span>🎬</span>') + '</div>' +
@@ -7785,10 +7777,9 @@
         root.innerHTML = '<div class="wtw-wizard-actions"><button type="button" class="btn btn-secondary" id="wtw-wizard-edit">Изменить фильтры</button></div>' + renderWizardCards(list);
         const edit = document.getElementById('wtw-wizard-edit');
         if (edit) edit.addEventListener('click', () => renderWhattowatchWizard());
-        root.querySelectorAll('[data-wtw-open-film]').forEach((btn) => {
+        root.querySelectorAll('[data-wtw-open-film],[data-wtw-open-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-wtw-open-film');
-            if (id) openFilmModal(Number(id));
+            openFilmNav(btn.getAttribute('data-wtw-open-kp'), btn.getAttribute('data-wtw-open-film'));
           });
         });
         root.querySelectorAll('[data-wtw-add-kp]').forEach((btn) => {
@@ -10055,6 +10046,11 @@
     });
 
     if (!isPublicStats) {
+    const pathKpBoot = kpIdFromPathname(window.location.pathname);
+    if (pathKpBoot && !getToken() && document.getElementById('landing')) {
+      window.location.replace('/f/' + pathKpBoot);
+      return;
+    }
     if (isSearchLocation()) {
       const q = searchQueryFromLocation();
       renderHeader(null);
