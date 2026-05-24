@@ -2872,7 +2872,8 @@
     const cls = ['premiere-bell-btn', extraClass || '', active ? 'active' : ''].filter(Boolean).join(' ');
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
     const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
-    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">🔔</button>';
+    const icon = active ? '🔕' : '🔔';
+    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
   }
 
   function renderShareFilmIconButton(it, extraClass) {
@@ -9300,25 +9301,19 @@
     }
     grid.innerHTML = items.map((it) => {
       const poster = it.poster || '';
-      const year = it.year ? ` · ${it.year}` : '';
-      const dateLabel = formatPremiereDate(it.premiere_date);
+      const year = it.year ? escapeHtml(String(it.year)) : '';
+      const datePill = formatPremiereDateDdMm(it.premiere_date);
       const inBase = it.already_in_base_film_id;
-      const addBtn = inBase
-        ? `<button type="button" disabled>В базе</button>`
-        : `<button type="button" data-action="premiere-add" data-kp="${escapeHtml(String(it.kp_id))}">＋ В базу</button>`;
-      const desc = shortPremiereDescription(it.description || '', 180);
-      return `<div class="premiere-card" data-film-id="${escapeHtml(String(inBase||''))}" data-kp="${escapeHtml(String(it.kp_id))}">
-        ${poster ? `<img class="premiere-card-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-card-poster"></div>'}
-        <div class="premiere-card-body">
-          <div class="premiere-card-title">${escapeHtml(it.title || '')}</div>
-          ${dateLabel ? `<div class="premiere-card-date">${escapeHtml(dateLabel)}</div>` : ''}
-          <div class="premiere-card-meta">${escapeHtml(it.genres || '')}${year}</div>
-          ${desc ? `<div class="premiere-card-desc">${escapeHtml(desc)}</div>` : ''}
-          <div class="premiere-card-actions" data-stop-card-click="1">
-            ${renderShareFilmIconButton(it, 'premiere-card-share')}
-            ${renderPremiereNotifyButton(it, 'premiere-card-bell')}
-            ${addBtn}
-          </div>
+      const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
+      return `<div class="premiere-poster-tile" data-film-id="${escapeHtml(String(inBase||''))}" data-kp="${escapeHtml(String(it.kp_id))}">
+        <div class="premiere-poster-media">
+          ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
+          ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
+          <span data-stop-card-click="1">${bell.replace('class="premiere-bell-btn premiere-poster-bell"', 'class="premiere-bell-btn premiere-poster-bell premiere-poster-bell--overlay"')}</span>
+        </div>
+        <div class="premiere-poster-tile-body">
+          <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>
+          ${year ? `<div class="premiere-poster-tile-meta">${year}</div>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -9349,15 +9344,33 @@
         });
       });
     });
-    grid.querySelectorAll('.premiere-card').forEach((card) => {
+    grid.querySelectorAll('.premiere-poster-tile, .premiere-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         if (e.target.closest('[data-stop-card-click]')) return;
         const filmId = card.getAttribute('data-film-id');
+        const kp = card.getAttribute('data-kp');
         if (filmId && filmId !== 'null' && filmId !== '') {
           if (typeof openFilmModal === 'function') openFilmModal(Number(filmId));
+          else if (typeof openFilmPage === 'function') openFilmPage(Number(filmId));
+          return;
+        }
+        if (kp && typeof openFilmPage === 'function') {
+          api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
+            .then((res) => {
+              if (res && res.success && res.film_id) openFilmPage(Number(res.film_id));
+            });
         }
       });
     });
+  }
+
+  function formatPremiereDateDdMm(s) {
+    if (!s) return '';
+    const m1 = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m1) return m1[3] + '.' + m1[2];
+    const m2 = String(s).match(/^(\d{1,2})\.(\d{1,2})\./);
+    if (m2) return String(parseInt(m2[1], 10)).padStart(2, '0') + '.' + String(parseInt(m2[2], 10)).padStart(2, '0');
+    return '';
   }
 
   function formatPremiereDate(s) {
