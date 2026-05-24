@@ -380,6 +380,192 @@
   const MAX_PERSONAL = 2;
   const MAX_GROUP = 2;
 
+  const UI_TOUR_KEYS = {
+    onboarding: 'onboarding_completed_v1',
+    home: 'mp_home_onboarding_v2',
+    neural: 'mp_neural_onboarding_v1',
+    wtw: 'mp_wtw_onboarding_v1',
+  };
+  const UI_TOUR_ALL = Object.values(UI_TOUR_KEYS);
+  let _uiTourServerDone = null;
+  let _uiTourHydratePromise = null;
+
+  function uiTourIsDone(key) {
+    try {
+      if (localStorage.getItem(key) === '1') return true;
+    } catch (_) {}
+    return !!(_uiTourServerDone && _uiTourServerDone[key]);
+  }
+
+  function uiTourMarkDoneLocal(key) {
+    try {
+      localStorage.setItem(key, '1');
+    } catch (_) {}
+    if (_uiTourServerDone) _uiTourServerDone[key] = true;
+  }
+
+  function uiTourApplyServerDone(done) {
+    _uiTourServerDone = Object.assign({}, _uiTourServerDone || {}, done || {});
+    UI_TOUR_ALL.forEach(function (k) {
+      if (done && done[k]) {
+        try { localStorage.setItem(k, '1'); } catch (_) {}
+      }
+    });
+  }
+
+  function uiToursEnsureHydrated(force) {
+    if (!force && _uiTourHydratePromise) return _uiTourHydratePromise;
+    const token = getToken();
+    if (!token) {
+      _uiTourHydratePromise = Promise.resolve();
+      return _uiTourHydratePromise;
+    }
+    _uiTourHydratePromise = fetch(API_BASE + '/api/miniapp/ui-tours', {
+      headers: { Authorization: 'Bearer ' + token },
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (res) {
+        uiTourApplyServerDone((res && res.done) || {});
+        const toSync = UI_TOUR_ALL.filter(function (k) { return uiTourIsDone(k) && !((_uiTourServerDone || {})[k]); });
+        if (!toSync.length) return;
+        return fetch(API_BASE + '/api/miniapp/ui-tours', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark_done: toSync }),
+        }).then(function () {
+          toSync.forEach(function (k) { uiTourMarkDoneLocal(k); });
+        }).catch(function () {});
+      })
+      .catch(function () {
+        _uiTourHydratePromise = null;
+      });
+    return _uiTourHydratePromise;
+  }
+
+  function uiTourMarkDone(key) {
+    uiTourMarkDoneLocal(key);
+    const token = getToken();
+    if (!token) return Promise.resolve();
+    return fetch(API_BASE + '/api/miniapp/ui-tours', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mark_done: key }),
+    }).catch(function () {});
+  }
+
+  function showCabinetAfterLogin(me) {
+    return uiToursEnsureHydrated(true).then(function () {
+      const skipOnboarding = uiTourIsDone(UI_TOUR_KEYS.onboarding);
+      if (me.has_data || skipOnboarding) {
+        showScreen('cabinet-readonly');
+        let pathFid = null;
+        const params = new URLSearchParams(window.location.search);
+        const pathKp = kpIdFromPathname(window.location.pathname);
+        const queryKp = params.get('kp_open');
+        let pendingKp = null;
+        let pendingAction = '';
+        try {
+          pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
+          if (pendingKp && /^\d+$/.test(pendingKp)) {
+            sessionStorage.removeItem('mp_pending_kp_open');
+            sessionStorage.removeItem('mp_pending_kp_action');
+          } else {
+            pendingKp = null;
+          }
+        } catch (_) {}
+        const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
+          || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
+          || pendingKp;
+        const pathStaff = staffIdFromPathname(window.location.pathname);
+        if (pathStaff) {
+          openStaffPage(pathStaff, { replace: true });
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+        } else if (filmKp) {
+          if (queryKp) handleAuthEntryDeepLinks();
+          else {
+            openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+          }
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+        } else {
+          loadPlans();
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+          handleAuthEntryDeepLinks();
+          const pathStaff2 = staffIdFromPathname(window.location.pathname);
+          if (pathStaff2) {
+            openStaffPage(pathStaff2, { skipHistory: true, replace: true });
+          } else {
+            pathFid = filmIdFromPathname(window.location.pathname);
+            if (pathFid) {
+              openFilmPage(pathFid, { skipHistory: true, replace: true });
+            } else {
+              const deepSection = sectionFromPath(window.location.pathname);
+              if (deepSection) {
+                showSection(deepSection, { replace: true, skipPush: false });
+                if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
+                if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+                if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+                if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
+                if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+              } else {
+                showSection('home', { replace: true });
+              }
+            }
+          }
+        }
+        const statsSection = document.getElementById('section-stats');
+        if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
+          initStatsSelectors();
+          const monthEl = document.getElementById('stats-month');
+          const yearEl = document.getElementById('stats-year');
+          const now = new Date();
+          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
+        }
+      } else {
+        showScreen('cabinet-onboarding');
+        let deepSection = sectionFromPath(window.location.pathname);
+        if (deepSection === 'home') deepSection = 'onboard-main';
+        if (deepSection === 'shazam') {
+          try { window.history.replaceState({}, '', '/'); } catch (_) {}
+          deepSection = 'onboard-main';
+        }
+        if (deepSection) showSection(deepSection, { replace: true });
+        else showSection('onboard-main', { replace: true });
+        try { bindHomeSectionNavOnce(); bindPlansGotoOnce(); bindOnboardingActionsOnce(); } catch (_) {}
+        const onboardParams = new URLSearchParams(window.location.search);
+        const onboardQueryKp = onboardParams.get('kp_open');
+        let onboardPendingKp = null;
+        let onboardPendingAction = '';
+        try {
+          onboardPendingKp = sessionStorage.getItem('mp_pending_kp_open');
+          onboardPendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
+          if (onboardPendingKp && /^\d+$/.test(onboardPendingKp)) {
+            sessionStorage.removeItem('mp_pending_kp_open');
+            sessionStorage.removeItem('mp_pending_kp_action');
+          } else {
+            onboardPendingKp = null;
+          }
+        } catch (_) {}
+        const onboardPathKp = kpIdFromPathname(window.location.pathname);
+        const onboardFilmKp = (onboardPathKp && /^\d+$/.test(onboardPathKp) ? onboardPathKp : null)
+          || (onboardQueryKp && /^\d+$/.test(onboardQueryKp) ? onboardQueryKp : null)
+          || onboardPendingKp;
+        if (onboardFilmKp) {
+          if (onboardQueryKp) handleAuthEntryDeepLinks();
+          else openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
+        }
+      }
+    });
+  }
+
   function getSessions() {
     try {
       const raw = localStorage.getItem(STORAGE_SESSIONS);
@@ -2495,114 +2681,7 @@
             .catch(() => {});
         }
       } catch (_) {}
-      if (me.has_data) {
-        showScreen('cabinet-readonly');
-        const params = new URLSearchParams(window.location.search);
-        const pathKp = kpIdFromPathname(window.location.pathname);
-        const queryKp = params.get('kp_open');
-        let pendingKp = null;
-        let pendingAction = '';
-        try {
-          pendingKp = sessionStorage.getItem('mp_pending_kp_open');
-          pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
-          if (pendingKp && /^\d+$/.test(pendingKp)) {
-            sessionStorage.removeItem('mp_pending_kp_open');
-            sessionStorage.removeItem('mp_pending_kp_action');
-          } else {
-            pendingKp = null;
-          }
-        } catch (_) {}
-        const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
-          || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
-          || pendingKp;
-        const pathStaff = staffIdFromPathname(window.location.pathname);
-        if (pathStaff) {
-          openStaffPage(pathStaff, { replace: true });
-          loadPlans();
-          loadUnwatched();
-          loadSeries();
-          loadRatings();
-        } else if (filmKp) {
-          if (queryKp) handleAuthEntryDeepLinks();
-          else {
-            openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
-          }
-          loadPlans();
-          loadUnwatched();
-          loadSeries();
-          loadRatings();
-        } else {
-          loadPlans();
-          loadUnwatched();
-          loadSeries();
-          loadRatings();
-          handleAuthEntryDeepLinks();
-          const pathStaff = staffIdFromPathname(window.location.pathname);
-          let pathFid = null;
-          if (pathStaff) {
-            openStaffPage(pathStaff, { skipHistory: true, replace: true });
-          } else {
-          pathFid = filmIdFromPathname(window.location.pathname);
-          if (pathFid) {
-            openFilmPage(pathFid, { skipHistory: true, replace: true });
-          } else {
-            const deepSection = sectionFromPath(window.location.pathname);
-            if (deepSection) {
-              showSection(deepSection, { replace: true, skipPush: false });
-              if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
-              if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
-              if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
-              if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
-              if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
-            } else {
-              showSection('home', { replace: true });
-            }
-          }
-          }
-        }
-        // Если открыта вкладка статистики — перезагрузить её
-        const statsSection = document.getElementById('section-stats');
-        if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
-          initStatsSelectors();
-          const monthEl = document.getElementById('stats-month');
-          const yearEl = document.getElementById('stats-year');
-          const now = new Date();
-          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
-        }
-      } else {
-        showScreen('cabinet-onboarding');
-        let deepSection = sectionFromPath(window.location.pathname);
-        if (deepSection === 'home') deepSection = 'onboard-main';
-        if (deepSection === 'shazam') {
-          try { window.history.replaceState({}, '', '/'); } catch (_) {}
-          deepSection = 'onboard-main';
-        }
-        if (deepSection) showSection(deepSection, { replace: true });
-        else showSection('onboard-main', { replace: true });
-        try { bindHomeSectionNavOnce(); bindPlansGotoOnce(); bindOnboardingActionsOnce(); } catch (_) {}
-        const onboardParams = new URLSearchParams(window.location.search);
-        const onboardQueryKp = onboardParams.get('kp_open');
-        let onboardPendingKp = null;
-        let onboardPendingAction = '';
-        try {
-          onboardPendingKp = sessionStorage.getItem('mp_pending_kp_open');
-          onboardPendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
-          if (onboardPendingKp && /^\d+$/.test(onboardPendingKp)) {
-            sessionStorage.removeItem('mp_pending_kp_open');
-            sessionStorage.removeItem('mp_pending_kp_action');
-          } else {
-            onboardPendingKp = null;
-          }
-        } catch (_) {}
-        const onboardPathKp = kpIdFromPathname(window.location.pathname);
-        const onboardFilmKp = (onboardPathKp && /^\d+$/.test(onboardPathKp) ? onboardPathKp : null)
-          || (onboardQueryKp && /^\d+$/.test(onboardQueryKp) ? onboardQueryKp : null)
-          || onboardPendingKp;
-        if (onboardFilmKp) {
-          if (onboardQueryKp) handleAuthEntryDeepLinks();
-          else openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
-        }
-      }
+      showCabinetAfterLogin(me);
     }).catch(function () {
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
       showScreen('landing');
@@ -2618,9 +2697,10 @@
       const skip = e.target.closest('[data-onboard-skip]');
       if (!skip) return;
       e.preventDefault();
-      showToast('Можно начать с поиска сверху');
-      const input = document.getElementById('header-search-input');
-      if (input) setTimeout(() => input.focus(), 80);
+      uiTourMarkDone(UI_TOUR_KEYS.onboarding).then(function () {
+        if (_cabinetMeCache) showCabinetAfterLogin(_cabinetMeCache);
+        else loadMeAndShowCabinet();
+      });
     });
   }
 
