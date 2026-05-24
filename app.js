@@ -131,7 +131,19 @@
     }
   }
 
-  /** GitHub Pages: /f/<kp> живёт в 404.html; index с /f/ без сессии — туда же. */
+  /** GitHub Pages: /f/<kp> — standalone film-page.js (гость и авторизованный). */
+  function goToStandaloneFilmPage(kpId, opts) {
+    const o = opts || {};
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return false;
+    if (o.action) {
+      try { sessionStorage.setItem('mp_public_film_action', String(o.action) + ':' + kp); } catch (_) {}
+    }
+    window.location.assign('/f/' + kp);
+    return true;
+  }
+
+  /** GitHub Pages: /f/<kp> живёт в 404.html; index с /f/ — туда же. При logout — сброс сессии. */
   function redirectToPublicFilmPage(kpId) {
     const kp = String(kpId || kpIdFromPathname(window.location.pathname) || '').replace(/\D/g, '');
     if (!kp) return false;
@@ -153,8 +165,11 @@
     try {
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (!pathKp || !/^\d+$/.test(pathKp) || !getToken()) return false;
-      openFilmPageByKp(pathKp, { replace: true });
-      return true;
+      if (document.getElementById('landing')) {
+        goToStandaloneFilmPage(pathKp);
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -196,7 +211,7 @@
         showLoginModalOverlay();
         return;
       }
-      openFilmPageByKp(kp, { replace: true, action: action });
+      goToStandaloneFilmPage(kp, { action: action });
     } catch (_) {}
   }
 
@@ -222,17 +237,24 @@
     }
   }
 
-  /** Сразу кабинет + карточка фильма, не ждать /api/site/me (иначе виден landing). */
+  /** /f/:kp и kp_open — standalone 404/film-page, не кабинет. */
   function bootAuthenticatedFilmDeepLink() {
     try {
       if (!getToken() || !hasAuthEntryDeepLink()) return false;
-      showScreen('cabinet-readonly');
-      const stub = cachedSessionMeStub();
-      if (stub) renderHeader(stub);
-      if (consumeFilmPathDeepLink()) return true;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && /^\d+$/.test(pathKp)) {
+        goToStandaloneFilmPage(pathKp);
+        return true;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const kpOpen = params.get('kp_open');
+      if (kpOpen && /^\d+$/.test(kpOpen)) {
+        const action = (params.get('action') || '').trim();
+        goToStandaloneFilmPage(kpOpen, { action: action });
+        return true;
+      }
       if (consumeStaffPathDeepLink()) return true;
-      consumeKpOpenDeepLink();
-      return true;
+      return false;
     } catch (_) {
       return false;
     }
@@ -250,6 +272,7 @@
       kp_id: kp,
       title: f.title || 'Фильм',
       year: f.year,
+      country: f.country,
       genres: f.genres,
       description: f.description,
       is_series: f.is_series,
@@ -284,46 +307,11 @@
     if (!getToken()) {
       sessionStorage.setItem('mp_pending_kp_open', kp);
       if (o.action) sessionStorage.setItem('mp_pending_kp_action', o.action);
-      if (kpIdFromPathname(window.location.pathname) === kp && document.getElementById('landing')) {
-        redirectToPublicFilmPage(kp);
-        return Promise.resolve();
-      }
-      showLoginModalOverlay();
+      goToStandaloneFilmPage(kp, { action: o.action || '' });
       return Promise.resolve();
     }
-    const pageRoot = document.getElementById('film-page-content');
-    if (!pageRoot) {
-      showToast('Страница фильма недоступна');
-      return Promise.resolve();
-    }
-    showScreen('cabinet-readonly');
-    showFilmPageLayout();
-    pageRoot.className = 'movie-page loading';
-    pageRoot.innerHTML = 'Загрузка…';
-    try {
-      const url = filmCanonicalPath(null, kp);
-      (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', kpId: kp }, '', url);
-    } catch (_) {}
-    _filmModalCurrentId = null;
-    return Promise.all([
-      fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' }).then(function (r) { return r.json(); }).catch(function () { return null; }),
-      api('/api/site/film-by-kp/' + kp).catch(function () { return { success: true, in_library: false }; }),
-    ]).then(function (pair) {
-      const pub = pair[0];
-      const lookup = pair[1] || {};
-      if (lookup.in_library && lookup.film_id) {
-        return openFilmPage(Number(lookup.film_id), {
-          skipHistory: true,
-          replace: true,
-          kpId: kp,
-          pendingAction: o.action || '',
-        });
-      }
-      const film = (pub && pub.success && pub.film) ? pub.film : { kp_id: kp, title: 'Фильм #' + kp };
-      return renderPublicFilmInCabinet(kp, film, o);
-    }).catch(function () {
-      showToast('Ошибка сети', { type: 'error' });
-    });
+    goToStandaloneFilmPage(kp, { action: o.action || '' });
+    return Promise.resolve();
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
@@ -1740,8 +1728,14 @@
     return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '">' + nm + '</a>';
   }
 
-  function buildFilmCastHtml(director, actors) {
+  function buildFilmCastHtml(director, actors, country) {
     const parts = [];
+    const ctry = String(country || '').trim();
+    if (ctry) {
+      parts.push(
+        '<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>'
+      );
+    }
     if (director) {
       parts.push(
         '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + staffCastLink(director) + '</div>'
@@ -6664,7 +6658,7 @@
       .then(function (cast) {
         const director = cast && cast.director;
         const actors = (cast && cast.actors) || [];
-        const html = buildFilmCastHtml(director, actors);
+        const html = buildFilmCastHtml(director, actors, filmFallback && filmFallback.country);
         if (!html) {
           root.innerHTML = buildFilmCrewFallback(filmFallback);
           return;
@@ -6679,6 +6673,10 @@
   function buildFilmCrewFallback(film) {
     if (!film) return '';
     const parts = [];
+  const ctry = String((film && film.country) || '').trim();
+  if (ctry) {
+    parts.push('<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>');
+  }
     if (film.director && film.director !== 'Не указан') {
       parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + escapeHtml(film.director) + '</div>');
     }
@@ -10230,7 +10228,7 @@
       }
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (pathKp) {
-        try { openFilmPageByKp(pathKp, { skipHistory: true, replace: true }); } catch (e) {}
+        goToStandaloneFilmPage(pathKp);
         return;
       }
       const pathF = filmIdFromPathname(window.location.pathname);
@@ -10318,10 +10316,18 @@
 
     if (!isPublicStats) {
     const pathKpBoot = kpIdFromPathname(window.location.pathname);
-    if (pathKpBoot && !getToken() && document.getElementById('landing')) {
+    if (pathKpBoot && document.getElementById('landing')) {
       window.location.replace('/f/' + pathKpBoot);
       return;
     }
+    try {
+      const spaBoot = new URLSearchParams(window.location.search).get('__spa') || '';
+      const spaKp = spaBoot.match(/^\/f\/(\d+)\/?/);
+      if (spaKp && document.getElementById('landing')) {
+        window.location.replace('/f/' + spaKp[1]);
+        return;
+      }
+    } catch (_) {}
     if (isSearchLocation()) {
       const q = searchQueryFromLocation();
       renderHeader(null);

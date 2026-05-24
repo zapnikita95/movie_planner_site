@@ -36,6 +36,11 @@
           if (spa) {
             params.delete('__spa');
             var rest = params.toString();
+            if (/^\/f\/\d+\/?/.test(spa)) {
+              var filmUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
+              window.location.replace(filmUrl + (rest ? '?' + rest : '') + window.location.hash);
+              return;
+            }
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
             window.history.replaceState(null, '', newUrl);
           }
@@ -1308,6 +1313,6 @@
 
     </div><!-- /content-wrapper -->
     <script src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <script src="/app.js?v=20260524filmcast"></script>
+    <script src="/app.js?v=20260524filmcountry"></script>
 </body>
 </html>
