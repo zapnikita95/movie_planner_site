@@ -1630,8 +1630,11 @@
     });
   }
 
-  function bindStaffCastLinks(root) {
+  const FILM_CAST_ACTORS_COLLAPSED = 5;
+
+  function bindStaffCastLinks(root, opts) {
     if (!root) return;
+    opts = opts || {};
     let hoverEl = document.getElementById('staff-hover-preview');
     if (!hoverEl) {
       hoverEl = document.createElement('div');
@@ -1648,8 +1651,27 @@
       hoverKp = null;
     }
 
+    function showPreviewPhoto(kp, img) {
+      if (!kp) return;
+      if (opts.guestPreview) {
+        img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+        img.style.display = 'block';
+        img.onerror = function () { img.style.display = 'none'; };
+        return;
+      }
+      api('/api/site/persons/' + kp).then(function (d) {
+        if (hoverKp !== kp) return;
+        const photo = d && d.person && d.person.photo;
+        if (photo) {
+          img.src = photo;
+          img.style.display = 'block';
+        }
+      }).catch(function () {});
+    }
+
     root.querySelectorAll('.staff-cast-link').forEach(function (link) {
       link.addEventListener('click', function (e) {
+        if (opts.allowNativeNav) return;
         e.preventDefault();
         const kp = link.getAttribute('data-staff-kp');
         if (kp) openStaffPage(kp, { replace: false });
@@ -1664,19 +1686,11 @@
           hoverEl.querySelector('.staff-hover-name').textContent = nm;
           const img = hoverEl.querySelector('.staff-hover-photo');
           img.style.display = 'none';
+          img.removeAttribute('src');
           hoverEl.classList.remove('hidden');
           hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
           hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
-          if (kp) {
-            api('/api/site/persons/' + kp).then(function (d) {
-              if (hoverKp !== kp) return;
-              const photo = d && d.person && d.person.photo;
-              if (photo) {
-                img.src = photo;
-                img.style.display = 'block';
-              }
-            }).catch(function () {});
-          }
+          showPreviewPhoto(kp, img);
         }, 180);
       });
       link.addEventListener('mouseleave', function () {
@@ -1691,6 +1705,34 @@
     const nm = escapeHtml(entry.name_ru || entry.name_en || '');
     const kp = String(entry.kp_person_id);
     return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '">' + nm + '</a>';
+  }
+
+  function buildFilmCastHtml(director, actors) {
+    const parts = [];
+    if (director) {
+      parts.push(
+        '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + staffCastLink(director) + '</div>'
+      );
+    }
+    const actorLinks = (actors || []).map(staffCastLink).filter(Boolean);
+    if (actorLinks.length) {
+      const collapsed = actorLinks.slice(0, FILM_CAST_ACTORS_COLLAPSED);
+      const hasMore = actorLinks.length > FILM_CAST_ACTORS_COLLAPSED;
+      let row =
+        '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
+      if (hasMore) {
+        row +=
+          '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>' +
+          '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
+          actorLinks.slice(FILM_CAST_ACTORS_COLLAPSED).join('<span class="film-cast-sep">, </span>') + '</span>' +
+          ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
+      } else {
+        row += actorLinks.join('<span class="film-cast-sep">, </span>');
+      }
+      row += '</div>';
+      parts.push(row);
+    }
+    return parts.join('');
   }
 
   function renderStaffPageContent(data, root) {
@@ -6517,16 +6559,12 @@
     api('/api/site/film/cast/' + kp).then(function (cast) {
       const director = cast && cast.director;
       const actors = (cast && cast.actors) || [];
-      if (!director && !actors.length) {
+      const html = buildFilmCastHtml(director, actors);
+      if (!html) {
         root.innerHTML = buildFilmCrewFallback(filmFallback);
         return;
       }
-      const parts = [];
-      if (director) parts.push('<div><b>Режиссёр:</b> ' + staffCastLink(director) + '</div>');
-      if (actors.length) {
-        parts.push('<div><b>В ролях:</b> ' + actors.map(staffCastLink).join('<span class="muted">, </span>') + '</div>');
-      }
-      root.innerHTML = parts.join('');
+      root.innerHTML = html;
       bindStaffCastLinks(root);
     }).catch(function () {
       root.innerHTML = buildFilmCrewFallback(filmFallback);
@@ -6536,8 +6574,12 @@
   function buildFilmCrewFallback(film) {
     if (!film) return '';
     const parts = [];
-    if (film.director && film.director !== 'Не указан') parts.push('<div><b>Режиссёр:</b> ' + escapeHtml(film.director) + '</div>');
-    if (film.actors) parts.push('<div><b>В ролях:</b> ' + escapeHtml(String(film.actors || '')) + '</div>');
+    if (film.director && film.director !== 'Не указан') {
+      parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + escapeHtml(film.director) + '</div>');
+    }
+    if (film.actors) {
+      parts.push('<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ' + escapeHtml(String(film.actors || '')) + '</div>');
+    }
     return parts.length ? parts.join('') : '';
   }
 
@@ -6719,13 +6761,15 @@
     const actorsMoreBtn = content.querySelector('.film-actors-more-btn');
     if (actorsMoreBtn) {
       actorsMoreBtn.addEventListener('click', () => {
-        const shortEl = content.querySelector('.film-actors-short');
-        const fullEl = content.querySelector('.film-actors-full');
+        const castRoot = actorsMoreBtn.closest('.film-hero-crew, .film-modal-crew');
+        const shortEl = castRoot ? castRoot.querySelector('.film-actors-short') : content.querySelector('.film-actors-short');
+        const fullEl = castRoot ? castRoot.querySelector('.film-actors-full') : content.querySelector('.film-actors-full');
         if (!shortEl || !fullEl) return;
-        const expanded = !fullEl.classList.contains('hidden');
-        fullEl.classList.toggle('hidden', expanded);
-        shortEl.classList.toggle('hidden', !expanded);
-        actorsMoreBtn.textContent = expanded ? 'ещё' : 'свернуть';
+        const collapsed = fullEl.classList.contains('hidden');
+        fullEl.classList.toggle('hidden', !collapsed);
+        shortEl.classList.toggle('hidden', collapsed);
+        actorsMoreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
+        actorsMoreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
       });
     }
 
