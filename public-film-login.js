@@ -78,49 +78,78 @@
   }
 
   function injectModal() {
-    if (document.getElementById('public-login-modal')) return;
+    if (document.getElementById('login-modal')) return;
     var wrap = document.createElement('div');
     wrap.innerHTML =
-      '<div class="modal hidden" id="public-login-modal" aria-hidden="true">' +
-        '<div data-action="close-public-login" style="position:absolute;inset:0;z-index:0;cursor:pointer"></div>' +
+      '<div class="modal hidden" id="login-modal" aria-hidden="true">' +
+        '<div data-action="close-login" style="position:absolute;inset:0;z-index:0;cursor:pointer"></div>' +
         '<div class="modal-content" style="position:relative;z-index:1;max-height:min(90vh,720px);overflow:auto">' +
-          '<button type="button" class="modal-close" data-action="close-public-login" aria-label="Закрыть">&times;</button>' +
-          '<div class="modal-title">Вход</div>' +
-          '<div class="login-oauth-caption">Войти с помощью</div>' +
-          '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
-            '<button type="button" class="login-oauth-btn login-oauth-google" id="pf-login-google" title="Google" aria-label="Google">' +
-              '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
-            '</button>' +
-            '<button type="button" class="login-oauth-btn login-oauth-yandex" id="pf-login-yandex" title="Яндекс" aria-label="Яндекс">' +
-              '<img src="/images/yandex-id.png" class="login-oauth-img login-oauth-img--yandex" alt="" aria-hidden="true">' +
-            '</button>' +
-            '<button type="button" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap" id="pf-login-telegram" title="Telegram" aria-label="Telegram">' +
-              '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
-            '</button>' +
-            '<button type="button" class="login-oauth-btn login-oauth-bot" id="pf-login-bot-toggle" title="Войти через Telegram-бота" aria-label="Войти через Telegram-бота">🤖</button>' +
+          '<button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>' +
+          '<div class="modal-title">Movie Planner</div>' +
+          '<div class="login-auth-tabs" role="tablist" aria-label="Вход и регистрация">' +
+            '<button type="button" class="login-auth-tab active" data-login-tab="login" role="tab" aria-selected="true">Вход</button>' +
+            '<button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false">Регистрация</button>' +
           '</div>' +
-          '<label class="login-oauth-privacy">' +
-            '<input type="checkbox" id="pf-login-privacy"/>' +
-            '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-          '</label>' +
-          '<div class="login-privacy-hint" id="pf-login-privacy-hint">Отметьте согласие для Google, Яндекс и Telegram.</div>' +
-          '<div id="pf-login-bot-panel" class="login-bot-panel hidden">' +
-            '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
-            '<p class="login-status" id="pf-login-status"></p>' +
-            '<button type="button" class="modal-button modal-button-secondary login-bot-reopen" id="pf-login-bot-reopen">Открыть бота ещё раз</button>' +
+          '<div class="login-auth-pane" id="login-pane-login" data-login-pane="login">' +
+            '<div class="login-oauth-caption">Войти с помощью</div>' +
+            '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
+              '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
+                '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
+              '</button>' +
+              '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
+                '<img src="/images/yandex-id.png" class="login-oauth-img login-oauth-img--yandex" alt="" aria-hidden="true">' +
+              '</button>' +
+              '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
+                '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
+              '</button>' +
+              '<button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" title="Войти через Telegram-бота" aria-label="Войти через Telegram-бота">🤖</button>' +
+            '</div>' +
+            '<label class="login-oauth-privacy">' +
+              '<input type="checkbox" id="login-oauth-privacy"/>' +
+              '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+            '</label>' +
+            '<div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы войти через Google, Яндекс или Telegram.</div>' +
+            '<div id="login-bot-panel" class="login-bot-panel hidden">' +
+              '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
+              '<p class="login-status" id="login-status"></p>' +
+              '<button type="button" class="modal-button modal-button-secondary login-bot-reopen" id="login-bot-reopen">Открыть бота ещё раз</button>' +
+            '</div>' +
+            '<div class="login-email-section">' +
+              '<div class="login-email-caption">Войти по почте</div>' +
+              '<form id="login-email-form" class="login-email-request-row">' +
+                '<input type="email" id="login-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
+                '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-email-request-btn">Код</button>' +
+              '</form>' +
+              '<p class="login-status" id="login-email-status"></p>' +
+              '<form id="login-email-code-form" class="login-email-code-row hidden">' +
+                '<input type="text" id="login-email-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">' +
+                '<button type="submit" class="modal-button modal-button-primary">Войти</button>' +
+                '<button type="button" class="modal-button login-email-back-btn" id="login-email-back-btn">Назад</button>' +
+              '</form>' +
+            '</div>' +
           '</div>' +
-          '<div class="login-email-section">' +
-            '<div class="login-email-caption">Войти по почте</div>' +
-            '<form id="pf-login-email-form" class="login-email-request-row">' +
-              '<input type="email" id="pf-login-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
-              '<button type="submit" class="modal-button modal-button-primary login-email-send-btn">Код</button>' +
-            '</form>' +
-            '<p class="login-status" id="pf-login-email-status"></p>' +
-            '<form id="pf-login-email-code-form" class="login-email-code-row hidden">' +
-              '<input type="text" id="pf-login-email-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">' +
-              '<button type="submit" class="modal-button modal-button-primary">Войти</button>' +
-              '<button type="button" class="modal-button login-email-back-btn" id="pf-login-email-back">Назад</button>' +
-            '</form>' +
+          '<div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">' +
+            '<div class="login-register-card">' +
+              '<div class="login-register-title">Создать аккаунт</div>' +
+              '<form id="login-register-form" class="login-register-form">' +
+                '<input type="text" id="login-register-name" name="display_name" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">' +
+                '<div class="login-email-request-row">' +
+                  '<input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
+                  '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>' +
+                '</div>' +
+                '<label class="login-oauth-privacy login-register-privacy">' +
+                  '<input type="checkbox" id="login-register-privacy"/>' +
+                  '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+                '</label>' +
+                '<p class="login-status" id="login-register-status"></p>' +
+              '</form>' +
+              '<form id="login-register-code-form" class="login-email-code-row hidden">' +
+                '<input type="text" id="login-register-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">' +
+                '<button type="submit" class="modal-button modal-button-primary">Завершить</button>' +
+                '<button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>' +
+              '</form>' +
+              '<div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -134,6 +163,18 @@
     if (!el) return;
     el.textContent = text || '';
     el.className = 'login-status' + (kind ? ' ' + kind : '');
+  }
+
+  function setLoginTab(tabName) {
+    var tab = tabName === 'register' ? 'register' : 'login';
+    document.querySelectorAll('[data-login-tab]').forEach(function (btn) {
+      var active = btn.getAttribute('data-login-tab') === tab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-login-pane]').forEach(function (pane) {
+      pane.classList.toggle('hidden', pane.getAttribute('data-login-pane') !== tab);
+    });
   }
 
   function getSessions() {
@@ -170,12 +211,12 @@
   }
 
   function privacyOk() {
-    var cb = $('pf-login-privacy');
+    var cb = $('login-oauth-privacy');
     return !!(cb && cb.checked);
   }
 
   function nudgePrivacy() {
-    var cb = $('pf-login-privacy');
+    var cb = $('login-oauth-privacy');
     if (cb && cb.closest('.login-oauth-privacy')) {
       cb.closest('.login-oauth-privacy').classList.add('needs-attention');
       cb.focus({ preventScroll: true });
@@ -183,19 +224,21 @@
         cb.closest('.login-oauth-privacy').classList.remove('needs-attention');
       }, 1600);
     }
-    var hint = $('pf-login-privacy-hint');
+    var hint = $('login-privacy-hint');
     if (hint) hint.classList.add('is-visible');
   }
 
   function syncPrivacyLock() {
     var ok = privacyOk();
-    ['pf-login-google', 'pf-login-yandex', 'pf-login-telegram'].forEach(function (id) {
+    ['login-oauth-google', 'login-oauth-yandex'].forEach(function (id) {
       var btn = $(id);
       if (!btn) return;
       btn.classList.toggle('is-locked', !ok);
       btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
     });
-    var hint = $('pf-login-privacy-hint');
+    var tgWrap = $('login-tg-widget-wrap');
+    if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
+    var hint = $('login-privacy-hint');
     if (hint) hint.classList.toggle('is-visible', !ok);
   }
 
@@ -204,6 +247,16 @@
     saveSession(data);
     close();
     try { cfg.onSuccess(data); } catch (_e) {}
+  }
+
+  function applyDisplayName(token, name) {
+    var n = (name || '').trim();
+    if (!token || !n) return Promise.resolve();
+    return fetch(cfg.apiBase + '/api/miniapp/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ display_name: n }),
+    }).catch(function () {});
   }
 
   function startTelegramLogin() {
@@ -233,9 +286,9 @@
           .then(function (r) { return r.json(); })
           .then(function (d) {
             if (d.success && d.token) finishLogin(d);
-            else setStatus($('pf-login-status'), d.error || 'Не удалось войти через Telegram', 'error');
+            else setStatus($('login-status'), d.error || 'Не удалось войти через Telegram', 'error');
           })
-          .catch(function () { setStatus($('pf-login-status'), 'Ошибка сети', 'error'); });
+          .catch(function () { setStatus($('login-status'), 'Ошибка сети', 'error'); });
       }
     };
     global.addEventListener('message', onMessage);
@@ -246,26 +299,33 @@
     );
     if (!popup) {
       global.removeEventListener('message', onMessage);
-      setStatus($('pf-login-status'), 'Разрешите всплывающие окна для Telegram', 'error');
+      setStatus($('login-status'), 'Разрешите всплывающие окна для Telegram', 'error');
     } else {
       popup.focus();
     }
   }
 
   function bindEvents() {
-    var modal = $('public-login-modal');
+    var modal = $('login-modal');
     if (!modal || modal._pfBound) return;
     modal._pfBound = true;
 
-    document.querySelectorAll('[data-action="close-public-login"]').forEach(function (node) {
+    document.querySelectorAll('[data-action="close-login"]').forEach(function (node) {
       node.addEventListener('click', function () { close(); });
     });
 
-    var priv = $('pf-login-privacy');
+    document.querySelectorAll('[data-login-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setLoginTab(btn.getAttribute('data-login-tab')); });
+    });
+    document.querySelectorAll('[data-login-tab-jump]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setLoginTab(btn.getAttribute('data-login-tab-jump')); });
+    });
+
+    var priv = $('login-oauth-privacy');
     if (priv) priv.addEventListener('change', syncPrivacyLock);
     syncPrivacyLock();
 
-    var g = $('pf-login-google');
+    var g = $('login-oauth-google');
     if (g) {
       g.addEventListener('click', function () {
         if (!privacyOk()) { nudgePrivacy(); return; }
@@ -273,7 +333,7 @@
         global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
       });
     }
-    var y = $('pf-login-yandex');
+    var y = $('login-oauth-yandex');
     if (y) {
       y.addEventListener('click', function () {
         if (!privacyOk()) { nudgePrivacy(); return; }
@@ -281,15 +341,20 @@
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });
     }
-    var tg = $('pf-login-telegram');
-    if (tg) tg.addEventListener('click', function (e) { e.preventDefault(); startTelegramLogin(); });
+    var tg = $('login-tg-widget-wrap');
+    if (tg) {
+      tg.addEventListener('click', function (e) {
+        e.preventDefault();
+        startTelegramLogin();
+      });
+    }
 
-    var botToggle = $('pf-login-bot-toggle');
-    var botPanel = $('pf-login-bot-panel');
-    var botReopen = $('pf-login-bot-reopen');
+    var botToggle = $('login-bot-toggle');
+    var botPanel = $('login-bot-panel');
+    var botReopen = $('login-bot-reopen');
     if (botToggle) {
       botToggle.addEventListener('click', function () {
-        startPfBotAuth($('pf-login-status'), botPanel);
+        startPfBotAuth($('login-status'), botPanel);
       });
     }
     if (botReopen) {
@@ -297,24 +362,24 @@
         if (pfBotDeepLink) {
           try { global.open(pfBotDeepLink, '_blank', 'noopener'); } catch (_e) {}
         } else {
-          startPfBotAuth($('pf-login-status'), botPanel);
+          startPfBotAuth($('login-status'), botPanel);
         }
       });
     }
 
-    var emailForm = $('pf-login-email-form');
-    var emailCodeForm = $('pf-login-email-code-form');
-    var emailInput = $('pf-login-email');
-    var emailCodeInput = $('pf-login-email-code');
+    var emailForm = $('login-email-form');
+    var emailCodeForm = $('login-email-code-form');
+    var emailInput = $('login-email');
+    var emailCodeInput = $('login-email-code');
     if (emailForm) {
       emailForm.addEventListener('submit', function (e) {
         e.preventDefault();
         var email = ((emailInput && emailInput.value) || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-          setStatus($('pf-login-email-status'), 'Укажите корректный email', 'error');
+          setStatus($('login-email-status'), 'Укажите корректный email', 'error');
           return;
         }
-        setStatus($('pf-login-email-status'), 'Отправляем…');
+        setStatus($('login-email-status'), 'Отправляем…');
         fetch(cfg.apiBase + '/api/auth/email/request-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -323,15 +388,15 @@
           .then(function (r) { return r.json(); })
           .then(function (d) {
             if (!d.success) {
-              setStatus($('pf-login-email-status'), d.error === 'rate_limit' ? 'Слишком часто' : 'Не удалось отправить код', 'error');
+              setStatus($('login-email-status'), d.error === 'rate_limit' ? 'Слишком часто' : 'Не удалось отправить код', 'error');
               return;
             }
-            setStatus($('pf-login-email-status'), 'Код отправлен', 'success');
+            setStatus($('login-email-status'), 'Код отправлен', 'success');
             emailForm.classList.add('hidden');
             if (emailCodeForm) emailCodeForm.classList.remove('hidden');
             if (emailCodeInput) emailCodeInput.focus();
           })
-          .catch(function () { setStatus($('pf-login-email-status'), 'Ошибка сети', 'error'); });
+          .catch(function () { setStatus($('login-email-status'), 'Ошибка сети', 'error'); });
       });
     }
     if (emailCodeForm) {
@@ -340,10 +405,10 @@
         var email = ((emailInput && emailInput.value) || '').trim().toLowerCase();
         var code = ((emailCodeInput && emailCodeInput.value) || '').trim();
         if (!/^\d{4,8}$/.test(code)) {
-          setStatus($('pf-login-email-status'), 'Введите код из письма', 'error');
+          setStatus($('login-email-status'), 'Введите код из письма', 'error');
           return;
         }
-        setStatus($('pf-login-email-status'), 'Проверка…');
+        setStatus($('login-email-status'), 'Проверка…');
         fetch(cfg.apiBase + '/api/auth/email/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -352,7 +417,7 @@
           .then(function (r) { return r.json(); })
           .then(function (verify) {
             if (!verify.success || !verify.access) {
-              setStatus($('pf-login-email-status'), verify.message || verify.error || 'Неверный код', 'error');
+              setStatus($('login-email-status'), verify.message || verify.error || 'Неверный код', 'error');
               return;
             }
             return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
@@ -364,17 +429,121 @@
           .then(function (d) {
             if (!d) return;
             if (d.success && d.token) finishLogin(d);
-            else setStatus($('pf-login-email-status'), d.error || 'Не удалось создать сессию', 'error');
+            else setStatus($('login-email-status'), d.error || 'Не удалось создать сессию', 'error');
           })
-          .catch(function () { setStatus($('pf-login-email-status'), 'Ошибка сети', 'error'); });
+          .catch(function () { setStatus($('login-email-status'), 'Ошибка сети', 'error'); });
       });
     }
-    var emailBack = $('pf-login-email-back');
+    var emailBack = $('login-email-back-btn');
     if (emailBack) {
       emailBack.addEventListener('click', function () {
         if (emailCodeForm) emailCodeForm.classList.add('hidden');
         if (emailForm) emailForm.classList.remove('hidden');
         if (emailCodeInput) emailCodeInput.value = '';
+      });
+    }
+
+    var regForm = $('login-register-form');
+    var regCodeForm = $('login-register-code-form');
+    var regName = $('login-register-name');
+    var regEmail = $('login-register-email');
+    var regCode = $('login-register-code');
+    var regPrivacy = $('login-register-privacy');
+    var regBtn = $('login-register-request-btn');
+    var regBack = $('login-register-back-btn');
+
+    function registrationName() {
+      return ((regName && regName.value) || '').trim().slice(0, 80);
+    }
+
+    if (regForm) {
+      regForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = ((regEmail && regEmail.value) || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          setStatus($('login-register-status'), 'Укажите корректный email', 'error');
+          return;
+        }
+        if (!registrationName()) {
+          setStatus($('login-register-status'), 'Укажите имя', 'error');
+          return;
+        }
+        if (!regPrivacy || !regPrivacy.checked) {
+          setStatus($('login-register-status'), 'Нужно согласие с политикой', 'error');
+          return;
+        }
+        if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
+        setStatus($('login-register-status'), '');
+        fetch(cfg.apiBase + '/api/auth/email/request-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, accept_privacy: true, acceptPrivacy: true }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
+            if (!d.success) {
+              setStatus($('login-register-status'), d.error === 'rate_limit' ? 'Слишком часто' : 'Не удалось отправить код', 'error');
+              return;
+            }
+            setStatus($('login-register-status'), 'Код отправлен', 'success');
+            regForm.classList.add('hidden');
+            if (regCodeForm) regCodeForm.classList.remove('hidden');
+            if (regCode) regCode.focus();
+          })
+          .catch(function () {
+            if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
+            setStatus($('login-register-status'), 'Ошибка сети', 'error');
+          });
+      });
+    }
+
+    if (regBack) {
+      regBack.addEventListener('click', function () {
+        if (regCodeForm) regCodeForm.classList.add('hidden');
+        if (regForm) regForm.classList.remove('hidden');
+        if (regCode) regCode.value = '';
+        setStatus($('login-register-status'), '');
+      });
+    }
+
+    if (regCodeForm) {
+      regCodeForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = ((regEmail && regEmail.value) || '').trim().toLowerCase();
+        var code = ((regCode && regCode.value) || '').trim();
+        if (!/^\d{4,8}$/.test(code)) {
+          setStatus($('login-register-status'), 'Введите код из письма', 'error');
+          return;
+        }
+        setStatus($('login-register-status'), 'Проверка…');
+        fetch(cfg.apiBase + '/api/auth/email/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, code: code }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (verify) {
+            if (!verify.success || !verify.access) {
+              setStatus($('login-register-status'), verify.message || verify.error || 'Неверный код', 'error');
+              return;
+            }
+            return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access: verify.access }),
+            }).then(function (r) { return r.json(); })
+              .then(function (exchange) {
+                if (!exchange.success || !exchange.token) {
+                  setStatus($('login-register-status'), exchange.error || 'Не удалось создать сессию', 'error');
+                  return;
+                }
+                return applyDisplayName(exchange.token, registrationName()).then(function () {
+                  finishLogin(Object.assign({}, exchange, { name: registrationName() || exchange.name }));
+                });
+              });
+          })
+          .catch(function () { setStatus($('login-register-status'), 'Ошибка сети', 'error'); });
       });
     }
   }
@@ -384,7 +553,8 @@
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }
-    var modal = $('public-login-modal');
+    setLoginTab('login');
+    var modal = $('login-modal');
     if (!modal) return;
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
@@ -393,11 +563,13 @@
 
   function close() {
     stopPfBotPoll();
-    var modal = $('public-login-modal');
+    var modal = $('login-modal');
     if (modal) {
       modal.classList.add('hidden');
       modal.setAttribute('aria-hidden', 'true');
     }
+    var botPanel = $('login-bot-panel');
+    if (botPanel) botPanel.classList.add('hidden');
     document.body.style.overflow = '';
   }
 
