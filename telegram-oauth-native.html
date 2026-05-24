@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Telegram</title>
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #111119;
+      color: #fff;
+      font: 16px system-ui, -apple-system, sans-serif;
+    }
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+    p { color: rgba(255,255,255,.6); font-size: 14px; line-height: 1.45; max-width: 320px; }
+  </style>
+</head>
+<body>
+  <p id="st">Открываем Telegram…</p>
+  <script>
+    (function () {
+      var BOT_ID = "8554485843";
+      var origin = window.location.origin;
+      var statusEl = document.getElementById("st");
+      function goApp(payload) {
+        var q = encodeURIComponent(JSON.stringify(payload || {}));
+        window.location.replace("movieplanner://oauth/telegram?payload=" + q);
+      }
+      window.addEventListener("message", function (event) {
+        var data = event.data;
+        if (typeof data === "string") {
+          try { data = JSON.parse(data); } catch (e) { return; }
+        }
+        if (data && data.event === "auth_result" && data.result) {
+          goApp(data.result);
+        }
+      });
+      var width = 550;
+      var height = 470;
+      var left = Math.max(0, (window.screen.width - width) / 2) + (window.screen.availLeft || 0);
+      var top = Math.max(0, (window.screen.height - height) / 2) + (window.screen.availTop || 0);
+      var authUrl = "https://oauth.telegram.org/auth?bot_id=" + encodeURIComponent(BOT_ID)
+        + "&origin=" + encodeURIComponent(origin)
+        + "&request_access=write"
+        + "&return_to=" + encodeURIComponent(window.location.href);
+      var popup = window.open(
+        authUrl,
+        "telegram_oauth_bot" + BOT_ID,
+        "width=" + width + ",height=" + height + ",left=" + left + ",top=" + top + ",status=0,location=0,menubar=0,toolbar=0"
+      );
+      if (!popup) {
+        if (statusEl) statusEl.textContent = "Не удалось открыть окно Telegram. Разрешите всплывающие окна или попробуйте снова.";
+        return;
+      }
+      try { popup.focus(); } catch (e) {}
+      var timer = window.setInterval(function () {
+        if (popup.closed) {
+          window.clearInterval(timer);
+          if (statusEl) statusEl.textContent = "Окно закрыто. Вернитесь в приложение и попробуйте снова.";
+        }
+      }, 500);
+    })();
+  </script>
+</body>
+</html>

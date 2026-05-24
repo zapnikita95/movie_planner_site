@@ -21,17 +21,20 @@
     }
     button {
       border: 0;
-      border-radius: 16px;
+      border-radius: 12px;
       padding: 14px 20px;
       background: #229ed9;
       color: #fff;
       font: inherit;
       font-weight: 800;
+      cursor: pointer;
     }
     p {
       margin: 14px 0 0;
       color: rgba(255,255,255,.64);
       font-size: 13px;
+      line-height: 1.45;
+      max-width: 300px;
     }
   </style>
 </head>
@@ -43,35 +46,54 @@
   <script>
     (function () {
       var BOT_ID = "8554485843";
-      var statusEl = document.getElementById('telegram-status');
+      var statusEl = document.getElementById("telegram-status");
+      var params = new URLSearchParams(window.location.search || "");
+      var nativeApp = params.get("native") === "1";
+
+      function sendToApp(payload) {
+        var q = encodeURIComponent(JSON.stringify(payload || {}));
+        window.location.replace("movieplanner://oauth/telegram?payload=" + q);
+      }
+
       function send(payload) {
+        if (nativeApp) {
+          sendToApp(payload);
+          return;
+        }
         try {
           window.ReactNativeWebView.postMessage(JSON.stringify(payload || {}));
         } catch (_) {}
       }
+
       function openTelegram() {
-        if (!window.Telegram || !window.Telegram.Login || typeof window.Telegram.Login.auth !== 'function') {
-          if (statusEl) statusEl.textContent = 'Telegram Login ещё загружается, попробуйте снова.';
+        if (!window.Telegram || !window.Telegram.Login || typeof window.Telegram.Login.auth !== "function") {
+          if (statusEl) statusEl.textContent = "Telegram Login ещё загружается, попробуйте снова.";
           return;
         }
         window.Telegram.Login.auth(
           { bot_id: BOT_ID, request_access: true },
           function (payload) {
             if (!payload) {
-              if (statusEl) statusEl.textContent = 'Вход отменён.';
+              if (statusEl) statusEl.textContent = "Вход отменён.";
               return;
             }
             send(payload);
           }
         );
       }
-      document.getElementById('telegram-login').addEventListener('click', openTelegram);
-      var script = document.createElement('script');
+
+      document.getElementById("telegram-login").addEventListener("click", openTelegram);
+
+      var script = document.createElement("script");
       script.async = true;
-      script.src = 'https://telegram.org/js/telegram-widget.js?22';
-      script.onload = function () { setTimeout(openTelegram, 100); };
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.onload = function () {
+        if (nativeApp) {
+          setTimeout(openTelegram, 120);
+        }
+      };
       script.onerror = function () {
-        if (statusEl) statusEl.textContent = 'Не удалось загрузить Telegram Login.';
+        if (statusEl) statusEl.textContent = "Не удалось загрузить Telegram Login.";
       };
       document.body.appendChild(script);
     })();
