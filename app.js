@@ -124,7 +124,8 @@
       const kp = params.get('kp_open');
       if (params.get('open_login') === '1' || !!(kp && /^\d+$/.test(kp))) return true;
       const pathKp = kpIdFromPathname(window.location.pathname);
-      return !!(pathKp && /^\d+$/.test(pathKp));
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      return !!(pathKp && /^\d+$/.test(pathKp)) || !!(pathStaff && /^\d+$/.test(pathStaff));
     } catch (_) {
       return false;
     }
@@ -159,8 +160,20 @@
     }
   }
 
+  function consumeStaffPathDeepLink() {
+    try {
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      if (!pathStaff || !/^\d+$/.test(pathStaff) || !getToken()) return false;
+      openStaffPage(pathStaff, { replace: true });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function handleAuthEntryDeepLinks() {
     if (consumeFilmPathDeepLink()) return;
+    if (consumeStaffPathDeepLink()) return;
     consumeKpOpenDeepLink();
     tryOpenLoginOnlyOverlay();
   }
@@ -217,11 +230,51 @@
       const stub = cachedSessionMeStub();
       if (stub) renderHeader(stub);
       if (consumeFilmPathDeepLink()) return true;
+      if (consumeStaffPathDeepLink()) return true;
       consumeKpOpenDeepLink();
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  function renderPublicFilmInCabinet(kpId, publicFilm, opts) {
+    const o = opts || {};
+    const kp = String(kpId || '').replace(/\D/g, '');
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot || !kp) return Promise.resolve();
+    const f = publicFilm || {};
+    const poster = cleanPosterUrl(f.poster_url) || posterUrl(kp);
+    const titleText = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
+    const filmStub = {
+      kp_id: kp,
+      title: f.title || 'Фильм',
+      year: f.year,
+      genres: f.genres,
+      description: f.description,
+      is_series: f.is_series,
+    };
+    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"><span class="muted small">Загрузка команды…</span></div>';
+    const toolbarHtml = buildFilmPageToolbar(filmStub, { inBase: false, authenticated: !!getToken() });
+    pageRoot.className = 'movie-page';
+    pageRoot.innerHTML =
+      '<section class="hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+        '<div class="poster-wrap">' +
+          (poster ? '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.style.opacity=.22">' : '<div class="poster poster-empty">🎬</div>') +
+        '</div>' +
+        '<div class="hero-content">' +
+          '<h1>' + escapeHtml(titleText) + '</h1>' +
+          '<div class="eyebrow">' + buildFilmGenreChipsHtml(filmStub) + '</div>' +
+          crew +
+          (f.description ? '<p class="description">' + escapeHtml(f.description) + '</p>' : '') +
+          toolbarHtml +
+        '</div>' +
+      '</section>';
+    try { document.title = titleText + ' · Movie Planner'; } catch (_) {}
+    bindFilmPageToolbar(pageRoot.querySelector('.film-page-toolbar'), filmStub, { inBase: false, authenticated: !!getToken(), kpId: kp, pendingAction: o.action || '' });
+    loadFilmCastSection(kp, pageRoot.querySelector('#film-hero-cast-root'), filmStub);
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
+    return Promise.resolve();
   }
 
   function openFilmPageByKp(kpId, opts) {
@@ -251,32 +304,23 @@
       const url = filmCanonicalPath(null, kp);
       (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', kpId: kp }, '', url);
     } catch (_) {}
-    return kpAddSync.waitFor(kp).then(function (knownFid) {
-      if (knownFid) {
-        return openFilmPage(Number(knownFid), {
+    _filmModalCurrentId = null;
+    return Promise.all([
+      fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' }).then(function (r) { return r.json(); }).catch(function () { return null; }),
+      api('/api/site/film-by-kp/' + kp).catch(function () { return { success: true, in_library: false }; }),
+    ]).then(function (pair) {
+      const pub = pair[0];
+      const lookup = pair[1] || {};
+      if (lookup.in_library && lookup.film_id) {
+        return openFilmPage(Number(lookup.film_id), {
           skipHistory: true,
           replace: true,
           kpId: kp,
           pendingAction: o.action || '',
         });
       }
-      const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
-      return kpAddSync.register(kp, addPromise).then(function (res) {
-        if (!res || !res.success || !res.film_id) {
-          if (!getToken()) {
-            redirectToPublicFilmPage(kp);
-            return;
-          }
-          showToast((res && res.error) || 'Не удалось открыть фильм', { type: 'error' });
-          return;
-        }
-        return openFilmPage(Number(res.film_id), {
-          skipHistory: true,
-          replace: true,
-          kpId: kp,
-          pendingAction: o.action || '',
-        });
-      });
+      const film = (pub && pub.success && pub.film) ? pub.film : { kp_id: kp, title: 'Фильм #' + kp };
+      return renderPublicFilmInCabinet(kp, film, o);
     }).catch(function () {
       showToast('Ошибка сети', { type: 'error' });
     });
@@ -1653,20 +1697,9 @@
 
     function showPreviewPhoto(kp, img) {
       if (!kp) return;
-      if (opts.guestPreview) {
-        img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
-        img.style.display = 'block';
-        img.onerror = function () { img.style.display = 'none'; };
-        return;
-      }
-      api('/api/site/persons/' + kp).then(function (d) {
-        if (hoverKp !== kp) return;
-        const photo = d && d.person && d.person.photo;
-        if (photo) {
-          img.src = photo;
-          img.style.display = 'block';
-        }
-      }).catch(function () {});
+      img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+      img.style.display = 'block';
+      img.onerror = function () { img.style.display = 'none'; };
     }
 
     root.querySelectorAll('.staff-cast-link').forEach(function (link) {
@@ -1875,10 +1908,6 @@
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
-    if (!getToken()) {
-      showLoginModalOverlay();
-      return Promise.resolve();
-    }
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) {
       showToast('Страница недоступна');
@@ -1896,7 +1925,11 @@
         (o.replace ? history.replaceState : history.pushState).call(history, { view: 'staff', kpId: kp }, '', path);
       } catch (_) {}
     }
-    return api('/api/site/persons/' + kp).then(function (detail) {
+    const authed = !!getToken();
+    const detailPromise = authed
+      ? api('/api/site/persons/' + kp)
+      : fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' }).then(function (r) { return r.json(); });
+    return detailPromise.then(function (detail) {
       if (_staffPageKpId !== kp) return;
       if (!detail || !detail.success) {
         pageRoot.className = 'container film-page-container staff-page-content';
@@ -5587,14 +5620,17 @@
 
   function buildFilmPageToolbar(item, opts) {
     opts = opts || {};
-    const isPublic = !!opts.public;
+    const inBase = !!opts.inBase;
+    const watched = !!opts.watched;
     const myRating = Number(opts.myRating) || 0;
     const canRate = opts.canRate !== false;
     const ratingLocked = !!opts.ratingLocked;
+    const authenticated = !!opts.authenticated;
+    const usePublicRatingGrid = !inBase || !authenticated;
     let ratingInner = '';
     if (ratingLocked) {
       ratingInner = '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p>';
-    } else if (isPublic) {
+    } else if (usePublicRatingGrid) {
       ratingInner = '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
         [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn" data-rate="${n}">${n}</button>`).join('') +
         '</div>';
@@ -5603,20 +5639,31 @@
         buildRatingStars(myRating) + '</div></div>' +
         (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title="Поделиться оценкой" aria-label="Поделиться оценкой">↗</button>' : '') + '</div>' : '');
     }
-    const planBlock = isPublic
-      ? '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>'
-      : '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>';
-    const addBtn = isPublic
-      ? '<button type="button" class="film-icon-btn film-icon-btn--add" id="add-btn" aria-label="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">Добавить в базу</span></button>'
-      : '';
+    const planBlock = (authenticated && inBase)
+      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
+      : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>';
+    let dbActionRow = '';
+    if (inBase) {
+      dbActionRow =
+        '<button type="button" class="film-watch-btn' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '">' +
+          '<span class="film-watch-mark" aria-hidden="true">' + (watched ? '✓' : '') + '</span>' +
+          '<span class="film-watch-label">' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '</span>' +
+        '</button>';
+    } else {
+      dbActionRow =
+        '<button type="button" class="film-add-base-btn" id="add-btn" aria-label="Добавить в базу">' +
+          '<span class="film-add-base-plus" aria-hidden="true">+</span>' +
+          '<span>Добавить в базу</span>' +
+        '</button>';
+    }
     const rateBtn = canRate && !ratingLocked
       ? '<button type="button" class="film-icon-btn" id="rate-toggle-btn" data-rate-toggle="1" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>'
       : '';
     return (
       '<div class="film-page-toolbar">' +
         planBlock +
+        dbActionRow +
         '<div class="film-toolbar-icons">' +
-          addBtn +
           rateBtn +
           '<button type="button" class="film-icon-btn" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
@@ -5677,7 +5724,67 @@
     }
     if (shareBtn) {
       shareBtn.addEventListener('click', () => {
-        openShareFilmModal({ kp_id: film.kp_id, film_id: film.film_id, title: film.title, poster: film.poster, year: film.year, genres: film.genres });
+        openShareFilmModal({ kp_id: film.kp_id, film_id: film.film_id, title: film.title, poster: film.poster || film.poster_url, year: film.year, genres: film.genres });
+      });
+    }
+    const kpNorm = String((film && film.kp_id) || opts.kpId || '').replace(/\D/g, '');
+    const addBtn = root.querySelector('#add-btn');
+    if (addBtn && !opts.inBase) {
+      addBtn.addEventListener('click', function () {
+        if (!getToken()) { showLoginModalOverlay(); return; }
+        addBtn.disabled = true;
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
+          .then(function (res) {
+            if (res && res.success && res.film_id) {
+              showToast('Фильм добавлен');
+              return openFilmPage(Number(res.film_id), { skipHistory: true, replace: true, kpId: kpNorm });
+            }
+            showToast((res && res.error) || 'Не удалось добавить', { type: 'error' });
+          })
+          .catch(function () { showToast('Ошибка сети', { type: 'error' }); })
+          .finally(function () { addBtn.disabled = false; });
+      });
+    }
+    const planBtn = root.querySelector('#plan-watch-btn');
+    if (planBtn && !opts.inBase) {
+      planBtn.addEventListener('click', function () {
+        if (!getToken()) { showLoginModalOverlay(); return; }
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
+          .then(function (res) {
+            if (res && res.success && res.film_id) {
+              return openFilmPage(Number(res.film_id), { skipHistory: true, replace: true, kpId: kpNorm, pendingAction: 'plan' });
+            }
+            showToast((res && res.error) || 'Не удалось подготовить фильм', { type: 'error' });
+          })
+          .catch(function () { showToast('Ошибка сети', { type: 'error' }); });
+      });
+    }
+    const rateGrid = root.querySelector('#rate-grid');
+    if (rateGrid && !opts.inBase) {
+      rateGrid.querySelectorAll('[data-rate]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const v = Number(btn.getAttribute('data-rate'));
+          if (!(v >= 1 && v <= 10)) return;
+          if (!getToken()) { showLoginModalOverlay(); return; }
+          api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
+            .then(function (addRes) {
+              if (!addRes || !addRes.success || !addRes.film_id) throw new Error((addRes && addRes.error) || 'Не удалось подготовить фильм');
+              const fid = Number(addRes.film_id);
+              return api('/api/site/film/' + fid + '/rating', { method: 'POST', body: JSON.stringify({ rating: v }) })
+                .then(function (rateRes) { return { rateRes: rateRes, fid: fid }; });
+            })
+            .then(function (pair) {
+              const res = pair && pair.rateRes;
+              const fid = pair && pair.fid;
+              if (res && res.success) {
+                showToast('Оценка ' + v + '/10 сохранена');
+                applyCoinsFeedback(btn, Number(res.coins_added) || 0);
+                return openFilmPage(fid, { skipHistory: true, replace: true, kpId: kpNorm });
+              }
+              showToast((res && res.error) || 'Не удалось поставить оценку', { type: 'error' });
+            })
+            .catch(function (e) { showToast((e && e.message) || 'Ошибка оценки', { type: 'error' }); });
+        });
       });
     }
   }
@@ -6509,16 +6616,13 @@
       online_link: film.online_link,
       in_cinema: film.in_cinema,
     }, {
-      public: false,
+      inBase: true,
+      watched: !!film.watched,
+      authenticated: true,
       myRating,
       canRate: !(isVirtualRoom && !canRateInGroup),
       ratingLocked: isVirtualRoom && !canRateInGroup,
     });
-    const watchedHtml =
-      '<button type="button" class="watched-toggle ' + (film.watched ? 'on' : '') + '" data-action="toggle-watched">' +
-        '<span class="wt-mark">' + (film.watched ? '✓' : '') + '</span>' +
-        '<span>' + (film.watched ? 'Просмотрен' : 'Отметить просмотренным') + '</span>' +
-      '</button>';
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'
       : '';
@@ -6536,7 +6640,6 @@
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
           crew +
           (film.description ? '<p class="description">' + escapeHtml(film.description) + '</p>' : '') +
-          '<div class="film-hero-watched">' + watchedHtml + '</div>' +
           toolbarHtml +
         '</div>' +
       '</section>' +
@@ -6544,7 +6647,7 @@
       '<div id="film-friends-social-block"></div>';
 
     bindFilmModalInteractions(film, content);
-    bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { public: false });
+    bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { inBase: true, authenticated: true });
     loadFilmFriendsSocial(film);
     loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
   }
@@ -6556,19 +6659,21 @@
       root.innerHTML = buildFilmCrewFallback(filmFallback);
       return;
     }
-    api('/api/site/film/cast/' + kp).then(function (cast) {
-      const director = cast && cast.director;
-      const actors = (cast && cast.actors) || [];
-      const html = buildFilmCastHtml(director, actors);
-      if (!html) {
+    fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/cast', { method: 'GET', mode: 'cors' })
+      .then(function (r) { return r.json(); })
+      .then(function (cast) {
+        const director = cast && cast.director;
+        const actors = (cast && cast.actors) || [];
+        const html = buildFilmCastHtml(director, actors);
+        if (!html) {
+          root.innerHTML = buildFilmCrewFallback(filmFallback);
+          return;
+        }
+        root.innerHTML = html;
+        bindStaffCastLinks(root, { guestPreview: true });
+      }).catch(function () {
         root.innerHTML = buildFilmCrewFallback(filmFallback);
-        return;
-      }
-      root.innerHTML = html;
-      bindStaffCastLinks(root);
-    }).catch(function () {
-      root.innerHTML = buildFilmCrewFallback(filmFallback);
-    });
+      });
   }
 
   function buildFilmCrewFallback(film) {
@@ -10118,7 +10223,6 @@
         renderSiteSearchPage({ q });
         return;
       }
-      if (!getToken()) return;
       const pathStaff = staffIdFromPathname(window.location.pathname);
       if (pathStaff) {
         try { openStaffPage(pathStaff, { skipHistory: true, replace: true }); } catch (e) {}
@@ -10263,9 +10367,16 @@
       bootAuthenticatedFilmDeepLink();
       loadMeAndShowCabinet();
     } else {
-      showScreen('landing');
-      renderHeader(null);
-      handleAuthEntryDeepLinks();
+      const pathStaffGuest = staffIdFromPathname(window.location.pathname);
+      if (pathStaffGuest) {
+        showScreen('cabinet-readonly');
+        renderHeader(null);
+        openStaffPage(pathStaffGuest, { replace: true });
+      } else {
+        showScreen('landing');
+        renderHeader(null);
+        handleAuthEntryDeepLinks();
+      }
     }
     }
 

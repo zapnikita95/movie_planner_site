@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260524filmcast">
+  <link rel="stylesheet" href="/style-v2.css?v=20260524unifiedfilm">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -44,9 +44,10 @@
     }
     a { color: inherit; }
     .page-shell { min-height: 100vh; padding: 18px clamp(16px, 4vw, 56px) 0; overflow-x: hidden; }
+    .page-shell > main { margin-top: clamp(12px, 2vw, 24px); }
     #site-header {
       max-width: 1180px;
-      margin: 0 auto 20px;
+      margin: 0 auto clamp(16px, 2.5vw, 28px);
       position: sticky;
       top: 14px;
       z-index: 20;
@@ -731,7 +732,7 @@
         loc.replace(loc.origin + '/?add=' + encodeURIComponent(userMatch[1]) + loc.hash);
         return;
       }
-      if (!loc.pathname.match(/^\/f\/(\d+)\/?$/)) {
+      if (!loc.pathname.match(/^\/f\/(\d+)\/?$/) && !loc.pathname.match(/^\/s\/(\d+)\/?$/)) {
         var target = loc.pathname + loc.search + loc.hash;
         loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
       }
@@ -826,8 +827,8 @@
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
+                  '<button type="button" class="film-add-base-btn" id="add-btn" aria-label="Добавить в базу"><span class="film-add-base-plus" aria-hidden="true">+</span><span>Добавить в базу</span></button>' +
                   '<div class="film-toolbar-icons">' +
-                    '<button type="button" class="film-icon-btn film-icon-btn--add" id="add-btn" aria-label="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">Добавить</span></button>' +
                     '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
                     '<button type="button" class="film-icon-btn" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
                     '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
@@ -1473,6 +1474,90 @@
         });
       }
       consumePendingAction();
+    })();
+  </script>
+  <script>
+    (function () {
+      var loc = window.location;
+      var staffMatch = loc.pathname.match(/^\/s\/(\d+)\/?$/);
+      if (!staffMatch) return;
+      var personId = staffMatch[1];
+      var apiBase = 'https://api.movie-planner.ru';
+
+      function sessionsEarly() {
+        try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
+      }
+      function tokenEarly() {
+        try {
+          var active = localStorage.getItem('mp_site_active_chat_id');
+          var row = sessionsEarly().find(function (x) { return String(x.chat_id) === String(active); });
+          return row ? row.token : null;
+        } catch (_e) { return null; }
+      }
+      if (tokenEarly()) {
+        window.location.replace('/?__spa=' + encodeURIComponent('/s/' + personId));
+        return;
+      }
+
+      document.title = 'Персона · Movie Planner';
+      document.body.innerHTML =
+        '<div class="page-shell">' +
+          '<header id="site-header"><div class="header-content">' +
+            '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
+            '<div class="header-buttons"><button type="button" class="btn-primary" id="login-btn">Войти</button></div>' +
+          '</div></header>' +
+          '<main class="movie-page"><div class="container staff-page-content" id="staff-root">Загрузка…</div></main>' +
+        '</div>';
+
+      var loginBtn = document.getElementById('login-btn');
+      if (loginBtn) loginBtn.addEventListener('click', function () {
+        window.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
+      });
+
+      function escapeText(v) {
+        return String(v || '').replace(/[&<>"']/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+      }
+
+      fetch(apiBase + '/api/public/person/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var root = document.getElementById('staff-root');
+          if (!root) return;
+          if (!d || !d.success) {
+            root.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
+            return;
+          }
+          var person = d.person || {};
+          var roles = d.films_by_role || [];
+          document.title = (person.name_ru || person.name_en || 'Персона') + ' · Movie Planner';
+          var photo = person.photo
+            ? '<img class="staff-hero-photo" src="' + escapeText(person.photo) + '" alt="" referrerpolicy="no-referrer">'
+            : '<div class="staff-hero-photo staff-hero-ph">👤</div>';
+          var grid = function (films) {
+            return (films || []).slice(0, 60).map(function (f) {
+              return '<a class="staff-film-card" href="/f/' + encodeURIComponent(String(f.kp_id)) + '">' +
+                (f.poster ? '<img src="' + escapeText(f.poster) + '" alt="" loading="lazy">' : '<div class="staff-film-ph">🎬</div>') +
+                '<div class="staff-film-title">' + escapeText(f.title || '—') + '</div>' +
+                (f.year ? '<div class="staff-film-year">' + escapeText(String(f.year)) + '</div>' : '') +
+              '</a>';
+            }).join('');
+          };
+          root.innerHTML =
+            '<div class="staff-hero">' + photo +
+              '<div><h2 class="staff-hero-name">' + escapeText(person.name_ru || person.name_en || '—') + '</h2>' +
+              (person.name_en && person.name_en !== person.name_ru ? '<div class="staff-hero-sub">' + escapeText(person.name_en) + '</div>' : '') +
+              '</div></div>' +
+            roles.map(function (block) {
+              return '<section class="staff-role-block"><div class="staff-role-head"><h3>' + escapeText(block.role_name || block.role_key || '') + '</h3></div>' +
+                '<div class="staff-role-grid">' + grid(block.films) + '</div></section>';
+            }).join('');
+        })
+        .catch(function () {
+          var root = document.getElementById('staff-root');
+          if (root) root.innerHTML = '<p class="film-page-error-hint">Ошибка сети</p>';
+        });
     })();
   </script>
 </body>
