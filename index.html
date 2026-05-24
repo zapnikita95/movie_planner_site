@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260524filmboot">
+    <link rel="stylesheet" href="/style-v2.css?v=20260524filmpar">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -494,16 +494,8 @@
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">🔔</button>
             <div class="cabinet-sections">
                 <section id="section-film" class="cabinet-section film-page hidden" aria-label="Карточка фильма">
-                    <div class="film-page-toolbar">
-                        <button type="button" class="film-page-back" id="film-page-back" aria-label="Назад">← Назад</button>
-                        <div class="film-page-toolbar-mid">
-                            <span class="film-page-kicker" id="film-page-kicker">🎬 Фильм</span>
-                            <h1 class="film-page-toolbar-title" id="film-page-toolbar-title">Загрузка…</h1>
-                        </div>
-                        <button type="button" class="film-page-share" id="film-page-share" title="Скопировать ссылку">🔗</button>
-                    </div>
                     <div class="film-page-outer">
-                        <div class="container film-page-container" id="film-page-content" data-film-page-root="1"></div>
+                        <div class="movie-page" id="film-page-content" data-film-page-root="1"></div>
                     </div>
                 </section>
                 <section id="section-inbox" class="cabinet-section hidden" aria-label="Уведомления">
@@ -1316,6 +1308,6 @@
 
     </div><!-- /content-wrapper -->
     <script src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <script src="/app.js?v=20260524filmfix"></script>
+    <script src="/app.js?v=20260524filmpar"></script>
 </body>
 </html>

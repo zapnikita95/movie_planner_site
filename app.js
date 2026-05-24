@@ -245,9 +245,8 @@
     }
     showScreen('cabinet-readonly');
     showFilmPageLayout();
-    pageRoot.className = 'container film-page-container film-hero-content loading';
+    pageRoot.className = 'movie-page loading';
     pageRoot.innerHTML = 'Загрузка…';
-    setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
     try {
       const url = filmCanonicalPath(null, kp);
       (o.replace ? history.replaceState : history.pushState).call(history, { view: 'film', kpId: kp }, '', url);
@@ -1849,9 +1848,6 @@
     showFilmPageLayout();
     pageRoot.className = 'container film-page-container staff-page-content loading';
     pageRoot.innerHTML = 'Загрузка…';
-    setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
-    const kicker = document.getElementById('film-page-kicker');
-    if (kicker) kicker.textContent = '👤 Персона';
     if (!o.skipHistory) {
       try {
         const path = '/s/' + kp;
@@ -1869,7 +1865,6 @@
       try {
         document.title = ((detail.person && detail.person.name_ru) || 'Персона') + ' · Movie Planner';
       } catch (_) {}
-      setFilmPageToolbar({ title: (detail.person && (detail.person.name_ru || detail.person.name_en)) || 'Персона', is_series: false });
       renderStaffPageContent(detail, pageRoot);
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
     }).catch(function () {
@@ -1927,11 +1922,8 @@
     });
     ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
   }
-  function setFilmPageToolbar(film) {
-    const t = document.getElementById('film-page-toolbar-title');
-    const k = document.getElementById('film-page-kicker');
-    if (t) t.textContent = (film && (film.title || 'Фильм')) || 'Загрузка…';
-    if (k) k.textContent = film && film.is_series ? '📺 Сериал' : '🎬 Фильм';
+  function setFilmPageToolbar(_film) {
+    /* sticky film toolbar removed — title lives in hero h1 */
   }
   function restoreDocumentTitle() {
     try { document.title = DEFAULT_DOC_TITLE; } catch (_) {}
@@ -6346,9 +6338,8 @@
         }
         renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
       } else {
-        pageRoot.className = 'container film-page-container film-modal-content loading';
+        pageRoot.className = 'movie-page loading';
         pageRoot.innerHTML = 'Загрузка…';
-        setFilmPageToolbar({ title: 'Загрузка…', is_series: false });
       }
     };
     if (_filmModalCache[filmId]) {
@@ -6358,9 +6349,8 @@
     }
     return api('/api/site/film/' + filmId).then(function (detail) {
       if (!detail || !detail.success) {
-        pageRoot.className = 'container film-page-container';
-        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p><p class="film-page-error-actions"><button type="button" class="btn btn-primary" data-action="close-film-page">← Назад</button></p>';
-        setFilmPageToolbar({ title: 'Ошибка', is_series: false });
+        pageRoot.className = 'movie-page';
+        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p>';
         return;
       }
       if (_filmModalCurrentId !== filmId) return;
@@ -6451,6 +6441,15 @@
     });
   }
 
+  function buildFilmGenreChipsHtml(film) {
+    const parts = String((film && film.genres) || '')
+      .split(/[,;/|]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!parts.length) parts.push(film && film.is_series ? 'сериал' : 'фильм');
+    return parts.slice(0, 8).map((label) => '<span class="chip">' + escapeHtml(label) + '</span>').join('');
+  }
+
   function renderFilmDetailHero(film, ratings, similar, me, content) {
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
@@ -6458,15 +6457,7 @@
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = posterUrl(film.kp_id);
-    const year = film.year ? `(${film.year})` : '';
-    const chips = [
-      film.is_series ? 'Сериал' : 'Фильм',
-      film.genres || '',
-      film.rating_kp != null ? '★ КП ' + Number(film.rating_kp).toFixed(1) : '',
-      film.rating_imdb != null ? 'IMDb ' + Number(film.rating_imdb).toFixed(1) : '',
-      film.progress ? '📺 ' + film.progress : '',
-    ].filter(Boolean).map((x) => '<span class="film-hero-chip">' + escapeHtml(x) + '</span>').join('');
-    const desc = film.description ? '<p class="film-hero-desc">' + escapeHtml(film.description) + '</p>' : '';
+    const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"><span class="muted small">Загрузка команды…</span></div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
@@ -6490,15 +6481,19 @@
       ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'
       : '';
 
-    content.className = 'container film-page-container film-hero-content';
+    content.className = 'movie-page';
     content.innerHTML =
-      '<section class="film-hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
-        '<div class="film-hero-poster-wrap">' + (poster ? '<img class="film-hero-poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<div class="film-hero-poster film-hero-poster-empty">🎬</div>') + '</div>' +
-        '<div class="film-hero-main">' +
-          '<div class="film-hero-chips">' + chips + '</div>' +
-          '<h2>' + escapeHtml(film.title || '') + ' <span>' + escapeHtml(year) + '</span></h2>' +
+      '<section class="hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+        '<div class="poster-wrap">' +
+          (poster
+            ? '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.style.opacity=.22">'
+            : '<div class="poster poster-empty">🎬</div>') +
+        '</div>' +
+        '<div class="hero-content">' +
+          '<h1>' + escapeHtml(titleText) + '</h1>' +
+          '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
           crew +
-          desc +
+          (film.description ? '<p class="description">' + escapeHtml(film.description) + '</p>' : '') +
           '<div class="film-hero-watched">' + watchedHtml + '</div>' +
           toolbarHtml +
         '</div>' +
@@ -10069,30 +10064,6 @@
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
     bindHomeQuickActionsOnce();
-    const filmBack = document.getElementById('film-page-back');
-    if (filmBack) {
-      filmBack.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeFilmPage();
-      });
-    }
-    const filmShare = document.getElementById('film-page-share');
-    if (filmShare) {
-      filmShare.addEventListener('click', (e) => {
-        e.preventDefault();
-        const u = String(window.location.href || '').split('#')[0];
-        copyToClipboard(u)
-          .then(() => { showToast('Ссылка скопирована'); })
-          .catch(() => { showToast('Не удалось скопировать', { type: 'error' }); });
-      });
-    }
-    document.addEventListener('click', (e) => {
-      const b = e.target && e.target.closest && e.target.closest('[data-action="close-film-page"]');
-      if (b) {
-        e.preventDefault();
-        closeFilmPage();
-      }
-    });
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
