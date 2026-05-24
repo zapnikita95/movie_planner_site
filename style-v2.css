@@ -184,7 +184,11 @@ body.in-cabinet #section-inbox {
 
 .film-card-v2,
 .home-dash-row[data-film-id],
-.home-dash-row[data-kp-id] {
+.home-dash-row[data-kp-id],
+.home-dash-row[data-kp],
+.premiere-poster-tile[data-film-id],
+.premiere-poster-tile[data-kp-id],
+.premiere-poster-tile[data-kp] {
   cursor: pointer;
 }
 
@@ -3806,11 +3810,12 @@ body.in-public-stats .footer-extension-cabinet {
 .premiere-poster-tile {
   background: rgba(255,255,255,0.03);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   cursor: pointer;
   transition: transform 0.12s;
+  position: relative;
 }
 .premiere-poster-tile:hover { transform: scale(0.98); }
 .premiere-poster-media { position: relative; }
@@ -4135,7 +4140,8 @@ body.in-public-stats .footer-extension-cabinet {
   .home-premiere-actions { gap: 6px; margin-top: 4px; }
   .home-premiere-bell, .home-premiere-share { width: 38px; height: 38px; }
   .home-premiere-desc { -webkit-line-clamp: 1; }
-  .home-premiere-preview { display: none; }
+  .home-premiere-preview,
+  .home-film-preview { display: none; }
   .group-card { grid-template-columns: 1fr; align-items: stretch; }
   .group-card-actions { justify-content: flex-start; }
   .soc-search-row { grid-template-columns: 1fr; }
@@ -4219,7 +4225,7 @@ body.in-public-stats .footer-extension-cabinet {
   gap: 12px;
   padding: 8px 10px;
   border-radius: 10px;
-  cursor: default;
+  cursor: pointer;
 }
 .hs-result + .hs-result { margin-top: 2px; }
 .hs-result:hover { background: rgba(255, 255, 255, 0.05); }
@@ -5480,10 +5486,14 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: default;
+  cursor: pointer;
   position: relative;
 }
 .home-dash-row.film-card-v2 { position: relative; }
+
+.home-dash-rows {
+  overflow: visible;
+}
 
 /* Текст внутри строки */
 .home-dash-row-text {
@@ -5576,7 +5586,8 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   cursor: default;
   transform: none;
 }
-.home-premiere-preview {
+.home-premiere-preview,
+.home-film-preview {
   position: absolute;
   left: 62px;
   bottom: calc(100% - 4px);
@@ -5596,12 +5607,23 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   pointer-events: none;
   transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
 }
-.home-dash-row:hover .home-premiere-preview {
+.home-dash-row:hover .home-premiere-preview,
+.home-dash-row:hover .home-film-preview,
+.premiere-poster-tile:hover .home-film-preview {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
 }
-.home-premiere-preview-poster {
+.premiere-poster-tile .home-film-preview {
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(8px) scale(.98);
+}
+.premiere-poster-tile:hover .home-film-preview {
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.home-premiere-preview-poster,
+.home-film-preview-poster {
   width: 86px;
   aspect-ratio: 2 / 3;
   border-radius: 10px;
@@ -5611,19 +5633,31 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   align-items: center;
   justify-content: center;
 }
-.home-premiere-preview-poster img {
+.home-premiere-preview-poster img,
+.home-film-preview-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.home-premiere-preview-body { min-width: 0; }
-.home-premiere-preview-title {
+.home-premiere-preview-body,
+.home-film-preview-body { min-width: 0; }
+.home-premiere-preview-title,
+.home-film-preview-title {
   font-size: 14px;
   font-weight: 800;
   line-height: 1.25;
   color: #fff;
   margin-bottom: 5px;
+}
+.home-premiere-preview-date,
+.home-film-preview-meta {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.72);
+  margin-bottom: 8px;
+  line-height: 1.35;
 }
 .home-premiere-preview-date {
   display: inline-flex;
@@ -5633,9 +5667,12 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   color: #ffd681;
   font-size: 12px;
   font-weight: 700;
-  margin-bottom: 8px;
 }
-.home-premiere-preview-desc {
+.home-film-preview-meta .home-premiere-date-pill {
+  margin-right: 6px;
+}
+.home-premiere-preview-desc,
+.home-film-preview-desc {
   font-size: 12.5px;
   line-height: 1.45;
   color: rgba(255,255,255,0.74);
