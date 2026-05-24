@@ -705,7 +705,18 @@
           return row ? row.token : null;
         } catch (_e) { return null; }
       }
-      if (tokenEarly()) {
+      var forcePublic = false;
+      try {
+        var forceKp = sessionStorage.getItem('mp_public_film_force');
+        if (forceKp && String(forceKp) === String(kpId)) {
+          sessionStorage.removeItem('mp_public_film_force');
+          forcePublic = true;
+          localStorage.removeItem('mp_site_active_chat_id');
+          localStorage.setItem('mp_site_sessions', '[]');
+          localStorage.removeItem('mp_site_token');
+        }
+      } catch (_e) {}
+      if (tokenEarly() && !forcePublic) {
         window.location.replace('/?__spa=' + encodeURIComponent('/f/' + kpId));
         return;
       }

@@ -134,6 +134,8 @@
   function redirectToPublicFilmPage(kpId) {
     const kp = String(kpId || kpIdFromPathname(window.location.pathname) || '').replace(/\D/g, '');
     if (!kp) return false;
+    clearStaleSiteSession();
+    try { sessionStorage.setItem('mp_public_film_force', kp); } catch (_) {}
     window.location.replace('/f/' + kp);
     return true;
   }
@@ -262,6 +264,10 @@
       const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
       return kpAddSync.register(kp, addPromise).then(function (res) {
         if (!res || !res.success || !res.film_id) {
+          if (!getToken()) {
+            redirectToPublicFilmPage(kp);
+            return;
+          }
           showToast((res && res.error) || 'Не удалось открыть фильм', { type: 'error' });
           return;
         }
@@ -921,6 +927,11 @@
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => {
       if (r.status === 401 && token) {
         removeSessionByToken(token);
+        const failKp = filmKpFromLocation();
+        if (failKp) {
+          redirectToPublicFilmPage(failKp);
+          return r.json().catch(() => ({}));
+        }
         if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       }
       return r.json().catch(() => ({}));
