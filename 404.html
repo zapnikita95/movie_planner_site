@@ -9,7 +9,6 @@
       var kp = m[1];
       var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
       var page = location.origin + '/f/' + kp;
-      var api = 'https://api.movie-planner.ru/f/' + kp;
       document.write(
         '<meta property="og:type" content="video.movie">' +
         '<meta property="og:url" content="' + page + '">' +
@@ -18,7 +17,7 @@
         '<meta property="og:title" content="Фильм · Movie Planner">' +
         '<meta name="twitter:card" content="summary_large_image">' +
         '<meta name="twitter:image" content="' + poster + '">' +
-        '<link rel="canonical" href="' + api + '">'
+        '<link rel="canonical" href="' + page + '">'
       );
     })();
   </script>
@@ -28,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260523filmpage">
+  <link rel="stylesheet" href="/style-v2.css?v=20260524filmpage">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }

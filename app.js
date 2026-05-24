@@ -122,10 +122,20 @@
     try {
       const params = new URLSearchParams(window.location.search);
       const kp = params.get('kp_open');
-      return params.get('open_login') === '1' || !!(kp && /^\d+$/.test(kp));
+      if (params.get('open_login') === '1' || !!(kp && /^\d+$/.test(kp))) return true;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      return !!(pathKp && /^\d+$/.test(pathKp));
     } catch (_) {
       return false;
     }
+  }
+
+  /** GitHub Pages: /f/<kp> живёт в 404.html; index с /f/ без сессии — туда же. */
+  function redirectToPublicFilmPage(kpId) {
+    const kp = String(kpId || kpIdFromPathname(window.location.pathname) || '').replace(/\D/g, '');
+    if (!kp) return false;
+    window.location.replace('/f/' + kp);
+    return true;
   }
 
   function clearStaleSiteSession() {
@@ -136,7 +146,19 @@
     } catch (_) {}
   }
 
+  function consumeFilmPathDeepLink() {
+    try {
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (!pathKp || !/^\d+$/.test(pathKp) || !getToken()) return false;
+      openFilmPageByKp(pathKp, { replace: true });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function handleAuthEntryDeepLinks() {
+    if (consumeFilmPathDeepLink()) return;
     consumeKpOpenDeepLink();
     tryOpenLoginOnlyOverlay();
   }
@@ -170,6 +192,10 @@
     if (!getToken()) {
       sessionStorage.setItem('mp_pending_kp_open', kp);
       if (o.action) sessionStorage.setItem('mp_pending_kp_action', o.action);
+      if (kpIdFromPathname(window.location.pathname) === kp && document.getElementById('landing')) {
+        redirectToPublicFilmPage(kp);
+        return Promise.resolve();
+      }
       showLoginModalOverlay();
       return Promise.resolve();
     }
@@ -390,15 +416,34 @@
   let _uiTourServerDone = null;
   let _uiTourHydratePromise = null;
 
+  function uiTourScope() {
+    const active = getActiveChatId();
+    return active ? String(active) : '';
+  }
+
+  function uiTourScopedKey(key) {
+    const scope = uiTourScope();
+    return scope ? key + '::' + scope : key;
+  }
+
+  function uiToursResetCache() {
+    _uiTourServerDone = null;
+    _uiTourHydratePromise = null;
+  }
+
   function uiTourIsDone(key) {
+    const scoped = uiTourScopedKey(key);
     try {
+      if (localStorage.getItem(scoped) === '1') return true;
       if (localStorage.getItem(key) === '1') return true;
     } catch (_) {}
     return !!(_uiTourServerDone && _uiTourServerDone[key]);
   }
 
   function uiTourMarkDoneLocal(key) {
+    const scoped = uiTourScopedKey(key);
     try {
+      localStorage.setItem(scoped, '1');
       localStorage.setItem(key, '1');
     } catch (_) {}
     if (_uiTourServerDone) _uiTourServerDone[key] = true;
@@ -408,7 +453,10 @@
     _uiTourServerDone = Object.assign({}, _uiTourServerDone || {}, done || {});
     UI_TOUR_ALL.forEach(function (k) {
       if (done && done[k]) {
-        try { localStorage.setItem(k, '1'); } catch (_) {}
+        try {
+          localStorage.setItem(uiTourScopedKey(k), '1');
+          localStorage.setItem(k, '1');
+        } catch (_) {}
       }
     });
   }
@@ -531,6 +579,9 @@
         }
       } else {
         showScreen('cabinet-onboarding');
+        if (!uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+          uiTourMarkDone(UI_TOUR_KEYS.onboarding);
+        }
         let deepSection = sectionFromPath(window.location.pathname);
         if (deepSection === 'home') deepSection = 'onboard-main';
         if (deepSection === 'shazam') {
@@ -2666,6 +2717,11 @@
     api('/api/site/me').then((me) => {
       if (!me.success) {
         if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
+        const pathKpFail = kpIdFromPathname(window.location.pathname);
+        if (pathKpFail && /^\d+$/.test(pathKpFail)) {
+          redirectToPublicFilmPage(pathKpFail);
+          return;
+        }
         showScreen('landing');
         renderHeader(null);
         handleAuthEntryDeepLinks();
@@ -2702,6 +2758,11 @@
       showCabinetAfterLogin(me);
     }).catch(function () {
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
+      const pathKpFail = kpIdFromPathname(window.location.pathname);
+      if (pathKpFail && /^\d+$/.test(pathKpFail)) {
+        redirectToPublicFilmPage(pathKpFail);
+        return;
+      }
       showScreen('landing');
       renderHeader(null);
       handleAuthEntryDeepLinks();
@@ -7287,6 +7348,16 @@
           const poster = cleanPosterUrl(it.poster);
           const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
           const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
+          const kpAttr = escapeHtml(String(it.kp_id || ''));
+          if (getToken()) {
+            return `<button type="button" class="site-search-card" data-site-search-kp="${kpAttr}">
+            ${poster ? `<img class="site-search-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'site-search-poster',textContent:'🎬'}))">` : '<span class="site-search-poster">🎬</span>'}
+            <span>
+              <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
+              <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
+            </span>
+          </button>`;
+          }
           return `<a class="site-search-card" href="${buildFilmShareUrl(it.kp_id)}">
             ${poster ? `<img class="site-search-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'site-search-poster',textContent:'🎬'}))">` : '<span class="site-search-poster">🎬</span>'}
             <span>
@@ -7295,6 +7366,12 @@
             </span>
           </a>`;
         }).join('');
+        results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const kp = btn.getAttribute('data-site-search-kp');
+            if (kp) openFilmPageByKp(kp);
+          });
+        });
       })
       .catch(() => {
         if (seq !== _siteSearchSeq) return;
@@ -10041,7 +10118,13 @@
     });
 
     window.addEventListener('mp:logout', () => {
+      uiToursResetCache();
       renderHeader(null);
+      const pathKpLogout = kpIdFromPathname(window.location.pathname);
+      if (pathKpLogout && /^\d+$/.test(pathKpLogout)) {
+        redirectToPublicFilmPage(pathKpLogout);
+        return;
+      }
       showScreen('landing');
     });
 
