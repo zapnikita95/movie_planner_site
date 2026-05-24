@@ -185,6 +185,43 @@
     } catch (_) {}
   }
 
+  function filmKpFromLocation() {
+    try {
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && /^\d+$/.test(pathKp)) return pathKp;
+      const kp = new URLSearchParams(window.location.search).get('kp_open');
+      if (kp && /^\d+$/.test(kp)) return kp;
+    } catch (_) {}
+    return null;
+  }
+
+  function cachedSessionMeStub() {
+    try {
+      const sessions = getSessions();
+      const active = getActiveChatId();
+      const session = sessions.find((s) => String(s.chat_id) === String(active));
+      if (!session) return null;
+      return { success: true, name: session.name || 'Профиль' };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /** Сразу кабинет + карточка фильма, не ждать /api/site/me (иначе виден landing). */
+  function bootAuthenticatedFilmDeepLink() {
+    try {
+      if (!getToken() || !hasAuthEntryDeepLink()) return false;
+      showScreen('cabinet-readonly');
+      const stub = cachedSessionMeStub();
+      if (stub) renderHeader(stub);
+      if (consumeFilmPathDeepLink()) return true;
+      consumeKpOpenDeepLink();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function openFilmPageByKp(kpId, opts) {
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
@@ -533,8 +570,7 @@
           loadSeries();
           loadRatings();
         } else if (filmKp) {
-          if (queryKp) handleAuthEntryDeepLinks();
-          else {
+          if (!isFilmPageOpen()) {
             openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
           }
           loadPlans();
@@ -609,9 +645,8 @@
         const onboardFilmKp = (onboardPathKp && /^\d+$/.test(onboardPathKp) ? onboardPathKp : null)
           || (onboardQueryKp && /^\d+$/.test(onboardQueryKp) ? onboardQueryKp : null)
           || onboardPendingKp;
-        if (onboardFilmKp) {
-          if (onboardQueryKp) handleAuthEntryDeepLinks();
-          else openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
+        if (onboardFilmKp && !isFilmPageOpen()) {
+          openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
         }
       }
     });
@@ -2717,9 +2752,9 @@
     api('/api/site/me').then((me) => {
       if (!me.success) {
         if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
-        const pathKpFail = kpIdFromPathname(window.location.pathname);
-        if (pathKpFail && /^\d+$/.test(pathKpFail)) {
-          redirectToPublicFilmPage(pathKpFail);
+        const failKp = filmKpFromLocation();
+        if (failKp) {
+          redirectToPublicFilmPage(failKp);
           return;
         }
         showScreen('landing');
@@ -2758,9 +2793,9 @@
       showCabinetAfterLogin(me);
     }).catch(function () {
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
-      const pathKpFail = kpIdFromPathname(window.location.pathname);
-      if (pathKpFail && /^\d+$/.test(pathKpFail)) {
-        redirectToPublicFilmPage(pathKpFail);
+      const failKp = filmKpFromLocation();
+      if (failKp) {
+        redirectToPublicFilmPage(failKp);
         return;
       }
       showScreen('landing');
@@ -5960,6 +5995,29 @@
           }
         });
       }
+      const disconnectWrap = document.getElementById('tv-disconnect-wrap');
+      const disconnectBtn = document.getElementById('tv-disconnect-btn');
+      if (disconnectWrap) disconnectWrap.classList.toggle('hidden', !tvSettings.tv_type);
+      if (disconnectBtn && !disconnectBtn._bound) {
+        disconnectBtn._bound = true;
+        disconnectBtn.addEventListener('click', () => {
+          if (!window.confirm('Отключить телевизор? Кнопка «На ТВ» исчезнет с карточек фильмов.')) return;
+          api('/api/site/tv/settings', {
+            method: 'POST',
+            body: JSON.stringify({ tv_type: null }),
+          }).then((data) => {
+            if (data && data.success) {
+              tvSettings.tv_type = null;
+              renderTvSection();
+              if (typeof loadUnwatched === 'function') loadUnwatched();
+              loadPlans();
+              loadSeries();
+              loadRatings();
+            }
+          });
+        });
+      }
+
       const status = document.getElementById('tv-current-status');
       if (status) {
         const names = {
@@ -10176,6 +10234,7 @@
     }
 
     if (getToken()) {
+      bootAuthenticatedFilmDeepLink();
       loadMeAndShowCabinet();
     } else {
       showScreen('landing');

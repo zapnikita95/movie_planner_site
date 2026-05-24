@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260524filmpage">
+  <link rel="stylesheet" href="/style-v2.css?v=20260524filmcast">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -459,6 +459,20 @@
       color: rgba(236,72,153,.78);
       font-weight: 900;
     }
+    .film-hero-crew {
+      margin-top: 14px;
+      max-width: 760px;
+      color: rgba(244,246,255,.78);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+    .film-hero-crew b { color: #fff; font-weight: 800; }
+    .staff-cast-link {
+      color: #f472b6;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .staff-cast-link:hover { text-decoration: underline; }
     .rating-grid {
       display: grid;
       grid-template-columns: repeat(10, minmax(42px, 1fr));
@@ -692,7 +706,7 @@
         } catch (_e) { return null; }
       }
       if (tokenEarly()) {
-        window.location.replace('/?kp_open=' + encodeURIComponent(kpId));
+        window.location.replace('/?__spa=' + encodeURIComponent('/f/' + kpId));
         return;
       }
 
@@ -738,6 +752,7 @@
               '<div class="hero-content">' +
                 '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
+                '<div class="film-hero-crew" id="film-cast-root"></div>' +
                 '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
@@ -882,6 +897,31 @@
           list.appendChild(li);
         });
       }
+      function castPersonLink(entry) {
+        if (!entry || entry.kp_person_id == null) return '';
+        var nm = String(entry.name_ru || entry.name_en || '').replace(/[&<>"']/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+        if (!nm) return '';
+        return '<a href="/s/' + encodeURIComponent(String(entry.kp_person_id)) + '" class="staff-cast-link">' + nm + '</a>';
+      }
+      function loadPublicCast() {
+        var root = document.getElementById('film-cast-root');
+        if (!root) return;
+        apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/cast')
+          .then(function (d) {
+            if (!d || !d.success) { root.innerHTML = ''; return; }
+            var parts = [];
+            if (d.director) parts.push('<div><b>Режиссёр:</b> ' + castPersonLink(d.director) + '</div>');
+            var actors = d.actors || [];
+            if (actors.length) {
+              parts.push('<div style="margin-top:6px"><b>В ролях:</b> ' +
+                actors.map(castPersonLink).filter(Boolean).join('<span style="opacity:.55">, </span>') + '</div>');
+            }
+            root.innerHTML = parts.join('');
+          })
+          .catch(function () { root.innerHTML = ''; });
+      }
       function showPublicToast(message) {
         var el = document.getElementById('public-toast');
         if (!el) {
@@ -949,6 +989,7 @@
           .catch(function () { renderFacts(fallbackFacts); return fallbackFacts; });
       }
       loadFacts();
+      loadPublicCast();
 
       function ensureFilm() {
         return fetch(apiBase + '/api/site/add-film', {
