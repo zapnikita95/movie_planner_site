@@ -8333,11 +8333,11 @@
           <label>Имя в кабинете<input type="text" id="profile-settings-name" value="${escapeHtml(name || '')}" maxlength="80" autocomplete="name"></label>
           <button type="submit" class="btn btn-primary">Сохранить имя</button>
         </form>
-        <form class="profile-settings-avatar-form" id="profile-settings-avatar-form">
-          <label class="profile-settings-file">Фото профиля<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg"></label>
-          <button type="submit" class="btn btn-secondary">Сохранить фото</button>
-          ${avatarUrl ? '<button type="button" class="btn btn-secondary" id="profile-settings-avatar-delete">Удалить фото</button>' : ''}
-        </form>
+        <div class="profile-settings-avatar-block">
+          <div class="avatar-picker-grid" id="profile-settings-avatar-grid"><span class="cabinet-hint">Загрузка…</span></div>
+          <input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>
+          <button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>
+        </div>
         <label class="profile-searchable-toggle">
           <input type="checkbox" id="profile-settings-searchable" ${!u || u.profile_searchable !== false ? 'checked' : ''}>
           <span>
@@ -8489,6 +8489,58 @@
     }).catch(() => {});
   }
 
+  function loadProfileSettingsAvatarGrid(root, setStatus) {
+    const grid = root.querySelector('#profile-settings-avatar-grid');
+    if (!grid) return;
+    fetch(API_BASE + '/api/avatar/defaults', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const items = (data && data.avatars) || [];
+        if (!items.length) {
+          grid.innerHTML = '<span class="cabinet-hint">Стандартные аватары временно недоступны</span>';
+          return;
+        }
+        grid.innerHTML = items.map((a) => {
+          const src = resolveMediaUrl(a.url);
+          return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(String(a.id)) + '" aria-label="Выбрать аватар">' +
+            '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">' +
+            '</button>';
+        }).join('');
+        grid.querySelectorAll('[data-avatar-id]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const avatarId = btn.getAttribute('data-avatar-id');
+            if (!avatarId) return;
+            btn.disabled = true;
+            fetch(API_BASE + '/api/miniapp/avatar/default', {
+              method: 'POST',
+              headers: {
+                Authorization: 'Bearer ' + getToken(),
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ avatar_id: avatarId }),
+            })
+              .then((r) => r.json().catch(() => ({})))
+              .then((r) => {
+                if (!r || !r.success) {
+                  setStatus('Не удалось сохранить фото', false);
+                  btn.disabled = false;
+                  return;
+                }
+                setStatus('Фото сохранено', true);
+                loadMeAndShowCabinet();
+              })
+              .catch(() => {
+                setStatus('Ошибка сети', false);
+                btn.disabled = false;
+              });
+          });
+        });
+      })
+      .catch(() => {
+        grid.innerHTML = '<span class="cabinet-hint">Не удалось загрузить аватары</span>';
+      });
+  }
+
   function bindProfileSettingsControls(root) {
     const status = root.querySelector('#profile-settings-status');
     const setStatus = (msg, ok) => {
@@ -8511,15 +8563,17 @@
           .catch(() => setStatus('Ошибка сети', false));
       });
     }
-    const avatarForm = root.querySelector('#profile-settings-avatar-form');
-    if (avatarForm) {
-      avatarForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const fileInput = root.querySelector('#profile-settings-photo');
-        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
-        if (!file) { setStatus('Выберите фото', false); return; }
+    loadProfileSettingsAvatarGrid(root, setStatus);
+    const uploadPhotoBtn = root.querySelector('#profile-settings-upload-photo');
+    const fileInput = root.querySelector('#profile-settings-photo');
+    if (uploadPhotoBtn && fileInput) {
+      uploadPhotoBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files ? fileInput.files[0] : null;
+        if (!file) return;
         const fd = new FormData();
         fd.append('photo', file);
+        uploadPhotoBtn.disabled = true;
         fetch(API_BASE + '/api/miniapp/avatar/upload', {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + getToken() },
@@ -8529,25 +8583,11 @@
           .then((r) => {
             if (!r || !r.success) { setStatus('Не удалось сохранить фото', false); return; }
             setStatus('Фото сохранено', true);
+            fileInput.value = '';
             loadMeAndShowCabinet();
           })
-          .catch(() => setStatus('Ошибка сети', false));
-      });
-    }
-    const deleteAvatar = root.querySelector('#profile-settings-avatar-delete');
-    if (deleteAvatar) {
-      deleteAvatar.addEventListener('click', () => {
-        fetch(API_BASE + '/api/miniapp/avatar', {
-          method: 'DELETE',
-          headers: { Authorization: 'Bearer ' + getToken() },
-        })
-          .then((r) => r.json().catch(() => ({})))
-          .then((r) => {
-            if (!r || !r.success) { setStatus('Не удалось удалить фото', false); return; }
-            setStatus('Фото удалено', true);
-            loadMeAndShowCabinet();
-          })
-          .catch(() => setStatus('Ошибка сети', false));
+          .catch(() => setStatus('Ошибка сети', false))
+          .finally(() => { uploadPhotoBtn.disabled = false; });
       });
     }
     const searchable = root.querySelector('#profile-settings-searchable');

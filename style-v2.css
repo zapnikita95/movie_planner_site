@@ -5227,6 +5227,38 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   height: 72px;
   font-size: 28px;
 }
+.profile-settings-avatar-block {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+.avatar-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.avatar-picker-item {
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-surface-alt, rgba(255, 255, 255, 0.06));
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.avatar-picker-item:hover {
+  border-color: rgba(255, 45, 123, 0.45);
+}
+.avatar-picker-item:active {
+  transform: scale(0.96);
+}
+.avatar-picker-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .profile-settings-name-preview {
   margin: 4px 0 4px;
   color: var(--text-primary, #fff);
