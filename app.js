@@ -8467,118 +8467,362 @@
     );
   }
 
+  function settingsToggleRow(opts) {
+    const id = opts.id || '';
+    const emoji = opts.emoji || '';
+    const title = opts.title || '';
+    const hint = opts.hint || '';
+    const checked = !!opts.checked;
+    return '<label class="settings-toggle-row"' + (id ? ' for="' + escapeHtml(id) + '"' : '') + '>'
+      + '<span class="settings-toggle-row-main">'
+      + (emoji ? '<span class="settings-toggle-emoji">' + emoji + '</span>' : '')
+      + '<span class="settings-toggle-text">'
+      + '<span class="settings-toggle-title">' + escapeHtml(title) + '</span>'
+      + (hint ? '<span class="settings-toggle-hint">' + escapeHtml(hint) + '</span>' : '')
+      + '</span></span>'
+      + '<span class="settings-switch">'
+      + '<input type="checkbox" id="' + escapeHtml(id) + '"' + (checked ? ' checked' : '') + '>'
+      + '<span class="settings-switch-slider"></span></span></label>';
+  }
+
+  function buildSettingsHomeSectionsListHtml() {
+    const order = loadHomeSectionsOrder();
+    const hidden = loadHomeSectionsHidden();
+    return order.map((id) => {
+      const meta = HOME_BLOCK_META[id];
+      const vis = hidden.indexOf(id) < 0;
+      const title = meta ? meta.title : id;
+      return '<div class="settings-sec-row" data-section-id="' + escapeHtml(id) + '">'
+        + '<span class="settings-sec-title">' + escapeHtml(title) + '</span>'
+        + '<span class="settings-sec-controls">'
+        + '<button type="button" class="settings-sec-btn" data-sec-act="up" aria-label="Выше">↑</button>'
+        + '<button type="button" class="settings-sec-btn" data-sec-act="down" aria-label="Ниже">↓</button>'
+        + '<label class="settings-switch settings-switch--compact" aria-label="Показывать">'
+        + '<input type="checkbox" data-sec-visible="' + escapeHtml(id) + '"' + (vis ? ' checked' : '') + '>'
+        + '<span class="settings-switch-slider"></span></label>'
+        + '</span></div>';
+    }).join('');
+  }
+
+  function buildSettingsBillingHtml(profile, tariffs) {
+    const sub = profile && profile.subscription;
+    const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
+    const hasPaid = !!(sub && sub.active);
+    const until = (sub && sub.until) || '';
+    const isLifetime = !!(sub && sub.is_lifetime);
+    const proLabel = (sub && sub.product_label) || 'Movie Planner PRO';
+    const all = (tariffs && tariffs.personal && tariffs.personal.all) || {};
+    const legal = (tariffs && tariffs.legal) || {};
+    const payTerms = legal.payment_terms || '';
+
+    if (isPro) {
+      return '<div class="settings-billing-pro">'
+        + '<div class="settings-billing-pro-badge">💎 PRO</div>'
+        + '<p class="settings-billing-pro-title">' + escapeHtml(proLabel) + '</p>'
+        + '<p class="settings-billing-pro-meta">' + (until ? 'до ' + escapeHtml(until) : (isLifetime ? 'бессрочно' : 'активна')) + '</p>'
+        + '<p class="settings-billing-pro-hint">Функции за монетки доступны без ограничений.</p>'
+        + '</div>';
+    }
+
+    let prices = '';
+    const rows = [
+      ['month', 'Месяц', 'btn-primary'],
+      ['3months', '3 месяца', 'btn-secondary'],
+      ['year', 'Год', 'btn-secondary'],
+      ['lifetime', 'Навсегда', 'btn-secondary'],
+    ];
+    rows.forEach(([period, label, cls]) => {
+      const price = all[period];
+      if (!price) return;
+      prices += '<button type="button" class="btn btn-small ' + cls + ' settings-billing-pay" data-billing-period="' + escapeHtml(period) + '">'
+        + escapeHtml(label) + ' — ' + escapeHtml(String(price)) + ' ₽</button>';
+    });
+
+    const lead = hasPaid
+      ? 'Активен план <b>' + escapeHtml(proLabel) + '</b>. Для полного доступа оформите PRO.'
+      : 'Рекомендации, билеты и сериалы без монетных лимитов.';
+
+    return '<div class="settings-billing-free">'
+      + '<p class="settings-billing-lead">' + lead + '</p>'
+      + (prices ? '<label class="settings-billing-terms">'
+        + '<input type="checkbox" id="settings-billing-accept">'
+        + '<span>Принимаю условия оплаты'
+        + (payTerms ? ' — <a href="' + escapeHtml(payTerms) + '" target="_blank" rel="noopener">оферта</a>' : '')
+        + '</span></label>'
+        + '<div class="settings-billing-actions">' + prices + '</div>'
+        + '<p class="settings-billing-foot">Оплата через ЮKassa. Статус обновится после возврата на сайт.</p>'
+        : '<p class="cabinet-hint">Тарифы временно недоступны.</p>')
+      + '</div>';
+  }
+
+  function bindSettingsPageExtras(root, setStatus) {
+    const saveNotif = (partial) => {
+      api('/api/miniapp/settings', { method: 'POST', body: JSON.stringify({ notifications: partial }) })
+        .then((r) => {
+          if (!r || !r.success) { setStatus('Не удалось сохранить уведомления', false); return; }
+          setStatus('Сохранено', true);
+        })
+        .catch(() => setStatus('Ошибка сети', false));
+    };
+    const tgN = root.querySelector('#settings-notify-tg');
+    if (tgN) tgN.addEventListener('change', () => saveNotif({ notify_telegram: !!tgN.checked }));
+    const inappN = root.querySelector('#settings-notify-inapp');
+    if (inappN) inappN.addEventListener('change', () => saveNotif({ notify_inapp: !!inappN.checked }));
+
+    const collHomeEl = root.querySelector('#settings-coll-home');
+    if (collHomeEl) {
+      collHomeEl.addEventListener('change', () => {
+        const want = !!collHomeEl.checked;
+        api('/api/miniapp/settings', {
+          method: 'POST',
+          body: JSON.stringify({ display: { show_collections_on_home: want } }),
+        }).then((r) => {
+          if (!r || !r.success) {
+            collHomeEl.checked = !want;
+            setStatus('Не удалось сохранить', false);
+            return;
+          }
+          setStatus('Сохранено', true);
+          try { scheduleHomeDashboardRefresh(); } catch (_) {}
+        }).catch(() => {
+          collHomeEl.checked = !want;
+          setStatus('Ошибка сети', false);
+        });
+      });
+    }
+
+    function bindEmojiToggle(elId, key) {
+      const el = root.querySelector('#' + elId);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const cur = loadHomeEmojiVis();
+        cur[key] = !!el.checked;
+        saveHomeEmojiVis(cur);
+        try { applyHomeEmojiVisibility(); } catch (_) {}
+        setStatus('Сохранено', true);
+      });
+    }
+    bindEmojiToggle('settings-emoji-random', 'random');
+    bindEmojiToggle('settings-emoji-shazam', 'shazam');
+    bindEmojiToggle('settings-emoji-voice', 'voice');
+
+    const listEl = root.querySelector('#settings-home-sections-list');
+    if (listEl) {
+      listEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sec-act]');
+        if (!btn) return;
+        const row = btn.closest('.settings-sec-row');
+        const act = btn.getAttribute('data-sec-act');
+        if (!row || !act) return;
+        if (act === 'up' && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+        if (act === 'down' && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+        const order = Array.from(listEl.querySelectorAll('.settings-sec-row')).map((r) => r.getAttribute('data-section-id')).filter(Boolean);
+        saveHomeSectionsOrder(order);
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      });
+      listEl.addEventListener('change', (e) => {
+        const t = e.target.closest('[data-sec-visible]');
+        if (!t) return;
+        const id = t.getAttribute('data-sec-visible');
+        const hiddenNow = new Set(loadHomeSectionsHidden());
+        if (t.checked) hiddenNow.delete(id); else hiddenNow.add(id);
+        saveHomeSectionsHidden(Array.from(hiddenNow));
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      });
+    }
+    const resetBtn = root.querySelector('#settings-sec-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        saveHomeSectionsOrder(DEFAULT_HOME_SECTION_ORDER.slice());
+        saveHomeSectionsHidden([]);
+        const list = root.querySelector('#settings-home-sections-list');
+        if (list) list.innerHTML = buildSettingsHomeSectionsListHtml();
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+        setStatus('Порядок восстановлен', true);
+      });
+    }
+
+    root.querySelectorAll('.settings-billing-pay').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const accept = root.querySelector('#settings-billing-accept');
+        if (accept && !accept.checked) {
+          setStatus('Отметьте принятие условий оплаты', false);
+          return;
+        }
+        const period = btn.getAttribute('data-billing-period');
+        if (!period) return;
+        btn.disabled = true;
+        const returnUrl = window.location.origin + '/settings';
+        api('/api/mobile/billing/checkout', {
+          method: 'POST',
+          body: JSON.stringify({
+            plan_type: 'all',
+            period_type: period,
+            return_url: returnUrl,
+            accept_payment_terms: true,
+          }),
+        }).then((r) => {
+          if (r && r.success && r.confirmation_url) {
+            window.location.href = r.confirmation_url;
+            return;
+          }
+          setStatus((r && (r.message || r.error)) || 'Не удалось создать платёж', false);
+          btn.disabled = false;
+        }).catch(() => {
+          setStatus('Ошибка оплаты', false);
+          btn.disabled = false;
+        });
+      });
+    });
+  }
+
   function renderSettingsSection() {
     const root = document.getElementById('settings-content');
     if (!root) return;
-    root.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
-    api('/api/miniapp/profile').then((d) => {
+    root.innerHTML = '<div class="settings-loading">Загружаем профиль…</div>';
+    Promise.all([
+      api('/api/miniapp/profile').catch(() => null),
+      api('/api/miniapp/settings').catch(() => null),
+      api('/api/mobile/billing/tariffs').catch(() => null),
+    ]).then(([profileRes, settingsRes, tariffsRes]) => {
+      const d = profileRes;
       const u = d && d.user;
       const sub = d && d.subscription;
-      const name = (u && (u.first_name || u.username)) ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username : 'Профиль';
+      const totals = d && d.totals;
+      if (!d || !u) {
+        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>';
+        return;
+      }
+      const name = (u.first_name || u.username)
+        ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
+        : 'Профиль';
       const sessions = getSessions();
       const activeId = getActiveChatId();
       const sessionsHtml = sessions.length ? sessions.map((s) => {
         const isActive = String(s.chat_id) === String(activeId);
         const typeLabel = s.is_personal ? 'личный' : 'группа';
-        return `<div class="settings-account-row ${isActive ? 'is-active' : ''}" data-settings-account="${escapeHtml(String(s.chat_id))}">
-          <div>
-            <b>${escapeHtml(s.name || 'Кабинет')}</b>
-            <span>${escapeHtml(typeLabel)}${isActive ? ' · активен' : ''}</span>
-          </div>
-          <button type="button" class="settings-account-remove" data-settings-remove-account="${escapeHtml(String(s.chat_id))}" aria-label="Убрать вход">×</button>
-        </div>`;
+        return '<div class="settings-account-row ' + (isActive ? 'is-active' : '') + '" data-settings-account="' + escapeHtml(String(s.chat_id)) + '">'
+          + '<div><b>' + escapeHtml(s.name || 'Кабинет') + '</b>'
+          + '<span>' + escapeHtml(typeLabel) + (isActive ? ' · активен' : '') + '</span></div>'
+          + '<button type="button" class="settings-account-remove" data-settings-remove-account="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>'
+          + '</div>';
       }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
-      const avatarUrl = u && u.photo_url ? u.photo_url : '';
+
+      const avatarUrl = u.photo_url || '';
       const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
-      root.innerHTML = `
-        <div class="settings-block profile-settings-card">
-        <div class="profile-settings-head">
-          <div class="profile-settings-avatar" id="settings-profile-avatar"></div>
-          <div>
-            <div class="header-dropdown-title" style="margin-top:0">Настройки профиля</div>
-            <p class="profile-settings-name-preview"><b>${escapeHtml(name || 'Профиль')}</b>${u && u.email ? ' · ' + escapeHtml(u.email) : ''}</p>
-            ${isPro ? '<p class="muted small">💎 PRO</p>' : ''}
-          </div>
-        </div>
-        <form class="profile-settings-form" id="profile-settings-form">
-          <label>Имя в кабинете<input type="text" id="profile-settings-name" value="${escapeHtml(name || '')}" maxlength="80" autocomplete="name"></label>
-          <button type="submit" class="btn btn-primary">Сохранить имя</button>
-        </form>
-        <div class="profile-settings-avatar-block">
-          <div class="avatar-picker-grid" id="profile-settings-avatar-grid"><span class="cabinet-hint">Загрузка…</span></div>
-          <input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>
-          <button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>
-        </div>
-        <label class="profile-searchable-toggle">
-          <input type="checkbox" id="profile-settings-searchable" ${!u || u.profile_searchable !== false ? 'checked' : ''}>
-          <span>
-            <b>Профиль можно найти в поиске по людям</b>
-            <small>Если выключить, вас не найдут по имени, почте или Telegram.</small>
-          </span>
-        </label>
-        <label class="profile-searchable-toggle">
-          <input type="checkbox" id="profile-settings-tournament" ${u && u.tournament_participation === true ? 'checked' : ''}>
-          <span>
-            <b>Участвовать в турнирных таблицах</b>
-          </span>
-        </label>
-        <p class="profile-settings-status" id="profile-settings-status"></p>
-        </div>
-        <div class="settings-block">
-        <div class="header-dropdown-title" style="margin-top:0">Аккаунты и вход</div>
-        <div class="settings-connectors">
-          <button type="button" class="settings-row" data-profile-link="google">🔗 Привязать Google</button>
-          <button type="button" class="settings-row" data-profile-link="yandex">🔗 Привязать Яндекс</button>
-          <button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>
-        </div>
-        <div class="settings-accounts-list">${sessionsHtml}</div>
-        </div>
-        <div class="settings-block profile-import-card">
-        <div class="header-dropdown-title" style="margin-top:0">Импорт оценок</div>
-        <p class="cabinet-hint">За перенос оценок с Кинопоиска начислим 2000 монеток. Монетки тратятся на подборы, Shazam-поиск, билеты и отслеживание премьер.</p>
-        <form class="profile-import-form" id="profile-import-form">
-          <input type="text" id="profile-import-kp" placeholder="Ссылка на профиль Кинопоиска или ID" autocomplete="off">
-          <button type="submit" class="btn btn-primary">Импортировать оценки</button>
-        </form>
-        <div id="profile-import-progress" class="profile-import-progress hidden"></div>
-        <p class="profile-settings-status" id="profile-import-status"></p>
-        </div>
-        <div class="settings-block settings-list">
-        <button type="button" class="settings-row" data-sets-go="home-layout">🏠 Настроить главную</button>
-        <button type="button" class="settings-row" data-sets-go="integrations">🔌 Интеграции</button>
-        <button type="button" class="settings-row" data-sets-go="groups">Друзья и группы</button>
-        <a href="#" class="settings-row" id="settings-app-apk" target="_blank" rel="noopener">Скачать Android-приложение (APK)</a>
-        </div>
-        <div class="settings-block" id="settings-toggles">Загрузка уведомлений…</div>`;
+      const username = u.username ? '@' + u.username : '';
+      const emailLine = u.email ? escapeHtml(u.email) : '';
+      const metaParts = [username, emailLine].filter(Boolean).join(' · ');
+
+      const st = settingsRes || {};
+      const notifTg = !st.notifications || st.notifications.notify_telegram !== false;
+      const notifInapp = !st.notifications || st.notifications.notify_inapp !== false;
+      const collOnHome = !!(st.display && st.display.show_collections_on_home);
+      const homeEmoji = loadHomeEmojiVis();
+
+      const statsHtml = totals ? (
+        '<div class="settings-hero-stats">'
+        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.films_in_base != null ? totals.films_in_base : '—')) + '</b><span>в базе</span></div>'
+        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.watched_count != null ? totals.watched_count : '—')) + '</b><span>смотрел</span></div>'
+        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.series_count != null ? totals.series_count : '—')) + '</b><span>сериалов</span></div>'
+        + '</div>'
+      ) : '';
+
+      root.innerHTML = '<div class="settings-page">'
+        + '<div class="settings-hero-card">'
+        + '<div class="settings-hero-main">'
+        + '<div class="settings-hero-avatar" id="settings-profile-avatar"></div>'
+        + '<div class="settings-hero-info">'
+        + '<div class="settings-hero-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
+        + (metaParts ? '<div class="settings-hero-meta">' + metaParts + '</div>' : '')
+        + statsHtml
+        + '</div></div>'
+        + '<form class="settings-name-form" id="profile-settings-form">'
+        + '<label class="settings-name-label" for="profile-settings-name">Имя в кабинете</label>'
+        + '<div class="settings-name-row">'
+        + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name">'
+        + '<button type="submit" class="btn btn-primary">Сохранить</button>'
+        + '</div></form>'
+        + '</div>'
+        + '<div class="settings-panels-grid">'
+        + '<section class="settings-panel"><h3 class="settings-panel-title">Фото профиля</h3>'
+        + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"><span class="cabinet-hint">Загрузка…</span></div>'
+        + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
+        + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
+        + '</section>'
+        + '<section class="settings-panel"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
+        + settingsToggleRow({ id: 'profile-settings-searchable', emoji: '🔎', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
+        + settingsToggleRow({ id: 'profile-settings-tournament', emoji: '🏆', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
+        + '</div></section>'
+        + '<section class="settings-panel"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
+        + settingsToggleRow({ id: 'settings-notify-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
+        + settingsToggleRow({ id: 'settings-notify-inapp', emoji: '🔔', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
+        + '</div></section>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
+        + settingsToggleRow({ id: 'settings-coll-home', emoji: '📁', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
+        + settingsToggleRow({ id: 'settings-emoji-random', emoji: '🎲', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
+        + settingsToggleRow({ id: 'settings-emoji-shazam', emoji: '🔮', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
+        + settingsToggleRow({ id: 'settings-emoji-voice', emoji: '🎤', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
+        + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
+        + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
+        + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
+        + '</div></section>'
+        + '<section class="settings-panel"><h3 class="settings-panel-title">Подписка</h3>'
+        + '<div id="settings-billing-host">' + buildSettingsBillingHtml(d, tariffsRes) + '</div></section>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Аккаунты и вход</h3>'
+        + '<div class="settings-connectors">'
+        + '<button type="button" class="settings-row" data-profile-link="google">🔗 Google</button>'
+        + '<button type="button" class="settings-row" data-profile-link="yandex">🔗 Яндекс</button>'
+        + '<button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>'
+        + '</div><div class="settings-accounts-list">' + sessionsHtml + '</div></section>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Импорт с Кинопоиска</h3>'
+        + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
+        + '<form class="settings-import-form" id="profile-import-form">'
+        + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
+        + '<button type="submit" class="btn btn-primary">Импортировать</button>'
+        + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div></section>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Ещё</h3>'
+        + '<div class="settings-links-grid">'
+        + '<button type="button" class="settings-link-card" data-sets-go="integrations">🔌 Интеграции</button>'
+        + '<button type="button" class="settings-link-card" data-sets-go="groups">👥 Друзья и группы</button>'
+        + '<button type="button" class="settings-link-card" data-sets-go="stats">📊 Статистика</button>'
+        + '<button type="button" class="settings-link-card" data-sets-go="developer">🤖 API и нейросети</button>'
+        + '<a href="#" class="settings-link-card" id="settings-app-apk" target="_blank" rel="noopener">📱 Android-приложение</a>'
+        + '</div></section>'
+        + '</div>'
+        + '<p class="profile-settings-status" id="profile-settings-status"></p>'
+        + '</div>';
+
       setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
+      const statusEl = root.querySelector('#profile-settings-status');
+      const setStatus = (msg, ok) => {
+        if (!statusEl) return;
+        statusEl.textContent = msg || '';
+        statusEl.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+      };
       bindProfileSettingsControls(root);
+      bindSettingsPageExtras(root, setStatus);
+      try { applyHomeEmojiVisibility(); } catch (_) {}
+
       const apk = document.getElementById('settings-app-apk');
       if (apk) {
         fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
           .then((r) => (r.ok ? r.json() : null))
-          .then((rel) => {
-            if (rel && rel.url) {
-              apk.href = rel.url;
-            } else {
-              apk.href = API_BASE + '/download';
-            }
-          })
+          .then((rel) => { apk.href = (rel && rel.url) ? rel.url : (API_BASE + '/download'); })
           .catch(() => { apk.href = API_BASE + '/download'; });
       }
       root.querySelectorAll('[data-sets-go]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const g = btn.getAttribute('data-sets-go');
-          if (g === 'home-layout') { openHomeLayoutModal(); return; }
-          if (g === 'integrations') { showSection('integrations'); }
-          if (g === 'tv') { showSection('tv'); if (renderTvSection) renderTvSection(); }
-          if (g === 'groups') { showSection('groups'); if (renderGroupsSection) renderGroupsSection(); }
+          if (g === 'integrations') showSection('integrations');
+          if (g === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); }
+          if (g === 'stats') showSection('stats');
+          if (g === 'developer') { showSection('developer'); if (typeof renderDeveloperSection === 'function') renderDeveloperSection(); }
         });
       });
-      const baseEl = document.getElementById('settings-api-base');
-      const copyBtn = document.getElementById('settings-copy-api-token');
-      const hintEl = document.getElementById('settings-api-token-hint');
-      if (copyBtn && hintEl && baseEl) wireApiAccessCopy(copyBtn, hintEl, baseEl);
-    }).catch(() => { root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>'; });
+    }).catch(() => {
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>';
+    });
   }
 
   let _profileImportPoll = null;
@@ -8615,7 +8859,7 @@
     const running = job && job.status === 'running';
     if (btn) {
       btn.disabled = !!running;
-      btn.textContent = running ? 'Импорт…' : 'Импортировать оценки';
+      btn.textContent = running ? 'Импорт…' : 'Импортировать';
     }
     if (input) input.disabled = !!running;
     if (!host) return;
@@ -10680,6 +10924,15 @@
         const dd = document.getElementById('header-settings-dropdown');
         if (dd && dd.classList.contains('hidden')) openAccountDropdown();
         else closeAccountDropdown();
+      });
+    }
+    const profilePill = document.getElementById('header-profile-pill');
+    if (profilePill) {
+      profilePill.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeAccountDropdown();
+        showSection('settings');
+        if (typeof renderSettingsSection === 'function') renderSettingsSection();
       });
     }
     document.addEventListener('click', (e) => {
