@@ -1896,16 +1896,22 @@
       })).join('');
     }
     function gridHtml(films) {
-      const chunk = (films || []).slice(0, 60);
-      if (!chunk.length) return '<p class="muted small">Нет фильмов по фильтрам</p>';
+      const chunk = (films || []).slice(0, 80);
+      if (!chunk.length) return '<p class="staff-empty-role muted small">Нет фильмов по фильтрам</p>';
       return '<div class="staff-film-grid">' + chunk.map(function (f) {
         const fid = f.already_in_base_film_id || f.film_id;
         const clickAttr = fid
           ? 'data-film-id="' + fid + '"'
           : 'data-similar-kp="' + escapeHtml(String(f.kp_id)) + '"';
+        const poster = f.poster
+          ? '<img class="staff-film-poster" src="' + escapeHtml(f.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+          : '<div class="staff-film-poster staff-film-ph">🎬</div>';
+        const rating = f.rating != null && !isNaN(Number(f.rating))
+          ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
+          : '';
         return (
           '<button type="button" class="staff-film-card" ' + clickAttr + '>' +
-            (f.poster ? '<img src="' + escapeHtml(f.poster) + '" alt="" loading="lazy">' : '<div class="staff-film-ph">🎬</div>') +
+            '<div class="staff-film-media">' + poster + rating + '</div>' +
             '<div class="staff-film-title">' + escapeHtml(f.title || '—') + '</div>' +
             (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
           '</button>'
@@ -1918,8 +1924,13 @@
         if (!block) return;
         const filtered = filterPersonFilmsSite(block.films || [], filterState);
         const importable = filtered.filter(function (f) { return f.importable; }).map(function (f) { return String(f.kp_id); });
-        const grid = sec.querySelector('.staff-role-grid');
-        if (grid) grid.innerHTML = gridHtml(filtered);
+        const grid = sec.querySelector('.staff-film-grid');
+        if (grid) {
+          const wrap = document.createElement('div');
+          wrap.innerHTML = gridHtml(filtered);
+          const next = wrap.firstElementChild;
+          if (next) grid.replaceWith(next);
+        }
         const btn = sec.querySelector('.staff-import-btn');
         if (btn) {
           btn.disabled = !importable.length;
@@ -1932,15 +1943,27 @@
       root.querySelector('#staff-toggle-friends')?.classList.toggle('chip-on', !!filterState.friendsRatedOnly);
     }
 
+    function staffMetaHtml(p) {
+      const parts = [];
+      if (p.birth_year) {
+        let y = String(p.birth_year);
+        if (p.death_year) y += ' — ' + p.death_year;
+        parts.push(y);
+      }
+      if (p.country) parts.push(String(p.country));
+      if (!parts.length) return '';
+      return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
+    }
     const photo = person.photo
       ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer">'
-      : '<div class="staff-hero-photo staff-hero-ph">👤</div>';
+      : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
     root.innerHTML =
-      '<div class="staff-hero">' + photo +
-        '<div><h2 class="staff-hero-name">' + escapeHtml(person.name_ru || person.name_en || '—') + '</h2>' +
+      '<article class="staff-page"><header class="staff-hero">' + photo +
+        '<div class="staff-hero-text"><h1 class="staff-hero-name">' + escapeHtml(person.name_ru || person.name_en || '—') + '</h1>' +
         (person.name_en && person.name_ru && person.name_en !== person.name_ru
-          ? '<div class="staff-hero-sub">' + escapeHtml(person.name_en) + '</div>' : '') +
-        '</div></div>' +
+          ? '<p class="staff-hero-sub">' + escapeHtml(person.name_en) + '</p>' : '') +
+        staffMetaHtml(person) +
+        '</div></header>' +
       '<div class="staff-filters">' +
         '<label class="staff-filter"><span>Год</span><select id="staff-filter-year">' + yearOpts() + '</select></label>' +
         '<label class="staff-filter"><span>Жанр</span><select id="staff-filter-genre">' + genreOpts() + '</select></label>' +
@@ -1954,14 +1977,14 @@
         return (
           '<section class="staff-role-block" data-idx="' + idx + '">' +
             '<div class="staff-role-head">' +
-              '<h3>' + escapeHtml(block.role_name || block.role_key || '') + '</h3>' +
+              '<h2>' + escapeHtml(block.role_name || block.role_key || '') + '</h2>' +
               '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '"' +
                 (importable.length ? '' : ' disabled') + '>В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
             '</div>' +
-            '<div class="staff-role-grid">' + gridHtml(filtered) + '</div>' +
+            gridHtml(filtered) +
           '</section>'
         );
-      }).join('');
+      }).join('') + '</article>';
 
     root.querySelector('#staff-filter-year')?.addEventListener('change', function (e) {
       filterState.year = e.target.value || '';
@@ -2037,13 +2060,20 @@
       } catch (_) {}
     }
     const authed = !!getToken();
+    function fetchPublicStaffDetail() {
+      return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.json().catch(function () { return {}; }); });
+    }
     const detailPromise = authed
-      ? api('/api/site/persons/' + kp)
-      : fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' }).then(function (r) { return r.json(); });
+      ? api('/api/site/persons/' + kp).then(function (detail) {
+          if (detail && detail.success) return detail;
+          return fetchPublicStaffDetail();
+        })
+      : fetchPublicStaffDetail();
     return detailPromise.then(function (detail) {
       if (_staffPageKpId !== kp) return;
       if (!detail || !detail.success) {
-        if (authed && staffKpFromLocation()) {
+        if (staffKpFromLocation() || staffIdFromPathname(window.location.pathname) === kp) {
           redirectToPublicStaffPage(kp);
           return;
         }
@@ -10479,9 +10509,8 @@
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
-        showScreen('cabinet-readonly');
-        renderHeader(null);
-        openStaffPage(pathStaffGuest, { replace: true });
+        redirectToPublicStaffPage(pathStaffGuest);
+        return;
       } else {
         showScreen('landing');
         renderHeader(null);
