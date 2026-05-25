@@ -2901,6 +2901,11 @@
         redirectToPublicFilmPage(failKp);
         return;
       }
+      const failStaff = staffKpFromLocation();
+      if (failStaff) {
+        redirectToPublicStaffPage(failStaff);
+        return;
+      }
       showScreen('landing');
       renderHeader(null);
       handleAuthEntryDeepLinks();
@@ -10405,6 +10410,11 @@
       const pathKpLogout = kpIdFromPathname(window.location.pathname);
       if (pathKpLogout && /^\d+$/.test(pathKpLogout)) {
         redirectToPublicFilmPage(pathKpLogout);
+        return;
+      }
+      const pathStaffLogout = staffIdFromPathname(window.location.pathname);
+      if (pathStaffLogout && /^\d+$/.test(pathStaffLogout)) {
+        redirectToPublicStaffPage(pathStaffLogout);
         return;
       }
       showScreen('landing');
