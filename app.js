@@ -6673,6 +6673,150 @@
     _filmModalPreviewRating = 0;
   }
 
+  function appendFilmModalExtraFooter(opts) {
+    const o = opts || {};
+    const content = document.getElementById('film-modal-content');
+    const info = content && content.querySelector('.film-modal-info');
+    if (!info) return;
+    const old = info.querySelector('.film-modal-random-footer');
+    if (old) old.remove();
+    if (!o.randomOnAgain && o.openFullPage === false) return;
+    const footer = document.createElement('div');
+    footer.className = 'film-modal-random-footer';
+    if (o.openFullPage !== false) {
+      footer.innerHTML += '<button type="button" class="btn btn-secondary" data-action="film-overlay-full">Открыть страницу</button>';
+    }
+    if (o.randomOnAgain) {
+      footer.innerHTML += '<button type="button" class="btn btn-primary" data-action="film-overlay-again">🎲 Ещё</button>';
+    }
+    info.appendChild(footer);
+    footer.querySelector('[data-action="film-overlay-full"]')?.addEventListener('click', () => {
+      const fid = _filmModalCurrentId;
+      const kp = o.kpId;
+      closeFilmModal();
+      if (fid) openFilmPage(fid, { kpId: kp });
+    });
+    footer.querySelector('[data-action="film-overlay-again"]')?.addEventListener('click', () => {
+      closeFilmModal();
+      if (typeof o.randomOnAgain === 'function') o.randomOnAgain();
+    });
+  }
+
+  function loadFilmDetailIntoOverlay(filmId, content, done) {
+    const finish = (data) => {
+      renderFilmDetail(data.film, data.ratings, data.similar, data.me, content);
+      if (typeof done === 'function') done(data);
+    };
+    if (_filmModalCache[filmId]) {
+      finish(_filmModalCache[filmId]);
+      return Promise.resolve(_filmModalCache[filmId]);
+    }
+    content.className = 'film-modal-content loading';
+    content.innerHTML = 'Загружаем…';
+    return api('/api/site/film/' + filmId).then(function (detail) {
+      if (!detail || !detail.success) {
+        content.className = 'film-modal-content loading';
+        content.innerHTML = 'Не удалось загрузить фильм';
+        return null;
+      }
+      const myRating = filmMyRating(detail.ratings || [], detail.me);
+      const simPromise = myRating >= HIGH_RATING_SIMILAR_MIN
+        ? api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; })
+        : Promise.resolve({ success: true, items: [] });
+      return simPromise.then(function (sim) {
+        const data = {
+          film: detail.film,
+          ratings: detail.ratings || [],
+          me: detail.me || { user_id: cabinetUserId },
+          similar: (sim && sim.items) || [],
+        };
+        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
+        finish(data);
+        return data;
+      });
+    });
+  }
+
+  function openFilmOverlayModal(filmId, opts) {
+    const o = opts || {};
+    const fid = Number(filmId);
+    if (!fid) return Promise.resolve(null);
+    const modal = document.getElementById('film-modal');
+    const content = document.getElementById('film-modal-content');
+    if (!modal || !content) {
+      openFilmPage(fid, o);
+      return Promise.resolve(null);
+    }
+    closeAddFilmModal();
+    _filmModalCurrentId = fid;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    return loadFilmDetailIntoOverlay(fid, content, function () {
+      appendFilmModalExtraFooter(o);
+    }).catch(function () {
+      if (content) {
+        content.className = 'film-modal-content loading';
+        content.innerHTML = 'Ошибка сети';
+      }
+    });
+  }
+
+  function openRandomStubModal(film, onAgain) {
+    const modal = document.getElementById('film-modal');
+    const content = document.getElementById('film-modal-content');
+    if (!modal || !content || !film) return;
+    closeAddFilmModal();
+    _filmModalCurrentId = null;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    const poster = cleanPosterUrl(film.poster) || posterUrl(film.kp_id);
+    const year = film.year ? '(' + film.year + ')' : '';
+    const genres = film.genres ? '<span>' + escapeHtml(film.genres) + '</span>' : '';
+    content.className = 'film-modal-content';
+    content.innerHTML =
+      '<div class="film-modal-poster-wrap">'
+      + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<div style="color:#665;">🎬</div>')
+      + '</div><div class="film-modal-info">'
+      + '<h2>' + escapeHtml(film.title || 'Фильм') + ' <span style="opacity:.6;font-weight:400;">' + escapeHtml(String(year)) + '</span></h2>'
+      + '<div class="film-modal-meta">' + genres + '</div>'
+      + '<p class="cabinet-hint">Фильма пока нет в базе — добавьте, чтобы ставить оценки и планировать просмотр.</p>'
+      + '<div class="film-modal-actions">'
+      + '<button type="button" class="btn btn-primary" id="random-stub-add">Добавить в базу</button>'
+      + (onAgain ? '<button type="button" class="btn btn-secondary" id="random-stub-again">🎲 Ещё</button>' : '')
+      + '</div></div>';
+    const addBtn = content.querySelector('#random-stub-add');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        addBtn.disabled = true;
+        addBtn.textContent = 'Добавляем…';
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: film.kp_id }) })
+          .then((r) => {
+            if (r && r.success && r.film_id) {
+              closeFilmModal();
+              openFilmOverlayModal(Number(r.film_id), { randomOnAgain: onAgain, kpId: film.kp_id });
+              if (typeof loadUnwatched === 'function') loadUnwatched();
+            } else {
+              addBtn.disabled = false;
+              addBtn.textContent = 'Добавить в базу';
+            }
+          })
+          .catch(() => {
+            addBtn.disabled = false;
+            addBtn.textContent = 'Добавить в базу';
+          });
+      });
+    }
+    const againBtn = content.querySelector('#random-stub-again');
+    if (againBtn && onAgain) {
+      againBtn.addEventListener('click', () => {
+        closeFilmModal();
+        onAgain();
+      });
+    }
+  }
+
   const HIGH_RATING_SIMILAR_MIN = 9;
 
   function filmMyRating(ratings, me) {
@@ -8202,57 +8346,40 @@
   }
 
   function runSiteRandomMode(mode) {
-    setWhatchtwatchResult('<p class="cabinet-hint">Подбираем…</p>');
+    setWhatchtwatchResult('');
+    const modal = document.getElementById('film-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      const content = document.getElementById('film-modal-content');
+      if (content) {
+        content.className = 'film-modal-content loading';
+        content.innerHTML = 'Подбираем…';
+      }
+    } else {
+      setWhatchtwatchResult('<p class="cabinet-hint">Подбираем…</p>');
+    }
     api('/api/miniapp/random', { method: 'POST', body: JSON.stringify({ mode }) })
       .then((data) => {
         if (!data || !data.film) {
+          closeFilmModal();
           const msg = (data && data.message) || 'Нет подходящих фильмов. Попробуйте другой режим или PRO-тариф.';
           setWhatchtwatchResult('<div class="cabinet-hint">' + escapeHtml(msg) + '</div>');
           return;
         }
         const f = data.film;
-        const title = f.title || '—';
-        const y = f.year ? f.year : '';
-        const g = f.genres || '';
-        const poster = f.poster || posterUrl(f.kp_id);
+        const again = () => runSiteRandomMode(mode);
         if (f.film_id) {
-          setWhatchtwatchResult(
-            '<div class="whattowatch-result-card">'
-            + '<div class="whattowatch-result-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<span>🎬</span>') + '</div>'
-            + '<div class="whattowatch-result-body"><p><b>' + escapeHtml(title) + '</b> ' + escapeHtml(y) + '</p><p class="cabinet-hint">'
-            + escapeHtml(g) + '</p><button type="button" class="btn btn-primary" id="wtw-open">Открыть карточку</button> '
-            + '<button type="button" class="btn btn-secondary" id="wtw-again">🎲 Ещё</button></div></div>',
-          );
-          const o = document.getElementById('wtw-open');
-          const a = document.getElementById('wtw-again');
-          if (o) o.addEventListener('click', () => openFilmNav(f.kp_id, f.film_id));
-          if (a) a.addEventListener('click', () => runSiteRandomMode(mode));
-        } else {
-          setWhatchtwatchResult('<div class="cabinet-hint">Найден «' + escapeHtml(title) + '». Добавьте в базу через кнопку ниже.</div><button type="button" class="btn btn-primary" id="wtw-add-kp">Добавить в базу</button>');
-          const addBtn = document.getElementById('wtw-add-kp');
-          if (addBtn) {
-            addBtn.addEventListener('click', () => {
-              addBtn.disabled = true;
-              addBtn.textContent = 'Добавляем…';
-              api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: f.kp_id }) })
-                .then((r) => {
-                  if (r && r.success) {
-                    addBtn.textContent = 'Добавлено';
-                    if (typeof loadUnwatched === 'function') loadUnwatched();
-                  } else {
-                    addBtn.disabled = false;
-                    addBtn.textContent = 'Добавить в базу';
-                  }
-                })
-                .catch(() => {
-                  addBtn.disabled = false;
-                  addBtn.textContent = 'Добавить в базу';
-                });
-            });
-          }
+          openFilmOverlayModal(Number(f.film_id), { randomOnAgain: again, kpId: f.kp_id });
+          return;
         }
+        openRandomStubModal(f, again);
       })
-      .catch(() => { setWhatchtwatchResult('<p class="cabinet-hint">Ошибка сети</p>'); });
+      .catch(() => {
+        closeFilmModal();
+        setWhatchtwatchResult('<p class="cabinet-hint">Ошибка сети</p>');
+      });
   }
 
   function renderWhattowatchSection() {
@@ -8371,9 +8498,18 @@
         root.innerHTML = '<div class="wtw-wizard-actions"><button type="button" class="btn btn-secondary" id="wtw-wizard-edit">Изменить фильтры</button></div>' + renderWizardCards(list);
         const edit = document.getElementById('wtw-wizard-edit');
         if (edit) edit.addEventListener('click', () => renderWhattowatchWizard());
+        if (list.length === 1 && list[0].film_id) {
+          openFilmOverlayModal(Number(list[0].film_id), {
+            kpId: list[0].kp_id,
+            randomOnAgain: () => runSiteWizardMode(payload),
+          });
+        }
         root.querySelectorAll('[data-wtw-open-film],[data-wtw-open-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
-            openFilmNav(btn.getAttribute('data-wtw-open-kp'), btn.getAttribute('data-wtw-open-film'));
+            const fid = btn.getAttribute('data-wtw-open-film');
+            const kp = btn.getAttribute('data-wtw-open-kp');
+            if (fid) openFilmOverlayModal(Number(fid), { kpId: kp });
+            else openFilmNav(kp, fid);
           });
         });
         root.querySelectorAll('[data-wtw-add-kp]').forEach((btn) => {
@@ -8910,55 +9046,61 @@
     }).catch(() => {});
   }
 
+  const FALLBACK_AVATAR_PRESETS = ['01', '02', '03', '04', '05', '06', '07'];
+
+  function bindAvatarPickerGrid(grid, setStatus) {
+    grid.querySelectorAll('[data-avatar-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const avatarId = btn.getAttribute('data-avatar-id');
+        if (!avatarId) return;
+        btn.disabled = true;
+        api('/api/miniapp/avatar/default', {
+          method: 'POST',
+          body: JSON.stringify({ avatar_id: avatarId }),
+        })
+          .then((r) => {
+            if (!r || !r.success) {
+              setStatus('Не удалось сохранить фото', false);
+              btn.disabled = false;
+              return;
+            }
+            setStatus('Фото сохранено', true);
+            loadMeAndShowCabinet();
+          })
+          .catch(() => {
+            setStatus('Ошибка сети', false);
+            btn.disabled = false;
+          });
+      });
+    });
+  }
+
+  function renderAvatarPickerGrid(grid, items, setStatus) {
+    if (!items.length) {
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = items.map((a) => {
+      const id = String(a.id || a);
+      const src = a.url ? resolveMediaUrl(a.url) : (API_BASE + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
+      return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(id) + '" aria-label="Выбрать аватар">'
+        + '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">'
+        + '</button>';
+    }).join('');
+    bindAvatarPickerGrid(grid, setStatus);
+  }
+
   function loadProfileSettingsAvatarGrid(root, setStatus) {
     const grid = root.querySelector('#profile-settings-avatar-grid');
     if (!grid) return;
-    fetch(API_BASE + '/api/avatar/defaults', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
+    const fallback = FALLBACK_AVATAR_PRESETS.map((id) => ({ id, url: '/api/avatar/defaults/' + id + '.jpg' }));
+    apiPublic('/api/avatar/defaults')
       .then((data) => {
-        const items = (data && data.avatars) || [];
-        if (!items.length) {
-          grid.innerHTML = '<span class="cabinet-hint">Стандартные аватары временно недоступны</span>';
-          return;
-        }
-        grid.innerHTML = items.map((a) => {
-          const src = resolveMediaUrl(a.url);
-          return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(String(a.id)) + '" aria-label="Выбрать аватар">' +
-            '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">' +
-            '</button>';
-        }).join('');
-        grid.querySelectorAll('[data-avatar-id]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const avatarId = btn.getAttribute('data-avatar-id');
-            if (!avatarId) return;
-            btn.disabled = true;
-            fetch(API_BASE + '/api/miniapp/avatar/default', {
-              method: 'POST',
-              headers: {
-                Authorization: 'Bearer ' + getToken(),
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ avatar_id: avatarId }),
-            })
-              .then((r) => r.json().catch(() => ({})))
-              .then((r) => {
-                if (!r || !r.success) {
-                  setStatus('Не удалось сохранить фото', false);
-                  btn.disabled = false;
-                  return;
-                }
-                setStatus('Фото сохранено', true);
-                loadMeAndShowCabinet();
-              })
-              .catch(() => {
-                setStatus('Ошибка сети', false);
-                btn.disabled = false;
-              });
-          });
-        });
+        const items = (data && data.avatars && data.avatars.length) ? data.avatars : fallback;
+        renderAvatarPickerGrid(grid, items, setStatus);
       })
       .catch(() => {
-        grid.innerHTML = '<span class="cabinet-hint">Не удалось загрузить аватары</span>';
+        renderAvatarPickerGrid(grid, fallback, setStatus);
       });
   }
 

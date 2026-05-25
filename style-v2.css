@@ -3454,16 +3454,31 @@ body.in-public-stats .footer-extension-cabinet {
 .tv-launch-modal .tv-launch-close { position: absolute; top: 14px; right: 18px; background: transparent; border: 0; color: #fff; font-size: 22px; cursor: pointer; }
 
 /* ———— Film modal ———— */
-.film-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: flex-start; justify-content: center; padding: 3vh 16px; overflow-y: auto; }
+.film-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 3vh 16px; overflow-y: auto; }
 .film-modal.hidden { display: none; }
 .film-modal-backdrop { position: absolute; inset: 0; background: rgba(5, 3, 16, 0.72); backdrop-filter: blur(6px); cursor: pointer; }
 .film-modal-body {
-  position: relative; z-index: 1; width: min(840px, 96vw);
+  position: relative; z-index: 1; width: min(960px, 96vw);
   background: linear-gradient(165deg, #1c1630 0%, #100c1f 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 20px; padding: 22px; color: #e9e4f4;
   box-shadow: 0 28px 60px rgba(0,0,0,0.55);
   animation: fm-in .18s ease-out;
+}
+@media (min-width: 900px) {
+  .film-modal-body { padding: 28px 32px; }
+  .film-modal-content { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .film-modal-info h2 { font-size: 26px; }
+  .film-modal-desc { font-size: 16px; line-height: 1.58; }
+  .film-modal-poster-wrap { box-shadow: 0 20px 48px rgba(0,0,0,0.4); }
+}
+.film-modal-random-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 @keyframes fm-in { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .film-modal-close {
