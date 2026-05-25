@@ -7044,24 +7044,30 @@ body.login-only-overlay .parallax-bg {
 }
 @media (max-width: 860px) {
   .film-hero,
-  #section-film .hero {
+  #section-film .hero,
+  main.film-page .hero {
     grid-template-columns: 1fr;
     min-height: 0;
+    align-items: start;
     padding: 16px;
     border-radius: 26px;
   }
   .film-hero::before,
-  #section-film .hero::before {
+  #section-film .hero::before,
+  main.film-page .hero::before {
     background: linear-gradient(180deg, rgba(7,7,17,.98) 0%, rgba(7,7,17,.94) 100%);
     opacity: 1;
   }
   .film-hero-poster-wrap,
-  #section-film .poster-wrap {
+  #section-film .poster-wrap,
+  main.film-page .poster-wrap {
     max-width: 230px;
+    width: min(230px, 100%);
     margin: 0 auto;
   }
   .film-hero h2,
-  #section-film .hero h1 {
+  #section-film .hero h1,
+  main.film-page .hero h1 {
     font-size: clamp(32px, 11vw, 54px) !important;
   }
   .film-toolbar-plan-wrap .action-dropdown,
@@ -8035,8 +8041,10 @@ body.film-standalone-page {
     }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
     @media (max-width: 860px) {
-      .page-shell { padding: 14px 12px 32px; }
+      .page-shell { padding: 14px 12px 32px; min-height: 0; }
+      body.film-standalone-page .page-shell > main.film-page { margin-top: 10px; }
       #site-header { top: 8px; margin-bottom: 12px; }
+      .app-open-banner { margin-bottom: 10px; }
       .header-content {
         grid-template-columns: 1fr auto;
         grid-template-areas:
@@ -8059,17 +8067,21 @@ body.film-standalone-page {
         font-size: 14px;
         line-height: 40px;
       }
-      .hero::before {
+      .hero::before,
+      main.film-page .hero::before {
         background: linear-gradient(180deg, rgba(7,7,17,.98) 0%, rgba(7,7,17,.94) 100%);
         opacity: 1;
       }
-      .hero {
+      .hero,
+      main.film-page .hero {
         grid-template-columns: 1fr;
         min-height: 0;
+        align-items: start;
         padding: 16px;
         border-radius: 26px;
       }
-      .poster-wrap { width: min(230px, 100%); margin: 0 auto; }
+      .poster-wrap,
+      main.film-page .poster-wrap { width: min(230px, 100%); max-width: 230px; margin: 0 auto; }
       .hero-actions, .icon-actions { display: flex; }
       .icon-actions { align-items: stretch; }
       .plan-action { min-width: 0; flex: 1 1 220px; }
