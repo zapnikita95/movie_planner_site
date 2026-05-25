@@ -136,7 +136,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
       : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     var rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
@@ -147,7 +147,7 @@
       : '';
     return '<div class="film-page-toolbar">' + planBlock +
       '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtn +
-      '<button type="button" class="film-icon-btn" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
       '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
       '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>' +
       '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div></div>';
@@ -536,7 +536,7 @@
                   '<div class="film-toolbar-icons">' +
                     '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
                     '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
-                    '<button type="button" class="film-icon-btn" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+                    '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
                     '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
                   '</div>' +
                   '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
@@ -722,16 +722,26 @@
           container.appendChild(chip);
         });
       }
+      function setFactsToggleVisible(hasFacts) {
+        var btn = document.getElementById('facts-toggle-btn');
+        var panel = document.getElementById('facts-expand-panel');
+        if (btn) btn.classList.toggle('hidden', !hasFacts);
+        if (!hasFacts && panel) {
+          panel.classList.add('hidden');
+          if (btn) btn.classList.remove('is-active');
+        }
+      }
       function renderFacts(items) {
         var list = document.getElementById('facts-list');
         if (!list) return;
-        var arr = (items && items.length ? items : fallbackFacts).slice(0, 6);
+        var arr = (items && items.length) ? items.slice(0, 6) : [];
         list.innerHTML = '';
         arr.forEach(function (x) {
           var li = document.createElement('li');
           li.textContent = String(x || '');
           list.appendChild(li);
         });
+        setFactsToggleVisible(arr.length > 0);
       }
       var CAST_VISIBLE = 5;
       function castPersonLink(entry) {
@@ -877,7 +887,7 @@
             renderFacts(arr);
             return arr;
           })
-          .catch(function () { renderFacts(fallbackFacts); return fallbackFacts; });
+          .catch(function () { renderFacts([]); return []; });
       }
 
       loadFacts();
@@ -1171,6 +1181,7 @@
         hero.insertAdjacentHTML('beforeend', toolbarHtml);
         bindAuthToolbar(stub, filmState);
         bindPublicFilmToolbar();
+        loadFacts();
         if (!(filmState.toolbarOpts && filmState.toolbarOpts.inBase)) rebindGuestToolbarActions();
       }
 

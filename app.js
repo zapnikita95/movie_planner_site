@@ -5916,7 +5916,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     const watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
       : '';
     const rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     const rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
@@ -5932,7 +5932,7 @@
           addIconBtn +
           watchIconBtn +
           rateBtn +
-          '<button type="button" class="film-icon-btn" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+          '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
@@ -5984,10 +5984,27 @@
             const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
             factsList.innerHTML = arr.length
               ? arr.map((x) => '<li>' + escapeHtml(String(x)) + '</li>').join('')
-              : '<li>Пока нет фактов для этого фильма.</li>';
+              : '';
+            if (!arr.length) {
+              factsToggle.classList.add('hidden');
+              if (factsPanel) factsPanel.classList.add('hidden');
+              factsToggle.classList.remove('is-active');
+            }
           })
-          .catch(() => { factsList.innerHTML = '<li>Не удалось загрузить факты.</li>'; });
+          .catch(() => {
+            factsList.innerHTML = '';
+            factsToggle.classList.add('hidden');
+            if (factsPanel) factsPanel.classList.add('hidden');
+            factsToggle.classList.remove('is-active');
+          });
       });
+      fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(factsToggle.getAttribute('data-kp') || (film && film.kp_id) || '')) + '/facts', { method: 'GET', mode: 'cors' })
+        .then((r) => r.json())
+        .then((d) => {
+          const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
+          factsToggle.classList.toggle('hidden', !arr.length);
+        })
+        .catch(() => { factsToggle.classList.add('hidden'); });
     }
     if (shareBtn) {
       shareBtn.addEventListener('click', () => {
