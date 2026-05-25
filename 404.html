@@ -17,7 +17,12 @@
           '<meta property="og:site_name" content="Movie Planner">' +
           '<meta property="og:image" content="' + poster + '">' +
           '<meta property="og:title" content="Фильм · Movie Planner">' +
+          '<meta property="og:description" content="Карточка фильма в Movie Planner">' +
+          '<meta name="description" content="Карточка фильма в Movie Planner: описание, актеры, оценка и действия.">' +
+          '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
           '<meta name="twitter:card" content="summary_large_image">' +
+          '<meta name="twitter:title" content="Фильм · Movie Planner">' +
+          '<meta name="twitter:description" content="Карточка фильма в Movie Planner">' +
           '<meta name="twitter:image" content="' + poster + '">' +
           '<link rel="canonical" href="' + page + '">'
         );
@@ -31,15 +36,21 @@
           '<meta property="og:url" content="' + pageS + '">' +
           '<meta property="og:site_name" content="Movie Planner">' +
           '<meta property="og:title" content="Персона · Movie Planner">' +
+          '<meta property="og:description" content="Страница актера и фильмография в Movie Planner">' +
+          '<meta name="description" content="Страница актера в Movie Planner: фильмография, роли и переход к карточкам фильмов.">' +
+          '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
           '<meta name="twitter:card" content="summary">' +
+          '<meta name="twitter:title" content="Персона · Movie Planner">' +
+          '<meta name="twitter:description" content="Страница актера и фильмография в Movie Planner">' +
           '<link rel="canonical" href="' + pageS + '">'
         );
+        return;
       }
+      document.write('<meta name="robots" content="noindex,nofollow">');
     })();
   </script>
   <title>Movie Planner</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

@@ -113,6 +113,14 @@
       meta('name', 'twitter:card', photo ? 'summary_large_image' : 'summary');
       meta('name', 'twitter:title', name + ' · Movie Planner');
       if (photo) meta('name', 'twitter:image', photo);
+      meta('name', 'robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1');
+      meta(
+        'name',
+        'description',
+        (person && (person.name_ru || person.name_en)
+          ? ('Фильмография: ' + String(person.name_ru || person.name_en) + ' — фильмы и роли.')
+          : 'Страница персоны и фильмография в Movie Planner')
+      );
       var link = head.querySelector('link[rel="canonical"]');
       if (!link) {
         link = document.createElement('link');
@@ -120,6 +128,28 @@
         head.appendChild(link);
       }
       link.setAttribute('href', pageUrl);
+
+      var ld = head.querySelector('#staff-jsonld');
+      if (!ld) {
+        ld = document.createElement('script');
+        ld.type = 'application/ld+json';
+        ld.id = 'staff-jsonld';
+        head.appendChild(ld);
+      }
+      var payload = {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: name,
+        url: pageUrl,
+        image: photo || undefined,
+        sameAs: 'https://www.kinopoisk.ru/name/' + personId + '/',
+      };
+      if (person && person.birth_year) payload.birthDate = String(person.birth_year) + '-01-01';
+      if (person && person.death_year) payload.deathDate = String(person.death_year) + '-01-01';
+      if (person && person.country) {
+        payload.nationality = { '@type': 'Country', name: String(person.country) };
+      }
+      ld.textContent = JSON.stringify(payload);
     } catch (_e) {}
   }
 

@@ -587,8 +587,53 @@
         meta('name', 'twitter:description', desc);
         meta('name', 'twitter:image', poster);
         meta('name', 'description', desc);
+        meta('name', 'robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1');
       }
       setOg('Фильм · Movie Planner', 'Карточка фильма в Movie Planner');
+
+      function setFilmJsonLd(film) {
+        try {
+          var head = document.head;
+          var node = head.querySelector('#film-jsonld');
+          if (!node) {
+            node = document.createElement('script');
+            node.type = 'application/ld+json';
+            node.id = 'film-jsonld';
+            head.appendChild(node);
+          }
+          var kp = String(kpId || '').replace(/\D/g, '');
+          var title = String((film && film.title) || '').trim();
+          var year = Number((film && film.year) || 0) || null;
+          var description = String((pickFilmDescription(film) || title || 'Фильм в Movie Planner')).trim();
+          var image = String((film && film.poster_url) || poster || '').trim();
+          var genres = String((film && film.genres) || '')
+            .split(/[,;/|]+/)
+            .map(function (s) { return String(s || '').trim(); })
+            .filter(Boolean)
+            .slice(0, 6);
+          var payload = {
+            '@context': 'https://schema.org',
+            '@type': 'Movie',
+            name: title || ('Фильм ' + kp),
+            description: description,
+            url: pageUrl,
+            image: image || undefined,
+            datePublished: year ? (String(year) + '-01-01') : undefined,
+            genre: genres.length ? genres : undefined,
+            sameAs: kp ? ('https://www.kinopoisk.ru/film/' + kp + '/') : undefined,
+          };
+          if (film && film.country) {
+            payload.countryOfOrigin = {
+              '@type': 'Country',
+              name: String(film.country),
+            };
+          }
+          if (film && film.director && film.director.name_ru) {
+            payload.director = { '@type': 'Person', name: String(film.director.name_ru) };
+          }
+          node.textContent = JSON.stringify(payload);
+        } catch (_e) {}
+      }
 
       function sessions() {
         try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
@@ -822,6 +867,7 @@
           }
           document.title = title + ' · Movie Planner';
           setOg(title, pickFilmDescription(f) || title);
+          setFilmJsonLd(f);
           if (hint) hint.textContent = '';
           loadPublicCast();
         })
