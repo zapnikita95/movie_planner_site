@@ -153,6 +153,28 @@
     return true;
   }
 
+  /** GitHub Pages: /s/<kp_person_id> — standalone 404.html с публичным API. */
+  function redirectToPublicStaffPage(kpId) {
+    const kp = String(kpId || staffIdFromPathname(window.location.pathname) || '').replace(/\D/g, '');
+    if (!kp) return false;
+    clearStaleSiteSession();
+    window.location.replace('/s/' + kp);
+    return true;
+  }
+
+  function staffKpFromLocation() {
+    try {
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      if (pathStaff && /^\d+$/.test(pathStaff)) return pathStaff;
+      const spa = new URLSearchParams(window.location.search).get('__spa') || '';
+      if (!spa) return null;
+      const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
+      return staffIdFromPathname(spaUrl.pathname);
+    } catch (_) {
+      return null;
+    }
+  }
+
   function clearStaleSiteSession() {
     try {
       const tok = getToken();
@@ -768,6 +790,10 @@
         if (onboardFilmKp && !isFilmPageOpen()) {
           openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
         }
+        const onboardPathStaff = staffIdFromPathname(window.location.pathname);
+        if (onboardPathStaff) {
+          openStaffPage(onboardPathStaff, { replace: true });
+        }
       }
     });
   }
@@ -1046,6 +1072,11 @@
         const failKp = filmKpFromLocation();
         if (failKp) {
           redirectToPublicFilmPage(failKp);
+          return r.json().catch(() => ({}));
+        }
+        const failStaff = staffKpFromLocation();
+        if (failStaff) {
+          redirectToPublicStaffPage(failStaff);
           return r.json().catch(() => ({}));
         }
         if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
@@ -2012,6 +2043,10 @@
     return detailPromise.then(function (detail) {
       if (_staffPageKpId !== kp) return;
       if (!detail || !detail.success) {
+        if (authed && staffKpFromLocation()) {
+          redirectToPublicStaffPage(kp);
+          return;
+        }
         pageRoot.className = 'container film-page-container staff-page-content';
         pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
         return;
@@ -2820,6 +2855,11 @@
           redirectToPublicFilmPage(failKp);
           return;
         }
+        const failStaff = staffKpFromLocation();
+        if (failStaff) {
+          redirectToPublicStaffPage(failStaff);
+          return;
+        }
         showScreen('landing');
         renderHeader(null);
         handleAuthEntryDeepLinks();
@@ -3429,8 +3469,10 @@
     const em = loadHomeEmojiVis();
     const er = document.getElementById('home-layout-emoji-random');
     const es = document.getElementById('home-layout-emoji-shazam');
+    const ev = document.getElementById('home-layout-emoji-voice');
     if (er) er.checked = !!em.random;
     if (es) es.checked = !!em.shazam;
+    if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
     const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры' };
@@ -3463,9 +3505,11 @@
     saveHomeSectionsHidden(hidden);
     const er = document.getElementById('home-layout-emoji-random');
     const es = document.getElementById('home-layout-emoji-shazam');
+    const ev = document.getElementById('home-layout-emoji-voice');
     saveHomeEmojiVis({
       random: er ? !!er.checked : true,
       shazam: es ? !!es.checked : true,
+      voice: ev ? !!ev.checked : true,
     });
   }
 
@@ -6584,6 +6628,37 @@
     });
   }
 
+  function isFilmDescPlaceholder(text) {
+    const s = String(text || '').trim().toLowerCase();
+    if (!s) return true;
+    if (s.startsWith('откройте в movie planner')) return true;
+    if (s.startsWith('откройте фильм в movie planner')) return true;
+    return false;
+  }
+
+  function pickFilmDescription(film) {
+    if (!film) return '';
+    const raw = film.description || film.plot || film.shortDescription || '';
+    const s = String(raw).trim();
+    if (!s || isFilmDescPlaceholder(s)) return '';
+    return s;
+  }
+
+  function enrichFilmDescriptionFromPublic(kpId, filmObj) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(filmObj);
+    if (pickFilmDescription(filmObj)) return Promise.resolve(filmObj);
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+      .then((r) => r.json())
+      .then((data) => {
+        const pub = data && data.film;
+        const desc = pickFilmDescription(pub);
+        if (desc) filmObj.description = desc;
+        return filmObj;
+      })
+      .catch(() => filmObj);
+  }
+
   function buildFilmGenreChipsHtml(film) {
     const parts = String((film && film.genres) || '')
       .split(/[,;/|]+/)
@@ -6633,7 +6708,7 @@
           '<h1>' + escapeHtml(titleText) + '</h1>' +
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
           crew +
-          (film.description ? '<p class="description">' + escapeHtml(film.description) + '</p>' : '') +
+          (pickFilmDescription(film) ? '<p class="description">' + escapeHtml(pickFilmDescription(film)) + '</p>' : '') +
           toolbarHtml +
         '</div>' +
       '</section>' +
@@ -6712,6 +6787,13 @@
 
   function renderFilmDetail(film, ratings, similar, me, content) {
     if (!content) return;
+    enrichFilmDescriptionFromPublic(film.kp_id, film).then((enriched) => {
+      renderFilmDetailInner(enriched, ratings, similar, me, content);
+    });
+  }
+
+  function renderFilmDetailInner(film, ratings, similar, me, content) {
+    if (!content) return;
     const isPage = content.getAttribute && content.getAttribute('data-film-page-root');
     if (isPage) {
       renderFilmDetailHero(film, ratings || [], similar || [], me, content);
@@ -6732,7 +6814,8 @@
     const kpRating = film.rating_kp != null ? `<span class="film-modal-rkp">★ КП ${Number(film.rating_kp).toFixed(1)}</span>` : '';
     const imdbRating = film.rating_imdb != null ? `<span class="film-modal-rkp" style="background:rgba(200,200,200,0.12);color:#e0e0e0">IMDb ${Number(film.rating_imdb).toFixed(1)}</span>` : '';
     const progress = film.progress ? `<span>📺 ${escapeHtml(film.progress)}</span>` : '';
-    const desc = film.description ? `<div class="film-modal-desc">${escapeHtml(film.description)}</div>` : '';
+    const descText = pickFilmDescription(film);
+    const desc = descText ? `<div class="film-modal-desc">${escapeHtml(descText)}</div>` : '';
     const crew = '<div class="film-modal-crew" id="film-modal-cast-root"><span class="muted small">Загрузка команды…</span></div>';
 
     const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
