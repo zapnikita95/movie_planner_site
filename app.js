@@ -2655,6 +2655,24 @@
     const regBtn = document.getElementById('login-register-request-btn');
     const regBack = document.getElementById('login-register-back-btn');
     const regPrivacy = document.getElementById('login-register-privacy');
+    const oauthPriv = document.getElementById('login-oauth-privacy');
+    const privacyHint = document.getElementById('login-privacy-hint');
+
+    function nudgeLoginPrivacy(statusTarget) {
+      const privEl = oauthPriv || regPrivacy;
+      if (privEl) {
+        privEl.closest('.login-oauth-privacy')?.classList.add('needs-attention');
+        privEl.focus({ preventScroll: true });
+        setTimeout(() => privEl.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
+      }
+      if (privacyHint) privacyHint.classList.add('is-visible');
+      try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
+      if (statusTarget === 'reg') {
+        setRegStatus('Отметьте согласие с политикой конфиденциальности', 'error');
+      } else {
+        setStatus('Отметьте согласие с политикой конфиденциальности', 'error');
+      }
+    }
 
     function setStatus(text, kind) {
       if (!statusEl) return;
@@ -2687,6 +2705,10 @@
         const email = (emailInput && emailInput.value || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
           setStatus('Укажите корректный email', 'error');
+          return;
+        }
+        if (!oauthPriv || !oauthPriv.checked) {
+          nudgeLoginPrivacy('login');
           return;
         }
         if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = 'Отправляем…'; }
@@ -2728,8 +2750,7 @@
           return;
         }
         if (!regPrivacy || !regPrivacy.checked) {
-          try { regPrivacy.closest('.login-oauth-privacy')?.classList.add('needs-attention'); } catch (_) {}
-          setRegStatus('Нужно согласие с политикой', 'error');
+          nudgeLoginPrivacy('reg');
           return;
         }
         if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }

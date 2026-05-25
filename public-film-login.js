@@ -106,7 +106,7 @@
               '<input type="checkbox" id="login-oauth-privacy"/>' +
               '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
             '</label>' +
-            '<div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы войти через Google, Яндекс или Telegram.</div>' +
+            '<div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы продолжить вход.</div>' +
             '<div id="login-bot-panel" class="login-bot-panel hidden">' +
               '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
               '<p class="login-status" id="login-status"></p>' +
@@ -213,7 +213,7 @@
     return !!(cb && cb.checked);
   }
 
-  function nudgePrivacy() {
+  function nudgePrivacy(statusEl) {
     var cb = $('login-oauth-privacy');
     if (cb && cb.closest('.login-oauth-privacy')) {
       cb.closest('.login-oauth-privacy').classList.add('needs-attention');
@@ -224,6 +224,7 @@
     }
     var hint = $('login-privacy-hint');
     if (hint) hint.classList.add('is-visible');
+    if (statusEl) setStatus(statusEl, 'Отметьте согласие с политикой конфиденциальности', 'error');
   }
 
   function syncPrivacyLock() {
@@ -326,6 +327,10 @@
           setStatus($('login-email-status'), 'Укажите корректный email', 'error');
           return;
         }
+        if (!privacyOk()) {
+          nudgePrivacy($('login-email-status'));
+          return;
+        }
         setStatus($('login-email-status'), 'Отправляем…');
         fetch(cfg.apiBase + '/api/auth/email/request-code', {
           method: 'POST',
@@ -416,7 +421,7 @@
           return;
         }
         if (!regPrivacy || !regPrivacy.checked) {
-          setStatus($('login-register-status'), 'Нужно согласие с политикой', 'error');
+          nudgePrivacy($('login-register-status'));
           return;
         }
         if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
