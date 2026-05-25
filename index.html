@@ -41,6 +41,11 @@
               window.location.replace(filmUrl + (rest ? '?' + rest : '') + window.location.hash);
               return;
             }
+            if (/^\/s\/\d+\/?/.test(spa)) {
+              var staffUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
+              window.location.replace(staffUrl + (rest ? '?' + rest : '') + window.location.hash);
+              return;
+            }
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
             window.history.replaceState(null, '', newUrl);
           }

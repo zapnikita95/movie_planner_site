@@ -4,21 +4,37 @@
   <meta charset="utf-8">
   <script>
     (function () {
-      var m = (location.pathname || '').match(/^\/f\/(\d+)\/?$/);
-      if (!m) return;
-      var kp = m[1];
-      var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
-      var page = location.origin + '/f/' + kp;
-      document.write(
-        '<meta property="og:type" content="video.movie">' +
-        '<meta property="og:url" content="' + page + '">' +
-        '<meta property="og:site_name" content="Movie Planner">' +
-        '<meta property="og:image" content="' + poster + '">' +
-        '<meta property="og:title" content="Фильм · Movie Planner">' +
-        '<meta name="twitter:card" content="summary_large_image">' +
-        '<meta name="twitter:image" content="' + poster + '">' +
-        '<link rel="canonical" href="' + page + '">'
-      );
+      var path = location.pathname || '';
+      var mFilm = path.match(/^\/f\/(\d+)\/?$/);
+      var mStaff = path.match(/^\/s\/(\d+)\/?$/);
+      if (mFilm) {
+        var kp = mFilm[1];
+        var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+        var page = location.origin + '/f/' + kp;
+        document.write(
+          '<meta property="og:type" content="video.movie">' +
+          '<meta property="og:url" content="' + page + '">' +
+          '<meta property="og:site_name" content="Movie Planner">' +
+          '<meta property="og:image" content="' + poster + '">' +
+          '<meta property="og:title" content="Фильм · Movie Planner">' +
+          '<meta name="twitter:card" content="summary_large_image">' +
+          '<meta name="twitter:image" content="' + poster + '">' +
+          '<link rel="canonical" href="' + page + '">'
+        );
+        return;
+      }
+      if (mStaff) {
+        var pid = mStaff[1];
+        var pageS = location.origin + '/s/' + pid;
+        document.write(
+          '<meta property="og:type" content="profile">' +
+          '<meta property="og:url" content="' + pageS + '">' +
+          '<meta property="og:site_name" content="Movie Planner">' +
+          '<meta property="og:title" content="Персона · Movie Planner">' +
+          '<meta name="twitter:card" content="summary">' +
+          '<link rel="canonical" href="' + pageS + '">'
+        );
+      }
     })();
   </script>
   <title>Movie Planner</title>
@@ -27,7 +43,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260525mobilefix">
+  <link rel="stylesheet" href="/style-v2.css?v=20260525stafffix">
   <style>:root { color-scheme: dark; } .hidden { display: none !important; }</style>
   <script>
     (function () {
@@ -47,7 +63,8 @@
 <body>
   <noscript><p style="color:#fff;background:#111;padding:20px;font-family:sans-serif">Откройте Movie Planner с включённым JavaScript.</p></noscript>
   <script src="/public-film-login.js?v=20260524unifiedlogin"></script>
-  <script src="/film-page.js?v=20260525filmicon2"></script>
+  <script src="/film-page.js?v=20260525stafffix"></script>
+  <script src="/staff-page.js?v=20260525stafffix"></script>
   <script>
     (function () {
       var m = location.pathname.match(/^\/f\/(\d+)\/?$/);
@@ -57,71 +74,9 @@
   </script>
   <script>
     (function () {
-      var loc = window.location;
-      var staffMatch = loc.pathname.match(/^\/s\/(\d+)\/?$/);
-      if (!staffMatch) return;
-      var personId = staffMatch[1];
-      var apiBase = 'https://api.movie-planner.ru';
-
-      document.title = 'Персона · Movie Planner';
-      document.body.innerHTML =
-        '<div class="page-shell">' +
-          '<header id="site-header"><div class="header-content">' +
-            '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
-            '<div class="header-buttons"><button type="button" class="btn-primary" id="login-btn">Войти</button></div>' +
-          '</div></header>' +
-          '<main class="movie-page"><div class="container staff-page-content" id="staff-root">Загрузка…</div></main>' +
-        '</div>';
-
-      var loginBtn = document.getElementById('login-btn');
-      if (loginBtn) loginBtn.addEventListener('click', function () {
-        window.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
-      });
-
-      function escapeText(v) {
-        return String(v || '').replace(/[&<>"']/g, function (c) {
-          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-        });
-      }
-
-      fetch(apiBase + '/api/public/person/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          var root = document.getElementById('staff-root');
-          if (!root) return;
-          if (!d || !d.success) {
-            root.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
-            return;
-          }
-          var person = d.person || {};
-          var roles = d.films_by_role || [];
-          document.title = (person.name_ru || person.name_en || 'Персона') + ' · Movie Planner';
-          var photo = person.photo
-            ? '<img class="staff-hero-photo" src="' + escapeText(person.photo) + '" alt="" referrerpolicy="no-referrer">'
-            : '<div class="staff-hero-photo staff-hero-ph">👤</div>';
-          var grid = function (films) {
-            return (films || []).slice(0, 60).map(function (f) {
-              return '<a class="staff-film-card" href="/f/' + encodeURIComponent(String(f.kp_id)) + '">' +
-                (f.poster ? '<img src="' + escapeText(f.poster) + '" alt="" loading="lazy">' : '<div class="staff-film-ph">🎬</div>') +
-                '<div class="staff-film-title">' + escapeText(f.title || '—') + '</div>' +
-                (f.year ? '<div class="staff-film-year">' + escapeText(String(f.year)) + '</div>' : '') +
-              '</a>';
-            }).join('');
-          };
-          root.innerHTML =
-            '<div class="staff-hero">' + photo +
-              '<div><h2 class="staff-hero-name">' + escapeText(person.name_ru || person.name_en || '—') + '</h2>' +
-              (person.name_en && person.name_en !== person.name_ru ? '<div class="staff-hero-sub">' + escapeText(person.name_en) + '</div>' : '') +
-              '</div></div>' +
-            roles.map(function (block) {
-              return '<section class="staff-role-block"><div class="staff-role-head"><h3>' + escapeText(block.role_name || block.role_key || '') + '</h3></div>' +
-                '<div class="staff-role-grid">' + grid(block.films) + '</div></section>';
-            }).join('');
-        })
-        .catch(function () {
-          var root = document.getElementById('staff-root');
-          if (root) root.innerHTML = '<p class="film-page-error-hint">Ошибка сети</p>';
-        });
+      var m = location.pathname.match(/^\/s\/(\d+)\/?$/);
+      if (!m || !window.MpStaffPage) return;
+      MpStaffPage.bootstrap({ personId: m[1] });
     })();
   </script>
 </body>
