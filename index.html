@@ -178,8 +178,9 @@
           <div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы продолжить вход.</div>
 
           <div id="login-bot-panel" class="login-bot-panel hidden">
-            <p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>
+            <p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>
             <p class="login-status" id="login-status"></p>
+            <p class="login-bot-fallback hidden" id="login-bot-fallback"></p>
             <a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>
           </div>
 
@@ -1334,6 +1335,6 @@
 
     </div><!-- /content-wrapper -->
     <script src="/telegram-open.js?v=20260526emailapi"></script>
-    <script src="/app.js?v=20260526emailapi"></script>
+    <script src="/app.js?v=20260526tgauth"></script>
 </body>
 </html>

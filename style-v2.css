@@ -525,6 +525,13 @@ body.in-cabinet #section-inbox {
   line-height: 1.45;
   color: rgba(244,246,255,.72);
 }
+.login-bot-fallback {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(244,246,255,.58);
+  word-break: break-word;
+}
 .login-bot-reopen { width: 100%; margin-top: 8px; }
 .login-register-name-row,
 .login-email-request-row,

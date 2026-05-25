@@ -101,10 +101,23 @@
     }
   }
 
+  function updatePfBotLoginHint(code) {
+    var el = $('login-bot-fallback');
+    if (!el) return;
+    if (!code) {
+      el.textContent = '';
+      el.classList.add('hidden');
+      return;
+    }
+    el.textContent = 'Если Start не сработал — отправьте боту: /login ' + code;
+    el.classList.remove('hidden');
+  }
+
   function startPfBotAuth(statusEl, botPanel, preOpenedWindow) {
     stopPfBotPoll();
     pfBotDeepLink = null;
     updatePfBotReopenLink(null);
+    updatePfBotLoginHint(null);
     if (botPanel) botPanel.classList.remove('hidden');
     setStatus(statusEl, 'Открываем Telegram…');
     pfFetchJson('/api/auth/telegram-mobile/start', { method: 'POST', body: JSON.stringify({}) })
@@ -118,12 +131,13 @@
         }
         var code = String(startData.code);
         pfBotDeepLink = startData.deep_link
-          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(code));
+          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + code);
         updatePfBotReopenLink(pfBotDeepLink);
+        updatePfBotLoginHint(code);
         if (!openPfTelegramLink(pfBotDeepLink, preOpenedWindow)) {
           setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
         } else {
-          setStatus(statusEl, 'Нажмите Start в боте — войдём автоматически');
+          setStatus(statusEl, 'Нажмите Start на ссылке бота');
         }
         pfBotPoll = setInterval(function () {
           pollPfBotOnce(code, statusEl).catch(function () {});
@@ -170,8 +184,9 @@
             '</label>' +
             '<div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы продолжить вход.</div>' +
             '<div id="login-bot-panel" class="login-bot-panel hidden">' +
-              '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
+              '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>' +
               '<p class="login-status" id="login-status"></p>' +
+              '<p class="login-bot-fallback hidden" id="login-bot-fallback"></p>' +
               '<a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>' +
             '</div>' +
             '<div class="login-email-section">' +

@@ -2496,6 +2496,18 @@
     }
   }
 
+  function updateSiteBotLoginHint(code) {
+    const el = document.getElementById('login-bot-fallback');
+    if (!el) return;
+    if (!code) {
+      el.textContent = '';
+      el.classList.add('hidden');
+      return;
+    }
+    el.textContent = 'Если Start не сработал — отправьте боту: /login ' + code;
+    el.classList.remove('hidden');
+  }
+
   function stopSiteBotAuthPoll() {
     if (_siteBotAuthPoll) {
       clearInterval(_siteBotAuthPoll);
@@ -2544,6 +2556,7 @@
     stopSiteBotAuthPoll();
     _siteBotAuthDeepLink = null;
     updateSiteBotReopenLink(null);
+    updateSiteBotLoginHint(null);
     if (botPanel) botPanel.classList.remove('hidden');
     if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
     try {
@@ -2560,13 +2573,14 @@
       }
       const code = String(startData.code);
       _siteBotAuthDeepLink = startData.deep_link
-        || ('https://t.me/movie_planner_bot?start=mobileauth_' + encodeURIComponent(code));
+        || ('https://t.me/movie_planner_bot?start=mobileauth_' + code);
       updateSiteBotReopenLink(_siteBotAuthDeepLink);
+      updateSiteBotLoginHint(code);
       const opened = openTelegramAuthLink(_siteBotAuthDeepLink, preOpenedWindow);
       if (!opened) {
         try { showToast('Не удалось открыть Telegram. Нажмите «Открыть бота ещё раз».', { type: 'error', duration: 4200 }); } catch (_) {}
       }
-      if (statusEl) { statusEl.textContent = 'Нажмите Start в боте — войдём автоматически'; statusEl.className = 'login-status'; }
+      if (statusEl) { statusEl.textContent = 'Нажмите Start на ссылке бота'; statusEl.className = 'login-status'; }
       _siteBotAuthPoll = setInterval(function () {
         pollSiteBotAuthOnce(code, modalEl, statusEl).catch(function () {});
       }, 2500);
