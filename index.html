@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260526vcwhite">
+    <link rel="stylesheet" href="/style-v2.css?v=20260526cabhead">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -499,6 +499,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">База</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Что посмотреть</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji">🏆</span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">🔔</button>
             <div class="cabinet-sections">
@@ -508,14 +509,12 @@
                     </div>
                 </section>
                 <section id="section-inbox" class="cabinet-section hidden" aria-label="Уведомления">
-                    <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🔔</span><span class="section-title-text">Уведомления</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🔔</span><span class="section-title-text">Уведомления</span></h2>
                     <p class="cabinet-hint">Приглашения и сообщения из групп, напоминания о планах и <b>напоминание поставить оценку</b> после просмотра (как в боте).</p>
                     <div id="site-inbox-root" class="site-inbox-root" aria-live="polite"></div>
                 </section>
                 <section id="section-home" class="cabinet-section">
-                    <div class="home-dash-page-head">
-                        <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🏠</span><span class="section-title-text">Главная</span></h2>
-                    </div>
+                    <h2 class="section-title"><span class="section-title-emoji">🏠</span><span class="section-title-text">Главная</span></h2>
                     <div class="home-quick-actions" id="home-quick-actions" aria-label="Быстрые действия">
                         <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм" aria-label="Случайный фильм">🎲</button>
                         <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Подбор по описанию" aria-label="Подбор по описанию">🔮</button>
@@ -527,7 +526,7 @@
                 </section>
                 <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
                     <p class="cabinet-hint shazam-page-back-wrap"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
-                    <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🔮</span><span class="section-title-text">Подбор по описанию</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🔮</span><span class="section-title-text">Подбор по описанию</span></h2>
                     <p class="cabinet-hint home-shazam-hint">Опишите фильм своими словами — те же лимиты, что в мини-приложении.</p>
                     <div id="home-shazam-block" class="home-shazam-block">
                         <div class="home-shazam-row">
@@ -557,23 +556,25 @@
                     </div>
                 </section>
                 <section id="section-unwatched" class="cabinet-section hidden">
-                    <div class="section-unwatched-header">
-                        <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
-                        <div class="unwatched-toolbar">
-                            <label for="unwatched-sort">Сортировка:</label>
-                            <select id="unwatched-sort" class="unwatched-sort-select" aria-label="Сортировка непросмотренных">
-                                <option value="date">Сначала новые</option>
-                                <option value="date_old">Сначала старые</option>
-                                <option value="az">от А к Я</option>
-                                <option value="za">от Я к А</option>
-                            </select>
+                        <div class="base-section-tools-row">
+                            <div class="unwatched-toolbar">
+                                <label for="unwatched-sort">Сортировка:</label>
+                                <select id="unwatched-sort" class="unwatched-sort-select" aria-label="Сортировка непросмотренных">
+                                    <option value="date">Сначала новые</option>
+                                    <option value="date_old">Сначала старые</option>
+                                    <option value="az">от А к Я</option>
+                                    <option value="za">от Я к А</option>
+                                </select>
+                            </div>
+                            <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                         </div>
-                        <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                         <div class="section-filter-row">
                             <select id="section-filter-unwatched-type" class="section-filter-select" aria-label="Тип">
                                 <option value="any">Все</option>
@@ -589,14 +590,16 @@
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
-                    <div class="section-with-search">
-                        <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab active" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
-                        <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                        <div class="base-section-tools-row">
+                            <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                        </div>
                         <div class="section-filter-row">
                             <input type="text" id="section-filter-series-year-from" class="section-filter-input section-filter-year" placeholder="Год от" inputmode="numeric" aria-label="Год от">
                             <input type="text" id="section-filter-series-year-to" class="section-filter-input section-filter-year" placeholder="Год до" inputmode="numeric" aria-label="Год до">
@@ -612,14 +615,16 @@
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
-                    <div class="section-with-search">
-                        <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab active" data-base-section="ratings">Оценки</button>
                         </div>
-                        <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
+                        <div class="base-section-tools-row">
+                            <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
+                        </div>
                     </div>
                     <p class="cabinet-hint">Ваши и групповые оценки. Откройте карточку фильма или сериала, чтобы изменить оценку и статус просмотра.</p>
                     <div id="ratings-toolbar" class="section-ratings-toolbar" style="display:none">
@@ -679,19 +684,17 @@
                     </div>
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
-                    <div class="section-with-search">
-                        <h2 class="section-title"><span class="section-title-emoji">🎭</span><span class="section-title-text">Премьеры</span></h2>
-                        <div class="premieres-toolbar">
-                            <select id="premieres-period" class="premieres-period-select" aria-label="Период">
-                                <option value="prev_month">Прошедший месяц</option>
-                                <option value="current_month" selected>Текущий месяц</option>
-                                <option value="next_month">Следующий месяц</option>
-                            </select>
-                            <select id="premieres-sort" class="premieres-sort-select" aria-label="Сортировка">
-                                <option value="date">По дате</option>
-                                <option value="genre">По жанру</option>
-                            </select>
-                        </div>
+                    <h2 class="section-title"><span class="section-title-emoji">🎭</span><span class="section-title-text">Премьеры</span></h2>
+                    <div class="premieres-toolbar">
+                        <select id="premieres-period" class="premieres-period-select" aria-label="Период">
+                            <option value="prev_month">Прошедший месяц</option>
+                            <option value="current_month" selected>Текущий месяц</option>
+                            <option value="next_month">Следующий месяц</option>
+                        </select>
+                        <select id="premieres-sort" class="premieres-sort-select" aria-label="Сортировка">
+                            <option value="date">По дате</option>
+                            <option value="genre">По жанру</option>
+                        </select>
                     </div>
                     <p class="cabinet-hint">Афиша кинопремьер России. Включайте напоминания, добавляйте релизы в базу и открывайте карточки фильмов прямо на сайте.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
@@ -699,7 +702,6 @@
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
                 <section id="section-tournament" class="cabinet-section hidden cabinet-tournament">
-                    <p class="cabinet-hint"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
                     <h2 class="section-title"><span class="section-title-emoji">🏆</span><span class="section-title-text">Турнирная таблица</span></h2>
                     <div id="tournament-page-root" class="tournament-page-root" aria-live="polite"></div>
                 </section>
@@ -721,7 +723,7 @@
                     <div id="settings-content" class="settings-content"></div>
                 </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
-                    <h2 class="section-title section-title--text-only"><span class="section-title-text">Друзья и группы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
 
                     <!-- Tabs -->
                     <div class="soc-tab-row" id="soc-tab-row">
