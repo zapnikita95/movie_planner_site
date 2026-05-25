@@ -7098,15 +7098,25 @@ body.login-only-overlay .parallax-bg {
 .header-search {
   --search-left-lane: 52px;
   --search-right-lane: 72px;
-  flex: 1 1 520px !important;
-  max-width: 720px !important;
-  min-width: 220px;
-  margin: 0 18px !important;
-  display: block !important;
+  flex: 1 1 240px !important;
+  max-width: min(560px, 100%) !important;
+  min-width: 0 !important;
+  margin: 0 12px !important;
   background: transparent !important;
   border: 0 !important;
   border-radius: 999px !important;
   box-shadow: none !important;
+}
+.header-search:not(.hidden) {
+  display: block !important;
+}
+.header-search.hidden {
+  display: none !important;
+  flex: 0 0 0 !important;
+  max-width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
 }
 .header-search .header-search-icon {
   position: absolute;
@@ -8439,4 +8449,69 @@ button.home-more-row {
 .home-more-row .list-arrow {
   margin-left: auto;
   opacity: 0.45;
+}
+
+/* Desktop: landing centered, header must not widen the page */
+html {
+  overflow-x: clip;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#site-header {
+  overflow-x: clip;
+}
+
+body:not(.film-standalone-page):not(.staff-standalone-page) .header-content {
+  width: 100%;
+  max-width: var(--site-max);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+body:not(.film-standalone-page):not(.staff-standalone-page) .header-buttons,
+body:not(.film-standalone-page):not(.staff-standalone-page) .header-user-wrap {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+#landing,
+#landing > section,
+body:not(.in-cabinet):not(.in-search-page) main > section {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#landing .hero-label,
+#landing .hero-title,
+#landing .hero-subtitle,
+#landing .hero-description,
+#landing .hero-buttons,
+#landing .hero-subtext {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#landing .bento-grid .card:nth-child(1),
+#landing .bento-grid .card:nth-child(6) {
+  grid-column: span 1;
+}
+
+@media (min-width: 900px) {
+  #landing .bento-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #landing .bento-grid .card:nth-child(1),
+  #landing .bento-grid .card:nth-child(6) {
+    grid-column: span 2;
+  }
 }
