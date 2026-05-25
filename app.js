@@ -3457,7 +3457,10 @@
               + '</button>';
           }).join('')
         : '<p class="empty-hint">Пока пусто — станьте первым участником месяца</p>';
-      const hint = tp && tp.participating === false ? '<p class="cabinet-hint">Вы не участвуете — включите в «Настройки → Профиль»</p>' : '';
+      const meInTop = top.some((item) => item.is_me);
+      const hint = tp && tp.participating === false && !meInTop
+        ? '<p class="cabinet-hint">Вы не участвуете — включите в «Настройки → Профиль»</p>'
+        : '';
       return '<section class="home-dash-block home-tourn-block">'
         + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
         + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
