@@ -1977,7 +1977,7 @@ body.in-public-stats .footer-extension-cabinet {
 
 .login-methods-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -2326,7 +2326,7 @@ body.in-public-stats .footer-extension-cabinet {
 .modal-input {
   flex: 1;
   padding: 14px 16px;
-  background: var(--bg-main);
+  background: var(--bg-surface-alt);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   color: var(--text-primary);
