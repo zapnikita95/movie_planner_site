@@ -1691,6 +1691,7 @@
     integrations: '/integrations',
     tv: '/tv',
     about: '/about',
+    tournament: '/tournament',
     settings: '/settings',
     developer: '/my-api',
     inbox: '/inbox',
@@ -2235,6 +2236,11 @@
     if (rendered && sectionId === 'inbox') {
       try {
         if (typeof renderInboxSection === 'function') renderInboxSection();
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'tournament') {
+      try {
+        if (typeof renderTournamentSection === 'function') renderTournamentSection();
       } catch (_) {}
     }
   }
@@ -3039,8 +3045,8 @@
   const HOME_LS_ORDER = 'sections_order';
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
-  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres'];
+  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'tournament'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'tournament'];
 
   function loadHomeSectionsOrder() {
     try {
@@ -3118,8 +3124,10 @@
     unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series', moreLabel: 'Все сериалы →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
+    tournament: { title: 'Турнирная таблица', section: 'tournament', moreLabel: 'Вся таблица →' },
   };
 
+  let _homeTournamentPreview = null;
   let _cabinetMeCache = null;
 
   function filterGroupFilmSuggestions(actions, myUserId) {
@@ -3432,6 +3440,29 @@
       }).join('');
       return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
+    if (blockId === 'tournament') {
+      if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
+      const tp = _homeTournamentPreview;
+      const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: 'оценок', label: 'Оценки' };
+      const top = (tp && tp.top) || [];
+      const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.');
+      const headExtra = tp && tp.period_label ? ('<div class="cabinet-hint">' + escapeHtml(tp.period_label) + ' · ' + escapeHtml(nom.label) + '</div>') : '';
+      const rows = top.length
+        ? top.map((item, i) => {
+            const score = Number(item[nom.field] || 0);
+            return '<button type="button" class="home-tourn-row' + (item.is_me ? ' home-tourn-row-me' : '') + '" data-home-show-section="tournament">'
+              + '<span class="home-tourn-rank">' + medal(i) + '</span>'
+              + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+              + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
+              + '</button>';
+          }).join('')
+        : '<p class="empty-hint">Пока пусто — станьте первым участником месяца</p>';
+      const hint = tp && tp.participating === false ? '<p class="cabinet-hint">Вы не участвуете — включите в «Настройки → Профиль»</p>' : '';
+      return '<section class="home-dash-block home-tourn-block">'
+        + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
+        + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
+        + '<div class="home-tourn-rows">' + rows + hint + '</div></section>';
+    }
     return '';
   }
 
@@ -3444,16 +3475,21 @@
 
     applyHomeEmojiVisibility();
 
-    api('/api/site/premieres?period=current_month').then((data) => {
-      if (data && data.success && Array.isArray(data.items)) {
-        let items = data.items.slice();
+    Promise.all([
+      api('/api/site/premieres?period=current_month').catch(() => null),
+      api('/api/miniapp/dashboard').catch(() => null),
+    ]).then(([premData, dashData]) => {
+      if (premData && premData.success && Array.isArray(premData.items)) {
+        let items = premData.items.slice();
         items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
         _homePremierePreview = items;
       } else {
         _homePremierePreview = [];
       }
+      _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
     }).catch(() => {
       _homePremierePreview = [];
+      _homeTournamentPreview = null;
     }).finally(() => {
       applyHomeEmojiVisibility();
       const order = loadHomeSectionsOrder();
@@ -3467,6 +3503,77 @@
         html = '<p class="cabinet-hint">Все блоки скрыты. Откройте «Настроить главную…», чтобы вернуть превью.</p>';
       }
       root.innerHTML = html;
+      renderHomeMoreLinks(hidden);
+    });
+  }
+
+  function renderHomeMoreLinks(hidden) {
+    const moreRoot = document.getElementById('home-more-root');
+    if (!moreRoot) return;
+    const isGroup = _cabinetMeCache && _cabinetMeCache.is_group_profile;
+    const links = [];
+    if (!isGroup && hidden.indexOf('tournament') >= 0) {
+      links.push('<button type="button" class="home-more-row" data-home-show-section="tournament"><span>🏆</span><span>Турнирная таблица</span><span class="list-arrow">›</span></button>');
+    }
+    if (!links.length) {
+      moreRoot.innerHTML = '';
+      moreRoot.classList.add('hidden');
+      return;
+    }
+    moreRoot.classList.remove('hidden');
+    moreRoot.innerHTML = '<section class="home-more-section"><h3 class="home-dash-h">Ещё</h3><div class="home-more-list">' + links.join('') + '</div></section>';
+  }
+
+  function renderTournamentSection() {
+    const root = document.getElementById('tournament-page-root');
+    if (!root) return;
+    root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    api('/api/tournament/leaderboard').then((data) => {
+      if (!data || !data.success) {
+        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
+        return;
+      }
+      const items = data.leaderboard || [];
+      const noms = data.nominations || [];
+      let activeId = noms[0] ? noms[0].id : 'ratings_month';
+      const periodLabel = data.period && data.period.label ? data.period.label : '';
+      root.innerHTML = (periodLabel ? '<p class="cabinet-hint">' + escapeHtml(periodLabel) + ' · топ-3 получают монетки</p>' : '')
+        + '<div class="tourn-lb-tabs" id="site-tourn-tabs"></div><div class="tourn-lb-list" id="site-tourn-list"></div>';
+      const tabsEl = root.querySelector('#site-tourn-tabs');
+      const listEl = root.querySelector('#site-tourn-list');
+      function renderList() {
+        const nom = noms.find((n) => n.id === activeId) || noms[0];
+        if (!nom || !listEl) return;
+        const sorted = items.slice().sort((a, b) => Number(b[nom.field] || 0) - Number(a[nom.field] || 0));
+        if (!sorted.length) {
+          listEl.innerHTML = '<p class="empty-hint">Пока нет участников</p>';
+          return;
+        }
+        listEl.innerHTML = sorted.slice(0, 50).map((item, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+          const score = Number(item[nom.field] || 0);
+          return '<div class="home-tourn-row' + (item.is_me ? ' home-tourn-row-me' : '') + '">'
+            + '<span class="home-tourn-rank">' + medal + '</span>'
+            + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+            + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit || '') + '</span>'
+            + '</div>';
+        }).join('');
+      }
+      function renderTabs() {
+        if (!tabsEl) return;
+        tabsEl.innerHTML = noms.map((n) => '<button type="button" class="chip' + (n.id === activeId ? ' active' : '') + '" data-tourn-nom="' + escapeHtml(n.id) + '">' + escapeHtml(n.emoji + ' ' + n.label) + '</button>').join('');
+        tabsEl.querySelectorAll('[data-tourn-nom]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            activeId = btn.getAttribute('data-tourn-nom') || activeId;
+            renderTabs();
+            renderList();
+          });
+        });
+      }
+      renderTabs();
+      renderList();
+    }).catch(() => {
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
     });
   }
 
@@ -3531,7 +3638,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры' };
+    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -8345,6 +8452,12 @@
             <small>Если выключить, вас не найдут по имени, почте или Telegram.</small>
           </span>
         </label>
+        <label class="profile-searchable-toggle">
+          <input type="checkbox" id="profile-settings-tournament" ${u && u.tournament_participation === true ? 'checked' : ''}>
+          <span>
+            <b>Участвовать в турнирных таблицах</b>
+          </span>
+        </label>
         <p class="profile-settings-status" id="profile-settings-status"></p>
         </div>
         <div class="settings-block">
@@ -8600,6 +8713,21 @@
           .then((r) => {
             if (!r || !r.success) { setStatus('Не удалось сохранить настройку поиска', false); return; }
             setStatus(searchable.checked ? 'Профиль виден в поиске' : 'Профиль скрыт из поиска', true);
+          })
+          .catch(() => setStatus('Ошибка сети', false));
+      });
+    }
+    const tournamentToggle = root.querySelector('#profile-settings-tournament');
+    if (tournamentToggle) {
+      tournamentToggle.addEventListener('change', () => {
+        api('/api/miniapp/profile', {
+          method: 'POST',
+          body: JSON.stringify({ tournament_participation: !!tournamentToggle.checked }),
+        })
+          .then((r) => {
+            if (!r || !r.success) { setStatus('Не удалось сохранить настройку турнира', false); return; }
+            setStatus(tournamentToggle.checked ? 'Вы участвуете в турнире' : 'Вы не участвуете в турнире', true);
+            try { scheduleHomeDashboardRefresh(); } catch (_) {}
           })
           .catch(() => setStatus('Ошибка сети', false));
       });
@@ -10461,6 +10589,9 @@
         }
         if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
           renderSettingsSection();
+        }
+        if (sectionId === 'tournament' && typeof renderTournamentSection === 'function') {
+          renderTournamentSection();
         }
         if (sectionId === 'inbox' && typeof renderInboxSection === 'function') {
           renderInboxSection();

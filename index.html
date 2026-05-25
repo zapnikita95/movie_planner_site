@@ -522,6 +522,7 @@
                     </div>
                     <div id="home-group-suggestions" class="home-group-suggestions hidden" aria-live="polite"></div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
+                    <div id="home-more-root" class="home-more-root" aria-live="polite"></div>
                 </section>
                 <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
                     <p class="cabinet-hint shazam-page-back-wrap"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
@@ -695,6 +696,11 @@
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
+                </section>
+                <section id="section-tournament" class="cabinet-section hidden cabinet-tournament">
+                    <p class="cabinet-hint"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
+                    <h2 class="section-title"><span class="section-title-emoji">🏆</span><span class="section-title-text">Турнирная таблица</span></h2>
+                    <div id="tournament-page-root" class="tournament-page-root" aria-live="polite"></div>
                 </section>
                 <section id="section-integrations" class="cabinet-section hidden cabinet-integrations">
                     <h2 class="section-title"><span class="section-title-emoji">🔌</span><span class="section-title-text">Интеграции</span></h2>
@@ -1113,6 +1119,15 @@
                                 <li>Продолжайте вести базу в Movie Planner</li>
                             </ul>
                             <button type="button" class="btn btn-secondary" data-home-show-section="settings">Открыть импорт</button>
+                        </div>
+                        <div class="onboard-card">
+                            <h3>🏆 Турнирная таблица</h3>
+                            <ul>
+                                <li>Соревнуйтесь с другими киноманами</li>
+                                <li>Три номинации каждый месяц</li>
+                                <li>Топ-3 получают монетки</li>
+                            </ul>
+                            <button type="button" class="btn btn-secondary" data-home-show-section="tournament">Открыть таблицу</button>
                         </div>
                     </div>
                     <p class="cabinet-onboard-note">Бот и расширение необязательны. Они просто дополнительные способы добавлять фильмы быстрее.</p>
