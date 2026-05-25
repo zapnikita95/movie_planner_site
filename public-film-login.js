@@ -1,7 +1,6 @@
 (function (global) {
   'use strict';
 
-  var TELEGRAM_BOT_ID = '8554485843';
   var TELEGRAM_BOT_USERNAME = 'movie_planner_bot';
   var cfg = { kpId: '', apiBase: 'https://api.movie-planner.ru', onSuccess: function () {} };
   var pfBotPoll = null;
@@ -26,7 +25,7 @@
         if (!checkData.success || !checkData.access) {
           if (checkData.error === 'expired') {
             stopPfBotPoll();
-            setStatus(statusEl, 'Время истекло — нажмите 🤖 ещё раз', 'error');
+            setStatus(statusEl, 'Время истекло — нажмите Telegram ещё раз', 'error');
           }
           return false;
         }
@@ -102,7 +101,6 @@
               '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
                 '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
               '</button>' +
-              '<button type="button" class="login-oauth-btn login-oauth-bot" id="login-bot-toggle" title="Войти через Telegram-бота" aria-label="Войти через Telegram-бота">🤖</button>' +
             '</div>' +
             '<label class="login-oauth-privacy">' +
               '<input type="checkbox" id="login-oauth-privacy"/>' +
@@ -259,52 +257,6 @@
     }).catch(function () {});
   }
 
-  function startTelegramLogin() {
-    if (!privacyOk()) { nudgePrivacy(); return; }
-    var width = 550;
-    var height = 470;
-    var left = Math.max(0, (global.screen.width - width) / 2) + (global.screen.availLeft || 0);
-    var top = Math.max(0, (global.screen.height - height) / 2) + (global.screen.availTop || 0);
-    var origin = global.location.origin || (global.location.protocol + '//' + global.location.hostname);
-    var popupUrl = 'https://oauth.telegram.org/auth?bot_id=' + encodeURIComponent(TELEGRAM_BOT_ID)
-      + '&origin=' + encodeURIComponent(origin)
-      + '&request_access=write'
-      + '&return_to=' + encodeURIComponent(global.location.href);
-    var popup = null;
-    var onMessage = function (event) {
-      if (!popup || event.source !== popup) return;
-      var payload = {};
-      try { payload = JSON.parse(event.data); } catch (_e) {}
-      if (payload && payload.event === 'auth_result' && payload.result) {
-        global.removeEventListener('message', onMessage);
-        try { popup.close(); } catch (_e) {}
-        fetch(cfg.apiBase + '/api/site/auth/telegram-widget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.assign({}, payload.result, { accept_privacy: true, acceptPrivacy: true })),
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (d.success && d.token) finishLogin(d);
-            else setStatus($('login-status'), d.error || 'Не удалось войти через Telegram', 'error');
-          })
-          .catch(function () { setStatus($('login-status'), 'Ошибка сети', 'error'); });
-      }
-    };
-    global.addEventListener('message', onMessage);
-    popup = global.open(
-      popupUrl,
-      'telegram_oauth_bot' + TELEGRAM_BOT_ID,
-      'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',status=0,location=0,menubar=0,toolbar=0'
-    );
-    if (!popup) {
-      global.removeEventListener('message', onMessage);
-      setStatus($('login-status'), 'Разрешите всплывающие окна для Telegram', 'error');
-    } else {
-      popup.focus();
-    }
-  }
-
   function bindEvents() {
     var modal = $('login-modal');
     if (!modal || modal._pfBound) return;
@@ -342,21 +294,16 @@
       });
     }
     var tg = $('login-tg-widget-wrap');
+    var botPanel = $('login-bot-panel');
     if (tg) {
       tg.addEventListener('click', function (e) {
         e.preventDefault();
-        startTelegramLogin();
-      });
-    }
-
-    var botToggle = $('login-bot-toggle');
-    var botPanel = $('login-bot-panel');
-    var botReopen = $('login-bot-reopen');
-    if (botToggle) {
-      botToggle.addEventListener('click', function () {
+        if (!privacyOk()) { nudgePrivacy(); return; }
         startPfBotAuth($('login-status'), botPanel);
       });
     }
+
+    var botReopen = $('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', function () {
         if (pfBotDeepLink) {

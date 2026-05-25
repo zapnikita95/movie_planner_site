@@ -2314,7 +2314,7 @@
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
         stopSiteBotAuthPoll();
-        if (statusEl) { statusEl.textContent = 'Время истекло — нажмите 🤖 ещё раз'; statusEl.className = 'login-status error'; }
+        if (statusEl) { statusEl.textContent = 'Время истекло — нажмите Telegram ещё раз'; statusEl.className = 'login-status error'; }
       }
       return false;
     }
@@ -2399,97 +2399,6 @@
       btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab-jump')));
     });
 
-    let telegramLoginScriptPromise = null;
-    /** Telegram Login JS preloading. The click handler below opens the popup synchronously. */
-    function loadTelegramLoginScript() {
-      if (window.Telegram && window.Telegram.Login && typeof window.Telegram.Login.auth === 'function') {
-        return Promise.resolve();
-      }
-      if (telegramLoginScriptPromise) return telegramLoginScriptPromise;
-      const wrap = document.getElementById('login-tg-widget-mount');
-      telegramLoginScriptPromise = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://telegram.org/js/telegram-widget.js?22';
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('telegram_script_failed'));
-        (wrap || document.head || document.body).appendChild(s);
-      });
-      return telegramLoginScriptPromise;
-    }
-
-    function mountTelegramLoginWidget() {
-      void loadTelegramLoginScript().catch(() => {});
-    }
-
-    function startTelegramOfficialLogin() {
-      const width = 550;
-      const height = 470;
-      const left = Math.max(0, (window.screen.width - width) / 2) + (window.screen.availLeft || 0);
-      const top = Math.max(0, (window.screen.height - height) / 2) + (window.screen.availTop || 0);
-      const origin = window.location.origin || (window.location.protocol + '//' + window.location.hostname);
-      const popupUrl = 'https://oauth.telegram.org/auth?bot_id=' + encodeURIComponent(TELEGRAM_BOT_ID)
-        + '&origin=' + encodeURIComponent(origin)
-        + '&request_access=write'
-        + '&return_to=' + encodeURIComponent(window.location.href);
-      let popup = null;
-      const onMessage = (event) => {
-        if (!popup || event.source !== popup) return;
-        let data = {};
-        try { data = JSON.parse(event.data); } catch (_) {}
-        if (data && data.event === 'auth_result' && data.result) {
-          window.removeEventListener('message', onMessage);
-          try { popup.close(); } catch (_) {}
-          window.mpTelegramLogin(data.result);
-        }
-      };
-      window.addEventListener('message', onMessage);
-      popup = window.open(
-        popupUrl,
-        'telegram_oauth_bot' + TELEGRAM_BOT_ID,
-        'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',status=0,location=0,menubar=0,toolbar=0',
-      );
-      if (popup) {
-        popup.focus();
-        return;
-      }
-      window.removeEventListener('message', onMessage);
-      try { showToast('Браузер заблокировал окно Telegram. Разрешите всплывающие окна для сайта.', { type: 'error', duration: 4200 }); } catch (_) {}
-    }
-
-    window.mpTelegramLogin = function (user) {
-      const priv = document.getElementById('login-oauth-privacy');
-      if (!priv || !priv.checked) {
-        try { showToast('Нужна галочка про политику', { type: 'error', duration: 3200 }); } catch (_) { alert('Отметьте согласие с политикой.'); }
-        return;
-      }
-      const modalEl = document.getElementById('login-modal');
-      fetch(API_BASE + '/api/site/auth/telegram-widget', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({}, user, { accept_privacy: true, acceptPrivacy: true })),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success && data.token) {
-            applySiteSessionLogin(
-              {
-                token: data.token,
-                chat_id: data.chat_id,
-                name: data.name || 'Профиль',
-                has_data: !!data.has_data,
-                is_personal: data.is_personal !== undefined ? !!data.is_personal : true,
-              },
-              modalEl,
-              null,
-            );
-          } else {
-            alert((data && data.message) || data.error || 'Не удалось войти через Telegram');
-          }
-        })
-        .catch(() => alert('Ошибка сети'));
-    };
-
     const oauthPriv = document.getElementById('login-oauth-privacy');
     const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
@@ -2528,6 +2437,7 @@
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
     }
+    const botPanel = document.getElementById('login-bot-panel');
     if (tgWrap) {
       tgWrap.addEventListener('click', (e) => {
         e.preventDefault();
@@ -2536,7 +2446,7 @@
           nudgeOAuthPrivacy();
           return;
         }
-        startTelegramOfficialLogin();
+        startSiteBotAuth(modal, status, botPanel);
       });
     }
 
@@ -2544,7 +2454,6 @@
       openBtn.addEventListener('click', () => {
         setLoginTab('login');
         if (modal) modal.classList.remove('hidden');
-        mountTelegramLoginWidget();
       });
     }
     closeElements.forEach((el) => el.addEventListener('click', () => {
@@ -2558,14 +2467,7 @@
       if (bp) bp.classList.add('hidden');
     }));
 
-    const botToggle = document.getElementById('login-bot-toggle');
-    const botPanel = document.getElementById('login-bot-panel');
     const botReopen = document.getElementById('login-bot-reopen');
-    if (botToggle) {
-      botToggle.addEventListener('click', () => {
-        startSiteBotAuth(modal, status, botPanel);
-      });
-    }
     if (botReopen) {
       botReopen.addEventListener('click', () => {
         if (_siteBotAuthDeepLink) {
