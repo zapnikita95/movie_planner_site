@@ -8330,3 +8330,113 @@ body.film-standalone-page {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ——— Турнирная таблица (главная + страница) ——— */
+.home-tourn-rows,
+.tourn-lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.home-tourn-row,
+button.home-tourn-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #f3f3f8);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: background 0.13s, border-color 0.13s;
+}
+.home-tourn-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.home-tourn-row-me {
+  border-color: rgba(255, 45, 123, 0.55);
+  background: rgba(255, 45, 123, 0.08);
+}
+.home-tourn-rank {
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.home-tourn-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-tourn-score {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent, #ff2d7b);
+}
+.tourn-lb-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.tourn-lb-tabs .chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.tourn-lb-tabs .chip.active {
+  border-color: rgba(255, 45, 123, 0.55);
+  color: var(--accent, #ff2d7b);
+  background: rgba(255, 45, 123, 0.12);
+}
+.home-more-section {
+  margin-top: 16px;
+}
+.home-more-section .home-dash-h {
+  margin-bottom: 8px;
+}
+.home-more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-more-row,
+button.home-more-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #f3f3f8);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.home-more-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.home-more-row .list-arrow {
+  margin-left: auto;
+  opacity: 0.45;
+}
