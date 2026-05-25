@@ -48,9 +48,38 @@
       });
   }
 
-  function startPfBotAuth(statusEl, botPanel) {
+  function updatePfBotReopenLink(url) {
+    var el = $('login-bot-reopen');
+    if (!el) return;
+    if (url) {
+      el.href = url;
+      el.setAttribute('aria-disabled', 'false');
+    } else {
+      el.href = '#';
+      el.setAttribute('aria-disabled', 'true');
+    }
+  }
+
+  function openPfTelegramLink(url, preOpenedWindow) {
+    if (typeof global.MpOpenTelegramLink === 'function') {
+      return global.MpOpenTelegramLink(url, preOpenedWindow);
+    }
+    try {
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.location.href = url;
+        preOpenedWindow.focus();
+        return true;
+      }
+      return !!global.open(url, '_blank', 'noopener,noreferrer');
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function startPfBotAuth(statusEl, botPanel, preOpenedWindow) {
     stopPfBotPoll();
     pfBotDeepLink = null;
+    updatePfBotReopenLink(null);
     if (botPanel) botPanel.classList.remove('hidden');
     setStatus(statusEl, 'Открываем Telegram…');
     fetch(cfg.apiBase + '/api/auth/telegram-mobile/start', {
@@ -60,20 +89,32 @@
       .then(function (r) { return r.json(); })
       .then(function (startData) {
         if (!startData.success || !startData.code) {
+          if (preOpenedWindow && !preOpenedWindow.closed) {
+            try { preOpenedWindow.close(); } catch (_e) {}
+          }
           setStatus(statusEl, 'Не удалось начать вход через бота', 'error');
           return;
         }
         var code = String(startData.code);
         pfBotDeepLink = startData.deep_link
           || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(code));
-        try { global.open(pfBotDeepLink, '_blank', 'noopener'); } catch (_e) {}
-        setStatus(statusEl, 'Нажмите Start в боте — войдём автоматически');
+        updatePfBotReopenLink(pfBotDeepLink);
+        if (!openPfTelegramLink(pfBotDeepLink, preOpenedWindow)) {
+          setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
+        } else {
+          setStatus(statusEl, 'Нажмите Start в боте — войдём автоматически');
+        }
         pfBotPoll = setInterval(function () {
           pollPfBotOnce(code, statusEl).catch(function () {});
         }, 2500);
         pollPfBotOnce(code, statusEl).catch(function () {});
       })
-      .catch(function () { setStatus(statusEl, 'Ошибка сети', 'error'); });
+      .catch(function () {
+        if (preOpenedWindow && !preOpenedWindow.closed) {
+          try { preOpenedWindow.close(); } catch (_e) {}
+        }
+        setStatus(statusEl, 'Ошибка сети', 'error');
+      });
   }
 
   function injectModal() {
@@ -110,7 +151,7 @@
             '<div id="login-bot-panel" class="login-bot-panel hidden">' +
               '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» — вход произойдёт автоматически.</p>' +
               '<p class="login-status" id="login-status"></p>' +
-              '<button type="button" class="modal-button modal-button-secondary login-bot-reopen" id="login-bot-reopen">Открыть бота ещё раз</button>' +
+              '<a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>' +
             '</div>' +
             '<div class="login-email-section">' +
               '<div class="login-email-caption">Войти по почте</div>' +
@@ -300,18 +341,20 @@
       tg.addEventListener('click', function (e) {
         e.preventDefault();
         if (!privacyOk()) { nudgePrivacy(); return; }
-        startPfBotAuth($('login-status'), botPanel);
+        var tgWin = null;
+        try { tgWin = global.open('about:blank', '_blank'); } catch (_e) {}
+        startPfBotAuth($('login-status'), botPanel, tgWin);
       });
     }
 
     var botReopen = $('login-bot-reopen');
     if (botReopen) {
-      botReopen.addEventListener('click', function () {
-        if (pfBotDeepLink) {
-          try { global.open(pfBotDeepLink, '_blank', 'noopener'); } catch (_e) {}
-        } else {
-          startPfBotAuth($('login-status'), botPanel);
-        }
+      botReopen.addEventListener('click', function (e) {
+        if (pfBotDeepLink) return;
+        e.preventDefault();
+        var tgWin = null;
+        try { tgWin = global.open('about:blank', '_blank'); } catch (_e) {}
+        startPfBotAuth($('login-status'), botPanel, tgWin);
       });
     }
 

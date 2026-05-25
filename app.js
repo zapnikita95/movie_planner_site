@@ -2456,6 +2456,35 @@
   let _siteBotAuthPoll = null;
   let _siteBotAuthDeepLink = null;
 
+  function openTelegramAuthLink(url, preOpenedWindow) {
+    if (typeof window.MpOpenTelegramLink === 'function') {
+      return window.MpOpenTelegramLink(url, preOpenedWindow);
+    }
+    try {
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.location.href = url;
+        preOpenedWindow.focus();
+        return true;
+      }
+      const popup = window.open(url, '_blank', 'noopener,noreferrer');
+      return !!popup;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function updateSiteBotReopenLink(url) {
+    const el = document.getElementById('login-bot-reopen');
+    if (!el) return;
+    if (url) {
+      el.href = url;
+      el.setAttribute('aria-disabled', 'false');
+    } else {
+      el.href = '#';
+      el.setAttribute('aria-disabled', 'true');
+    }
+  }
+
   function stopSiteBotAuthPoll() {
     if (_siteBotAuthPoll) {
       clearInterval(_siteBotAuthPoll);
@@ -2504,9 +2533,10 @@
     return true;
   }
 
-  async function startSiteBotAuth(modalEl, statusEl, botPanel) {
+  async function startSiteBotAuth(modalEl, statusEl, botPanel, preOpenedWindow) {
     stopSiteBotAuthPoll();
     _siteBotAuthDeepLink = null;
+    updateSiteBotReopenLink(null);
     if (botPanel) botPanel.classList.remove('hidden');
     if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
     try {
@@ -2516,19 +2546,29 @@
       });
       const startData = await startResp.json().catch(() => ({}));
       if (!startData.success || !startData.code) {
+        if (preOpenedWindow && !preOpenedWindow.closed) {
+          try { preOpenedWindow.close(); } catch (_) {}
+        }
         if (statusEl) { statusEl.textContent = 'Не удалось начать вход через бота'; statusEl.className = 'login-status error'; }
         return;
       }
       const code = String(startData.code);
       _siteBotAuthDeepLink = startData.deep_link
         || ('https://t.me/movie_planner_bot?start=mobileauth_' + encodeURIComponent(code));
-      try { window.open(_siteBotAuthDeepLink, '_blank', 'noopener'); } catch (_) {}
+      updateSiteBotReopenLink(_siteBotAuthDeepLink);
+      const opened = openTelegramAuthLink(_siteBotAuthDeepLink, preOpenedWindow);
+      if (!opened) {
+        try { showToast('Не удалось открыть Telegram. Нажмите «Открыть бота ещё раз».', { type: 'error', duration: 4200 }); } catch (_) {}
+      }
       if (statusEl) { statusEl.textContent = 'Нажмите Start в боте — войдём автоматически'; statusEl.className = 'login-status'; }
       _siteBotAuthPoll = setInterval(function () {
         pollSiteBotAuthOnce(code, modalEl, statusEl).catch(function () {});
       }, 2500);
       void pollSiteBotAuthOnce(code, modalEl, statusEl);
     } catch (_) {
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        try { preOpenedWindow.close(); } catch (_) {}
+      }
       if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'login-status error'; }
     }
   }
@@ -2606,7 +2646,9 @@
           nudgeOAuthPrivacy();
           return;
         }
-        startSiteBotAuth(modal, status, botPanel);
+        let tgWin = null;
+        try { tgWin = window.open('about:blank', '_blank'); } catch (_) {}
+        startSiteBotAuth(modal, status, botPanel, tgWin);
       });
     }
 
@@ -2629,12 +2671,12 @@
 
     const botReopen = document.getElementById('login-bot-reopen');
     if (botReopen) {
-      botReopen.addEventListener('click', () => {
-        if (_siteBotAuthDeepLink) {
-          try { window.open(_siteBotAuthDeepLink, '_blank', 'noopener'); } catch (_) {}
-        } else {
-          startSiteBotAuth(modal, status, botPanel);
-        }
+      botReopen.addEventListener('click', (e) => {
+        if (_siteBotAuthDeepLink) return;
+        e.preventDefault();
+        let tgWin = null;
+        try { tgWin = window.open('about:blank', '_blank'); } catch (_) {}
+        startSiteBotAuth(modal, status, botPanel, tgWin);
       });
     }
 
