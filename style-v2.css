@@ -355,6 +355,10 @@ body.in-cabinet #section-inbox {
   cursor: pointer;
 }
 
+.header-settings-btn-icon {
+  flex-shrink: 0;
+}
+
 .header-coins-sprite {
   width: 20px;
   height: 20px;
