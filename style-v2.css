@@ -6877,6 +6877,19 @@ main.film-page .hero {
   border-color: rgba(236,72,153,.55);
   background: rgba(236,72,153,.16);
 }
+.film-icon-btn--watched.on {
+  border-color: rgba(74,222,128,0.45);
+  background: rgba(74,222,128,0.14);
+  color: #b0f1bf;
+}
+.film-icon-btn--watched.on .film-icon-ico {
+  color: #4ade80;
+}
+.film-icon-btn--rated .film-icon-ico {
+  font-size: 18px;
+  font-weight: 900;
+  font-family: Unbounded, Inter, sans-serif;
+}
 .film-icon-btn:hover,
 .film-icon-btn:focus-visible {
   width: auto;

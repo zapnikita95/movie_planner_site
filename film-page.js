@@ -115,19 +115,20 @@
     var addIconBtn = !inBase
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
-    var dbActionRow = inBase
-      ? '<button type="button" class="film-watch-btn' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '">' +
-        '<span class="film-watch-mark" aria-hidden="true">' + (watched ? '✓' : '') + '</span>' +
-        '<span class="film-watch-label">' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '</span></button>'
+    var watchIconBtn = inBase
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span></button>'
       : '';
+    var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
+    var rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
+    var rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
+    var rateLabelHtml = myRating ? '' : '<span class="film-icon-label">Оценить</span>';
     var rateBtn = canRate && !ratingLocked
-      ? '<button type="button" class="film-icon-btn" id="rate-toggle-btn" data-rate-toggle="1" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>'
+      ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
     return '<div class="film-page-toolbar">' + planBlock +
-      '<div class="film-toolbar-icons">' + addIconBtn + rateBtn +
+      '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtn +
       '<button type="button" class="film-icon-btn" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
       '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
-      dbActionRow +
       '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>' +
       '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div></div>';
   }
