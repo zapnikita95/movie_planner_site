@@ -353,6 +353,16 @@ body.in-cabinet #section-inbox {
   font-weight: 800;
   color: var(--text-primary);
   cursor: pointer;
+  text-decoration: none;
+}
+.header-settings-btn:hover,
+.header-settings-btn:focus,
+.header-settings-btn:focus-visible {
+  text-decoration: none;
+}
+.header-settings-btn-text,
+.header-settings-btn-icon {
+  text-decoration: none;
 }
 
 .header-settings-btn-icon {
@@ -5192,8 +5202,9 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   font-weight: 600;
   cursor: pointer;
   max-width: none;
+  text-decoration: none;
 }
-.header-settings-btn:hover { opacity: 0.85; background: transparent; }
+.header-settings-btn:hover { opacity: 0.85; background: transparent; text-decoration: none; }
 .header-settings-dropdown { min-width: 260px; max-width: 92vw; }
 .header-settings-nav-item {
   display: block; width: 100%; text-align: left;
