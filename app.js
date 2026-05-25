@@ -231,10 +231,92 @@
       const active = getActiveChatId();
       const session = sessions.find((s) => String(s.chat_id) === String(active));
       if (!session) return null;
-      return { success: true, name: session.name || 'Профиль' };
+      return {
+        success: true,
+        name: session.name || 'Профиль',
+        has_data: !!session.has_data,
+        chat_id: session.chat_id,
+      };
     } catch (_) {
       return null;
     }
+  }
+
+  function cabinetScreenIdForSession(session) {
+    const skipOnboarding = uiTourIsDone(UI_TOUR_KEYS.onboarding);
+    const hasData = session && session.has_data;
+    return (hasData || skipOnboarding) ? 'cabinet-readonly' : 'cabinet-onboarding';
+  }
+
+  /** Сразу кабинет при валидной сессии — не ждать /api/site/me (иначе виден landing). */
+  function bootAuthenticatedCabinetShell() {
+    try {
+      if (!getToken() || !document.getElementById('landing')) return false;
+      if (isSearchLocation()) return false;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && /^\d+$/.test(pathKp)) return false;
+      const params = new URLSearchParams(window.location.search);
+      const kpOpen = params.get('kp_open');
+      if (kpOpen && /^\d+$/.test(kpOpen)) return false;
+      if (staffIdFromPathname(window.location.pathname)) return false;
+
+      document.body.classList.remove('login-only-overlay');
+      const session = getActiveSession();
+      const screenId = cabinetScreenIdForSession(session);
+      showScreen(screenId);
+      const stub = cachedSessionMeStub();
+      if (stub) renderHeader(stub);
+
+      if (screenId === 'cabinet-readonly') {
+        const deepSection = sectionFromPath(window.location.pathname) || 'home';
+        showSection(deepSection, { replace: true, skipPush: true });
+      } else {
+        let deepSection = sectionFromPath(window.location.pathname);
+        if (deepSection === 'home') deepSection = 'onboard-main';
+        showSection(deepSection || 'onboard-main', { replace: true, skipPush: true });
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function navigateLogoHome(e) {
+    if (!getToken()) return;
+    const hasCabinetDom = document.getElementById('cabinet-readonly') || document.getElementById('cabinet-onboarding');
+    if (hasCabinetDom) {
+      if (e) e.preventDefault();
+      document.body.classList.remove('login-only-overlay');
+      const session = getActiveSession();
+      const screenId = cabinetScreenIdForSession(session);
+      try {
+        if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
+          history.pushState({ section: 'home' }, '', '/');
+        } else {
+          history.replaceState({ section: 'home' }, '', '/');
+        }
+      } catch (_) {}
+      showScreen(screenId);
+      if (screenId === 'cabinet-readonly') {
+        showSection('home', { replace: true, skipPush: true });
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      } else {
+        showSection('onboard-main', { replace: true, skipPush: true });
+      }
+      loadMeAndShowCabinet();
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
+      return;
+    }
+    if (e) e.preventDefault();
+    window.location.href = '/';
+  }
+
+  function bindLogoHomeNavigation() {
+    document.querySelectorAll('a.logo[href="/"], a.logo[href="/index.html"]').forEach((a) => {
+      if (a.dataset.mpLogoHomeBound) return;
+      a.dataset.mpLogoHomeBound = '1';
+      a.addEventListener('click', navigateLogoHome);
+    });
   }
 
   /** /f/:kp и kp_open — standalone 404/film-page, не кабинет. */
@@ -577,6 +659,7 @@
 
   function showCabinetAfterLogin(me) {
     return uiToursEnsureHydrated(true).then(function () {
+      document.body.classList.remove('login-only-overlay');
       const skipOnboarding = uiTourIsDone(UI_TOUR_KEYS.onboarding);
       if (me.has_data || skipOnboarding) {
         showScreen('cabinet-readonly');
@@ -771,6 +854,8 @@
     }
     setActiveChatId(chatId);
     if (modalEl) modalEl.classList.add('hidden');
+    document.body.classList.remove('login-only-overlay');
+    bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
     try {
       const pendingInvite = localStorage.getItem('mp_pending_accept_friend_invite');
@@ -1583,7 +1668,8 @@
 
   function sectionFromPath(pathname) {
     if (!pathname) return null;
-    const normalized = pathname.replace(/\/$/, '') || '/';
+    let normalized = pathname.replace(/\/$/, '') || '/';
+    if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return 'home';
     return PATH_TO_SECTION[normalized] || null;
   }
@@ -2017,6 +2103,9 @@
     let rendered = false;
     let tShown = null;
     if (readonly && !readonly.classList.contains('hidden')) {
+      readonly.classList.toggle('cabinet-home-root', sectionId === 'home');
+      const topbar = readonly.querySelector('.cabinet-topbar');
+      if (topbar) topbar.classList.toggle('hidden', sectionId !== 'home');
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
@@ -2889,14 +2978,15 @@
   function loadHomeEmojiVis() {
     try {
       const raw = localStorage.getItem(HOME_LS_EMOJI);
-      if (!raw) return { random: true, shazam: true };
+      if (!raw) return { random: true, shazam: true, voice: true };
       const j = JSON.parse(raw);
       return {
         random: j.random !== false,
         shazam: j.shazam !== false,
+        voice: j.voice !== false,
       };
     } catch (_) {
-      return { random: true, shazam: true };
+      return { random: true, shazam: true, voice: true };
     }
   }
   function saveHomeEmojiVis(next) {
@@ -2909,7 +2999,7 @@
     if (!wrap) return;
     wrap.querySelectorAll('[data-home-emoji-key]').forEach((el) => {
       const k = el.getAttribute('data-home-emoji-key');
-      const on = k === 'random' ? v.random : k === 'shazam' ? v.shazam : true;
+      const on = k === 'random' ? v.random : k === 'shazam' ? v.shazam : k === 'voice' ? v.voice : true;
       el.classList.toggle('hidden', !on);
     });
   }
@@ -3496,6 +3586,14 @@
       const action = btn.getAttribute('data-home-action');
       if (action === 'shazam') {
         showSection('shazam');
+        return;
+      }
+      if (action === 'voice') {
+        showSection('plans');
+        setTimeout(() => {
+          const mic = document.getElementById('header-search-mic');
+          if (mic) mic.click();
+        }, 120);
         return;
       }
       if (action === 'random') {
@@ -10320,31 +10418,6 @@
         const speed = 0.02 + Math.random() * 0.06;
         const opacity = 0.1 + Math.random() * 0.14;
         el.style.cssText = 'font-size:' + size + 'px; left:' + left + '%; top:' + top + '%; opacity:' + opacity + ';';
-        parallaxBg.appendChild(el);
-        el._parallaxSpeed = speed;
-        el._parallaxBaseTop = top;
-      }
-      const items = parallaxBg.querySelectorAll('.parallax-emoji');
-      window.addEventListener('scroll', function () {
-        const y = window.scrollY;
-        items.forEach(function (item) {
-          const s = item._parallaxSpeed || 0.04;
-          item.style.transform = 'translateY(' + (-y * s) + 'px)';
-        });
-      }, { passive: true });
-    }
-
-    // Opera: показывать «Установить расширение Opera» вместо Chrome
-    const isOpera = /opr|opera/i.test(navigator.userAgent);
-    document.querySelectorAll('.ext-btn-text').forEach(function (el) {
-      el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
-pacity + ';';
         parallaxBg.appendChild(el);
         el._parallaxSpeed = speed;
         el._parallaxBaseTop = top;
