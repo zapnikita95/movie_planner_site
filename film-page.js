@@ -132,6 +132,314 @@
       '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div></div>';
   }
 
+  function mpSessions() {
+    try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
+  }
+  function mpToken() {
+    try {
+      var active = localStorage.getItem('mp_site_active_chat_id');
+      var row = mpSessions().find(function (x) { return String(x.chat_id) === String(active); });
+      return row ? row.token : null;
+    } catch (_e) { return null; }
+  }
+  function mpAuthHeaders() {
+    var h = { 'Content-Type': 'application/json' };
+    var t = mpToken();
+    if (t) h.Authorization = 'Bearer ' + t;
+    return h;
+  }
+
+  function standaloneHeaderSearchHtml() {
+    return '<div class="header-search" id="header-search" role="search">' +
+      '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
+      '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+      '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
+      '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+      '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
+    '</div>';
+  }
+
+  function standaloneNavHtml() {
+    var tabs = [
+      { href: '/home', label: 'Главная', emoji: '🏠' },
+      { href: '/plans', label: 'Планы', emoji: '📋' },
+      { href: '/premieres', label: 'Премьеры', emoji: '🎭' },
+      { href: '/watchlist', label: 'База', emoji: '🎬' },
+      { href: '/whattowatch', label: 'Что посмотреть', emoji: '🎯' },
+    ];
+    return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
+      tabs.map(function (t) {
+        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + t.emoji + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
+      }).join('') +
+    '</nav>';
+  }
+
+  function setStandaloneHeaderAvatar(el, url, name, apiBase) {
+    if (!el) return;
+    var initial = String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
+    var src = String(url || '').trim();
+    if (src && !/^https?:\/\//i.test(src) && src.indexOf('data:') !== 0) {
+      if (src.indexOf('/api/') === 0) src = apiBase + src;
+    }
+    if (src) {
+      el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+      var img = el.querySelector('img');
+      if (img) img.addEventListener('error', function () { el.textContent = initial; }, { once: true });
+    } else {
+      el.textContent = initial;
+    }
+  }
+
+  function bindStandaloneLogoHome() {
+    document.querySelectorAll('a.logo[href="/"], a.logo[href="/index.html"]').forEach(function (a) {
+      if (a.dataset.mpLogoHomeBound) return;
+      a.dataset.mpLogoHomeBound = '1';
+      a.addEventListener('click', function (e) {
+        if (!mpToken()) return;
+        e.preventDefault();
+        global.location.href = '/home';
+      });
+    });
+  }
+
+  function bindStandaloneSearch(apiBase, loginNow) {
+    var input = document.getElementById('header-search-input');
+    var dd = document.getElementById('header-search-dropdown');
+    var clearBtn = document.getElementById('header-search-clear');
+    var timer = null;
+    var lastAt = 0;
+    var controller = null;
+    var seq = 0;
+    if (!input || !dd) return;
+    function escapeText(v) {
+      return String(v || '').replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      });
+    }
+    function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
+    function cleanPoster(src) {
+      var s = String(src || '');
+      return s && s.indexOf('/no-poster') === -1 ? s : '';
+    }
+    function render(items) {
+      if (!items || !items.length) {
+        dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
+        dd.classList.remove('hidden');
+        return;
+      }
+      dd.innerHTML = items.slice(0, 6).map(function (it) {
+        var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
+        var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
+        var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
+        return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
+          (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy">' : '<span class="search-result-poster">🎬</span>') +
+          '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
+          '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
+      }).join('');
+      dd.classList.remove('hidden');
+    }
+    function run(q) {
+      q = String(q || '').trim();
+      if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+      if (q.length < 2) { hide(); return; }
+      var wait = Math.max(0, 1000 - (Date.now() - lastAt));
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        lastAt = Date.now();
+        var mySeq = ++seq;
+        if (controller) controller.abort();
+        controller = global.AbortController ? new AbortController() : null;
+        dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
+        dd.classList.remove('hidden');
+        fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
+          method: 'GET',
+          mode: 'cors',
+          signal: controller ? controller.signal : undefined,
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (mySeq !== seq) return;
+            render((data && data.items) || []);
+          })
+          .catch(function (e) {
+            if (e && e.name === 'AbortError') return;
+            if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">Не удалось найти</div>';
+          });
+      }, wait || 260);
+    }
+    input.addEventListener('input', function () { run(input.value); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); }
+      if (e.key === 'Enter') {
+        var q = input.value.trim();
+        if (q.length >= 2) global.location.href = '/search?q=' + encodeURIComponent(q);
+      }
+    });
+    input.addEventListener('focus', function () {
+      if (input.value.trim().length >= 2 && dd.innerHTML) dd.classList.remove('hidden');
+    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        input.value = '';
+        clearBtn.classList.add('hidden');
+        hide();
+        input.focus();
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var wrap = document.getElementById('header-search');
+      if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
+    });
+  }
+
+  function bindStandaloneVoiceMic(apiBase, loginNow) {
+    var mic = document.getElementById('header-search-mic');
+    var input = document.getElementById('header-search-input');
+    if (!mic || mic._mpVoxBound) return;
+    mic._mpVoxBound = true;
+    mic.addEventListener('click', function () {
+      if (!mpToken()) { if (loginNow) loginNow(); return; }
+      if (mic._mpRec) {
+        var r = mic._mpRecorder;
+        if (r && r.state === 'recording') { try { r.stop(); } catch (_e) {} }
+        return;
+      }
+      if (mic._mpPending) return;
+      if (!navigator.mediaDevices || !global.MediaRecorder) return;
+      mic._mpPending = true;
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        mic._mpPending = false;
+        var ch = [];
+        var opt = (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') && 'audio/webm;codecs=opus') ||
+          (MediaRecorder.isTypeSupported('audio/webm') && 'audio/webm') || 'audio/ogg';
+        var rec = new MediaRecorder(stream, { mimeType: opt });
+        mic._mpRecorder = rec;
+        rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) ch.push(ev.data); };
+        rec.onstop = function () {
+          try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (_e) {}
+          mic._mpRecorder = null;
+          mic.classList.remove('recording');
+          mic._mpRec = false;
+          if (!ch.length) return;
+          var blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
+          var fd = new FormData();
+          fd.append('audio', blob, 'q.webm');
+          fetch(apiBase + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: mpAuthHeaders() })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d && d.success && d.text && input) {
+                input.value = d.text;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            })
+            .catch(function () {});
+        };
+        mic._mpRec = true;
+        mic.classList.add('recording');
+        rec.start(100);
+      }).catch(function () { mic._mpPending = false; });
+    });
+  }
+
+  function applyStandaloneAuthChrome(me, opts) {
+    opts = opts || {};
+    var apiBase = opts.apiBase || API_BASE;
+    var mainSelector = opts.mainSelector || 'main.film-page';
+    var header = document.getElementById('site-header');
+    if (!header) return;
+    var name = (me && me.name) || 'Профиль';
+    var coinsVal = '—';
+    if (me && me.coins) {
+      coinsVal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? String(me.coins.balance) : '—');
+    }
+    var photo = (me && (me.photo_url || me.avatar_url)) || '';
+    if (!photo && me && me.chat_id) {
+      photo = apiBase + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
+    }
+    header.innerHTML =
+      '<div class="header-content">' +
+        '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
+        standaloneHeaderSearchHtml() +
+        '<div class="header-buttons">' +
+          '<div class="header-user-wrap account-switcher" id="header-user-wrap">' +
+            '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
+              '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
+              '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
+            '</button>' +
+            '<div class="header-util-row">' +
+              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
+                '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
+              '</button>' +
+            '</div>' +
+            '<a class="header-settings-btn" href="/settings" title="Настройки">⚙️<span class="header-settings-btn-text"> Настройки</span></a>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    setStandaloneHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name, apiBase);
+    var shell = document.querySelector('.page-shell');
+    var main = shell && shell.querySelector(mainSelector);
+    var nav = document.getElementById('film-standalone-nav');
+    if (nav) nav.remove();
+    if (shell && main) {
+      var navWrap = document.createElement('div');
+      navWrap.innerHTML = standaloneNavHtml();
+      shell.insertBefore(navWrap.firstElementChild, main);
+    }
+    bindStandaloneSearch(apiBase, opts.loginNow);
+    bindStandaloneVoiceMic(apiBase, opts.loginNow);
+    bindStandaloneLogoHome();
+  }
+
+  function refreshStandaloneAuthChrome(opts) {
+    opts = opts || {};
+    var apiBase = opts.apiBase || API_BASE;
+    if (!mpToken() || opts.forcePublic) {
+      var nav = document.getElementById('film-standalone-nav');
+      if (nav) nav.remove();
+      return;
+    }
+    fetch(apiBase + '/api/site/me', { headers: mpAuthHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (me) {
+        if (!me || !me.success) return;
+        applyStandaloneAuthChrome(me, opts);
+        if (opts.onAuthSuccess) opts.onAuthSuccess(me);
+      })
+      .catch(function () {});
+  }
+
+  function initStandaloneSiteChrome(opts) {
+    opts = opts || {};
+    var apiBase = opts.apiBase || API_BASE;
+    var loginNow = opts.loginNow || function (action) {
+      if (global.MpPublicFilmLogin) {
+        MpPublicFilmLogin.open(action || '');
+        return;
+      }
+      var path = opts.spaReturnPath || global.location.pathname || '/';
+      global.location.href = '/?open_login=1&__spa=' + encodeURIComponent(path);
+    };
+    var loginBtn = document.getElementById('login-btn');
+    if (loginBtn && opts.bindLogin !== false) {
+      loginBtn.addEventListener('click', function () { loginNow(); });
+    }
+    bindStandaloneSearch(apiBase, loginNow);
+    bindStandaloneLogoHome();
+    if (global.MpPublicFilmLogin && opts.initPublicFilmLogin !== false) {
+      MpPublicFilmLogin.init({
+        kpId: opts.kpId || '',
+        apiBase: apiBase,
+        onSuccess: function () {
+          refreshStandaloneAuthChrome(opts);
+          if (opts.onLoginSuccess) opts.onLoginSuccess();
+        },
+      });
+    }
+    function refresh() { refreshStandaloneAuthChrome(opts); }
+    refresh();
+    return { refresh: refresh, loginNow: loginNow };
+  }
+
   function renderFilmPage(opts) {
     opts = opts || {};
     var kpId = String(opts.kpId || '').replace(/\D/g, '');
@@ -628,95 +936,6 @@
         } catch (_e) {}
       }
 
-      function bindPublicSearch() {
-        var input = document.getElementById('header-search-input');
-        var dd = document.getElementById('header-search-dropdown');
-        var clearBtn = document.getElementById('header-search-clear');
-        var timer = null;
-        var lastAt = 0;
-        var controller = null;
-        var seq = 0;
-        if (!input || !dd) return;
-        function escapeText(v) {
-          return String(v || '').replace(/[&<>"']/g, function (c) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-          });
-        }
-        function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
-        function cleanPoster(src) {
-          var s = String(src || '');
-          return s && s.indexOf('/no-poster') === -1 ? s : '';
-        }
-        function render(items) {
-          if (!items || !items.length) {
-            dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
-            dd.classList.remove('hidden');
-            return;
-          }
-          dd.innerHTML = items.slice(0, 6).map(function (it) {
-            var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
-            var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
-            var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
-            return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
-              (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy">' : '<span class="search-result-poster">🎬</span>') +
-              '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
-              '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
-          }).join('');
-          dd.classList.remove('hidden');
-        }
-        function run(q) {
-          q = String(q || '').trim();
-          if (clearBtn) clearBtn.classList.toggle('hidden', !q);
-          if (q.length < 2) { hide(); return; }
-          var wait = Math.max(0, 1000 - (Date.now() - lastAt));
-          clearTimeout(timer);
-          timer = setTimeout(function () {
-            lastAt = Date.now();
-            var mySeq = ++seq;
-            if (controller) controller.abort();
-            controller = window.AbortController ? new AbortController() : null;
-            dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
-            dd.classList.remove('hidden');
-            fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
-              method: 'GET',
-              mode: 'cors',
-              signal: controller ? controller.signal : undefined
-            })
-              .then(function (r) { return r.json(); })
-              .then(function (data) {
-                if (mySeq !== seq) return;
-                render((data && data.items) || []);
-              })
-              .catch(function (e) {
-                if (e && e.name === 'AbortError') return;
-                if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">Не удалось найти</div>';
-              });
-          }, wait || 260);
-        }
-        input.addEventListener('input', function () { run(input.value); });
-        input.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); }
-          if (e.key === 'Enter') {
-            var q = input.value.trim();
-            if (q.length >= 2) window.location.href = '/search?q=' + encodeURIComponent(q);
-          }
-        });
-        input.addEventListener('focus', function () {
-          if (input.value.trim().length >= 2 && dd.innerHTML) dd.classList.remove('hidden');
-        });
-        if (clearBtn) {
-          clearBtn.addEventListener('click', function () {
-            input.value = '';
-            clearBtn.classList.add('hidden');
-            hide();
-            input.focus();
-          });
-        }
-        document.addEventListener('click', function (e) {
-          var wrap = document.getElementById('header-search');
-          if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
-        });
-      }
       function setupAppOpenBanner() {
         var banner = document.getElementById('app-open-banner');
         if (!banner) return;
@@ -851,164 +1070,16 @@
       }
       setupAppOpenBanner();
       bindPublicFilmToolbar();
-      bindPublicSearch();
-      if (window.MpPublicFilmLogin) {
-        MpPublicFilmLogin.init({
-          kpId: kpId,
-          apiBase: apiBase,
-          onSuccess: function () { refreshHeaderAuth(); loadAuthFilmState(); consumePendingAction(); },
-        });
-      }
-
-      function headerSearchBlockHtml() {
-        return '<div class="header-search" id="header-search" role="search">' +
-          '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-          '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
-          '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
-          '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
-          '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
-        '</div>';
-      }
-
-      function filmStandaloneNavHtml() {
-        var tabs = [
-          { href: '/home', label: 'Главная', emoji: '🏠' },
-          { href: '/plans', label: 'Планы', emoji: '📋' },
-          { href: '/premieres', label: 'Премьеры', emoji: '🎭' },
-          { href: '/watchlist', label: 'База', emoji: '🎬' },
-          { href: '/whattowatch', label: 'Что посмотреть', emoji: '🎯' },
-        ];
-        return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
-          tabs.map(function (t) {
-            return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + t.emoji + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
-          }).join('') +
-        '</nav>';
-      }
-
-      function setHeaderAvatar(el, url, name) {
-        if (!el) return;
-        var initial = String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
-        var src = String(url || '').trim();
-        if (src && !/^https?:\/\//i.test(src) && src.indexOf('data:') !== 0) {
-          if (src.indexOf('/api/') === 0) src = apiBase + src;
-        }
-        if (src) {
-          el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
-          var img = el.querySelector('img');
-          if (img) img.addEventListener('error', function () { el.textContent = initial; }, { once: true });
-        } else {
-          el.textContent = initial;
-        }
-      }
-
-      function bindHeaderVoiceMic() {
-        var mic = document.getElementById('header-search-mic');
-        var input = document.getElementById('header-search-input');
-        if (!mic || mic._mpVoxBound) return;
-        mic._mpVoxBound = true;
-        mic.addEventListener('click', function () {
-          if (!token()) { loginNow(); return; }
-          if (mic._mpRec) {
-            var r = mic._mpRecorder;
-            if (r && r.state === 'recording') { try { r.stop(); } catch (_e) {} }
-            return;
-          }
-          if (mic._mpPending) return;
-          if (!navigator.mediaDevices || !window.MediaRecorder) return;
-          mic._mpPending = true;
-          navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-            mic._mpPending = false;
-            var ch = [];
-            var opt = (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') && 'audio/webm;codecs=opus') ||
-              (MediaRecorder.isTypeSupported('audio/webm') && 'audio/webm') || 'audio/ogg';
-            var rec = new MediaRecorder(stream, { mimeType: opt });
-            mic._mpRecorder = rec;
-            rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) ch.push(ev.data); };
-            rec.onstop = function () {
-              try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (_e) {}
-              mic._mpRecorder = null;
-              mic.classList.remove('recording');
-              mic._mpRec = false;
-              if (!ch.length) return;
-              var blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
-              var fd = new FormData();
-              fd.append('audio', blob, 'q.webm');
-              fetch(apiBase + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: authHeaders() })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                  if (d && d.success && d.text && input) {
-                    input.value = d.text;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
-                })
-                .catch(function () {});
-            };
-            mic._mpRec = true;
-            mic.classList.add('recording');
-            rec.start(100);
-          }).catch(function () { mic._mpPending = false; });
-        });
-      }
-
-      function applyAuthenticatedSiteChrome(me) {
-        var header = document.getElementById('site-header');
-        if (!header) return;
-        var name = (me && me.name) || 'Профиль';
-        var coinsVal = '—';
-        if (me && me.coins) {
-          coinsVal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? String(me.coins.balance) : '—');
-        }
-        var photo = (me && (me.photo_url || me.avatar_url)) || '';
-        if (!photo && me && me.chat_id) {
-          photo = apiBase + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
-        }
-        header.innerHTML =
-          '<div class="header-content">' +
-            '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
-            headerSearchBlockHtml() +
-            '<div class="header-buttons">' +
-              '<div class="header-user-wrap account-switcher" id="header-user-wrap">' +
-                '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
-                  '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
-                  '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
-                '</button>' +
-                '<div class="header-util-row">' +
-                  '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
-                    '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
-                  '</button>' +
-                '</div>' +
-                '<a class="header-settings-btn" href="/settings" title="Настройки">⚙️<span class="header-settings-btn-text"> Настройки</span></a>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
-        setHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name);
-        var shell = document.querySelector('.page-shell');
-        var main = shell && shell.querySelector('main.film-page');
-        var nav = document.getElementById('film-standalone-nav');
-        if (nav) nav.remove();
-        if (shell && main) {
-          var navWrap = document.createElement('div');
-          navWrap.innerHTML = filmStandaloneNavHtml();
-          shell.insertBefore(navWrap.firstElementChild, main);
-        }
-        bindPublicSearch();
-        bindHeaderVoiceMic();
-      }
-
-      function refreshHeaderAuth() {
-        if (!token() || forcePublic) {
-          var nav = document.getElementById('film-standalone-nav');
-          if (nav) nav.remove();
-          return;
-        }
-        fetch(apiBase + '/api/site/me', { headers: authHeaders() })
-          .then(function (r) { return r.json(); })
-          .then(function (me) {
-            if (!me || !me.success) return;
-            applyAuthenticatedSiteChrome(me);
-          })
-          .catch(function () {});
-      }
+      var standaloneChrome = initStandaloneSiteChrome({
+        apiBase: apiBase,
+        mainSelector: 'main.film-page',
+        spaReturnPath: '/f/' + kpId,
+        kpId: kpId,
+        forcePublic: forcePublic,
+        bindLogin: false,
+        loginNow: loginNow,
+        onLoginSuccess: function () { loadAuthFilmState(); consumePendingAction(); },
+      });
 
       function applyAuthToolbar(filmState) {
         var hero = document.querySelector('.film-page .hero-content');
@@ -1086,7 +1157,7 @@
 
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
-        refreshHeaderAuth();
+        standaloneChrome.refresh();
         fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
           .then(function (r) { return r.json(); })
           .then(function (lookup) {
@@ -1123,7 +1194,6 @@
       }
 
 
-      refreshHeaderAuth();
       loadAuthFilmState();
       consumePendingAction();
   }
@@ -1138,6 +1208,7 @@
     bootstrap: bootstrap,
     renderFilmPage: renderFilmPage,
     buildFilmPageToolbar: buildFilmPageToolbar,
+    initStandaloneSiteChrome: initStandaloneSiteChrome,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);

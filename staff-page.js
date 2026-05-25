@@ -57,22 +57,34 @@
     document.title = 'Персона · Movie Planner';
     document.body.innerHTML =
       '<div class="page-shell staff-standalone-shell">' +
-        '<header id="site-header"><div class="header-content">' +
-          '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
-          '<div class="header-buttons"><button type="button" class="btn-primary" id="login-btn">Войти</button></div>' +
-        '</div></header>' +
+        '<header id="site-header">' +
+          '<div class="header-content">' +
+            '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
+            '<div class="header-search" id="header-search" role="search">' +
+              '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
+              '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+              '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
+              '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+              '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
+            '</div>' +
+            '<div class="header-buttons">' +
+              '<button type="button" class="btn-primary" id="login-btn">Войти</button>' +
+            '</div>' +
+          '</div>' +
+        '</header>' +
         '<main class="movie-page staff-standalone-main">' +
-          '<div class="container staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
+          '<div class="staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
         '</main>' +
         '<footer class="footer staff-standalone-footer">' +
           '<div class="container"><p class="footer-bottom muted small">© ' + String(new Date().getFullYear()) + ' Movie Planner</p></div>' +
         '</footer>' +
       '</div>';
 
-    var loginBtn = document.getElementById('login-btn');
-    if (loginBtn) {
-      loginBtn.addEventListener('click', function () {
-        global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
+    if (global.MpFilmPage && MpFilmPage.initStandaloneSiteChrome) {
+      MpFilmPage.initStandaloneSiteChrome({
+        apiBase: API_BASE,
+        mainSelector: 'main.staff-standalone-main',
+        spaReturnPath: '/s/' + personId,
       });
     }
   }
