@@ -7859,7 +7859,7 @@
         return `<button type="button" class="whattowatch-mode-btn" data-wtw-nav="${m.target}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
       }
       if (m.kind === 'wizard') {
-        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">Пошаговый опросник на сайте: жанры, годы, рейтинги, тип и настроение.</div></div></button>`;
+        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
       }
       return `<button type="button" class="whattowatch-mode-btn" data-wtw-mode="${m.id}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
     }).join('');
@@ -10098,8 +10098,12 @@
 
     window.addEventListener('hashchange', () => {
       if (handleHash()) return;
-      showScreen('landing');
-      if (getToken()) loadMeAndShowCabinet();
+      if (getToken()) {
+        bootAuthenticatedCabinetShell();
+        loadMeAndShowCabinet();
+      } else {
+        showScreen('landing');
+      }
     });
 
     const isPublicStats = handleHash();
@@ -10114,6 +10118,7 @@
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
     bindHomeQuickActionsOnce();
+    bindLogoHomeNavigation();
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
@@ -10142,6 +10147,13 @@
       try { restoreDocumentTitle(); } catch (e) {}
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
+        if (getToken()) {
+          const ro = document.getElementById('cabinet-readonly');
+          const ob = document.getElementById('cabinet-onboarding');
+          if ((ro && ro.classList.contains('hidden')) && (ob && ob.classList.contains('hidden'))) {
+            bootAuthenticatedCabinetShell();
+          }
+        }
         showSection(sec, { skipPush: true });
         if (sec === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
         if (sec === 'tv' && typeof renderTvSection === 'function') renderTvSection();
@@ -10273,8 +10285,10 @@
     }
 
     if (getToken()) {
-      bootAuthenticatedFilmDeepLink();
-      loadMeAndShowCabinet();
+      if (!bootAuthenticatedFilmDeepLink()) {
+        bootAuthenticatedCabinetShell();
+        loadMeAndShowCabinet();
+      }
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
@@ -10306,6 +10320,31 @@
         const speed = 0.02 + Math.random() * 0.06;
         const opacity = 0.1 + Math.random() * 0.14;
         el.style.cssText = 'font-size:' + size + 'px; left:' + left + '%; top:' + top + '%; opacity:' + opacity + ';';
+        parallaxBg.appendChild(el);
+        el._parallaxSpeed = speed;
+        el._parallaxBaseTop = top;
+      }
+      const items = parallaxBg.querySelectorAll('.parallax-emoji');
+      window.addEventListener('scroll', function () {
+        const y = window.scrollY;
+        items.forEach(function (item) {
+          const s = item._parallaxSpeed || 0.04;
+          item.style.transform = 'translateY(' + (-y * s) + 'px)';
+        });
+      }, { passive: true });
+    }
+
+    // Opera: показывать «Установить расширение Opera» вместо Chrome
+    const isOpera = /opr|opera/i.test(navigator.userAgent);
+    document.querySelectorAll('.ext-btn-text').forEach(function (el) {
+      el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+pacity + ';';
         parallaxBg.appendChild(el);
         el._parallaxSpeed = speed;
         el._parallaxBaseTop = top;

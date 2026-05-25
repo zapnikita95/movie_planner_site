@@ -511,7 +511,9 @@
                         <h2 class="section-title section-title--text-only"><span class="section-title-emoji">🏠</span><span class="section-title-text">Главная</span></h2>
                     </div>
                     <div class="home-quick-actions" id="home-quick-actions" aria-label="Быстрые действия">
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм">🎲</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм" aria-label="Случайный фильм">🎲</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Подбор по описанию" aria-label="Подбор по описанию">🔮</button>
+                        <button type="button" class="home-emoji-btn" data-home-emoji-key="voice" data-home-action="voice" title="Голосовой ввод" aria-label="Голосовой ввод">🎤</button>
                     </div>
                     <div id="home-group-suggestions" class="home-group-suggestions hidden" aria-live="polite"></div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
@@ -1289,6 +1291,7 @@
         <div class="home-layout-emoji-toggles">
           <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-random"> Показывать 🎲</label>
           <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-shazam"> Показывать 🔮</label>
+          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-voice"> Показывать 🎤</label>
         </div>
         <div class="home-layout-blocks-title">Блоки превью</div>
         <ul class="home-layout-list" id="home-layout-section-list"></ul>

@@ -3797,7 +3797,15 @@ body.in-public-stats .footer-extension-cabinet {
 .premieres-period-select, .premieres-sort-select { padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 13px; }
 .premieres-loading, .premieres-error { padding: 16px; color: var(--text-muted, #999); font-size: 14px; }
 .premieres-error { color: #ff6b6b; }
-.premieres-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.premieres-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+@media (min-width: 900px) {
+  .premieres-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
 .premiere-poster-tile {
   background: rgba(255,255,255,0.03);
   border-radius: 12px;
@@ -3859,9 +3867,9 @@ body.in-public-stats .footer-extension-cabinet {
   border: 1.5px solid #ff2d7b !important;
   color: inherit !important;
 }
-.premiere-poster-tile-body { padding: 8px 10px 10px; }
+.premiere-poster-tile-body { padding: 6px 8px 8px; }
 .premiere-poster-tile-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
   display: -webkit-box;
@@ -4125,7 +4133,7 @@ body.in-public-stats .footer-extension-cabinet {
   .add-film-modal-body { padding: 20px 18px 24px; }
   .add-film-title { font-size: 18px; }
   .add-film-results { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .premieres-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .premieres-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; }
   .premiere-card-body { padding: 10px; }
   .home-dash-row--premiere { align-items: flex-start; }
   .home-premiere-actions { gap: 6px; margin-top: 4px; }
@@ -5168,14 +5176,33 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 .room-member-controls select { max-width: 140px; }
 
 /* —— Что посмотреть / настройки —— */
-.whattowatch-modes { display: flex; flex-direction: column; gap: 8px; }
+.whattowatch-modes { display: flex; flex-direction: column; gap: 10px; }
 .whattowatch-mode-btn {
-  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-  padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; font-size: 14px;
+  display: flex; align-items: flex-start; gap: 14px; width: 100%; text-align: left;
+  padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.07); color: #fff; cursor: pointer; font-size: 15px;
+  transition: background 0.12s, border-color 0.12s;
 }
-.whattowatch-mode-btn:hover { background: rgba(255,255,255,0.08); }
-.whattowatch-mode-emoji { font-size: 22px; }
+.whattowatch-mode-btn:hover {
+  background: rgba(255,255,255,0.11);
+  border-color: rgba(255, 45, 123, 0.35);
+}
+.whattowatch-mode-btn > div { flex: 1; min-width: 0; }
+.whattowatch-mode-btn b {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
+}
+.whattowatch-mode-btn .cabinet-hint {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+.whattowatch-mode-emoji { font-size: 26px; line-height: 1.2; flex-shrink: 0; }
 .whattowatch-result { margin-top: 16px; }
 .settings-block { margin-bottom: 20px; }
 .profile-settings-card,
@@ -6531,9 +6558,33 @@ a.header-settings-nav-item {
 }
 .site-inbox-act-row { margin-bottom: 4px; }
 
-/* Film page: hide cabinet nav/topbar; keep header only */
+/* Film page in cabinet: hide duplicate topbar/nav */
 .cabinet.film-page-mode .cabinet-topbar,
 .cabinet.film-page-mode .cabinet-nav {
+  display: none !important;
+}
+/* Cabinet topbar only on home section */
+#cabinet-readonly:not(.cabinet-home-root) .cabinet-topbar {
+  display: none !important;
+}
+/* Standalone /f/: gap between header, nav and hero */
+body.film-standalone-page .page-shell > #site-header {
+  margin-bottom: clamp(18px, 2.5vw, 28px);
+}
+body.film-standalone-page .film-standalone-nav {
+  max-width: 1180px;
+  margin: 0 auto clamp(16px, 2vw, 24px);
+}
+body.film-standalone-page .page-shell > main.film-page {
+  margin-top: clamp(12px, 2vw, 20px);
+}
+body.film-standalone-page .page-shell > main.film-page > section.hero {
+  margin-top: 0;
+}
+.film-standalone-nav .cabinet-nav-btn {
+  text-decoration: none;
+}
+#film-desc.hidden {
   display: none !important;
 }
 .cabinet.film-page-mode .inbox-fab {
