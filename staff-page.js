@@ -94,6 +94,12 @@
       var name = (person && (person.name_ru || person.name_en)) || 'Персона';
       var pageUrl = global.location.origin + '/s/' + personId;
       var photo = person && person.photo ? String(person.photo) : '';
+      var prof = person && person.profession_keys && person.profession_keys.length
+        ? person.profession_keys.join(', ')
+        : '';
+      var desc = prof
+        ? (name + ' — ' + prof + '. Фильмография на Movie Planner.')
+        : (name + ' — фильмография, роли и фильмы на Movie Planner.');
       var head = document.head;
       function meta(attr, key, content) {
         if (!content) return;
@@ -105,22 +111,27 @@
         }
         el.setAttribute('content', content);
       }
+      document.title = name + ' · Movie Planner';
       meta('property', 'og:type', 'profile');
       meta('property', 'og:url', pageUrl);
-      meta('property', 'og:title', name + ' · Movie Planner');
+      meta('property', 'og:title', name);
       meta('property', 'og:site_name', 'Movie Planner');
-      if (photo) meta('property', 'og:image', photo);
+      meta('property', 'og:locale', 'ru_RU');
+      meta('property', 'og:description', desc);
+      if (photo) {
+        meta('property', 'og:image', photo);
+        meta('property', 'og:image:secure_url', photo);
+        meta('property', 'og:image:width', '400');
+        meta('property', 'og:image:height', '400');
+        meta('property', 'og:image:alt', 'Фото: ' + name);
+        meta('name', 'twitter:image', photo);
+        meta('name', 'twitter:image:alt', 'Фото: ' + name);
+      }
       meta('name', 'twitter:card', photo ? 'summary_large_image' : 'summary');
-      meta('name', 'twitter:title', name + ' · Movie Planner');
-      if (photo) meta('name', 'twitter:image', photo);
+      meta('name', 'twitter:title', name);
+      meta('name', 'twitter:description', desc);
+      meta('name', 'description', desc);
       meta('name', 'robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1');
-      meta(
-        'name',
-        'description',
-        (person && (person.name_ru || person.name_en)
-          ? ('Фильмография: ' + String(person.name_ru || person.name_en) + ' — фильмы и роли.')
-          : 'Страница персоны и фильмография в Movie Planner')
-      );
       var link = head.querySelector('link[rel="canonical"]');
       if (!link) {
         link = document.createElement('link');
