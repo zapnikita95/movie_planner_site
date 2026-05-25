@@ -8183,6 +8183,7 @@
         </div>`;
       }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
       const avatarUrl = u && u.photo_url ? u.photo_url : '';
+      const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
       root.innerHTML = `
         <div class="settings-block profile-settings-card">
         <div class="profile-settings-head">
@@ -8190,7 +8191,7 @@
           <div>
             <div class="header-dropdown-title" style="margin-top:0">Настройки профиля</div>
             <p class="profile-settings-name-preview"><b>${escapeHtml(name || 'Профиль')}</b>${u && u.email ? ' · ' + escapeHtml(u.email) : ''}</p>
-            ${sub ? '<p class="muted small">💎 Подписка активна</p>' : '<p class="muted small">Бесплатный режим</p>'}
+            ${isPro ? '<p class="muted small">💎 PRO</p>' : ''}
           </div>
         </div>
         <form class="profile-settings-form" id="profile-settings-form">
