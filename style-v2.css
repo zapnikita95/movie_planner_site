@@ -4664,7 +4664,7 @@ footer.footer .social-link.social-link-vc img {
   width: 28px;
   height: 28px;
   object-fit: contain;
-  filter: brightness(1.35) contrast(1.15);
+  filter: none;
 }
 footer.footer .footer-extension-cabinet { align-self: center; }
 footer.footer .footer-bottom {
@@ -8118,8 +8118,8 @@ body.film-standalone-page {
       color: #111;
     }
     .social-link-vc {
-      background: rgba(255,255,255,.92);
-      color: #111;
+      background: transparent;
+      color: #fff;
     }
     .social-link-vc img {
       width: 22px;

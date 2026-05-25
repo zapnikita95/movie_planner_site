@@ -742,7 +742,7 @@ section {
 }
 
 .social-link-vc {
-    background: rgba(255, 255, 255, 0.95);
+    background: transparent;
     padding: 0;
 }
 .social-link-vc img {
@@ -750,9 +750,10 @@ section {
     height: 44px;
     object-fit: contain;
     display: block;
+    filter: none;
 }
 .social-link-vc:hover {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .footer-bottom {
