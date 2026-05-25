@@ -7082,6 +7082,20 @@ body.film-standalone-page .page-shell > main.film-page > section.hero {
 }
 .film-standalone-nav .cabinet-nav-btn {
   text-decoration: none;
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.04em;
+}
+#film-standalone-nav .cabinet-nav-btn-text {
+  font-family: inherit;
+}
+#film-standalone-nav .cabinet-nav-btn:hover {
+  color: var(--text-primary, #fff);
+}
+#film-standalone-nav .cabinet-nav-btn.active {
+  color: #ff2d7b;
+  border-bottom-color: #ff2d7b;
 }
 #film-desc.hidden {
   display: none !important;
