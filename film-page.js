@@ -1215,7 +1215,12 @@
           root.querySelectorAll('[data-goto-plans]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
               e.preventDefault();
-              try { sessionStorage.setItem('mp_plans_view_filter', btn.getAttribute('data-goto-plans') || 'all'); } catch (_x) {}
+              var place = btn.getAttribute('data-goto-plans') || 'home';
+              try {
+                sessionStorage.setItem('mp_plans_view_filter', place === 'cinema' ? 'cinema' : (place === 'home' ? 'home' : 'all'));
+                sessionStorage.setItem('mp_pending_plan_kp', String(kpId));
+                sessionStorage.setItem('mp_pending_plan_type', place);
+              } catch (_x) {}
               window.location.href = '/plans';
             });
           });

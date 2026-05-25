@@ -4081,15 +4081,21 @@
       const cinema = data.cinema || [];
       const premieres = data.premieres || [];
       _plansData = { home, cinema, premieres };
-      _plansViewFilter = 'all';
+      let pendingFilter = 'all';
+      try {
+        const saved = sessionStorage.getItem('mp_plans_view_filter');
+        if (saved === 'home' || saved === 'cinema' || saved === 'all') pendingFilter = saved;
+        if (saved === 'home' || saved === 'cinema') sessionStorage.removeItem('mp_plans_view_filter');
+      } catch (_) {}
+      _plansViewFilter = pendingFilter;
       const todayWrap = document.getElementById('plans-today-wrap');
       if (todayWrap) todayWrap.classList.remove('hidden');
       const tabs = document.getElementById('plans-filter-tabs');
       if (tabs) {
         tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
-          const isAll = b.getAttribute('data-plans-filter') === 'all';
-          b.classList.toggle('active', isAll);
-          b.setAttribute('aria-selected', isAll ? 'true' : 'false');
+          const on = b.getAttribute('data-plans-filter') === _plansViewFilter;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
         });
       }
       bindPlansFilterOnce();
@@ -6571,6 +6577,25 @@
         if (wasOpen) root.classList.remove('open');
         else root.classList.add('open');
       }
+      return;
+    }
+    const goPlansItem = e.target.closest('.action-dropdown-item[data-goto-plans]');
+    if (goPlansItem) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeAllActionDropdowns();
+      const filter = goPlansItem.getAttribute('data-goto-plans') || 'all';
+      showSection('plans');
+      _plansViewFilter = filter === 'home' || filter === 'cinema' ? filter : 'all';
+      const tabs = document.getElementById('plans-filter-tabs');
+      if (tabs) {
+        tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
+          const on = b.getAttribute('data-plans-filter') === _plansViewFilter;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+      }
+      renderPlansList();
       return;
     }
     const tvBtn = e.target.closest('[data-tv-launch="1"]');
