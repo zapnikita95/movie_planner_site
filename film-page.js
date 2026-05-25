@@ -6,8 +6,9 @@
 
   var API_BASE = (function () {
     try {
-      var h = global.location.hostname || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return 'https://api.movie-planner.ru';
+      var loc = global.location;
+      var h = loc.hostname || '';
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
     } catch (_e) {}
     return 'https://api.movie-planner.ru';
   })();

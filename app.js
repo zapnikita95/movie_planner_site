@@ -7,12 +7,13 @@
 
   const API_BASE = (function () {
     try {
-      var h = window.location.hostname || '';
+      var loc = window.location;
+      var h = loc.hostname || '';
       if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return 'https://api.movie-planner.ru';
+        return loc.protocol + '//' + h;
       }
     } catch (e) {}
-    return 'https://web-production-3921c.up.railway.app';
+    return 'https://api.movie-planner.ru';
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
@@ -844,6 +845,16 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs || 32000);
     return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(() => clearTimeout(timer));
+  }
+
+  function authApiJson(path, options, timeoutMs) {
+    const opts = Object.assign({ headers: { 'Content-Type': 'application/json' } }, options || {});
+    return fetchWithTimeout(API_BASE + path, opts, timeoutMs || 20000).then((r) => r.json().catch(() => ({})));
+  }
+
+  function authNetworkError(err) {
+    if (err && err.name === 'AbortError') return 'Сервер не ответил. Попробуйте ещё раз.';
+    return 'Ошибка сети. Попробуйте ещё раз.';
   }
 
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
@@ -2493,12 +2504,10 @@
   }
 
   async function pollSiteBotAuthOnce(code, modalEl, statusEl) {
-    const checkResp = await fetch(API_BASE + '/api/auth/telegram-mobile/check', {
+    const checkData = await authApiJson('/api/auth/telegram-mobile/check', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     });
-    const checkData = await checkResp.json().catch(() => ({}));
     if (checkData.success && checkData.verified === false) return false;
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
@@ -2508,12 +2517,10 @@
       return false;
     }
     stopSiteBotAuthPoll();
-    const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+    const exchangeData = await authApiJson('/api/site/session/from-jwt', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access: checkData.access }),
     });
-    const exchangeData = await exchangeResp.json().catch(() => ({}));
     if (!exchangeData.success || !exchangeData.token) {
       if (statusEl) { statusEl.textContent = exchangeData.error || 'Не удалось создать сессию'; statusEl.className = 'login-status error'; }
       return true;
@@ -2540,11 +2547,10 @@
     if (botPanel) botPanel.classList.remove('hidden');
     if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
     try {
-      const startResp = await fetch(API_BASE + '/api/auth/telegram-mobile/start', {
+      const startData = await authApiJson('/api/auth/telegram-mobile/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
-      const startData = await startResp.json().catch(() => ({}));
       if (!startData.success || !startData.code) {
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_) {}
@@ -2762,24 +2768,27 @@
         if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = 'Отправляем…'; }
         setStatus('');
         try {
-          const resp = await fetch(API_BASE + '/api/auth/email/request-code', {
+          const data = await authApiJson('/api/auth/email/request-code', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, accept_privacy: true }),
           });
-          const data = await resp.json().catch(() => ({}));
-          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
           if (!data.success) {
-            setStatus(data.error === 'rate_limit' ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить код. Проверьте email и повторите.', 'error');
+            setStatus(
+              data.error === 'rate_limit'
+                ? 'Слишком часто. Попробуйте через минуту.'
+                : (data.message || 'Не удалось отправить код. Проверьте email и повторите.'),
+              'error',
+            );
             return;
           }
           setStatus('Код отправлен', 'success');
           reqForm.classList.add('hidden');
           if (codeForm) codeForm.classList.remove('hidden');
           if (codeInput) setTimeout(() => codeInput.focus(), 100);
-        } catch (_) {
-          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Отправить код'; }
-          setStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        } catch (err) {
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
+          setStatus(authNetworkError(err), 'error');
         }
       });
     }
@@ -2804,24 +2813,27 @@
         if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
         setRegStatus('');
         try {
-          const resp = await fetch(API_BASE + '/api/auth/email/request-code', {
+          const data = await authApiJson('/api/auth/email/request-code', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, accept_privacy: true, acceptPrivacy: true }),
           });
-          const data = await resp.json().catch(() => ({}));
           if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
           if (!data.success) {
-            setRegStatus(data.error === 'rate_limit' ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить код', 'error');
+            setRegStatus(
+              data.error === 'rate_limit'
+                ? 'Слишком часто. Попробуйте через минуту.'
+                : (data.message || 'Не удалось отправить код'),
+              'error',
+            );
             return;
           }
           setRegStatus('Код отправлен', 'success');
           regForm.classList.add('hidden');
           if (regCodeForm) regCodeForm.classList.remove('hidden');
           if (regCode) setTimeout(() => regCode.focus(), 80);
-        } catch (_) {
+        } catch (err) {
           if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
-          setRegStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+          setRegStatus(authNetworkError(err), 'error');
         }
       });
     }
@@ -2846,22 +2858,18 @@
         }
         setRegStatus('Проверка…');
         try {
-          const verifyResp = await fetch(API_BASE + '/api/auth/email/verify', {
+          const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, code }),
           });
-          const verifyData = await verifyResp.json().catch(() => ({}));
           if (!verifyData.success || !verifyData.access) {
             setRegStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
             return;
           }
-          const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+          const exchangeData = await authApiJson('/api/site/session/from-jwt', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ access: verifyData.access }),
           });
-          const exchangeData = await exchangeResp.json().catch(() => ({}));
           if (!exchangeData.success || !exchangeData.token) {
             setRegStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
             return;
@@ -2869,8 +2877,8 @@
           await applyDisplayNameIfNeeded(exchangeData.token, registrationName());
           applySiteSessionLogin({ ...exchangeData, name: registrationName() || exchangeData.name, is_personal: true }, modal, regStatus);
           setRegStatus('Готово', 'success');
-        } catch (_) {
-          setRegStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        } catch (err) {
+          setRegStatus(authNetworkError(err), 'error');
         }
       });
     }
@@ -2894,22 +2902,18 @@
         }
         setStatus('Проверка…');
         try {
-          const verifyResp = await fetch(API_BASE + '/api/auth/email/verify', {
+          const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, code }),
           });
-          const verifyData = await verifyResp.json().catch(() => ({}));
           if (!verifyData.success || !verifyData.access) {
             setStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
             return;
           }
-          const exchangeResp = await fetch(API_BASE + '/api/site/session/from-jwt', {
+          const exchangeData = await authApiJson('/api/site/session/from-jwt', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ access: verifyData.access }),
           });
-          const exchangeData = await exchangeResp.json().catch(() => ({}));
           if (!exchangeData.success || !exchangeData.token) {
             setStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
             return;
@@ -2938,8 +2942,8 @@
             if (modal) modal.classList.add('hidden');
             loadMeAndShowCabinet();
           }, 400);
-        } catch (_) {
-          setStatus('Ошибка сети. Попробуйте ещё раз.', 'error');
+        } catch (err) {
+          setStatus(authNetworkError(err), 'error');
         }
       });
     }

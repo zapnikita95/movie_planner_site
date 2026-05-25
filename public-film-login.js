@@ -2,9 +2,38 @@
   'use strict';
 
   var TELEGRAM_BOT_USERNAME = 'movie_planner_bot';
-  var cfg = { kpId: '', apiBase: 'https://api.movie-planner.ru', onSuccess: function () {} };
+  var cfg = {
+    kpId: '',
+    apiBase: (function () {
+      try {
+        var loc = global.location;
+        var h = loc.hostname || '';
+        if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
+      } catch (_e) {}
+      return 'https://api.movie-planner.ru';
+    })(),
+    onSuccess: function () {},
+  };
   var pfBotPoll = null;
   var pfBotDeepLink = null;
+
+  function pfFetchJson(path, options, timeoutMs) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, timeoutMs || 20000);
+    var opts = Object.assign({ headers: { 'Content-Type': 'application/json' }, signal: controller.signal }, options || {});
+    return fetch(cfg.apiBase + path, opts)
+      .finally(function () { clearTimeout(timer); })
+      .then(function (r) { return r.json(); })
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') throw err;
+        return {};
+      });
+  }
+
+  function pfNetworkError(err) {
+    if (err && err.name === 'AbortError') return 'Сервер не ответил. Попробуйте ещё раз.';
+    return 'Ошибка сети';
+  }
 
   function stopPfBotPoll() {
     if (pfBotPoll) {
@@ -14,12 +43,10 @@
   }
 
   function pollPfBotOnce(code, statusEl) {
-    return fetch(cfg.apiBase + '/api/auth/telegram-mobile/check', {
+    return pfFetchJson('/api/auth/telegram-mobile/check', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: code }),
     })
-      .then(function (r) { return r.json(); })
       .then(function (checkData) {
         if (checkData.success && checkData.verified === false) return false;
         if (!checkData.success || !checkData.access) {
@@ -30,12 +57,10 @@
           return false;
         }
         stopPfBotPoll();
-        return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
+        return pfFetchJson('/api/site/session/from-jwt', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ access: checkData.access }),
         })
-          .then(function (r) { return r.json(); })
           .then(function (exchangeData) {
             if (exchangeData.success && exchangeData.token) {
               finishLogin(exchangeData);
@@ -82,11 +107,7 @@
     updatePfBotReopenLink(null);
     if (botPanel) botPanel.classList.remove('hidden');
     setStatus(statusEl, 'Открываем Telegram…');
-    fetch(cfg.apiBase + '/api/auth/telegram-mobile/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(function (r) { return r.json(); })
+    pfFetchJson('/api/auth/telegram-mobile/start', { method: 'POST', body: JSON.stringify({}) })
       .then(function (startData) {
         if (!startData.success || !startData.code) {
           if (preOpenedWindow && !preOpenedWindow.closed) {
@@ -109,11 +130,11 @@
         }, 2500);
         pollPfBotOnce(code, statusEl).catch(function () {});
       })
-      .catch(function () {
+      .catch(function (err) {
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_e) {}
         }
-        setStatus(statusEl, 'Ошибка сети', 'error');
+        setStatus(statusEl, pfNetworkError(err), 'error');
       });
   }
 
@@ -375,15 +396,13 @@
           return;
         }
         setStatus($('login-email-status'), 'Отправляем…');
-        fetch(cfg.apiBase + '/api/auth/email/request-code', {
+        pfFetchJson('/api/auth/email/request-code', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, accept_privacy: true }),
         })
-          .then(function (r) { return r.json(); })
           .then(function (d) {
             if (!d.success) {
-              setStatus($('login-email-status'), d.error === 'rate_limit' ? 'Слишком часто' : 'Не удалось отправить код', 'error');
+              setStatus($('login-email-status'), d.error === 'rate_limit' ? 'Слишком часто' : (d.message || 'Не удалось отправить код'), 'error');
               return;
             }
             setStatus($('login-email-status'), 'Код отправлен', 'success');
@@ -391,7 +410,7 @@
             if (emailCodeForm) emailCodeForm.classList.remove('hidden');
             if (emailCodeInput) emailCodeInput.focus();
           })
-          .catch(function () { setStatus($('login-email-status'), 'Ошибка сети', 'error'); });
+          .catch(function (err) { setStatus($('login-email-status'), pfNetworkError(err), 'error'); });
       });
     }
     if (emailCodeForm) {
@@ -404,29 +423,26 @@
           return;
         }
         setStatus($('login-email-status'), 'Проверка…');
-        fetch(cfg.apiBase + '/api/auth/email/verify', {
+        pfFetchJson('/api/auth/email/verify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, code: code }),
         })
-          .then(function (r) { return r.json(); })
           .then(function (verify) {
             if (!verify.success || !verify.access) {
               setStatus($('login-email-status'), verify.message || verify.error || 'Неверный код', 'error');
               return;
             }
-            return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
+            return pfFetchJson('/api/site/session/from-jwt', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ access: verify.access }),
-            }).then(function (r) { return r.json(); });
+            });
           })
           .then(function (d) {
             if (!d) return;
             if (d.success && d.token) finishLogin(d);
             else setStatus($('login-email-status'), d.error || 'Не удалось создать сессию', 'error');
           })
-          .catch(function () { setStatus($('login-email-status'), 'Ошибка сети', 'error'); });
+          .catch(function (err) { setStatus($('login-email-status'), pfNetworkError(err), 'error'); });
       });
     }
     var emailBack = $('login-email-back-btn');
@@ -469,16 +485,14 @@
         }
         if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
         setStatus($('login-register-status'), '');
-        fetch(cfg.apiBase + '/api/auth/email/request-code', {
+        pfFetchJson('/api/auth/email/request-code', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, accept_privacy: true, acceptPrivacy: true }),
         })
-          .then(function (r) { return r.json(); })
           .then(function (d) {
             if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
             if (!d.success) {
-              setStatus($('login-register-status'), d.error === 'rate_limit' ? 'Слишком часто' : 'Не удалось отправить код', 'error');
+              setStatus($('login-register-status'), d.error === 'rate_limit' ? 'Слишком часто' : (d.message || 'Не удалось отправить код'), 'error');
               return;
             }
             setStatus($('login-register-status'), 'Код отправлен', 'success');
@@ -486,9 +500,9 @@
             if (regCodeForm) regCodeForm.classList.remove('hidden');
             if (regCode) regCode.focus();
           })
-          .catch(function () {
+          .catch(function (err) {
             if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
-            setStatus($('login-register-status'), 'Ошибка сети', 'error');
+            setStatus($('login-register-status'), pfNetworkError(err), 'error');
           });
       });
     }
@@ -512,22 +526,19 @@
           return;
         }
         setStatus($('login-register-status'), 'Проверка…');
-        fetch(cfg.apiBase + '/api/auth/email/verify', {
+        pfFetchJson('/api/auth/email/verify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, code: code }),
         })
-          .then(function (r) { return r.json(); })
           .then(function (verify) {
             if (!verify.success || !verify.access) {
               setStatus($('login-register-status'), verify.message || verify.error || 'Неверный код', 'error');
               return;
             }
-            return fetch(cfg.apiBase + '/api/site/session/from-jwt', {
+            return pfFetchJson('/api/site/session/from-jwt', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ access: verify.access }),
-            }).then(function (r) { return r.json(); })
+            })
               .then(function (exchange) {
                 if (!exchange.success || !exchange.token) {
                   setStatus($('login-register-status'), exchange.error || 'Не удалось создать сессию', 'error');
@@ -538,7 +549,7 @@
                 });
               });
           })
-          .catch(function () { setStatus($('login-register-status'), 'Ошибка сети', 'error'); });
+          .catch(function (err) { setStatus($('login-register-status'), pfNetworkError(err), 'error'); });
       });
     }
   }
