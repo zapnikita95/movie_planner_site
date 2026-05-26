@@ -6793,6 +6793,115 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
+/* Друзья высоко оценили (страница фильма) */
+#film-friends-social-block {
+  margin-top: 14px;
+}
+#film-friends-social-block.hidden {
+  display: none;
+}
+.film-friends-social {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+}
+.film-friends-social-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.film-friends-social-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(233, 228, 244, 0.92);
+}
+.film-friends-social-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(255, 45, 123, 0.2);
+  color: #ff6ba8;
+}
+.film-friends-social-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.film-friend-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.film-friend-rating-chip:hover,
+.film-friend-rating-chip:focus-visible {
+  border-color: rgba(255, 45, 123, 0.45);
+  background: rgba(255, 45, 123, 0.12);
+  outline: none;
+}
+.film-friend-rating-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.film-friend-rating-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.film-friend-rating-score {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ff2d7b;
+  flex-shrink: 0;
+}
+.film-friend-rating-denom {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #999);
+  margin-left: 1px;
+}
+.film-friends-social-more {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #ff6ba8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.film-friends-social-more:hover {
+  text-decoration: underline;
+}
+.movie-page .hero-content .film-friends-social {
+  margin-top: 4px;
+}
+
 /* ── Coins + план в группу (строка без увеличения высоты шапки) ─────── */
 .header-util-row {
   display: inline-flex;

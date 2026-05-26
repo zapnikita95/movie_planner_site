@@ -396,10 +396,12 @@
           crew +
           (f.description ? '<p class="description">' + escapeHtml(f.description) + '</p>' : '') +
           toolbarHtml +
+          '<div id="film-friends-social-block" class="hidden"></div>' +
         '</div>' +
       '</section>';
     try { document.title = titleText + ' · Movie Planner'; } catch (_) {}
     bindFilmPageToolbar(pageRoot.querySelector('.film-page-toolbar'), filmStub, { inBase: false, authenticated: !!getToken(), kpId: kp, pendingAction: o.action || '' });
+    if (getToken()) loadFilmFriendsSocial({ kp_id: kp });
     loadFilmCastSection(kp, pageRoot.querySelector('#film-hero-cast-root'), filmStub);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
     return Promise.resolve();
@@ -3034,6 +3036,16 @@
         }
       } catch (_) {}
       showCabinetAfterLogin(me);
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const friendUid = params.get('friend_open');
+        if (friendUid && /^\d+$/.test(friendUid)) {
+          params.delete('friend_open');
+          const rest = params.toString();
+          history.replaceState({}, '', window.location.pathname + (rest ? '?' + rest : '') + window.location.hash);
+          setTimeout(function () { void _openFriendProfile(Number(friendUid)); }, 0);
+        }
+      } catch (_) {}
     }).catch(function () {
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
       const failKp = filmKpFromLocation();
@@ -7142,10 +7154,10 @@
           crew +
           (pickFilmDescription(film) ? '<p class="description">' + escapeHtml(pickFilmDescription(film)) + '</p>' : '') +
           toolbarHtml +
+          '<div id="film-friends-social-block" class="hidden"></div>' +
         '</div>' +
       '</section>' +
-      similarHtml +
-      '<div id="film-friends-social-block"></div>';
+      similarHtml;
 
     bindFilmModalInteractions(film, content);
     bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { inBase: true, authenticated: true });
@@ -7194,27 +7206,18 @@
   }
 
   function loadFilmFriendsSocial(film) {
-    if (!film || !film.kp_id) return;
+    if (!film || !film.kp_id || !getToken()) return;
     const kpNorm = String(film.kp_id).replace(/\D/g, '');
     if (!kpNorm) return;
-    api(`/api/friends/film/${encodeURIComponent(kpNorm)}/social`).then((social) => {
-      const el = document.getElementById('film-friends-social-block');
-      if (!el) return;
-      const watchers = (social && social.watchers) || [];
-      if (!watchers.length) return;
-      el.innerHTML = `
-        <div class="film-modal-section">
-          <h3>👥 Оценки друзей (${watchers.length})</h3>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            ${watchers.map((w) => `
-              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.06);border-radius:8px">
-                <div class="soc-friend-avatar" style="width:30px;height:30px;font-size:12px">${escapeHtml((w.name || '?')[0].toUpperCase())}</div>
-                <span style="flex:1;font-weight:600;font-size:13px">${escapeHtml(w.name)}</span>
-                ${w.rating != null ? `<span style="font-weight:700;color:var(--accent,#ff2d7b)">${w.rating}/10</span>` : '<span style="color:#aaa;font-size:12px">смотрел</span>'}
-              </div>`).join('')}
-          </div>
-        </div>`;
-    }).catch(() => {});
+    if (global.MpFilmFriendsSocial && typeof global.MpFilmFriendsSocial.mount === 'function') {
+      global.MpFilmFriendsSocial.mount({
+        kpId: kpNorm,
+        containerId: 'film-friends-social-block',
+        fetchFn: (path) => api(path),
+        onFriendClick: (uid) => { if (uid) void _openFriendProfile(uid); },
+      });
+      return;
+    }
   }
 
   function renderFilmDetail(film, ratings, similar, me, content) {
@@ -9186,6 +9189,13 @@
         + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
         + '<button type="submit" class="btn btn-primary">Импортировать</button>'
         + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div></section>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Импорт IMDb / MyShows</h3>'
+        + '<p class="settings-panel-lead">IMDb: CSV. MyShows: профиль /wasted/ (ссылка или HTML).</p>'
+        + '<form class="settings-import-form" id="profile-import-external-form">'
+        + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
+        + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
+        + '<button type="submit" class="btn btn-secondary">Импортировать в ту же базу</button>'
+        + '</form></section>'
         + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Ещё</h3>'
         + '<div class="settings-links-grid">'
         + '<button type="button" class="settings-link-card" data-sets-go="integrations">🔌 Интеграции</button>'
@@ -9492,6 +9502,7 @@
       });
     });
     const importForm = root.querySelector('#profile-import-form');
+    const externalImportForm = root.querySelector('#profile-import-external-form');
     resumeProfileImportPollIfNeeded(root);
     if (importForm) {
       importForm.addEventListener('submit', (e) => {
@@ -9533,6 +9544,53 @@
           renderProfileImportProgress(root, null);
           const btn = importForm.querySelector('button[type="submit"]');
           if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
+          if (importStatus) {
+            importStatus.textContent = 'Ошибка сети';
+            importStatus.className = 'profile-settings-status error';
+          }
+        });
+      });
+    }
+    if (externalImportForm) {
+      externalImportForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const sourceEl = root.querySelector('#profile-import-source');
+        const payloadEl = root.querySelector('#profile-import-payload');
+        const importStatus = root.querySelector('#profile-import-status');
+        const source = sourceEl ? String(sourceEl.value || 'imdb') : 'imdb';
+        const payload = payloadEl ? String(payloadEl.value || '').trim() : '';
+        if (!payload) {
+          if (importStatus) {
+            importStatus.textContent = 'Вставьте экспорт перед импортом';
+            importStatus.className = 'profile-settings-status error';
+          }
+          return;
+        }
+        api('/api/miniapp/ratings/import-external', {
+          method: 'POST',
+          body: JSON.stringify({ source, payload, max_count: 1500 }),
+        }).then((r) => {
+          if (!r || !r.success) {
+            if (importStatus) {
+              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
+              importStatus.className = 'profile-settings-status error';
+            }
+            return;
+          }
+          if (importStatus) {
+            importStatus.textContent = 'Импорт запущен';
+            importStatus.className = 'profile-settings-status success';
+          }
+          renderProfileImportProgress(root, {
+            status: 'running',
+            target: 1500,
+            processed: 0,
+            imported: 0,
+            skipped: 0,
+            phase: 'starting',
+          });
+          startProfileImportPoll(root);
+        }).catch(() => {
           if (importStatus) {
             importStatus.textContent = 'Ошибка сети';
             importStatus.className = 'profile-settings-status error';
@@ -10346,6 +10404,7 @@
   }
 
   // ── /Friends JS ─────────────────────────────────────────────────────────────
+  try { global.MpSiteOpenFriendProfile = _openFriendProfile; } catch (_) {}
 
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');

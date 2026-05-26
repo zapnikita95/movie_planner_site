@@ -651,6 +651,7 @@
                   '</div>' +
                   '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
                 '</div>' +
+                '<div id="film-friends-social-block" class="hidden"></div>' +
                 '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
@@ -1182,7 +1183,7 @@
         forcePublic: forcePublic,
         bindLogin: false,
         loginNow: loginNow,
-        onLoginSuccess: function () { loadAuthFilmState(); consumePendingAction(); },
+        onLoginSuccess: function () { loadAuthFilmState(); loadFilmFriendsSocialBlock(); consumePendingAction(); },
       });
 
       function applyAuthToolbar(filmState) {
@@ -1196,6 +1197,7 @@
         bindAuthToolbar(stub, filmState);
         bindPublicFilmToolbar();
         loadFacts();
+        loadFilmFriendsSocialBlock();
         if (!(filmState.toolbarOpts && filmState.toolbarOpts.inBase)) rebindGuestToolbarActions();
       }
 
@@ -1265,6 +1267,22 @@
         }
       }
 
+      function loadFilmFriendsSocialBlock() {
+        if (!token() || forcePublic) return;
+        if (!global.MpFilmFriendsSocial || typeof global.MpFilmFriendsSocial.mount !== 'function') return;
+        global.MpFilmFriendsSocial.mount({
+          kpId: kpId,
+          apiBase: apiBase,
+          containerId: 'film-friends-social-block',
+          authHeaders: authHeaders(),
+          onFriendClick: function (uid) {
+            try {
+              global.location.href = '/?friend_open=' + encodeURIComponent(String(uid));
+            } catch (_e) {}
+          },
+        });
+      }
+
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
         standaloneChrome.refresh();
@@ -1305,6 +1323,7 @@
 
 
       loadAuthFilmState();
+      loadFilmFriendsSocialBlock();
       consumePendingAction();
   }
 
