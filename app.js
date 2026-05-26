@@ -9353,6 +9353,13 @@
         + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
         + '<form class="settings-import-form" id="profile-import-form">'
         + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
+        + '<div class="settings-import-counts" id="profile-import-counts">'
+        + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
+          const label = n === 'all' ? 'Всё' : String(n);
+          const on = n === 1500 ? ' settings-import-count--on' : '';
+          return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
+        }).join('')
+        + '</div>'
         + '<button type="submit" class="btn btn-primary">Импортировать</button>'
         + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
         + '</div>'
@@ -9425,6 +9432,11 @@
     const processed = Number(job.processed || 0);
     const target = Number(job.target || 0);
     if (job.status === 'running') {
+      if (job.phase === 'scraping') {
+        const pg = Number(job.page || 0);
+        const tail = Number(job.tail_imported || 0);
+        return 'Догружаем с сайта Кинопоиска' + (pg ? '… стр. ' + pg : '…') + (tail ? ' · +' + tail : '');
+      }
       if (job.phase === 'loading' && processed === 0) return 'Загружаем оценки с Кинопоиска…';
       return 'Обработано ' + processed + ' из ' + target + ' · добавлено ' + imported + ', пропущено ' + skipped;
     }
@@ -9684,6 +9696,18 @@
     });
     const importForm = root.querySelector('#profile-import-form');
     const externalImportForm = root.querySelector('#profile-import-external-form');
+    let profileKpMaxCount = 1500;
+    let profileKpImportAll = false;
+    root.querySelectorAll('[data-kp-cnt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-kp-cnt') || '1500';
+        profileKpImportAll = v === 'all';
+        profileKpMaxCount = profileKpImportAll ? 1500 : (Number(v) || 1500);
+        root.querySelectorAll('[data-kp-cnt]').forEach((b) => {
+          b.classList.toggle('settings-import-count--on', b === btn);
+        });
+      });
+    });
     resumeProfileImportPollIfNeeded(root);
     if (importForm) {
       importForm.addEventListener('submit', (e) => {
@@ -9700,15 +9724,20 @@
         }
         renderProfileImportProgress(root, {
           status: 'running',
-          target: 1500,
+          target: profileKpMaxCount,
           processed: 0,
           imported: 0,
           skipped: 0,
           phase: 'starting',
+          import_all: profileKpImportAll,
         });
         api('/api/miniapp/ratings/import-kinopoisk', {
           method: 'POST',
-          body: JSON.stringify({ kp_input: raw, max_count: 1500 }),
+          body: JSON.stringify({
+            kp_input: raw,
+            max_count: profileKpMaxCount,
+            import_all: profileKpImportAll,
+          }),
         }).then((r) => {
           if (!r || !r.success) {
             renderProfileImportProgress(root, null);
