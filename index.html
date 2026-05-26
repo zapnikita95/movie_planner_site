@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260527userprofile">
+    <link rel="stylesheet" href="/style-v2.css?v=20260527oguser">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -44,6 +44,12 @@
             if (/^\/s\/\d+\/?/.test(spa)) {
               var staffUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
               window.location.replace(staffUrl + (rest ? '?' + rest : '') + window.location.hash);
+              return;
+            }
+            if (/^\/u\/\d+\/?/.test(spa) || /^\/user\/\d+\/?/.test(spa)) {
+              var userUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
+              userUrl = userUrl.replace(/^\/user\//, '/u/');
+              window.location.replace(userUrl + (rest ? '?' + rest : '') + window.location.hash);
               return;
             }
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
@@ -1346,8 +1352,9 @@
 
     </div><!-- /content-wrapper -->
     <script src="/telegram-open.js?v=20260526emailapi"></script>
-    <script src="/film-friends-social.js?v=20260527userprofile"></script>
-    <script src="/user-profile-page.js?v=20260527userprofile"></script>
-    <script src="/app.js?v=20260527userprofile"></script>
+    <script src="/film-friends-social.js?v=20260527oguser"></script>
+    <script src="/user-profile-page.js?v=20260527oguser"></script>
+    <script src="/user-page.js?v=20260527oguser"></script>
+    <script src="/app.js?v=20260527oguser"></script>
 </body>
 </html>

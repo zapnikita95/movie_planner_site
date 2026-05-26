@@ -1732,7 +1732,7 @@
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
-  const _userPathRe = /^\/user\/(\d+)(?:\/?)?$/;
+  const _userPathRe = /^\/(?:u|user)\/(\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
   let _userProfileReturnSection = 'home';
   let _currentUserProfileId = null;
@@ -1805,7 +1805,7 @@
 
   function pushUserProfileUrl(userId, replace) {
     try {
-      const path = '/user/' + userId;
+      const path = '/u/' + userId;
       const url = path + window.location.search + window.location.hash;
       if (replace) {
         window.history.replaceState({ section: 'user', userId: userId }, '', url);
