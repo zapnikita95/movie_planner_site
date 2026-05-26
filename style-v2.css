@@ -8142,6 +8142,27 @@ body.site-search-sheet-open { overflow: hidden; }
 .staff-film-title { margin-top: 8px; font-size: 13px; font-weight: 700; line-height: 1.25; }
 .staff-film-year { font-size: 11px; color: rgba(244,246,255,.55); margin-top: 2px; }
 .staff-empty-role { margin: 0; }
+.staff-role-expand {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,45,123,.38);
+  background: rgba(255,45,123,.1);
+  color: #ff5a96;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.staff-role-expand:hover {
+  background: rgba(255,45,123,.16);
+  border-color: rgba(255,45,123,.55);
+}
+.staff-role-expand:active { transform: scale(0.98); }
 .staff-standalone-main { padding-bottom: 32px; }
 .staff-standalone-footer { margin-top: 24px; opacity: .7; }
 body.staff-standalone-page .staff-standalone-shell { min-height: 100vh; }

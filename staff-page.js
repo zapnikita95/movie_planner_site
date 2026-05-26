@@ -32,10 +32,22 @@
     return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
   }
 
-  function filmGridHtml(films) {
-    var chunk = (films || []).slice(0, 80);
+  var PERSON_FILMS_PREVIEW = 20;
+  var _staffLastData = null;
+  var _staffExpandedRoles = {};
+
+  function sortRolesByFilmCount(roles) {
+    return (roles || []).slice().sort(function (a, b) {
+      return (b.films || []).length - (a.films || []).length;
+    });
+  }
+
+  function filmGridHtml(films, roleKey) {
+    var all = films || [];
+    var expanded = !!_staffExpandedRoles[roleKey];
+    var chunk = expanded ? all : all.slice(0, PERSON_FILMS_PREVIEW);
     if (!chunk.length) return '<p class="staff-empty-role muted small">Нет фильмов</p>';
-    return '<div class="staff-film-grid">' + chunk.map(function (f) {
+    var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       if (!kp) return '';
       var poster = f.poster
@@ -52,6 +64,14 @@
         '</a>'
       );
     }).join('') + '</div>';
+    if (!expanded && all.length > PERSON_FILMS_PREVIEW) {
+      grid += (
+        '<button type="button" class="staff-role-expand" data-role-expand="' + escapeHtml(roleKey || '') + '">' +
+          'Развернуть · ' + (all.length - PERSON_FILMS_PREVIEW) +
+        '</button>'
+      );
+    }
+    return grid;
   }
 
   function renderStaffShell(personId) {
@@ -173,7 +193,8 @@
       return;
     }
     var person = data.person || {};
-    var roles = data.films_by_role || [];
+    var roles = sortRolesByFilmCount(data.films_by_role || []);
+    _staffLastData = data;
     var titleName = person.name_ru || person.name_en || 'Персона';
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
@@ -194,17 +215,27 @@
         '</header>' +
         roles.map(function (block) {
           var roleTitle = block.role_name || block.role_key || '';
+          var roleKey = block.role_key || roleTitle;
           var films = block.films || [];
           if (!films.length) return '';
           return (
             '<section class="staff-role-block">' +
               '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
               '<span class="staff-role-count">' + films.length + '</span></div>' +
-              filmGridHtml(films) +
+              filmGridHtml(films, roleKey) +
             '</section>'
           );
         }).join('') +
       '</article>';
+
+    root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var rk = btn.getAttribute('data-role-expand') || '';
+        if (!rk) return;
+        _staffExpandedRoles[rk] = true;
+        if (_staffLastData) renderStaffData(_staffLastData, personId);
+      });
+    });
   }
 
   function loadStaff(personId) {
