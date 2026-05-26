@@ -9066,6 +9066,7 @@ body.film-standalone-page {
       body.film-standalone-page #site-header,
       body.staff-standalone-page #site-header { top: 8px; margin-bottom: 12px; }
       body.film-standalone-page .app-open-banner { margin-bottom: 10px; }
+      body.staff-standalone-page .app-open-banner { margin-bottom: 10px; }
       body.film-standalone-page .header-content,
       body.staff-standalone-page .header-content {
         grid-template-columns: 1fr auto;

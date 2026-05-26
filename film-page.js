@@ -17,6 +17,114 @@
   var MP_APP_STORE_URL_ANDROID = '';
   var MP_ANDROID_APP_PACKAGE = 'com.movie_planner';
 
+  function appOpenBannerHtml() {
+    return (
+      '<div id="app-open-banner" class="app-open-banner hidden">' +
+        '<span class="app-open-text">Открыть в приложении Movie Planner?</span>' +
+        '<div class="app-open-actions">' +
+          '<button type="button" class="btn-app-open" id="app-open-btn">Открыть</button>' +
+          '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">Позже</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function setupAppOpenBanner(opts) {
+    opts = opts || {};
+    var entityId = String(opts.id || opts.kpId || '').replace(/\D/g, '');
+    var kind = opts.kind === 'person' ? 'person' : 'film';
+    if (!entityId) return;
+    var banner = document.getElementById('app-open-banner');
+    if (!banner) return;
+    var dismissed = false;
+    try { dismissed = sessionStorage.getItem('mp_app_banner_dismiss') === '1'; } catch (_e) {}
+    var ua = navigator.userAgent || '';
+    var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+    if (!isMobile || dismissed) return;
+    banner.classList.remove('hidden');
+    var openBtn = document.getElementById('app-open-btn');
+    var dismissBtn = document.getElementById('app-dismiss-btn');
+    var deepLink = kind === 'person'
+      ? ('movieplanner://s/' + entityId)
+      : ('movieplanner://film/' + entityId);
+    var intentPath = kind === 'person' ? ('s/' + entityId) : ('film/' + entityId);
+
+    function dismissBanner() {
+      try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
+      banner.classList.add('hidden');
+    }
+
+    function tryOpenNativeApp() {
+      var isAndroid = /Android/i.test(ua);
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+      if (!isAndroid && !isIOS) {
+        dismissBanner();
+        return;
+      }
+      var storeUrl = (isAndroid ? MP_APP_STORE_URL_ANDROID : MP_APP_STORE_URL_IOS) || '';
+      storeUrl = String(storeUrl).trim();
+      var opened = false;
+      var fallbackTimer = null;
+
+      function cleanup() {
+        document.removeEventListener('visibilitychange', onPageHide);
+        window.removeEventListener('pagehide', onPageHide);
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+      }
+
+      function onPageHide() {
+        if (document.hidden) {
+          opened = true;
+          cleanup();
+        }
+      }
+
+      function onFallback() {
+        if (opened || document.hidden) {
+          cleanup();
+          return;
+        }
+        cleanup();
+        dismissBanner();
+        if (storeUrl) window.location.href = storeUrl;
+      }
+
+      document.addEventListener('visibilitychange', onPageHide);
+      window.addEventListener('pagehide', onPageHide);
+      fallbackTimer = setTimeout(onFallback, 2200);
+
+      if (isAndroid) {
+        var intent = 'intent://' + intentPath
+          + '#Intent;scheme=movieplanner;package=' + encodeURIComponent(MP_ANDROID_APP_PACKAGE) + ';';
+        if (storeUrl) intent += 'S.browser_fallback_url=' + encodeURIComponent(storeUrl) + ';';
+        intent += 'end';
+        window.location.href = intent;
+        return;
+      }
+
+      var iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.src = deepLink;
+      document.body.appendChild(iframe);
+      setTimeout(function () {
+        try { iframe.remove(); } catch (_e) {}
+      }, 1800);
+      setTimeout(function () {
+        if (!opened && !document.hidden) window.location.href = deepLink;
+      }, 120);
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', function () {
+        tryOpenNativeApp();
+      });
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', dismissBanner);
+    }
+  }
+
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
@@ -516,13 +624,7 @@
               '</div>' +
             '</div>' +
           '</header>' +
-          '<div id="app-open-banner" class="app-open-banner hidden">' +
-            '<span class="app-open-text">Открыть в приложении Movie Planner?</span>' +
-            '<div class="app-open-actions">' +
-              '<button type="button" class="btn-app-open" id="app-open-btn">Открыть</button>' +
-              '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">Позже</button>' +
-            '</div>' +
-          '</div>' +
+          appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero">' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
@@ -1026,94 +1128,6 @@
         } catch (_e) {}
       }
 
-      function setupAppOpenBanner() {
-        var banner = document.getElementById('app-open-banner');
-        if (!banner) return;
-        var dismissed = false;
-        try { dismissed = sessionStorage.getItem('mp_app_banner_dismiss') === '1'; } catch (_e) {}
-        var ua = navigator.userAgent || '';
-        var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-        if (!isMobile || dismissed) return;
-        banner.classList.remove('hidden');
-        var openBtn = document.getElementById('app-open-btn');
-        var dismissBtn = document.getElementById('app-dismiss-btn');
-        var deepLink = 'movieplanner://film/' + kpId;
-
-        function dismissBanner() {
-          try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
-          banner.classList.add('hidden');
-        }
-
-        function tryOpenNativeApp() {
-          var isAndroid = /Android/i.test(ua);
-          var isIOS = /iPhone|iPad|iPod/i.test(ua);
-          if (!isAndroid && !isIOS) {
-            dismissBanner();
-            return;
-          }
-          var storeUrl = (isAndroid ? MP_APP_STORE_URL_ANDROID : MP_APP_STORE_URL_IOS) || '';
-          storeUrl = String(storeUrl).trim();
-          var opened = false;
-          var fallbackTimer = null;
-
-          function cleanup() {
-            document.removeEventListener('visibilitychange', onPageHide);
-            window.removeEventListener('pagehide', onPageHide);
-            if (fallbackTimer) clearTimeout(fallbackTimer);
-          }
-
-          function onPageHide() {
-            if (document.hidden) {
-              opened = true;
-              cleanup();
-            }
-          }
-
-          function onFallback() {
-            if (opened || document.hidden) {
-              cleanup();
-              return;
-            }
-            cleanup();
-            dismissBanner();
-            if (storeUrl) window.location.href = storeUrl;
-          }
-
-          document.addEventListener('visibilitychange', onPageHide);
-          window.addEventListener('pagehide', onPageHide);
-          fallbackTimer = setTimeout(onFallback, 2200);
-
-          if (isAndroid) {
-            var intent = 'intent://film/' + encodeURIComponent(kpId)
-              + '#Intent;scheme=movieplanner;package=' + encodeURIComponent(MP_ANDROID_APP_PACKAGE) + ';';
-            if (storeUrl) intent += 'S.browser_fallback_url=' + encodeURIComponent(storeUrl) + ';';
-            intent += 'end';
-            window.location.href = intent;
-            return;
-          }
-
-          var iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.setAttribute('aria-hidden', 'true');
-          iframe.src = deepLink;
-          document.body.appendChild(iframe);
-          setTimeout(function () {
-            try { iframe.remove(); } catch (_e) {}
-          }, 1800);
-          setTimeout(function () {
-            if (!opened && !document.hidden) window.location.href = deepLink;
-          }, 120);
-        }
-
-        if (openBtn) {
-          openBtn.addEventListener('click', function () {
-            tryOpenNativeApp();
-          });
-        }
-        if (dismissBtn) {
-          dismissBtn.addEventListener('click', dismissBanner);
-        }
-      }
       function bindPublicFilmToolbar() {
         var rateToggle = document.getElementById('rate-toggle-btn');
         var factsToggle = document.getElementById('facts-toggle-btn');
@@ -1158,7 +1172,7 @@
           });
         }
       }
-      setupAppOpenBanner();
+      setupAppOpenBanner({ id: kpId, kind: 'film' });
       bindPublicFilmToolbar();
       var standaloneChrome = initStandaloneSiteChrome({
         apiBase: apiBase,
@@ -1305,6 +1319,8 @@
     renderFilmPage: renderFilmPage,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
+    setupAppOpenBanner: setupAppOpenBanner,
+    appOpenBannerHtml: appOpenBannerHtml,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);

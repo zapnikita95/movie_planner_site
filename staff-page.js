@@ -271,6 +271,7 @@
             '</div>' +
           '</div>' +
         '</header>' +
+        (global.MpFilmPage && MpFilmPage.appOpenBannerHtml ? MpFilmPage.appOpenBannerHtml() : '') +
         '<main class="movie-page staff-standalone-main">' +
           '<div class="staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
         '</main>' +
@@ -299,6 +300,9 @@
         }
         global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
       };
+    }
+    if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
+      MpFilmPage.setupAppOpenBanner({ id: personId, kind: 'person' });
     }
   }
 
