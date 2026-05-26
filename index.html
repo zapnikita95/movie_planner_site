@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260527friendsocial">
+    <link rel="stylesheet" href="/style-v2.css?v=20260527userprofile">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -708,6 +708,12 @@
                     <h2 class="section-title"><span class="section-title-emoji">🏆</span><span class="section-title-text">Турнирная таблица</span></h2>
                     <div id="tournament-page-root" class="tournament-page-root" aria-live="polite"></div>
                 </section>
+                <section id="section-user" class="cabinet-section hidden cabinet-user-profile" aria-label="Профиль пользователя">
+                    <div class="user-profile-shell">
+                        <button type="button" class="user-profile-back" id="user-profile-back">← Назад</button>
+                        <div id="user-profile-root" class="user-profile-root" aria-live="polite"></div>
+                    </div>
+                </section>
                 <section id="section-integrations" class="cabinet-section hidden cabinet-integrations">
                     <h2 class="section-title"><span class="section-title-emoji">🔌</span><span class="section-title-text">Интеграции</span></h2>
                     <p class="cabinet-hint">Необязательные подключения — если нужны нейросети, API или отправка на телевизор.</p>
@@ -1340,7 +1346,8 @@
 
     </div><!-- /content-wrapper -->
     <script src="/telegram-open.js?v=20260526emailapi"></script>
-    <script src="/film-friends-social.js?v=20260527friendsocial"></script>
-    <script src="/app.js?v=20260527friendsocial"></script>
+    <script src="/film-friends-social.js?v=20260527userprofile"></script>
+    <script src="/user-profile-page.js?v=20260527userprofile"></script>
+    <script src="/app.js?v=20260527userprofile"></script>
 </body>
 </html>

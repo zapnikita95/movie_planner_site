@@ -290,6 +290,12 @@
       const stub = cachedSessionMeStub();
       if (stub) renderHeader(stub);
 
+      bindUserProfileChromeOnce();
+      const bootUserId = userIdFromLocation();
+      if (bootUserId) {
+        openUserProfile(bootUserId, { replace: true, skipPush: true, skipReturnCapture: true });
+        return true;
+      }
       if (screenId === 'cabinet-readonly') {
         const deepSection = sectionFromPath(window.location.pathname) || 'home';
         showSection(deepSection, { replace: true, skipPush: true });
@@ -728,6 +734,10 @@
           loadSeries();
           loadRatings();
           handleAuthEntryDeepLinks();
+          const pathUserBoot = userIdFromLocation();
+          if (pathUserBoot) {
+            openUserProfile(pathUserBoot, { replace: true, skipPush: true, skipReturnCapture: true });
+          } else {
           const pathStaff2 = staffIdFromPathname(window.location.pathname);
           if (pathStaff2) {
             openStaffPage(pathStaff2, { skipHistory: true, replace: true });
@@ -748,6 +758,7 @@
                 showSection('home', { replace: true });
               }
             }
+          }
           }
         }
         const statsSection = document.getElementById('section-stats');
@@ -1721,7 +1732,10 @@
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
+  const _userPathRe = /^\/user\/(\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
+  let _userProfileReturnSection = 'home';
+  let _currentUserProfileId = null;
   const DEFAULT_DOC_TITLE = typeof document !== 'undefined' && document.title ? document.title : 'Movie Planner';
   function kpIdFromPathname(pathname) {
     if (!pathname) return null;
@@ -1767,6 +1781,138 @@
     const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
     const m = p.match(_staffPathRe);
     return m ? m[1] : null;
+  }
+
+  function userIdFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_userPathRe);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function userIdFromLocation() {
+    const direct = userIdFromPathname(window.location.pathname);
+    if (direct) return direct;
+    try {
+      const spa = new URLSearchParams(window.location.search).get('__spa') || '';
+      if (!spa) return null;
+      const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
+      return userIdFromPathname(spaUrl.pathname);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function pushUserProfileUrl(userId, replace) {
+    try {
+      const path = '/user/' + userId;
+      const url = path + window.location.search + window.location.hash;
+      if (replace) {
+        window.history.replaceState({ section: 'user', userId: userId }, '', url);
+      } else if (window.location.pathname !== path) {
+        window.history.pushState({ section: 'user', userId: userId }, '', url);
+      }
+    } catch (_) {}
+  }
+
+  function currentCabinetSectionId() {
+    const ro = document.getElementById('cabinet-readonly');
+    if (!ro || ro.classList.contains('hidden')) return 'home';
+    const vis = ro.querySelector('.cabinet-section:not(.hidden)');
+    if (!vis || !vis.id || vis.id === 'section-user') return 'home';
+    return vis.id.replace(/^section-/, '') || 'home';
+  }
+
+  function buildUserProfileHooks() {
+    return {
+      api: api,
+      viewerUserId: cabinetUserId,
+      resolvePhotoUrl: function (url, data) {
+        const resolved = resolveMediaUrl(url);
+        if (resolved) return resolved;
+        const uid = data && data.user_id;
+        return uid ? resolveMediaUrl(API_BASE + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg') : '';
+      },
+      onFilmKp: function (kp) {
+        const norm = String(kp || '').replace(/\D/g, '');
+        if (norm) openFilmPageByKp(norm);
+      },
+      onBack: function () {
+        closeUserProfile({ replace: true });
+      },
+      onTaste: function (uid) {
+        void _openFriendTaste(uid);
+      },
+      onMutual: function (uid) {
+        void _openMutualWatchlist(uid);
+      },
+      toast: function (msg, type) {
+        showToast(msg, type === 'error' ? { type: 'error' } : {});
+      },
+      onTitle: function (name) {
+        try { document.title = (name || 'Профиль') + ' · Movie Planner'; } catch (_) {}
+      },
+    };
+  }
+
+  function mountUserProfilePage(userId) {
+    const root = document.getElementById('user-profile-root');
+    if (!root || !global.MpUserProfile || typeof global.MpUserProfile.mount !== 'function') return;
+    global.MpUserProfile.mount(root, userId, buildUserProfileHooks());
+  }
+
+  function closeUserProfile(opts) {
+    const o = opts || {};
+    _currentUserProfileId = null;
+    showSection(_userProfileReturnSection || 'home', { replace: !!o.replace, skipPush: false });
+    restoreDocumentTitle();
+  }
+
+  function openUserProfile(userId, opts) {
+    const uid = Number(userId);
+    if (!uid || !getToken()) {
+      showToast('Войдите в кабинет');
+      return;
+    }
+    const o = opts || {};
+    if (!o.skipReturnCapture) {
+      if (o.returnSection) {
+        _userProfileReturnSection = o.returnSection;
+      } else if (!userIdFromPathname(window.location.pathname)) {
+        const cur = currentCabinetSectionId();
+        if (cur && cur !== 'user') _userProfileReturnSection = cur;
+      }
+    }
+    _currentUserProfileId = uid;
+    showSection('user', { replace: !!o.replace, skipPush: true });
+    if (!o.skipPush) pushUserProfileUrl(uid, !!o.replace);
+    mountUserProfilePage(uid);
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
+  }
+
+  function bindUserProfileChromeOnce() {
+    if (window._mpUserProfileBound) return;
+    window._mpUserProfileBound = true;
+    const back = document.getElementById('user-profile-back');
+    if (back) {
+      back.addEventListener('click', function () {
+        try {
+          if (window.history.length > 1) window.history.back();
+          else closeUserProfile({ replace: true });
+        } catch (_) {
+          closeUserProfile({ replace: true });
+        }
+      });
+    }
+    document.addEventListener('click', function (e) {
+      const row = e.target.closest('[data-user-profile]');
+      if (!row) return;
+      const uid = row.getAttribute('data-user-profile');
+      if (!uid || !/^\d+$/.test(uid)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openUserProfile(uid);
+    });
   }
 
   function filterPersonFilmsSite(films, state) {
@@ -2254,6 +2400,12 @@
     if (rendered && sectionId === 'tournament') {
       try {
         if (typeof renderTournamentSection === 'function') renderTournamentSection();
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'user' && _currentUserProfileId) {
+      try {
+        bindUserProfileChromeOnce();
+        mountUserProfilePage(_currentUserProfileId);
       } catch (_) {}
     }
   }
@@ -3038,12 +3190,19 @@
       showCabinetAfterLogin(me);
       try {
         const params = new URLSearchParams(window.location.search);
-        const friendUid = params.get('friend_open');
+        const friendUid = params.get('friend_open') || params.get('user_open');
         if (friendUid && /^\d+$/.test(friendUid)) {
           params.delete('friend_open');
+          params.delete('user_open');
           const rest = params.toString();
           history.replaceState({}, '', window.location.pathname + (rest ? '?' + rest : '') + window.location.hash);
-          setTimeout(function () { void _openFriendProfile(Number(friendUid)); }, 0);
+          setTimeout(function () { openUserProfile(Number(friendUid), { replace: true, skipReturnCapture: true }); }, 0);
+        }
+        const pathUserAfterLogin = userIdFromLocation();
+        if (pathUserAfterLogin) {
+          setTimeout(function () {
+            openUserProfile(pathUserAfterLogin, { replace: true, skipPush: true, skipReturnCapture: true });
+          }, 0);
         }
       } catch (_) {}
     }).catch(function () {
@@ -3545,7 +3704,8 @@
       const rows = top.length
         ? top.map((item, i) => {
             const score = Number(item[nom.field] || 0);
-            return '<button type="button" class="home-tourn-row' + (item.is_me ? ' home-tourn-row-me' : '') + '" data-home-show-section="tournament">'
+            const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
+            return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
               + '<span class="home-tourn-rank">' + medal(i) + '</span>'
               + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
               + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
@@ -3651,11 +3811,12 @@
         listEl.innerHTML = sorted.slice(0, 50).map((item, i) => {
           const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
           const score = Number(item[nom.field] || 0);
-          return '<div class="home-tourn-row' + (item.is_me ? ' home-tourn-row-me' : '') + '">'
+          const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
+          return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
             + '<span class="home-tourn-rank">' + medal + '</span>'
             + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
             + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit || '') + '</span>'
-            + '</div>';
+            + '</button>';
         }).join('');
       }
       function renderTabs() {
@@ -7214,7 +7375,7 @@
         kpId: kpNorm,
         containerId: 'film-friends-social-block',
         fetchFn: (path) => api(path),
-        onFriendClick: (uid) => { if (uid) void _openFriendProfile(uid); },
+        onFriendClick: (uid) => { if (uid) openUserProfile(uid); },
       });
       return;
     }
@@ -9875,7 +10036,7 @@
 
   function _renderFriendCard(f) {
     const letter = (f.name || '?')[0].toUpperCase();
-    return `<button type="button" class="soc-friend-card" data-friend-profile="${Number(f.user_id)}">
+    return `<button type="button" class="soc-friend-card" data-friend-profile="${Number(f.user_id)}" data-user-profile="${Number(f.user_id)}">
       <div class="soc-friend-avatar">${letter}</div>
       <div style="flex:1">
         <div class="soc-friend-name">${escapeHtml(f.name)}</div>
@@ -9949,7 +10110,7 @@
       if (friends.length) {
         friendsListEl.innerHTML = friends.map(_renderFriendCard).join('');
         friendsListEl.querySelectorAll('[data-friend-profile]').forEach((btn) => {
-          btn.addEventListener('click', () => _openFriendProfile(Number(btn.getAttribute('data-friend-profile'))));
+          btn.addEventListener('click', () => openUserProfile(Number(btn.getAttribute('data-friend-profile'))));
         });
         if (friendsLabelEl) friendsLabelEl.style.display = '';
         if (friendsEmptyEl) friendsEmptyEl.classList.add('hidden');
@@ -10166,74 +10327,8 @@
     </button>`;
   }
 
-  async function _openFriendProfile(userId) {
-    if (!userId) return;
-    const data = await api('/api/friends/' + encodeURIComponent(userId) + '/profile');
-    if (!data || data.success === false) {
-      showToast((data && data.error) || 'Не удалось открыть профиль', { type: 'error' });
-      return;
-    }
-    const ratings = (data.recent_ratings || []).slice(0, 8);
-    const achievements = (data.achievements || []).slice(0, 8);
-    const modal = _friendModal(`
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div class="soc-friend-avatar">${escapeHtml((data.name || '?')[0].toUpperCase())}</div>
-        <div>
-          <div style="font-size:18px;font-weight:800">${escapeHtml(data.name || '')}</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
-        <button type="button" data-friend-ratings style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
-          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.ratings_count || 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">оценок</div>
-        </button>
-        <button type="button" data-friend-unwatched style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
-          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.unwatched_count != null ? data.unwatched_count : 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">непросмотр.</div>
-        </button>
-        <button type="button" data-friend-ach style="border:1px solid #eee;border-radius:12px;padding:10px 6px;background:#fafafa;cursor:pointer;text-align:center">
-          <div style="font-size:20px;font-weight:800;color:var(--accent,#ff2d7b)">${data.achievements_count || 0}</div><div style="font-size:11px;color:#888;text-transform:uppercase">ачивок</div>
-        </button>
-      </div>
-      ${data.taste_match != null ? `<button type="button" class="btn btn-secondary" data-friend-taste style="width:100%;margin-bottom:8px">${data.taste_match}% совпадение вкусов</button>` : ''}
-      <button type="button" class="btn btn-secondary" data-friend-mutual style="width:100%;margin-bottom:14px">🎬 Смотрим вместе</button>
-      ${ratings.length ? '<div style="font-weight:700;margin-bottom:8px">Последние оценки</div>' + ratings.map((r) => `
-        <div style="display:flex;justify-content:space-between;gap:12px;padding:9px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
-          <span>${escapeHtml(r.film_title || 'Фильм')}</span><strong style="color:var(--accent,#ff2d7b)">${r.rating}/10</strong>
-        </div>`).join('') : ''}
-      ${achievements.length ? '<div style="font-weight:700;margin:14px 0 8px">Достижения</div><div style="display:flex;flex-wrap:wrap;align-items:flex-start">' + achievements.map((a) => _friendAchCircleHtml(a)).join('') + '</div>' : ''}
-    `);
-    modal.querySelector('[data-friend-taste]')?.addEventListener('click', () => _openFriendTaste(userId));
-    modal.querySelector('[data-friend-mutual]')?.addEventListener('click', () => _openMutualWatchlist(userId));
-    modal.querySelector('[data-friend-ratings]')?.addEventListener('click', async () => {
-      const rd = await api('/api/friends/' + encodeURIComponent(userId) + '/ratings?limit=100');
-      const items = (rd && rd.ratings) || [];
-      _friendModal(`
-        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Оценки друга</div>
-        ${items.length ? items.map((r) => `
-          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
-            <span>${escapeHtml(r.film_title || 'Фильм')}</span>
-            <strong style="color:var(--accent,#ff2d7b)">${r.rating}/10</strong>
-          </div>`).join('') : '<div class="cabinet-hint">Нет оценок</div>'}
-      `);
-    });
-    modal.querySelector('[data-friend-unwatched]')?.addEventListener('click', async () => {
-      const uw = await api('/api/friends/' + encodeURIComponent(userId) + '/unwatched?limit=100');
-      const films = (uw && uw.films) || [];
-      _friendModal(`
-        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Непросмотренные</div>
-        ${films.length ? films.map((f) => `
-          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
-            <span>${escapeHtml(f.title || 'Фильм')}</span>
-            <span style="color:#888">${escapeHtml(f.year || '')}</span>
-          </div>`).join('') : '<div class="cabinet-hint">Всё просмотрено</div>'}
-      `);
-    });
-    modal.querySelector('[data-friend-ach]')?.addEventListener('click', () => {
-      if (!achievements.length) return;
-      _friendModal(`
-        <div style="font-size:17px;font-weight:700;margin-bottom:12px">Достижения</div>
-        <div style="display:flex;flex-wrap:wrap;align-items:flex-start">${achievements.map((a) => _friendAchCircleHtml(a)).join('')}</div>
-      `);
-    });
+  function _openFriendProfile(userId) {
+    openUserProfile(userId);
   }
 
   async function _openFriendsActivity() {
@@ -10299,13 +10394,15 @@
         listEl.innerHTML = '<div class="cabinet-hint">Нет данных — добавьте друзей</div>';
         return;
       }
-      listEl.innerHTML = sorted.map((it, i) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px${it.is_me ? ';background:rgba(255,45,123,0.05);border-color:rgba(255,45,123,0.3)' : ''}">
-          <span style="font-size:18px;width:28px;text-align:center;flex-shrink:0">${medals[i] || (i + 1) + '.'}</span>
-          <div class="soc-friend-avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">${escapeHtml((it.name || '?')[0].toUpperCase())}</div>
-          <div style="flex:1;min-width:0"><div style="font-weight:700">${escapeHtml(it.name)}${it.is_me ? ' <span style="color:#aaa;font-weight:400">(вы)</span>' : ''}</div></div>
-          <div style="text-align:right;flex-shrink:0"><div style="font-size:16px;font-weight:800;color:var(--accent,#ff2d7b)">${Number(it[nom.field]) || 0}</div><div style="font-size:11px;color:#888">${escapeHtml(nom.unit)}</div></div>
-        </div>`).join('');
+      listEl.innerHTML = sorted.map((it, i) => {
+        const uidAttr = it.user_id != null ? (' data-user-profile="' + Number(it.user_id) + '"') : '';
+        return `<button type="button" class="home-tourn-row tourn-lb-row${it.is_me ? ' home-tourn-row-me' : ''}"${uidAttr} style="width:100%;margin-bottom:6px">`
+          + `<span class="home-tourn-rank">${medals[i] || (i + 1) + '.'}</span>`
+          + `<span class="soc-friend-avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">${escapeHtml((it.name || '?')[0].toUpperCase())}</span>`
+          + `<span class="home-tourn-name" style="flex:1">${escapeHtml(it.name)}${it.is_me ? ' <span class="muted">(вы)</span>' : ''}</span>`
+          + `<span class="home-tourn-score">${Number(it[nom.field]) || 0} <span style="font-size:11px;font-weight:600;color:var(--text-muted,#888)">${escapeHtml(nom.unit)}</span></span>`
+          + '</button>';
+      }).join('');
     }
 
     function renderTabs() {
@@ -10404,7 +10501,7 @@
   }
 
   // ── /Friends JS ─────────────────────────────────────────────────────────────
-  try { global.MpSiteOpenFriendProfile = _openFriendProfile; } catch (_) {}
+  try { global.MpSiteOpenFriendProfile = openUserProfile; } catch (_) {}
 
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');
@@ -11298,6 +11395,7 @@
     bindHomeShazamOnce();
     bindHomeQuickActionsOnce();
     bindLogoHomeNavigation();
+    bindUserProfileChromeOnce();
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
@@ -11316,6 +11414,11 @@
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (pathKp) {
         goToStandaloneFilmPage(pathKp);
+        return;
+      }
+      const pathUser = userIdFromPathname(window.location.pathname) || userIdFromLocation();
+      if (pathUser && getToken()) {
+        try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
         return;
       }
       const pathF = filmIdFromPathname(window.location.pathname);

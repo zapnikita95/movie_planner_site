@@ -82,7 +82,7 @@
           return;
         }
         try {
-          global.location.href = '/?friend_open=' + encodeURIComponent(uid);
+          global.location.href = '/user/' + encodeURIComponent(String(uid));
         } catch (_e) {}
       });
     });

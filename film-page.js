@@ -1277,7 +1277,7 @@
           authHeaders: authHeaders(),
           onFriendClick: function (uid) {
             try {
-              global.location.href = '/?friend_open=' + encodeURIComponent(String(uid));
+              global.location.href = '/user/' + encodeURIComponent(String(uid));
             } catch (_e) {}
           },
         });
