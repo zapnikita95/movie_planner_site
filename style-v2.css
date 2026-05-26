@@ -5769,6 +5769,37 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   color: #fff;
   font-size: 15px;
 }
+.settings-import-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.settings-import-tab--on {
+  background: #ff2d7b;
+  border-color: #ff2d7b;
+  color: #0f0f13;
+}
+.settings-import-pane.hidden {
+  display: none;
+}
+#profile-import-external-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+#profile-import-external-form select,
+#profile-import-external-form textarea {
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: #fff;
+  font-size: 15px;
+}
+#profile-import-external-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
 .settings-home-sections {
   margin-top: 16px;
   padding-top: 16px;

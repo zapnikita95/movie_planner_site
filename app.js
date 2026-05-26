@@ -9344,19 +9344,27 @@
         + '<button type="button" class="settings-row" data-profile-link="yandex">🔗 Яндекс</button>'
         + '<button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>'
         + '</div><div class="settings-accounts-list">' + sessionsHtml + '</div></section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Импорт с Кинопоиска</h3>'
+        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">🧩 Импорт</h3>'
+        + '<div class="settings-import-tabs" role="tablist">'
+        + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
+        + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
+        + '</div>'
+        + '<div id="settings-import-kp" class="settings-import-pane">'
         + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
         + '<form class="settings-import-form" id="profile-import-form">'
         + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
         + '<button type="submit" class="btn btn-primary">Импортировать</button>'
-        + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div></section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Импорт IMDb / MyShows</h3>'
-        + '<p class="settings-panel-lead">IMDb: CSV. MyShows: профиль /wasted/ (ссылка или HTML).</p>'
+        + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
+        + '</div>'
+        + '<div id="settings-import-ext" class="settings-import-pane hidden">'
+        + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
         + '<form class="settings-import-form" id="profile-import-external-form">'
         + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
         + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
-        + '<button type="submit" class="btn btn-secondary">Импортировать в ту же базу</button>'
-        + '</form></section>'
+        + '<button type="submit" class="btn btn-secondary">Импортировать</button>'
+        + '</form></div>'
+        + '<p class="profile-settings-status" id="profile-import-status"></p>'
+        + '</section>'
         + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Ещё</h3>'
         + '<div class="settings-links-grid">'
         + '<button type="button" class="settings-link-card" data-sets-go="integrations">🔌 Интеграции</button>'
@@ -9660,6 +9668,18 @@
         }
         if (wasActive) setActiveChatId(next[0].chat_id);
         loadMeAndShowCabinet();
+      });
+    });
+    root.querySelectorAll('[data-import-tab]').forEach((tabBtn) => {
+      tabBtn.addEventListener('click', () => {
+        const tab = tabBtn.getAttribute('data-import-tab') || 'kp';
+        root.querySelectorAll('[data-import-tab]').forEach((b) => {
+          b.classList.toggle('settings-import-tab--on', b === tabBtn);
+        });
+        const kpPane = root.querySelector('#settings-import-kp');
+        const extPane = root.querySelector('#settings-import-ext');
+        if (kpPane) kpPane.classList.toggle('hidden', tab !== 'kp');
+        if (extPane) extPane.classList.toggle('hidden', tab !== 'ext');
       });
     });
     const importForm = root.querySelector('#profile-import-form');
