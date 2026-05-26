@@ -13,9 +13,67 @@
     return 'https://api.movie-planner.ru';
   })();
 
+  var PERSON_FILMS_PREVIEW = 20;
+  var _staffLastData = null;
+  var _staffExpandedRoles = {};
+  var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+  var _staffPersonId = '';
+  var _staffLoginNow = null;
+  var _staffPendingFriendsFilter = false;
+  var _staffGlobalFilters = { years: [], genres: [] };
+
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  function mpSessions() {
+    try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
+  }
+
+  function mpToken() {
+    try {
+      var active = localStorage.getItem('mp_site_active_chat_id');
+      var row = mpSessions().find(function (x) { return String(x.chat_id) === String(active); });
+      return row ? row.token : null;
+    } catch (_e) { return null; }
+  }
+
+  function mpAuthHeaders() {
+    var h = { 'Content-Type': 'application/json' };
+    var t = mpToken();
+    if (t) h.Authorization = 'Bearer ' + t;
+    return h;
+  }
+
+  function filterPersonFilmsClient(films, state) {
+    var st = state || {};
+    var genreL = String(st.genre || '').trim().toLowerCase();
+    var yearExact = st.year != null && st.year !== '' ? parseInt(st.year, 10) : null;
+    return (films || []).filter(function (f) {
+      if (!f || !f.kp_id) return false;
+      var yr = f.year != null ? parseInt(f.year, 10) : null;
+      if (yearExact != null && yr !== yearExact) return false;
+      if (genreL) {
+        var gblob = (f.genres || []).join(' ').toLowerCase();
+        if (gblob.indexOf(genreL) < 0) return false;
+      }
+      if (st.mainRolesOnly) {
+        var cr = f.cast_rank;
+        if (cr == null || parseInt(cr, 10) > 3) return false;
+      }
+      if (st.friendsRatedOnly) {
+        if (!f.friend_rated_high) return false;
+        if (f.watched || f.has_rating) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortRolesByFilmCount(roles) {
+    return (roles || []).slice().sort(function (a, b) {
+      return (b.films || []).length - (a.films || []).length;
     });
   }
 
@@ -32,21 +90,52 @@
     return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
   }
 
-  var PERSON_FILMS_PREVIEW = 20;
-  var _staffLastData = null;
-  var _staffExpandedRoles = {};
-
-  function sortRolesByFilmCount(roles) {
-    return (roles || []).slice().sort(function (a, b) {
-      return (b.films || []).length - (a.films || []).length;
+  function yearOptionsHtml() {
+    var years = _staffGlobalFilters.years || [];
+    var opts = '<option value="">Любой</option>';
+    years.forEach(function (y) {
+      var sel = String(_staffFilterState.year) === String(y) ? ' selected' : '';
+      opts += '<option value="' + y + '"' + sel + '>' + y + '</option>';
     });
+    return opts;
+  }
+
+  function genreOptionsHtml() {
+    var genres = _staffGlobalFilters.genres || [];
+    var opts = '<option value="">Любой</option>';
+    genres.forEach(function (g) {
+      var sel = _staffFilterState.genre === g ? ' selected' : '';
+      opts += '<option value="' + escapeHtml(g) + '"' + sel + '>' + escapeHtml(g) + '</option>';
+    });
+    return opts;
+  }
+
+  function filtersBarHtml() {
+    return (
+      '<div class="person-filters" id="staff-person-filters">' +
+        '<div class="person-filters-row">' +
+          '<label class="person-filter-field">' +
+            '<span class="person-filter-k">Год</span>' +
+            '<select class="person-filter-select" id="staff-filter-year">' + yearOptionsHtml() + '</select>' +
+          '</label>' +
+          '<label class="person-filter-field">' +
+            '<span class="person-filter-k">Жанр</span>' +
+            '<select class="person-filter-select" id="staff-filter-genre">' + genreOptionsHtml() + '</select>' +
+          '</label>' +
+        '</div>' +
+        '<div class="person-filters-toggles">' +
+          '<button type="button" class="chip' + (_staffFilterState.mainRolesOnly ? ' chip-on' : '') + '" id="staff-toggle-main" aria-pressed="' + (_staffFilterState.mainRolesOnly ? 'true' : 'false') + '">Главные роли</button>' +
+          '<button type="button" class="chip' + (_staffFilterState.friendsRatedOnly ? ' chip-on' : '') + '" id="staff-toggle-friends" aria-pressed="' + (_staffFilterState.friendsRatedOnly ? 'true' : 'false') + '">Друзья хорошо оценили</button>' +
+        '</div>' +
+      '</div>'
+    );
   }
 
   function filmGridHtml(films, roleKey) {
     var all = films || [];
+    if (!all.length) return '';
     var expanded = !!_staffExpandedRoles[roleKey];
     var chunk = expanded ? all : all.slice(0, PERSON_FILMS_PREVIEW);
-    if (!chunk.length) return '<p class="staff-empty-role muted small">Нет фильмов</p>';
     var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       if (!kp) return '';
@@ -74,7 +163,96 @@
     return grid;
   }
 
+  function rolesHtml(roles) {
+    return sortRolesByFilmCount(roles).map(function (block) {
+      var roleTitle = block.role_name || block.role_key || '';
+      var roleKey = block.role_key || roleTitle;
+      var filtered = filterPersonFilmsClient(block.films || [], _staffFilterState);
+      if (!filtered.length) return '';
+      return (
+        '<section class="staff-role-block">' +
+          '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
+          '<span class="staff-role-count">' + filtered.length + '</span></div>' +
+          filmGridHtml(filtered, roleKey) +
+        '</section>'
+      );
+    }).join('');
+  }
+
+  function bindStaffFilters(root) {
+    if (!root) return;
+    var yearEl = root.querySelector('#staff-filter-year');
+    var genreEl = root.querySelector('#staff-filter-genre');
+    var mainBtn = root.querySelector('#staff-toggle-main');
+    var friendsBtn = root.querySelector('#staff-toggle-friends');
+
+    if (yearEl) {
+      yearEl.addEventListener('change', function (e) {
+        _staffFilterState.year = e.target.value || '';
+        paintStaffRoles();
+      });
+    }
+    if (genreEl) {
+      genreEl.addEventListener('change', function (e) {
+        _staffFilterState.genre = e.target.value || '';
+        paintStaffRoles();
+      });
+    }
+    if (mainBtn) {
+      mainBtn.addEventListener('click', function () {
+        _staffFilterState.mainRolesOnly = !_staffFilterState.mainRolesOnly;
+        paintStaffRoles();
+      });
+    }
+    if (friendsBtn) {
+      friendsBtn.addEventListener('click', function () {
+        if (!mpToken()) {
+          _staffPendingFriendsFilter = true;
+          if (_staffLoginNow) _staffLoginNow('person_friends');
+          else if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('person_friends');
+          return;
+        }
+        _staffFilterState.friendsRatedOnly = !_staffFilterState.friendsRatedOnly;
+        paintStaffRoles();
+      });
+    }
+    root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var rk = btn.getAttribute('data-role-expand') || '';
+        if (!rk) return;
+        _staffExpandedRoles[rk] = true;
+        paintStaffRoles();
+      });
+    });
+  }
+
+  function paintStaffRoles() {
+    var root = document.getElementById('staff-root');
+    if (!root || !_staffLastData) return;
+    var rolesRoot = root.querySelector('#staff-roles-root');
+    if (rolesRoot) rolesRoot.innerHTML = rolesHtml(_staffLastData.films_by_role || []);
+    var filtersRoot = root.querySelector('#staff-person-filters');
+    if (filtersRoot) {
+      var yearEl = filtersRoot.querySelector('#staff-filter-year');
+      var genreEl = filtersRoot.querySelector('#staff-filter-genre');
+      var mainBtn = filtersRoot.querySelector('#staff-toggle-main');
+      var friendsBtn = filtersRoot.querySelector('#staff-toggle-friends');
+      if (yearEl) yearEl.value = _staffFilterState.year || '';
+      if (genreEl) genreEl.value = _staffFilterState.genre || '';
+      if (mainBtn) {
+        mainBtn.classList.toggle('chip-on', !!_staffFilterState.mainRolesOnly);
+        mainBtn.setAttribute('aria-pressed', _staffFilterState.mainRolesOnly ? 'true' : 'false');
+      }
+      if (friendsBtn) {
+        friendsBtn.classList.toggle('chip-on', !!_staffFilterState.friendsRatedOnly);
+        friendsBtn.setAttribute('aria-pressed', _staffFilterState.friendsRatedOnly ? 'true' : 'false');
+      }
+    }
+    bindStaffFilters(root);
+  }
+
   function renderStaffShell(personId) {
+    _staffPersonId = personId;
     document.title = 'Персона · Movie Planner';
     document.body.innerHTML =
       '<div class="page-shell staff-standalone-shell">' +
@@ -106,7 +284,21 @@
         apiBase: API_BASE,
         mainSelector: 'main.staff-standalone-main',
         spaReturnPath: '/s/' + personId,
+        onLoginSuccess: function () {
+          if (_staffPendingFriendsFilter) {
+            _staffPendingFriendsFilter = false;
+            _staffFilterState.friendsRatedOnly = true;
+          }
+          loadStaff(personId);
+        },
       });
+      _staffLoginNow = function (action) {
+        if (global.MpPublicFilmLogin) {
+          global.MpPublicFilmLogin.open(action || '');
+          return;
+        }
+        global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
+      };
     }
   }
 
@@ -193,8 +385,8 @@
       return;
     }
     var person = data.person || {};
-    var roles = sortRolesByFilmCount(data.films_by_role || []);
     _staffLastData = data;
+    _staffGlobalFilters = data.filters || { years: [], genres: [] };
     var titleName = person.name_ru || person.name_en || 'Персона';
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
@@ -213,39 +405,36 @@
             staffMetaLine(person) +
           '</div>' +
         '</header>' +
-        roles.map(function (block) {
-          var roleTitle = block.role_name || block.role_key || '';
-          var roleKey = block.role_key || roleTitle;
-          var films = block.films || [];
-          if (!films.length) return '';
-          return (
-            '<section class="staff-role-block">' +
-              '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
-              '<span class="staff-role-count">' + films.length + '</span></div>' +
-              filmGridHtml(films, roleKey) +
-            '</section>'
-          );
-        }).join('') +
+        filtersBarHtml() +
+        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
       '</article>';
 
-    root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var rk = btn.getAttribute('data-role-expand') || '';
-        if (!rk) return;
-        _staffExpandedRoles[rk] = true;
-        if (_staffLastData) renderStaffData(_staffLastData, personId);
-      });
-    });
+    bindStaffFilters(root);
   }
 
   function loadStaff(personId) {
-    return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
+    var authed = !!mpToken();
+    var url = authed
+      ? API_BASE + '/api/site/persons/' + encodeURIComponent(personId)
+      : API_BASE + '/api/public/person/' + encodeURIComponent(personId);
+    var headers = authed ? mpAuthHeaders() : {};
+    return fetch(url, { method: 'GET', mode: 'cors', headers: headers })
       .then(function (r) {
+        if (r.status === 401 && authed) {
+          return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
+            .then(function (r2) {
+              if (!r2.ok) throw new Error('http_' + r2.status);
+              return r2.json();
+            });
+        }
         if (!r.ok) throw new Error('http_' + r.status);
         return r.json();
       })
       .then(function (d) {
         renderStaffData(d, personId);
+        if (_staffFilterState.friendsRatedOnly && mpToken()) {
+          paintStaffRoles();
+        }
       })
       .catch(function () {
         var root = document.getElementById('staff-root');

@@ -8092,6 +8092,40 @@ body.site-search-sheet-open { overflow: hidden; }
 .staff-hero-sub { color: rgba(244,246,255,.62); margin: 6px 0 0; font-size: 15px; }
 .staff-hero-meta { color: rgba(244,246,255,.5); margin: 8px 0 0; font-size: 13px; font-weight: 600; }
 .staff-loading { padding: 24px 0; color: rgba(244,246,255,.55); }
+/* Person filters — как в Mini App */
+.person-filters { margin: 12px 0 18px; }
+.person-filters-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.person-filter-field { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 4px; }
+.person-filter-k { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(244,246,255,.55); }
+.person-filter-select {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+.person-filters-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.staff-page .chip,
+.staff-standalone-page .chip {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(244,246,255,.62);
+  border-radius: 20px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font: inherit;
+}
+.staff-page .chip-on,
+.staff-standalone-page .chip-on {
+  border-color: rgba(255,45,123,.55);
+  background: rgba(255,45,123,.12);
+  color: #fff;
+  font-weight: 600;
+}
 .staff-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; align-items: flex-end; }
 .staff-filter { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
 .staff-filter span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(244,246,255,.55); }
@@ -8163,6 +8197,38 @@ body.site-search-sheet-open { overflow: hidden; }
   border-color: rgba(255,45,123,.55);
 }
 .staff-role-expand:active { transform: scale(0.98); }
+
+/* Person filters — как в Mini App */
+.staff-standalone-page .person-filters { margin: 4px 0 18px; }
+.staff-standalone-page .person-filters-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.staff-standalone-page .person-filter-field { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 4px; }
+.staff-standalone-page .person-filter-k {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: rgba(244,246,255,.55);
+}
+.staff-standalone-page .person-filter-select {
+  width: 100%; min-height: 42px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: #fff; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px;
+}
+.staff-standalone-page .person-filters-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.staff-standalone-page .chip {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(244,246,255,.62);
+  border-radius: 20px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.staff-standalone-page .chip-on {
+  border-color: rgba(255,45,123,.55);
+  background: rgba(255,45,123,.12);
+  color: #fff;
+  font-weight: 600;
+}
 .staff-standalone-main { padding-bottom: 32px; }
 .staff-standalone-footer { margin-top: 24px; opacity: .7; }
 body.staff-standalone-page .staff-standalone-shell { min-height: 100vh; }
