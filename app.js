@@ -2256,6 +2256,25 @@
     }
   }
 
+  function updateInboxFabBadge(count) {
+    const badge = document.getElementById('inbox-fab-badge');
+    const fab = document.getElementById('inbox-fab');
+    if (!badge || !fab) return;
+    const n = Math.max(0, Number(count) || 0);
+    if (n <= 0) {
+      badge.classList.add('hidden');
+      badge.textContent = '';
+      fab.setAttribute('aria-label', 'Уведомления');
+      fab.setAttribute('title', 'Уведомления');
+      return;
+    }
+    badge.classList.remove('hidden');
+    badge.textContent = n > 99 ? '99+' : String(n);
+    const label = 'Уведомления, непрочитанных: ' + n;
+    fab.setAttribute('aria-label', label);
+    fab.setAttribute('title', label);
+  }
+
   function siteInboxTab() {
     try {
       const stored = localStorage.getItem('mp_inbox_tab');
@@ -2450,8 +2469,11 @@
       }
       const items = data.items || [];
       const unreadIds = items.filter((x) => !x.is_read && x.id != null).map((x) => x.id);
+      const unreadFromApi = data.unread_count != null ? parseInt(data.unread_count, 10) : unreadIds.length;
+      updateInboxFabBadge(unreadFromApi);
       if (unreadIds.length) {
         api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ ids: unreadIds }) }).catch(() => {});
+        updateInboxFabBadge(0);
       }
       if (incomingPanel) {
         renderInboxIncomingCards(incomingPanel, items);
@@ -2986,6 +3008,7 @@
       cabinetUserId = me.user_id || null;
       _cabinetMeCache = me;
       renderHeader(me);
+      updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
       refreshGroupSuggestions(me);
       updateGroupContextFab();
@@ -3550,6 +3573,7 @@
         _homePremierePreview = [];
       }
       _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
+      if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
     }).catch(() => {
       _homePremierePreview = [];
       _homeTournamentPreview = null;
@@ -3659,7 +3683,6 @@
       if (inboxFab) {
         e.preventDefault();
         showSection('inbox');
-        if (typeof loadSiteInbox === 'function') loadSiteInbox();
         return;
       }
       const baseTab = e.target.closest('[data-base-section]');
@@ -7945,6 +7968,184 @@
   }
 
   let _siteSearchSeq = 0;
+  const SITE_SEARCH_YEAR_MIN = 1900;
+  const SITE_SEARCH_YEAR_MAX = new Date().getFullYear() + 2;
+  const SITE_SEARCH_GENRE_QUICK = [
+    'драма', 'комедия', 'триллер', 'фантастика', 'боевик', 'ужасы',
+    'детектив', 'мелодрама', 'семейный', 'анимация',
+  ];
+  let _siteSearchFilterState = {
+    type: 'any',
+    genre: '',
+    yearMin: SITE_SEARCH_YEAR_MIN,
+    yearMax: SITE_SEARCH_YEAR_MAX,
+  };
+
+  function siteSearchFiltersActive() {
+    const st = _siteSearchFilterState;
+    return (
+      st.type !== 'any' ||
+      !!(st.genre && String(st.genre).trim()) ||
+      st.yearMin > SITE_SEARCH_YEAR_MIN ||
+      st.yearMax < SITE_SEARCH_YEAR_MAX
+    );
+  }
+
+  function siteSearchRefreshFilterChipLabels() {
+    const typeLab = { any: 'Все', film: 'Фильмы', series: 'Сериалы' };
+    const tv = document.getElementById('site-sf-chip-type-val');
+    const yv = document.getElementById('site-sf-chip-year-val');
+    const gv = document.getElementById('site-sf-chip-genre-val');
+    if (tv) tv.textContent = typeLab[_siteSearchFilterState.type] || 'Все';
+    if (yv) {
+      const lo = _siteSearchFilterState.yearMin;
+      const hi = _siteSearchFilterState.yearMax;
+      yv.textContent = lo <= SITE_SEARCH_YEAR_MIN && hi >= SITE_SEARCH_YEAR_MAX ? 'Любой' : (lo + '–' + hi);
+    }
+    if (gv) {
+      const g = (_siteSearchFilterState.genre || '').trim();
+      gv.textContent = g ? (g.length > 22 ? g.slice(0, 20) + '…' : g) : 'Любой';
+    }
+    const badge = document.getElementById('site-sf-badge');
+    if (badge) badge.classList.toggle('hidden', !siteSearchFiltersActive());
+  }
+
+  function siteSearchSetFilterToolbarVisible(show) {
+    const bar = document.getElementById('site-search-filter-toolbar');
+    if (!bar) return;
+    bar.classList.toggle('hidden', !show);
+    bar.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function siteSearchUpdateYearRangeLabels() {
+    const elLo = document.getElementById('site-sf-y-min');
+    const elHi = document.getElementById('site-sf-y-max');
+    const lLo = document.getElementById('site-sf-y-lo');
+    const lHi = document.getElementById('site-sf-y-hi');
+    if (elLo && lLo) lLo.textContent = elLo.value;
+    if (elHi && lHi) lHi.textContent = elHi.value;
+  }
+
+  function siteSearchOpenFilterSheet() {
+    const sheet = document.getElementById('site-sf-sheet');
+    const openBtn = document.getElementById('site-sf-open');
+    const t = document.getElementById('site-sf-type');
+    const g = document.getElementById('site-sf-genre');
+    const yMin = document.getElementById('site-sf-y-min');
+    const yMax = document.getElementById('site-sf-y-max');
+    if (t) t.value = _siteSearchFilterState.type || 'any';
+    if (g) g.value = _siteSearchFilterState.genre || '';
+    if (yMin) yMin.value = String(_siteSearchFilterState.yearMin);
+    if (yMax) yMax.value = String(_siteSearchFilterState.yearMax);
+    siteSearchUpdateYearRangeLabels();
+    if (sheet) sheet.classList.remove('hidden');
+    if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('site-search-sheet-open');
+  }
+
+  function siteSearchCloseFilterSheet() {
+    const sheet = document.getElementById('site-sf-sheet');
+    const openBtn = document.getElementById('site-sf-open');
+    if (sheet) sheet.classList.add('hidden');
+    if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('site-search-sheet-open');
+  }
+
+  function siteSearchApplyFiltersFromSheet() {
+    const t = document.getElementById('site-sf-type');
+    const g = document.getElementById('site-sf-genre');
+    const yMin = document.getElementById('site-sf-y-min');
+    const yMax = document.getElementById('site-sf-y-max');
+    _siteSearchFilterState.type = (t && t.value) || 'any';
+    _siteSearchFilterState.genre = (g && g.value) || '';
+    _siteSearchFilterState.yearMin = parseInt((yMin && yMin.value) || SITE_SEARCH_YEAR_MIN, 10);
+    _siteSearchFilterState.yearMax = parseInt((yMax && yMax.value) || SITE_SEARCH_YEAR_MAX, 10);
+    if (Number.isNaN(_siteSearchFilterState.yearMin)) _siteSearchFilterState.yearMin = SITE_SEARCH_YEAR_MIN;
+    if (Number.isNaN(_siteSearchFilterState.yearMax)) _siteSearchFilterState.yearMax = SITE_SEARCH_YEAR_MAX;
+    siteSearchRefreshFilterChipLabels();
+    siteSearchCloseFilterSheet();
+    runSiteSearchPage();
+  }
+
+  function siteSearchResetFiltersSheet() {
+    const t = document.getElementById('site-sf-type');
+    const g = document.getElementById('site-sf-genre');
+    const yMin = document.getElementById('site-sf-y-min');
+    const yMax = document.getElementById('site-sf-y-max');
+    if (t) t.value = 'any';
+    if (g) g.value = '';
+    if (yMin) yMin.value = String(SITE_SEARCH_YEAR_MIN);
+    if (yMax) yMax.value = String(SITE_SEARCH_YEAR_MAX);
+    siteSearchUpdateYearRangeLabels();
+  }
+
+  function siteSearchFilterSheetHtml() {
+    const genreChips = SITE_SEARCH_GENRE_QUICK.map((g) =>
+      '<button type="button" class="search-genre-quick-chip" data-site-genre="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>'
+    ).join('');
+    return (
+      '<div id="site-sf-sheet" class="site-search-sheet-backdrop hidden" role="presentation">' +
+        '<div class="site-search-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="site-sf-sheet-title">' +
+          '<div class="site-search-sheet-title" id="site-sf-sheet-title">Фильтры поиска</div>' +
+          '<div class="site-search-sheet-body">' +
+            '<label class="site-search-filter-label" for="site-sf-type">Тип</label>' +
+            '<select id="site-sf-type" class="site-search-filter-select">' +
+              '<option value="any">Все</option><option value="film">Фильмы</option><option value="series">Сериалы</option>' +
+            '</select>' +
+            '<label class="site-search-filter-label">Год выхода</label>' +
+            '<div class="site-search-year-range-wrap">' +
+              '<div class="site-search-year-range-values">' +
+                '<span id="site-sf-y-lo">' + SITE_SEARCH_YEAR_MIN + '</span>' +
+                '<span class="muted small">—</span>' +
+                '<span id="site-sf-y-hi">' + SITE_SEARCH_YEAR_MAX + '</span>' +
+              '</div>' +
+              '<div class="site-search-year-range-track">' +
+                '<input type="range" id="site-sf-y-min" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MIN + '" step="1" aria-label="Год от">' +
+                '<input type="range" id="site-sf-y-max" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MAX + '" step="1" aria-label="Год до">' +
+              '</div>' +
+            '</div>' +
+            '<label class="site-search-filter-label" for="site-sf-genre">Жанр</label>' +
+            '<div class="search-genre-quick" id="site-sf-genre-quick">' + genreChips + '</div>' +
+            '<input id="site-sf-genre" class="site-search-filter-input" type="text" placeholder="Или введите свой…" autocomplete="off">' +
+          '</div>' +
+          '<div class="site-search-sheet-footer">' +
+            '<button type="button" class="btn btn-secondary" id="site-sf-reset">Сбросить</button>' +
+            '<button type="button" class="btn btn-primary" id="site-sf-apply">Применить</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function siteSearchFilterToolbarHtml() {
+    return (
+      '<div id="site-search-filter-toolbar" class="search-filter-toolbar hidden" aria-hidden="true">' +
+        '<div class="search-filter-toolbar-inner">' +
+          '<div class="search-filter-toolbar-scroll">' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-type" aria-haspopup="dialog">' +
+              '<span class="search-filter-chip-k">Тип</span>' +
+              '<span class="search-filter-chip-v" id="site-sf-chip-type-val">Все</span>' +
+            '</button>' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-year" aria-haspopup="dialog">' +
+              '<span class="search-filter-chip-k">Год</span>' +
+              '<span class="search-filter-chip-v" id="site-sf-chip-year-val">Любой</span>' +
+            '</button>' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-genre" aria-haspopup="dialog">' +
+              '<span class="search-filter-chip-k">Жанр</span>' +
+              '<span class="search-filter-chip-v" id="site-sf-chip-genre-val">Любой</span>' +
+            '</button>' +
+          '</div>' +
+          '<button type="button" class="search-filter-funnel-btn" id="site-sf-open" aria-label="Все фильтры" aria-haspopup="dialog" aria-expanded="false">' +
+            '<svg class="search-filter-funnel-svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>' +
+            '</svg>' +
+            '<span id="site-sf-badge" class="search-filters-badge hidden" aria-hidden="true"></span>' +
+          '</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   function openSiteSearchPage(query, opts) {
     const q = String(query || '').trim();
     if (!q) return;
@@ -7969,14 +8170,8 @@
             <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
-          <div class="site-search-filters" id="site-search-filters">
-            <button type="button" class="site-search-filter active" data-search-type="any">Все</button>
-            <button type="button" class="site-search-filter" data-search-type="film">Фильмы</button>
-            <button type="button" class="site-search-filter" data-search-type="series">Сериалы</button>
-            <input class="site-search-year" id="site-search-year-from" inputmode="numeric" placeholder="Год от">
-            <input class="site-search-year" id="site-search-year-to" inputmode="numeric" placeholder="Год до">
-            <input class="site-search-genre" id="site-search-genre" placeholder="Жанр">
-          </div>
+          ${siteSearchFilterToolbarHtml()}
+          ${siteSearchFilterSheetHtml()}
           <div class="site-search-status" id="site-search-status"></div>
         </div>
         <div class="site-search-results" id="site-search-results"></div>
@@ -7989,7 +8184,6 @@
 
   function bindSiteSearchPage() {
     const form = document.getElementById('site-search-form');
-    const filters = document.getElementById('site-search-filters');
     const input = document.getElementById('site-search-input');
     let timer = null;
     function schedule() {
@@ -8002,45 +8196,78 @@
         runSiteSearchPage();
       });
     }
-    if (filters) {
-      filters.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-search-type]');
-        if (!btn) return;
-        filters.querySelectorAll('[data-search-type]').forEach((b) => b.classList.toggle('active', b === btn));
-        runSiteSearchPage();
-      });
-      filters.querySelectorAll('input').forEach((el) => el.addEventListener('input', schedule));
-    }
     if (input) input.addEventListener('input', schedule);
+
+    ['site-sf-chip-type', 'site-sf-chip-year', 'site-sf-chip-genre', 'site-sf-open'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', siteSearchOpenFilterSheet);
+    });
+    const sheet = document.getElementById('site-sf-sheet');
+    if (sheet) {
+      sheet.addEventListener('click', (e) => {
+        if (e.target === sheet) siteSearchCloseFilterSheet();
+      });
+    }
+    const applyBtn = document.getElementById('site-sf-apply');
+    const resetBtn = document.getElementById('site-sf-reset');
+    if (applyBtn) applyBtn.addEventListener('click', siteSearchApplyFiltersFromSheet);
+    if (resetBtn) resetBtn.addEventListener('click', siteSearchResetFiltersSheet);
+
+    const yMin = document.getElementById('site-sf-y-min');
+    const yMax = document.getElementById('site-sf-y-max');
+    if (yMin && yMax) {
+      const syncYears = () => {
+        let lo = parseInt(yMin.value, 10);
+        let hi = parseInt(yMax.value, 10);
+        if (Number.isNaN(lo)) lo = SITE_SEARCH_YEAR_MIN;
+        if (Number.isNaN(hi)) hi = SITE_SEARCH_YEAR_MAX;
+        if (lo > hi) { yMax.value = String(lo); hi = lo; }
+        if (hi < lo) { yMin.value = String(hi); lo = hi; }
+        siteSearchUpdateYearRangeLabels();
+      };
+      yMin.addEventListener('input', syncYears);
+      yMax.addEventListener('input', syncYears);
+    }
+
+    const genreQuick = document.getElementById('site-sf-genre-quick');
+    const genreInput = document.getElementById('site-sf-genre');
+    if (genreQuick && genreInput) {
+      genreQuick.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-site-genre]');
+        if (!chip) return;
+        genreInput.value = chip.getAttribute('data-site-genre') || '';
+      });
+    }
   }
 
   function runSiteSearchPage() {
     const input = document.getElementById('site-search-input');
     const results = document.getElementById('site-search-results');
     const status = document.getElementById('site-search-status');
-    const filters = document.getElementById('site-search-filters');
     if (!input || !results) return;
     const q = input.value.trim();
     if (q.length < 2) {
       results.innerHTML = '';
+      siteSearchSetFilterToolbarVisible(false);
       if (status) status.textContent = 'Введите не менее 2 символов';
       return;
     }
-    const typeBtn = filters && filters.querySelector('[data-search-type].active');
-    const type = typeBtn ? typeBtn.getAttribute('data-search-type') : 'any';
-    const yearFrom = (document.getElementById('site-search-year-from') || {}).value || '';
-    const yearTo = (document.getElementById('site-search-year-to') || {}).value || '';
-    const genre = (document.getElementById('site-search-genre') || {}).value || '';
+    siteSearchSetFilterToolbarVisible(true);
+    siteSearchRefreshFilterChipLabels();
+    const st = _siteSearchFilterState;
     const seq = ++_siteSearchSeq;
     if (status) status.textContent = 'Ищем…';
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
     } catch (_) {}
     const params = new URLSearchParams({ q: q.slice(0, 80), limit: '36' });
-    if (type && type !== 'any') params.set('type', type);
-    if (yearFrom) params.set('year_from', yearFrom);
-    if (yearTo) params.set('year_to', yearTo);
-    if (genre) params.set('genre', genre);
+    if (st.type && st.type !== 'any') params.set('type', st.type);
+    const genreTrim = (st.genre || '').trim();
+    if (genreTrim) params.set('genre', genreTrim);
+    if (st.yearMin > SITE_SEARCH_YEAR_MIN || st.yearMax < SITE_SEARCH_YEAR_MAX) {
+      params.set('year_from', String(st.yearMin));
+      params.set('year_to', String(st.yearMax));
+    }
     fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
       .then((r) => r.json())
       .then((data) => {

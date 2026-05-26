@@ -32,17 +32,43 @@
       if (mStaff) {
         var pid = mStaff[1];
         var pageS = location.origin + '/s/' + pid;
+        var photo = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg';
+        var ogTitle = 'Персона · Movie Planner';
+        var ogDesc = 'Страница актёра и фильмография в Movie Planner';
+        var pageTitle = ogTitle;
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', 'https://api.movie-planner.ru/api/public/staff/' + encodeURIComponent(pid), false);
+          xhr.send(null);
+          if (xhr.status === 200) {
+            var payload = JSON.parse(xhr.responseText);
+            if (payload && payload.success && payload.staff) {
+              var st = payload.staff;
+              if (st.photo_url) photo = st.photo_url;
+              if (st.og_title) ogTitle = st.og_title;
+              if (st.og_description) ogDesc = st.og_description;
+              if (st.name) pageTitle = st.name + ' · Movie Planner';
+            }
+          }
+        } catch (_e) {}
+        var esc = function (s) {
+          return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        };
         document.write(
+          '<title>' + esc(pageTitle) + '</title>' +
           '<meta property="og:type" content="profile">' +
           '<meta property="og:url" content="' + pageS + '">' +
           '<meta property="og:site_name" content="Movie Planner">' +
-          '<meta property="og:title" content="Персона · Movie Planner">' +
-          '<meta property="og:description" content="Страница актера и фильмография в Movie Planner">' +
-          '<meta name="description" content="Страница актера в Movie Planner: фильмография, роли и переход к карточкам фильмов.">' +
+          '<meta property="og:title" content="' + esc(ogTitle) + '">' +
+          '<meta property="og:description" content="' + esc(ogDesc) + '">' +
+          '<meta property="og:image" content="' + esc(photo) + '">' +
+          '<meta property="og:image:secure_url" content="' + esc(photo) + '">' +
+          '<meta name="description" content="' + esc(ogDesc) + '">' +
           '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
-          '<meta name="twitter:card" content="summary">' +
-          '<meta name="twitter:title" content="Персона · Movie Planner">' +
-          '<meta name="twitter:description" content="Страница актера и фильмография в Movie Planner">' +
+          '<meta name="twitter:card" content="summary_large_image">' +
+          '<meta name="twitter:title" content="' + esc(ogTitle) + '">' +
+          '<meta name="twitter:description" content="' + esc(ogDesc) + '">' +
+          '<meta name="twitter:image" content="' + esc(photo) + '">' +
           '<link rel="canonical" href="' + pageS + '">'
         );
         return;
@@ -55,7 +81,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260526filmrating">
+  <link rel="stylesheet" href="/style-v2.css?v=20260526searchfilters">
   <style>:root { color-scheme: dark; } .hidden { display: none !important; }</style>
   <script>
     (function () {
