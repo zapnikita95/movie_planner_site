@@ -92,13 +92,77 @@
     return desc ? name + ' — ' + desc : name;
   }
 
-  function achPublicHtml(list) {
-    return (list || []).slice(0, 12).map(function (a) {
-      var icon = (a && a.icon) || '🏅';
-      var tip = achTip(a);
-      return '<span class="user-public-ach" title="' + escapeHtml(tip) + '" aria-label="' + escapeHtml(tip) + '">' +
-        '<span aria-hidden="true">' + escapeHtml(icon) + '</span></span>';
-    }).join('');
+  function achName(a) {
+    var id = String((a && (a.id || a.achievement_id)) || '').trim();
+    var raw = (a && a.name) || '';
+    return raw && raw !== id ? raw : 'Ачивка';
+  }
+
+  function achCircleHtml(a) {
+    var id = String((a && (a.id || a.achievement_id)) || '').trim();
+    var tip = achTip(a);
+    var icon = (a && a.icon) || '🏅';
+    return (
+      '<button type="button" class="user-profile-ach" data-ach-id="' + escapeHtml(id) + '" title="' + escapeHtml(tip) + '" aria-label="' + escapeHtml(tip) + '">' +
+        '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+      '</button>'
+    );
+  }
+
+  function ratingRowHtml(r) {
+    var kp = r && r.kp_id;
+    var title = escapeHtml(r.film_title || 'Фильм');
+    var score = r.rating != null ? String(r.rating) : '—';
+    return (
+      '<button type="button" class="user-profile-rating-row" data-kp="' + escapeHtml(String(kp || '')) + '">' +
+        '<span class="user-profile-rating-title">' + title + '</span>' +
+        '<span class="user-profile-rating-score">' + escapeHtml(score) +
+          '<span class="user-profile-rating-denom">/10</span></span>' +
+      '</button>'
+    );
+  }
+
+  function bindRatingRows(root) {
+    root.querySelectorAll('.user-profile-rating-row[data-kp]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var kp = btn.getAttribute('data-kp');
+        if (kp) global.location.href = '/f/' + encodeURIComponent(String(kp).replace(/\D/g, ''));
+      });
+    });
+  }
+
+  function bindAchievements(root, achList) {
+    var list = achList || [];
+    root.querySelectorAll('.user-profile-ach[data-ach-id]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-ach-id');
+        var a = list.find(function (x) {
+          return String((x && (x.id || x.achievement_id)) || '') === String(id || '');
+        });
+        if (!a) return;
+        var icon = (a && a.icon) || '🏅';
+        var name = achName(a);
+        var desc = (a && a.description) || '';
+        simpleModal(
+          '<div class="user-public-ach-detail-icon" aria-hidden="true">' + escapeHtml(icon) + '</div>' +
+          '<h3 class="user-profile-block-title">' + escapeHtml(name) + '</h3>' +
+          (desc ? '<p class="cabinet-hint">' + escapeHtml(desc) + '</p>' : '')
+        );
+      });
+    });
+  }
+
+  function openAllAchievementsModal(achList, achTotal) {
+    var items = achList || [];
+    var grid = items.map(achCircleHtml).join('');
+    var modal = simpleModal(
+      '<h3 class="user-profile-block-title">Достижения</h3>' +
+      '<p class="cabinet-hint user-profile-ach-sub-count">' +
+        escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
+      '</p>' +
+      '<div class="user-profile-ach-row user-profile-ach-row--full">' + grid + '</div>'
+    );
+    bindAchievements(modal, items);
   }
 
   function renderUserPublic(root, user, loginNow) {
@@ -106,49 +170,79 @@
     var name = user.name || 'Пользователь';
     var initial = String(name).trim().charAt(0).toUpperCase() || 'П';
     var photo = resolvePhoto(user.photo_url, uid);
-    var stats = [];
-    if (user.ratings_count) stats.push('<span><strong>' + escapeHtml(String(user.ratings_count)) + '</strong> оценок</span>');
-    if (user.achievements_count) stats.push('<span><strong>' + escapeHtml(String(user.achievements_count)) + '</strong> ачивок</span>');
     var achList = user.achievements || [];
-    var achCount = Number(user.achievements_count || achList.length || 0);
-    var achRow = achList.length || achCount
-      ? '<div class="user-profile-block-head">' +
-          '<h3 class="user-profile-block-title">Достижения</h3>' +
-          (achCount > 0 ? '<button type="button" class="user-profile-ach-all" id="user-public-ach-all">Все достижения</button>' : '') +
-        '</div>' +
-        '<div class="user-public-ach-row-wrap"><div class="user-public-ach-row">' + achPublicHtml(achList) + '</div></div>'
+    var achTotal = Number(user.achievements_count || achList.length || 0);
+    var recent = (user.recent_ratings || []).slice(0, 12);
+    var ratingsCount = Number(user.ratings_count || 0);
+    var watchedCount = user.watched_count != null ? Number(user.watched_count) : null;
+
+    var statsHtml =
+      '<div class="user-profile-stats">' +
+        '<div class="user-profile-stat user-profile-stat--static">' +
+          '<span class="user-profile-stat-val">' + escapeHtml(String(ratingsCount)) + '</span>' +
+          '<span class="user-profile-stat-label">оценок</span></div>' +
+        (watchedCount != null
+          ? '<div class="user-profile-stat user-profile-stat--static">' +
+              '<span class="user-profile-stat-val">' + escapeHtml(String(watchedCount)) + '</span>' +
+              '<span class="user-profile-stat-label">просмотрено</span></div>'
+          : '') +
+        '<div class="user-profile-stat user-profile-stat--static">' +
+          '<span class="user-profile-stat-val">' + escapeHtml(String(achTotal)) + '</span>' +
+          '<span class="user-profile-stat-label">ачивок</span></div>' +
+      '</div>';
+
+    var recentHtml = recent.length
+      ? '<div class="user-profile-block">' +
+          '<h3 class="user-profile-block-title">Последние оценки</h3>' +
+          '<div class="user-profile-rating-list">' + recent.map(ratingRowHtml).join('') + '</div>' +
+        '</div>'
+      : '';
+
+    var achHtml = achList.length || achTotal
+      ? '<div class="user-profile-block" id="user-public-ach-block">' +
+          '<div class="user-profile-block-head">' +
+            '<h3 class="user-profile-block-title">Достижения</h3>' +
+            (achTotal > 0
+              ? '<button type="button" class="user-profile-ach-all" id="user-public-ach-all">Все достижения</button>'
+              : '') +
+          '</div>' +
+          '<div class="user-profile-ach-row-wrap">' +
+            '<div class="user-profile-ach-row">' + achList.map(achCircleHtml).join('') + '</div>' +
+          '</div></div>'
       : '';
 
     root.innerHTML =
-      '<article class="user-public-page">' +
-        '<div class="user-public-card">' +
-          '<div class="user-public-header">' +
-            '<div class="user-public-avatar">' +
-              (photo
-                ? '<img src="' + escapeHtml(photo) + '" alt="" loading="eager" referrerpolicy="no-referrer">'
-                : escapeHtml(initial)) +
-            '</div>' +
-            '<div class="user-public-head">' +
-              '<h1 class="user-public-name">' + escapeHtml(name) + '</h1>' +
-              (stats.length ? '<div class="user-public-stats">' + stats.join('') + '</div>' : '') +
-            '</div>' +
+      '<article class="user-public-page user-profile-page">' +
+        '<div class="user-profile-header">' +
+          '<div class="user-profile-avatar">' +
+            (photo
+              ? '<img src="' + escapeHtml(photo) + '" alt="" loading="eager" referrerpolicy="no-referrer">'
+              : escapeHtml(initial)) +
           '</div>' +
-          achRow +
-          '<div class="user-public-actions">' +
-            '<button type="button" class="btn-primary user-public-add" id="user-public-add-friend">Добавить в друзья</button>' +
+          '<div class="user-profile-head-text">' +
+            '<h1 class="user-profile-name">' + escapeHtml(name) + '</h1>' +
           '</div>' +
+        '</div>' +
+        statsHtml +
+        recentHtml +
+        achHtml +
+        '<div class="user-profile-actions user-public-actions">' +
+          '<button type="button" class="btn btn-primary user-profile-action-main" id="user-public-add-friend">Добавить в друзья</button>' +
         '</div>' +
       '</article>';
 
     if (photo) {
-      var img = root.querySelector('.user-public-avatar img');
+      var img = root.querySelector('.user-profile-avatar img');
       if (img) {
         img.addEventListener('error', function () {
-          var box = img.closest('.user-public-avatar');
+          var box = img.closest('.user-profile-avatar');
           if (box) box.textContent = initial;
         }, { once: true });
       }
     }
+
+    bindRatingRows(root);
+    bindAchievements(root, achList);
 
     var addBtn = document.getElementById('user-public-add-friend');
     if (addBtn) {
@@ -160,19 +254,7 @@
     var achAll = document.getElementById('user-public-ach-all');
     if (achAll) {
       achAll.addEventListener('click', function () {
-        if (!achList.length) return;
-        var grid = achList.map(function (a) {
-          var icon = (a && a.icon) || '🏅';
-          var tip = achTip(a);
-          return '<span class="user-public-ach user-public-ach--modal" title="' + escapeHtml(tip) + '">' +
-            '<span aria-hidden="true">' + escapeHtml(icon) + '</span></span>';
-        }).join('');
-        simpleModal(
-          '<h3 class="user-profile-block-title">Достижения</h3>' +
-          '<p class="cabinet-hint">' + escapeHtml(String(achCount)) + ' ачивок</p>' +
-          '<div class="user-public-ach-row user-public-ach-row--modal">' + grid + '</div>' +
-          '<p class="cabinet-hint user-public-ach-login-hint">Войдите, чтобы добавить в друзья и видеть оценки</p>'
-        );
+        openAllAchievementsModal(achList, achTotal);
       });
     }
   }

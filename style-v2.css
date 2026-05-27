@@ -10032,17 +10032,43 @@ body.user-standalone-page .user-public-page {
 .user-public-ach-login-hint {
   margin-top: 14px;
 }
+.user-public-page .user-profile-actions,
 .user-public-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 4px;
 }
-.user-public-actions .btn-primary,
-.user-public-add {
+.user-public-page .user-profile-action-main,
+.user-public-page #user-public-add-friend {
   width: 100%;
+  min-height: 52px;
+  height: auto;
+  padding: 14px 28px;
+  border: none;
   border-radius: 999px;
-  justify-content: center;
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ff2d7b, #9b4dff);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(255, 45, 123, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.user-public-page .user-profile-action-main:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px rgba(255, 45, 123, 0.45);
+}
+.user-public-ach-detail-icon {
+  font-size: 52px;
+  line-height: 1;
   text-align: center;
+  margin: 0 0 12px;
+}
+.user-public-page .user-profile-head-text {
+  min-width: 0;
 }
 
 .home-more-section {
