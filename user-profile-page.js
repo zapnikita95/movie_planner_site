@@ -26,14 +26,18 @@
     return raw && raw !== id ? raw : 'Ачивка';
   }
 
-  function achCircleHtml(a) {
+  function achTip(a) {
     const name = achName(a);
+    const desc = (a && a.description) || '';
+    return desc ? name + ' — ' + desc : name;
+  }
+
+  function achCircleHtml(a) {
+    const tip = achTip(a);
     const icon = (a && a.icon) || '🏅';
-    const cap = (name || '').split(' ')[0] || '…';
     return (
-      '<button type="button" class="user-profile-ach" title="' + escapeHtml(name) + '">' +
+      '<button type="button" class="user-profile-ach" title="' + escapeHtml(tip) + '" aria-label="' + escapeHtml(tip) + '">' +
         '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
-        '<span class="user-profile-ach-cap">' + escapeHtml(cap) + '</span>' +
       '</button>'
     );
   }
@@ -135,11 +139,19 @@
         '</div>'
       : (isFriend || isSelf ? '' : '<p class="cabinet-hint">Оценки видны только друзьям</p>');
 
-    const achievements = (data.achievements || []).slice(0, 24);
-    const achHtml = achievements.length
+    const allAchievements = data.achievements || [];
+    const achievements = allAchievements.slice(0, 12);
+    const achTotal = Number(data.achievements_count || allAchievements.length || 0);
+    const achHtml = achievements.length || achTotal
       ? '<div class="user-profile-block" id="user-profile-ach-block">' +
           '<h3 class="user-profile-block-title">Достижения</h3>' +
-          '<div class="user-profile-ach-row">' + achievements.map(achCircleHtml).join('') + '</div></div>'
+          '<div class="user-profile-ach-row-wrap">' +
+            '<div class="user-profile-ach-row">' +
+              achievements.map(achCircleHtml).join('') +
+              (achTotal > 0
+                ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
+                : '') +
+            '</div></div></div>'
       : '';
 
     const metaExtra = [];
@@ -233,6 +245,27 @@
       var el = root.querySelector('#user-profile-ach-block');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       else if (hooks.toast) hooks.toast('Пока нет достижений');
+    });
+    root.querySelector('[data-action="ach-all"]')?.addEventListener('click', function () {
+      loadAchievementsList(root, uid, allAchievements, achTotal, hooks);
+    });
+  }
+
+  function loadAchievementsList(root, uid, achievements, achTotal, hooks) {
+    const items = achievements || [];
+    root.innerHTML =
+      '<div class="user-profile-sub">' +
+        '<button type="button" class="user-profile-sub-back" data-action="back-main">← Профиль</button>' +
+        '<h3 class="user-profile-block-title">Достижения</h3>' +
+        '<p class="cabinet-hint user-profile-ach-sub-count">' +
+          escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
+        '</p>' +
+        (items.length
+          ? '<div class="user-profile-ach-row user-profile-ach-row--full">' + items.map(achCircleHtml).join('') + '</div>'
+          : '<p class="cabinet-hint">Пока нет достижений</p>') +
+      '</div>';
+    root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () {
+      hooks.reload();
     });
   }
 

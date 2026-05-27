@@ -9709,36 +9709,94 @@ button.home-tourn-row {
 .user-profile-more {
   margin-top: 10px;
 }
+.user-profile-ach-row-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 2px 4px;
+}
 .user-profile-ach-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
+  min-width: min-content;
+}
+.user-profile-ach-row--full {
+  flex-wrap: wrap;
 }
 .user-profile-ach {
   width: 56px;
   height: 56px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 45, 123, 0.45);
   background: rgba(255, 255, 255, 0.06);
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: default;
   color: inherit;
   font: inherit;
   line-height: 1;
+  padding: 0;
 }
 .user-profile-ach-icon {
   font-size: 22px;
 }
-.user-profile-ach-cap {
-  margin-top: 2px;
-  font-size: 9px;
-  max-width: 48px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-muted, #999);
+.user-profile-ach-all {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  color: #ff6ba8;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.user-profile-ach-all:hover {
+  text-decoration: underline;
+}
+.user-profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.user-profile-modal-panel {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--surface-elevated, #1a1a22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+}
+.user-profile-modal-close {
+  width: 100%;
+  margin-top: 16px;
+}
+.user-profile-taste-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+.user-profile-taste-row strong {
+  color: var(--accent, #ff2d7b);
+  flex-shrink: 0;
+}
+.user-profile-ach-sub-count {
+  margin: 0 0 12px;
 }
 .user-profile-sub-back {
   margin: 0 0 14px;
@@ -9813,48 +9871,63 @@ button.home-tourn-row {
   color: var(--accent, #ff2d7b);
   font-weight: 800;
 }
+.user-public-ach-row-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 18px;
+}
 .user-public-ach-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 18px;
+  min-width: min-content;
+}
+.user-public-ach-row--modal {
+  flex-wrap: wrap;
 }
 .user-public-ach {
   width: 52px;
   height: 52px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 45, 123, 0.4);
   background: rgba(0, 0, 0, 0.2);
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
 }
-.user-public-ach-cap {
-  font-size: 9px;
-  margin-top: 2px;
-  max-width: 44px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-muted, #999);
+.user-public-ach-all {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  color: #ff6ba8;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.user-public-ach-all:hover {
+  text-decoration: underline;
+}
+.user-public-ach-login-hint {
+  margin-top: 14px;
 }
 .user-public-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-@media (min-width: 520px) {
-  .user-public-actions {
-    flex-direction: row;
-  }
-  .user-public-actions .btn-primary,
-  .user-public-actions .btn {
-    flex: 1;
-    text-align: center;
-    justify-content: center;
-  }
+.user-public-actions .btn-primary,
+.user-public-add {
+  width: 100%;
+  border-radius: 999px;
+  justify-content: center;
+  text-align: center;
 }
 
 .home-more-section {
