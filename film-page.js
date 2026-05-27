@@ -1453,6 +1453,7 @@
     initStandaloneSiteChrome: initStandaloneSiteChrome,
     setupAppOpenBanner: setupAppOpenBanner,
     appOpenBannerHtml: appOpenBannerHtml,
+    standaloneHeaderSearchHtml: standaloneHeaderSearchHtml,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);

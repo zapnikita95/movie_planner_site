@@ -293,12 +293,26 @@
     return Promise.resolve();
   }
 
+  function standaloneHeaderSearchHtml() {
+    if (global.MpFilmPage && typeof MpFilmPage.standaloneHeaderSearchHtml === 'function') {
+      return MpFilmPage.standaloneHeaderSearchHtml();
+    }
+    return '<div class="header-search" id="header-search" role="search">' +
+      '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
+      '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+      '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
+      '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+      '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
+    '</div>';
+  }
+
   function renderUserShell(userId) {
     document.body.innerHTML =
       '<div class="page-shell user-standalone-shell">' +
         '<header id="site-header">' +
           '<div class="header-content">' +
             '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
+            standaloneHeaderSearchHtml() +
             '<div class="header-buttons">' +
               '<button type="button" class="btn-primary" id="login-btn">Войти</button>' +
             '</div>' +
@@ -337,7 +351,10 @@
     var userId = String(opts.userId || '').replace(/\D/g, '');
     if (!userId) return;
 
-    try { document.body.classList.add('user-standalone-page'); } catch (_e) {}
+    try {
+      document.body.classList.add('user-standalone-page');
+      document.body.classList.add('film-standalone-page');
+    } catch (_e) {}
     renderUserShell(userId);
   }
 
