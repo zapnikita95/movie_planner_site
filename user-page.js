@@ -111,12 +111,12 @@
     if (user.achievements_count) stats.push('<span><strong>' + escapeHtml(String(user.achievements_count)) + '</strong> ачивок</span>');
     var achList = user.achievements || [];
     var achCount = Number(user.achievements_count || achList.length || 0);
-    var achRow = achList.length
-      ? '<div class="user-public-ach-row-wrap"><div class="user-public-ach-row">' + achPublicHtml(achList) +
-        (achCount > 0
-          ? '<button type="button" class="user-public-ach-all" id="user-public-ach-all">Все достижения</button>'
-          : '') +
-        '</div></div>'
+    var achRow = achList.length || achCount
+      ? '<div class="user-profile-block-head">' +
+          '<h3 class="user-profile-block-title">Достижения</h3>' +
+          (achCount > 0 ? '<button type="button" class="user-profile-ach-all" id="user-public-ach-all">Все достижения</button>' : '') +
+        '</div>' +
+        '<div class="user-public-ach-row-wrap"><div class="user-public-ach-row">' + achPublicHtml(achList) + '</div></div>'
       : '';
 
     root.innerHTML =

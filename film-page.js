@@ -288,6 +288,17 @@
     '</div>';
   }
 
+  var STANDALONE_SECTION_PATHS = {
+    settings: '/settings',
+    groups: '/groups',
+    stats: '/stats',
+    shazam: '/shazam',
+    integrations: '/integrations',
+    about: '/about',
+    home: '/home',
+    tournament: '/tournament',
+  };
+
   function standaloneNavHtml() {
     var tabs = [
       { href: '/home', label: 'Главная', emoji: '🏠' },
@@ -295,6 +306,7 @@
       { href: '/premieres', label: 'Премьеры', emoji: '🎭' },
       { href: '/watchlist', label: 'База', emoji: '🎬' },
       { href: '/whattowatch', label: 'Что посмотреть', emoji: '🎯' },
+      { href: '/tournament', label: 'Турнир', emoji: '🏆' },
     ];
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
       tabs.map(function (t) {
@@ -470,6 +482,103 @@
     });
   }
 
+  function closeStandaloneAccountDropdown() {
+    var dd = document.getElementById('header-settings-dropdown');
+    var settingsBtn = document.getElementById('header-settings-btn');
+    if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'false');
+    if (dd) {
+      dd.classList.add('hidden');
+      dd.classList.remove('open');
+    }
+  }
+
+  function openStandaloneAccountDropdown(opts) {
+    opts = opts || {};
+    var dd = document.getElementById('header-settings-dropdown');
+    var settingsBtn = document.getElementById('header-settings-btn');
+    if (!dd) return;
+    if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
+    var extUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
+    var html = '<div class="header-dropdown-title">Перейти</div>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="stats">📊 Статистика</button>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">🔌 Интеграции</button>'
+      + '<a class="header-settings-nav-item header-settings-nav-item--external" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>'
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
+    dd.innerHTML = html;
+    dd.querySelectorAll('[data-settings-go]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeStandaloneAccountDropdown();
+        var go = btn.getAttribute('data-settings-go');
+        var path = STANDALONE_SECTION_PATHS[go];
+        if (path) global.location.href = path;
+      });
+    });
+    dd.classList.remove('hidden');
+    dd.classList.add('open');
+  }
+
+  function bindStandaloneHeaderChrome(me, opts) {
+    opts = opts || {};
+    var uid = me && me.user_id;
+    var pill = document.getElementById('header-profile-pill');
+    if (pill && !pill.dataset.mpStandaloneBound) {
+      pill.dataset.mpStandaloneBound = '1';
+      pill.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeStandaloneAccountDropdown();
+        if (uid) {
+          global.location.href = '/u/' + encodeURIComponent(String(uid));
+        }
+      });
+    }
+    var settingsBtn = document.getElementById('header-settings-btn');
+    if (settingsBtn && !settingsBtn.dataset.mpStandaloneBound) {
+      settingsBtn.dataset.mpStandaloneBound = '1';
+      settingsBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var dd = document.getElementById('header-settings-dropdown');
+        if (dd && dd.classList.contains('open') && !dd.classList.contains('hidden')) {
+          closeStandaloneAccountDropdown();
+        } else {
+          openStandaloneAccountDropdown(opts);
+        }
+      });
+    }
+    var coinsBtn = document.getElementById('header-coins-btn');
+    if (coinsBtn && me && me.coins && !coinsBtn.dataset.mpCoinsBound) {
+      coinsBtn.dataset.mpCoinsBound = '1';
+      coinsBtn.addEventListener('click', function () {
+        var c = me.coins;
+        var msg = c.is_infinite ? 'Безлимитные монетки' : ('Монетки: ' + (c.balance != null ? c.balance : '—'));
+        try {
+          var el = document.getElementById('public-toast');
+          if (!el) {
+            el = document.createElement('div');
+            el.id = 'public-toast';
+            el.className = 'public-toast';
+            document.body.appendChild(el);
+          }
+          el.textContent = msg;
+          el.classList.add('show');
+          clearTimeout(el._hideTimer);
+          el._hideTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
+        } catch (_e) {}
+      });
+    }
+    if (!global._mpStandaloneDropdownCloseBound) {
+      global._mpStandaloneDropdownCloseBound = true;
+      document.addEventListener('click', function (e) {
+        var wrap = document.getElementById('header-user-wrap');
+        if (wrap && !wrap.contains(e.target)) closeStandaloneAccountDropdown();
+      });
+    }
+  }
+
   function applyStandaloneAuthChrome(me, opts) {
     opts = opts || {};
     var apiBase = opts.apiBase || API_BASE;
@@ -490,7 +599,7 @@
         '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
         standaloneHeaderSearchHtml() +
         '<div class="header-buttons">' +
-          '<div class="header-user-wrap account-switcher" id="header-user-wrap">' +
+          '<div class="header-user-wrap account-switcher" id="header-user-wrap" style="position:relative">' +
             '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
               '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
               '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
@@ -500,11 +609,15 @@
                 '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
               '</button>' +
             '</div>' +
-            '<a class="header-settings-btn" href="/settings" title="Настройки">⚙️<span class="header-settings-btn-text"> Настройки</span></a>' +
+            '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">' +
+              '<span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>' +
+            '</button>' +
+            '<div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>' +
           '</div>' +
         '</div>' +
       '</div>';
     setStandaloneHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name, apiBase);
+    bindStandaloneHeaderChrome(me, opts);
     var shell = document.querySelector('.page-shell');
     var main = shell && shell.querySelector(mainSelector);
     var nav = document.getElementById('film-standalone-nav');

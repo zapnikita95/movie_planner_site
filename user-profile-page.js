@@ -144,14 +144,15 @@
     const achTotal = Number(data.achievements_count || allAchievements.length || 0);
     const achHtml = achievements.length || achTotal
       ? '<div class="user-profile-block" id="user-profile-ach-block">' +
-          '<h3 class="user-profile-block-title">Достижения</h3>' +
+          '<div class="user-profile-block-head">' +
+            '<h3 class="user-profile-block-title">Достижения</h3>' +
+            (achTotal > 0
+              ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
+              : '') +
+          '</div>' +
           '<div class="user-profile-ach-row-wrap">' +
-            '<div class="user-profile-ach-row">' +
-              achievements.map(achCircleHtml).join('') +
-              (achTotal > 0
-                ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
-                : '') +
-            '</div></div></div>'
+            '<div class="user-profile-ach-row">' + achievements.map(achCircleHtml).join('') + '</div>' +
+          '</div></div>'
       : '';
 
     const metaExtra = [];

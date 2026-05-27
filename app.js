@@ -9314,16 +9314,19 @@
         + '</div></form>'
         + '</div>'
         + '<div class="settings-panels-grid">'
-        + '<section class="settings-panel"><h3 class="settings-panel-title">Фото профиля</h3>'
-        + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"><span class="cabinet-hint">Загрузка…</span></div>'
+        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото профиля</h3>'
+        + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
+        + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
+        + '<div class="settings-photo-editor hidden" id="profile-settings-photo-editor">'
+        + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"></div>'
         + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
         + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
-        + '</section>'
-        + '<section class="settings-panel"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
+        + '</div></section>'
+        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
         + settingsToggleRow({ id: 'profile-settings-searchable', emoji: '🔎', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
         + settingsToggleRow({ id: 'profile-settings-tournament', emoji: '🏆', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
         + '</div></section>'
-        + '<section class="settings-panel"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
+        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
         + settingsToggleRow({ id: 'settings-notify-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
         + settingsToggleRow({ id: 'settings-notify-inapp', emoji: '🔔', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
         + '</div></section>'
@@ -9586,7 +9589,19 @@
           .catch(() => setStatus('Ошибка сети', false));
       });
     }
-    loadProfileSettingsAvatarGrid(root, setStatus);
+    let avatarGridLoaded = false;
+    const editPhotoBtn = root.querySelector('#profile-settings-edit-photo');
+    const photoEditor = root.querySelector('#profile-settings-photo-editor');
+    if (editPhotoBtn && photoEditor) {
+      editPhotoBtn.addEventListener('click', () => {
+        photoEditor.classList.remove('hidden');
+        editPhotoBtn.classList.add('hidden');
+        if (!avatarGridLoaded) {
+          avatarGridLoaded = true;
+          loadProfileSettingsAvatarGrid(root, setStatus);
+        }
+      });
+    }
     const uploadPhotoBtn = root.querySelector('#profile-settings-upload-photo');
     const fileInput = root.querySelector('#profile-settings-photo');
     if (uploadPhotoBtn && fileInput) {
@@ -11553,6 +11568,11 @@
       profilePill.addEventListener('click', (e) => {
         e.preventDefault();
         closeAccountDropdown();
+        const uid = cabinetUserId;
+        if (uid) {
+          window.location.href = '/u/' + encodeURIComponent(String(uid));
+          return;
+        }
         showSection('settings');
         if (typeof renderSettingsSection === 'function') renderSettingsSection();
       });

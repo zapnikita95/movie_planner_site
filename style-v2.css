@@ -5528,8 +5528,46 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 }
 
 /* —— Страница настроек (десктоп) —— */
-.cabinet-settings .settings-content {
-  max-width: 1040px;
+.cabinet-settings .settings-content,
+#section-settings .settings-content {
+  max-width: min(1200px, 96vw);
+  margin: 0 auto;
+}
+.settings-photo-editor {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+.settings-photo-editor.hidden {
+  display: none !important;
+}
+#profile-settings-edit-photo.hidden {
+  display: none !important;
+}
+@media (min-width: 1100px) {
+  .settings-panels-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  .settings-panel--wide {
+    grid-column: 1 / -1;
+  }
+  .settings-panel--compact {
+    min-height: 0;
+  }
+  .settings-hero-card {
+    padding: 28px 32px;
+  }
+  .settings-panel {
+    padding: 22px 26px;
+  }
+  .settings-panel-title {
+    font-size: 14px;
+  }
+  .settings-toggle-title {
+    font-size: 16px;
+  }
 }
 .settings-loading {
   padding: 32px 0;
@@ -7256,9 +7294,30 @@ a.header-settings-nav-item {
 body.film-standalone-page .page-shell > #site-header {
   margin-bottom: clamp(18px, 2.5vw, 28px);
 }
-body.film-standalone-page .film-standalone-nav {
-  max-width: 1180px;
+body.film-standalone-page .film-standalone-nav,
+body.user-standalone-page .film-standalone-nav,
+body.staff-standalone-page .film-standalone-nav {
+  max-width: 1280px;
   margin: 0 auto clamp(16px, 2vw, 24px);
+  padding: 0 12px 6px;
+  justify-content: flex-start;
+  gap: 6px;
+}
+@media (min-width: 1100px) {
+  body.film-standalone-page .film-standalone-nav,
+  body.user-standalone-page .film-standalone-nav,
+  body.staff-standalone-page .film-standalone-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 12px;
+    overflow-x: visible;
+  }
+  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn,
+  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn,
+  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
 }
 body.film-standalone-page .page-shell > main.film-page {
   margin-top: clamp(12px, 2vw, 20px);
@@ -9515,16 +9574,26 @@ button.home-tourn-row {
 .user-profile-page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(20px, 3vw, 28px);
+}
+.user-profile-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.user-profile-block-head .user-profile-block-title {
+  margin: 0;
 }
 .user-profile-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(16px, 2.5vw, 28px);
 }
 .user-profile-avatar {
-  width: 72px;
-  height: 72px;
+  width: clamp(80px, 10vw, 120px);
+  height: clamp(80px, 10vw, 120px);
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
@@ -9544,9 +9613,11 @@ button.home-tourn-row {
 }
 .user-profile-name {
   margin: 0;
-  font-size: clamp(22px, 3vw, 28px);
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-size: clamp(26px, 3.5vw, 40px);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
 }
 .user-profile-status {
   margin-top: 4px;
@@ -9574,10 +9645,10 @@ button.home-tourn-row {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 76px;
-  padding: 12px 8px;
-  border-radius: 14px;
+  gap: 6px;
+  min-height: clamp(84px, 10vw, 108px);
+  padding: 16px 10px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: inherit;
@@ -9593,13 +9664,14 @@ button.home-tourn-row {
   background: rgba(255, 45, 123, 0.1);
 }
 .user-profile-stat-val {
-  font-size: 22px;
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-size: clamp(24px, 3vw, 34px);
   font-weight: 800;
   color: var(--accent, #ff2d7b);
   line-height: 1;
 }
 .user-profile-stat-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -9712,18 +9784,42 @@ button.home-tourn-row {
 .user-profile-ach-row-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: 0 -4px;
-  padding: 2px 4px;
+  margin: 0;
+  padding: 4px 20px 4px 4px;
+  scrollbar-width: thin;
 }
 .user-profile-ach-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: min-content;
 }
 .user-profile-ach-row--full {
   flex-wrap: wrap;
+  padding-right: 0;
+}
+@media (min-width: 900px) {
+  .user-profile-ach-row-wrap {
+    overflow: visible;
+    padding-right: 4px;
+  }
+  .user-profile-ach-row {
+    flex-wrap: wrap;
+  }
+  .user-profile-rating-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .user-profile-rating-row {
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+  .user-profile-block-title {
+    font-size: 18px;
+  }
 }
 .user-profile-ach {
   width: 56px;
@@ -9746,18 +9842,19 @@ button.home-tourn-row {
 }
 .user-profile-ach-all {
   flex-shrink: 0;
-  border: 0;
-  background: none;
-  color: #ff6ba8;
+  border: 1px solid rgba(255, 107, 168, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 45, 123, 0.1);
+  color: #ff8fc4;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  padding: 8px 10px;
+  padding: 8px 14px;
   white-space: nowrap;
 }
 .user-profile-ach-all:hover {
-  text-decoration: underline;
+  background: rgba(255, 45, 123, 0.2);
 }
 .user-profile-modal-overlay {
   position: fixed;
@@ -9819,9 +9916,13 @@ button.home-tourn-row {
 
 /* Публичная страница /u/:id */
 .user-standalone-main {
-  max-width: 720px;
+  max-width: min(1120px, 96vw);
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: clamp(20px, 3vw, 40px) clamp(16px, 3vw, 32px) 56px;
+}
+body.user-standalone-page .user-profile-page,
+body.user-standalone-page .user-public-page {
+  width: 100%;
 }
 .user-public-card {
   padding: 20px;
