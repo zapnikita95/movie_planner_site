@@ -1,44 +1,17 @@
 (function (global) {
   'use strict';
 
-  function parseTelegramWebUrl(webUrl) {
-    var m = String(webUrl || '').match(/t\.me\/([^/?#]+)(?:\?start=([^&#]+))?/);
-    if (!m) return null;
-    return { domain: m[1], start: m[2] || '' };
+  function isMobileUa() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
   }
 
-  /** Open t.me / tg:// link. Pass preOpenedWindow from a synchronous click handler. */
-  function openTelegramLink(webUrl, preOpenedWindow) {
-    var url = String(webUrl || '').trim();
-    if (!url) return false;
-
-    var parsed = parseTelegramWebUrl(url);
-    var ua = navigator.userAgent || '';
-    var isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
-    if (isMobile && parsed && parsed.start) {
-      var tgNative = 'tg://resolve?domain=' + encodeURIComponent(parsed.domain)
-        + '&start=' + encodeURIComponent(parsed.start);
-      try {
-        global.location.href = tgNative;
-        return true;
-      } catch (_e) {}
+  function closePreOpenedWindow(win) {
+    if (win && !win.closed) {
+      try { win.close(); } catch (_e) {}
     }
+  }
 
-    if (preOpenedWindow && !preOpenedWindow.closed) {
-      try {
-        preOpenedWindow.location.href = url;
-        preOpenedWindow.focus();
-        return true;
-      } catch (_e2) {}
-    }
-
-    var popup = null;
-    try { popup = global.open(url, '_blank', 'noopener,noreferrer'); } catch (_e3) {}
-    if (popup) {
-      try { popup.focus(); } catch (_e4) {}
-      return true;
-    }
-
+  function clickWebUrl(url) {
     try {
       var a = document.createElement('a');
       a.href = url;
@@ -48,15 +21,46 @@
       a.click();
       a.remove();
       return true;
-    } catch (_e5) {}
-
-    try {
-      global.location.href = url;
-      return true;
-    } catch (_e6) {}
-
+    } catch (_e) {
+      try {
+        global.location.href = url;
+        return true;
+      } catch (_e2) {}
+    }
     return false;
   }
 
+  /** Open t.me link. preOpenedWindow only used on desktop (sync popup from click). */
+  function openTelegramLink(webUrl, preOpenedWindow) {
+    var url = String(webUrl || '').trim();
+    if (!url) return false;
+
+    if (isMobileUa()) {
+      closePreOpenedWindow(preOpenedWindow);
+      return clickWebUrl(url);
+    }
+
+    if (preOpenedWindow && !preOpenedWindow.closed) {
+      try {
+        preOpenedWindow.opener = null;
+        preOpenedWindow.location.replace(url);
+        preOpenedWindow.focus();
+        return true;
+      } catch (_e) {
+        closePreOpenedWindow(preOpenedWindow);
+      }
+    }
+
+    var popup = null;
+    try { popup = global.open(url, '_blank', 'noopener,noreferrer'); } catch (_e3) {}
+    if (popup) {
+      try { popup.focus(); } catch (_e4) {}
+      return true;
+    }
+
+    return clickWebUrl(url);
+  }
+
   global.MpOpenTelegramLink = openTelegramLink;
-})(window);
+  global.MpIsMobileUa = isMobileUa;
+})(typeof window !== 'undefined' ? window : this);

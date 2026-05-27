@@ -85,6 +85,11 @@
     }
   }
 
+  function openPreOpenedTelegramWindow() {
+    if (global.MpIsMobileUa && global.MpIsMobileUa()) return null;
+    try { return global.open('about:blank', '_blank', 'noopener,noreferrer'); } catch (_e) { return null; }
+  }
+
   function openPfTelegramLink(url, preOpenedWindow) {
     if (typeof global.MpOpenTelegramLink === 'function') {
       return global.MpOpenTelegramLink(url, preOpenedWindow);
@@ -377,20 +382,19 @@
       tg.addEventListener('click', function (e) {
         e.preventDefault();
         if (!privacyOk()) { nudgePrivacy(); return; }
-        var tgWin = null;
-        try { tgWin = global.open('about:blank', '_blank'); } catch (_e) {}
-        startPfBotAuth($('login-status'), botPanel, tgWin);
+        startPfBotAuth($('login-status'), botPanel, openPreOpenedTelegramWindow());
       });
     }
 
     var botReopen = $('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', function (e) {
-        if (pfBotDeepLink) return;
         e.preventDefault();
-        var tgWin = null;
-        try { tgWin = global.open('about:blank', '_blank'); } catch (_e) {}
-        startPfBotAuth($('login-status'), botPanel, tgWin);
+        if (pfBotDeepLink) {
+          openPfTelegramLink(pfBotDeepLink, null);
+          return;
+        }
+        startPfBotAuth($('login-status'), botPanel, openPreOpenedTelegramWindow());
       });
     }
 

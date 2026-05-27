@@ -2643,6 +2643,11 @@
   let _siteBotAuthPoll = null;
   let _siteBotAuthDeepLink = null;
 
+  function openPreOpenedTelegramWindow() {
+    if (typeof window.MpIsMobileUa === 'function' && window.MpIsMobileUa()) return null;
+    try { return window.open('about:blank', '_blank', 'noopener,noreferrer'); } catch (_) { return null; }
+  }
+
   function openTelegramAuthLink(url, preOpenedWindow) {
     if (typeof window.MpOpenTelegramLink === 'function') {
       return window.MpOpenTelegramLink(url, preOpenedWindow);
@@ -2842,9 +2847,7 @@
           nudgeOAuthPrivacy();
           return;
         }
-        let tgWin = null;
-        try { tgWin = window.open('about:blank', '_blank'); } catch (_) {}
-        startSiteBotAuth(modal, status, botPanel, tgWin);
+        startSiteBotAuth(modal, status, botPanel, openPreOpenedTelegramWindow());
       });
     }
 
@@ -2868,11 +2871,12 @@
     const botReopen = document.getElementById('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', (e) => {
-        if (_siteBotAuthDeepLink) return;
         e.preventDefault();
-        let tgWin = null;
-        try { tgWin = window.open('about:blank', '_blank'); } catch (_) {}
-        startSiteBotAuth(modal, status, botPanel, tgWin);
+        if (_siteBotAuthDeepLink) {
+          openTelegramAuthLink(_siteBotAuthDeepLink, null);
+          return;
+        }
+        startSiteBotAuth(modal, status, botPanel, openPreOpenedTelegramWindow());
       });
     }
 
