@@ -732,8 +732,8 @@
         } else {
           loadPlans();
           loadUnwatched();
-          loadSeries();
-          loadRatings();
+          setTimeout(function () { loadSeries(); }, 120);
+          setTimeout(function () { loadRatings(); }, 240);
           handleAuthEntryDeepLinks();
           const pathUserBoot = userIdFromLocation();
           if (pathUserBoot) {
@@ -1663,6 +1663,11 @@
     return 'Доброй ночи';
   }
 
+  function pageLoadingHtml() {
+    return '<div class="mp-page-loading" role="status" aria-live="polite" aria-busy="true">'
+      + '<div class="mp-page-loading-spinner" aria-hidden="true"></div></div>';
+  }
+
   // ——— UI: шапка, выпадающее меню аккаунтов ———
   function closeAccountDropdown() {
     const dd = document.getElementById('header-settings-dropdown');
@@ -2411,7 +2416,7 @@
     showScreen('cabinet-readonly');
     showFilmPageLayout();
     pageRoot.className = 'container film-page-container staff-page-content loading';
-    pageRoot.innerHTML = 'Загрузка…';
+    pageRoot.innerHTML = pageLoadingHtml();
     if (!o.skipHistory) {
       try {
         const path = '/s/' + kp;
@@ -3640,7 +3645,7 @@
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
   const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'tournament'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'tournament'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres'];
 
   function loadHomeSectionsOrder() {
     try {
@@ -3875,7 +3880,8 @@
     const kp = escapeHtml(String(it.kp_id || ''));
     const date = escapeHtml(String(it.premiere_date || ''));
     const active = !!it.reminder_set;
-    const cls = ['premiere-bell-btn', extraClass || '', active ? 'active' : ''].filter(Boolean).join(' ');
+    const posterBell = (extraClass || '').indexOf('premiere-poster-bell') >= 0;
+    const cls = ['premiere-bell-btn', extraClass || '', posterBell ? 'premiere-poster-bell--overlay' : '', active ? 'active' : ''].filter(Boolean).join(' ');
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
     const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
     const icon = active ? '🔕' : '🔔';
@@ -3999,8 +4005,11 @@
       }
       items = items.slice(0, 5);
       if (!items.length) {
+        const emptyHint = _homePremiereRollover
+          ? 'В календарном месяце премьер не осталось — ниже ближайшие в следующем.'
+          : 'Скорых премьер в этом месяце не найдено.';
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">Скорых премьер в этом месяце не найдено.</p><div class="plans-empty-actions">'
+          + '<div class="home-dash-empty"><p class="empty-hint">' + escapeHtml(emptyHint) + '</p><div class="plans-empty-actions">'
           + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Открыть «Премьеры»</button>'
           + '</div></div></section>';
       }
@@ -4065,6 +4074,8 @@
   }
 
   let _homePremierePreview = [];
+  let _homePremiereRollover = false;
+  let _premieresRolloverActive = false;
 
   function _paintHomeDashboardBlocks() {
     const root = document.getElementById('home-dashboard-root');
@@ -4073,6 +4084,7 @@
     const hidden = loadHomeSectionsHidden();
     let html = '';
     order.forEach((bid) => {
+      if (bid === 'tournament') return;
       if (hidden.indexOf(bid) >= 0) return;
       html += renderHomeBlockHtml(bid);
     });
@@ -4083,37 +4095,67 @@
     renderHomeMoreLinks(hidden);
   }
 
+  function fetchPremieresForDisplay(period) {
+    if (period === 'next_month') {
+      const apiPeriod = _premieresRolloverActive ? 'after_next_month' : 'next_month';
+      return api('/api/site/premieres?period=' + encodeURIComponent(apiPeriod)).then((data) => {
+        let items = (data && data.success && data.items) ? data.items.slice() : [];
+        items = filterPremieresUpcomingMsk(items);
+        items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+        return { items: items, rollover: _premieresRolloverActive };
+      });
+    }
+    if (period === 'current_month') {
+      return api('/api/site/premieres?period=current_month').then((data) => {
+        let items = (data && data.success && data.items) ? data.items.slice() : [];
+        items = filterPremieresUpcomingMsk(items);
+        if (items.length) {
+          _premieresRolloverActive = false;
+          items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+          return { items: items, rollover: false };
+        }
+        return api('/api/site/premieres?period=next_month').then((data2) => {
+          let nextItems = (data2 && data2.success && data2.items) ? data2.items.slice() : [];
+          nextItems = filterPremieresUpcomingMsk(nextItems);
+          nextItems.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+          _premieresRolloverActive = true;
+          return { items: nextItems, rollover: true };
+        });
+      });
+    }
+    return api('/api/site/premieres?period=' + encodeURIComponent(period)).then((data) => {
+      const items = (data && data.success && data.items) ? data.items.slice() : [];
+      return { items: items, rollover: false };
+    });
+  }
+
   function renderHomeDashboardFromCache() {
     const root = document.getElementById('home-dashboard-root');
     const secHome = document.getElementById('section-home');
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
 
+    const hadBlocks = root.querySelector('.home-dash-block');
+    if (!hadBlocks) root.innerHTML = pageLoadingHtml();
     applyHomeEmojiVisibility();
-    _paintHomeDashboardBlocks();
 
-    Promise.all([
-      api('/api/site/premieres?period=current_month').catch(() => null),
-      api('/api/miniapp/dashboard').catch(() => null),
-    ]).then(([premData, dashData]) => {
-      if (premData && premData.success && Array.isArray(premData.items)) {
-        let items = premData.items.slice();
-        items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
-        _homePremierePreview = items;
-      } else {
-        _homePremierePreview = [];
-      }
-      _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
-      if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
-      if (dashData && dashData.show_tournament_intro) {
-        setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
-      }
-    }).catch(() => {
-      _homePremierePreview = [];
-      _homeTournamentPreview = null;
-    }).finally(() => {
-      applyHomeEmojiVisibility();
-      _paintHomeDashboardBlocks();
-    });
+    fetchPremieresForDisplay('current_month')
+      .then((prem) => {
+        _homePremierePreview = prem.items || [];
+        _homePremiereRollover = !!prem.rollover;
+        return api('/api/miniapp/dashboard', { timeoutMs: 45000 }).catch(() => null);
+      })
+      .then((dashData) => {
+        _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
+        if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
+        if (dashData && dashData.show_tournament_intro) {
+          setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        applyHomeEmojiVisibility();
+        _paintHomeDashboardBlocks();
+      });
   }
 
   function renderHomeMoreLinks(hidden) {
@@ -4136,7 +4178,7 @@
   function renderTournamentSection() {
     const root = document.getElementById('tournament-page-root');
     if (!root) return;
-    root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    root.innerHTML = pageLoadingHtml();
     api('/api/tournament/leaderboard').then((data) => {
       if (!data || !data.success) {
         const hint = data && data.error === 'timeout'
@@ -4787,8 +4829,6 @@
       renderUnwatchedList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }).catch(() => {
-      unwatchedItems = [];
-      renderUnwatchedList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
   }
@@ -5076,7 +5116,7 @@
     const session = getActiveSession();
     const isGroup = session && !session.is_personal;
 
-    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (loading) { loading.classList.remove('hidden'); loading.innerHTML = pageLoadingHtml(); }
     if (error) { error.classList.add('hidden'); error.textContent = ''; }
     if (content) content.style.visibility = 'hidden';
     if (personalWrap) personalWrap.classList.toggle('hidden', !!isGroup);
@@ -5151,7 +5191,7 @@
     const error = document.getElementById('public-stats-error');
     const content = document.getElementById('public-stats-content');
     const subtitle = document.getElementById('public-stats-subtitle');
-    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (loading) { loading.classList.remove('hidden'); loading.innerHTML = pageLoadingHtml(); }
     if (error) { error.classList.add('hidden'); error.textContent = ''; }
     if (content) content.style.visibility = 'hidden';
     if (subtitle) subtitle.textContent = 'Статистика группы';
@@ -5234,7 +5274,7 @@
     const subtitle = document.getElementById('public-stats-subtitle');
     const groupWrap = document.getElementById('public-stats-group-wrap');
     const personalWrap = document.getElementById('public-stats-personal-wrap');
-    if (loading) { loading.classList.remove('hidden'); loading.textContent = 'Загрузка…'; }
+    if (loading) { loading.classList.remove('hidden'); loading.innerHTML = pageLoadingHtml(); }
     if (error) { error.classList.add('hidden'); error.textContent = ''; }
     if (content) content.style.visibility = 'hidden';
     if (groupWrap) groupWrap.classList.add('hidden');
@@ -6438,7 +6478,7 @@
     return (
       `<div class="action-dropdown" data-dropdown-root="plan">` +
         `<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">` +
-          `<span class="action-dropdown-btn-label">📅 Запланировать просмотр</span>` +
+          `<span class="action-dropdown-btn-label"><span class="action-dropdown-btn-emoji" aria-hidden="true">📅</span><span class="action-dropdown-btn-text">Запланировать просмотр</span></span>` +
           `<span class="action-dropdown-caret">▾</span>` +
         `</button>` +
         `<div class="action-dropdown-menu">${menuItems}</div>` +
@@ -7496,7 +7536,7 @@
         renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
       } else {
         pageRoot.className = 'movie-page loading';
-        pageRoot.innerHTML = 'Загрузка…';
+        pageRoot.innerHTML = pageLoadingHtml();
       }
     };
     if (_filmModalCache[filmId]) {
@@ -9004,7 +9044,7 @@
     const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
     nameEl.textContent = me.name || 'Профиль';
-    if (kickerEl) kickerEl.textContent = greetingByHour();
+    if (kickerEl) kickerEl.textContent = greetingByHour() + ',';
     if (heroName) heroName.textContent = (me.name || 'Профиль') + '!';
     let heroAvatarUrl = me.photo_url || me.avatar_url || '';
     if (!heroAvatarUrl && me.is_group_profile && me.room_emoji && (/^https?:\/\//i.test(me.room_emoji) || String(me.room_emoji).startsWith('/api/'))) {
@@ -11315,10 +11355,11 @@
     const options = isOn
       ? { method: 'POST', body: JSON.stringify({ premiere_date: date }) }
       : { method: 'DELETE' };
-    api('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', options).then((data) => {
+    apiText('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', options).then((data) => {
       if (!data || !data.success) {
         const msg = data && (data.message || data.error);
-        showToast(msg || 'Не удалось изменить напоминание', { type: 'error' });
+        const hint = msg === 'server error' ? 'Сервер не смог сохранить напоминание. Попробуйте позже.' : msg;
+        showToast(hint || 'Не удалось изменить напоминание', { type: 'error' });
         button.disabled = false;
         button.innerHTML = oldHtml;
         return;
@@ -11353,14 +11394,17 @@
     if (forceReload || !_premieresData.length) {
       if (loading) loading.classList.remove('hidden');
       if (grid) grid.innerHTML = '';
-      api('/api/site/premieres?period=' + encodeURIComponent(_premieresPeriod)).then((data) => {
+      fetchPremieresForDisplay(_premieresPeriod).then((prem) => {
         if (loading) loading.classList.add('hidden');
-        if (!data || !data.success) {
-          if (errorEl) { errorEl.textContent = (data && data.error) || 'Не удалось загрузить премьеры'; errorEl.classList.remove('hidden'); }
-          _premieresData = [];
-          return;
+        _premieresData = prem.items || [];
+        if (!_premieresData.length) {
+          if (errorEl) {
+            errorEl.textContent = _premieresRolloverActive
+              ? 'В этом календарном месяце премьер не осталось — откройте «Следующий месяц».'
+              : 'На этот период премьер нет.';
+            errorEl.classList.remove('hidden');
+          }
         }
-        _premieresData = data.items || [];
         renderPremieresList();
       }).catch(() => {
         if (loading) loading.classList.add('hidden');
@@ -11405,7 +11449,7 @@
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
           ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
-          <span data-stop-card-click="1">${bell.replace('class="premiere-bell-btn premiere-poster-bell"', 'class="premiere-bell-btn premiere-poster-bell premiere-poster-bell--overlay"')}</span>
+          <span data-stop-card-click="1">${bell}</span>
         </div>
         <div class="premiere-poster-tile-body">
           <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>

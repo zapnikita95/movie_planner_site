@@ -212,7 +212,7 @@
     var menuItems = planItems + watchItems.join('');
     return '<div class="action-dropdown" data-dropdown-root="plan">' +
       '<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">' +
-      '<span class="action-dropdown-btn-label">📅 Запланировать просмотр</span>' +
+      '<span class="action-dropdown-btn-label"><span class="action-dropdown-btn-emoji" aria-hidden="true">📅</span><span class="action-dropdown-btn-text">Запланировать просмотр</span></span>' +
       '<span class="action-dropdown-caret">▾</span></button>' +
       '<div class="action-dropdown-menu">' + menuItems + '</div></div>';
   }

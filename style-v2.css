@@ -3936,10 +3936,20 @@ body.in-public-stats .footer-extension-cabinet {
   font-weight: 700;
   pointer-events: none;
 }
-.premiere-poster-bell--overlay {
-  position: absolute !important;
+.premiere-poster-media {
+  position: relative;
+}
+.premiere-poster-media > span[data-stop-card-click] {
+  position: absolute;
   right: 5px;
   bottom: 5px;
+  z-index: 3;
+  line-height: 0;
+}
+.premiere-poster-bell--overlay {
+  position: static !important;
+  right: auto;
+  bottom: auto;
   z-index: 3;
   width: 22px !important;
   height: 22px !important;
@@ -4405,6 +4415,43 @@ body.in-public-stats .footer-extension-cabinet {
 }
 .cabinet-nav::-webkit-scrollbar { height: 4px; }
 .cabinet-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+#cabinet-readonly .cabinet-nav,
+#cabinet-onboarding .cabinet-nav {
+  justify-content: center;
+  gap: 6px;
+}
+#cabinet-readonly .cabinet-nav-btn,
+#cabinet-onboarding .cabinet-nav-btn {
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.04em;
+  justify-content: center;
+}
+#cabinet-readonly .cabinet-nav-btn-text,
+#cabinet-onboarding .cabinet-nav-btn-text {
+  font-family: inherit;
+}
+.mp-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(52vh, 420px);
+  width: 100%;
+  padding: 32px 16px;
+  box-sizing: border-box;
+}
+.mp-page-loading-spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #ff2d7b;
+  animation: mp-page-spin 0.75s linear infinite;
+}
+@keyframes mp-page-spin {
+  to { transform: rotate(360deg); }
+}
 @media (min-width: 1100px) {
   /* Десктоп-меню: одна горизонтальная линия как раньше */
   .cabinet .cabinet-nav {
@@ -4414,6 +4461,7 @@ body.in-public-stats .footer-extension-cabinet {
     overflow-x: auto;
     align-items: center;
     padding-bottom: 4px;
+    justify-content: center;
   }
   .cabinet-nav-btn { white-space: nowrap; }
 }
@@ -4782,6 +4830,10 @@ footer.footer .footer-bottom a:hover { color: #fff; }
    две кнопки-дропдаун (Запланировать / Смотреть)
    ===================================================================== */
 
+.cards-list .film-card-v2,
+.cards-list .card.film-card-v2 {
+  height: 100%;
+}
 .film-card-v2 {
   display: flex;
   flex-direction: column;
@@ -4789,6 +4841,10 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   position: relative;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.3s, box-shadow 0.3s;
+}
+.film-card-v2-body .film-action-bar {
+  margin-top: auto;
+  padding-top: 4px;
 }
 .film-card-v2:hover {
   transform: translateY(-3px);
@@ -5078,10 +5134,23 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   -webkit-user-select: none;
 }
 .action-dropdown-btn-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+.action-dropdown-btn-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+.action-dropdown-btn-emoji {
+  flex-shrink: 0;
+  line-height: 1;
 }
 .action-dropdown-btn:active { transform: scale(0.97); }
 .action-dropdown-btn:hover {
