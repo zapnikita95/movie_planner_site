@@ -297,10 +297,10 @@
         return true;
       }
       if (screenId === 'cabinet-readonly') {
-        const deepSection = sectionFromPath(window.location.pathname) || 'home';
-        showSection(deepSection, { replace: true, skipPush: true });
+        const deepSection = applyCabinetDeepSection({ skipPush: true }) || 'home';
+        afterCabinetSectionShown(deepSection);
       } else {
-        let deepSection = sectionFromPath(window.location.pathname);
+        let deepSection = cabinetDeepSectionFromLocation();
         if (deepSection === 'home') deepSection = 'onboard-main';
         showSection(deepSection || 'onboard-main', { replace: true, skipPush: true });
       }
@@ -746,17 +746,8 @@
             if (pathFid) {
               openFilmPageFromLegacyPath(pathFid, { skipHistory: true, replace: true });
             } else {
-              const deepSection = sectionFromPath(window.location.pathname);
-              if (deepSection) {
-                showSection(deepSection, { replace: true, skipPush: false });
-                if (deepSection === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
-                if (deepSection === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
-                if (deepSection === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
-                if (deepSection === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
-                if (deepSection === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
-              } else {
-                showSection('home', { replace: true });
-              }
+              const deepSection = applyCabinetDeepSection({ skipPush: false });
+              afterCabinetSectionShown(deepSection);
             }
           }
           }
@@ -1161,8 +1152,7 @@
       });
   }
 
-  function api(url, options = {}) {
-    const token = getToken();
+  function apiOnce(url, options, token) {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
     if (options.planLibrary) {
@@ -1171,27 +1161,45 @@
     }
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => {
       if (r.status === 401 && token) {
-        return r.json().catch(() => ({})).then((body) => {
-          // Do not drop a freshly saved OAuth session because one secondary
-          // endpoint temporarily failed auth while Railway/DB pool was catching up.
-          if (url !== '/api/site/me') return body;
-          removeSessionByToken(token);
-          const failKp = filmKpFromLocation();
-          if (failKp) {
-            redirectToPublicFilmPage(failKp);
-            return body;
-          }
-          const failStaff = staffKpFromLocation();
-          if (failStaff) {
-            redirectToPublicStaffPage(failStaff);
-            return body;
-          }
-          if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
-          return body;
-        });
+        return r.json().catch(() => ({})).then((body) => ({ _http401: true, body: body }));
       }
-      return r.json().catch(() => ({}));
+      return r.json().catch(() => ({})).then((body) => ({ _http401: false, body: body }));
     });
+  }
+
+  function api(url, options = {}) {
+    const token = getToken();
+    const attempt = (retried) => apiOnce(url, options, token).then((res) => {
+      if (!res._http401) return res.body;
+      const body = res.body || {};
+      if (url !== '/api/site/me') {
+        if (!retried) {
+          return new Promise((resolve) => {
+            setTimeout(() => resolve(apiOnce(url, options, token)), 450);
+          }).then((retryRes) => {
+            if (!retryRes._http401) return retryRes.body;
+            try { window._mpApiAuthDegraded = true; } catch (_) {}
+            return retryRes.body;
+          });
+        }
+        try { window._mpApiAuthDegraded = true; } catch (_) {}
+        return body;
+      }
+      removeSessionByToken(token);
+      const failKp = filmKpFromLocation();
+      if (failKp) {
+        redirectToPublicFilmPage(failKp);
+        return body;
+      }
+      const failStaff = staffKpFromLocation();
+      if (failStaff) {
+        redirectToPublicStaffPage(failStaff);
+        return body;
+      }
+      if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
+      return body;
+    });
+    return attempt(false);
   }
 
   function apiText(url, options = {}) {
@@ -1813,6 +1821,60 @@
     if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return 'home';
     return PATH_TO_SECTION[normalized] || null;
+  }
+
+  let _cabinetNavLockUntil = 0;
+
+  function markCabinetUserNav() {
+    _cabinetNavLockUntil = Date.now() + 2500;
+  }
+
+  function cabinetDeepSectionFromLocation() {
+    try {
+      const fromPath = sectionFromPath(window.location.pathname);
+      if (fromPath) return fromPath;
+      const st = window.history && window.history.state;
+      if (st && st.section && SECTION_TO_PATH[st.section]) return st.section;
+    } catch (_) {}
+    return null;
+  }
+
+  function visibleCabinetSectionId() {
+    const ro = document.getElementById('cabinet-readonly');
+    const ob = document.getElementById('cabinet-onboarding');
+    const root = (ro && !ro.classList.contains('hidden')) ? ro : ((ob && !ob.classList.contains('hidden')) ? ob : null);
+    if (!root) return null;
+    const vis = root.querySelector('.cabinet-section:not(.hidden)');
+    if (!vis || !vis.id || !vis.id.startsWith('section-')) return null;
+    return vis.id.replace(/^section-/, '');
+  }
+
+  function applyCabinetDeepSection(opts) {
+    const options = opts || {};
+    const now = Date.now();
+    if (!options.force && now < _cabinetNavLockUntil) {
+      const cur = visibleCabinetSectionId();
+      if (cur && cur !== 'film') return cur;
+    }
+    const deepSection = cabinetDeepSectionFromLocation();
+    if (deepSection) {
+      showSection(deepSection, { replace: true, skipPush: !!options.skipPush });
+      return deepSection;
+    }
+    showSection('home', { replace: true, skipPush: !!options.skipPush });
+    return 'home';
+  }
+
+  function afterCabinetSectionShown(sectionId) {
+    if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
+    if (sectionId === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+    if (sectionId === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
+    if (sectionId === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
+    if (sectionId === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
+    if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
+    if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
+    if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
+    if (sectionId === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
   }
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
@@ -3325,6 +3387,7 @@
       cabinetHasData = !!me.has_data;
       cabinetUserId = me.user_id || null;
       _cabinetMeCache = me;
+      try { window._mpApiAuthDegraded = false; } catch (_) {}
       renderHeader(me);
       updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
@@ -4106,8 +4169,9 @@
       e.preventDefault();
       const sec = t.getAttribute('data-home-show-section');
       if (!sec) return;
+      markCabinetUserNav();
       showSection(sec);
-      if (sec === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
+      afterCabinetSectionShown(sec);
     });
   }
 
@@ -4498,7 +4562,12 @@
   // ——— Загрузка данных кабинета ———
   function loadPlans() {
     api('/api/site/plans').then((data) => {
-      if (!data.success) return;
+      if (!data.success) {
+        if (window._mpApiAuthDegraded) {
+          try { showToast('Не удалось загрузить планы — обновите страницу', { type: 'error' }); } catch (_) {}
+        }
+        return;
+      }
       const home = data.home || [];
       const cinema = data.cinema || [];
       const premieres = data.premieres || [];
@@ -11690,11 +11759,14 @@
 
     window.addEventListener('hashchange', () => {
       if (handleHash()) return;
-      if (getToken()) {
-        bootAuthenticatedCabinetShell();
-        loadMeAndShowCabinet();
-      } else {
-        showScreen('landing');
+      const raw = (location.hash || '').replace(/^#/, '');
+      if (/^(token=|tg_auth=)/.test(raw)) {
+        if (getToken()) {
+          bootAuthenticatedCabinetShell();
+          loadMeAndShowCabinet();
+        } else {
+          showScreen('landing');
+        }
       }
     });
 
@@ -11771,6 +11843,7 @@
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
+        markCabinetUserNav();
         showSection(sectionId);
         if (sectionId === 'tv') {
           renderTvSection();
@@ -11792,6 +11865,9 @@
         }
         if (sectionId === 'inbox' && typeof renderInboxSection === 'function') {
           renderInboxSection();
+        }
+        if (sectionId === 'plans') {
+          try { renderPlansList && renderPlansList(); } catch (_) {}
         }
         if (sectionId === 'stats') {
           initStatsSelectors();
