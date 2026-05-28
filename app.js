@@ -870,6 +870,27 @@
     return 'Ошибка сети. Попробуйте ещё раз.';
   }
 
+  function siteAuthReturnPath() {
+    try {
+      const uid = userIdFromLocation();
+      if (uid) return '/u/' + uid;
+      const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (/^\/u\/\d+$/.test(p)) return p;
+      return '/';
+    } catch (_) {
+      return '/';
+    }
+  }
+
+  function rememberAuthReturnPath() {
+    try {
+      const path = siteAuthReturnPath();
+      if (path && path !== '/') {
+        sessionStorage.setItem('mp_oauth_return', path);
+      }
+    } catch (_) {}
+  }
+
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
   function applySiteSessionLogin(data, modalEl, statusEl) {
     const sessions = getSessions();
@@ -917,16 +938,25 @@
     return { ok: true };
   }
 
-  function tryReturnToPublicFilmAfterAuth() {
+  function tryReturnAfterAuth() {
     try {
       const dest = sessionStorage.getItem('mp_oauth_return');
-      if (!dest || !/^\/f\/\d+/.test(dest.split('?')[0])) return false;
+      if (!dest) return false;
+      const pathOnly = dest.split('?')[0];
+      if (!/^\/(f\/\d+|u\/\d+)\/?$/.test(pathOnly)) return false;
       sessionStorage.removeItem('mp_oauth_return');
-      window.location.replace(dest);
-      return true;
+      if (pathOnly !== window.location.pathname.replace(/\/$/, '') && pathOnly !== window.location.pathname) {
+        window.location.replace(dest);
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
+  }
+
+  function tryReturnToPublicFilmAfterAuth() {
+    return tryReturnAfterAuth();
   }
 
   function tryReturnToPublicFilmOnLoginDismiss() {
@@ -969,9 +999,58 @@
         return false;
       }
       history.replaceState(null, '', location.pathname + location.search);
-      if (tryReturnToPublicFilmAfterAuth()) return true;
+      if (tryReturnAfterAuth()) return true;
       return true;
     } catch (_) {
+      return false;
+    }
+  }
+
+  /** Завершение входа через Telegram-бота по ссылке из чата (#tg_auth=код). */
+  async function consumeTelegramAuthFromHash() {
+    try {
+      const raw = (location.hash || '').replace(/^#/, '');
+      if (!raw || raw.indexOf('tg_auth=') < 0) return false;
+      const params = new URLSearchParams(raw);
+      const code = (params.get('tg_auth') || '').trim();
+      if (!code) return false;
+      history.replaceState(null, '', location.pathname + location.search);
+      const modal = document.getElementById('login-modal');
+      const checkData = await authApiJson('/api/auth/telegram-mobile/check', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
+      if (!checkData.success || !checkData.access) {
+        try { showToast('Ссылка для входа устарела — войдите через Telegram ещё раз', { type: 'error' }); } catch (_) {}
+        return false;
+      }
+      const exchangeData = await authApiJson('/api/site/session/from-jwt', {
+        method: 'POST',
+        body: JSON.stringify({ access: checkData.access }),
+      });
+      if (!exchangeData.success || !exchangeData.token) {
+        try { showToast(exchangeData.error || 'Не удалось создать сессию', { type: 'error' }); } catch (_) {}
+        return false;
+      }
+      const r = applySiteSessionLogin(
+        {
+          token: exchangeData.token,
+          chat_id: exchangeData.chat_id,
+          name: exchangeData.name,
+          has_data: exchangeData.has_data,
+          is_personal: exchangeData.is_personal !== undefined ? !!exchangeData.is_personal : true,
+        },
+        modal,
+        null,
+      );
+      if (!r.ok) {
+        try { showToast('Слишком много сохранённых профилей — удалите один в настройках.', { type: 'error' }); } catch (_) {}
+        return false;
+      }
+      if (tryReturnAfterAuth()) return true;
+      return true;
+    } catch (_) {
+      try { showToast('Не удалось войти по ссылке из Telegram', { type: 'error' }); } catch (_) {}
       return false;
     }
   }
@@ -2743,7 +2822,7 @@
     try {
       const startData = await authApiJson('/api/auth/telegram-mobile/start', {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify({ return_path: siteAuthReturnPath() }),
       });
       if (!startData.success || !startData.code) {
         if (preOpenedWindow && !preOpenedWindow.closed) {
@@ -2829,12 +2908,14 @@
     if (oauthG) {
       oauthG.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
+        rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
+        rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
     }
@@ -2847,6 +2928,7 @@
           nudgeOAuthPrivacy();
           return;
         }
+        rememberAuthReturnPath();
         startSiteBotAuth(modal, status, botPanel, openPreOpenedTelegramWindow());
       });
     }
@@ -10262,7 +10344,8 @@
   async function _runFriendSearch() {
     const q = (document.getElementById('soc-search-input')?.value || '').trim();
     const out = document.getElementById('soc-search-results');
-    if (!q || q.length < 2 || !out) return;
+    const minLen = /^\d+$/.test(q) ? 1 : 2;
+    if (!q || q.length < minLen || !out) return;
     out.classList.remove('hidden');
     out.innerHTML = '<div class="soc-search-state">Ищем…</div>';
     try {
@@ -10291,6 +10374,15 @@
         btn.addEventListener('click', async () => {
           const uid = Number(btn.getAttribute('data-uid'));
           try {
+            let pendingInv = null;
+            try { pendingInv = localStorage.getItem('mp_pending_accept_friend_invite'); } catch (_) {}
+            if (pendingInv && Number(pendingInv) === uid) {
+              localStorage.removeItem('mp_pending_accept_friend_invite');
+              await acceptFriendInviteFromLink(uid, btn, null);
+              btn.textContent = 'Друзья ✓';
+              btn.disabled = true;
+              return;
+            }
             await api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) });
             btn.textContent = 'Запрос отправлен';
             btn.disabled = true;
@@ -11423,6 +11515,7 @@
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
         try { localStorage.setItem('mp_pending_accept_friend_invite', String(userId)); } catch (_) {}
+        try { sessionStorage.setItem('mp_oauth_return', '/u/' + userId); } catch (_) {}
         ov.remove();
         const hdr = document.getElementById('header-login-btn') || document.querySelector('[data-action="login"]');
         if (hdr) hdr.click();
@@ -11482,6 +11575,18 @@
 
   function init() {
     consumeOAuthReturnFromHash();
+    let hasTgAuthHash = false;
+    try {
+      hasTgAuthHash = new URLSearchParams((location.hash || '').replace(/^#/, '')).has('tg_auth');
+    } catch (_) {}
+    if (hasTgAuthHash) {
+      consumeTelegramAuthFromHash().finally(function () { initAfterAuthEntry(); });
+      return;
+    }
+    initAfterAuthEntry();
+  }
+
+  function initAfterAuthEntry() {
     bindLogin();
     bindFaq();
     initCarousels();
