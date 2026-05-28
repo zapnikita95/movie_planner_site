@@ -40,8 +40,8 @@ footer.nav a { color:var(--acc); }
   <div class="card">
     <label class="chk"><input type="checkbox" id="priv"/> Согласен с <a href="/politika.html" target="_blank" rel="noopener">политикой конфиденциальности</a> (нужно для Google и Яндекс)</label>
     <div class="btn-row">
-      <a class="btn btn-google" id="go-g" href="https://api.movie-planner.ru/api/site/oauth/google/start?accept=1" disabled>Google</a>
-      <a class="btn btn-ya" id="go-y" href="https://api.movie-planner.ru/api/site/oauth/yandex/start?accept=1" disabled>Яндекс</a>
+      <a class="btn btn-google" id="go-g" href="/api/site/oauth/google/start?accept=1" disabled>Google</a>
+      <a class="btn btn-ya" id="go-y" href="/api/site/oauth/yandex/start?accept=1" disabled>Яндекс</a>
     </div>
     <div class="tg-slot" id="tg-wrap">
       <script async src="https://telegram.org/js/telegram-widget.js?22"
@@ -62,8 +62,7 @@ footer.nav a { color:var(--acc); }
   <footer class="nav"><a href="/">← На главную сайта</a> · <a href="/#cabinet">Личный кабинет</a></footer>
 </div>
 <script>
-var API_BASE = "https://api.movie-planner.ru";
-var SITE_BASE = "https://movie-planner.ru";
+var SITE_BASE = location.origin.indexOf("movie-planner.ru") >= 0 ? location.origin : "https://movie-planner.ru";
 var ERR_UI = {
   privacy: "Отметьте согласие с политикой для Google и Яндекс.",
   csrf: "Сессия входа устарела — попробуйте ещё раз.",
@@ -87,7 +86,7 @@ var ERR_UI = {
 })();
 function onTelegramAuth(user) {
   var priv = document.getElementById("priv");
-  fetch(API_BASE + "/api/site/auth/telegram-widget", {
+  fetch("/api/site/auth/telegram-widget", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(Object.assign({}, user, { accept_privacy: !!(priv && priv.checked), acceptPrivacy: !!(priv && priv.checked) }))
@@ -128,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function() {
     ev.preventDefault();
     var code = document.getElementById("code").value.trim().toUpperCase();
     if (!code) return;
-    fetch(API_BASE + "/api/site/validate", {
+    fetch("/api/site/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: code })

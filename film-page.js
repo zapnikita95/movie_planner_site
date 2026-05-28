@@ -10,7 +10,7 @@
       var h = loc.hostname || '';
       if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
     } catch (_e) {}
-    return 'https://api.movie-planner.ru';
+    return 'https://movie-planner.ru';
   })();
 
   var MP_APP_STORE_URL_IOS = '';

@@ -18,7 +18,7 @@
         var pageTitleF = ogTitleF;
         try {
           var xhrF = new XMLHttpRequest();
-          xhrF.open('GET', 'https://api.movie-planner.ru/api/public/film/' + encodeURIComponent(kp), false);
+          xhrF.open('GET', '/api/public/film/' + encodeURIComponent(kp), false);
           xhrF.send(null);
           if (xhrF.status === 200) {
             var payloadF = JSON.parse(xhrF.responseText);
@@ -69,7 +69,7 @@
         var pageTitle = ogTitle;
         try {
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', 'https://api.movie-planner.ru/api/public/staff/' + encodeURIComponent(pid), false);
+          xhr.open('GET', '/api/public/staff/' + encodeURIComponent(pid), false);
           xhr.send(null);
           if (xhr.status === 200) {
             var payload = JSON.parse(xhr.responseText);
@@ -115,16 +115,16 @@
         var ogTitleU = 'Профиль · Movie Planner';
         var ogDescU = 'Профиль пользователя Movie Planner';
         var pageTitleU = ogTitleU;
-        var photoU = 'https://api.movie-planner.ru/api/avatar/' + encodeURIComponent(uid) + '.jpg';
+        var photoU = location.origin + '/api/avatar/' + encodeURIComponent(uid) + '.jpg';
         try {
           var xhrU = new XMLHttpRequest();
-          xhrU.open('GET', 'https://api.movie-planner.ru/api/public/user/' + encodeURIComponent(uid), false);
+          xhrU.open('GET', '/api/public/user/' + encodeURIComponent(uid), false);
           xhrU.send(null);
           if (xhrU.status === 200) {
             var payloadU = JSON.parse(xhrU.responseText);
             if (payloadU && payloadU.success && payloadU.user) {
               var u = payloadU.user;
-              if (u.photo_url) photoU = u.photo_url.indexOf('http') === 0 ? u.photo_url : ('https://api.movie-planner.ru' + u.photo_url);
+              if (u.photo_url) photoU = u.photo_url.indexOf('http') === 0 ? u.photo_url : (location.origin + u.photo_url);
               if (u.og_title) ogTitleU = u.og_title;
               if (u.og_description) ogDescU = u.og_description;
               if (u.name) pageTitleU = u.name + ' · Movie Planner';

@@ -1,6 +1,6 @@
 /**
  * Movie Planner — личный кабинет на сайте
- * Прод: API на поддомене Railway (без GitHub Pages → без ложного 404 для curl).
+ * Прод: API на том же origin (movie-planner.ru), без api.* в UI.
  */
 (function () {
   'use strict';
@@ -13,7 +13,7 @@
         return loc.protocol + '//' + h;
       }
     } catch (e) {}
-    return 'https://api.movie-planner.ru';
+    return 'https://movie-planner.ru';
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
@@ -560,7 +560,7 @@
     try {
       const h = window.location.hostname;
       if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return 'https://api.movie-planner.ru';
+        return window.location.origin;
       }
     } catch (_) {}
     return API_BASE;
@@ -2909,14 +2909,14 @@
       oauthG.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
-        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+        window.location.href = '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
-        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+        window.location.href = '/api/site/oauth/yandex/start?accept=1';
       });
     }
     const botPanel = document.getElementById('login-bot-panel');
@@ -9806,7 +9806,7 @@
         const provider = btn.getAttribute('data-profile-link');
         const t = getToken();
         if (!t || !provider) return;
-        window.location.href = API_BASE + '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
+        window.location.href = '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
       });
     });
     const addLogin = root.querySelector('#profile-settings-add-login');
