@@ -2601,7 +2601,61 @@
       + '</div>';
   }
 
-  function renderInboxIncomingCards(root, items) {
+  function siteInboxFriendRequestsHtml(incoming) {
+    if (!incoming || !incoming.length) return '';
+    const rows = incoming.slice(0, 5).map((r) => {
+      const uid = Number(r.user_id);
+      const name = escapeHtml(r.name || 'Пользователь');
+      return '<div class="site-inbox-fr-row">'
+        + '<button type="button" class="link-inline site-inbox-fr-profile" data-fr-uid="' + uid + '">' + name + '</button>'
+        + '<button type="button" class="btn btn-small btn-primary site-inbox-fr-accept" data-fr-uid="' + uid + '">Принять</button>'
+        + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + uid + '" aria-label="Отклонить">✕</button>'
+        + '</div>';
+    }).join('');
+    return '<div class="site-inbox-card site-inbox-card--friend-req">'
+      + '<div class="site-inbox-kind">Друзья</div>'
+      + '<div class="site-inbox-title">Входящие запросы в друзья: ' + incoming.length + '</div>'
+      + '<div class="site-inbox-actions site-inbox-actions--stack">' + rows + '</div>'
+      + '</div>';
+  }
+
+  function bindSiteInboxFriendActions(root) {
+    if (!root) return;
+    root.querySelectorAll('.site-inbox-fr-accept').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const uid = Number(btn.getAttribute('data-fr-uid'));
+        if (!uid) return;
+        btn.disabled = true;
+        try {
+          await api('/api/friends/accept', { method: 'POST', body: JSON.stringify({ from_user_id: uid }) });
+          renderInboxSection();
+        } catch (_) {
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-fr-decline').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const uid = Number(btn.getAttribute('data-fr-uid'));
+        if (!uid) return;
+        btn.disabled = true;
+        try {
+          await api('/api/friends/decline', { method: 'POST', body: JSON.stringify({ from_user_id: uid }) });
+          renderInboxSection();
+        } catch (_) {
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-fr-profile').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const uid = Number(btn.getAttribute('data-fr-uid'));
+        if (uid) openUserProfile(uid);
+      });
+    });
+  }
+
+  function renderInboxIncomingCards(root, items, prefixHtml) {
     const kindLabel = (k) => ({
       group_share: 'Группа',
       plan_reminder: 'Планы',
@@ -2611,6 +2665,9 @@
       group_invite_accepted: 'Группа',
       friend_request: 'Друзья',
       friend_request_accepted: 'Друзья',
+      friend_film_rec: 'Друзья',
+      friend_rating_shared: 'Друзья',
+      weekend_digest: 'Подборка',
     }[k] || k || 'Сообщение');
     const parsePayload = (p) => {
       try {
@@ -2619,19 +2676,29 @@
         return {};
       }
     };
-    if (!items.length) {
+    if (!items.length && !prefixHtml) {
       root.innerHTML = '<p class="cabinet-hint">Пока пусто.</p>';
       return;
     }
-    root.innerHTML = items.map((it) => {
+    root.innerHTML = (prefixHtml || '') + items.map((it) => {
       const pl = parsePayload(it.payload);
       const fid = pl.film_id != null ? String(pl.film_id) : '';
       const kp = pl.kp_id != null ? String(pl.kp_id) : '';
-      const summary = it.kind === 'rate_reminder'
+      const fromUid = pl.from_user_id != null ? Number(pl.from_user_id) : NaN;
+      const profileUid = pl.user_id != null ? Number(pl.user_id) : fromUid;
+      let summary = it.kind === 'rate_reminder'
         ? ('⭐ Пора оценить: ' + ((pl.film_title && String(pl.film_title)) || it.title || 'фильм'))
         : ((it.title || '').trim() || kindLabel(it.kind));
       let actions = '';
-      if (it.kind === 'rate_reminder' && (kp || fid)) {
+      if (it.kind === 'friend_request' && fromUid && !Number.isNaN(fromUid)) {
+        summary = '<button type="button" class="link-inline site-inbox-fr-profile" data-fr-uid="' + fromUid + '">' + escapeHtml(summary) + '</button>';
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-fr-accept" data-fr-uid="' + fromUid + '">Принять</button>'
+          + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + fromUid + '" aria-label="Отклонить">✕</button>'
+          + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-profile" data-fr-uid="' + fromUid + '">Профиль</button>';
+      } else if (it.kind === 'friend_request_accepted' && profileUid && !Number.isNaN(profileUid)) {
+        summary = '<button type="button" class="link-inline site-inbox-fr-profile" data-fr-uid="' + profileUid + '">' + escapeHtml(summary) + '</button>';
+        actions = '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-profile" data-fr-uid="' + profileUid + '">Открыть профиль</button>';
+      } else if (it.kind === 'rate_reminder' && (kp || fid)) {
         actions = '<button type="button" class="btn btn-small btn-primary site-inbox-open-film"'
           + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
           + (fid ? ' data-film-id="' + escapeHtml(fid) + '"' : '')
@@ -2641,8 +2708,9 @@
       }
       return '<div class="site-inbox-card">'
         + '<div class="site-inbox-kind">' + escapeHtml(kindLabel(it.kind)) + '</div>'
-        + '<div class="site-inbox-title">' + escapeHtml(summary) + '</div>'
-        + (it.body ? '<div class="site-inbox-body muted">' + escapeHtml(it.body) + '</div>' : '')
+        + '<div class="site-inbox-title">' + summary + '</div>'
+        + (it.body && it.kind !== 'friend_request' ? '<div class="site-inbox-body muted">' + escapeHtml(it.body) + '</div>' : '')
+        + (it.body && it.kind === 'friend_request' ? '<div class="site-inbox-body muted"><button type="button" class="link-inline site-inbox-fr-profile" data-fr-uid="' + fromUid + '">' + escapeHtml(it.body) + '</button></div>' : '')
         + (actions ? '<div class="site-inbox-actions">' + actions + '</div>' : '')
         + '<div class="site-inbox-time muted small">' + escapeHtml(it.created_at || '') + '</div>'
         + '</div>';
@@ -2658,6 +2726,7 @@
         if (kpid) window.open('https://www.kinopoisk.ru/film/' + encodeURIComponent(kpid) + '/', '_blank', 'noopener');
       });
     });
+    bindSiteInboxFriendActions(root);
   }
 
   function loadSiteInboxActivityPanel(panel) {
@@ -2702,11 +2771,14 @@
     });
 
     api('/api/site/inbox').then((data) => {
+      return api('/api/friends/requests').catch(() => null).then((fReq) => ({ data, fReq }));
+    }).then(({ data, fReq }) => {
       if (!data || !data.success) {
         if (incomingPanel) incomingPanel.innerHTML = '<p class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить') + '</p>';
         return;
       }
       const items = data.items || [];
+      const incomingReq = (fReq && fReq.incoming) || [];
       const unreadIds = items.filter((x) => !x.is_read && x.id != null).map((x) => x.id);
       const unreadFromApi = data.unread_count != null ? parseInt(data.unread_count, 10) : unreadIds.length;
       updateInboxFabBadge(unreadFromApi);
@@ -2715,7 +2787,7 @@
         updateInboxFabBadge(0);
       }
       if (incomingPanel) {
-        renderInboxIncomingCards(incomingPanel, items);
+        renderInboxIncomingCards(incomingPanel, items, siteInboxFriendRequestsHtml(incomingReq));
       }
     }).catch(() => {
       if (incomingPanel) incomingPanel.innerHTML = '<p class="cabinet-hint">Ошибка сети</p>';
