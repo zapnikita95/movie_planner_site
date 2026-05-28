@@ -3316,6 +3316,7 @@
     if (nom.id === 'ratings_month') return Number(item.ratings_month || 0) > 0;
     if (nom.id === 'cinema_month') return siteTournamentNomScore(item, nom) > 0;
     if (nom.id === 'watch_series_month') return Number(item.watch_series_month || 0) >= 2;
+    if (nom.id === 'episodes_watched_month') return Number(item.episodes_watched_month || 0) > 0;
     return true;
   }
 
