@@ -3300,6 +3300,56 @@
   }
 
   // ——— Главная кабинета: конструктор превью (ключи localStorage как в миниаппе) ———
+
+  let _siteTournamentIntroOpen = false;
+
+  function siteTournamentNomScore(item, nom) {
+    if (!item || !nom) return 0;
+    if (nom.id === 'cinema_month') {
+      return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
+    }
+    return Number(item[nom.field] || 0);
+  }
+
+  function siteTournamentRowVisible(item, nom) {
+    if (!nom) return false;
+    if (nom.id === 'ratings_month') return Number(item.ratings_month || 0) > 0;
+    if (nom.id === 'cinema_month') return siteTournamentNomScore(item, nom) > 0;
+    if (nom.id === 'watch_series_month') return Number(item.watch_series_month || 0) >= 2;
+    return true;
+  }
+
+  function dismissSiteTournamentIntroPopup() {
+    api('/api/tournament/intro-seen', { method: 'POST', body: '{}' }).catch(function () {});
+    const ov = document.getElementById('site-tournament-intro-overlay');
+    if (ov) {
+      try { ov.remove(); } catch (_) {}
+    }
+    _siteTournamentIntroOpen = false;
+  }
+
+  function maybeShowSiteTournamentIntroPopup() {
+    if (_siteTournamentIntroOpen || document.getElementById('site-tournament-intro-overlay')) return;
+    _siteTournamentIntroOpen = true;
+    const ov = document.createElement('div');
+    ov.id = 'site-tournament-intro-overlay';
+    ov.className = 'site-tournament-intro-overlay';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.innerHTML = ''
+      + '<div class="site-tournament-intro-card">'
+      + '<button type="button" class="site-tournament-intro-x" data-tourn-intro-x aria-label="Закрыть">✕</button>'
+      + '<div class="site-tournament-intro-title">🏆 Турнир киноманов</div>'
+      + '<p class="site-tournament-intro-text">Участвуйте в турнире среди киноманов, оценивайте фильмы, ходите в кино и регулярно заходите в приложение, чтобы получить призы!</p>'
+      + '<p class="site-tournament-intro-foot">Отказаться от участия в турнирах можно в настройках.</p>'
+      + '<button type="button" class="btn btn-primary btn-full" data-tourn-intro-ok>Я в деле!</button>'
+      + '</div>';
+    const close = function () { dismissSiteTournamentIntroPopup(); };
+    ov.querySelector('[data-tourn-intro-x]').addEventListener('click', close);
+    ov.querySelector('[data-tourn-intro-ok]').addEventListener('click', close);
+    ov.addEventListener('click', function (ev) { if (ev.target === ov) close(); });
+    document.body.appendChild(ov);
+  }
   const HOME_LS_ORDER = 'sections_order';
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
@@ -3718,7 +3768,7 @@
         : '<p class="empty-hint">Пока пусто — станьте первым участником месяца</p>';
       const meInTop = top.some((item) => item.is_me);
       const hint = tp && tp.participating === false && !meInTop
-        ? '<p class="cabinet-hint">Вы не участвуете — включите в «Настройки → Профиль»</p>'
+        ? '<p class="cabinet-hint">Оцените фильм, добавьте билет к сеансу или зайдите два дня подряд — и вы попадёте в таблицу.</p>'
         : '';
       return '<section class="home-dash-block home-tourn-block">'
         + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
@@ -3750,6 +3800,9 @@
       }
       _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
       if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
+      if (dashData && dashData.show_tournament_intro) {
+        setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+      }
     }).catch(() => {
       _homePremierePreview = [];
       _homeTournamentPreview = null;
@@ -3807,14 +3860,15 @@
       function renderList() {
         const nom = noms.find((n) => n.id === activeId) || noms[0];
         if (!nom || !listEl) return;
-        const sorted = items.slice().sort((a, b) => Number(b[nom.field] || 0) - Number(a[nom.field] || 0));
+        const sorted = items.slice().sort((a, b) => siteTournamentNomScore(b, nom) - siteTournamentNomScore(a, nom))
+          .filter((item) => siteTournamentRowVisible(item, nom));
         if (!sorted.length) {
           listEl.innerHTML = '<p class="empty-hint">Пока нет участников</p>';
           return;
         }
         listEl.innerHTML = sorted.slice(0, 50).map((item, i) => {
           const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
-          const score = Number(item[nom.field] || 0);
+          const score = siteTournamentNomScore(item, nom);
           const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
           return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
             + '<span class="home-tourn-rank">' + medal + '</span>'
@@ -6411,6 +6465,9 @@
       if (!res || !res.success) {
         showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
+      }
+      if (res.show_tournament_intro) {
+        setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 200);
       }
       applyCoinsFeedback(starBtn, Number(res.coins_added) || 0);
       closeRatePopover();
