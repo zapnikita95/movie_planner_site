@@ -1171,18 +1171,24 @@
     }
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => {
       if (r.status === 401 && token) {
-        removeSessionByToken(token);
-        const failKp = filmKpFromLocation();
-        if (failKp) {
-          redirectToPublicFilmPage(failKp);
-          return r.json().catch(() => ({}));
-        }
-        const failStaff = staffKpFromLocation();
-        if (failStaff) {
-          redirectToPublicStaffPage(failStaff);
-          return r.json().catch(() => ({}));
-        }
-        if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
+        return r.json().catch(() => ({})).then((body) => {
+          // Do not drop a freshly saved OAuth session because one secondary
+          // endpoint temporarily failed auth while Railway/DB pool was catching up.
+          if (url !== '/api/site/me') return body;
+          removeSessionByToken(token);
+          const failKp = filmKpFromLocation();
+          if (failKp) {
+            redirectToPublicFilmPage(failKp);
+            return body;
+          }
+          const failStaff = staffKpFromLocation();
+          if (failStaff) {
+            redirectToPublicStaffPage(failStaff);
+            return body;
+          }
+          if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
+          return body;
+        });
       }
       return r.json().catch(() => ({}));
     });
