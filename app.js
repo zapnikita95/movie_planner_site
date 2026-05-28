@@ -3869,12 +3869,30 @@
 
   let _homePremierePreview = [];
 
+  function _paintHomeDashboardBlocks() {
+    const root = document.getElementById('home-dashboard-root');
+    if (!root) return;
+    const order = loadHomeSectionsOrder();
+    const hidden = loadHomeSectionsHidden();
+    let html = '';
+    order.forEach((bid) => {
+      if (hidden.indexOf(bid) >= 0) return;
+      html += renderHomeBlockHtml(bid);
+    });
+    if (!html.trim()) {
+      html = '<p class="cabinet-hint">Все блоки скрыты. Откройте «Настроить главную…», чтобы вернуть превью.</p>';
+    }
+    root.innerHTML = html;
+    renderHomeMoreLinks(hidden);
+  }
+
   function renderHomeDashboardFromCache() {
     const root = document.getElementById('home-dashboard-root');
     const secHome = document.getElementById('section-home');
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
 
     applyHomeEmojiVisibility();
+    _paintHomeDashboardBlocks();
 
     Promise.all([
       api('/api/site/premieres?period=current_month').catch(() => null),
@@ -3897,18 +3915,7 @@
       _homeTournamentPreview = null;
     }).finally(() => {
       applyHomeEmojiVisibility();
-      const order = loadHomeSectionsOrder();
-      const hidden = loadHomeSectionsHidden();
-      let html = '';
-      order.forEach((bid) => {
-        if (hidden.indexOf(bid) >= 0) return;
-        html += renderHomeBlockHtml(bid);
-      });
-      if (!html.trim()) {
-        html = '<p class="cabinet-hint">Все блоки скрыты. Откройте «Настроить главную…», чтобы вернуть превью.</p>';
-      }
-      root.innerHTML = html;
-      renderHomeMoreLinks(hidden);
+      _paintHomeDashboardBlocks();
     });
   }
 
