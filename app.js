@@ -298,6 +298,7 @@
       }
       if (screenId === 'cabinet-readonly') {
         const deepSection = applyCabinetDeepSection({ skipPush: true }) || 'home';
+        _cabinetNavBootstrapped = true;
         afterCabinetSectionShown(deepSection);
       } else {
         let deepSection = cabinetDeepSectionFromLocation();
@@ -746,7 +747,7 @@
             if (pathFid) {
               openFilmPageFromLegacyPath(pathFid, { skipHistory: true, replace: true });
             } else {
-              const deepSection = applyCabinetDeepSection({ skipPush: false });
+              const deepSection = refreshCabinetSectionAfterMe();
               afterCabinetSectionShown(deepSection);
             }
           }
@@ -847,8 +848,24 @@
 
   function fetchWithTimeout(url, options, timeoutMs) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs || 32000);
-    return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(() => clearTimeout(timer));
+    const ms = timeoutMs || 32000;
+    const timer = setTimeout(() => controller.abort(), ms);
+    const outerSignal = options && options.signal;
+    if (outerSignal) {
+      if (outerSignal.aborted) controller.abort();
+      else outerSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+      .catch((err) => {
+        if (err && err.name === 'AbortError') {
+          const te = new Error('request_timeout');
+          te.code = 'TIMEOUT';
+          te.name = 'TimeoutError';
+          throw te;
+        }
+        throw err;
+      })
+      .finally(() => clearTimeout(timer));
   }
 
   function authApiJson(path, options, timeoutMs) {
@@ -1164,6 +1181,11 @@
         return r.json().catch(() => ({})).then((body) => ({ _http401: true, body: body }));
       }
       return r.json().catch(() => ({})).then((body) => ({ _http401: false, body: body }));
+    }).catch((err) => {
+      if (err && (err.code === 'TIMEOUT' || err.name === 'TimeoutError')) {
+        return { _http401: false, body: { success: false, error: 'timeout' } };
+      }
+      throw err;
     });
   }
 
@@ -1199,7 +1221,7 @@
       if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       return body;
     });
-    return attempt(false);
+    return attempt(false).catch(() => ({ success: false, error: 'network' }));
   }
 
   function apiText(url, options = {}) {
@@ -1824,9 +1846,35 @@
   }
 
   let _cabinetNavLockUntil = 0;
+  let _cabinetPendingSection = null;
+  let _cabinetNavBootstrapped = false;
 
-  function markCabinetUserNav() {
-    _cabinetNavLockUntil = Date.now() + 2500;
+  function markCabinetUserNav(sectionId) {
+    _cabinetNavLockUntil = Date.now() + 8000;
+    if (sectionId) _cabinetPendingSection = sectionId;
+  }
+
+  function refreshCabinetSectionAfterMe() {
+    const now = Date.now();
+    const fromPath = cabinetDeepSectionFromLocation();
+    const cur = visibleCabinetSectionId();
+
+    if (now < _cabinetNavLockUntil) {
+      if (cur && cur !== 'film') return cur;
+      if (_cabinetPendingSection) {
+        showSection(_cabinetPendingSection, { replace: true, skipPush: true });
+        return _cabinetPendingSection;
+      }
+    }
+
+    if (_cabinetNavBootstrapped && cur && cur !== 'film') {
+      if (!fromPath || fromPath === cur) return cur;
+    }
+
+    const deepSection = applyCabinetDeepSection({ skipPush: true, force: !_cabinetNavBootstrapped }) || 'home';
+    _cabinetNavBootstrapped = true;
+    _cabinetPendingSection = null;
+    return deepSection;
   }
 
   function cabinetDeepSectionFromLocation() {
@@ -1855,6 +1903,10 @@
     if (!options.force && now < _cabinetNavLockUntil) {
       const cur = visibleCabinetSectionId();
       if (cur && cur !== 'film') return cur;
+      if (_cabinetPendingSection) {
+        showSection(_cabinetPendingSection, { replace: true, skipPush: true });
+        return _cabinetPendingSection;
+      }
     }
     const deepSection = cabinetDeepSectionFromLocation();
     if (deepSection) {
@@ -2547,6 +2599,16 @@
     if (rendered && sectionId === 'tournament') {
       try {
         if (typeof renderTournamentSection === 'function') renderTournamentSection();
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'whattowatch') {
+      try {
+        if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'plans') {
+      try {
+        if (typeof renderPlansList === 'function') renderPlansList();
       } catch (_) {}
     }
     if (rendered && sectionId === 'user' && _currentUserProfileId) {
@@ -4077,7 +4139,10 @@
     root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
     api('/api/tournament/leaderboard').then((data) => {
       if (!data || !data.success) {
-        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
+        const hint = data && data.error === 'timeout'
+          ? 'Сервер не ответил вовремя — обновите страницу'
+          : 'Не удалось загрузить таблицу';
+        root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint) + '</p>';
         return;
       }
       const items = data.leaderboard || [];
@@ -4169,7 +4234,7 @@
       e.preventDefault();
       const sec = t.getAttribute('data-home-show-section');
       if (!sec) return;
-      markCabinetUserNav();
+      markCabinetUserNav(sec);
       showSection(sec);
       afterCabinetSectionShown(sec);
     });
@@ -4592,6 +4657,8 @@
       bindPlansFilterOnce();
       renderPlansList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
+    }).catch(() => {
+      try { showToast('Не удалось загрузить планы', { type: 'error' }); } catch (_) {}
     });
   }
 
@@ -11832,6 +11899,8 @@
         if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
         if (sec === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
         if (sec === 'inbox' && typeof renderInboxSection === 'function') renderInboxSection();
+        if (sec === 'tournament' && typeof renderTournamentSection === 'function') renderTournamentSection();
+        if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
         if (sec === 'stats') {
           initStatsSelectors();
           const now = new Date();
@@ -11843,7 +11912,7 @@
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
-        markCabinetUserNav();
+        markCabinetUserNav(sectionId);
         showSection(sectionId);
         if (sectionId === 'tv') {
           renderTvSection();
@@ -11911,6 +11980,9 @@
 
     window.addEventListener('mp:logout', () => {
       uiToursResetCache();
+      _cabinetNavBootstrapped = false;
+      _cabinetPendingSection = null;
+      _cabinetNavLockUntil = 0;
       renderHeader(null);
       const pathKpLogout = kpIdFromPathname(window.location.pathname);
       if (pathKpLogout && /^\d+$/.test(pathKpLogout)) {
