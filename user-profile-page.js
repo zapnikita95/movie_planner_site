@@ -137,7 +137,7 @@
             ? '<button type="button" class="link-inline user-profile-more" data-action="ratings-all">Все оценки →</button>'
             : '') +
         '</div>'
-      : (isFriend || isSelf ? '' : '<p class="cabinet-hint">Оценки видны только друзьям</p>');
+      : '';
 
     const allAchievements = data.achievements || [];
     const achievements = allAchievements.slice(0, 12);

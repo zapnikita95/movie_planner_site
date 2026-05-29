@@ -265,10 +265,8 @@
     }
   }
 
-  function cabinetScreenIdForSession(session) {
-    const skipOnboarding = uiTourIsDone(UI_TOUR_KEYS.onboarding);
-    const hasData = session && session.has_data;
-    return (hasData || skipOnboarding) ? 'cabinet-readonly' : 'cabinet-onboarding';
+  function cabinetScreenIdForSession() {
+    return 'cabinet-readonly';
   }
 
   /** Сразу кабинет при валидной сессии — не ждать /api/site/me (иначе виден landing). */
@@ -300,10 +298,7 @@
         const deepSection = applyCabinetDeepSection({ skipPush: true }) || 'home';
         _cabinetNavBootstrapped = true;
         afterCabinetSectionShown(deepSection);
-      } else {
-        let deepSection = cabinetDeepSectionFromLocation();
-        if (deepSection === 'home') deepSection = 'onboard-main';
-        showSection(deepSection || 'onboard-main', { replace: true, skipPush: true });
+        scheduleSiteOnboardingAfterCabinet();
       }
       return true;
     } catch (_) {
@@ -330,8 +325,7 @@
       if (screenId === 'cabinet-readonly') {
         showSection('home', { replace: true, skipPush: true });
         try { scheduleHomeDashboardRefresh(); } catch (_) {}
-      } else {
-        showSection('onboard-main', { replace: true, skipPush: true });
+        scheduleSiteOnboardingAfterCabinet();
       }
       loadMeAndShowCabinet();
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
@@ -689,14 +683,400 @@
     }).catch(function () {});
   }
 
+  let _siteOnboardingChainRunning = false;
+  let _siteOnboardingChainQueued = false;
+
+  function removeSiteTourUi() {
+    document.querySelectorAll('.tour-highlight').forEach(function (el) {
+      el.classList.remove('tour-highlight');
+    });
+    const homeOv = document.getElementById('site-home-tour-overlay');
+    if (homeOv) {
+      if (homeOv._tourAbort) {
+        try { homeOv._tourAbort.abort(); } catch (_) {}
+      }
+      try { homeOv.remove(); } catch (_) {}
+    }
+    const firstOv = document.getElementById('site-first-onboard-overlay');
+    if (firstOv) {
+      try { firstOv.remove(); } catch (_) {}
+    }
+    document.documentElement.classList.remove('mp-site-home-tour-active');
+  }
+
+  function mountSiteFirstOnboardingWizard(onComplete) {
+    if (document.getElementById('site-first-onboard-overlay')) return;
+    let phase = 'welcome';
+    const ov = document.createElement('div');
+    ov.id = 'site-first-onboard-overlay';
+    ov.className = 'mp-onboard-overlay site-first-onboard-overlay';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+
+    const finish = function () {
+      uiTourMarkDone(UI_TOUR_KEYS.onboarding).then(function () {
+        try { ov.remove(); } catch (_) {}
+        if (onComplete) onComplete();
+      });
+    };
+
+    function paint() {
+      if (phase === 'welcome') {
+        ov.innerHTML = ''
+          + '<div class="mp-onboard-card mp-first-onboard-card">'
+          + '<div class="mp-onboard-title">Добро пожаловать</div>'
+          + '<p class="mp-onboard-text">Здесь ваш киношкаф: поиск, планы, база и рекомендации. Покажем главное за минуту.</p>'
+          + '<button type="button" class="btn btn-primary btn-full" data-fo-start style="margin-top:14px">Показать</button>'
+          + '<button type="button" class="btn btn-secondary btn-full" data-fo-skip style="margin-top:8px">Пропустить</button>'
+          + '</div>';
+        ov.querySelector('[data-fo-start]').addEventListener('click', function () {
+          phase = 'import';
+          paint();
+        });
+        ov.querySelector('[data-fo-skip]').addEventListener('click', finish);
+        return;
+      }
+      if (phase === 'import') {
+        ov.innerHTML = ''
+          + '<div class="mp-onboard-card mp-first-onboard-card">'
+          + '<button type="button" class="mp-onboard-dismiss" data-fo-dismiss aria-label="Закрыть">✕</button>'
+          + '<div class="mp-onboard-title" style="margin-top:2px">Перенесите оценки</div>'
+          + '<p class="mp-onboard-text">Импорт с Кинопоиска или MyShows/IMDb — до <strong>2000 монеток</strong> и готовая база с первого дня.</p>'
+          + '<div class="site-onboard-actions">'
+          + '<button type="button" class="btn btn-primary btn-full" data-fo-import>Открыть импорт</button>'
+          + '<button type="button" class="btn btn-secondary btn-full" data-fo-next>К туру по сайту</button>'
+          + '</div></div>';
+        ov.querySelector('[data-fo-import]').addEventListener('click', function () {
+          finish();
+          try { showSection('settings', { replace: true }); } catch (_) {}
+          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
+        });
+        ov.querySelector('[data-fo-next]').addEventListener('click', finish);
+        ov.querySelector('[data-fo-dismiss]').addEventListener('click', finish);
+      }
+    }
+
+    document.body.appendChild(ov);
+    paint();
+  }
+
+  function getSiteHomeTourSteps() {
+    return [
+      { selector: '#header-search', text: 'Поиск фильмов и сериалов — добавляйте в базу прямо с сайта.' },
+      { selector: '#cabinet-user-hero', text: 'Ваш профиль: имя, аватар и переход в настройки.' },
+      { selector: '#inbox-fab', text: 'Уведомления: приглашения, планы и напоминания поставить оценку.' },
+      { selector: '.cabinet-nav', text: 'Разделы кабинета: главная, планы, премьеры, база, подбор и турнир.' },
+      { selector: '#home-quick-actions', text: 'Быстрые кнопки: случайный фильм, подбор по описанию и голосовой ввод.' },
+      {
+        selector: '#home-dashboard-root .home-dash-block',
+        fallback: '#home-dashboard-root',
+        text: 'Блоки на главной: планы, непросмотренное, сериалы и премьеры. Настраиваются в шестерёнке.',
+      },
+      {
+        selector: '#section-plans .cabinet-plans-toolbar',
+        before: function () {
+          showSection('plans', { replace: true, skipPush: true });
+          try { renderPlansList && renderPlansList(); } catch (_) {}
+          return 280;
+        },
+        text: 'Планы: добавляйте фильмы в базу и смотрите ближайшие сеансы дома и в кино.',
+      },
+      {
+        selector: '.cabinet-nav-btn[data-section="whattowatch"]',
+        before: function () {
+          showSection('home', { replace: true, skipPush: true });
+          return 180;
+        },
+        text: '«Что посмотреть» — случайный выбор и мастер по жанрам, если не знаете, что включить.',
+      },
+      {
+        selector: '.cabinet-nav-btn[data-section="unwatched"]',
+        text: '«База» — непросмотренные, сериалы и все ваши оценки.',
+      },
+      {
+        selector: '.cabinet-nav-btn[data-section="tournament"]',
+        before: function () {
+          showSection('home', { replace: true, skipPush: true });
+          return 180;
+        },
+        text: 'Турнир киноманов: оценки, походы в кино и сериалы — топ-3 каждый месяц получают монетки.',
+      },
+    ];
+  }
+
+  function maybeStartSiteHomeTour() {
+    return uiToursEnsureHydrated().then(function () {
+      if (uiTourIsDone(UI_TOUR_KEYS.home)) return;
+      if (document.getElementById('site-home-tour-overlay')) return;
+      const readonly = document.getElementById('cabinet-readonly');
+      const secHome = document.getElementById('section-home');
+      if (!readonly || readonly.classList.contains('hidden')) return;
+      if (!secHome || secHome.classList.contains('hidden')) {
+        try { showSection('home', { replace: true, skipPush: true }); } catch (_) {}
+      }
+
+      return uiTourMarkDone(UI_TOUR_KEYS.home).then(function () {
+        removeSiteTourUi();
+
+        const TOUR_Z = 12040;
+        const steps = getSiteHomeTourSteps();
+        let idx = 0;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'site-home-tour-overlay';
+        overlay.className = 'home-tour-overlay-root';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:' + TOUR_Z + ';pointer-events:none';
+
+        const shadeTop = document.createElement('div');
+        const shadeLeft = document.createElement('div');
+        const shadeRight = document.createElement('div');
+        const shadeBottom = document.createElement('div');
+        const ring = document.createElement('div');
+        [shadeTop, shadeLeft, shadeRight, shadeBottom].forEach(function (s) {
+          s.className = 'home-tour-shade';
+        });
+
+        const cardWrap = document.createElement('div');
+        cardWrap.className = 'home-tour-card-wrap';
+        cardWrap.innerHTML = ''
+          + '<div class="home-tour-card">'
+          + '<div class="home-tour-title">Короткий тур по кабинету</div>'
+          + '<div class="home-tour-text" id="site-home-tour-text"></div>'
+          + '<div class="home-tour-actions">'
+          + '<button type="button" class="btn btn-secondary" id="site-home-tour-skip">Пропустить</button>'
+          + '<button type="button" class="btn btn-primary" id="site-home-tour-next">Далее</button>'
+          + '</div></div>';
+
+        overlay.appendChild(shadeTop);
+        overlay.appendChild(shadeLeft);
+        overlay.appendChild(shadeRight);
+        overlay.appendChild(shadeBottom);
+        overlay.appendChild(ring);
+        overlay.appendChild(cardWrap);
+
+        function applyCardPlacement(step) {
+          const navStep = step && step.selector && step.selector.indexOf('cabinet-nav') >= 0;
+          const base = [
+            'position:fixed',
+            'left:50%',
+            'transform:translateX(-50%)',
+            'width:min(520px,calc(100% - 24px))',
+            'max-width:520px',
+            'z-index:' + (TOUR_Z + 10),
+            'pointer-events:auto',
+            'box-sizing:border-box',
+          ];
+          if (navStep) {
+            cardWrap.style.cssText = base.concat([
+              'top:calc(12px + env(safe-area-inset-top))',
+              'bottom:auto',
+            ]).join(';');
+          } else {
+            cardWrap.style.cssText = base.concat([
+              'bottom:calc(16px + env(safe-area-inset-bottom))',
+              'top:auto',
+            ]).join(';');
+          }
+        }
+
+        const textEl = overlay.querySelector('#site-home-tour-text');
+        const nextBtn = overlay.querySelector('#site-home-tour-next');
+        const skipBtn = overlay.querySelector('#site-home-tour-skip');
+
+        function paddedViewportRect(el, pad) {
+          const r = el.getBoundingClientRect();
+          const p = typeof pad === 'number' ? pad : 8;
+          const left = Math.max(0, r.left - p);
+          const top = Math.max(0, r.top - p);
+          const right = Math.min(window.innerWidth, r.right + p);
+          const bottom = Math.min(window.innerHeight, r.bottom + p);
+          return {
+            left: left,
+            top: top,
+            right: right,
+            bottom: bottom,
+            width: Math.max(0, right - left),
+            height: Math.max(0, bottom - top),
+          };
+        }
+
+        function applyFullDim() {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+          shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + vh + 'px';
+          shadeLeft.style.cssText = 'display:none';
+          shadeRight.style.cssText = 'display:none';
+          shadeBottom.style.cssText = 'display:none';
+          ring.style.cssText = 'display:none';
+        }
+
+        function applyHole(rect) {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          if (rect.width < 4 || rect.height < 4) {
+            applyFullDim();
+            return;
+          }
+          const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+          shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + rect.top + 'px';
+          shadeBottom.style.cssText = common + ';left:0;top:' + rect.bottom + 'px;width:' + vw + 'px;height:' + Math.max(0, vh - rect.bottom) + 'px';
+          shadeLeft.style.cssText = common + ';left:0;top:' + rect.top + 'px;width:' + rect.left + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+          shadeRight.style.cssText = common + ';left:' + rect.right + 'px;top:' + rect.top + 'px;width:' + Math.max(0, vw - rect.right) + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+          ring.style.cssText = [
+            'display:block',
+            'pointer-events:none',
+            'z-index:' + (TOUR_Z + 2),
+            'position:fixed',
+            'left:' + rect.left + 'px',
+            'top:' + rect.top + 'px',
+            'width:' + rect.width + 'px',
+            'height:' + rect.height + 'px',
+            'box-sizing:border-box',
+            'border:3px solid rgba(255,45,123,.92)',
+            'border-radius:14px',
+            'box-shadow:0 0 26px rgba(255,45,123,.32)',
+          ].join(';');
+        }
+
+        let scrollFrame = 0;
+        function syncSpotlight(targetEl) {
+          if (!targetEl || !document.body.contains(targetEl)) {
+            applyFullDim();
+            return;
+          }
+          targetEl.classList.add('tour-highlight');
+          try {
+            targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+          } catch (_) {}
+          applyHole(paddedViewportRect(targetEl, 10));
+        }
+
+        function scheduleSync(targetEl) {
+          if (scrollFrame) cancelAnimationFrame(scrollFrame);
+          scrollFrame = requestAnimationFrame(function () {
+            scrollFrame = 0;
+            syncSpotlight(targetEl);
+          });
+        }
+
+        const tourAbort = new AbortController();
+        overlay._tourAbort = tourAbort;
+        window.addEventListener('scroll', function () {
+          const step = steps[idx];
+          if (!step) return;
+          const sel = step.selector;
+          let target = document.querySelector(sel);
+          if ((!target || !target.offsetParent) && step.fallback) {
+            target = document.querySelector(step.fallback);
+          }
+          scheduleSync(target);
+        }, { capture: true, passive: true, signal: tourAbort.signal });
+        window.addEventListener('resize', function () {
+          const step = steps[idx];
+          if (!step) return;
+          let target = document.querySelector(step.selector);
+          if ((!target || !target.offsetParent) && step.fallback) {
+            target = document.querySelector(step.fallback);
+          }
+          scheduleSync(target);
+        }, { signal: tourAbort.signal });
+
+        document.documentElement.classList.add('mp-site-home-tour-active');
+        document.body.appendChild(overlay);
+
+        function resolveTarget(step) {
+          if (!step) return null;
+          let target = document.querySelector(step.selector);
+          if ((!target || !target.offsetParent) && step.fallback) {
+            target = document.querySelector(step.fallback);
+          }
+          return target;
+        }
+
+        function closeTour() {
+          removeSiteTourUi();
+        }
+
+        function renderStep() {
+          document.querySelectorAll('.tour-highlight').forEach(function (el) {
+            el.classList.remove('tour-highlight');
+          });
+          const step = steps[idx];
+          if (!step) {
+            closeTour();
+            return;
+          }
+          textEl.textContent = step.text;
+          nextBtn.textContent = idx === steps.length - 1 ? 'Понятно' : 'Далее';
+          applyCardPlacement(step);
+
+          const runSpotlight = function () {
+            const target = resolveTarget(step);
+            if (target) scheduleSync(target);
+            else applyFullDim();
+          };
+
+          if (step.before) {
+            const delay = step.before();
+            setTimeout(runSpotlight, typeof delay === 'number' ? delay : 200);
+          } else {
+            runSpotlight();
+          }
+        }
+
+        nextBtn.addEventListener('click', function () {
+          idx += 1;
+          renderStep();
+        });
+        skipBtn.addEventListener('click', closeTour);
+        applyCardPlacement(steps[0]);
+        renderStep();
+      });
+    });
+  }
+
+  function maybeStartSiteOnboardingChain() {
+    if (_siteOnboardingChainRunning) {
+      _siteOnboardingChainQueued = true;
+      return Promise.resolve();
+    }
+    if (!getToken()) return Promise.resolve();
+    const readonly = document.getElementById('cabinet-readonly');
+    if (!readonly || readonly.classList.contains('hidden')) return Promise.resolve();
+
+    _siteOnboardingChainRunning = true;
+    return uiToursEnsureHydrated(true).then(function () {
+      if (!uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+        return new Promise(function (resolve) {
+          mountSiteFirstOnboardingWizard(resolve);
+        });
+      }
+    }).then(function () {
+      return maybeStartSiteHomeTour();
+    }).finally(function () {
+      _siteOnboardingChainRunning = false;
+      if (_siteOnboardingChainQueued) {
+        _siteOnboardingChainQueued = false;
+        setTimeout(function () { void maybeStartSiteOnboardingChain(); }, 400);
+      }
+    });
+  }
+
+  function scheduleSiteOnboardingAfterCabinet() {
+    setTimeout(function () {
+      void maybeStartSiteOnboardingChain();
+    }, 700);
+  }
+
   function showCabinetAfterLogin(me) {
     return uiToursEnsureHydrated(true).then(function () {
       document.body.classList.remove('login-only-overlay');
-      const skipOnboarding = uiTourIsDone(UI_TOUR_KEYS.onboarding);
-      if (me.has_data || skipOnboarding) {
-        showScreen('cabinet-readonly');
-        let pathFid = null;
-        const params = new URLSearchParams(window.location.search);
+      showScreen('cabinet-readonly');
+      let pathFid = null;
+      let scheduleOnboarding = true;
+      let pathUserBoot = null;
+      const params = new URLSearchParams(window.location.search);
         const pathKp = kpIdFromPathname(window.location.pathname);
         const queryKp = params.get('kp_open');
         let pendingKp = null;
@@ -735,7 +1115,7 @@
           setTimeout(function () { loadSeries(); }, 120);
           setTimeout(function () { loadRatings(); }, 240);
           handleAuthEntryDeepLinks();
-          const pathUserBoot = userIdFromLocation();
+          pathUserBoot = userIdFromLocation();
           if (pathUserBoot) {
             openUserProfile(pathUserBoot, { replace: true, skipPush: true, skipReturnCapture: true });
           } else {
@@ -753,54 +1133,16 @@
           }
           }
         }
-        const statsSection = document.getElementById('section-stats');
-        if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
-          initStatsSelectors();
-          const monthEl = document.getElementById('stats-month');
-          const yearEl = document.getElementById('stats-year');
-          const now = new Date();
-          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
-        }
-      } else {
-        showScreen('cabinet-onboarding');
-        if (!uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
-          uiTourMarkDone(UI_TOUR_KEYS.onboarding);
-        }
-        let deepSection = sectionFromPath(window.location.pathname);
-        if (deepSection === 'home') deepSection = 'onboard-main';
-        if (deepSection === 'shazam') {
-          try { window.history.replaceState({}, '', '/'); } catch (_) {}
-          deepSection = 'onboard-main';
-        }
-        if (deepSection) showSection(deepSection, { replace: true });
-        else showSection('onboard-main', { replace: true });
-        try { bindHomeSectionNavOnce(); bindPlansGotoOnce(); bindOnboardingActionsOnce(); } catch (_) {}
-        const onboardParams = new URLSearchParams(window.location.search);
-        const onboardQueryKp = onboardParams.get('kp_open');
-        let onboardPendingKp = null;
-        let onboardPendingAction = '';
-        try {
-          onboardPendingKp = sessionStorage.getItem('mp_pending_kp_open');
-          onboardPendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
-          if (onboardPendingKp && /^\d+$/.test(onboardPendingKp)) {
-            sessionStorage.removeItem('mp_pending_kp_open');
-            sessionStorage.removeItem('mp_pending_kp_action');
-          } else {
-            onboardPendingKp = null;
-          }
-        } catch (_) {}
-        const onboardPathKp = kpIdFromPathname(window.location.pathname);
-        const onboardFilmKp = (onboardPathKp && /^\d+$/.test(onboardPathKp) ? onboardPathKp : null)
-          || (onboardQueryKp && /^\d+$/.test(onboardQueryKp) ? onboardQueryKp : null)
-          || onboardPendingKp;
-        if (onboardFilmKp && !isFilmPageOpen()) {
-          openFilmPageByKp(onboardFilmKp, { replace: true, action: onboardPendingAction });
-        }
-        const onboardPathStaff = staffIdFromPathname(window.location.pathname);
-        if (onboardPathStaff) {
-          openStaffPage(onboardPathStaff, { replace: true });
-        }
+      const statsSection = document.getElementById('section-stats');
+      if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
+        initStatsSelectors();
+        const monthEl = document.getElementById('stats-month');
+        const yearEl = document.getElementById('stats-year');
+        const now = new Date();
+        (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
       }
+      if (pathStaff || filmKp || pathUserBoot || pathFid) scheduleOnboarding = false;
+      if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
     });
   }
 
@@ -1931,7 +2273,10 @@
     if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
     if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
-    if (sectionId === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
+    if (sectionId === 'home') {
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
+    }
   }
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
