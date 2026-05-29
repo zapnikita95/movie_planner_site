@@ -1,5 +1,5 @@
 /**
- * Баннер «Перейти в приложение» для standalone /f/, /s/, /u/ и кабинета.
+ * Баннер «Открыть в приложении» для standalone /f/, /s/, /u/ и кабинета.
  */
 (function (global) {
   'use strict';
@@ -69,7 +69,7 @@
       '<div id="app-open-banner" class="app-open-banner hidden">' +
         '<span class="app-open-text">Открыть в приложении Movie Planner?</span>' +
         '<div class="app-open-actions">' +
-          '<button type="button" class="btn-app-open" id="app-open-btn">Перейти в приложение</button>' +
+          '<button type="button" class="btn-app-open" id="app-open-btn">Открыть</button>' +
           '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">Позже</button>' +
         '</div>' +
       '</div>'
