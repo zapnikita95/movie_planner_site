@@ -10658,6 +10658,73 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   }
 }
 
+/* Landing: search in header + hero copy centered on viewport, not between logo and actions */
+@media (min-width: 769px) {
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 560px) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(12px, 2vw, 20px);
+  }
+
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .logo {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    min-width: 0;
+  }
+
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-search:not(.hidden) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: stretch;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+    margin: 0 !important;
+  }
+
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-buttons {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    min-width: 0;
+  }
+}
+
+#landing > section:first-of-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-top: 24px;
+  padding-bottom: 12px;
+  padding-inline: clamp(16px, 4vw, 32px);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#landing > section:first-of-type .hero-label,
+#landing > section:first-of-type .hero-title,
+#landing > section:first-of-type .hero-subtitle,
+#landing > section:first-of-type .hero-description,
+#landing > section:first-of-type .hero-buttons,
+#landing > section:first-of-type .hero-subtext {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+#landing > section:first-of-type .hero-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .site-tournament-intro-overlay {
   position: fixed;
   inset: 0;
