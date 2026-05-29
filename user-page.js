@@ -259,21 +259,30 @@
     }
   }
 
+  function pageLoadingHtml() {
+    if (global.MpPageLoading && typeof MpPageLoading.html === 'function') {
+      return MpPageLoading.html();
+    }
+    return '<div class="mp-page-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Загрузка">'
+      + '<div class="mp-page-loading-spinner" aria-hidden="true"></div></div>';
+  }
+
   function loadPublicUser(userId, loginNow) {
     var root = document.getElementById('user-public-root');
     if (!root) return;
+    root.innerHTML = pageLoadingHtml();
     fetch(API_BASE + '/api/public/user/' + encodeURIComponent(userId), { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.success || !data.user) {
-          root.innerHTML = '<p class="film-page-error-hint">Профиль не найден</p>';
+          root.innerHTML = '<p class="film-page-error-hint film-page-error-hint--centered">Профиль не найден</p>';
           return;
         }
         try { document.title = (data.user.name || 'Профиль') + ' · Movie Planner'; } catch (_e) {}
         renderUserPublic(root, data.user, loginNow);
       })
       .catch(function () {
-        root.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить профиль</p>';
+        root.innerHTML = '<p class="film-page-error-hint film-page-error-hint--centered">Не удалось загрузить профиль</p>';
       });
   }
 
@@ -402,7 +411,7 @@
         '</header>' +
         (global.MpFilmPage && MpFilmPage.appOpenBannerHtml ? MpFilmPage.appOpenBannerHtml() : '') +
         '<main class="movie-page user-standalone-main">' +
-          '<div class="user-public-content" id="user-public-root"><p class="cabinet-hint">Загрузка…</p></div>' +
+          '<div class="user-public-content" id="user-public-root">' + pageLoadingHtml() + '</div>' +
         '</main>' +
         '<footer class="footer user-standalone-footer">' +
           '<div class="container"><p class="footer-bottom muted small">© ' + String(new Date().getFullYear()) + ' Movie Planner</p></div>' +

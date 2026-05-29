@@ -271,7 +271,7 @@
   }
 
   function loadRatingsList(root, uid, hooks) {
-    root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    root.innerHTML = pageLoadingHtml();
     hooks.api('/api/friends/' + encodeURIComponent(String(uid)) + '/ratings?limit=100')
       .then(function (data) {
         var items = (data && data.ratings) || [];
@@ -294,7 +294,7 @@
   }
 
   function loadUnwatchedList(root, uid, hooks) {
-    root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    root.innerHTML = pageLoadingHtml();
     hooks.api('/api/friends/' + encodeURIComponent(String(uid)) + '/unwatched?limit=100')
       .then(function (data) {
         var films = (data && data.films) || [];
@@ -323,6 +323,14 @@
       });
   }
 
+  function pageLoadingHtml() {
+    if (global.MpPageLoading && typeof MpPageLoading.html === 'function') {
+      return MpPageLoading.html();
+    }
+    return '<div class="mp-page-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Загрузка">'
+      + '<div class="mp-page-loading-spinner" aria-hidden="true"></div></div>';
+  }
+
   function mount(root, userId, hooks) {
     if (!root) return Promise.resolve();
     hooks = hooks || {};
@@ -331,7 +339,7 @@
       root.innerHTML = '<p class="cabinet-hint">Неверный профиль</p>';
       return Promise.resolve();
     }
-    root.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    root.innerHTML = pageLoadingHtml();
     var reload = function () {
       return mount(root, uid, hooks);
     };

@@ -4449,6 +4449,25 @@ body.in-public-stats .footer-extension-cabinet {
   border-top-color: #ff2d7b;
   animation: mp-page-spin 0.75s linear infinite;
 }
+.user-public-content,
+.user-profile-root,
+#user-public-root {
+  min-height: min(52vh, 420px);
+}
+.user-public-content .mp-page-loading,
+.user-profile-root .mp-page-loading,
+#user-public-root > .mp-page-loading {
+  min-height: min(52vh, 420px);
+}
+.film-page-error-hint--centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(40vh, 320px);
+  width: 100%;
+  text-align: center;
+  margin: 0;
+}
 @keyframes mp-page-spin {
   to { transform: rotate(360deg); }
 }
