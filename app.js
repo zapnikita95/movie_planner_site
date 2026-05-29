@@ -2129,6 +2129,9 @@
     if (target) target.classList.remove('hidden');
     const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
     document.body.classList.toggle('in-cabinet', inCabinet);
+    if (!inCabinet) {
+      try { document.body.removeAttribute('data-cabinet-section'); } catch (_) {}
+    }
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     document.body.classList.toggle('in-search-page', isSearchLocation());
     const hs = document.getElementById('header-search');
@@ -2918,6 +2921,9 @@
     if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
       pushSectionUrl(sectionId, !!options.replace);
     }
+    if (rendered) {
+      try { document.body.setAttribute('data-cabinet-section', String(sectionId || '')); } catch (_) {}
+    }
     if (rendered && sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try {
@@ -3214,7 +3220,7 @@
 
   function loadSiteInboxActivityPanel(panel) {
     if (!panel) return;
-    panel.innerHTML = '<p class="cabinet-hint">Загружаем…</p>';
+    panel.innerHTML = pageLoadingHtml();
     api('/api/friends/activity?limit=40').then((data) => {
       const actItems = (data && data.items) || [];
       panel.innerHTML = actItems.length
@@ -3231,7 +3237,7 @@
     if (!root) return;
     const tab = siteInboxTab();
     root.innerHTML = siteInboxTabsHtml(tab)
-      + '<div id="site-inbox-panel-incoming" class="site-inbox-panel' + (tab === 'incoming' ? '' : ' hidden') + '"><p class="cabinet-hint">Загружаем…</p></div>'
+      + '<div id="site-inbox-panel-incoming" class="site-inbox-panel' + (tab === 'incoming' ? '' : ' hidden') + '">' + pageLoadingHtml() + '</div>'
       + '<div id="site-inbox-panel-activity" class="site-inbox-panel' + (tab === 'activity' ? '' : ' hidden') + '"></div>';
 
     const incomingPanel = document.getElementById('site-inbox-panel-incoming');
@@ -4128,7 +4134,7 @@
       return;
     }
     box.classList.remove('hidden');
-    box.innerHTML = '<p class="cabinet-hint">Загружаем предложения…</p>';
+    box.innerHTML = pageLoadingHtml();
     api('/api/site/groups/' + encodeURIComponent(String(chatId)) + '/actions').then((data) => {
       const items = filterGroupFilmSuggestions((data && data.actions) || [], cabinetUserId);
       box.innerHTML = renderGroupSuggestionsHomeHtml(items);
@@ -10623,7 +10629,7 @@
     const modal = document.getElementById('room-members-modal');
     const body = document.getElementById('room-members-body');
     if (!modal || !body) return;
-    body.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
+    body.innerHTML = pageLoadingHtml();
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     api('/api/site/rooms/' + encodeURIComponent(chatId) + '/members').then((d) => {
@@ -10691,7 +10697,7 @@
     const modal = document.getElementById('room-access-modal');
     const body = document.getElementById('room-access-body');
     if (!modal || !body) return;
-    body.innerHTML = '<div class="cabinet-hint">Загружаем…</div>';
+    body.innerHTML = pageLoadingHtml();
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -11367,7 +11373,7 @@
     if (!list) return;
     // Init social tab row
     _initSocTabRow();
-    list.innerHTML = '<div class="cabinet-hint">Загружаем профили…</div>';
+    list.innerHTML = pageLoadingHtml();
     api('/api/site/profiles').then((data) => {
       if (!data || !data.success) {
         list.innerHTML = '<div class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
@@ -12501,9 +12507,9 @@
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
 
-    // Parallax background emojis
+    // Parallax background emojis (landing only; never inside cabinet)
     const parallaxBg = document.getElementById('parallaxBg');
-    if (parallaxBg) {
+    if (parallaxBg && !document.body.classList.contains('in-cabinet')) {
       const emojis = ['🍿', '🎬', '🎞️', '🎥', '🎫', '⭐', '🎭'];
       for (let i = 0; i < 38; i++) {
         const el = document.createElement('div');
