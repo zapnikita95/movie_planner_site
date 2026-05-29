@@ -26,19 +26,30 @@
     return 'film';
   }
 
+  function entityIdForKind(kind, entityId) {
+    var k = normalizeKind(kind);
+    var raw = String(entityId ?? '').trim();
+    if (k === 'user') {
+      var n = Number(raw);
+      if (Number.isFinite(n) && n !== 0) return String(n);
+      return '';
+    }
+    return raw.replace(/\D/g, '');
+  }
+
   function deepLinkFor(kind, entityId) {
-    var id = String(entityId || '').replace(/\D/g, '');
+    var id = entityIdForKind(kind, entityId);
     if (!id) return '';
     if (kind === 'person') return 'movieplanner://s/' + id;
-    if (kind === 'user') return 'movieplanner://friends/' + id;
+    if (kind === 'user') return 'movieplanner://friends/' + encodeURIComponent(id) + '?invite=1';
     return 'movieplanner://film/' + id;
   }
 
   function intentPathFor(kind, entityId) {
-    var id = String(entityId || '').replace(/\D/g, '');
+    var id = entityIdForKind(kind, entityId);
     if (!id) return '';
     if (kind === 'person') return 's/' + id;
-    if (kind === 'user') return 'friends/' + id;
+    if (kind === 'user') return 'friends/' + encodeURIComponent(id) + '?invite=1';
     return 'film/' + id;
   }
 
@@ -78,8 +89,8 @@
 
   function tryOpenNativeApp(opts) {
     opts = opts || {};
-    var entityId = String(opts.id || opts.kpId || '').replace(/\D/g, '');
     var kind = normalizeKind(opts.kind);
+    var entityId = entityIdForKind(kind, opts.id || opts.kpId);
     if (!entityId) return;
     var ua = navigator.userAgent || '';
     var isAndroid = /Android/i.test(ua);
@@ -142,8 +153,8 @@
 
   function setupAppOpenBanner(opts) {
     opts = opts || {};
-    var entityId = String(opts.id || opts.kpId || '').replace(/\D/g, '');
     var kind = normalizeKind(opts.kind);
+    var entityId = entityIdForKind(kind, opts.id || opts.kpId);
     if (!entityId) return;
 
     ensureAppReleaseUrlsLoaded().then(function () {

@@ -288,10 +288,15 @@
 
   function buildStandaloneHooks(userId, chrome, me) {
     var viewerUserId = me && me.user_id != null ? Number(me.user_id) : null;
+    var inviteLanding = false;
+    try {
+      inviteLanding = new URLSearchParams(global.location.search).get('invite') === '1';
+    } catch (_e) {}
 
     return {
       api: apiJson,
       viewerUserId: viewerUserId,
+      isInviteLanding: inviteLanding,
       resolvePhotoUrl: function (url, data) {
         return resolvePhoto(url, data && data.user_id);
       },

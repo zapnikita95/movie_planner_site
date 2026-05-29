@@ -8,7 +8,7 @@
       var path = location.pathname || '';
       var mFilm = path.match(/^\/f\/(\d+)\/?$/);
       var mStaff = path.match(/^\/s\/(\d+)\/?$/);
-      var mUser = path.match(/^\/u\/(\d+)\/?$/);
+      var mUser = path.match(/^\/u\/(-?\d+)\/?$/);
       if (mFilm) {
         var kp = mFilm[1];
         var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
@@ -171,7 +171,7 @@
   <script>
     (function () {
       var loc = window.location;
-      if (!loc.pathname.match(/^\/f\/(\d+)\/?$/) && !loc.pathname.match(/^\/s\/(\d+)\/?$/) && !loc.pathname.match(/^\/u\/(\d+)\/?$/)) {
+      if (!loc.pathname.match(/^\/f\/(\d+)\/?$/) && !loc.pathname.match(/^\/s\/(\d+)\/?$/) && !loc.pathname.match(/^\/u\/(-?\d+)\/?$/)) {
         var target = loc.pathname + loc.search + loc.hash;
         loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
       }

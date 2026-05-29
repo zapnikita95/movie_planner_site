@@ -1225,7 +1225,7 @@
       const uid = userIdFromLocation();
       if (uid) return '/u/' + uid;
       const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (/^\/u\/\d+$/.test(p)) return p;
+      if (/^\/u\/-?\d+$/.test(p)) return p;
       return '/';
     } catch (_) {
       return '/';
@@ -1280,7 +1280,7 @@
     loadMeAndShowCabinet();
     try {
       const pendingInvite = localStorage.getItem('mp_pending_accept_friend_invite');
-      if (pendingInvite && /^\d+$/.test(pendingInvite)) {
+      if (pendingInvite && /^-?\d+$/.test(pendingInvite)) {
         localStorage.removeItem('mp_pending_accept_friend_invite');
         setTimeout(() => acceptFriendInviteFromLink(Number(pendingInvite), null), 250);
       }
@@ -2281,7 +2281,7 @@
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
-  const _userPathRe = /^\/(?:u|user)\/(\d+)(?:\/?)?$/;
+  const _userPathRe = /^\/(?:u|user)\/(-?\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
   let _userProfileReturnSection = 'home';
   let _currentUserProfileId = null;
@@ -2373,9 +2373,14 @@
   }
 
   function buildUserProfileHooks() {
+    var inviteLanding = false;
+    try {
+      inviteLanding = new URLSearchParams(window.location.search).get('invite') === '1';
+    } catch (_) {}
     return {
       api: api,
       viewerUserId: cabinetUserId,
+      isInviteLanding: inviteLanding,
       resolvePhotoUrl: function (url, data) {
         const resolved = resolveMediaUrl(url);
         if (resolved) return resolved;
@@ -2461,7 +2466,7 @@
       const row = e.target.closest('[data-user-profile]');
       if (!row) return;
       const uid = row.getAttribute('data-user-profile');
-      if (!uid || !/^\d+$/.test(uid)) return;
+      if (!uid || !/^-?\d+$/.test(uid)) return;
       e.preventDefault();
       e.stopPropagation();
       openUserProfile(uid);
@@ -10878,6 +10883,30 @@
     return row;
   }
 
+  async function shareFriendInviteLink() {
+    const uid = cabinetUserId;
+    if (!uid) {
+      showToast('Войдите в кабинет', { type: 'error' });
+      return;
+    }
+    const webLink = 'https://movie-planner.ru/u/' + encodeURIComponent(String(uid)) + '?invite=1';
+    const me = _cabinetMeCache || {};
+    const name = (me.name || me.first_name || 'Movie Planner').trim();
+    const text = name + ' хочет добавить Вас в друзья в Movie Planner 🎬';
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Movie Planner', text: text, url: webLink });
+        return;
+      } catch (_) {}
+    }
+    try {
+      await copyToClipboard(webLink);
+      showToast('Ссылка приглашения скопирована');
+    } catch (_) {
+      showToast('Ссылка: ' + webLink);
+    }
+  }
+
   async function _loadFriendsPane() {
     let friends = [], requests = { incoming: [], outgoing: [] };
     try {
@@ -10941,11 +10970,13 @@
 
     // Action buttons
     const actionsEl = document.getElementById('soc-friends-actions');
-    if (actionsEl && friends.length > 0) {
+    if (actionsEl) {
       actionsEl.innerHTML = `
+        <button type="button" class="btn btn-primary" id="soc-invite-friend-btn">👋 Пригласить друга</button>
         <button type="button" class="btn btn-secondary" id="soc-activity-btn">Лента активности</button>
         <button type="button" class="btn btn-secondary" id="soc-lb-btn">🏆 Рейтинг друзей</button>
       `;
+      actionsEl.querySelector('#soc-invite-friend-btn')?.addEventListener('click', () => void shareFriendInviteLink());
       actionsEl.querySelector('#soc-activity-btn')?.addEventListener('click', _openFriendsActivity);
       actionsEl.querySelector('#soc-lb-btn')?.addEventListener('click', _openFriendsLeaderboard);
     }
@@ -12166,17 +12197,21 @@
     const params = new URLSearchParams(window.location.search);
     let addUserId = params.get('add') || params.get('u');
     if (!addUserId) {
+      const pathUid = userIdFromPathname(window.location.pathname);
+      if (pathUid) addUserId = String(pathUid);
+    }
+    if (!addUserId) {
       const spa = params.get('__spa') || '';
       try {
         const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
-        const m = spaUrl.pathname.match(/^\/u\/(\d+)\/?$/);
+        const m = spaUrl.pathname.match(/^\/u\/(-?\d+)\/?$/);
         if (m) addUserId = m[1];
       } catch (_) {
         const m = String(spa).match(/^\/u\/(\d+)\/?$/);
         if (m) addUserId = m[1];
       }
     }
-    if (!addUserId || !/^\d+$/.test(addUserId)) return;
+    if (!addUserId || !/^-?\d+$/.test(addUserId)) return;
     const uid = Number(addUserId);
     const token = getToken();
     const headers = token ? { 'Authorization': 'Bearer ' + token } : {};

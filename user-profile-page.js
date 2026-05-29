@@ -98,6 +98,12 @@
             '</div></div>';
       } else if (st === 'pending_outgoing') {
         actionsHtml = '<p class="cabinet-hint user-profile-hint">Запрос отправлен — ждём ответа</p>';
+      } else if (hooks.isInviteLanding) {
+        actionsHtml =
+          '<div class="user-profile-actions">' +
+            '<p class="cabinet-hint user-profile-hint">Приглашает вас в друзья</p>' +
+            '<button type="button" class="btn btn-primary user-profile-action-main" data-action="accept-invite">Принять приглашение</button>' +
+          '</div>';
       } else {
         actionsHtml =
           '<div class="user-profile-actions">' +
@@ -213,6 +219,15 @@
     });
     root.querySelector('[data-action="accept"]')?.addEventListener('click', function () {
       hooks.api('/api/friends/accept', { method: 'POST', body: JSON.stringify({ from_user_id: uid }) })
+        .then(function (r) {
+          if (!r || r.success === false) throw new Error((r && r.error) || 'Ошибка');
+          if (hooks.toast) hooks.toast('Теперь вы друзья');
+          return hooks.reload();
+        })
+        .catch(function (e) { if (hooks.toast) hooks.toast((e && e.message) || 'Ошибка', 'error'); });
+    });
+    root.querySelector('[data-action="accept-invite"]')?.addEventListener('click', function () {
+      hooks.api('/api/friends/invite/accept', { method: 'POST', body: JSON.stringify({ inviter_user_id: uid }) })
         .then(function (r) {
           if (!r || r.success === false) throw new Error((r && r.error) || 'Ошибка');
           if (hooks.toast) hooks.toast('Теперь вы друзья');
