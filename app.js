@@ -298,6 +298,9 @@
         const deepSection = applyCabinetDeepSection({ skipPush: true }) || 'home';
         _cabinetNavBootstrapped = true;
         afterCabinetSectionShown(deepSection);
+        if (deepSection === 'stats') {
+          try { mountStatsSection(); } catch (_) {}
+        }
         scheduleSiteOnboardingAfterCabinet();
       }
       return true;
@@ -1135,11 +1138,7 @@
         }
       const statsSection = document.getElementById('section-stats');
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
-        initStatsSelectors();
-        const monthEl = document.getElementById('stats-month');
-        const yearEl = document.getElementById('stats-year');
-        const now = new Date();
-        (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
+        try { mountStatsSection(); } catch (_) {}
       }
       if (pathStaff || filmKp || pathUserBoot || pathFid) scheduleOnboarding = false;
       if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
@@ -2124,7 +2123,7 @@
       if (el) el.classList.add('hidden');
     });
     const header = document.getElementById('site-header');
-    if (header) header.classList.toggle('hidden', screenId === 'public-stats');
+    if (header) header.classList.remove('hidden');
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
     const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
@@ -2135,7 +2134,21 @@
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     document.body.classList.toggle('in-search-page', isSearchLocation());
     const hs = document.getElementById('header-search');
-    if (hs) hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding'));
+    if (hs) {
+      hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding' || screenId === 'public-stats'));
+    }
+    if (screenId === 'public-stats') {
+      const loginBtn = document.querySelector('#site-header [data-action="login"]');
+      const userWrap = document.getElementById('header-user-wrap');
+      if (getToken()) {
+        const stub = cachedSessionMeStub();
+        if (stub) renderHeader(stub);
+        else if (_cabinetMeCache) renderHeader(_cabinetMeCache);
+      } else {
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (userWrap) userWrap.classList.add('hidden');
+      }
+    }
   }
 
   function getSiteSearchRoot() {
@@ -2276,6 +2289,7 @@
     if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
     if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
+    if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
     if (sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
@@ -2975,6 +2989,9 @@
       try {
         if (typeof renderPlansList === 'function') renderPlansList();
       } catch (_) {}
+    }
+    if (rendered && sectionId === 'stats') {
+      try { mountStatsSection(); } catch (_) {}
     }
     if (rendered && sectionId === 'user' && _currentUserProfileId) {
       try {
@@ -5399,6 +5416,19 @@
 
   const MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
+  function mountStatsSection() {
+    initStatsSelectors();
+    const now = new Date();
+    const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () {
+      const y = document.getElementById('stats-year');
+      const p = document.getElementById('stats-month-pills');
+      const a = p && p.querySelector('.month-pill.active');
+      const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1;
+      return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() };
+    })();
+    loadStats(g.m, g.y);
+  }
+
   function initStatsSelectors() {
     const yearEl = document.getElementById('stats-year');
     const pillsEl = document.getElementById('stats-month-pills');
@@ -5578,6 +5608,7 @@
           lbPrefix: 'public-lb'
         };
         renderPublicStatsProfileGroup(data);
+        renderPublicStatsOwnerBar(data, 'group');
         renderGroupStats(data, ctx);
       })
       .catch(() => {
@@ -5658,6 +5689,7 @@
         if (subtitle) subtitle.textContent = 'Статистика: ' + (user.name || slug);
         if (groupWrap) groupWrap.classList.add('hidden');
         if (personalWrap) personalWrap.classList.remove('hidden');
+        renderPublicStatsOwnerBar(data, 'user');
         renderStatsProfilePersonal(data, {
           profileElId: 'public-stats-profile-personal',
           achGridId: 'ach-panel-grid',
@@ -5681,12 +5713,60 @@
       });
   }
 
+  function renderPublicStatsOwnerBar(data, type) {
+    const bar = document.getElementById('public-stats-owner-bar');
+    const link = document.getElementById('public-stats-owner-link');
+    const avatarEl = document.getElementById('public-stats-owner-avatar');
+    const nameEl = document.getElementById('public-stats-owner-name');
+    if (!bar || !link) return;
+    if (type === 'group') {
+      const group = data.group || {};
+      const title = (group.title || 'Группа').trim();
+      link.href = '/';
+      link.setAttribute('aria-label', 'На главную');
+      if (nameEl) nameEl.textContent = title;
+      if (avatarEl) {
+        avatarEl.innerHTML = escapeHtml((title[0] || 'G').toUpperCase());
+      }
+      bar.classList.remove('hidden');
+      return;
+    }
+    const userId = data.user_id;
+    const profile = data.user_profile || {};
+    const user = data.user || {};
+    const name = profile.first_name || user.name || user.username || 'Профиль';
+    if (nameEl) nameEl.textContent = name;
+    if (userId) {
+      link.href = '/u/' + encodeURIComponent(String(userId));
+      link.setAttribute('aria-label', 'Профиль ' + name);
+    } else {
+      link.href = '/';
+      link.setAttribute('aria-label', 'На главную');
+    }
+    if (avatarEl) {
+      const photo = userId ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(userId)) + '.jpg') : '';
+      setAvatarEl(avatarEl, photo, name);
+    }
+    bar.classList.remove('hidden');
+  }
+
   function showPublicStatsView(parsed) {
     if (!parsed || !parsed.slug) return;
     showScreen('public-stats');
     loadExtensionConfig();
     const footerExt = document.getElementById('cabinet-footer-extension-link');
     if (footerExt) { footerExt.classList.remove('hidden'); }
+    try {
+      if (window.MpAppOpenBanner && MpAppOpenBanner.mountAppOpenBannerBefore) {
+        const host = document.getElementById('public-stats-owner-bar') || document.querySelector('#public-stats .container');
+        MpAppOpenBanner.mountAppOpenBannerBefore(host, {
+          kind: 'stats',
+          id: parsed.slug,
+          month: parsed.month,
+          year: parsed.year,
+        });
+      }
+    } catch (_) {}
     initPublicStatsSelectors(parsed.slug, parsed.month, parsed.year, parsed.type);
     if (parsed.type === 'user') {
       loadPublicUserStats(parsed.slug, parsed.month, parsed.year);
@@ -12335,11 +12415,7 @@
         if (sec === 'inbox' && typeof renderInboxSection === 'function') renderInboxSection();
         if (sec === 'tournament' && typeof renderTournamentSection === 'function') renderTournamentSection();
         if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
-        if (sec === 'stats') {
-          initStatsSelectors();
-          const now = new Date();
-          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
-        }
+        if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
       }
     });
 
@@ -12372,13 +12448,7 @@
         if (sectionId === 'plans') {
           try { renderPlansList && renderPlansList(); } catch (_) {}
         }
-        if (sectionId === 'stats') {
-          initStatsSelectors();
-          const monthEl = document.getElementById('stats-month');
-          const yearEl = document.getElementById('stats-year');
-          const now = new Date();
-          (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
-        }
+        if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
         if (sectionId === 'home') {
           try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }

@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260529landingcenter1">
+    <link rel="stylesheet" href="/style-v2.css?v=20260529stats1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -430,10 +430,15 @@
     <!-- Public group stats (share link: only stats, no other sections) -->
     <main id="public-stats" class="hidden">
       <div class="container">
-        <div class="public-stats-header-wrap">
-          <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
-          <p class="public-stats-subtitle" id="public-stats-subtitle">Статистика группы</p>
+        <div class="public-stats-owner-bar hidden" id="public-stats-owner-bar">
+          <a href="/" class="public-stats-owner-link" id="public-stats-owner-link">
+            <span class="public-stats-owner-back" aria-hidden="true">←</span>
+            <span class="public-stats-owner-avatar" id="public-stats-owner-avatar"></span>
+            <span class="public-stats-owner-name" id="public-stats-owner-name"></span>
+          </a>
         </div>
+        <h2 class="section-title section-title--text-only public-stats-page-title"><span class="section-title-emoji">📊</span><span class="section-title-text">Статистика</span></h2>
+        <p class="public-stats-subtitle hidden" id="public-stats-subtitle" aria-hidden="true"></p>
         <div class="stats-month-selector public-stats-selector">
           <label>Период:</label>
           <select id="public-stats-month" class="stats-month-select" aria-label="Месяц"></select>

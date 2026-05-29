@@ -23,12 +23,14 @@
     var k = String(kind || 'film').toLowerCase();
     if (k === 'person' || k === 'staff') return 'person';
     if (k === 'user' || k === 'friends' || k === 'profile') return 'user';
+    if (k === 'stats' || k === 'stat') return 'stats';
     return 'film';
   }
 
   function entityIdForKind(kind, entityId) {
     var k = normalizeKind(kind);
     var raw = String(entityId ?? '').trim();
+    if (k === 'stats') return raw.replace(/[^a-z0-9_-]/gi, '').toLowerCase();
     if (k === 'user') {
       var n = Number(raw);
       if (Number.isFinite(n) && n !== 0) return String(n);
@@ -37,17 +39,31 @@
     return raw.replace(/\D/g, '');
   }
 
-  function deepLinkFor(kind, entityId) {
+  function deepLinkFor(kind, entityId, opts) {
+    opts = opts || {};
     var id = entityIdForKind(kind, entityId);
     if (!id) return '';
+    if (kind === 'stats') {
+      var q = [];
+      if (opts.month) q.push('m=' + encodeURIComponent(String(opts.month)));
+      if (opts.year) q.push('y=' + encodeURIComponent(String(opts.year)));
+      return 'movieplanner://stats/' + encodeURIComponent(id) + (q.length ? '?' + q.join('&') : '');
+    }
     if (kind === 'person') return 'movieplanner://s/' + id;
     if (kind === 'user') return 'movieplanner://friends/' + encodeURIComponent(id) + '?invite=1';
     return 'movieplanner://film/' + id;
   }
 
-  function intentPathFor(kind, entityId) {
+  function intentPathFor(kind, entityId, opts) {
+    opts = opts || {};
     var id = entityIdForKind(kind, entityId);
     if (!id) return '';
+    if (kind === 'stats') {
+      var q = [];
+      if (opts.month) q.push('m=' + encodeURIComponent(String(opts.month)));
+      if (opts.year) q.push('y=' + encodeURIComponent(String(opts.year)));
+      return 'stats/' + encodeURIComponent(id) + (q.length ? '?' + q.join('&') : '');
+    }
     if (kind === 'person') return 's/' + id;
     if (kind === 'user') return 'friends/' + encodeURIComponent(id) + '?invite=1';
     return 'film/' + id;
@@ -97,8 +113,8 @@
     var isIOS = /iPhone|iPad|iPod/i.test(ua);
     if (!isAndroid && !isIOS) return;
 
-    var deepLink = deepLinkFor(kind, entityId);
-    var intentPath = intentPathFor(kind, entityId);
+    var deepLink = deepLinkFor(kind, entityId, opts);
+    var intentPath = intentPathFor(kind, entityId, opts);
     var storeUrl = isAndroid ? pickAndroidStoreUrl() : String(MP_APP_STORE_URL_IOS || '').trim();
     var opened = false;
     var fallbackTimer = null;
@@ -171,6 +187,8 @@
       var dismissBtn = document.getElementById('app-dismiss-btn');
       banner.setAttribute('data-app-open-id', entityId);
       banner.setAttribute('data-app-open-kind', kind);
+      if (opts.month) banner.setAttribute('data-app-open-month', String(opts.month));
+      if (opts.year) banner.setAttribute('data-app-open-year', String(opts.year));
 
       function dismissBanner() {
         try { sessionStorage.setItem('mp_app_banner_dismiss', '1'); } catch (_e) {}
@@ -181,7 +199,9 @@
         openBtn.onclick = function () {
           var id = banner.getAttribute('data-app-open-id') || entityId;
           var k = banner.getAttribute('data-app-open-kind') || kind;
-          tryOpenNativeApp({ id: id, kind: k });
+          var month = banner.getAttribute('data-app-open-month');
+          var year = banner.getAttribute('data-app-open-year');
+          tryOpenNativeApp({ id: id, kind: k, month: month, year: year });
         };
       }
       if (dismissBtn) {

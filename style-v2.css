@@ -350,6 +350,7 @@ body.in-cabinet #section-inbox {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: 'Unbounded', sans-serif;
   font-weight: 700;
   font-size: 14px;
 }
@@ -392,6 +393,9 @@ body.in-cabinet #section-inbox {
 .header-settings-btn-text,
 .header-settings-btn-icon {
   text-decoration: none;
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .header-settings-btn-icon {
@@ -3656,12 +3660,69 @@ body.in-public-stats .footer-extension-cabinet {
   #public-stats-content { overflow-x: hidden; max-width: 100%; }
 }
 .public-stats-header-wrap {
-  max-width: 1200px;
-  margin: 0 auto 24px;
-  padding: 0 24px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.public-stats-owner-bar {
+  margin: 0 0 16px;
+}
+.public-stats-owner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+  max-width: 100%;
+}
+.public-stats-owner-link:hover { opacity: 0.9; }
+.public-stats-owner-back {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.public-stats-owner-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff2d7b, #7c3cff);
+  color: #fff;
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.public-stats-owner-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.public-stats-owner-name {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.public-stats-page-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+body.in-public-stats #site-header {
+  display: block;
+}
+body.in-public-stats .header-search {
+  display: flex;
 }
 .public-stats-header-wrap .logo { display: inline-flex; align-items: center; gap: 8px; color: var(--text-primary); text-decoration: none; font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 20px; }
 .public-stats-header-wrap .logo img { width: 32px; height: 32px; border-radius: 8px; }
