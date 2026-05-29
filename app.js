@@ -2435,6 +2435,10 @@
     _currentUserProfileId = uid;
     showSection('user', { replace: !!o.replace, skipPush: true });
     if (!o.skipPush) pushUserProfileUrl(uid, !!o.replace);
+    const shell = document.querySelector('#section-user .user-profile-shell');
+    if (shell && global.MpAppOpenBanner && typeof MpAppOpenBanner.mountAppOpenBannerBefore === 'function') {
+      MpAppOpenBanner.mountAppOpenBannerBefore(shell, { id: uid, kind: 'user' });
+    }
     mountUserProfilePage(uid);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
   }

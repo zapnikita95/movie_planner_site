@@ -9356,6 +9356,11 @@ body.film-standalone-page {
       body.film-standalone-page .app-open-banner,
       body.staff-standalone-page .app-open-banner,
       body.user-standalone-page .app-open-banner { margin-bottom: 10px; }
+
+#section-user .app-open-banner {
+  margin: 0 0 14px;
+  max-width: none;
+}
       body.film-standalone-page .header-content,
       body.staff-standalone-page .header-content,
       body.user-standalone-page .header-content {

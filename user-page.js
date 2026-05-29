@@ -421,8 +421,10 @@
       });
     }
 
-    if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
-      MpFilmPage.setupAppOpenBanner({ id: userId, kind: 'film' });
+    if (global.MpAppOpenBanner && MpAppOpenBanner.setupAppOpenBanner) {
+      MpAppOpenBanner.setupAppOpenBanner({ id: userId, kind: 'user' });
+    } else if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
+      MpFilmPage.setupAppOpenBanner({ id: userId, kind: 'user' });
     }
 
     loadUserContent(userId, chrome);

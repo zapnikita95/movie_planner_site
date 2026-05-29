@@ -301,7 +301,9 @@
         global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
       };
     }
-    if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
+    if (global.MpAppOpenBanner && MpAppOpenBanner.setupAppOpenBanner) {
+      MpAppOpenBanner.setupAppOpenBanner({ id: personId, kind: 'person' });
+    } else if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
       MpFilmPage.setupAppOpenBanner({ id: personId, kind: 'person' });
     }
   }
