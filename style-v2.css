@@ -3540,6 +3540,89 @@ body.in-public-stats .footer-extension-cabinet {
 }
 .badges-more:hover { background: rgba(155,77,255,0.15); transform: translateY(-1px); }
 
+/* Попап сюрприза — только центр экрана (.cursor/rules/surprise-celebration-modals.mdc) */
+.mp-surprise-dialog-overlay,
+.ach-celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.62);
+  overflow: hidden;
+}
+.mp-surprise-dialog-card,
+.ach-celebration-card {
+  width: 100%;
+  max-width: 340px;
+  max-height: min(88vh, calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+  overflow-y: auto;
+  margin: auto;
+  flex-shrink: 0;
+  border-radius: 22px;
+  padding: 22px 20px 18px;
+  background: var(--bg-surface, #131318);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  box-sizing: border-box;
+}
+.ach-celebration-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber, #fbbf24);
+  margin-bottom: 10px;
+}
+.ach-celebration-icon-wrap {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  line-height: 1;
+  background: radial-gradient(circle at 35% 30%, #fff7d6 0%, #fbbf24 42%, #b45309 100%);
+  border: 3px solid #fde68a;
+  box-shadow: 0 0 22px 4px rgba(251, 191, 36, 0.45);
+}
+.ach-celebration-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+.ach-celebration-desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+.ach-celebration-rarity {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #78350f;
+  background: linear-gradient(90deg, #fde68a, #fbbf24);
+}
+.ach-celebration-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
 /* Achievement panel (Все ачивки) */
 .ach-panel {
   display: none;

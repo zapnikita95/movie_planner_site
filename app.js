@@ -3833,6 +3833,7 @@
       _cabinetMeCache = me;
       try { window._mpApiAuthDegraded = false; } catch (_) {}
       renderHeader(me);
+      void maybeShowAchievementCelebrations();
       updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
       refreshGroupSuggestions(me);
@@ -6226,6 +6227,59 @@
       if (achId.startsWith(prefix)) return ACH_CATEGORIES[prefix];
     }
     return '🏆 Особые';
+  }
+
+  const ACH_RARITY_LABEL_RU_SITE = { common: 'Обычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная' };
+
+  function showAchievementCelebrationModal(a) {
+    if (!a || !a.id) return Promise.resolve();
+    const rare = ACH_RARITY_LABEL_RU_SITE[a.rarity] || a.rarity || '';
+    return new Promise(function (resolve) {
+      const overlay = document.createElement('div');
+      overlay.className = 'mp-surprise-dialog-overlay ach-celebration-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      overlay.innerHTML =
+        '<div class="mp-surprise-dialog-card ach-celebration-card">' +
+        '<div class="ach-celebration-kicker">Новая ачивка</div>' +
+        '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(a.icon || '🏅') + '</div>' +
+        '<h2 class="ach-celebration-title">' + escapeHtml(a.name || 'Ачивка') + '</h2>' +
+        '<p class="ach-celebration-desc">' + escapeHtml(a.description || '') + '</p>' +
+        (rare ? '<div class="ach-celebration-rarity">' + escapeHtml(rare) + '</div>' : '') +
+        '<button type="button" class="btn-primary btn-full ach-celebration-btn" id="ach-celebration-ok">Ура!</button>' +
+        '</div>';
+      function close() {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_) {}
+        resolve();
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close();
+      });
+      const btn = overlay.querySelector('#ach-celebration-ok');
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        api('/api/miniapp/achievements/celebration-shown', {
+          method: 'POST',
+          body: JSON.stringify({ achievement_id: a.id }),
+        }).catch(function () {}).finally(close);
+      });
+      document.body.appendChild(overlay);
+      try { btn.focus(); } catch (_) {}
+    });
+  }
+
+  function maybeShowAchievementCelebrations() {
+    if (!getToken()) return Promise.resolve();
+    return api('/api/miniapp/achievements/celebration-pending')
+      .then(function (d) {
+        const pending = (d && d.pending) || [];
+        return pending.reduce(function (chain, item) {
+          return chain.then(function () { return showAchievementCelebrationModal(item); });
+        }, Promise.resolve());
+      })
+      .catch(function () {});
   }
 
   function renderAchPanel(achievements, filterRarity, ctx) {
