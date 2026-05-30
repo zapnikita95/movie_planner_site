@@ -16,6 +16,7 @@
         var ogTitleF = 'Фильм · Movie Planner';
         var ogDescF = 'Карточка фильма в Movie Planner';
         var pageTitleF = ogTitleF;
+        var metaKeywordsF = '';
         try {
           var xhrF = new XMLHttpRequest();
           xhrF.open('GET', '/api/public/film/' + encodeURIComponent(kp), false);
@@ -27,9 +28,11 @@
               if (fl.poster_url) poster = fl.poster_url;
               if (fl.title) {
                 ogTitleF = fl.year ? (fl.title + ' (' + fl.year + ')') : fl.title;
-                pageTitleF = ogTitleF + ' · Movie Planner';
+                pageTitleF = fl.page_title || (ogTitleF + ' — смотреть, описание, рейтинг | Movie Planner');
               }
-              if (fl.description) ogDescF = fl.description;
+              if (fl.meta_description) ogDescF = fl.meta_description;
+              else if (fl.description) ogDescF = fl.description;
+              if (fl.meta_keywords) metaKeywordsF = fl.meta_keywords;
             }
           }
         } catch (_eF) {}
@@ -50,6 +53,7 @@
           '<meta property="og:image:height" content="1500">' +
           '<meta property="og:image:alt" content="Постер: ' + escF(ogTitleF) + '">' +
           '<meta name="description" content="' + escF(ogDescF) + '">' +
+          (metaKeywordsF ? ('<meta name="keywords" content="' + escF(metaKeywordsF) + '">') : '') +
           '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
           '<meta name="twitter:card" content="summary_large_image">' +
           '<meta name="twitter:title" content="' + escF(ogTitleF) + '">' +
@@ -67,6 +71,7 @@
         var ogTitle = 'Персона · Movie Planner';
         var ogDesc = 'Страница актёра и фильмография в Movie Planner';
         var pageTitle = ogTitle;
+        var metaKeywordsS = '';
         try {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', '/api/public/staff/' + encodeURIComponent(pid), false);
@@ -77,8 +82,11 @@
               var st = payload.staff;
               if (st.photo_url) photo = st.photo_url;
               if (st.og_title) ogTitle = st.og_title;
-              if (st.og_description) ogDesc = st.og_description;
-              if (st.name) pageTitle = st.name + ' · Movie Planner';
+              if (st.meta_description) ogDesc = st.meta_description;
+              else if (st.og_description) ogDesc = st.og_description;
+              if (st.page_title) pageTitle = st.page_title;
+              else if (st.name) pageTitle = st.name + ' — фильмография, фильмы | Movie Planner';
+              if (st.meta_keywords) metaKeywordsS = st.meta_keywords;
             }
           }
         } catch (_e) {}
@@ -99,6 +107,7 @@
           '<meta property="og:image:height" content="400">' +
           '<meta property="og:image:alt" content="Фото: ' + esc(ogTitle) + '">' +
           '<meta name="description" content="' + esc(ogDesc) + '">' +
+          (metaKeywordsS ? ('<meta name="keywords" content="' + esc(metaKeywordsS) + '">') : '') +
           '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
           '<meta name="twitter:card" content="summary_large_image">' +
           '<meta name="twitter:title" content="' + esc(ogTitle) + '">' +
