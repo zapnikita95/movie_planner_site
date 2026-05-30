@@ -2073,13 +2073,7 @@
     }
     const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
     if (logoutAllBtn) {
-      logoutAllBtn.addEventListener('click', () => {
-        setSessions([]);
-        setActiveChatId(null);
-        closeAccountDropdown();
-        renderHeader(null);
-        showScreen('landing');
-      });
+      logoutAllBtn.addEventListener('click', () => logoutAllSessions());
     }
     dd.classList.remove('hidden');
     dd.classList.add('open');
@@ -2110,9 +2104,22 @@
         try { initHeaderPlanTarget(); } catch (_) {}
         coinsBtn.onclick = function() { showCoinsInfoToast(me.coins); };
       }
+      const inboxBtn = document.getElementById('header-inbox-btn');
+      if (inboxBtn) {
+        inboxBtn.classList.remove('hidden');
+        if (!inboxBtn._mpBound) {
+          inboxBtn._mpBound = true;
+          inboxBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSection('inbox');
+          });
+        }
+      }
     } else {
       if (loginBtn) loginBtn.classList.remove('hidden');
       if (userWrap) userWrap.classList.add('hidden');
+      const inboxBtn = document.getElementById('header-inbox-btn');
+      if (inboxBtn) inboxBtn.classList.add('hidden');
     }
     closeAccountDropdown();
   }
@@ -2149,6 +2156,8 @@
         if (userWrap) userWrap.classList.add('hidden');
       }
     }
+    const footerApps = document.getElementById('cabinet-footer-apps');
+    if (footerApps) footerApps.classList.toggle('hidden', !inCabinet);
   }
 
   function getSiteSearchRoot() {
@@ -2938,12 +2947,18 @@
     if (rendered) {
       try { document.body.setAttribute('data-cabinet-section', String(sectionId || '')); } catch (_) {}
     }
+    if (rendered && sectionId !== 'settings') _profileSubView = 'hub';
+    if (rendered && sectionId === 'settings') {
+      try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
+    }
     if (rendered && sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try {
         if (_cabinetMeCache) refreshGroupSuggestions(_cabinetMeCache);
       } catch (_) {}
     }
+    const homeStats = document.getElementById('cabinet-home-stats');
+    if (homeStats) homeStats.classList.toggle('hidden', sectionId !== 'home');
     if (rendered) {
       try { updateGroupContextFab(); } catch (_) {}
       try { syncHeaderPlanTargetVisibility(sectionId); } catch (_) {}
@@ -3004,8 +3019,26 @@
   function updateInboxFabBadge(count) {
     const badge = document.getElementById('inbox-fab-badge');
     const fab = document.getElementById('inbox-fab');
-    if (!badge || !fab) return;
+    const hBadge = document.getElementById('header-inbox-badge');
+    const hBtn = document.getElementById('header-inbox-btn');
     const n = Math.max(0, Number(count) || 0);
+    const label = n > 0 ? ('Уведомления, непрочитанных: ' + n) : 'Уведомления';
+    const badgeText = n > 99 ? '99+' : String(n);
+
+    if (hBtn) {
+      hBtn.setAttribute('aria-label', label);
+      hBtn.setAttribute('title', label);
+    }
+    if (hBadge) {
+      if (n <= 0) {
+        hBadge.classList.add('hidden');
+        hBadge.textContent = '';
+      } else {
+        hBadge.classList.remove('hidden');
+        hBadge.textContent = badgeText;
+      }
+    }
+    if (!badge || !fab) return;
     if (n <= 0) {
       badge.classList.add('hidden');
       badge.textContent = '';
@@ -3014,8 +3047,7 @@
       return;
     }
     badge.classList.remove('hidden');
-    badge.textContent = n > 99 ? '99+' : String(n);
-    const label = 'Уведомления, непрочитанных: ' + n;
+    badge.textContent = badgeText;
     fab.setAttribute('aria-label', label);
     fab.setAttribute('title', label);
   }
@@ -3839,6 +3871,7 @@
       refreshGroupSuggestions(me);
       updateGroupContextFab();
       loadExtensionConfig();
+      wireCabinetFooterApps();
       loadTvSettings();
       try {
         const pending = localStorage.getItem('mp_pending_invite_token');
@@ -3907,6 +3940,26 @@
         else loadMeAndShowCabinet();
       });
     });
+  }
+
+  function wireCabinetFooterApps() {
+    const android = document.getElementById('cabinet-footer-android');
+    const ios = document.getElementById('cabinet-footer-ios');
+    fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rel) => {
+        if (android) {
+          android.href = (rel && rel.url) ? rel.url : (API_BASE + '/download');
+        }
+        if (ios && rel && rel.ios && rel.ios.url) {
+          ios.href = rel.ios.url;
+          ios.classList.remove('hidden');
+          if (rel.ios.version) ios.textContent = '🍎 iOS • v' + rel.ios.version;
+        }
+      })
+      .catch(() => {
+        if (android) android.href = API_BASE + '/download';
+      });
   }
 
   function loadExtensionConfig() {
@@ -4022,8 +4075,9 @@
   const HOME_LS_ORDER = 'sections_order';
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
-  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'tournament'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres'];
+  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings'];
+  let _homeDashboardCache = null;
 
   function loadHomeSectionsOrder() {
     try {
@@ -4101,6 +4155,7 @@
     unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series', moreLabel: 'Все сериалы →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
+    recent_ratings: { title: 'Недавние оценки', section: 'stats', moreLabel: 'Статистика →' },
     tournament: { title: 'Турнирная таблица', section: 'tournament', moreLabel: 'Вся таблица →' },
   };
 
@@ -4205,7 +4260,7 @@
   }
 
   function homeDashNavAttrs(item) {
-    const fid = item && (item.film_id || item.already_in_base_film_id);
+    const fid = item && (item.film_id || item.already_in_base_film_id || item.id);
     const kp = item && item.kp_id;
     let attrs = '';
     if (fid) attrs += ' data-film-id="' + escapeHtml(String(fid)) + '"';
@@ -4270,12 +4325,66 @@
     const cls = ['film-share-icon-btn', extraClass || ''].filter(Boolean).join(' ');
     return '<button type="button" class="' + cls + '" data-action="share-film-modal"'
       + ' data-kp="' + escapeHtml(String(it.kp_id || '')) + '"'
-      + ' data-film-id="' + escapeHtml(String(it.already_in_base_film_id || it.film_id || '')) + '"'
+      + ' data-film-id="' + escapeHtml(String(it.already_in_base_film_id || it.film_id || it.id || '')) + '"'
       + ' data-title="' + escapeHtml(it.title || '') + '"'
       + ' data-poster="' + escapeHtml(it.poster || '') + '"'
       + ' data-year="' + escapeHtml(String(it.year || '')) + '"'
       + ' data-genres="' + escapeHtml(String(it.genres || '')) + '"'
       + ' title="Поделиться" aria-label="Поделиться">↗</button>';
+  }
+
+  function renderHomePosterRailHtml(items, opts) {
+    const o = opts || {};
+    const rated = !!o.rated;
+    if (!items || !items.length) return '';
+    return '<div class="home-poster-rail" role="list">' + items.map((m) => {
+      const poster = m.poster || (m.kp_id ? posterUrl(m.kp_id) : '');
+      const img = poster
+        ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async">'
+        : '';
+      const rating = (rated && m.rating != null)
+        ? '<span class="home-rated-badge">★ ' + escapeHtml(String(m.rating)) + '</span>'
+        : '';
+      const attrs = homeDashNavAttrs(m);
+      const year = m.year ? escapeHtml(String(m.year)) : '—';
+      return '<button type="button" class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
+        + '<div class="home-poster-tile-img' + (poster ? '' : ' home-poster-tile-img--empty') + '">' + img + rating + '</div>'
+        + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
+        + '<div class="home-poster-tile-year">' + year + '</div>'
+        + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function renderHomePremiereRailHtml(items) {
+    if (!items || !items.length) return '';
+    return '<div class="home-prem-rail" role="list">' + items.slice(0, 12).map((it) => {
+      const poster = it.poster || posterUrl(it.kp_id);
+      const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
+      const attrs = homeDashNavAttrs(it);
+      return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
+        + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
+        + '<div class="home-pre-card-body">'
+        + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
+        + '<div class="home-pre-card-meta">' + (dateLabel ? '📅 ' + escapeHtml(String(dateLabel)) : '') + '</div>'
+        + '</div></button>';
+    }).join('') + '</div>';
+  }
+
+  function updateCabinetHomeStats(dashData) {
+    const box = document.getElementById('cabinet-home-stats');
+    if (!box) return;
+    const counts = (dashData && dashData.counts) || {};
+    const hasAny = counts.total != null || counts.unwatched != null || counts.watched != null || counts.series != null;
+    if (!hasAny) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = ''
+      + '<button type="button" class="cabinet-home-stat" data-home-show-section="unwatched"><b>' + escapeHtml(String(counts.unwatched != null ? counts.unwatched : '—')) + '</b><span>непросмотр.</span></button>'
+      + '<button type="button" class="cabinet-home-stat" data-home-show-section="stats"><b>' + escapeHtml(String(counts.watched != null ? counts.watched : '—')) + '</b><span>просмотрено</span></button>'
+      + '<button type="button" class="cabinet-home-stat" data-home-show-section="series"><b>' + escapeHtml(String(counts.series != null ? counts.series : '—')) + '</b><span>сериалов</span></button>';
   }
 
   function renderHomeBlockHtml(blockId) {
@@ -4319,32 +4428,16 @@
     }
 
     if (blockId === 'unwatched') {
-      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 5);
+      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 12);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions">'
+          + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions plans-empty-actions--compact">'
           + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
           + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
           + '</div></div></section>';
       }
-      const rows = items.map((m) => {
-        const poster = m.kp_id ? posterUrl(m.kp_id) : '';
-        const metaParts = [m.year, m.genres].filter(Boolean).map(String);
-        const preview = renderHomeHoverPreview({
-          title: m.title || '',
-          poster: poster,
-          metaHtml: metaParts.length ? escapeHtml(metaParts.join(' · ')) : '',
-          description: m.description || '',
-          emoji: m.is_series ? '📺' : '🎬',
-        });
-        return '<div class="home-dash-row film-card-v2"' + homeDashNavAttrs(m) + '><div class="home-dash-row-text">'
-          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎬</span>') + '</div>'
-          + '<div class="home-dash-row-main">'
-          + '<div class="home-dash-row-title">' + escapeHtml(m.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + (m.year ? escapeHtml(String(m.year)) : '') + '</div>'
-          + '</div></div>' + preview + '</div>';
-      }).join('');
-      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block">' + head
+        + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
     }
 
     if (blockId === 'series') {
@@ -4381,45 +4474,24 @@
       if (typeof filterPremieresUpcomingMsk === 'function') {
         items = filterPremieresUpcomingMsk(items);
       }
-      items = items.slice(0, 5);
+      items = items.slice(0, 12);
       if (!items.length) {
         const emptyHint = _homePremiereRollover
           ? 'В календарном месяце премьер не осталось — ниже ближайшие в следующем.'
           : 'Скорых премьер в этом месяце не найдено.';
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">' + escapeHtml(emptyHint) + '</p><div class="plans-empty-actions">'
+          + '<div class="home-dash-empty"><p class="empty-hint">' + escapeHtml(emptyHint) + '</p><div class="plans-empty-actions plans-empty-actions--compact">'
           + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Открыть «Премьеры»</button>'
           + '</div></div></section>';
       }
-      const rows = items.map((it) => {
-        const poster = it.poster || posterUrl(it.kp_id);
-        const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || '');
-        const meta = [it.genres || '', it.year || ''].filter(Boolean).join(' · ');
-        const desc = shortPremiereDescription(it.description || '', 118);
-        const metaHtml = '<span class="home-premiere-date-pill">' + escapeHtml(dateLabel) + '</span>'
-          + (meta ? '<span class="home-premiere-inline-meta">' + escapeHtml(meta) + '</span>' : '');
-        const preview = renderHomeHoverPreview({
-          title: it.title || '',
-          poster: poster,
-          metaHtml: metaHtml,
-          description: it.description || '',
-          emoji: '🎭',
-        });
-        const rowCls = 'home-dash-row home-dash-row--premiere film-card-v2';
-        return '<div class="' + rowCls + '"' + homeDashNavAttrs(it) + '><div class="home-dash-row-text">'
-          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎭</span>') + '</div>'
-          + '<div class="home-dash-row-main">'
-          + '<div class="home-dash-row-title">' + escapeHtml(it.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + metaHtml + '</div>'
-          + (desc ? '<div class="home-premiere-desc">' + escapeHtml(desc) + '</div>' : '')
-          + '</div></div>'
-          + '<div class="home-premiere-actions" data-stop-card-click="1">'
-          + renderShareFilmIconButton(it, 'home-premiere-share')
-          + renderPremiereNotifyButton(it, 'home-premiere-bell')
-          + '</div>'
-          + preview + '</div>';
-      }).join('');
-      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block">' + head
+        + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
+    }
+    if (blockId === 'recent_ratings') {
+      const items = (_homeDashboardCache && _homeDashboardCache.recent_rated) ? _homeDashboardCache.recent_rated.slice(0, 12) : [];
+      if (!items.length) return '';
+      return '<section class="home-dash-block">' + head
+        + '<div class="home-section-body">' + renderHomePosterRailHtml(items, { rated: true }) + '</div></section>';
     }
     if (blockId === 'tournament') {
       if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
@@ -4523,8 +4595,10 @@
         return api('/api/miniapp/dashboard', { timeoutMs: 45000 }).catch(() => null);
       })
       .then((dashData) => {
+        _homeDashboardCache = dashData && dashData.success ? dashData : null;
         _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
         if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
+        try { updateCabinetHomeStats(dashData); } catch (_) {}
         if (dashData && dashData.show_tournament_intro) {
           setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
         }
@@ -4615,6 +4689,16 @@
     if (window._mpHomeNavBound) return;
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
+      const railCard = e.target.closest('.home-poster-tile, .home-pre-card');
+      if (railCard && railCard.closest('#home-dashboard-root')) {
+        const filmId = String(railCard.getAttribute('data-film-id') || '').trim();
+        const kpId = String(railCard.getAttribute('data-kp-id') || railCard.getAttribute('data-kp') || '').trim();
+        if (filmId || kpId) {
+          e.preventDefault();
+          openFilmFromCard(railCard);
+          return;
+        }
+      }
       const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
       if (card && card.closest('#home-dashboard-root') && !e.target.closest('button,a,input,select,textarea,[data-stop-card-click]')) {
         const filmId = String(card.getAttribute('data-film-id') || '').trim();
@@ -6236,12 +6320,12 @@
     const rare = ACH_RARITY_LABEL_RU_SITE[a.rarity] || a.rarity || '';
     return new Promise(function (resolve) {
       const overlay = document.createElement('div');
-      overlay.className = 'mp-surprise-dialog-overlay ach-celebration-overlay';
+      overlay.className = 'mp-dialog-overlay ach-celebration-overlay';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
       overlay.innerHTML =
-        '<div class="mp-surprise-dialog-card ach-celebration-card">' +
+        '<div class="mp-dialog-card ach-celebration-card">' +
         '<div class="ach-celebration-kicker">Новая ачивка</div>' +
         '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(a.icon || '🏅') + '</div>' +
         '<h2 class="ach-celebration-title">' + escapeHtml(a.name || 'Ачивка') + '</h2>' +
@@ -10144,177 +10228,347 @@
     });
   }
 
+  function logoutAllSessions() {
+    setSessions([]);
+    setActiveChatId(null);
+    clearStaleSiteSession();
+    closeAccountDropdown();
+    window.dispatchEvent(new CustomEvent('mp:logout'));
+  }
+
+  let _profileSubView = 'hub';
+
+  function resolveProfileAvatarUrl(u) {
+    const cache = _cabinetMeCache || {};
+    let url = (u && u.photo_url) || cache.photo_url || cache.avatar_url || '';
+    if (!url && cache.is_group_profile && cache.room_emoji && (/^https?:\/\//i.test(cache.room_emoji) || String(cache.room_emoji).startsWith('/api/'))) {
+      url = cache.room_emoji;
+    }
+    if (!url && cache.is_personal !== false && cache.chat_id) {
+      url = API_BASE + '/api/avatar/' + encodeURIComponent(String(cache.chat_id)) + '.jpg';
+    }
+    return url;
+  }
+
+  function profileListItemHtml(emoji, title, hint, attrs) {
+    const a = attrs || {};
+    let data = '';
+    if (a.sub) data = ' data-profile-sub="' + escapeHtml(a.sub) + '"';
+    if (a.section) data = ' data-profile-section="' + escapeHtml(a.section) + '"';
+    if (a.href) data = ' data-profile-href="' + escapeHtml(a.href) + '"';
+    if (a.id) data += ' id="' + escapeHtml(a.id) + '"';
+    return '<button type="button" class="mp-list-item"' + data + '>'
+      + '<span class="mp-list-emoji">' + emoji + '</span>'
+      + '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(title) + '</span>'
+      + (hint ? '<span class="mp-list-hint">' + escapeHtml(hint) + '</span>' : '')
+      + '</span><span class="mp-list-arrow">›</span></button>';
+  }
+
+  function profileSubBackHtml() {
+    return '<button type="button" class="mp-sub-back" data-profile-sub="hub">← Профиль</button>';
+  }
+
+  function updateProfileSectionChrome() {
+    const titleEl = document.getElementById('section-settings-title');
+    if (titleEl) titleEl.classList.toggle('hidden', _profileSubView === 'hub');
+  }
+
+  function bindProfileSubNav(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-profile-sub]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        _profileSubView = btn.getAttribute('data-profile-sub') || 'hub';
+        renderSettingsSection();
+      });
+    });
+    root.querySelectorAll('[data-profile-section]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sec = btn.getAttribute('data-profile-section');
+        if (!sec) return;
+        _profileSubView = 'hub';
+        showSection(sec);
+        if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
+        if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
+        if (sec === 'integrations') { /* section wired in showSection */ }
+        if (sec === 'about') { try { bindFaq && bindFaq(); } catch (_) {} }
+      });
+    });
+    root.querySelectorAll('[data-profile-href]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const href = btn.getAttribute('data-profile-href');
+        if (href) window.open(href, '_blank', 'noopener');
+      });
+    });
+    const logoutBtn = root.querySelector('[data-profile-logout]');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => logoutAllSessions());
+  }
+
+  function renderProfileHub(root) {
+    root.innerHTML = '<div class="settings-loading">Загружаем профиль…</div>';
+    Promise.all([
+      api('/api/miniapp/profile').catch(() => null),
+      api('/api/friends').catch(() => null),
+      fetch(API_BASE + '/api/app/release', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([profileRes, friendsRes, appRelease]) => {
+      const d = profileRes;
+      const u = d && d.user;
+      const sub = d && d.subscription;
+      const totals = d && d.totals;
+      if (!d || !u) {
+        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить профиль. Попробуйте обновить страницу.</p>';
+        return;
+      }
+      const name = (u.first_name || u.username)
+        ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
+        : 'Профиль';
+      const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
+      const hasPaid = !!(sub && sub.active);
+      const friendsCount = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
+      const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
+      const downloadHint = appRelease && appRelease.url
+        ? (appRelease.version ? 'Android • v' + appRelease.version : 'Android • APK')
+        : 'Скоро — готовим релиз';
+      const avatarUrl = resolveProfileAvatarUrl(u);
+      const statsHtml = totals ? (
+        '<div class="profile-hub-stats">'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(totals.films_in_base != null ? totals.films_in_base : '—')) + '</b><span>в базе</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(totals.watched_count != null ? totals.watched_count : '—')) + '</b><span>смотрел</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(totals.series_count != null ? totals.series_count : '—')) + '</b><span>сериалов</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="groups"><b>' + escapeHtml(String(friendsCount)) + '</b><span>' + escapeHtml(friendsLabel) + '</span></button>'
+        + '</div>'
+      ) : '';
+
+      root.innerHTML = '<div class="profile-hub">'
+        + '<div class="profile-hub-header">'
+        + '<div class="profile-hub-avatar" id="profile-hub-avatar"></div>'
+        + '<div class="profile-hub-info">'
+        + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
+        + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
+        + '</div>'
+        + '<button type="button" class="profile-hub-edit" data-profile-sub="settings" aria-label="Настройки профиля">✎</button>'
+        + '</div>'
+        + statsHtml
+        + '<div class="mp-list">'
+        + profileListItemHtml('👥', 'Друзья и группы', 'Друзья, активность, группы', { section: 'groups' })
+        + profileListItemHtml('💳', 'Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { sub: 'billing' })
+        + profileListItemHtml('🔌', 'Интеграции', 'Нейросети, API и телевизор', { section: 'integrations' })
+        + profileListItemHtml('⚙️', 'Настройки', 'Тема, импорт, уведомления', { sub: 'settings' })
+        + profileListItemHtml('📱', 'Скачать приложение', downloadHint, { id: 'profile-hub-download', href: appRelease && appRelease.url ? appRelease.url : (API_BASE + '/download') })
+        + profileListItemHtml('❓', 'FAQ', 'Частые вопросы', { section: 'about' })
+        + profileListItemHtml('ℹ️', 'О сервисе', 'Автор, миссия и ссылки', { section: 'about' })
+        + '</div>'
+        + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
+        + '</div>';
+
+      setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name);
+      bindProfileSubNav(root);
+      const dl = document.getElementById('profile-hub-download');
+      if (dl && appRelease && appRelease.url) dl.setAttribute('data-profile-href', appRelease.url);
+    }).catch(() => {
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить профиль. Попробуйте обновить страницу.</p>';
+    });
+  }
+
+  function renderProfileBillingPage(root, d, tariffsRes) {
+    root.innerHTML = '<div class="profile-sub-page">'
+      + profileSubBackHtml()
+      + '<h3 class="profile-sub-title">Оплата и подписка</h3>'
+      + '<div id="settings-billing-host">' + buildSettingsBillingHtml(d, tariffsRes) + '</div>'
+      + '</div>';
+    bindProfileSubNav(root);
+    bindSettingsPageExtras(root, (msg, ok) => {
+      const el = root.querySelector('.profile-settings-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    });
+  }
+
+  function renderProfileSettingsDetailPage(root, d, settingsRes) {
+    const u = d.user;
+    const st = settingsRes || {};
+    const notifTg = !st.notifications || st.notifications.notify_telegram !== false;
+    const notifInapp = !st.notifications || st.notifications.notify_inapp !== false;
+    const collOnHome = !!(st.display && st.display.show_collections_on_home);
+    const homeEmoji = loadHomeEmojiVis();
+    const name = (u.first_name || u.username)
+      ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
+      : 'Профиль';
+    const avatarUrl = resolveProfileAvatarUrl(u);
+
+    root.innerHTML = '<div class="profile-sub-page settings-page">'
+      + profileSubBackHtml()
+      + '<h3 class="profile-sub-title">Настройки</h3>'
+      + '<div class="settings-panels-grid settings-panels-grid--stack">'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото профиля</h3>'
+      + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
+      + '<div class="settings-hero-avatar settings-hero-avatar--inline" id="settings-profile-avatar"></div>'
+      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
+      + '<div class="settings-photo-editor hidden" id="profile-settings-photo-editor">'
+      + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"></div>'
+      + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
+      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
+      + '</div></section>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Имя</h3>'
+      + '<form class="settings-name-form" id="profile-settings-form">'
+      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="Имя в кабинете">'
+      + '<button type="submit" class="btn btn-primary btn-full">Сохранить</button>'
+      + '</form></section>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
+      + settingsToggleRow({ id: 'profile-settings-searchable', emoji: '🔎', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
+      + settingsToggleRow({ id: 'profile-settings-tournament', emoji: '🏆', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
+      + '</div></section>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
+      + settingsToggleRow({ id: 'settings-notify-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
+      + settingsToggleRow({ id: 'settings-notify-inapp', emoji: '🔔', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
+      + '</div></section>'
+      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
+      + settingsToggleRow({ id: 'settings-coll-home', emoji: '📁', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
+      + settingsToggleRow({ id: 'settings-emoji-random', emoji: '🎲', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
+      + settingsToggleRow({ id: 'settings-emoji-shazam', emoji: '🔮', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
+      + settingsToggleRow({ id: 'settings-emoji-voice', emoji: '🎤', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
+      + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
+      + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
+      + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
+      + '</div></section>'
+      + '<section class="settings-panel settings-panel--compact">'
+      + profileListItemHtml('🧩', 'Импорт оценок', 'Кинопоиск, MyShows, IMDb', { sub: 'import' })
+      + profileListItemHtml('🔑', 'Аккаунты и вход', 'Google, Яндекс, почта', { sub: 'accounts' })
+      + '</section>'
+      + '</div>'
+      + '<p class="profile-settings-status" id="profile-settings-status"></p>'
+      + '</div>';
+
+    setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
+    bindProfileSubNav(root);
+    const statusEl = root.querySelector('#profile-settings-status');
+    const setStatus = (msg, ok) => {
+      if (!statusEl) return;
+      statusEl.textContent = msg || '';
+      statusEl.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    };
+    bindProfileSettingsControls(root);
+    bindSettingsPageExtras(root, setStatus);
+    loadProfileSettingsAvatarGrid(root, setStatus);
+    try { applyHomeEmojiVisibility(); } catch (_) {}
+  }
+
+  function renderProfileAccountsPage(root, d) {
+    const sessions = getSessions();
+    const activeId = getActiveChatId();
+    const sessionsHtml = sessions.length ? sessions.map((s) => {
+      const isActive = String(s.chat_id) === String(activeId);
+      const typeLabel = s.is_personal ? 'личный' : 'группа';
+      return '<div class="settings-account-row ' + (isActive ? 'is-active' : '') + '" data-settings-account="' + escapeHtml(String(s.chat_id)) + '">'
+        + '<div><b>' + escapeHtml(s.name || 'Кабинет') + '</b>'
+        + '<span>' + escapeHtml(typeLabel) + (isActive ? ' · активен' : '') + '</span></div>'
+        + '<button type="button" class="settings-account-remove" data-settings-remove-account="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>'
+        + '</div>';
+    }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
+
+    root.innerHTML = '<div class="profile-sub-page settings-page">'
+      + profileSubBackHtml()
+      + '<h3 class="profile-sub-title">Аккаунты и вход</h3>'
+      + '<section class="settings-panel settings-panel--wide">'
+      + '<div class="settings-connectors">'
+      + '<button type="button" class="settings-row" data-profile-link="google">🔗 Google</button>'
+      + '<button type="button" class="settings-row" data-profile-link="yandex">🔗 Яндекс</button>'
+      + '<button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>'
+      + '</div><div class="settings-accounts-list">' + sessionsHtml + '</div>'
+      + '</section>'
+      + '<p class="profile-settings-status" id="profile-settings-status"></p>'
+      + '</div>';
+
+    bindProfileSubNav(root);
+    const statusEl = root.querySelector('#profile-settings-status');
+    const setStatus = (msg, ok) => {
+      if (!statusEl) return;
+      statusEl.textContent = msg || '';
+      statusEl.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    };
+    bindProfileSettingsControls(root);
+  }
+
+  function renderProfileImportPage(root) {
+    root.innerHTML = '<div class="profile-sub-page settings-page">'
+      + profileSubBackHtml()
+      + '<h3 class="profile-sub-title">Импорт оценок</h3>'
+      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">🧩 Импорт</h3>'
+      + '<div class="settings-import-tabs" role="tablist">'
+      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
+      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
+      + '</div>'
+      + '<div id="settings-import-kp" class="settings-import-pane">'
+      + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
+      + '<form class="settings-import-form" id="profile-import-form">'
+      + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
+      + '<div class="settings-import-counts" id="profile-import-counts">'
+      + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
+        const label = n === 'all' ? 'Всё' : String(n);
+        const on = n === 1500 ? ' settings-import-count--on' : '';
+        return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
+      }).join('')
+      + '</div>'
+      + '<button type="submit" class="btn btn-primary btn-full">Импортировать</button>'
+      + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
+      + '</div>'
+      + '<div id="settings-import-ext" class="settings-import-pane hidden">'
+      + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
+      + '<form class="settings-import-form" id="profile-import-external-form">'
+      + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
+      + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
+      + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
+      + '</form></div>'
+      + '<p class="profile-settings-status" id="profile-import-status"></p>'
+      + '</section>'
+      + '</div>';
+
+    bindProfileSubNav(root);
+    bindProfileSettingsControls(root);
+    resumeProfileImportPollIfNeeded(root);
+  }
+
   function renderSettingsSection() {
     const root = document.getElementById('settings-content');
     if (!root) return;
-    root.innerHTML = '<div class="settings-loading">Загружаем профиль…</div>';
+    updateProfileSectionChrome();
+
+    if (_profileSubView === 'hub') {
+      renderProfileHub(root);
+      return;
+    }
+
+    root.innerHTML = '<div class="settings-loading">Загружаем…</div>';
     Promise.all([
       api('/api/miniapp/profile').catch(() => null),
       api('/api/miniapp/settings').catch(() => null),
       api('/api/mobile/billing/tariffs').catch(() => null),
     ]).then(([profileRes, settingsRes, tariffsRes]) => {
       const d = profileRes;
-      const u = d && d.user;
-      const sub = d && d.subscription;
-      const totals = d && d.totals;
-      if (!d || !u) {
-        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>';
+      if (!d || !d.user) {
+        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить. Попробуйте обновить страницу.</p>';
         return;
       }
-      const name = (u.first_name || u.username)
-        ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
-        : 'Профиль';
-      const sessions = getSessions();
-      const activeId = getActiveChatId();
-      const sessionsHtml = sessions.length ? sessions.map((s) => {
-        const isActive = String(s.chat_id) === String(activeId);
-        const typeLabel = s.is_personal ? 'личный' : 'группа';
-        return '<div class="settings-account-row ' + (isActive ? 'is-active' : '') + '" data-settings-account="' + escapeHtml(String(s.chat_id)) + '">'
-          + '<div><b>' + escapeHtml(s.name || 'Кабинет') + '</b>'
-          + '<span>' + escapeHtml(typeLabel) + (isActive ? ' · активен' : '') + '</span></div>'
-          + '<button type="button" class="settings-account-remove" data-settings-remove-account="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>'
-          + '</div>';
-      }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
-
-      const avatarUrl = u.photo_url || '';
-      const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
-      const username = u.username ? '@' + u.username : '';
-      const emailLine = u.email ? escapeHtml(u.email) : '';
-      const metaParts = [username, emailLine].filter(Boolean).join(' · ');
-
-      const st = settingsRes || {};
-      const notifTg = !st.notifications || st.notifications.notify_telegram !== false;
-      const notifInapp = !st.notifications || st.notifications.notify_inapp !== false;
-      const collOnHome = !!(st.display && st.display.show_collections_on_home);
-      const homeEmoji = loadHomeEmojiVis();
-
-      const statsHtml = totals ? (
-        '<div class="settings-hero-stats">'
-        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.films_in_base != null ? totals.films_in_base : '—')) + '</b><span>в базе</span></div>'
-        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.watched_count != null ? totals.watched_count : '—')) + '</b><span>смотрел</span></div>'
-        + '<div class="settings-hero-stat"><b>' + escapeHtml(String(totals.series_count != null ? totals.series_count : '—')) + '</b><span>сериалов</span></div>'
-        + '</div>'
-      ) : '';
-
-      root.innerHTML = '<div class="settings-page">'
-        + '<div class="settings-hero-card">'
-        + '<div class="settings-hero-main">'
-        + '<div class="settings-hero-avatar" id="settings-profile-avatar"></div>'
-        + '<div class="settings-hero-info">'
-        + '<div class="settings-hero-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
-        + (metaParts ? '<div class="settings-hero-meta">' + metaParts + '</div>' : '')
-        + statsHtml
-        + '</div></div>'
-        + '<form class="settings-name-form" id="profile-settings-form">'
-        + '<label class="settings-name-label" for="profile-settings-name">Имя в кабинете</label>'
-        + '<div class="settings-name-row">'
-        + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name">'
-        + '<button type="submit" class="btn btn-primary">Сохранить</button>'
-        + '</div></form>'
-        + '</div>'
-        + '<div class="settings-panels-grid">'
-        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото профиля</h3>'
-        + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
-        + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
-        + '<div class="settings-photo-editor hidden" id="profile-settings-photo-editor">'
-        + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"></div>'
-        + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
-        + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
-        + '</div></section>'
-        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
-        + settingsToggleRow({ id: 'profile-settings-searchable', emoji: '🔎', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
-        + settingsToggleRow({ id: 'profile-settings-tournament', emoji: '🏆', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
-        + '</div></section>'
-        + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
-        + settingsToggleRow({ id: 'settings-notify-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
-        + settingsToggleRow({ id: 'settings-notify-inapp', emoji: '🔔', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
-        + '</div></section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
-        + settingsToggleRow({ id: 'settings-coll-home', emoji: '📁', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
-        + settingsToggleRow({ id: 'settings-emoji-random', emoji: '🎲', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
-        + settingsToggleRow({ id: 'settings-emoji-shazam', emoji: '🔮', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
-        + settingsToggleRow({ id: 'settings-emoji-voice', emoji: '🎤', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
-        + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
-        + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
-        + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
-        + '</div></section>'
-        + '<section class="settings-panel"><h3 class="settings-panel-title">Подписка</h3>'
-        + '<div id="settings-billing-host">' + buildSettingsBillingHtml(d, tariffsRes) + '</div></section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Аккаунты и вход</h3>'
-        + '<div class="settings-connectors">'
-        + '<button type="button" class="settings-row" data-profile-link="google">🔗 Google</button>'
-        + '<button type="button" class="settings-row" data-profile-link="yandex">🔗 Яндекс</button>'
-        + '<button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>'
-        + '</div><div class="settings-accounts-list">' + sessionsHtml + '</div></section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">🧩 Импорт</h3>'
-        + '<div class="settings-import-tabs" role="tablist">'
-        + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
-        + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
-        + '</div>'
-        + '<div id="settings-import-kp" class="settings-import-pane">'
-        + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
-        + '<form class="settings-import-form" id="profile-import-form">'
-        + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
-        + '<div class="settings-import-counts" id="profile-import-counts">'
-        + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
-          const label = n === 'all' ? 'Всё' : String(n);
-          const on = n === 1500 ? ' settings-import-count--on' : '';
-          return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
-        }).join('')
-        + '</div>'
-        + '<button type="submit" class="btn btn-primary">Импортировать</button>'
-        + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
-        + '</div>'
-        + '<div id="settings-import-ext" class="settings-import-pane hidden">'
-        + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
-        + '<form class="settings-import-form" id="profile-import-external-form">'
-        + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
-        + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
-        + '<button type="submit" class="btn btn-secondary">Импортировать</button>'
-        + '</form></div>'
-        + '<p class="profile-settings-status" id="profile-import-status"></p>'
-        + '</section>'
-        + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Ещё</h3>'
-        + '<div class="settings-links-grid">'
-        + '<button type="button" class="settings-link-card" data-sets-go="integrations">🔌 Интеграции</button>'
-        + '<button type="button" class="settings-link-card" data-sets-go="groups">👥 Друзья и группы</button>'
-        + '<button type="button" class="settings-link-card" data-sets-go="stats">📊 Статистика</button>'
-        + '<button type="button" class="settings-link-card" data-sets-go="developer">🤖 API и нейросети</button>'
-        + '<a href="#" class="settings-link-card" id="settings-app-apk" target="_blank" rel="noopener">📱 Android-приложение</a>'
-        + '</div></section>'
-        + '</div>'
-        + '<p class="profile-settings-status" id="profile-settings-status"></p>'
-        + '</div>';
-
-      setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
-      const statusEl = root.querySelector('#profile-settings-status');
-      const setStatus = (msg, ok) => {
-        if (!statusEl) return;
-        statusEl.textContent = msg || '';
-        statusEl.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
-      };
-      bindProfileSettingsControls(root);
-      bindSettingsPageExtras(root, setStatus);
-      try { applyHomeEmojiVisibility(); } catch (_) {}
-
-      const apk = document.getElementById('settings-app-apk');
-      if (apk) {
-        fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((rel) => { apk.href = (rel && rel.url) ? rel.url : (API_BASE + '/download'); })
-          .catch(() => { apk.href = API_BASE + '/download'; });
+      if (_profileSubView === 'billing') {
+        renderProfileBillingPage(root, d, tariffsRes);
+        return;
       }
-      root.querySelectorAll('[data-sets-go]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const g = btn.getAttribute('data-sets-go');
-          if (g === 'integrations') showSection('integrations');
-          if (g === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); }
-          if (g === 'stats') showSection('stats');
-          if (g === 'developer') { showSection('developer'); if (typeof renderDeveloperSection === 'function') renderDeveloperSection(); }
-        });
-      });
+      if (_profileSubView === 'settings') {
+        renderProfileSettingsDetailPage(root, d, settingsRes);
+        return;
+      }
+      if (_profileSubView === 'accounts') {
+        renderProfileAccountsPage(root, d);
+        return;
+      }
+      if (_profileSubView === 'import') {
+        renderProfileImportPage(root);
+        return;
+      }
+      _profileSubView = 'hub';
+      renderProfileHub(root);
     }).catch(() => {
-      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки. Попробуйте обновить страницу.</p>';
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить. Попробуйте обновить страницу.</p>';
     });
   }
 
@@ -10587,9 +10841,7 @@
         const wasActive = String(getActiveChatId()) === String(chatId);
         setSessions(next);
         if (!next.length) {
-          setActiveChatId(null);
-          renderHeader(null);
-          showScreen('landing');
+          logoutAllSessions();
           return;
         }
         if (wasActive) setActiveChatId(next[0].chat_id);

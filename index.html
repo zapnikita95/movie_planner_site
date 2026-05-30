@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260529stats1">
+    <link rel="stylesheet" href="/style-v2.css?v=20260530mobileparity2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -136,6 +136,10 @@
             </button>
             <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <div class="header-util-row" id="header-util-row">
+              <button type="button" class="header-inbox-btn hidden" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+                <span class="header-inbox-badge hidden" id="header-inbox-badge" aria-hidden="true"></span>
+              </button>
               <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
                 <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
                 <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
@@ -504,6 +508,7 @@
                     </button>
                 </div>
             </div>
+            <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji">🏠</span><span class="cabinet-nav-btn-text">Главная</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
@@ -740,7 +745,7 @@
                     <div id="developer-content" class="settings-content"></div>
                 </section>
                 <section id="section-settings" class="cabinet-section hidden cabinet-settings">
-                    <h2 class="section-title"><span class="section-title-emoji">⚙️</span><span class="section-title-text">Настройки</span></h2>
+                    <h2 class="section-title section-title--compact hidden" id="section-settings-title"><span class="section-title-emoji">👤</span><span class="section-title-text">Профиль</span></h2>
                     <div id="settings-content" class="settings-content"></div>
                 </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
@@ -1288,6 +1293,15 @@
                 <div class="footer-extension-cabinet" id="cabinet-footer-extension">
                     <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" id="cabinet-footer-extension-link" class="btn btn-small btn-secondary hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
                 </div>
+                <div class="footer-apps-cabinet hidden" id="cabinet-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-apps-links">
+                        <a href="/download" id="cabinet-footer-android" class="footer-app-link" target="_blank" rel="noopener">📱 Android</a>
+                        <a href="#" id="cabinet-footer-ios" class="footer-app-link hidden" target="_blank" rel="noopener">🍎 iOS</a>
+                        <a href="https://t.me/movie_planner_bot/app" class="footer-app-link" target="_blank" rel="noopener">✈️ Mini App</a>
+                        <a href="https://t.me/movie_planner_bot" class="footer-app-link" target="_blank" rel="noopener">🤖 Telegram-бот</a>
+                    </div>
+                </div>
                 <div class="footer-info">
                     <h3>Контакты</h3>
                     <p>📍 Москва</p>
@@ -1364,6 +1378,6 @@
     <script src="/public-film-login.js?v=20260529profileload"></script>
     <script src="/app-open-banner.js?v=20260529mobileparity1"></script>
     <script src="/page-loading.js?v=20260529mobileparity1"></script>
-    <script src="/app.js?v=20260529mobileparity1"></script>
+    <script src="/app.js?v=20260530mobileparity2"></script>
 </body>
 </html>
