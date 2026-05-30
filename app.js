@@ -707,60 +707,194 @@
     document.documentElement.classList.remove('mp-site-home-tour-active');
   }
 
-  function mountSiteFirstOnboardingWizard(onComplete) {
-    if (document.getElementById('site-first-onboard-overlay')) return;
-    let phase = 'welcome';
+  const SITE_WTW_GENRES_FALLBACK = [
+    'драма', 'комедия', 'триллер', 'фантастика', 'фэнтези', 'боевик',
+    'детектив', 'мелодрама', 'приключения', 'ужасы', 'криминал', 'мультфильм',
+    'биография', 'история', 'военный', 'семейный', 'аниме', 'документальный',
+  ];
+
+  function siteLockViewportScroll() {
+    document.body.style.overflow = 'hidden';
+  }
+
+  function siteUnlockViewportScroll() {
+    document.body.style.overflow = '';
+  }
+
+  function _siteOnboardingDeps() {
+    return {
+      isDesktop: typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 900px)').matches,
+      apiGet: function (url, opts) {
+        const u = String(url || '');
+        if (opts && opts.bypassCache) {
+          const sep = u.indexOf('?') >= 0 ? '&' : '?';
+          return api(u + sep + '_=' + Date.now());
+        }
+        return api(u);
+      },
+      apiPost: function (url, body) {
+        return api(url, { method: 'POST', body: JSON.stringify(body || {}) });
+      },
+      escapeHtml: escapeHtml,
+      lockViewportScroll: siteLockViewportScroll,
+      unlockViewportScroll: siteUnlockViewportScroll,
+      markFirstOnboardingDoneAsync: function () {
+        return uiTourMarkDone(UI_TOUR_KEYS.onboarding);
+      },
+      posterUrl: function (kp) { return posterUrl(kp); },
+      hapticImpact: function () {},
+      toast: showToast,
+      fetchCoins: function () {
+        return api('/api/miniapp/coins').then(function (data) {
+          if (!data || !data.success) return;
+          const val = document.getElementById('header-coins-val');
+          if (val) val.textContent = data.is_infinite ? '∞' : String(data.balance != null ? data.balance : '—');
+        }).catch(function () {});
+      },
+      WTW_GENRES_FALLBACK: SITE_WTW_GENRES_FALLBACK,
+      navigate: function (path) {
+        const p = String(path || '');
+        if (p.indexOf('/import-kinopoisk') === 0) {
+          try { sessionStorage.setItem('mp_onboard_import_tab', 'kp'); } catch (_) {}
+          showSection('settings', { replace: true });
+          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
+          return;
+        }
+        if (p.indexOf('/import-external') === 0) {
+          try { sessionStorage.setItem('mp_onboard_import_tab', 'ext'); } catch (_) {}
+          showSection('settings', { replace: true });
+          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
+          return;
+        }
+        if (p.indexOf('/plan/home') === 0) {
+          const qs = p.split('?')[1] || '';
+          const params = new URLSearchParams(qs);
+          const kp = params.get('kp');
+          const title = params.get('title') || '';
+          if (params.get('onboard') === '1') {
+            try { sessionStorage.setItem('mp_site_plan_onboard', '1'); } catch (_) {}
+          }
+          if (kp) {
+            openSiteOnboardPlanModal(kp, title);
+          } else {
+            showSection('plans', { replace: true });
+          }
+        }
+      },
+    };
+  }
+
+  function _siteOnboardingResumeAfterImportLeave() {
+    try {
+      const st = JSON.parse(sessionStorage.getItem('mp_onboard_v2_state') || '{}');
+      if (!st.importPrompted || !st.awaitImportReturn) return;
+      st.awaitImportReturn = false;
+      st.importSkipped = true;
+      sessionStorage.setItem('mp_onboard_v2_state', JSON.stringify(st));
+      if (typeof window.__mpMountExtendedOnboarding === 'function') {
+        window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), function () {});
+      }
+    } catch (_) {}
+  }
+
+  function openSiteOnboardPlanModal(kpId, title) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return;
+    siteLockViewportScroll();
+    let picked = new Date();
+    picked.setHours(20, 0, 0, 0);
+    if (picked.getTime() < Date.now()) picked.setDate(picked.getDate() + 1);
+
     const ov = document.createElement('div');
-    ov.id = 'site-first-onboard-overlay';
-    ov.className = 'mp-onboard-overlay site-first-onboard-overlay';
+    ov.className = 'mp-dialog-overlay mp-onboard-dialog-overlay' + (_siteOnboardingDeps().isDesktop ? ' mp-onboard--desktop' : '');
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
 
-    const finish = function () {
-      uiTourMarkDone(UI_TOUR_KEYS.onboarding).then(function () {
-        try { ov.remove(); } catch (_) {}
-        if (onComplete) onComplete();
-      });
-    };
+    function chipLabel(d) {
+      const dd = new Date(d);
+      return dd.toLocaleString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
 
     function paint() {
-      if (phase === 'welcome') {
-        ov.innerHTML = ''
-          + '<div class="mp-onboard-card mp-first-onboard-card">'
-          + '<div class="mp-onboard-title">Добро пожаловать</div>'
-          + '<p class="mp-onboard-text">Здесь ваш киношкаф: поиск, планы, база и рекомендации. Покажем главное за минуту.</p>'
-          + '<button type="button" class="btn btn-primary btn-full" data-fo-start style="margin-top:14px">Показать</button>'
-          + '<button type="button" class="btn btn-secondary btn-full" data-fo-skip style="margin-top:8px">Пропустить</button>'
-          + '</div>';
-        ov.querySelector('[data-fo-start]').addEventListener('click', function () {
-          phase = 'import';
-          paint();
+      ov.innerHTML =
+        '<div class="mp-dialog-card mp-onboard-dialog-card">' +
+        '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label="Закрыть">✕</button>' +
+        '<div class="mp-onboard-title">Первый план</div>' +
+        '<p class="mp-onboard-text">' + escapeHtml(title || 'Фильм') + '</p>' +
+        '<div class="mp-onboard-opts" style="margin-top:8px">' +
+        '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="today">Сегодня в 20:00</button>' +
+        '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="tomorrow">Завтра в 20:00</button>' +
+        '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="sat">Ближайшая суббота 20:00</button>' +
+        '</div>' +
+        '<p class="mp-onboard-text" style="margin-top:12px;font-size:13px">' + escapeHtml(chipLabel(picked)) + '</p>' +
+        '<button type="button" class="btn btn-primary btn-full" data-ob-save style="margin-top:14px">Сохранить план</button>' +
+        '</div>';
+
+      ov.querySelector('[data-ob-x]')?.addEventListener('click', function () {
+        siteUnlockViewportScroll();
+        ov.remove();
+      });
+      ov.querySelector('[data-ob-chip="today"]')?.addEventListener('click', function () {
+        const n = new Date();
+        n.setHours(20, 0, 0, 0);
+        if (n.getTime() < Date.now()) n.setDate(n.getDate() + 1);
+        picked = n;
+        paint();
+      });
+      ov.querySelector('[data-ob-chip="tomorrow"]')?.addEventListener('click', function () {
+        const n = new Date();
+        n.setDate(n.getDate() + 1);
+        n.setHours(20, 0, 0, 0);
+        picked = n;
+        paint();
+      });
+      ov.querySelector('[data-ob-chip="sat"]')?.addEventListener('click', function () {
+        const n = new Date();
+        const diff = (6 - n.getDay() + 7) % 7 || 7;
+        n.setDate(n.getDate() + diff);
+        n.setHours(20, 0, 0, 0);
+        picked = n;
+        paint();
+      });
+      ov.querySelector('[data-ob-save]')?.addEventListener('click', function () {
+        const btn = ov.querySelector('[data-ob-save]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Сохраняем…'; }
+        api('/api/miniapp/plans/home', {
+          method: 'POST',
+          body: JSON.stringify({ kp_id: Number(kp), plan_datetime: picked.toISOString() }),
+        }).then(function (res) {
+          siteUnlockViewportScroll();
+          ov.remove();
+          try { sessionStorage.removeItem('mp_site_plan_onboard'); } catch (_) {}
+          const coins = Number(res && res.coins_awarded) || 0;
+          if (typeof window.__mpShowOnboardingCoinsAfterPlan === 'function') {
+            window.__mpShowOnboardingCoinsAfterPlan(_siteOnboardingDeps(), coins, function () {
+              showSection('plans', { replace: true });
+              try { renderPlansList && renderPlansList(); } catch (_) {}
+            });
+          } else {
+            showSection('plans', { replace: true });
+            try { renderPlansList && renderPlansList(); } catch (_) {}
+          }
+        }).catch(function () {
+          if (btn) { btn.disabled = false; btn.textContent = 'Сохранить план'; }
+          showToast('Не удалось сохранить план', { type: 'error' });
         });
-        ov.querySelector('[data-fo-skip]').addEventListener('click', finish);
-        return;
-      }
-      if (phase === 'import') {
-        ov.innerHTML = ''
-          + '<div class="mp-onboard-card mp-first-onboard-card">'
-          + '<button type="button" class="mp-onboard-dismiss" data-fo-dismiss aria-label="Закрыть">✕</button>'
-          + '<div class="mp-onboard-title" style="margin-top:2px">Перенесите оценки</div>'
-          + '<p class="mp-onboard-text">Импорт с Кинопоиска или MyShows/IMDb — до <strong>2000 монеток</strong> и готовая база с первого дня.</p>'
-          + '<div class="site-onboard-actions">'
-          + '<button type="button" class="btn btn-primary btn-full" data-fo-import>Открыть импорт</button>'
-          + '<button type="button" class="btn btn-secondary btn-full" data-fo-next>К туру по сайту</button>'
-          + '</div></div>';
-        ov.querySelector('[data-fo-import]').addEventListener('click', function () {
-          finish();
-          try { showSection('settings', { replace: true }); } catch (_) {}
-          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
-        });
-        ov.querySelector('[data-fo-next]').addEventListener('click', finish);
-        ov.querySelector('[data-fo-dismiss]').addEventListener('click', finish);
-      }
+      });
     }
 
     document.body.appendChild(ov);
     paint();
+  }
+
+  function mountSiteFirstOnboardingWizard(onComplete) {
+    if (typeof window.__mpMountExtendedOnboarding === 'function') {
+      window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), onComplete);
+      return;
+    }
+    uiTourMarkDone(UI_TOUR_KEYS.onboarding).then(function () {
+      if (onComplete) onComplete();
+    });
   }
 
   function getSiteHomeTourSteps() {
@@ -2907,6 +3041,10 @@
 
   function showSection(sectionId, opts) {
     const options = opts || {};
+    const prevSection = visibleCabinetSectionId();
+    if (prevSection === 'settings' && sectionId !== 'settings') {
+      _siteOnboardingResumeAfterImportLeave();
+    }
     const readonly = document.getElementById('cabinet-readonly');
     const onboarding = document.getElementById('cabinet-onboarding');
     let rendered = false;
@@ -10645,6 +10783,12 @@
       renderProfileImportProgress(root, job);
       if (job && job.status === 'running') return;
       stopProfileImportPoll();
+      if (job && job.status === 'done' && root && !root._onboardImportNotified) {
+        root._onboardImportNotified = true;
+        if (typeof window.__mpOnboardingImportFinished === 'function') {
+          void window.__mpOnboardingImportFinished(_siteOnboardingDeps(), Number(job.imported || 0) > 0);
+        }
+      }
     }).catch(() => {});
   }
 
@@ -10860,6 +11004,14 @@
         if (extPane) extPane.classList.toggle('hidden', tab !== 'ext');
       });
     });
+    try {
+      const obTab = sessionStorage.getItem('mp_onboard_import_tab');
+      if (obTab) {
+        sessionStorage.removeItem('mp_onboard_import_tab');
+        const tbtn = root.querySelector('[data-import-tab="' + obTab + '"]');
+        if (tbtn) tbtn.click();
+      }
+    } catch (_) {}
     const importForm = root.querySelector('#profile-import-form');
     const externalImportForm = root.querySelector('#profile-import-external-form');
     let profileKpMaxCount = 1500;
