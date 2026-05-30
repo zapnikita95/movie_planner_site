@@ -1092,115 +1092,27 @@
       }
 
       function openStandalonePlanModal(filmLike, place) {
-        place = place === 'cinema' ? 'cinema' : 'home';
+        if (!window.MpPlanModal || typeof MpPlanModal.open !== 'function') {
+          showPublicToast('Форма плана недоступна');
+          return;
+        }
         var fl = filmLike || {};
-        var fid = fl.film_id != null ? Number(fl.film_id) : null;
-        var kp = String(fl.kp_id || kpId || '').replace(/\D/g, '');
-        var title = fl.title || filmTitleForPlan();
-        var picked = new Date();
-        picked.setHours(20, 0, 0, 0);
-        if (picked.getTime() < Date.now()) picked.setDate(picked.getDate() + 1);
-
-        var ov = document.createElement('div');
-        ov.className = 'mp-dialog-overlay';
-        ov.setAttribute('role', 'dialog');
-        ov.setAttribute('aria-modal', 'true');
-
-        function unlock() {
-          document.body.style.overflow = '';
-          try { ov.remove(); } catch (_e) {}
-        }
-
-        function toInputDate(d) {
-          return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        }
-        function toInputTime(d) {
-          return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        }
-
-        function paint() {
-          var cinemaBlock = place === 'cinema'
-            ? '<input type="text" id="plan-cinema-name" class="plan-modal-input" placeholder="Кинотеатр (необязательно)" maxlength="120" style="margin-top:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">'
-            : '';
-          ov.innerHTML =
-            '<div class="mp-dialog-card" style="max-width:340px;width:100%">' +
-            '<button type="button" class="mp-onboard-dismiss" data-plan-x aria-label="Закрыть">✕</button>' +
-            '<div class="mp-onboard-title">' + (place === 'cinema' ? 'План в кино' : 'План дома') + '</div>' +
-            '<p class="mp-onboard-text">' + escapeHtml(title) + '</p>' +
-            '<div class="mp-onboard-opts" style="margin-top:8px;display:grid;gap:8px">' +
-            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="today">Сегодня в 20:00</button>' +
-            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="tomorrow">Завтра в 20:00</button>' +
-            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="sat">Ближайшая суббота</button>' +
-            '</div>' +
-            '<div style="margin-top:12px;display:grid;gap:8px;grid-template-columns:1fr 1fr">' +
-            '<input type="date" id="plan-date" class="plan-modal-input" style="box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">' +
-            '<input type="time" id="plan-time" class="plan-modal-input" value="20:00" style="box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">' +
-            '</div>' +
-            cinemaBlock +
-            '<button type="button" class="btn btn-primary btn-full" data-plan-save style="margin-top:14px">Сохранить план</button>' +
-            '</div>';
-
-          var dateEl = ov.querySelector('#plan-date');
-          var timeEl = ov.querySelector('#plan-time');
-          if (dateEl) dateEl.value = toInputDate(picked);
-          if (timeEl) timeEl.value = toInputTime(picked);
-
-          ov.querySelector('[data-plan-x]').addEventListener('click', unlock);
-          ov.querySelectorAll('[data-plan-chip]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-              var kind = btn.getAttribute('data-plan-chip');
-              var n = new Date();
-              if (kind === 'tomorrow') n.setDate(n.getDate() + 1);
-              else if (kind === 'sat') {
-                var diff = (6 - n.getDay() + 7) % 7 || 7;
-                n.setDate(n.getDate() + diff);
-              }
-              n.setHours(20, 0, 0, 0);
-              if (kind === 'today' && n.getTime() < Date.now()) n.setDate(n.getDate() + 1);
-              picked = n;
-              paint();
-            });
-          });
-
-          ov.querySelector('[data-plan-save]').addEventListener('click', function () {
-            var saveBtn = ov.querySelector('[data-plan-save]');
-            var dVal = (ov.querySelector('#plan-date') && ov.querySelector('#plan-date').value) || '';
-            var tVal = (ov.querySelector('#plan-time') && ov.querySelector('#plan-time').value) || '';
-            if (!dVal || !tVal) { showPublicToast('Укажите дату и время'); return; }
-            var dt = new Date(dVal + 'T' + tVal);
-            if (isNaN(dt.getTime())) { showPublicToast('Некорректная дата'); return; }
-
-            var body = { plan_datetime: dt.toISOString() };
-            if (fid) body.film_id = fid;
-            else if (kp) body.kp_id = Number(kp);
-            if (place === 'cinema') {
-              var cn = ov.querySelector('#plan-cinema-name');
-              if (cn && cn.value.trim()) body.cinema_name = cn.value.trim();
-            }
-
-            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Сохраняем…'; }
-            var endpoint = place === 'cinema' ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
-            fetch(apiBase + endpoint, {
-              method: 'POST',
-              headers: authHeaders(),
-              body: JSON.stringify(body),
-            }).then(function (r) { return r.json(); })
-              .then(function (res) {
-                if (!res || !res.success) throw new Error((res && res.error) || 'Не удалось сохранить');
-                unlock();
-                showPublicToast(place === 'cinema' ? 'План в кино сохранён' : 'План дома сохранён');
-                if (hint) hint.textContent = '';
-              })
-              .catch(function (e) {
-                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить план'; }
-                showPublicToast((e && e.message) || 'Не удалось сохранить план');
-              });
-          });
-        }
-
-        document.body.style.overflow = 'hidden';
-        document.body.appendChild(ov);
-        paint();
+        MpPlanModal.open({
+          apiBase: apiBase,
+          getAuthHeaders: authHeaders,
+          onToast: showPublicToast,
+          film: {
+            film_id: fl.film_id != null ? Number(fl.film_id) : null,
+            kp_id: fl.kp_id || kpId,
+            title: fl.title || filmTitleForPlan(),
+            year: fl.year,
+            poster: fl.poster || fl.poster_url,
+          },
+          mode: place === 'cinema' ? 'cinema' : 'home',
+          onSuccess: function () {
+            if (hint) hint.textContent = '';
+          },
+        });
       }
 
       function startPlanFlow(place) {
