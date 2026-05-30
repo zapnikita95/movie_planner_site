@@ -7946,6 +7946,21 @@ body.staff-standalone-page .film-standalone-nav {
     font-size: 15px;
   }
 }
+body.film-standalone-page main.film-page .hero {
+  overflow: visible;
+}
+body.film-standalone-page main.film-page .hero-content {
+  min-height: 280px;
+}
+body.film-standalone-page #film-title {
+  min-height: 1.15em;
+}
+body.film-standalone-page .film-page-toolbar {
+  min-height: 56px;
+}
+body.film-standalone-page .action-dropdown-menu {
+  z-index: 50;
+}
 body.film-standalone-page .page-shell > main.film-page {
   margin-top: clamp(12px, 2vw, 20px);
 }

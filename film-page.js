@@ -188,6 +188,54 @@
     return h;
   }
 
+  function sessionNameFromStorage() {
+    try {
+      var active = localStorage.getItem('mp_site_active_chat_id');
+      var row = mpSessions().find(function (x) { return String(x.chat_id) === String(active); });
+      return (row && row.name) || 'Профиль';
+    } catch (_e) { return 'Профиль'; }
+  }
+
+  var _filmPlanDropdownDocBound = false;
+
+  function closeFilmPlanDropdowns(except) {
+    document.querySelectorAll('.action-dropdown.open').forEach(function (d) {
+      if (d !== except) d.classList.remove('open');
+    });
+  }
+
+  function bindFilmPlanDropdowns(root, onPickPlace) {
+    if (!root) return;
+    root.querySelectorAll('[data-dropdown-toggle="1"]').forEach(function (tog) {
+      if (tog._mpPlanToggleBound) return;
+      tog._mpPlanToggleBound = true;
+      tog.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var dd = tog.closest('.action-dropdown');
+        if (!dd) return;
+        var wasOpen = dd.classList.contains('open');
+        closeFilmPlanDropdowns(wasOpen ? null : dd);
+        if (!wasOpen) dd.classList.add('open');
+      });
+    });
+    root.querySelectorAll('[data-goto-plans]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeFilmPlanDropdowns();
+        var place = btn.getAttribute('data-goto-plans') || 'home';
+        if (onPickPlace) onPickPlace(place);
+      });
+    });
+    if (!_filmPlanDropdownDocBound) {
+      _filmPlanDropdownDocBound = true;
+      document.addEventListener('click', function (ev) {
+        if (!ev.target.closest('.action-dropdown')) closeFilmPlanDropdowns();
+      });
+    }
+  }
+
   function standaloneHeaderSearchHtml() {
     return '<div class="header-search" id="header-search" role="search">' +
       '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
@@ -712,6 +760,25 @@
           '</footer>' +
         '</div>';
 
+      if (tokenEarly() && !forcePublic) {
+        applyStandaloneAuthChrome({
+          success: true,
+          name: sessionNameFromStorage(),
+          chat_id: localStorage.getItem('mp_site_active_chat_id'),
+        }, {
+          apiBase: apiBase,
+          mainSelector: 'main.film-page',
+          forcePublic: forcePublic,
+          loginNow: function (action) {
+            if (global.MpPublicFilmLogin) {
+              MpPublicFilmLogin.open(action || '');
+              return;
+            }
+            global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/f/' + kpId);
+          },
+        });
+      }
+
       var hint = document.getElementById('hint');
 
       function setOgFromFilm(film, headline) {
@@ -1018,6 +1085,149 @@
         setTimeout(function () { try { pop.remove(); } catch (_e) {} }, 1300);
       }
 
+      function filmTitleForPlan() {
+        var el = document.getElementById('film-title');
+        var raw = el ? String(el.textContent || '').trim() : '';
+        return raw.replace(/\s*\(\d{4}\)\s*$/, '').trim() || 'Фильм';
+      }
+
+      function openStandalonePlanModal(filmLike, place) {
+        place = place === 'cinema' ? 'cinema' : 'home';
+        var fl = filmLike || {};
+        var fid = fl.film_id != null ? Number(fl.film_id) : null;
+        var kp = String(fl.kp_id || kpId || '').replace(/\D/g, '');
+        var title = fl.title || filmTitleForPlan();
+        var picked = new Date();
+        picked.setHours(20, 0, 0, 0);
+        if (picked.getTime() < Date.now()) picked.setDate(picked.getDate() + 1);
+
+        var ov = document.createElement('div');
+        ov.className = 'mp-dialog-overlay';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-modal', 'true');
+
+        function unlock() {
+          document.body.style.overflow = '';
+          try { ov.remove(); } catch (_e) {}
+        }
+
+        function toInputDate(d) {
+          return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        function toInputTime(d) {
+          return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function paint() {
+          var cinemaBlock = place === 'cinema'
+            ? '<input type="text" id="plan-cinema-name" class="plan-modal-input" placeholder="Кинотеатр (необязательно)" maxlength="120" style="margin-top:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">'
+            : '';
+          ov.innerHTML =
+            '<div class="mp-dialog-card" style="max-width:340px;width:100%">' +
+            '<button type="button" class="mp-onboard-dismiss" data-plan-x aria-label="Закрыть">✕</button>' +
+            '<div class="mp-onboard-title">' + (place === 'cinema' ? 'План в кино' : 'План дома') + '</div>' +
+            '<p class="mp-onboard-text">' + escapeHtml(title) + '</p>' +
+            '<div class="mp-onboard-opts" style="margin-top:8px;display:grid;gap:8px">' +
+            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="today">Сегодня в 20:00</button>' +
+            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="tomorrow">Завтра в 20:00</button>' +
+            '<button type="button" class="btn btn-secondary btn-full" data-plan-chip="sat">Ближайшая суббота</button>' +
+            '</div>' +
+            '<div style="margin-top:12px;display:grid;gap:8px;grid-template-columns:1fr 1fr">' +
+            '<input type="date" id="plan-date" class="plan-modal-input" style="box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">' +
+            '<input type="time" id="plan-time" class="plan-modal-input" value="20:00" style="box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff">' +
+            '</div>' +
+            cinemaBlock +
+            '<button type="button" class="btn btn-primary btn-full" data-plan-save style="margin-top:14px">Сохранить план</button>' +
+            '</div>';
+
+          var dateEl = ov.querySelector('#plan-date');
+          var timeEl = ov.querySelector('#plan-time');
+          if (dateEl) dateEl.value = toInputDate(picked);
+          if (timeEl) timeEl.value = toInputTime(picked);
+
+          ov.querySelector('[data-plan-x]').addEventListener('click', unlock);
+          ov.querySelectorAll('[data-plan-chip]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var kind = btn.getAttribute('data-plan-chip');
+              var n = new Date();
+              if (kind === 'tomorrow') n.setDate(n.getDate() + 1);
+              else if (kind === 'sat') {
+                var diff = (6 - n.getDay() + 7) % 7 || 7;
+                n.setDate(n.getDate() + diff);
+              }
+              n.setHours(20, 0, 0, 0);
+              if (kind === 'today' && n.getTime() < Date.now()) n.setDate(n.getDate() + 1);
+              picked = n;
+              paint();
+            });
+          });
+
+          ov.querySelector('[data-plan-save]').addEventListener('click', function () {
+            var saveBtn = ov.querySelector('[data-plan-save]');
+            var dVal = (ov.querySelector('#plan-date') && ov.querySelector('#plan-date').value) || '';
+            var tVal = (ov.querySelector('#plan-time') && ov.querySelector('#plan-time').value) || '';
+            if (!dVal || !tVal) { showPublicToast('Укажите дату и время'); return; }
+            var dt = new Date(dVal + 'T' + tVal);
+            if (isNaN(dt.getTime())) { showPublicToast('Некорректная дата'); return; }
+
+            var body = { plan_datetime: dt.toISOString() };
+            if (fid) body.film_id = fid;
+            else if (kp) body.kp_id = Number(kp);
+            if (place === 'cinema') {
+              var cn = ov.querySelector('#plan-cinema-name');
+              if (cn && cn.value.trim()) body.cinema_name = cn.value.trim();
+            }
+
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Сохраняем…'; }
+            var endpoint = place === 'cinema' ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
+            fetch(apiBase + endpoint, {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify(body),
+            }).then(function (r) { return r.json(); })
+              .then(function (res) {
+                if (!res || !res.success) throw new Error((res && res.error) || 'Не удалось сохранить');
+                unlock();
+                showPublicToast(place === 'cinema' ? 'План в кино сохранён' : 'План дома сохранён');
+                if (hint) hint.textContent = '';
+              })
+              .catch(function (e) {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить план'; }
+                showPublicToast((e && e.message) || 'Не удалось сохранить план');
+              });
+          });
+        }
+
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(ov);
+        paint();
+      }
+
+      function startPlanFlow(place) {
+        place = place === 'cinema' ? 'cinema' : 'home';
+        if (!token()) { rememberAction('plan'); loginNow('plan'); return; }
+        fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
+          .then(function (r) { return r.json(); })
+          .then(function (lookup) {
+            if (lookup && lookup.in_library && lookup.film_id) {
+              return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(lookup.film_id)), { headers: authHeaders() })
+                .then(function (r2) { return r2.json(); })
+                .then(function (detail) {
+                  var f = detail && detail.film ? detail.film : { kp_id: kpId, film_id: lookup.film_id };
+                  openStandalonePlanModal(f, place);
+                });
+            }
+            return ensureFilm().then(function (d) {
+              if (!d || !d.success) {
+                if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм';
+                return;
+              }
+              openStandalonePlanModal({ kp_id: kpId, film_id: d.film_id, title: filmTitleForPlan() }, place);
+            });
+          })
+          .catch(function () { showPublicToast('Ошибка сети'); });
+      }
+
       function loadFacts() {
         return apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/facts')
           .then(function (d) {
@@ -1093,14 +1303,7 @@
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
       function planCurrentFilm() {
-        if (!token()) { rememberAction('plan'); loginNow('plan'); return; }
-        ensureFilm()
-          .then(function (d) {
-            if (!d) return;
-            if (d.success) goCabinet('plan');
-            else if (hint) hint.textContent = d.error || 'Не удалось подготовить фильм';
-          })
-          .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
+        startPlanFlow('home');
       }
       function setCurrentRating(v, anchor) {
         if (!token()) { rememberAction('rate' + String(v)); loginNow('rate' + String(v)); return; }
@@ -1155,7 +1358,7 @@
           var pending = sessionStorage.getItem('mp_public_film_action') || '';
           if (!pending || pending.split(':')[1] !== kpId || !token()) return;
           sessionStorage.removeItem('mp_public_film_action');
-          if (pending.indexOf('plan:') === 0) planCurrentFilm();
+          if (pending.indexOf('plan:') === 0) startPlanFlow('home');
           else if (pending.indexOf('add:') === 0) addCurrentFilm();
           else if (pending.indexOf('rate') === 0) {
             var rating = Number((pending.split(':')[0] || '').replace('rate', ''));
@@ -1280,30 +1483,8 @@
                 });
             });
           }
-          root.querySelectorAll('[data-goto-plans]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-              e.preventDefault();
-              var place = btn.getAttribute('data-goto-plans') || 'home';
-              try {
-                sessionStorage.setItem('mp_plans_view_filter', place === 'cinema' ? 'cinema' : (place === 'home' ? 'home' : 'all'));
-                sessionStorage.setItem('mp_pending_plan_kp', String(kpId));
-                sessionStorage.setItem('mp_pending_plan_type', place);
-              } catch (_x) {}
-              window.location.href = '/plans';
-            });
-          });
-          root.querySelectorAll('[data-dropdown-toggle="1"]').forEach(function (tog) {
-            tog.addEventListener('click', function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              var dd = tog.closest('.action-dropdown');
-              if (dd) dd.classList.toggle('open');
-            });
-          });
-          document.addEventListener('click', function closeDd(ev) {
-            if (!ev.target.closest('.action-dropdown')) {
-              document.querySelectorAll('.action-dropdown.open').forEach(function (d) { d.classList.remove('open'); });
-            }
+          bindFilmPlanDropdowns(root, function (place) {
+            openStandalonePlanModal(film, place === 'cinema' ? 'cinema' : 'home');
           });
         }
       }
@@ -1326,7 +1507,6 @@
 
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
-        standaloneChrome.refresh();
         fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
           .then(function (r) { return r.json(); })
           .then(function (lookup) {

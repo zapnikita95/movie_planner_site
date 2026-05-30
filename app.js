@@ -797,9 +797,27 @@
     } catch (_) {}
   }
 
-  function openSiteOnboardPlanModal(kpId, title) {
+  function consumePendingPlanFromFilmPage() {
+    try {
+      const kp = sessionStorage.getItem('mp_pending_plan_kp');
+      if (!kp || !/^\d+$/.test(kp)) return false;
+      const type = sessionStorage.getItem('mp_pending_plan_type') || 'home';
+      sessionStorage.removeItem('mp_pending_plan_kp');
+      sessionStorage.removeItem('mp_pending_plan_type');
+      if (type === 'cinema' || type === 'home') {
+        try { sessionStorage.setItem('mp_plans_view_filter', type); } catch (_) {}
+      }
+      openSiteFilmPlanModal(kp, '', type === 'cinema' ? 'cinema' : 'home');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function openSiteFilmPlanModal(kpId, title, place) {
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return;
+    const planPlace = place === 'cinema' ? 'cinema' : 'home';
     siteLockViewportScroll();
     let picked = new Date();
     picked.setHours(20, 0, 0, 0);
@@ -814,21 +832,40 @@
       const dd = new Date(d);
       return dd.toLocaleString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     }
+    function toInputDate(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function toInputTime(d) {
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
 
     function paint() {
+      const cinemaBlock = planPlace === 'cinema'
+        ? '<input type="text" id="site-plan-cinema-name" class="plan-modal-input" placeholder="Кинотеатр (необязательно)" maxlength="120" style="margin-top:10px;width:100%;box-sizing:border-box">'
+        : '';
       ov.innerHTML =
         '<div class="mp-dialog-card mp-onboard-dialog-card">' +
         '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label="Закрыть">✕</button>' +
-        '<div class="mp-onboard-title">Первый план</div>' +
+        '<div class="mp-onboard-title">' + (planPlace === 'cinema' ? 'План в кино' : 'План дома') + '</div>' +
         '<p class="mp-onboard-text">' + escapeHtml(title || 'Фильм') + '</p>' +
         '<div class="mp-onboard-opts" style="margin-top:8px">' +
         '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="today">Сегодня в 20:00</button>' +
         '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="tomorrow">Завтра в 20:00</button>' +
         '<button type="button" class="btn btn-secondary btn-full" data-ob-chip="sat">Ближайшая суббота 20:00</button>' +
         '</div>' +
+        '<div style="margin-top:12px;display:grid;gap:8px;grid-template-columns:1fr 1fr">' +
+        '<input type="date" id="site-plan-date" class="plan-modal-input">' +
+        '<input type="time" id="site-plan-time" class="plan-modal-input" value="20:00">' +
+        '</div>' +
+        cinemaBlock +
         '<p class="mp-onboard-text" style="margin-top:12px;font-size:13px">' + escapeHtml(chipLabel(picked)) + '</p>' +
         '<button type="button" class="btn btn-primary btn-full" data-ob-save style="margin-top:14px">Сохранить план</button>' +
         '</div>';
+
+      const dateEl = ov.querySelector('#site-plan-date');
+      const timeEl = ov.querySelector('#site-plan-time');
+      if (dateEl) dateEl.value = toInputDate(picked);
+      if (timeEl) timeEl.value = toInputTime(picked);
 
       ov.querySelector('[data-ob-x]')?.addEventListener('click', function () {
         siteUnlockViewportScroll();
@@ -858,24 +895,33 @@
       });
       ov.querySelector('[data-ob-save]')?.addEventListener('click', function () {
         const btn = ov.querySelector('[data-ob-save]');
+        const dVal = (ov.querySelector('#site-plan-date') && ov.querySelector('#site-plan-date').value) || '';
+        const tVal = (ov.querySelector('#site-plan-time') && ov.querySelector('#site-plan-time').value) || '';
+        if (!dVal || !tVal) {
+          showToast('Укажите дату и время', { type: 'error' });
+          return;
+        }
+        const dt = new Date(dVal + 'T' + tVal);
+        if (isNaN(dt.getTime())) {
+          showToast('Некорректная дата', { type: 'error' });
+          return;
+        }
+        const body = { kp_id: Number(kp), plan_datetime: dt.toISOString() };
+        if (planPlace === 'cinema') {
+          const cn = ov.querySelector('#site-plan-cinema-name');
+          if (cn && cn.value.trim()) body.cinema_name = cn.value.trim();
+        }
         if (btn) { btn.disabled = true; btn.textContent = 'Сохраняем…'; }
-        api('/api/miniapp/plans/home', {
+        const endpoint = planPlace === 'cinema' ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
+        api(endpoint, {
           method: 'POST',
-          body: JSON.stringify({ kp_id: Number(kp), plan_datetime: picked.toISOString() }),
+          body: JSON.stringify(body),
         }).then(function (res) {
           siteUnlockViewportScroll();
           ov.remove();
-          try { sessionStorage.removeItem('mp_site_plan_onboard'); } catch (_) {}
-          const coins = Number(res && res.coins_awarded) || 0;
-          if (typeof window.__mpShowOnboardingCoinsAfterPlan === 'function') {
-            window.__mpShowOnboardingCoinsAfterPlan(_siteOnboardingDeps(), coins, function () {
-              showSection('plans', { replace: true });
-              try { renderPlansList && renderPlansList(); } catch (_) {}
-            });
-          } else {
-            showSection('plans', { replace: true });
-            try { renderPlansList && renderPlansList(); } catch (_) {}
-          }
+          showToast(planPlace === 'cinema' ? 'План в кино сохранён' : 'План дома сохранён');
+          showSection('plans', { replace: true });
+          try { renderPlansList && renderPlansList(); } catch (_) {}
         }).catch(function () {
           if (btn) { btn.disabled = false; btn.textContent = 'Сохранить план'; }
           showToast('Не удалось сохранить план', { type: 'error' });
@@ -885,6 +931,10 @@
 
     document.body.appendChild(ov);
     paint();
+  }
+
+  function openSiteOnboardPlanModal(kpId, title) {
+    openSiteFilmPlanModal(kpId, title, 'home');
   }
 
   function mountSiteFirstOnboardingWizard(onComplete) {
@@ -3141,6 +3191,7 @@
     if (rendered && sectionId === 'plans') {
       try {
         if (typeof renderPlansList === 'function') renderPlansList();
+        consumePendingPlanFromFilmPage();
       } catch (_) {}
     }
     if (rendered && sectionId === 'stats') {
