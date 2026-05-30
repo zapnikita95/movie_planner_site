@@ -679,6 +679,7 @@
               '</div>' +
             '</section>' +
           '</main>' +
+          '<aside id="film-seo-root" class="film-seo-root" aria-label="О фильме"></aside>' +
           '<footer class="footer">' +
             '<div class="container">' +
               '<div class="footer-content">' +
@@ -715,8 +716,9 @@
 
       function setOgFromFilm(film, headline) {
         var head = document.head;
-        var title = headline || 'Фильм';
-        var desc = filmMetaDescription(film, title);
+        var title = (film && film.page_title) || (headline + ' — смотреть онлайн, описание, рейтинг, актёры | Movie Planner');
+        var desc = (film && film.meta_description) || filmMetaDescription(film, headline);
+        var keywords = (film && film.meta_keywords) || '';
         var img = String((film && film.poster_url) || poster || '').trim();
         function meta(attr, name, content) {
           if (!content) return;
@@ -728,27 +730,35 @@
           }
           el.setAttribute('content', content);
         }
-        document.title = title + ' · Movie Planner';
+        document.title = title;
         meta('property', 'og:type', 'video.movie');
         meta('property', 'og:site_name', 'Movie Planner');
         meta('property', 'og:locale', 'ru_RU');
         meta('property', 'og:url', pageUrl);
-        meta('property', 'og:title', title);
+        meta('property', 'og:title', (film && film.title ? ((film.title + (film.year ? ' (' + film.year + ')' : ''))) : headline));
         meta('property', 'og:description', desc);
+        if (keywords) meta('name', 'keywords', keywords);
         if (img) {
           meta('property', 'og:image', img);
           meta('property', 'og:image:secure_url', img);
           meta('property', 'og:image:width', '1000');
           meta('property', 'og:image:height', '1500');
-          meta('property', 'og:image:alt', 'Постер: ' + title);
+          meta('property', 'og:image:alt', 'Постер: ' + headline);
           meta('name', 'twitter:image', img);
-          meta('name', 'twitter:image:alt', 'Постер: ' + title);
+          meta('name', 'twitter:image:alt', 'Постер: ' + headline);
         }
         meta('name', 'twitter:card', 'summary_large_image');
-        meta('name', 'twitter:title', title);
+        meta('name', 'twitter:title', headline);
         meta('name', 'twitter:description', desc);
         meta('name', 'description', desc);
         meta('name', 'robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1');
+        var canon = head.querySelector('link[rel="canonical"]');
+        if (!canon) {
+          canon = document.createElement('link');
+          canon.rel = 'canonical';
+          head.appendChild(canon);
+        }
+        canon.href = (film && film.canonical) || pageUrl;
       }
       setOgFromFilm(null, 'Фильм');
 
@@ -761,6 +771,10 @@
             node.type = 'application/ld+json';
             node.id = 'film-jsonld';
             head.appendChild(node);
+          }
+          if (film && film.json_ld) {
+            node.textContent = JSON.stringify(film.json_ld);
+            return;
           }
           var kp = String(kpId || '').replace(/\D/g, '');
           var title = String((film && film.title) || '').trim();
@@ -1038,6 +1052,10 @@
           }
           setOgFromFilm(f, title);
           setFilmJsonLd(f);
+          if (f.seo_body_html) {
+            var seoRoot = document.getElementById('film-seo-root');
+            if (seoRoot) seoRoot.innerHTML = f.seo_body_html;
+          }
           if (hint) hint.textContent = '';
           loadPublicCast();
         })

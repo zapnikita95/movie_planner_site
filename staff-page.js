@@ -275,6 +275,7 @@
         '<main class="movie-page staff-standalone-main">' +
           '<div class="staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
         '</main>' +
+        '<aside id="staff-seo-root" class="film-seo-root" aria-label="Об актёре"></aside>' +
         '<footer class="footer staff-standalone-footer">' +
           '<div class="container"><p class="footer-bottom muted small">© ' + String(new Date().getFullYear()) + ' Movie Planner</p></div>' +
         '</footer>' +
@@ -306,6 +307,54 @@
     } else if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
       MpFilmPage.setupAppOpenBanner({ id: personId, kind: 'person' });
     }
+  }
+
+  function applyStaffSeoFromApi(staffPayload) {
+    if (!staffPayload || !staffPayload.success || !staffPayload.staff) return;
+    var s = staffPayload.staff;
+    try {
+      var head = document.head;
+      function meta(attr, key, content) {
+        if (!content) return;
+        var el = head.querySelector('meta[' + attr + '="' + key + '"]');
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute(attr, key);
+          head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+      }
+      if (s.page_title) document.title = s.page_title;
+      if (s.meta_description) {
+        meta('name', 'description', s.meta_description);
+        meta('property', 'og:description', s.meta_description);
+        meta('name', 'twitter:description', s.meta_description);
+      }
+      if (s.meta_keywords) meta('name', 'keywords', s.meta_keywords);
+      if (s.canonical) {
+        var link = head.querySelector('link[rel="canonical"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'canonical';
+          head.appendChild(link);
+        }
+        link.href = s.canonical;
+      }
+      if (s.json_ld) {
+        var ld = head.querySelector('#staff-jsonld');
+        if (!ld) {
+          ld = document.createElement('script');
+          ld.type = 'application/ld+json';
+          ld.id = 'staff-jsonld';
+          head.appendChild(ld);
+        }
+        ld.textContent = JSON.stringify(s.json_ld);
+      }
+      if (s.seo_body_html) {
+        var seoRoot = document.getElementById('staff-seo-root');
+        if (seoRoot) seoRoot.innerHTML = s.seo_body_html;
+      }
+    } catch (_e) {}
   }
 
   function setStaffOg(person, personId) {
@@ -438,6 +487,10 @@
       })
       .then(function (d) {
         renderStaffData(d, personId);
+        fetch(API_BASE + '/api/public/staff/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (seo) { applyStaffSeoFromApi(seo); })
+          .catch(function () {});
         if (_staffFilterState.friendsRatedOnly && mpToken()) {
           paintStaffRoles();
         }
