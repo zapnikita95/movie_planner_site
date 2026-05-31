@@ -13316,15 +13316,50 @@
     const parallaxBg = document.getElementById('parallaxBg');
     if (parallaxBg && !document.body.classList.contains('in-cabinet')) {
       const emojis = ['🍿', '🎬', '🎞️', '🎥', '🎫', '⭐', '🎭'];
-      for (let i = 0; i < 38; i++) {
+      const isMobileParallax = window.matchMedia('(max-width: 768px)').matches;
+      const mobileSlots = [
+        { left: 10, top: 6 }, { left: 82, top: 12 }, { left: 48, top: 28 },
+        { left: 6, top: 52 }, { left: 88, top: 46 }, { left: 28, top: 74 },
+        { left: 72, top: 88 }, { left: 50, top: 108 },
+      ];
+      const count = isMobileParallax ? mobileSlots.length : 28;
+      const placed = [];
+
+      function slotDistance(a, b) {
+        const dx = a.left - b.left;
+        const dy = a.top - b.top;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      for (let i = 0; i < count; i++) {
+        let left;
+        let top;
+        if (isMobileParallax) {
+          const slot = mobileSlots[i];
+          left = slot.left + (Math.random() * 4 - 2);
+          top = slot.top + (Math.random() * 4 - 2);
+        } else {
+          let tries = 0;
+          do {
+            left = Math.random() * 100;
+            top = Math.random() * 200;
+            tries += 1;
+          } while (tries < 30 && placed.some((p) => slotDistance(p, { left: left, top: top }) < 14));
+        }
+        placed.push({ left: left, top: top });
+
         const el = document.createElement('div');
         el.className = 'parallax-emoji';
         el.textContent = emojis[i % emojis.length];
-        const size = 28 + Math.random() * 42;
-        const left = Math.random() * 100;
-        const top = Math.random() * 200;
-        const speed = 0.02 + Math.random() * 0.06;
-        const opacity = 0.1 + Math.random() * 0.14;
+        const size = isMobileParallax
+          ? (20 + Math.random() * 16)
+          : (28 + Math.random() * 42);
+        const speed = isMobileParallax
+          ? (0.012 + Math.random() * 0.02)
+          : (0.02 + Math.random() * 0.06);
+        const opacity = isMobileParallax
+          ? (0.05 + Math.random() * 0.05)
+          : (0.1 + Math.random() * 0.14);
         el.style.cssText = 'font-size:' + size + 'px; left:' + left + '%; top:' + top + '%; opacity:' + opacity + ';';
         parallaxBg.appendChild(el);
         el._parallaxSpeed = speed;

@@ -10232,6 +10232,11 @@ body.film-standalone-page {
 
   .parallax-emoji {
     max-width: 90vw;
+    animation-duration: 18s;
+  }
+
+  body:not(.in-cabinet) .parallax-bg .parallax-emoji {
+    filter: blur(0.15px);
   }
 
   body.in-cabinet .cabinet-section,
