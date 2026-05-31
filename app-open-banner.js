@@ -13,7 +13,7 @@
     return 'https://movie-planner.ru';
   })();
 
-  var MP_APP_STORE_URL_IOS = '';
+  var MP_APP_STORE_URL_IOS = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var MP_APP_STORE_URL_ANDROID = '';
   var MP_ANDROID_APP_PACKAGE = 'com.movie_planner';
   var MP_PLAY_STORE_FALLBACK = 'https://play.google.com/store/apps/details?id=com.movie_planner';

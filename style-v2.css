@@ -10887,6 +10887,77 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   flex-wrap: wrap;
 }
 
+/* App download platform picker (site profile + shared with miniapp pattern) */
+.mp-dl-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  animation: mpDlFadeIn 0.15s ease;
+}
+.mp-dl-sheet {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: #131318;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  animation: mpDlSlideUp 0.22s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.mp-dl-sheet-title {
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.mp-dl-sheet-cancel {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 46px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mp-platform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.mp-platform-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 118px;
+  padding: 16px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.mp-platform-card:active { transform: scale(0.98); }
+.mp-platform-card--ios {
+  background: linear-gradient(160deg, rgba(255, 45, 123, 0.16), rgba(155, 77, 255, 0.12));
+  border-color: rgba(255, 45, 123, 0.28);
+}
+.mp-platform-icon { font-size: 28px; line-height: 1; }
+.mp-platform-body { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mp-platform-label { font-size: 15px; font-weight: 800; }
+.mp-platform-hint { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+@keyframes mpDlFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mpDlSlideUp { from { transform: translateY(30%); } to { transform: translateY(0); } }
+
 .site-tournament-intro-overlay {
   position: fixed;
   inset: 0;

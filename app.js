@@ -4063,6 +4063,9 @@
           ios.href = rel.ios.url;
           ios.classList.remove('hidden');
           if (rel.ios.version) ios.textContent = '🍎 iOS • v' + rel.ios.version;
+        } else if (ios) {
+          ios.href = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+          ios.classList.remove('hidden');
         }
       })
       .catch(() => {
@@ -10472,9 +10475,7 @@
       const hasPaid = !!(sub && sub.active);
       const friendsCount = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
       const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
-      const downloadHint = appRelease && appRelease.url
-        ? (appRelease.version ? 'Android • v' + appRelease.version : 'Android • APK')
-        : 'Скоро — готовим релиз';
+      const downloadHint = 'Android или iPhone';
       const avatarUrl = resolveProfileAvatarUrl(u);
       const statsHtml = totals ? (
         '<div class="profile-hub-stats">'
@@ -10500,7 +10501,7 @@
         + profileListItemHtml('💳', 'Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { sub: 'billing' })
         + profileListItemHtml('🔌', 'Интеграции', 'Нейросети, расширение и телевизор', { section: 'integrations' })
         + profileListItemHtml('⚙️', 'Настройки', 'Тема, импорт, уведомления', { sub: 'settings' })
-        + profileListItemHtml('📱', 'Скачать приложение', downloadHint, { id: 'profile-hub-download', href: appRelease && appRelease.url ? appRelease.url : (API_BASE + '/download') })
+        + profileListItemHtml('📱', 'Скачать приложение', downloadHint, { id: 'profile-hub-download' })
         + profileListItemHtml('❓', 'FAQ', 'Частые вопросы', { section: 'about' })
         + profileListItemHtml('ℹ️', 'О сервисе', 'Автор, миссия и ссылки', { section: 'about' })
         + '</div>'
@@ -10510,7 +10511,9 @@
       setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name);
       bindProfileSubNav(root);
       const dl = document.getElementById('profile-hub-download');
-      if (dl && appRelease && appRelease.url) dl.setAttribute('data-profile-href', appRelease.url);
+      if (dl && window.MpAppDownload && typeof window.MpAppDownload.bindProfileDownloadButton === 'function') {
+        window.MpAppDownload.bindProfileDownloadButton(dl);
+      }
     }).catch(() => {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить профиль. Попробуйте обновить страницу.</p>';
     });
