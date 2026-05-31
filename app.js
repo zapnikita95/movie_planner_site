@@ -5113,31 +5113,23 @@
   }
 
   function _plansEmptyMessage() {
-    /** Один корневой узел: иначе grid (.plans-today-list + .cards-list) кладёт p и кнопки в разные колонки / сжимает кнопки. */
-    let inner;
-    if (_plansViewFilter === 'home') {
-      let html = '<p class="empty-hint">Нет планов просмотра дома.</p><div class="plans-empty-actions">';
-      html += '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> ';
-      html += '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> ';
-      html += '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button> ';
-      html += '<button type="button" class="btn btn-small btn-secondary" data-goto-plans="all">Все планы</button>';
-      html += '</div>';
-      inner = html;
-    } else if (_plansViewFilter === 'cinema') {
-      inner = '<p class="empty-hint">Нет планов в кино.</p><div class="plans-empty-actions">'
-        + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
-        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button></div>';
-    } else if (_plansViewFilter === 'premieres') {
-      inner = '<p class="empty-hint">Пока нет напоминаний о премьерах. Включите напоминание на экране «Премьеры».</p><div class="plans-empty-actions"><button type="button" class="btn btn-small btn-primary" data-plans-goto="premieres">🎭 Раздел «Премьеры»</button></div>';
-    } else {
-      inner = '<p class="empty-hint">Нет запланированного просмотра.</p><div class="plans-empty-actions">'
-        + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">🔍 Что посмотреть</button> '
-        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">📆 Премьеры</button>'
-        + '</div>';
+    if (_plansViewFilter === 'premieres') {
+      return '<div class="plans-list-empty-wrap plans-empty-premieres">'
+        + '<p class="empty-hint">Пока нет напоминаний о премьерах.</p>'
+        + '<div class="plans-empty-hub">'
+        + '<button type="button" class="home-emoji-btn home-emoji-btn--plan" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">🎭</button>'
+        + '</div></div>';
     }
-    return '<div class="plans-list-empty-wrap">' + inner + '</div>';
+    const hint = _plansViewFilter === 'home' ? 'Нет планов дома'
+      : _plansViewFilter === 'cinema' ? 'Нет планов в кино'
+        : 'Пока ничего не запланировано';
+    return '<div class="plans-list-empty-wrap plans-empty-hub-wrap">'
+      + '<p class="empty-hint plans-empty-hub-hint">' + escapeHtml(hint) + '</p>'
+      + '<div class="plans-empty-hub" aria-label="Быстрые действия">'
+      + '<button type="button" class="home-emoji-btn home-emoji-btn--plan" data-plans-hub="schedule" title="Запланировать" aria-label="Запланировать">+</button>'
+      + '<button type="button" class="home-emoji-btn" data-plans-hub="whattowatch" title="Что посмотреть" aria-label="Что посмотреть">🎯</button>'
+      + '<button type="button" class="home-emoji-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">🎭</button>'
+      + '</div></div>';
   }
 
   function renderPlansList() {
@@ -5183,23 +5175,31 @@
         if (sid) shareCabinetPlanLink(sid);
         return;
       }
+      const hub = e.target.closest('[data-plans-hub]');
+      if (hub) {
+        e.preventDefault();
+        const action = hub.getAttribute('data-plans-hub');
+        if (action === 'schedule') {
+          openAddFilmModal();
+          return;
+        }
+        if (action === 'whattowatch') {
+          showSection('whattowatch');
+          if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
+          return;
+        }
+        if (action === 'premieres') {
+          showSection('premieres');
+          if (typeof renderPremieresSection === 'function') renderPremieresSection(true);
+          return;
+        }
+      }
       const act = e.target.closest('[data-plans-action]');
       if (act) {
         e.preventDefault();
         const action = act.getAttribute('data-plans-action');
         if (action === 'open-add-film') {
           openAddFilmModal();
-          return;
-        }
-        if (action === 'show-premieres') {
-          showSection('premieres');
-          if (typeof renderPremieresSection === 'function') renderPremieresSection(true);
-          return;
-        }
-        if (action === 'show-all') {
-          showSection('plans');
-          _plansViewFilter = 'all';
-          renderPlansList();
           return;
         }
       }
@@ -9890,12 +9890,35 @@
   // Что посмотреть / настройки (как в миниаппе)
   // ————————————————————————————————————————————————————
 
+  const WTW_GENRES_FALLBACK = [
+    'драма', 'комедия', 'триллер', 'фантастика', 'фэнтези', 'боевик',
+    'детектив', 'мелодрама', 'приключения', 'ужасы', 'криминал', 'мультфильм',
+    'биография', 'история', 'военный', 'семейный', 'аниме', 'документальный',
+  ];
+  const WTW_YEAR_PRESETS = [
+    { label: 'Любой', from: undefined, to: undefined },
+    { label: '2020+', from: 2020 },
+    { label: '2010–2019', from: 2010, to: 2019 },
+    { label: '2000–2009', from: 2000, to: 2009 },
+    { label: '1990–1999', from: 1990, to: 1999 },
+    { label: '1980–1989', from: 1980, to: 1989 },
+    { label: '1970–1979', from: 1970, to: 1979 },
+    { label: '1960–1969', from: 1960, to: 1969 },
+    { label: 'До 1960 г.', to: 1959 },
+  ];
+  const WTW_RATING_PRESETS = [
+    { label: 'Любой', value: null },
+    { label: '6+', value: 6 },
+    { label: '7+', value: 7 },
+    { label: '7.5+', value: 7.5 },
+    { label: '8+', value: 8 },
+  ];
   const WTW_MENU_MODES = [
-    { id: 'my_unwatched', kind: 'random', emoji: '🎲', title: 'Рандом по своей базе', hint: 'Случайный непросмотренный из базы' },
-    { id: 'kp_random', kind: 'random', emoji: '🎬', title: 'Рандом по Кинопоиску', hint: 'Случайный фильм с КП' },
-    { id: 'my_top_rated', kind: 'random', emoji: '⭐', title: 'По моим оценкам 9–10', hint: 'Из оцененных вами высоко' },
-    { id: 'wizard', kind: 'wizard', emoji: '🎯', title: 'По жанрам / годам / рейтингу', hint: 'Пошаговый подбор' },
-    { id: 'premieres_reco', kind: 'nav', target: 'premieres', emoji: '🎟️', title: 'Рекомендации премьер', hint: 'Экран «Премьеры»' },
+    { id: 'my_unwatched', kind: 'random', emoji: '🎲', title: 'Рандом по своей базе', backDesc: 'Вы получите случайный непросмотренный фильм из вашей базы — удобно, когда не знаете, что включить.' },
+    { id: 'kp_random', kind: 'random', emoji: '🎬', title: 'Рандом по Кинопоиску', backDesc: 'Вы получите случайную картину из каталога Кинопоиска. Можно открыть страницу фильма и добавить в базу.' },
+    { id: 'similar_my_top', kind: 'random', emoji: '⭐', title: 'По моим оценкам 9–10', backDesc: 'Вы получите непросмотренный фильм, похожий на те, что вы оценили на 9 или 10.' },
+    { id: 'wizard', kind: 'wizard', emoji: '🎯', title: 'По жанрам / годам / рейтингу', backDesc: 'Вы пройдёте короткий опрос: источник, жанры, годы и тип — мы подберём фильм под ваши ответы.' },
+    { id: 'premieres_reco', kind: 'premieres_reco', emoji: '🎟️', title: 'Рекомендации премьер', backDesc: 'Вы увидите премьеру, которая совпадёт с вашими любимыми жанрами и актёрами.' },
   ];
 
   function setWhatchtwatchResult(html) {
@@ -9903,201 +9926,444 @@
     if (el) el.innerHTML = html;
   }
 
-  function runSiteRandomMode(mode) {
-    setWhatchtwatchResult('');
-    const modal = document.getElementById('film-modal');
-    if (modal) {
-      modal.classList.remove('hidden');
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      const content = document.getElementById('film-modal-content');
-      if (content) {
-        content.className = 'film-modal-content loading';
-        content.innerHTML = 'Подбираем…';
-      }
-    } else {
-      setWhatchtwatchResult('<p class="cabinet-hint">Подбираем…</p>');
+  function siteWtwGenrePills(genresStr) {
+    const genres = String(genresStr || '').split(/[,;|/·•]/).map((s) => s.trim()).filter(Boolean).slice(0, 6);
+    if (!genres.length) return '';
+    return '<div class="site-pick-genres">' + genres.map((g) => '<span class="mp-genre-pill">' + escapeHtml(g) + '</span>').join('') + '</div>';
+  }
+
+  function sitePickFilmDesc(film, fallback) {
+    const d = String((film && film.description) || '').replace(/\s+/g, ' ').trim();
+    if (d) return d.length > 320 ? d.slice(0, 320).replace(/\s+\S*$/, '') + '…' : d;
+    return fallback || 'Откройте страницу фильма — там полное описание и действия с базой.';
+  }
+
+  function renderSitePickResultCard(film, opts) {
+    const o = opts || {};
+    if (!film) return '';
+    const poster = cleanPosterUrl(film.poster) || posterUrl(film.kp_id);
+    const year = film.year ? String(film.year) : '';
+    const title = film.title || 'Без названия';
+    const desc = sitePickFilmDesc(film, o.descFallback);
+    const rating = (film.rating != null && !isNaN(Number(film.rating)))
+      ? '<span class="mp-rating-pill">★ ' + escapeHtml(Number(film.rating).toFixed(1)) + '</span>'
+      : '';
+    const inBase = !!film.film_id;
+    const premiereBlurb = o.premiereBlurb ? '<p class="site-pick-reco-blurb">' + escapeHtml(o.premiereBlurb) + '</p>' : '';
+    return '<div class="site-pick-result" data-site-pick="1">'
+      + '<div class="site-pick-result-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span class="site-pick-poster-ph">🎬</span>') + '</div>'
+      + '<div class="site-pick-result-body">'
+      + '<h3 class="site-pick-result-title">' + escapeHtml(title) + (year ? ' <span class="site-pick-year">(' + escapeHtml(year) + ')</span>' : '') + '</h3>'
+      + siteWtwGenrePills(film.genres) + (rating ? '<div class="site-pick-badges">' + rating + '</div>' : '')
+      + premiereBlurb
+      + '<p class="site-pick-result-desc">' + escapeHtml(desc) + '</p>'
+      + '<div class="site-pick-result-actions">'
+      + '<button type="button" class="btn btn-primary site-pick-open">На страницу фильма</button>'
+      + (inBase
+        ? '<button type="button" class="btn btn-primary site-pick-plan">📅 Запланировать</button>'
+        : '<button type="button" class="btn btn-primary site-pick-add">Добавить в базу</button>')
+      + '<button type="button" class="btn btn-secondary site-pick-again">🎲 Ещё</button>'
+      + '</div></div></div>';
+  }
+
+  function bindSitePickResultCard(root, film, opts) {
+    const o = opts || {};
+    if (!root || !film) return;
+    const again = typeof o.onAgain === 'function' ? o.onAgain : null;
+    const openBtn = root.querySelector('.site-pick-open');
+    const planBtn = root.querySelector('.site-pick-plan');
+    const addBtn = root.querySelector('.site-pick-add');
+    const againBtn = root.querySelector('.site-pick-again');
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        if (film.film_id) openFilmPage(Number(film.film_id), { kpId: film.kp_id });
+        else if (film.kp_id) openFilmPageByKp(String(film.kp_id));
+      });
     }
-    api('/api/miniapp/random', { method: 'POST', body: JSON.stringify({ mode }) })
+    if (planBtn) {
+      planBtn.addEventListener('click', () => {
+        openSiteFilmPlanModal(film.kp_id, film.title || '', 'home');
+      });
+    }
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        addBtn.disabled = true;
+        addBtn.textContent = 'Добавляем…';
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: film.kp_id }) })
+          .then((r) => {
+            if (r && r.success && r.film_id) {
+              film.film_id = r.film_id;
+              if (typeof loadUnwatched === 'function') loadUnwatched();
+              openFilmPage(Number(r.film_id), { kpId: film.kp_id });
+            } else {
+              addBtn.disabled = false;
+              addBtn.textContent = 'Добавить в базу';
+            }
+          })
+          .catch(() => {
+            addBtn.disabled = false;
+            addBtn.textContent = 'Добавить в базу';
+          });
+      });
+    }
+    if (againBtn && again) againBtn.addEventListener('click', () => again());
+  }
+
+  function runSiteRandomMode(mode) {
+    const root = document.getElementById('whattowatch-result');
+    if (root) root.innerHTML = '<div class="site-pick-loading">Подбираем…</div>';
+    api('/api/miniapp/random', { method: 'POST', body: JSON.stringify({ mode: mode }) })
       .then((data) => {
         if (!data || !data.film) {
-          closeFilmModal();
-          const msg = (data && data.message) || 'Нет подходящих фильмов. Попробуйте другой режим или PRO-тариф.';
-          setWhatchtwatchResult('<div class="cabinet-hint">' + escapeHtml(msg) + '</div>');
+          const msg = (data && data.message) || 'Нет подходящих фильмов. Попробуйте другой режим.';
+          if (root) root.innerHTML = '<div class="site-pick-empty">' + escapeHtml(msg) + '</div>';
           return;
         }
-        const f = data.film;
         const again = () => runSiteRandomMode(mode);
-        if (f.film_id) {
-          openFilmOverlayModal(Number(f.film_id), { randomOnAgain: again, kpId: f.kp_id });
-          return;
+        if (root) {
+          root.innerHTML = renderSitePickResultCard(data.film, { onAgain: again });
+          bindSitePickResultCard(root, data.film, { onAgain: again });
         }
-        openRandomStubModal(f, again);
       })
       .catch(() => {
-        closeFilmModal();
-        setWhatchtwatchResult('<p class="cabinet-hint">Ошибка сети</p>');
+        if (root) root.innerHTML = '<div class="site-pick-empty">Ошибка сети. Попробуйте ещё раз.</div>';
       });
+  }
+
+  function runSitePremiereReco() {
+    const root = document.getElementById('whattowatch-result');
+    if (root) root.innerHTML = '<div class="site-pick-loading">Подбираем премьеру…</div>';
+    api('/api/site/premieres/recommendations?period=current_month')
+      .then((data) => {
+        const items = (data && data.items) || [];
+        if (!items.length) {
+          if (root) root.innerHTML = '<div class="site-pick-empty">Пока нечего рекомендовать — отметьте больше любимых фильмов или загляните в раздел «Премьеры».</div>';
+          return;
+        }
+        const p = items[0];
+        const film = {
+          kp_id: p.kp_id,
+          film_id: p.already_in_base_film_id || p.film_id,
+          title: p.title,
+          year: p.year,
+          genres: p.genres,
+          poster: p.poster,
+          description: p.description || p.rec_blurb || '',
+        };
+        const again = () => runSitePremiereReco();
+        if (root) {
+          root.innerHTML = renderSitePickResultCard(film, { onAgain: again, premiereBlurb: p.rec_blurb || '' });
+          bindSitePickResultCard(root, film, { onAgain: again });
+        }
+      })
+      .catch(() => {
+        if (root) root.innerHTML = '<div class="site-pick-empty">Не удалось получить рекомендацию. Попробуйте ещё раз.</div>';
+      });
+  }
+
+  function renderWtwModeFlipCard(m) {
+    return '<div class="wtw-flip-card" data-wtw-kind="' + escapeHtml(m.kind) + '" data-wtw-id="' + escapeHtml(m.id) + '" tabindex="0" role="button" aria-label="' + escapeHtml(m.title) + '">'
+      + '<div class="wtw-flip-inner">'
+      + '<div class="wtw-flip-front"><span class="wtw-flip-emoji">' + m.emoji + '</span><span class="wtw-flip-title">' + escapeHtml(m.title) + '</span></div>'
+      + '<div class="wtw-flip-back"><p class="wtw-flip-desc">' + escapeHtml(m.backDesc) + '</p>'
+      + '<button type="button" class="btn btn-primary wtw-flip-action">Подобрать</button></div>'
+      + '</div></div>';
+  }
+
+  function triggerWtwModeAction(m) {
+    if (!m) return;
+    if (m.kind === 'random') {
+      runSiteRandomMode(m.id);
+      return;
+    }
+    if (m.kind === 'wizard') {
+      openSiteWtwWizardOverlay();
+      return;
+    }
+    if (m.kind === 'premieres_reco') {
+      runSitePremiereReco();
+    }
   }
 
   function renderWhattowatchSection() {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
-    const btns = WTW_MENU_MODES.map((m) => {
-      if (m.kind === 'nav') {
-        return `<button type="button" class="whattowatch-mode-btn" data-wtw-nav="${m.target}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
-      }
-      if (m.kind === 'wizard') {
-        return `<button type="button" class="whattowatch-mode-btn" data-wtw-wizard="1"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
-      }
-      return `<button type="button" class="whattowatch-mode-btn" data-wtw-mode="${m.id}"><span class="whattowatch-mode-emoji">${m.emoji}</span><div><b>${escapeHtml(m.title)}</b><div class="cabinet-hint">${escapeHtml(m.hint)}</div></div></button>`;
-    }).join('');
-    root.innerHTML = '<div class="whattowatch-modes">' + btns + '</div><div id="whattowatch-result"></div>';
-    root.querySelectorAll('[data-wtw-mode]').forEach((b) => {
-      b.addEventListener('click', () => runSiteRandomMode(b.getAttribute('data-wtw-mode')));
-    });
-    root.querySelectorAll('[data-wtw-nav]').forEach((b) => {
-      b.addEventListener('click', () => {
-        const t = b.getAttribute('data-wtw-nav');
-        if (t) { showSection(t); if (t === 'premieres' && renderPremieresSection) renderPremieresSection(true); }
+    root.innerHTML = '<div class="wtw-mode-grid">' + WTW_MENU_MODES.map(renderWtwModeFlipCard).join('') + '</div>'
+      + '<div id="whattowatch-result" class="whattowatch-result"></div>';
+    root.querySelectorAll('.wtw-flip-card').forEach((card) => {
+      const id = card.getAttribute('data-wtw-id');
+      const mode = WTW_MENU_MODES.find((x) => x.id === id);
+      const run = () => triggerWtwModeAction(mode);
+      card.querySelectorAll('.wtw-flip-action').forEach((btn) => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); run(); });
       });
-    });
-    root.querySelectorAll('[data-wtw-wizard]').forEach((b) => {
-      b.addEventListener('click', () => {
-        renderWhattowatchWizard();
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.wtw-flip-action')) return;
+        card.classList.toggle('is-flipped');
+      });
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (card.classList.contains('is-flipped')) run();
+          else card.classList.add('is-flipped');
+        }
       });
     });
   }
 
-  function renderWhattowatchWizard() {
-    const root = document.getElementById('whattowatch-result');
-    if (!root) return;
-    const genres = [
-      { id: 'comedy', label: 'Комедия' },
-      { id: 'drama', label: 'Драма' },
-      { id: 'thriller', label: 'Триллер' },
-      { id: 'fantasy', label: 'Фэнтези' },
-      { id: 'action', label: 'Экшен' },
-      { id: 'detective', label: 'Детектив' },
-      { id: 'horror', label: 'Ужасы' },
-      { id: 'sci_fi', label: 'Фантастика' },
-      { id: 'romance', label: 'Романтика' },
-      { id: 'adventure', label: 'Приключения' },
-    ];
-    root.innerHTML = '<form id="wtw-wizard-form" class="wtw-wizard">' +
-      '<div class="wtw-wizard-title">Опросник подбора</div>' +
-      '<div class="wtw-wizard-grid">' +
-      '<label>Ключевые слова<input type="text" id="wtw-q" placeholder="например: космос, выживание, семья"></label>' +
-      '<label>Год от<input type="number" id="wtw-year-from" min="1900" max="2100" placeholder="2000"></label>' +
-      '<label>Год до<input type="number" id="wtw-year-to" min="1900" max="2100" placeholder="2026"></label>' +
-      '<label>Рейтинг от<input type="number" id="wtw-rating-from" min="1" max="10" step="0.1" placeholder="7"></label>' +
-      '<label>Тип<select id="wtw-type"><option value="">Любой</option><option value="films">Фильмы</option><option value="series">Сериалы</option></select></label>' +
-      '<label>Где смотреть<select id="wtw-source"><option value="">Любой источник</option><option value="my_base">Из моей базы</option><option value="kinopoisk">По Кинопоиску</option></select></label>' +
-      '</div>' +
-      '<div class="wtw-wizard-genres">' + genres.map((g) => '<label><input type="checkbox" value="' + g.id + '"> ' + g.label + '</label>').join('') + '</div>' +
-      '<div class="wtw-wizard-actions"><button type="submit" class="btn btn-primary">Подобрать</button><button type="button" class="btn btn-secondary" id="wtw-wizard-back">Назад</button></div>' +
-      '</form>';
-
-    const back = document.getElementById('wtw-wizard-back');
-    if (back) back.addEventListener('click', () => { renderWhattowatchSection(); });
-    const form = document.getElementById('wtw-wizard-form');
-    if (!form) return;
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const selectedGenres = [];
-      form.querySelectorAll('.wtw-wizard-genres input[type="checkbox"]:checked').forEach((cb) => selectedGenres.push(cb.value));
-      const payload = {
-        mode: 'wizard',
-        query: (document.getElementById('wtw-q') && document.getElementById('wtw-q').value || '').trim(),
-        genres: selectedGenres,
-        year_from: Number((document.getElementById('wtw-year-from') && document.getElementById('wtw-year-from').value) || 0) || null,
-        year_to: Number((document.getElementById('wtw-year-to') && document.getElementById('wtw-year-to').value) || 0) || null,
-        rating_from: Number((document.getElementById('wtw-rating-from') && document.getElementById('wtw-rating-from').value) || 0) || null,
-        type: (document.getElementById('wtw-type') && document.getElementById('wtw-type').value) || '',
-        source: (document.getElementById('wtw-source') && document.getElementById('wtw-source').value) || '',
-      };
-      runSiteWizardMode(payload);
+  function ensureSiteWtwWizardOverlay() {
+    let el = document.getElementById('wtw-wizard-overlay');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'wtw-wizard-overlay';
+    el.className = 'wtw-wizard-overlay hidden';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<div class="wtw-wizard-overlay-backdrop" data-wtw-wizard-close="1"></div>'
+      + '<div class="wtw-wizard-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="wtw-wizard-overlay-title">'
+      + '<button type="button" class="wtw-wizard-overlay-close" data-wtw-wizard-close="1" aria-label="Закрыть">&times;</button>'
+      + '<div id="wtw-wizard-overlay-body"></div></div>';
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-wtw-wizard-close]').forEach((b) => {
+      b.addEventListener('click', closeSiteWtwWizardOverlay);
     });
+    return el;
   }
 
-  function renderWizardCards(items) {
-    if (!items.length) {
-      return '<div class="cabinet-hint">Ничего не найдено. Измените фильтры и попробуйте снова.</div>';
+  function closeSiteWtwWizardOverlay() {
+    const el = document.getElementById('wtw-wizard-overlay');
+    if (!el) return;
+    el.classList.add('hidden');
+    el.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function openSiteWtwWizardOverlay() {
+    const overlay = ensureSiteWtwWizardOverlay();
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    const state = {
+      step: 'source',
+      source: 'auto',
+      genres: [],
+      yearFrom: undefined,
+      yearTo: undefined,
+      minRating: null,
+      isSeries: null,
+      wtwMeta: null,
+      film: null,
+      status: null,
+      loading: false,
+    };
+
+    function showKpRatingStep() { return state.source === 'kp'; }
+
+    function siteWtwFetchMeta(extra) {
+      const sp = new URLSearchParams();
+      const q = extra || {};
+      if (q.year_from != null && q.year_from !== '') sp.set('year_from', String(q.year_from));
+      if (q.year_to != null && q.year_to !== '') sp.set('year_to', String(q.year_to));
+      if (q.genres && q.genres.length) sp.set('genres', q.genres.join(','));
+      const qs = sp.toString();
+      return api('/api/miniapp/wtw' + (qs ? '?' + qs : ''));
     }
-    return '<div class="wtw-cards">' + items.map((f) => {
-      const poster = f.poster || posterUrl(f.kp_id);
-      const year = f.year ? String(f.year) : '';
-      const genres = f.genres || '';
-      const filmId = f.film_id ? String(f.film_id) : '';
-      const cardAction = filmId
-        ? '<button type="button" class="btn btn-small btn-primary" data-wtw-open-kp="' + escapeHtml(String(f.kp_id || '')) + '" data-wtw-open-film="' + escapeHtml(filmId) + '">Открыть</button>'
-        : '<button type="button" class="btn btn-small btn-secondary" data-wtw-add-kp="' + escapeHtml(String(f.kp_id || '')) + '">Добавить в базу</button>';
-      return '<div class="wtw-card">' +
-        '<div class="wtw-card-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<span>🎬</span>') + '</div>' +
-        '<div class="wtw-card-body">' +
-        '<div class="wtw-card-title">' + escapeHtml(f.title || 'Без названия') + '</div>' +
-        '<div class="wtw-card-meta">' + escapeHtml([year, genres].filter(Boolean).join(' · ')) + '</div>' +
-        '<div class="wtw-card-actions">' + cardAction + '</div></div></div>';
-    }).join('') + '</div>';
-  }
 
-  function runSiteWizardMode(payload) {
-    const root = document.getElementById('whattowatch-result');
-    if (!root) return;
-    root.innerHTML = '<div class="cabinet-hint">Подбираем по фильтрам…</div>';
-    api('/api/miniapp/random', { method: 'POST', body: JSON.stringify(payload) })
-      .then((data) => {
-        const list = [];
-        if (data && Array.isArray(data.items)) {
-          list.push.apply(list, data.items);
-        } else if (data && data.film) {
-          list.push(data.film);
-        }
-        root.innerHTML = '<div class="wtw-wizard-actions"><button type="button" class="btn btn-secondary" id="wtw-wizard-edit">Изменить фильтры</button></div>' + renderWizardCards(list);
-        const edit = document.getElementById('wtw-wizard-edit');
-        if (edit) edit.addEventListener('click', () => renderWhattowatchWizard());
-        if (list.length === 1 && list[0].film_id) {
-          openFilmOverlayModal(Number(list[0].film_id), {
-            kpId: list[0].kp_id,
-            randomOnAgain: () => runSiteWizardMode(payload),
-          });
-        }
-        root.querySelectorAll('[data-wtw-open-film],[data-wtw-open-kp]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const fid = btn.getAttribute('data-wtw-open-film');
-            const kp = btn.getAttribute('data-wtw-open-kp');
-            if (fid) openFilmOverlayModal(Number(fid), { kpId: kp });
-            else openFilmNav(kp, fid);
-          });
+    function genreOptions() {
+      if (state.source === 'kp') {
+        const kp = state.wtwMeta && state.wtwMeta.kp_genres;
+        return kp && kp.length ? kp : WTW_GENRES_FALLBACK;
+      }
+      const lib = state.wtwMeta && state.wtwMeta.library_genres;
+      return lib && lib.length ? lib : WTW_GENRES_FALLBACK;
+    }
+
+    function yearPresets() {
+      const base = WTW_YEAR_PRESETS.slice();
+      const y0 = state.wtwMeta && state.wtwMeta.library_year_min;
+      const y1 = state.wtwMeta && state.wtwMeta.library_year_max;
+      if ((state.source === 'library' || state.source === 'auto') && typeof y0 === 'number' && typeof y1 === 'number' && y1 > y0) {
+        base.splice(1, 0, { label: 'В вашей базе (' + y0 + '–' + y1 + ')', from: y0, to: y1 });
+      }
+      return base;
+    }
+
+    function wizardFlow() {
+      const s = ['source', 'genres', 'years'];
+      if (showKpRatingStep()) s.push('rating');
+      s.push('type');
+      return s;
+    }
+
+    function flowIndex() {
+      const df = wizardFlow();
+      if (state.step === 'result') return Math.max(0, df.length - 1);
+      const i = df.indexOf(state.step);
+      return i < 0 ? 0 : i;
+    }
+
+    function buildFilters() {
+      return {
+        source: state.source,
+        genres: state.genres,
+        year_from: state.yearFrom != null ? state.yearFrom : null,
+        year_to: state.yearTo != null ? state.yearTo : null,
+        min_kp_rating: showKpRatingStep() ? state.minRating : null,
+        is_series: state.isSeries,
+        only_unwatched: true,
+      };
+    }
+
+    function runPick() {
+      state.loading = true;
+      state.step = 'result';
+      paint();
+      api('/api/miniapp/wtw', { method: 'POST', body: JSON.stringify(buildFilters()) })
+        .then((res) => {
+          if (res && res.film) state.film = res.film;
+          else {
+            state.film = null;
+            state.status = 'Под эти фильтры ничего не нашлось. Попробуйте смягчить условия.';
+          }
+        })
+        .catch((e) => {
+          state.film = null;
+          state.status = (e && e.message) || 'Не удалось подобрать фильм';
+        })
+        .finally(() => {
+          state.loading = false;
+          paint();
         });
-        root.querySelectorAll('[data-wtw-add-kp]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const kp = btn.getAttribute('data-wtw-add-kp');
-            if (!kp) return;
-            btn.disabled = true;
-            btn.textContent = 'Добавляем…';
-            api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) })
-              .then((r) => {
-                if (r && r.success) {
-                  btn.textContent = 'Добавлено';
-                  if (typeof loadUnwatched === 'function') loadUnwatched();
-                } else {
-                  btn.disabled = false;
-                  btn.textContent = 'Добавить в базу';
-                }
-              })
-              .catch(() => {
-                btn.disabled = false;
-                btn.textContent = 'Добавить в базу';
-              });
-          });
-        });
-      })
-      .catch(() => {
-        root.innerHTML = '<div class="cabinet-hint">Ошибка сети. Попробуйте ещё раз.</div>';
+    }
+
+    function paint() {
+      const body = document.getElementById('wtw-wizard-overlay-body');
+      if (!body) return;
+      const df = wizardFlow();
+      const idx = flowIndex();
+      const dots = df.map((_, i) => '<span class="wtw-dot' + (i <= idx ? ' wtw-dot-on' : '') + '"></span>').join('');
+      let inner = '<div class="wtw-wizard-shell"><div class="wtw-wizard-dots">' + dots + '</div>';
+      if (state.step === 'source') {
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Откуда подбирать?</h3>'
+          + ['library', 'kp', 'auto'].map((src) => {
+            const labels = { library: ['🧺 Из вашей библиотеки', 'Фильмы, которые вы добавили'], kp: ['🎬 С Кинопоиска', 'Из всей базы KP'], auto: ['✨ Смешанно', 'Сначала ваша база, затем Кинопоиск'] };
+            const L = labels[src];
+            return '<button type="button" class="wtw-wizard-opt' + (state.source === src ? ' wtw-wizard-opt--on' : '') + '" data-src="' + src + '"><span class="wtw-wizard-opt-title">' + L[0] + '</span><span class="wtw-wizard-opt-hint">' + L[1] + '</span><span class="wtw-wizard-opt-check">' + (state.source === src ? '✓' : '') + '</span></button>';
+          }).join('')
+          + '<div class="wtw-wizard-nav"><span></span><button type="button" class="btn btn-primary" id="wtw-wiz-next">Жанры →</button></div>';
+      } else if (state.step === 'genres') {
+        const chips = genreOptions().map((g) => {
+          const on = state.genres.indexOf(g) >= 0;
+          return '<button type="button" class="mp-genre-pill mp-genre-pill--pick' + (on ? ' mp-genre-pill--on' : '') + '" data-gen="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
+        }).join('');
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Какие жанры?</h3><div class="wtw-wizard-chips">' + chips + '</div>'
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
+      } else if (state.step === 'years') {
+        const rows = yearPresets().map((pr) => {
+          const active = (pr.from == null ? null : pr.from) === (state.yearFrom == null ? null : state.yearFrom)
+            && (pr.to == null ? null : pr.to) === (state.yearTo == null ? null : state.yearTo);
+          return '<button type="button" class="wtw-wizard-opt' + (active ? ' wtw-wizard-opt--on' : '') + '" data-yf="' + (pr.from != null ? pr.from : '') + '" data-yt="' + (pr.to != null ? pr.to : '') + '"><span class="wtw-wizard-opt-title">' + escapeHtml(pr.label) + '</span><span class="wtw-wizard-opt-check">' + (active ? '✓' : '') + '</span></button>';
+        }).join('');
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Годы выпуска?</h3>' + rows
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
+      } else if (state.step === 'rating') {
+        const rows = WTW_RATING_PRESETS.map((pr) => {
+          const active = pr.value === state.minRating;
+          return '<button type="button" class="wtw-wizard-opt' + (active ? ' wtw-wizard-opt--on' : '') + '" data-rat="' + (pr.value != null ? String(pr.value) : '') + '"><span class="wtw-wizard-opt-title">' + escapeHtml(pr.label) + '</span><span class="wtw-wizard-opt-check">' + (active ? '✓' : '') + '</span></button>';
+        }).join('');
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Минимальный рейтинг Кинопоиска?</h3>' + rows
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
+      } else if (state.step === 'type') {
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Фильм или сериал?</h3>'
+          + '<button type="button" class="wtw-wizard-opt' + (state.isSeries === null ? ' wtw-wizard-opt--on' : '') + '" data-ser=""><span class="wtw-wizard-opt-title">Без разницы</span><span class="wtw-wizard-opt-check">' + (state.isSeries === null ? '✓' : '') + '</span></button>'
+          + '<button type="button" class="wtw-wizard-opt' + (state.isSeries === false ? ' wtw-wizard-opt--on' : '') + '" data-ser="0"><span class="wtw-wizard-opt-title">🎬 Только фильмы</span><span class="wtw-wizard-opt-check">' + (state.isSeries === false ? '✓' : '') + '</span></button>'
+          + '<button type="button" class="wtw-wizard-opt' + (state.isSeries === true ? ' wtw-wizard-opt--on' : '') + '" data-ser="1"><span class="wtw-wizard-opt-title">📺 Только сериалы</span><span class="wtw-wizard-opt-check">' + (state.isSeries === true ? '✓' : '') + '</span></button>'
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-pick">🎲 Подобрать</button></div>';
+      } else if (state.step === 'result') {
+        if (state.loading) {
+          inner += '<div class="site-pick-loading">Подбираем…</div>';
+        } else if (state.film) {
+          inner += renderSitePickResultCard(state.film, { onAgain: runPick });
+          inner += '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Изменить фильтры</button><button type="button" class="btn btn-secondary" data-wtw-wizard-close="1">Закрыть</button></div>';
+        } else {
+          inner += '<div class="site-pick-empty">' + escapeHtml(state.status || 'Ничего не найдено') + '</div>'
+            + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button></div>';
+        }
+      }
+      inner += '</div>';
+      body.innerHTML = inner;
+
+      if (state.step === 'result' && state.film && !state.loading) {
+        bindSitePickResultCard(body, state.film, { onAgain: runPick });
+      }
+
+      body.querySelectorAll('[data-src]').forEach((btn) => {
+        btn.addEventListener('click', () => { state.source = btn.getAttribute('data-src'); paint(); });
       });
-  }
+      body.querySelectorAll('[data-gen]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const g = btn.getAttribute('data-gen');
+          const i = state.genres.indexOf(g);
+          state.genres = i >= 0 ? state.genres.filter((x) => x !== g) : state.genres.concat([g]);
+          paint();
+        });
+      });
+      body.querySelectorAll('[data-yf]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const yf = btn.getAttribute('data-yf');
+          const yt = btn.getAttribute('data-yt');
+          state.yearFrom = yf === '' ? undefined : Number(yf);
+          state.yearTo = yt === '' ? undefined : Number(yt);
+          paint();
+        });
+      });
+      body.querySelectorAll('[data-rat]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-rat');
+          state.minRating = v === '' ? null : Number(v);
+          paint();
+        });
+      });
+      body.querySelectorAll('[data-ser]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-ser');
+          state.isSeries = v === '' ? null : v === '1';
+          paint();
+        });
+      });
+      const back = body.querySelector('#wtw-wiz-back');
+      if (back) {
+        back.addEventListener('click', () => {
+          const df2 = wizardFlow();
+          if (state.step === 'result') { state.step = 'type'; paint(); return; }
+          const i = df2.indexOf(state.step);
+          state.step = i > 0 ? df2[i - 1] : 'source';
+          paint();
+        });
+      }
+      const next = body.querySelector('#wtw-wiz-next');
+      if (next) {
+        next.addEventListener('click', () => {
+          const df2 = wizardFlow();
+          const i = df2.indexOf(state.step);
+          state.step = i >= 0 && i < df2.length - 1 ? df2[i + 1] : 'type';
+          paint();
+        });
+      }
+      const pick = body.querySelector('#wtw-wiz-pick');
+      if (pick) pick.addEventListener('click', runPick);
+      body.querySelectorAll('[data-wtw-wizard-close]').forEach((b) => {
+        b.addEventListener('click', closeSiteWtwWizardOverlay);
+      });
+    }
 
+    siteWtwFetchMeta().then((meta) => {
+      state.wtwMeta = meta;
+      paint();
+    }).catch(() => {
+      state.wtwMeta = null;
+      paint();
+    });
+  }
   /** Копирование Bearer после проверки на сервере (GET /api/site/api-access-token). */
   function wireApiAccessCopy(copyBtn, hintEl, baseEl) {
     if (!copyBtn) return;
