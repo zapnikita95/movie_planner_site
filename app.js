@@ -3633,14 +3633,14 @@
       oauthG.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
-        window.location.href = '/api/site/oauth/google/start?accept=1';
+        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
         if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
-        window.location.href = '/api/site/oauth/yandex/start?accept=1';
+        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
     }
     const botPanel = document.getElementById('login-bot-panel');
@@ -10971,7 +10971,7 @@
         const provider = btn.getAttribute('data-profile-link');
         const t = getToken();
         if (!t || !provider) return;
-        window.location.href = '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
+        window.location.href = API_BASE + '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
       });
     });
     const addLogin = root.querySelector('#profile-settings-add-login');
