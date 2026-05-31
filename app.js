@@ -2297,6 +2297,7 @@
     groups: '/groups',
     integrations: '/integrations',
     tv: '/tv',
+    extension: '/extension',
     about: '/about',
     tournament: '/tournament',
     settings: '/settings',
@@ -3081,8 +3082,14 @@
             const go = btn.getAttribute('data-int-go');
             if (go === 'developer') { showSection('developer'); return; }
             if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); }
+            if (go === 'extension') { showSection('extension'); if (typeof renderExtensionSection === 'function') renderExtensionSection(); }
           };
         });
+      } catch (_) {}
+    }
+    if (rendered && sectionId === 'extension') {
+      try {
+        if (typeof renderExtensionSection === 'function') renderExtensionSection();
       } catch (_) {}
     }
     if (rendered && sectionId === 'inbox') {
@@ -7665,6 +7672,45 @@
     });
   }
 
+  // ————— Секция «Браузерное расширение» —————
+
+  function renderExtensionSection() {
+    const wrap = document.getElementById('extension-toggle-list');
+    if (!wrap) return;
+    wrap.innerHTML = '<p class="cabinet-hint">Загрузка…</p>';
+    api('/api/site/extension/settings').then((data) => {
+      const autoMark = !!(data && data.success && data.auto_mark_episodes);
+      wrap.innerHTML = settingsToggleRow({
+        id: 'ext-auto-mark-episodes',
+        emoji: '✅',
+        title: 'Отмечать серии автоматически',
+        hint: 'При распознавании серии на сайте',
+        checked: autoMark,
+      });
+      const input = document.getElementById('ext-auto-mark-episodes');
+      if (input && !input._bound) {
+        input._bound = true;
+        input.addEventListener('change', () => {
+          const want = !!input.checked;
+          api('/api/site/extension/settings', {
+            method: 'POST',
+            body: JSON.stringify({ auto_mark_episodes: want }),
+          }).then((res) => {
+            if (!res || !res.success) {
+              input.checked = !want;
+              alert((res && res.error) || 'Не удалось сохранить');
+            }
+          }).catch(() => {
+            input.checked = !want;
+            alert('Не удалось сохранить');
+          });
+        });
+      }
+    }).catch(() => {
+      wrap.innerHTML = '<p class="cabinet-hint">Не удалось загрузить настройки.</p>';
+    });
+  }
+
   // ————— Секция «Телевизор» в кабинете —————
 
   function loadTvSettings() {
@@ -10452,7 +10498,7 @@
         + '<div class="mp-list">'
         + profileListItemHtml('👥', 'Друзья и группы', 'Друзья, активность, группы', { section: 'groups' })
         + profileListItemHtml('💳', 'Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { sub: 'billing' })
-        + profileListItemHtml('🔌', 'Интеграции', 'Нейросети, API и телевизор', { section: 'integrations' })
+        + profileListItemHtml('🔌', 'Интеграции', 'Нейросети, расширение и телевизор', { section: 'integrations' })
         + profileListItemHtml('⚙️', 'Настройки', 'Тема, импорт, уведомления', { sub: 'settings' })
         + profileListItemHtml('📱', 'Скачать приложение', downloadHint, { id: 'profile-hub-download', href: appRelease && appRelease.url ? appRelease.url : (API_BASE + '/download') })
         + profileListItemHtml('❓', 'FAQ', 'Частые вопросы', { section: 'about' })
