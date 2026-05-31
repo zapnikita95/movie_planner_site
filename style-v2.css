@@ -1409,6 +1409,10 @@ section {
   body.in-cabinet #section-settings .settings-avatar-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  body.in-cabinet #section-tournament .section-title {
+    justify-content: center;
+    text-align: center;
+  }
   body.in-cabinet #section-tournament .tourn-lb-tabs {
     margin-bottom: 10px;
   }

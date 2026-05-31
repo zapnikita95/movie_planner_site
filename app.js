@@ -4730,11 +4730,58 @@
     moreRoot.innerHTML = '<section class="home-more-section"><h3 class="home-dash-h">Ещё</h3><div class="home-more-list">' + links.join('') + '</div></section>';
   }
 
+  function tournamentPodiumAvatarHtml(w) {
+    const name = (w && w.name) || '?';
+    const letter = escapeHtml(String(name).trim().charAt(0).toUpperCase() || '?');
+    const src = resolveMediaUrl(w && w.photo_url);
+    if (src) {
+      return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode(\'' + letter + '\'))">';
+    }
+    return '<span class="tourn-podium-avatar-letter">' + letter + '</span>';
+  }
+
+  function tournamentPodiumRowSiteHtml(w, nom) {
+    const medal = w.rank === 1 ? '🥇' : w.rank === 2 ? '🥈' : w.rank === 3 ? '🥉' : (w.rank + '.');
+    const uidAttr = w.user_id != null ? (' data-user-profile="' + Number(w.user_id) + '"') : '';
+    return '<button type="button" class="tourn-podium-row' + (w.is_me ? ' tourn-podium-row-me' : '') + '"' + uidAttr + '>'
+      + '<span class="tourn-podium-rank">' + medal + '</span>'
+      + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(w) + '</span>'
+      + '<span class="tourn-podium-body">'
+      + '<span class="tourn-podium-name">' + escapeHtml(w.name || '—') + (w.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+      + '<span class="tourn-podium-score">' + Number(w.score || 0) + ' ' + escapeHtml((nom && nom.unit) || '') + '</span>'
+      + '</span></button>';
+  }
+
+  function tournamentResultsPageSiteHtml(data) {
+    const periodLabel = (data.period && data.period.label) ? data.period.label : '';
+    const sections = data.sections || [];
+    const currentLabel = data.current_period_label || '';
+    let body = '';
+    if (!sections.length) {
+      body = '<p class="tourn-page-empty">За ' + escapeHtml(periodLabel || 'прошлый месяц') + ' никто не набрал очки в турнире.</p>';
+    } else {
+      body = sections.map((sec) => {
+        const nom = sec.nomination || {};
+        const rows = (sec.winners || []).map((w) => tournamentPodiumRowSiteHtml(w, nom)).join('');
+        return '<section class="tourn-nom-block"><h3 class="tourn-nom-title">'
+          + escapeHtml((nom.emoji || '') + ' ' + (nom.label || ''))
+          + '</h3><div class="tourn-nom-list">' + rows + '</div></section>';
+      }).join('');
+    }
+    return '<div class="tourn-page">'
+      + '<p class="tourn-page-kicker">Итоги</p>'
+      + '<h2 class="tourn-page-head">' + escapeHtml(periodLabel) + '</h2>'
+      + '<p class="tourn-page-sub cabinet-hint">Топ-3 в каждой номинации</p>'
+      + '<div class="tourn-sections">' + body + '</div>'
+      + (currentLabel ? '<p class="tourn-page-foot cabinet-hint">Сейчас идёт турнир за ' + escapeHtml(currentLabel) + '</p>' : '')
+      + '</div>';
+  }
+
   function renderTournamentSection() {
     const root = document.getElementById('tournament-page-root');
     if (!root) return;
     root.innerHTML = pageLoadingHtml();
-    api('/api/tournament/leaderboard').then((data) => {
+    api('/api/tournament/results?period=previous').then((data) => {
       if (!data || !data.success) {
         const hint = data && data.error === 'timeout'
           ? 'Сервер не ответил вовремя — обновите страницу'
@@ -4742,47 +4789,7 @@
         root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint) + '</p>';
         return;
       }
-      const items = data.leaderboard || [];
-      const noms = data.nominations || [];
-      let activeId = noms[0] ? noms[0].id : 'ratings_month';
-      const periodLabel = data.period && data.period.label ? data.period.label : '';
-      root.innerHTML = (periodLabel ? '<p class="cabinet-hint">' + escapeHtml(periodLabel) + ' · топ-3 получают монетки</p>' : '')
-        + '<div class="tourn-lb-tabs" id="site-tourn-tabs"></div><div class="tourn-lb-list" id="site-tourn-list"></div>';
-      const tabsEl = root.querySelector('#site-tourn-tabs');
-      const listEl = root.querySelector('#site-tourn-list');
-      function renderList() {
-        const nom = noms.find((n) => n.id === activeId) || noms[0];
-        if (!nom || !listEl) return;
-        const sorted = items.slice().sort((a, b) => siteTournamentNomScore(b, nom) - siteTournamentNomScore(a, nom))
-          .filter((item) => siteTournamentRowVisible(item, nom));
-        if (!sorted.length) {
-          listEl.innerHTML = '<p class="empty-hint">Пока нет участников</p>';
-          return;
-        }
-        listEl.innerHTML = sorted.slice(0, 50).map((item, i) => {
-          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
-          const score = siteTournamentNomScore(item, nom);
-          const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
-          return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
-            + '<span class="home-tourn-rank">' + medal + '</span>'
-            + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-            + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit || '') + '</span>'
-            + '</button>';
-        }).join('');
-      }
-      function renderTabs() {
-        if (!tabsEl) return;
-        tabsEl.innerHTML = noms.map((n) => '<button type="button" class="chip' + (n.id === activeId ? ' active' : '') + '" data-tourn-nom="' + escapeHtml(n.id) + '">' + escapeHtml(n.emoji + ' ' + n.label) + '</button>').join('');
-        tabsEl.querySelectorAll('[data-tourn-nom]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            activeId = btn.getAttribute('data-tourn-nom') || activeId;
-            renderTabs();
-            renderList();
-          });
-        });
-      }
-      renderTabs();
-      renderList();
+      root.innerHTML = tournamentResultsPageSiteHtml(data);
     }).catch(() => {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
     });
