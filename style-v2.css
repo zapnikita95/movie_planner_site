@@ -7211,24 +7211,103 @@ a.header-settings-nav-item {
 #section-home .home-dash-row-meta {
   text-align: left;
 }
-/* Десктоп: два столбца, блоки тянутся по контенту — без обрезания высоты */
-@media (min-width: 900px) {
-  #section-home .home-dashboard-root {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px 18px;
-    align-items: start;
+/* Десктоп: полноширинные карусели, заголовки по центру */
+@media (min-width: 901px) {
+  body.in-cabinet #section-home .section-title {
+    display: none;
+  }
+  body.in-cabinet #section-home .home-quick-actions {
+    justify-content: center;
+    gap: 22px;
+    margin: 8px 0 36px;
+  }
+  body.in-cabinet #section-home .home-emoji-btn {
+    width: 80px;
+    height: 80px;
+    font-size: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  }
+  body.in-cabinet #section-home .home-dashboard-root {
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+    align-items: stretch;
     width: 100%;
     min-width: 0;
   }
-  #section-home .home-dashboard-root .home-dash-block {
+  body.in-cabinet #section-home .home-dashboard-root .home-dash-block {
     min-width: 0;
     overflow: visible;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
   }
-  #section-home .home-dashboard-root .home-dash-rows {
+  body.in-cabinet #section-home .home-dash-head {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  body.in-cabinet #section-home .home-dash-h {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 3.2vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: #fff;
+  }
+  body.in-cabinet #section-home .home-dash-more {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  body.in-cabinet #section-home .home-section-body {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+    box-sizing: border-box;
+  }
+  body.in-cabinet #section-home .home-poster-rail,
+  body.in-cabinet #section-home .home-prem-rail {
+    gap: 18px;
+    padding: 0 0 18px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: max(24px, env(safe-area-inset-left, 0px));
+  }
+  body.in-cabinet #section-home .home-poster-tile,
+  body.in-cabinet #section-home .home-pre-card {
+    flex: 0 0 clamp(180px, 16vw, 260px);
+    min-width: clamp(180px, 16vw, 260px);
+    max-width: none;
+    border-radius: 14px;
+    scroll-snap-align: start;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  body.in-cabinet #section-home .home-poster-tile:hover,
+  body.in-cabinet #section-home .home-pre-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  }
+  body.in-cabinet #section-home .home-poster-tile-title,
+  body.in-cabinet #section-home .home-pre-card-title {
+    font-size: 15px;
+    padding: 10px 10px 4px;
+  }
+  body.in-cabinet #section-home .home-poster-tile-year,
+  body.in-cabinet #section-home .home-pre-card-meta {
+    font-size: 13px;
+    padding: 0 10px 10px;
+  }
+  body.in-cabinet #section-home .home-dashboard-root .home-dash-rows {
     overflow: visible;
   }
-  #section-home .home-dash-row--premiere {
+  body.in-cabinet #section-home .home-dash-row--premiere {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }

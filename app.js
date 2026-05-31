@@ -4522,14 +4522,7 @@
 
     if (blockId === 'plans') {
       const plans = _mergePlansForHomePreview().slice(0, 5);
-      if (!plans.length) {
-        return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">Запланированных просмотров пока нет.</p><div class="plans-empty-actions">'
-          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button> '
-          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="premieres">Премьеры</button>'
-          + '</div></div></section>';
-      }
+      if (!plans.length) return '';
       const rows = plans.map((p) => {
         const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
         const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
@@ -4554,7 +4547,7 @@
     }
 
     if (blockId === 'unwatched') {
-      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 12);
+      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 20);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions plans-empty-actions--compact">'
@@ -4567,31 +4560,15 @@
     }
 
     if (blockId === 'series') {
-      const items = (typeof seriesItems !== 'undefined' ? seriesItems : []).slice(0, 5);
+      const items = (typeof seriesItems !== 'undefined' ? seriesItems : []).slice(0, 16);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + '<div class="home-dash-empty"><p class="empty-hint">Сериалов пока нет.</p><div class="plans-empty-actions">'
           + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button>'
           + '</div></div></section>';
       }
-      const rows = items.map((s) => {
-        const poster = s.kp_id ? posterUrl(s.kp_id) : '';
-        const metaParts = [s.progress || 'Сериал', s.year, s.genres].filter(Boolean).map(String);
-        const preview = renderHomeHoverPreview({
-          title: s.title || '',
-          poster: poster,
-          metaHtml: escapeHtml(metaParts.slice(0, 2).join(' · ')),
-          description: s.description || s.actors || '',
-          emoji: '📺',
-        });
-        return '<div class="home-dash-row film-card-v2"' + homeDashNavAttrs(s) + '><div class="home-dash-row-text">'
-          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>📺</span>') + '</div>'
-          + '<div class="home-dash-row-main">'
-          + '<div class="home-dash-row-title">' + escapeHtml(s.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + escapeHtml(s.progress || 'Сериал') + '</div>'
-          + '</div></div>' + preview + '</div>';
-      }).join('');
-      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block">' + head
+        + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
     }
 
     if (blockId === 'premieres') {
