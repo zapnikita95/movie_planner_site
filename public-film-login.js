@@ -85,22 +85,21 @@
     }
   }
 
-  function openPreOpenedTelegramWindow() {
-    if (global.MpIsMobileUa && global.MpIsMobileUa()) return null;
-    try { return global.open('about:blank', '_blank', 'noopener,noreferrer'); } catch (_e) { return null; }
-  }
-
   function openPfTelegramLink(url, preOpenedWindow) {
     if (typeof global.MpOpenTelegramLink === 'function') {
       return global.MpOpenTelegramLink(url, preOpenedWindow);
     }
+    if (typeof global.MpClickWebUrl === 'function') {
+      return global.MpClickWebUrl(url);
+    }
     try {
       if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.opener = null;
         preOpenedWindow.location.href = url;
         preOpenedWindow.focus();
         return true;
       }
-      return !!global.open(url, '_blank', 'noopener,noreferrer');
+      return !!global.open(url, '_blank');
     } catch (_e) {
       return false;
     }
@@ -136,10 +135,14 @@
         }
         var code = String(startData.code);
         pfBotDeepLink = startData.deep_link
-          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + code);
+          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(code));
         updatePfBotReopenLink(pfBotDeepLink);
         updatePfBotLoginHint(code);
-        if (!openPfTelegramLink(pfBotDeepLink, preOpenedWindow)) {
+        var opened = openPfTelegramLink(pfBotDeepLink, preOpenedWindow);
+        if (!opened && typeof global.MpClickWebUrl === 'function') {
+          opened = global.MpClickWebUrl(pfBotDeepLink);
+        }
+        if (!opened) {
           setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
         } else {
           setStatus(statusEl, 'Нажмите Start на ссылке бота');
@@ -382,19 +385,16 @@
       tg.addEventListener('click', function (e) {
         e.preventDefault();
         if (!privacyOk()) { nudgePrivacy(); return; }
-        startPfBotAuth($('login-status'), botPanel, openPreOpenedTelegramWindow());
+        startPfBotAuth($('login-status'), botPanel, null);
       });
     }
 
     var botReopen = $('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', function (e) {
+        if (pfBotDeepLink) return;
         e.preventDefault();
-        if (pfBotDeepLink) {
-          openPfTelegramLink(pfBotDeepLink, null);
-          return;
-        }
-        startPfBotAuth($('login-status'), botPanel, openPreOpenedTelegramWindow());
+        startPfBotAuth($('login-status'), botPanel, null);
       });
     }
 

@@ -51,16 +51,19 @@
       }
     }
 
+    if (clickWebUrl(url)) return true;
+
     var popup = null;
-    try { popup = global.open(url, '_blank', 'noopener,noreferrer'); } catch (_e3) {}
+    try { popup = global.open(url, '_blank'); } catch (_e3) {}
     if (popup) {
-      try { popup.focus(); } catch (_e4) {}
+      try { popup.opener = null; popup.focus(); } catch (_e4) {}
       return true;
     }
 
-    return clickWebUrl(url);
+    return false;
   }
 
   global.MpOpenTelegramLink = openTelegramLink;
+  global.MpClickWebUrl = clickWebUrl;
   global.MpIsMobileUa = isMobileUa;
 })(typeof window !== 'undefined' ? window : this);

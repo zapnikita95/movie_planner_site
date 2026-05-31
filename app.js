@@ -1307,7 +1307,12 @@
 
   function authApiJson(path, options, timeoutMs) {
     const opts = Object.assign({ headers: { 'Content-Type': 'application/json' } }, options || {});
-    return fetchWithTimeout(API_BASE + path, opts, timeoutMs || 20000).then((r) => r.json().catch(() => ({})));
+    return fetchWithTimeout(API_BASE + path, opts, timeoutMs || 20000).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok && data && !data.error) data.error = 'http_' + r.status;
+      if (!r.ok && data && data.success === undefined) data.success = false;
+      return data;
+    });
   }
 
   function authNetworkError(err) {
@@ -3446,26 +3451,32 @@
   let _siteBotAuthPoll = null;
   let _siteBotAuthDeepLink = null;
 
-  function openPreOpenedTelegramWindow() {
-    if (typeof window.MpIsMobileUa === 'function' && window.MpIsMobileUa()) return null;
-    try { return window.open('about:blank', '_blank', 'noopener,noreferrer'); } catch (_) { return null; }
-  }
-
   function openTelegramAuthLink(url, preOpenedWindow) {
     if (typeof window.MpOpenTelegramLink === 'function') {
       return window.MpOpenTelegramLink(url, preOpenedWindow);
     }
+    if (typeof window.MpClickWebUrl === 'function') {
+      return window.MpClickWebUrl(url);
+    }
     try {
       if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.opener = null;
         preOpenedWindow.location.href = url;
         preOpenedWindow.focus();
         return true;
       }
-      const popup = window.open(url, '_blank', 'noopener,noreferrer');
+      const popup = window.open(url, '_blank');
       return !!popup;
     } catch (_) {
       return false;
     }
+  }
+
+  function siteBotAuthStartErrorMessage(startData) {
+    const err = startData && startData.error;
+    if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
+    if (err === 'http_503' || err === 'http_502') return 'Сервер временно недоступен — попробуйте позже';
+    return 'Не удалось начать вход через бота';
   }
 
   function updateSiteBotReopenLink(url) {
@@ -3552,17 +3563,23 @@
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_) {}
         }
-        if (statusEl) { statusEl.textContent = 'Не удалось начать вход через бота'; statusEl.className = 'login-status error'; }
+        if (statusEl) {
+          statusEl.textContent = siteBotAuthStartErrorMessage(startData);
+          statusEl.className = 'login-status error';
+        }
         return;
       }
       const code = String(startData.code);
       _siteBotAuthDeepLink = startData.deep_link
-        || ('https://t.me/movie_planner_bot?start=mobileauth_' + code);
+        || ('https://t.me/movie_planner_bot?start=mobileauth_' + encodeURIComponent(code));
       updateSiteBotReopenLink(_siteBotAuthDeepLink);
       updateSiteBotLoginHint(code);
-      const opened = openTelegramAuthLink(_siteBotAuthDeepLink, preOpenedWindow);
+      let opened = openTelegramAuthLink(_siteBotAuthDeepLink, preOpenedWindow);
+      if (!opened && typeof window.MpClickWebUrl === 'function') {
+        opened = window.MpClickWebUrl(_siteBotAuthDeepLink);
+      }
       if (!opened) {
-        try { showToast('Не удалось открыть Telegram. Нажмите «Открыть бота ещё раз».', { type: 'error', duration: 4200 }); } catch (_) {}
+        try { showToast('Нажмите «Открыть бота ещё раз» — браузер заблокировал автоматическое открытие.', { type: 'error', duration: 4200 }); } catch (_) {}
       }
       if (statusEl) { statusEl.textContent = 'Нажмите Start на ссылке бота'; statusEl.className = 'login-status'; }
       _siteBotAuthPoll = setInterval(function () {
@@ -3653,7 +3670,7 @@
           return;
         }
         rememberAuthReturnPath();
-        startSiteBotAuth(modal, status, botPanel, openPreOpenedTelegramWindow());
+        startSiteBotAuth(modal, status, botPanel, null);
       });
     }
 
@@ -3677,12 +3694,10 @@
     const botReopen = document.getElementById('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', (e) => {
+        if (_siteBotAuthDeepLink) return;
         e.preventDefault();
-        if (_siteBotAuthDeepLink) {
-          openTelegramAuthLink(_siteBotAuthDeepLink, null);
-          return;
-        }
-        startSiteBotAuth(modal, status, botPanel, openPreOpenedTelegramWindow());
+        rememberAuthReturnPath();
+        startSiteBotAuth(modal, status, botPanel, null);
       });
     }
 
