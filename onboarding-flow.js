@@ -314,7 +314,9 @@
       return String(x.kp_id);
     }));
     let similarLoads = 0;
-    let loadingSimilar = false;
+    let loadingSimilar = 0;
+    const similarLoadedFor = new Set();
+    const recommendedKps = new Set();
     const selected = new Set();
 
     return new Promise(function (resolve) {
@@ -327,7 +329,7 @@
         return items.length >= MAX_TILES || similarLoads >= MAX_SIMILAR_LOADS;
       }
 
-      function paintGrid(scrollTop) {
+      function paintGrid(scrollTop, recEnter) {
         const grid = ov.querySelector("#ob-pick-grid");
         const confirm = ov.querySelector("#ob-pick-confirm");
         const dim = ov.querySelector("#ob-pick-grid-wrap");
@@ -335,7 +337,13 @@
         if (!grid) return;
         grid.innerHTML = items
           .map(function (it) {
-            return renderPickerTile(deps, it, mode, selected, selClassNow);
+            const sk = String(it.kp_id);
+            const recCls =
+              recEnter && recommendedKps.has(sk) && mode === "want" ? " mp-onboard-pick-tile--rec-enter" : "";
+            return renderPickerTile(deps, it, mode, selected, selClassNow).replace(
+              'class="movie-poster mp-onboard-pick-tile',
+              'class="movie-poster mp-onboard-pick-tile' + recCls,
+            );
           })
           .join("");
         const hasSel = selected.size > 0;
@@ -356,7 +364,8 @@
             const kp = btn.getAttribute("data-ob-kp") || "";
             if (!kp) return;
             deps.hapticImpact("light");
-            if (selected.has(kp)) selected.delete(kp);
+            const wasOn = selected.has(kp);
+            if (wasOn) selected.delete(kp);
             else selected.add(kp);
             btn.classList.toggle("mp-onboard-pick-tile--" + (mode === "watched" ? "watched" : "want"), selected.has(kp));
             const confirm = ov.querySelector("#ob-pick-confirm");
@@ -365,15 +374,16 @@
               confirm.disabled = mode === "watched" ? !hasSel : !hasSel;
               confirm.classList.toggle("btn-disabled", confirm.disabled);
             }
-            if (!selected.has(kp) || atLimit() || loadingSimilar) return;
+            if (wasOn || atLimit() || loadingSimilar > 0) return;
             void loadSimilar(kp);
           });
         });
       }
 
       async function loadSimilar(kp) {
-        if (atLimit() || loadingSimilar) return;
-        loadingSimilar = true;
+        if (atLimit() || loadingSimilar >= 3 || similarLoadedFor.has(kp)) return;
+        similarLoadedFor.add(kp);
+        loadingSimilar += 1;
         similarLoads += 1;
         try {
           const ex = Array.from(seenKp).join(",");
@@ -392,6 +402,7 @@
             const sk = String(it.kp_id);
             if (seenKp.has(sk) || items.length >= MAX_TILES) return;
             seenKp.add(sk);
+            recommendedKps.add(sk);
             items.push(it);
           });
           paintGrid();
@@ -399,8 +410,18 @@
         } catch (_e) {
           /* ignore */
         } finally {
-          loadingSimilar = false;
+          loadingSimilar -= 1;
         }
+      }
+
+      function sortRecommendedFirst() {
+        const rec = [];
+        const rest = [];
+        items.forEach(function (it) {
+          if (recommendedKps.has(String(it.kp_id))) rec.push(it);
+          else rest.push(it);
+        });
+        items = rec.concat(rest);
       }
 
       ov.innerHTML =
@@ -435,6 +456,12 @@
             return selected.has(String(it.kp_id));
           });
           btn.disabled = true;
+          btn.textContent = "Загружаем похожие…";
+          await Promise.all(
+            Array.from(selected).map(function (kp) {
+              return loadSimilar(kp);
+            }),
+          );
           selected.forEach(function (kp) {
             const el = ov.querySelector('[data-ob-kp="' + kp + '"]');
             if (el) el.classList.add("mp-onboard-pick-tile--exit");
@@ -450,6 +477,7 @@
           selected.clear();
           mode = "want";
           similarLoads = 0;
+          sortRecommendedFirst();
           const titleEl = ov.querySelector(".mp-onboard-picker-title");
           if (titleEl) {
             titleEl.innerHTML =
@@ -457,9 +485,10 @@
                 ? 'Какие сериалы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
                 : 'Какие фильмы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?';
           }
-          const sc = ov.querySelector("#ob-pick-scroll");
-          paintGrid(0);
+          btn.textContent = "Подтвердить";
+          paintGrid(0, true);
           bindGrid();
+          const sc = ov.querySelector("#ob-pick-scroll");
           if (sc) sc.scrollTo({ top: 0, behavior: "smooth" });
           btn.disabled = true;
           btn.classList.add("btn-disabled");
@@ -499,8 +528,8 @@
       })
       .join("");
     const html =
-      '<div class="mp-onboard-title">Фильм на выходные</div>' +
-      '<p class="mp-onboard-text">Создайте ваш первый план</p>' +
+      '<div class="mp-onboard-title">Что посмотреть на выходных?</div>' +
+      '<p class="mp-onboard-text">Выберите из того, что хотите посмотреть — создайте первый план</p>' +
       '<div class="mp-onboard-weekend-rail">' +
       cards +
       "</div>" +
@@ -535,6 +564,25 @@
     try {
       await deps.apiPost("/api/miniapp/onboarding/interest", payload);
     } catch (_e) {}
+  }
+
+  function postBulkLibrary(deps, st) {
+    const p = deps
+      .apiPost("/api/miniapp/onboarding/bulk-library", {
+        watched: st.watchedItems || [],
+        unwatched: st.wantItems || [],
+      })
+      .then(function () {
+        try {
+          sessionStorage.setItem("mp_onboard_fresh_dash", "1");
+        } catch (_e) {}
+        if (deps.invalidateCache) deps.invalidateCache("/api/miniapp/dashboard");
+      })
+      .catch(function () {});
+    try {
+      global.__mpOnboardBulkPromise = p;
+    } catch (_e) {}
+    return p;
   }
 
   async function runFlow(deps, onComplete) {
@@ -634,12 +682,7 @@
         });
         if (pick && pick.phase === "done") {
           st.wantItems = pick.wantItems || [];
-          try {
-            await deps.apiPost("/api/miniapp/onboarding/bulk-library", {
-              watched: [],
-              unwatched: st.wantItems,
-            });
-          } catch (_e) {}
+          void postBulkLibrary(deps, { watched: [], unwatched: st.wantItems });
         }
       }
       st.pickerDone = true;
@@ -678,12 +721,7 @@
       }
       st.wantItems = pick.wantItems || [];
       st.watchedItems = pick.watchedItems || [];
-      try {
-        await deps.apiPost("/api/miniapp/onboarding/bulk-library", {
-          watched: st.watchedItems || [],
-          unwatched: st.wantItems || [],
-        });
-      } catch (_e) {}
+      void postBulkLibrary(deps, st);
       st.pickerDone = true;
       writeState(st);
     }

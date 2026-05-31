@@ -11523,6 +11523,12 @@ body.in-cabinet .inbox-fab { display: none !important; }
 .mp-onboard-pick-tile { border: 2px solid transparent; border-radius: 12px; transition: border-color .15s ease, opacity .32s ease, transform .32s ease; }
 .mp-onboard-pick-tile--watched { border-color: #a855f7; }
 .mp-onboard-pick-tile--want { border-color: #f59e0b; }
+.mp-onboard-pick-tile--exit { opacity: 0; transform: scale(.88); pointer-events: none; }
+@keyframes mp-onboard-rec-enter {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mp-onboard-pick-tile--rec-enter { animation: mp-onboard-rec-enter .42s ease-out both; }
 .mp-onboard-picker-confirm { flex-shrink: 0; margin-top: 10px; }
 .mp-onboard-weekend-rail { display: flex; gap: 12px; overflow-x: auto; padding: 8px 2px 12px; scroll-snap-type: x mandatory; }
 .mp-onboard-weekend-card { flex: 0 0 42%; max-width: 180px; scroll-snap-align: center; border: 2px solid transparent; border-radius: 14px; padding: 0; background: rgba(255,255,255,0.04); overflow: hidden; cursor: pointer; }
