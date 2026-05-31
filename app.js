@@ -4508,7 +4508,7 @@
     }
     box.classList.remove('hidden');
     box.innerHTML = ''
-      + '<button type="button" class="cabinet-home-stat" data-home-show-section="unwatched"><b>' + escapeHtml(String(counts.unwatched != null ? counts.unwatched : '—')) + '</b><span>непросмотр.</span></button>'
+      + '<button type="button" class="cabinet-home-stat" data-home-show-section="unwatched"><b>' + escapeHtml(String(counts.unwatched != null ? counts.unwatched : '—')) + '</b><span>непросмотренных</span></button>'
       + '<button type="button" class="cabinet-home-stat" data-home-show-section="stats"><b>' + escapeHtml(String(counts.watched != null ? counts.watched : '—')) + '</b><span>просмотрено</span></button>'
       + '<button type="button" class="cabinet-home-stat" data-home-show-section="series"><b>' + escapeHtml(String(counts.series != null ? counts.series : '—')) + '</b><span>сериалов</span></button>';
   }
