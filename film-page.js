@@ -423,7 +423,9 @@
           var blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
           var fd = new FormData();
           fd.append('audio', blob, 'q.webm');
-          fetch(apiBase + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: mpAuthHeaders() })
+          var voxH = mpAuthHeaders();
+          delete voxH['Content-Type'];
+          fetch(apiBase + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: voxH })
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d && d.success && d.text && input) {

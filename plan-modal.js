@@ -372,6 +372,12 @@
       try { if (voiceSess.rec && voiceSess.rec.state === 'recording') voiceSess.rec.stop(); } catch (_e) {}
       voiceSess = null;
     }
+    function headersForMultipart() {
+      var h = Object.assign({}, getHeaders());
+      delete h['Content-Type'];
+      delete h['content-type'];
+      return h;
+    }
     function apiJson(path, init) {
       var h = getHeaders();
       if (init && init.body && !(init.body instanceof FormData)) h['Content-Type'] = 'application/json';
@@ -617,11 +623,16 @@
         var ext = (blob.type || '').includes('mp4') ? 'm4a' : ((blob.type || '').includes('ogg') ? 'ogg' : 'webm');
         var fd = new FormData();
         fd.append('audio', blob, 'voice.' + ext);
-        var h = getHeaders();
-        fetch(apiBase + '/api/miniapp/plan/voice', { method: 'POST', headers: h, body: fd })
-          .then(function (r) { return r.json(); })
+        fetch(apiBase + '/api/miniapp/plan/voice', { method: 'POST', headers: headersForMultipart(), body: fd })
+          .then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (data) {
+              if (!r.ok || !data || !data.success) {
+                throw new Error((data && data.message) || (data && data.error) || ('HTTP ' + r.status));
+              }
+              return data;
+            });
+          })
           .then(function (data) {
-            if (!data || !data.success) throw new Error((data && data.message) || (data && data.error) || 'Ошибка');
             var msg = applyVoiceResult(data);
             if (voiceStatus) voiceStatus.textContent = msg;
           })
@@ -805,8 +816,7 @@
               if (isCinema && pid && pendingTicketFiles.length) {
                 var fd = new FormData();
                 for (var i = 0; i < pendingTicketFiles.length; i++) fd.append('file', pendingTicketFiles[i]);
-                var h = getHeaders();
-                return fetch(apiBase + '/api/miniapp/plans/' + encodeURIComponent(pid) + '/tickets', { method: 'POST', headers: h, body: fd })
+                return fetch(apiBase + '/api/miniapp/plans/' + encodeURIComponent(pid) + '/tickets', { method: 'POST', headers: headersForMultipart(), body: fd })
                   .catch(function () { onToast('План сохранён, билеты не загрузились'); return res; })
                   .then(function () { return res; });
               }
