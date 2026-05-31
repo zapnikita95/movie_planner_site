@@ -10951,7 +10951,24 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   background: linear-gradient(160deg, rgba(255, 45, 123, 0.16), rgba(155, 77, 255, 0.12));
   border-color: rgba(255, 45, 123, 0.28);
 }
-.mp-platform-icon { font-size: 28px; line-height: 1; }
+.mp-platform-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.mp-platform-svg {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+.mp-platform-icon--apple .mp-platform-svg {
+  width: 30px;
+  height: 30px;
+  color: #fff;
+}
 .mp-platform-body { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .mp-platform-label { font-size: 15px; font-weight: 800; }
 .mp-platform-hint { font-size: 12px; color: var(--text-muted); font-weight: 600; }

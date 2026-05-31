@@ -9,6 +9,15 @@
   var _release = null;
   var _releasePromise = null;
 
+  var MP_ICON_ANDROID_SVG =
+    '<svg class="mp-platform-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path fill="#3DDC84" d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84a1.25 1.25 0 0 0-2.06-1.03l-.05.07A9.017 9.017 0 0 0 12 2c-1.83 0-3.46.47-4.91 1.3l-.04-.07a1.25 1.25 0 1 0-2.07 1.04L5.52 5.7A10.9 10.9 0 0 0 1 13h22a10.9 10.9 0 0 0-4.52-7.3l1.05-1.54z"/>' +
+    '</svg>';
+  var MP_ICON_APPLE_SVG =
+    '<svg class="mp-platform-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>' +
+    '</svg>';
+
   function isIOS() {
     return /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
   }
@@ -61,14 +70,14 @@
     return (
       '<div class="mp-platform-grid">' +
         '<button type="button" class="mp-platform-card" data-mp-dl="android">' +
-          '<span class="mp-platform-icon" aria-hidden="true">🤖</span>' +
+          '<span class="mp-platform-icon mp-platform-icon--android" aria-hidden="true">' + MP_ICON_ANDROID_SVG + '</span>' +
           '<span class="mp-platform-body">' +
             '<span class="mp-platform-label">Android</span>' +
             '<span class="mp-platform-hint">' + androidVer + '</span>' +
           '</span>' +
         '</button>' +
         '<button type="button" class="mp-platform-card mp-platform-card--ios" data-mp-dl="ios">' +
-          '<span class="mp-platform-icon" aria-hidden="true">🍎</span>' +
+          '<span class="mp-platform-icon mp-platform-icon--apple" aria-hidden="true">' + MP_ICON_APPLE_SVG + '</span>' +
           '<span class="mp-platform-body">' +
             '<span class="mp-platform-label">iPhone</span>' +
             '<span class="mp-platform-hint">' + iosVer + '</span>' +
