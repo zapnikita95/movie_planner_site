@@ -6413,7 +6413,8 @@
     'series_completed_': '📺 Сериалы',
     'series_ep_': '🔥 Серии',
     'genres_': '🌈 Всеядный',
-    'plans_': '📅 Планировщик'
+    'plans_': '📅 Планировщик',
+    'friends_': '🤝 Друзья'
   };
   function getAchCategory(achId) {
     if (!achId) return null;
