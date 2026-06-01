@@ -4077,7 +4077,7 @@
         if (ios && rel && rel.ios && rel.ios.url) {
           ios.href = rel.ios.url;
           ios.classList.remove('hidden');
-          if (rel.ios.version) ios.textContent = '🍎 iOS • v' + rel.ios.version;
+          ios.textContent = '🍎 iOS';
         } else if (ios) {
           ios.href = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
           ios.classList.remove('hidden');
@@ -4508,9 +4508,93 @@
     }
     box.classList.remove('hidden');
     box.innerHTML = ''
-      + '<button type="button" class="cabinet-home-stat" data-home-show-section="unwatched"><b>' + escapeHtml(String(counts.unwatched != null ? counts.unwatched : '—')) + '</b><span>непросмотренных</span></button>'
+      + '<button type="button" class="cabinet-home-stat" data-home-show-section="unwatched"><b>' + escapeHtml(String(counts.unwatched != null ? counts.unwatched : '—')) + '</b><span>непросмотр.</span></button>'
       + '<button type="button" class="cabinet-home-stat" data-home-show-section="stats"><b>' + escapeHtml(String(counts.watched != null ? counts.watched : '—')) + '</b><span>просмотрено</span></button>'
       + '<button type="button" class="cabinet-home-stat" data-home-show-section="series"><b>' + escapeHtml(String(counts.series != null ? counts.series : '—')) + '</b><span>сериалов</span></button>';
+  }
+
+  function renderHomeBlockCtaHtml(buttonsHtml) {
+    return '<div class="home-dash-empty home-dash-empty--cta"><div class="plans-empty-actions plans-empty-actions--compact">'
+      + buttonsHtml + '</div></div>';
+  }
+
+  function bindHomePosterRailDragScroll(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.home-poster-rail, .home-prem-rail').forEach((rail) => {
+      if (rail._mpDragScrollBound) return;
+      rail._mpDragScrollBound = true;
+      rail.classList.add('home-rail--draggable');
+      let isDown = false;
+      let startX = 0;
+      let scrollLeft = 0;
+      let moved = false;
+
+      rail.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        isDown = true;
+        moved = false;
+        startX = e.pageX;
+        scrollLeft = rail.scrollLeft;
+        rail.classList.add('is-dragging');
+      });
+      rail.addEventListener('mouseleave', () => {
+        isDown = false;
+        rail.classList.remove('is-dragging');
+      });
+      rail.addEventListener('mouseup', () => {
+        isDown = false;
+        rail.classList.remove('is-dragging');
+      });
+      rail.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const dx = e.pageX - startX;
+        if (Math.abs(dx) > 4) moved = true;
+        rail.scrollLeft = scrollLeft - dx * 1.15;
+      });
+      rail.addEventListener('click', (e) => {
+        if (moved) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          moved = false;
+        }
+      }, true);
+    });
+  }
+
+  function initCabinetMobileHeaderScroll() {
+    if (window._mpCabinetHeaderScrollBound) return;
+    window._mpCabinetHeaderScrollBound = true;
+    const header = document.getElementById('site-header');
+    if (!header) return;
+    let lastY = window.scrollY || 0;
+    let ticking = false;
+
+    function updateHeaderVisibility() {
+      ticking = false;
+      const mobile = window.matchMedia('(max-width: 768px)').matches;
+      if (!document.body.classList.contains('in-cabinet') || !mobile) {
+        header.classList.remove('site-header--retracted');
+        return;
+      }
+      const y = window.scrollY || 0;
+      if (y <= 6) {
+        header.classList.remove('site-header--retracted');
+      } else if (y > lastY + 6) {
+        header.classList.add('site-header--retracted');
+      } else if (y < lastY - 6) {
+        header.classList.remove('site-header--retracted');
+      }
+      lastY = y;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(updateHeaderVisibility);
+      }
+    }, { passive: true });
+    window.addEventListener('resize', updateHeaderVisibility, { passive: true });
   }
 
   function renderHomeBlockHtml(blockId) {
@@ -4550,10 +4634,10 @@
       const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 20);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">В списке пока пусто.</p><div class="plans-empty-actions plans-empty-actions--compact">'
-          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-          + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
-          + '</div></div></section>';
+          + renderHomeBlockCtaHtml(
+            '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+            + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
+          ) + '</section>';
       }
       return '<section class="home-dash-block">' + head
         + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
@@ -4563,9 +4647,10 @@
       const items = (typeof seriesItems !== 'undefined' ? seriesItems : []).slice(0, 16);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">Сериалов пока нет.</p><div class="plans-empty-actions">'
-          + '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button>'
-          + '</div></div></section>';
+          + renderHomeBlockCtaHtml(
+            '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button> '
+            + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Подобрать</button>'
+          ) + '</section>';
       }
       return '<section class="home-dash-block">' + head
         + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
@@ -4579,13 +4664,11 @@
       }
       items = items.slice(0, 12);
       if (!items.length) {
-        const emptyHint = _homePremiereRollover
-          ? 'В календарном месяце премьер не осталось — ниже ближайшие в следующем.'
-          : 'Скорых премьер в этом месяце не найдено.';
         return '<section class="home-dash-block">' + head
-          + '<div class="home-dash-empty"><p class="empty-hint">' + escapeHtml(emptyHint) + '</p><div class="plans-empty-actions plans-empty-actions--compact">'
-          + '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Открыть «Премьеры»</button>'
-          + '</div></div></section>';
+          + renderHomeBlockCtaHtml(
+            '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Смотреть премьеры</button> '
+            + '<button type="button" class="btn btn-small btn-secondary" data-plans-action="open-add-film">Добавить фильм</button>'
+          ) + '</section>';
       }
       return '<section class="home-dash-block">' + head
         + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
@@ -4646,6 +4729,7 @@
     }
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
+    bindHomePosterRailDragScroll(root);
   }
 
   function fetchPremieresForDisplay(period) {
@@ -13312,6 +13396,8 @@
 
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
+
+    initCabinetMobileHeaderScroll();
 
     // Parallax background emojis (landing only; never inside cabinet)
     const parallaxBg = document.getElementById('parallaxBg');
