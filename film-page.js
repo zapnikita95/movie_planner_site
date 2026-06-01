@@ -729,7 +729,7 @@
               '</div>' +
             '</section>' +
           '</main>' +
-          '<aside id="film-seo-root" class="film-seo-root" aria-label="О фильме"></aside>' +
+          '<aside id="film-seo-root" class="film-seo-root visually-hidden" aria-label="О фильме"></aside>' +
           '<footer class="footer">' +
             '<div class="container">' +
               '<div class="footer-content">' +
@@ -783,12 +783,28 @@
 
       var hint = document.getElementById('hint');
 
+      function setPageFavicon(imgUrl) {
+        var url = String(imgUrl || '').trim();
+        if (!url) return;
+        var head = document.head;
+        ['icon', 'apple-touch-icon'].forEach(function (rel) {
+          var el = head.querySelector('link[rel="' + rel + '"]');
+          if (!el) {
+            el = document.createElement('link');
+            el.rel = rel;
+            head.appendChild(el);
+          }
+          el.href = url;
+        });
+      }
+
       function setOgFromFilm(film, headline) {
         var head = document.head;
         var title = (film && film.page_title) || (headline + ' — смотреть онлайн, описание, рейтинг, актёры | Movie Planner');
         var desc = (film && film.meta_description) || filmMetaDescription(film, headline);
         var keywords = (film && film.meta_keywords) || '';
         var img = String((film && film.poster_url) || poster || '').trim();
+        setPageFavicon(img);
         function meta(attr, name, content) {
           if (!content) return;
           var el = head.querySelector('meta[' + attr + '="' + name + '"]');
@@ -829,6 +845,7 @@
         }
         canon.href = (film && film.canonical) || pageUrl;
       }
+      setPageFavicon(poster);
       setOgFromFilm(null, 'Фильм');
 
       function setFilmJsonLd(film) {

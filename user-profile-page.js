@@ -140,7 +140,7 @@
           '<h3 class="user-profile-block-title">Последние оценки</h3>' +
           '<div class="user-profile-rating-list">' + recent.map(function (r) { return ratingRowHtml(r, hooks); }).join('') + '</div>' +
           (Number(data.ratings_count) > recent.length
-            ? '<button type="button" class="link-inline user-profile-more" data-action="ratings-all">Все оценки →</button>'
+            ? '<button type="button" class="btn btn-secondary user-profile-more" data-action="ratings-all">Все оценки →</button>'
             : '') +
         '</div>'
       : '';

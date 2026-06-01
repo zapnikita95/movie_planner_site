@@ -4855,7 +4855,7 @@
     return '<div class="tourn-page">'
       + '<p class="tourn-page-kicker">Итоги</p>'
       + '<h2 class="tourn-page-head">' + escapeHtml(periodLabel) + '</h2>'
-      + '<p class="tourn-page-sub cabinet-hint">Топ-3 в каждой номинации</p>'
+      + '<p class="tourn-page-sub cabinet-hint">Топ-10 в каждой номинации</p>'
       + '<div class="tourn-sections">' + body + '</div>'
       + (currentLabel ? '<p class="tourn-page-foot cabinet-hint">Сейчас идёт турнир за ' + escapeHtml(currentLabel) + '</p>' : '')
       + '</div>';
@@ -10238,10 +10238,12 @@
       step: 'source',
       source: 'auto',
       genres: [],
-      yearFrom: undefined,
-      yearTo: undefined,
+      yearRanges: [],
       minRating: null,
       isSeries: null,
+      directors: [],
+      actors: [],
+      peopleMeta: null,
       wtwMeta: null,
       film: null,
       status: null,
@@ -10249,6 +10251,17 @@
     };
 
     function showKpRatingStep() { return state.source === 'kp'; }
+    function showPeopleSteps() { return state.source === 'library' || state.source === 'auto'; }
+
+    function yearBoundsForMeta() {
+      if (!state.yearRanges.length) return { year_from: undefined, year_to: undefined };
+      const froms = state.yearRanges.map((r) => r.from).filter((v) => typeof v === 'number');
+      const tos = state.yearRanges.map((r) => r.to).filter((v) => typeof v === 'number');
+      return {
+        year_from: froms.length ? Math.min(...froms) : undefined,
+        year_to: tos.length ? Math.max(...tos) : undefined,
+      };
+    }
 
     function siteWtwFetchMeta(extra) {
       const sp = new URLSearchParams();
@@ -10281,6 +10294,7 @@
 
     function wizardFlow() {
       const s = ['source', 'genres', 'years'];
+      if (showPeopleSteps()) s.push('director', 'actor');
       if (showKpRatingStep()) s.push('rating');
       s.push('type');
       return s;
@@ -10293,15 +10307,36 @@
       return i < 0 ? 0 : i;
     }
 
+    function refreshPeopleMeta() {
+      if (!showPeopleSteps()) return Promise.resolve();
+      if (state.step !== 'director' && state.step !== 'actor') return Promise.resolve();
+      const bounds = yearBoundsForMeta();
+      return siteWtwFetchMeta({
+        year_from: bounds.year_from,
+        year_to: bounds.year_to,
+        genres: state.genres.length ? state.genres : undefined,
+      }).then((m) => {
+        state.peopleMeta = {
+          directors: (m && m.library_directors) || [],
+          actors: (m && m.library_actors) || [],
+        };
+      }).catch(() => {
+        state.peopleMeta = { directors: [], actors: [] };
+      });
+    }
+
     function buildFilters() {
       return {
         source: state.source,
         genres: state.genres,
-        year_from: state.yearFrom != null ? state.yearFrom : null,
-        year_to: state.yearTo != null ? state.yearTo : null,
+        year_ranges: state.yearRanges.length
+          ? state.yearRanges.map((r) => ({ from: r.from != null ? r.from : null, to: r.to != null ? r.to : null }))
+          : undefined,
         min_kp_rating: showKpRatingStep() ? state.minRating : null,
         is_series: state.isSeries,
         only_unwatched: true,
+        directors: showPeopleSteps() && state.directors.length ? state.directors : undefined,
+        actors: showPeopleSteps() && state.actors.length ? state.actors : undefined,
       };
     }
 
@@ -10330,6 +10365,9 @@
     function paint() {
       const body = document.getElementById('wtw-wizard-overlay-body');
       if (!body) return;
+      const panel = overlay.querySelector('.wtw-wizard-overlay-panel');
+      if (panel) panel.classList.toggle('wtw-wizard-overlay-panel--result', state.step === 'result');
+      const finishPaint = () => {
       const df = wizardFlow();
       const idx = flowIndex();
       const dots = df.map((_, i) => '<span class="wtw-dot' + (i <= idx ? ' wtw-dot-on' : '') + '"></span>').join('');
@@ -10350,12 +10388,30 @@
         inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Какие жанры?</h3><div class="wtw-wizard-chips">' + chips + '</div>'
           + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
       } else if (state.step === 'years') {
-        const rows = yearPresets().map((pr) => {
-          const active = (pr.from == null ? null : pr.from) === (state.yearFrom == null ? null : state.yearFrom)
-            && (pr.to == null ? null : pr.to) === (state.yearTo == null ? null : state.yearTo);
-          return '<button type="button" class="wtw-wizard-opt' + (active ? ' wtw-wizard-opt--on' : '') + '" data-yf="' + (pr.from != null ? pr.from : '') + '" data-yt="' + (pr.to != null ? pr.to : '') + '"><span class="wtw-wizard-opt-title">' + escapeHtml(pr.label) + '</span><span class="wtw-wizard-opt-check">' + (active ? '✓' : '') + '</span></button>';
+        const chips = yearPresets().map((pr) => {
+          const isAny = pr.from == null && pr.to == null;
+          const active = isAny
+            ? !state.yearRanges.length
+            : state.yearRanges.some((r) => r.from === (pr.from != null ? pr.from : null) && r.to === (pr.to != null ? pr.to : null));
+          return '<button type="button" class="mp-genre-pill mp-genre-pill--pick' + (active ? ' mp-genre-pill--on' : '') + '" data-yf="' + (pr.from != null ? pr.from : '') + '" data-yt="' + (pr.to != null ? pr.to : '') + '" data-yr-any="' + (isAny ? '1' : '0') + '">' + escapeHtml(pr.label) + '</button>';
         }).join('');
-        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Годы выпуска?</h3>' + rows
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Годы выпуска?</h3><div class="wtw-wizard-chips">' + chips + '</div>'
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
+      } else if (state.step === 'director') {
+        const dirs = (state.peopleMeta && state.peopleMeta.directors) || [];
+        const chips = dirs.map((d) => {
+          const on = state.directors.indexOf(d) >= 0;
+          return '<button type="button" class="mp-genre-pill mp-genre-pill--pick' + (on ? ' mp-genre-pill--on' : '') + '" data-dir="' + escapeHtml(d) + '">' + escapeHtml(d) + '</button>';
+        }).join('');
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Режиссёр?</h3><div class="wtw-wizard-chips">' + chips + '</div>'
+          + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
+      } else if (state.step === 'actor') {
+        const acts = (state.peopleMeta && state.peopleMeta.actors) || [];
+        const chips = acts.map((a) => {
+          const on = state.actors.indexOf(a) >= 0;
+          return '<button type="button" class="mp-genre-pill mp-genre-pill--pick' + (on ? ' mp-genre-pill--on' : '') + '" data-act="' + escapeHtml(a) + '">' + escapeHtml(a) + '</button>';
+        }).join('');
+        inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Актёр?</h3><div class="wtw-wizard-chips">' + chips + '</div>'
           + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button><button type="button" class="btn btn-primary" id="wtw-wiz-next">Дальше →</button></div>';
       } else if (state.step === 'rating') {
         const rows = WTW_RATING_PRESETS.map((pr) => {
@@ -10389,7 +10445,13 @@
       }
 
       body.querySelectorAll('[data-src]').forEach((btn) => {
-        btn.addEventListener('click', () => { state.source = btn.getAttribute('data-src'); paint(); });
+        btn.addEventListener('click', () => {
+          state.source = btn.getAttribute('data-src');
+          state.directors = [];
+          state.actors = [];
+          state.peopleMeta = null;
+          paint();
+        });
       });
       body.querySelectorAll('[data-gen]').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -10401,10 +10463,35 @@
       });
       body.querySelectorAll('[data-yf]').forEach((btn) => {
         btn.addEventListener('click', () => {
-          const yf = btn.getAttribute('data-yf');
-          const yt = btn.getAttribute('data-yt');
-          state.yearFrom = yf === '' ? undefined : Number(yf);
-          state.yearTo = yt === '' ? undefined : Number(yt);
+          if (btn.getAttribute('data-yr-any') === '1') {
+            state.yearRanges = [];
+            paint();
+            return;
+          }
+          const yfRaw = btn.getAttribute('data-yf');
+          const ytRaw = btn.getAttribute('data-yt');
+          const from = yfRaw === '' ? null : Number(yfRaw);
+          const to = ytRaw === '' ? null : Number(ytRaw);
+          const exists = state.yearRanges.some((r) => r.from === from && r.to === to);
+          state.yearRanges = exists
+            ? state.yearRanges.filter((r) => !(r.from === from && r.to === to))
+            : state.yearRanges.concat([{ from, to }]);
+          paint();
+        });
+      });
+      body.querySelectorAll('[data-dir]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const d = btn.getAttribute('data-dir');
+          const i = state.directors.indexOf(d);
+          state.directors = i >= 0 ? state.directors.filter((x) => x !== d) : state.directors.concat([d]);
+          paint();
+        });
+      });
+      body.querySelectorAll('[data-act]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const a = btn.getAttribute('data-act');
+          const i = state.actors.indexOf(a);
+          state.actors = i >= 0 ? state.actors.filter((x) => x !== a) : state.actors.concat([a]);
           paint();
         });
       });
@@ -10446,6 +10533,8 @@
       body.querySelectorAll('[data-wtw-wizard-close]').forEach((b) => {
         b.addEventListener('click', closeSiteWtwWizardOverlay);
       });
+      };
+      refreshPeopleMeta().finally(finishPaint);
     }
 
     siteWtwFetchMeta().then((meta) => {

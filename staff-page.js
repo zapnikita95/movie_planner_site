@@ -275,7 +275,7 @@
         '<main class="movie-page staff-standalone-main">' +
           '<div class="staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
         '</main>' +
-        '<aside id="staff-seo-root" class="film-seo-root" aria-label="Об актёре"></aside>' +
+        '<aside id="staff-seo-root" class="film-seo-root visually-hidden" aria-label="Об актёре"></aside>' +
         '<footer class="footer staff-standalone-footer">' +
           '<div class="container"><p class="footer-bottom muted small">© ' + String(new Date().getFullYear()) + ' Movie Planner</p></div>' +
         '</footer>' +
@@ -357,6 +357,21 @@
     } catch (_e) {}
   }
 
+  function setPageFavicon(imgUrl) {
+    var url = String(imgUrl || '').trim();
+    if (!url) return;
+    var head = document.head;
+    ['icon', 'apple-touch-icon'].forEach(function (rel) {
+      var el = head.querySelector('link[rel="' + rel + '"]');
+      if (!el) {
+        el = document.createElement('link');
+        el.rel = rel;
+        head.appendChild(el);
+      }
+      el.href = url;
+    });
+  }
+
   function setStaffOg(person, personId) {
     try {
       var name = (person && (person.name_ru || person.name_en)) || 'Персона';
@@ -387,6 +402,7 @@
       meta('property', 'og:locale', 'ru_RU');
       meta('property', 'og:description', desc);
       if (photo) {
+        setPageFavicon(photo);
         meta('property', 'og:image', photo);
         meta('property', 'og:image:secure_url', photo);
         meta('property', 'og:image:width', '400');

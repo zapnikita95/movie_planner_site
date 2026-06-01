@@ -10397,12 +10397,59 @@ button.home-tourn-row {
   background: rgba(255, 45, 123, 0.12);
 }
 
-/* Итоги турнира — стек номинаций по центру */
+/* Итоги турнира */
 body.in-cabinet #section-tournament .tournament-page-root,
 body.in-cabinet #section-tournament .tourn-page {
   max-width: 560px;
   margin: 0 auto;
   text-align: center;
+}
+@media (min-width: 901px) {
+  body.in-cabinet #section-tournament .tournament-page-root,
+  body.in-cabinet #section-tournament .tourn-page {
+    max-width: min(1280px, 96vw);
+    text-align: center;
+  }
+  body.in-cabinet #section-tournament .tourn-sections {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 16px;
+    text-align: left;
+  }
+  body.in-cabinet #section-tournament .tourn-nom-block {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 220px;
+  }
+  body.in-cabinet #section-tournament .tourn-nom-title {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+  body.in-cabinet #section-tournament .tourn-nom-list {
+    gap: 8px;
+  }
+  body.in-cabinet #section-tournament .tourn-podium-row {
+    padding: 10px 10px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  body.in-cabinet #section-tournament .tourn-podium-rank {
+    width: 26px;
+    font-size: 16px;
+  }
+  body.in-cabinet #section-tournament .tourn-podium-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  body.in-cabinet #section-tournament .tourn-podium-name {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+  body.in-cabinet #section-tournament .tourn-podium-score {
+    font-size: 12px;
+  }
 }
 .tourn-page-kicker {
   font-family: 'Unbounded', sans-serif;
@@ -10759,7 +10806,9 @@ button.tourn-podium-row {
   color: var(--text-muted, #999);
 }
 .user-profile-more {
-  margin-top: 10px;
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
 }
 .user-profile-ach-row-wrap {
   overflow-x: auto;
@@ -12525,6 +12574,21 @@ body.in-cabinet #section-whattowatch > .cabinet-hint { display: none; }
   background: #12121a;
   padding: 22px 20px 18px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+@media (min-width: 901px) {
+  .wtw-wizard-overlay-panel.wtw-wizard-overlay-panel--result {
+    width: min(920px, 96vw);
+    max-height: min(92vh, 860px);
+  }
+  .wtw-wizard-overlay-panel--result .site-pick-result {
+    max-width: none;
+    grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+    align-items: start;
+  }
+  .wtw-wizard-overlay-panel--result .site-pick-result-poster {
+    position: sticky;
+    top: 0;
+  }
 }
 .wtw-wizard-overlay-close {
   position: absolute;
