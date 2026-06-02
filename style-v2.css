@@ -8641,13 +8641,24 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
 .film-icon-btn--watched .film-icon-label {
   max-width: 0;
   opacity: 0;
+  margin-left: 0;
 }
 .film-icon-btn--watched:hover .film-icon-label,
-.film-icon-btn--watched:focus-visible .film-icon-label,
-.film-icon-btn--watched.on .film-icon-label {
+.film-icon-btn--watched:focus-visible .film-icon-label {
   max-width: 180px;
   opacity: 1;
   margin-left: 8px;
+}
+.film-icon-btn--watched.on {
+  width: 58px;
+  min-width: 58px;
+  padding: 0;
+}
+.film-icon-btn--watched.on:hover,
+.film-icon-btn--watched.on:focus-visible {
+  width: auto;
+  min-width: 58px;
+  padding: 0 16px;
 }
 .film-icon-btn--rated .film-icon-ico {
   font-size: 18px;
