@@ -199,7 +199,8 @@
   function consumeFilmPathDeepLink() {
     try {
       const pathKp = kpIdFromPathname(window.location.pathname);
-      if (!pathKp || !/^\d+$/.test(pathKp) || !getToken()) return false;
+      if (!pathKp || !/^\d+$/.test(pathKp)) return false;
+      if (getToken()) return false;
       if (document.getElementById('landing')) {
         goToStandaloneFilmPage(pathKp);
         return true;
@@ -246,7 +247,14 @@
         showLoginModalOverlay();
         return;
       }
-      goToStandaloneFilmPage(kp, { action: action });
+      if (isCabinetActive()) {
+        openFilmPageByKp(kp, { replace: true, action: action });
+        return;
+      }
+      try {
+        sessionStorage.setItem('mp_pending_kp_open', kp);
+        if (action) sessionStorage.setItem('mp_pending_kp_action', action);
+      } catch (_) {}
     } catch (_) {}
   }
 
@@ -358,22 +366,15 @@
     });
   }
 
-  /** /f/:kp и kp_open — standalone 404/film-page, не кабинет. */
+  /** /f/:kp в кабинете — openFilmPageByKp после loadMeAndShowCabinet; standalone только для гостей. */
   function bootAuthenticatedFilmDeepLink() {
     try {
       if (!getToken() || !hasAuthEntryDeepLink()) return false;
       const pathKp = kpIdFromPathname(window.location.pathname);
-      if (pathKp && /^\d+$/.test(pathKp)) {
-        goToStandaloneFilmPage(pathKp);
-        return true;
-      }
+      if (pathKp && /^\d+$/.test(pathKp)) return false;
       const params = new URLSearchParams(window.location.search);
       const kpOpen = params.get('kp_open');
-      if (kpOpen && /^\d+$/.test(kpOpen)) {
-        const action = (params.get('action') || '').trim();
-        goToStandaloneFilmPage(kpOpen, { action: action });
-        return true;
-      }
+      if (kpOpen && /^\d+$/.test(kpOpen)) return false;
       if (consumeStaffPathDeepLink()) return true;
       return false;
     } catch (_) {
@@ -381,46 +382,18 @@
     }
   }
 
-  function renderPublicFilmInCabinet(kpId, publicFilm, opts) {
-    const o = opts || {};
-    const kp = String(kpId || '').replace(/\D/g, '');
-    const pageRoot = document.getElementById('film-page-content');
-    if (!pageRoot || !kp) return Promise.resolve();
-    const f = publicFilm || {};
-    const poster = cleanPosterUrl(f.poster_url) || posterUrl(kp);
-    const titleText = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
-    const filmStub = {
-      kp_id: kp,
-      title: f.title || 'Фильм',
-      year: f.year,
-      country: f.country,
-      genres: f.genres,
-      description: f.description,
-      is_series: f.is_series,
-    };
-    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"><span class="muted small">Загрузка команды…</span></div>';
-    const toolbarHtml = buildFilmPageToolbar(filmStub, { inBase: false, authenticated: !!getToken() });
-    pageRoot.className = 'movie-page';
-    pageRoot.innerHTML =
-      '<section class="hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
-        '<div class="poster-wrap">' +
-          (poster ? '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.style.opacity=.22">' : '<div class="poster poster-empty">🎬</div>') +
-        '</div>' +
-        '<div class="hero-content">' +
-          '<h1>' + escapeHtml(titleText) + '</h1>' +
-          '<div class="eyebrow">' + buildFilmGenreChipsHtml(filmStub) + '</div>' +
-          crew +
-          (f.description ? '<p class="description">' + escapeHtml(f.description) + '</p>' : '') +
-          toolbarHtml +
-          '<div id="film-friends-social-block" class="hidden"></div>' +
-        '</div>' +
-      '</section>';
-    try { document.title = titleText + ' · Movie Planner'; } catch (_) {}
-    bindFilmPageToolbar(pageRoot.querySelector('.film-page-toolbar'), filmStub, { inBase: false, authenticated: !!getToken(), kpId: kp, pendingAction: o.action || '' });
-    if (getToken()) loadFilmFriendsSocial({ kp_id: kp });
-    loadFilmCastSection(kp, pageRoot.querySelector('#film-hero-cast-root'), filmStub);
-    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
-    return Promise.resolve();
+  function ensureSiteFilmIdForKp(kp) {
+    return api('/api/site/film-by-kp/' + kp).then(function (res) {
+      if (res && res.success && res.film_id) return Number(res.film_id);
+      return api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
+        .then(function (addRes) {
+          if (addRes && addRes.success && addRes.film_id) return Number(addRes.film_id);
+          return api('/api/site/film-by-kp/' + kp).then(function (retry) {
+            if (retry && retry.success && retry.film_id) return Number(retry.film_id);
+            return 0;
+          });
+        });
+    });
   }
 
   function openFilmPageByKp(kpId, opts) {
@@ -448,38 +421,20 @@
       pageRootEarly.className = 'movie-page loading';
       pageRootEarly.innerHTML = pageLoadingHtml();
     }
-    return api('/api/site/film-by-kp/' + kp).then(function (res) {
-      if (res && res.success && res.film_id) {
-        return openFilmPage(Number(res.film_id), {
-          skipHistory: o.skipHistory,
-          replace: o.replace,
-          kpId: kp,
-          action: o.action || '',
-        });
+    return ensureSiteFilmIdForKp(kp).then(function (filmId) {
+      if (!filmId) {
+        showToast('Не удалось открыть фильм', { type: 'error' });
+        goToStandaloneFilmPage(kp, { action: o.action || '' });
+        return;
       }
-      return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data || !data.film) {
-            goToStandaloneFilmPage(kp, { action: o.action || '' });
-            return;
-          }
-          showScreen('cabinet-readonly');
-          showFilmPageLayout();
-          _filmModalCurrentId = null;
-          _staffPageKpId = null;
-          try {
-            const path = '/f/' + kp;
-            if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
-            else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
-          } catch (_) {}
-          return renderPublicFilmInCabinet(kp, data.film, { action: o.action || '' });
-        })
-        .catch(function () {
-          goToStandaloneFilmPage(kp, { action: o.action || '' });
-        });
+      return openFilmPage(filmId, {
+        skipHistory: o.skipHistory,
+        replace: o.replace,
+        kpId: kp,
+        action: o.action || '',
+      });
     }).catch(function () {
-      goToStandaloneFilmPage(kp, { action: o.action || '' });
+      showToast('Ошибка сети', { type: 'error' });
     });
   }
 
@@ -3092,6 +3047,8 @@
       el.classList.toggle('hidden', el.id !== 'section-film');
     });
     ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
+    const homeStats = document.getElementById('cabinet-home-stats');
+    if (homeStats) homeStats.classList.add('hidden');
   }
   function setFilmPageToolbar(_film) {
     /* sticky film toolbar removed — title lives in hero h1 */
@@ -8980,7 +8937,7 @@
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = posterUrl(film.kp_id);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
-    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"><span class="muted small">Загрузка команды…</span></div>';
+    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
       title: film.title,
@@ -9111,7 +9068,7 @@
     const progress = film.progress ? `<span>📺 ${escapeHtml(film.progress)}</span>` : '';
     const descText = pickFilmDescription(film);
     const desc = descText ? `<div class="film-modal-desc">${escapeHtml(descText)}</div>` : '';
-    const crew = '<div class="film-modal-crew" id="film-modal-cast-root"><span class="muted small">Загрузка команды…</span></div>';
+    const crew = '<div class="film-modal-crew" id="film-modal-cast-root"></div>';
 
     const tgLink = filmDeepLink(film.film_id, film.kp_id, film.is_series);
 
