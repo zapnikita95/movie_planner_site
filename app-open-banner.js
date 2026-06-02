@@ -24,6 +24,7 @@
     if (k === 'person' || k === 'staff') return 'person';
     if (k === 'user' || k === 'friends' || k === 'profile') return 'user';
     if (k === 'stats' || k === 'stat') return 'stats';
+    if (k === 'plan-share' || k === 'plan_share' || k === 'plan') return 'plan-share';
     return 'film';
   }
 
@@ -31,6 +32,7 @@
     var k = normalizeKind(kind);
     var raw = String(entityId ?? '').trim();
     if (k === 'stats') return raw.replace(/[^a-z0-9_-]/gi, '').toLowerCase();
+    if (k === 'plan-share') return raw.replace(/[^a-zA-Z0-9_-]/g, '');
     if (k === 'user') {
       var n = Number(raw);
       if (Number.isFinite(n) && n !== 0) return String(n);
@@ -49,6 +51,7 @@
       if (opts.year) q.push('y=' + encodeURIComponent(String(opts.year)));
       return 'movieplanner://stats/' + encodeURIComponent(id) + (q.length ? '?' + q.join('&') : '');
     }
+    if (kind === 'plan-share') return 'movieplanner://plan-share/' + encodeURIComponent(id);
     if (kind === 'person') return 'movieplanner://s/' + id;
     if (kind === 'user') return 'movieplanner://friends/' + encodeURIComponent(id) + '?invite=1';
     return 'movieplanner://film/' + id;
@@ -64,6 +67,7 @@
       if (opts.year) q.push('y=' + encodeURIComponent(String(opts.year)));
       return 'stats/' + encodeURIComponent(id) + (q.length ? '?' + q.join('&') : '');
     }
+    if (kind === 'plan-share') return 'plan-share/' + encodeURIComponent(id);
     if (kind === 'person') return 's/' + id;
     if (kind === 'user') return 'friends/' + encodeURIComponent(id) + '?invite=1';
     return 'film/' + id;

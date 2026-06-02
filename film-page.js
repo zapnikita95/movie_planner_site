@@ -1490,6 +1490,8 @@
     renderFilmPage: renderFilmPage,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
+    refreshStandaloneAuthChrome: refreshStandaloneAuthChrome,
+    applyStandaloneAuthChrome: applyStandaloneAuthChrome,
     setupAppOpenBanner: setupAppOpenBanner,
     appOpenBannerHtml: appOpenBannerHtml,
     standaloneHeaderSearchHtml: standaloneHeaderSearchHtml,
