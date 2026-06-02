@@ -444,11 +444,22 @@
     loadUserContent(userId, chrome);
   }
 
+  function markRouteReady() {
+    try {
+      document.documentElement.classList.remove('mp-route-pending');
+      document.documentElement.classList.add('mp-route-ready');
+    } catch (_e) {}
+  }
+
   function bootstrap(opts) {
     opts = opts || {};
     var userId = String(opts.userId || '').replace(/\D/g, '');
-    if (!userId) return;
+    if (!userId) {
+      markRouteReady();
+      return;
+    }
 
+    markRouteReady();
     try {
       document.body.classList.add('user-standalone-page');
       document.body.classList.add('film-standalone-page');

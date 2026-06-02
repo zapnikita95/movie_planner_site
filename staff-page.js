@@ -517,10 +517,21 @@
       });
   }
 
+  function markRouteReady() {
+    try {
+      document.documentElement.classList.remove('mp-route-pending');
+      document.documentElement.classList.add('mp-route-ready');
+    } catch (_e) {}
+  }
+
   function bootstrap(opts) {
     opts = opts || {};
     var personId = String(opts.personId || '').replace(/\D/g, '');
-    if (!personId) return;
+    if (!personId) {
+      markRouteReady();
+      return;
+    }
+    markRouteReady();
     try { document.body.classList.add('film-standalone-page', 'staff-standalone-page'); } catch (_e) {}
     renderStaffShell(personId);
     loadStaff(personId);
