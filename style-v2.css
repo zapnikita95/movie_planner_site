@@ -2675,12 +2675,12 @@ body.in-public-stats .footer-extension-cabinet {
 
 .login-oauth-yandex {
   background: #fff;
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: #dadce0;
 }
 
 .login-oauth-yandex:hover:not(:disabled) {
   background: #f8f9fa;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: #dadce0;
 }
 
 .login-oauth-icon {
@@ -2699,7 +2699,10 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-oauth-icon--yandex {
-  display: none;
+  display: block;
+  width: 28px;
+  height: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='14' fill='%23FC3F1D'/%3E%3Ctext x='14' y='19' text-anchor='middle' fill='%23fff' font-size='15' font-weight='700' font-family='system-ui,sans-serif'%3E%D0%AF%3C/text%3E%3C/svg%3E");
 }
 .login-oauth-img {
   display: block;
@@ -2708,13 +2711,17 @@ body.in-public-stats .footer-extension-cabinet {
   object-fit: contain;
 }
 .login-oauth-img--yandex {
-  border-radius: 50%;
-  background: transparent;
+  display: none;
 }
 .login-oauth-telegram {
-  background: #229ed9;
-  border-color: #229ed9;
+  background: #fff;
+  border-color: #dadce0;
   overflow: hidden;
+}
+
+.login-oauth-telegram:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #dadce0;
 }
 
 .login-oauth-icon--telegram {
@@ -2735,7 +2742,7 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-tg-widget-wrap--locked {
-  opacity: 0.38;
+  opacity: 0.52;
 }
 
 .login-tg-widget-mount {

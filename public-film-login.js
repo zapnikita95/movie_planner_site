@@ -257,7 +257,7 @@
                 '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
               '</button>' +
               '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
-                '<img src="/images/yandex-id.png" class="login-oauth-img login-oauth-img--yandex" alt="" aria-hidden="true">' +
+                '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
               '</button>' +
               '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
                 '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
