@@ -132,15 +132,21 @@
     }
   }
 
+  function filmNavHref(kpId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    return kp ? '/f/' + kp : '';
+  }
+
   /** GitHub Pages: /f/<kp> — standalone film-page.js (гость и авторизованный). */
   function goToStandaloneFilmPage(kpId, opts) {
     const o = opts || {};
-    const kp = String(kpId || '').replace(/\D/g, '');
-    if (!kp) return false;
+    const href = filmNavHref(kpId);
+    if (!href) return false;
+    const kp = href.replace(/^\/f\//, '');
     if (o.action) {
       try { sessionStorage.setItem('mp_public_film_action', String(o.action) + ':' + kp); } catch (_) {}
     }
-    window.location.assign('/f/' + kp);
+    window.location.href = href;
     return true;
   }
 
@@ -2111,11 +2117,60 @@
   }
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
+  function ensureSettingsBackdrop() {
+    let el = document.getElementById('header-settings-backdrop');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'header-settings-backdrop';
+      el.className = 'header-settings-backdrop hidden';
+      el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+      el.addEventListener('click', () => closeAccountDropdown());
+    }
+    return el;
+  }
+
+  function blockGhostClicks(ms) {
+    let blocker = document.getElementById('mp-touch-blocker');
+    if (!blocker) {
+      blocker = document.createElement('div');
+      blocker.id = 'mp-touch-blocker';
+      blocker.className = 'mp-touch-blocker';
+      document.body.appendChild(blocker);
+    }
+    blocker.classList.add('active');
+    setTimeout(() => blocker.classList.remove('active'), ms || 480);
+  }
+
+  function bindAccountLogoutBtn(btn) {
+    if (!btn || btn._mpLogoutBound) return;
+    btn._mpLogoutBound = true;
+    const runLogout = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Выход…';
+      blockGhostClicks(520);
+      setTimeout(() => logoutAllSessions(), 32);
+    };
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+    btn.addEventListener('click', runLogout);
+  }
+
   function closeAccountDropdown() {
     const dd = document.getElementById('header-settings-dropdown');
     const settingsBtn = document.getElementById('header-settings-btn');
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'false');
     if (dd) { dd.classList.add('hidden'); dd.classList.remove('open'); }
+    const bd = document.getElementById('header-settings-backdrop');
+    if (bd) bd.classList.add('hidden');
+    document.body.classList.remove('account-menu-open');
   }
 
   function openAccountDropdown() {
@@ -2173,9 +2228,9 @@
       });
     }
     const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
-    if (logoutAllBtn) {
-      logoutAllBtn.addEventListener('click', () => logoutAllSessions());
-    }
+    if (logoutAllBtn) bindAccountLogoutBtn(logoutAllBtn);
+    ensureSettingsBackdrop().classList.remove('hidden');
+    document.body.classList.add('account-menu-open');
     dd.classList.remove('hidden');
     dd.classList.add('open');
   }
@@ -4415,8 +4470,9 @@
     if (!card) return;
     const kpId = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').trim();
     const filmId = String(card.getAttribute('data-film-id') || '').trim();
-    if (kpId) {
-      openFilmPageByKp(kpId);
+    const href = filmNavHref(kpId);
+    if (href) {
+      window.location.href = href;
       return;
     }
     if (filmId && filmId !== 'null') {
@@ -4473,11 +4529,15 @@
         : '';
       const attrs = homeDashNavAttrs(m);
       const year = m.year ? escapeHtml(String(m.year)) : '—';
-      return '<button type="button" class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
+      const tileHref = filmNavHref(m.kp_id);
+      const tileTag = tileHref ? 'a' : 'button';
+      const tileType = tileHref ? '' : ' type="button"';
+      const tileHrefAttr = tileHref ? (' href="' + escapeHtml(tileHref) + '"') : '';
+      return '<' + tileTag + tileType + ' class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + tileHrefAttr + attrs + '>'
         + '<div class="home-poster-tile-img' + (poster ? '' : ' home-poster-tile-img--empty') + '">' + img + rating + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + year + '</div>'
-        + '</button>';
+        + '</' + tileTag + '>';
     }).join('') + '</div>';
   }
 
@@ -4487,12 +4547,16 @@
       const poster = it.poster || posterUrl(it.kp_id);
       const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
       const attrs = homeDashNavAttrs(it);
-      return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
+      const premHref = filmNavHref(it.kp_id);
+      const premTag = premHref ? 'a' : 'button';
+      const premType = premHref ? '' : ' type="button"';
+      const premHrefAttr = premHref ? (' href="' + escapeHtml(premHref) + '"') : '';
+      return '<' + premTag + premType + ' class="home-pre-card" role="listitem"' + premHrefAttr + attrs + '>'
         + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
         + '<div class="home-pre-card-meta">' + (dateLabel ? '📅 ' + escapeHtml(String(dateLabel)) : '') + '</div>'
-        + '</div></button>';
+        + '</div></' + premTag + '>';
     }).join('') + '</div>';
   }
 
@@ -4885,6 +4949,7 @@
     document.addEventListener('click', (e) => {
       const railCard = e.target.closest('.home-poster-tile, .home-pre-card');
       if (railCard && railCard.closest('#home-dashboard-root')) {
+        if (railCard.matches('a[href^="/f/"]')) return;
         const filmId = String(railCard.getAttribute('data-film-id') || '').trim();
         const kpId = String(railCard.getAttribute('data-kp-id') || railCard.getAttribute('data-kp') || '').trim();
         if (filmId || kpId) {
@@ -8090,6 +8155,7 @@
     // Клик по карточке фильма → открыть страницу фильма
     const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
     if (card) {
+      if (card.matches('a[href^="/f/"]')) return;
       // Не перехватываем клик, если клик был по кнопке действия внутри карточки
       // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
       const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle], [data-rate-star], .rate-popover');
@@ -13387,10 +13453,6 @@
         if (typeof renderSettingsSection === 'function') renderSettingsSection();
       });
     }
-    document.addEventListener('click', (e) => {
-      if (userWrap && !userWrap.contains(e.target)) closeAccountDropdown();
-    });
-
     window.addEventListener('mp:logout', () => {
       uiToursResetCache();
       _cabinetNavBootstrapped = false;

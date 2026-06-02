@@ -450,6 +450,64 @@
       dd.classList.add('hidden');
       dd.classList.remove('open');
     }
+    var bd = document.getElementById('header-settings-backdrop');
+    if (bd) bd.classList.add('hidden');
+    document.body.classList.remove('account-menu-open');
+  }
+
+  function ensureStandaloneSettingsBackdrop() {
+    var el = document.getElementById('header-settings-backdrop');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'header-settings-backdrop';
+      el.className = 'header-settings-backdrop hidden';
+      el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+      el.addEventListener('click', function () { closeStandaloneAccountDropdown(); });
+    }
+    return el;
+  }
+
+  function blockStandaloneGhostClicks(ms) {
+    var blocker = document.getElementById('mp-touch-blocker');
+    if (!blocker) {
+      blocker = document.createElement('div');
+      blocker.id = 'mp-touch-blocker';
+      blocker.className = 'mp-touch-blocker';
+      document.body.appendChild(blocker);
+    }
+    blocker.classList.add('active');
+    setTimeout(function () { blocker.classList.remove('active'); }, ms || 480);
+  }
+
+  function standaloneLogoutAll(kpId) {
+    try {
+      localStorage.removeItem('mp_site_sessions');
+      localStorage.removeItem('mp_site_active_chat_id');
+      localStorage.removeItem('mp_site_token');
+      sessionStorage.setItem('mp_public_film_force', String(kpId || ''));
+    } catch (_e) {}
+    blockStandaloneGhostClicks(520);
+    closeStandaloneAccountDropdown();
+    var kp = String(kpId || '').replace(/\D/g, '');
+    global.location.href = kp ? ('/f/' + kp) : '/';
+  }
+
+  function bindStandaloneLogoutBtn(btn, kpId) {
+    if (!btn || btn._mpLogoutBound) return;
+    btn._mpLogoutBound = true;
+    var run = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Выход…';
+      setTimeout(function () { standaloneLogoutAll(kpId); }, 32);
+    };
+    btn.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+    btn.addEventListener('click', run);
   }
 
   function openStandaloneAccountDropdown(opts) {
@@ -466,7 +524,9 @@
       + '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">🔌 Интеграции</button>'
       + '<a class="header-settings-nav-item header-settings-nav-item--external" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>';
+      + '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>'
+      + '<div class="header-dropdown-divider"></div>'
+      + '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти</button>';
     dd.innerHTML = html;
     dd.querySelectorAll('[data-settings-go]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
@@ -477,6 +537,10 @@
         if (path) global.location.href = path;
       });
     });
+    var logoutBtn = dd.querySelector('[data-action="logout-all"]');
+    if (logoutBtn) bindStandaloneLogoutBtn(logoutBtn, opts.kpId || '');
+    ensureStandaloneSettingsBackdrop().classList.remove('hidden');
+    document.body.classList.add('account-menu-open');
     dd.classList.remove('hidden');
     dd.classList.add('open');
   }
@@ -505,7 +569,7 @@
         if (dd && dd.classList.contains('open') && !dd.classList.contains('hidden')) {
           closeStandaloneAccountDropdown();
         } else {
-          openStandaloneAccountDropdown(opts);
+          openStandaloneAccountDropdown({ kpId: opts.kpId || '' });
         }
       });
     }
@@ -532,10 +596,6 @@
     }
     if (!global._mpStandaloneDropdownCloseBound) {
       global._mpStandaloneDropdownCloseBound = true;
-      document.addEventListener('click', function (e) {
-        var wrap = document.getElementById('header-user-wrap');
-        if (wrap && !wrap.contains(e.target)) closeStandaloneAccountDropdown();
-      });
     }
   }
 
@@ -565,6 +625,9 @@
               '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
             '</button>' +
             '<div class="header-util-row">' +
+              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
+                '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
+              '</button>' +
               '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
                 '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
               '</button>' +
@@ -577,7 +640,16 @@
         '</div>' +
       '</div>';
     setStandaloneHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name, apiBase);
-    bindStandaloneHeaderChrome(me, opts);
+    bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
+    var inboxBtn = document.getElementById('header-inbox-btn');
+    if (inboxBtn && !inboxBtn.dataset.mpInboxBound) {
+      inboxBtn.dataset.mpInboxBound = '1';
+      inboxBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeStandaloneAccountDropdown();
+        global.location.href = '/inbox';
+      });
+    }
     var shell = document.querySelector('.page-shell');
     var main = shell && shell.querySelector(mainSelector);
     var nav = document.getElementById('film-standalone-nav');
@@ -604,7 +676,7 @@
       .then(function (r) { return r.json(); })
       .then(function (me) {
         if (!me || !me.success) return;
-        applyStandaloneAuthChrome(me, opts);
+        applyStandaloneAuthChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
         if (opts.onAuthSuccess) opts.onAuthSuccess(me);
       })
       .catch(function () {});
@@ -680,6 +752,10 @@
 
       document.title = 'Фильм · Movie Planner';
       document.documentElement.style.setProperty('--film-backdrop', 'url("' + poster + '")');
+      try {
+        document.documentElement.classList.remove('mp-route-pending');
+        document.documentElement.classList.add('mp-route-ready');
+      } catch (_route) {}
       document.body.innerHTML =
         '<div class="page-shell">' +
           '<header id="site-header">' +
@@ -702,10 +778,10 @@
             '<section class="hero">' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
               '<div class="hero-content">' +
-                '<h1 id="film-title">Фильм #' + kpId + '</h1>' +
+                '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
                 '<div class="film-hero-crew" id="film-cast-root"></div>' +
-                '<p class="description skeleton" id="film-desc">Открываем описание фильма в Movie Planner.</p>' +
+                '<p class="description skeleton" id="film-desc"></p>' +
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
                   '<div class="film-toolbar-icons">' +
@@ -770,6 +846,7 @@
         }, {
           apiBase: apiBase,
           mainSelector: 'main.film-page',
+          kpId: kpId,
           forcePublic: forcePublic,
           loginNow: function (action) {
             if (global.MpPublicFilmLogin) {
@@ -1355,6 +1432,7 @@
         mainSelector: 'main.film-page',
         spaReturnPath: '/f/' + kpId,
         kpId: kpId,
+        kpId: kpId,
         forcePublic: forcePublic,
         bindLogin: false,
         loginNow: loginNow,
@@ -1481,7 +1559,11 @@
 
   function bootstrap(opts) {
     opts = opts || {};
-    try { document.body.classList.add('film-standalone-page'); } catch (_e) {}
+    try {
+      document.documentElement.classList.remove('mp-route-pending');
+      document.documentElement.classList.add('mp-route-ready');
+      document.body.classList.add('film-standalone-page');
+    } catch (_e) {}
     renderFilmPage(opts);
   }
 
