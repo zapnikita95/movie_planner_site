@@ -8134,6 +8134,20 @@ a.header-settings-nav-item {
 .movie-page .hero-content .film-friends-social {
   margin-top: 4px;
 }
+@media (min-width: 861px) {
+  .film-friends-social--compact {
+    display: inline-block;
+    max-width: min(50%, 440px);
+    width: max-content;
+    padding: 8px 12px;
+  }
+  .film-friends-social--compact .film-friends-social-head {
+    margin-bottom: 6px;
+  }
+  .film-friends-social--compact .film-friends-social-list {
+    flex-wrap: nowrap;
+  }
+}
 
 /* ── Coins + план в группу (строка без увеличения высоты шапки) ─────── */
 .header-util-row {
@@ -8518,7 +8532,7 @@ main.film-page .hero {
   display: grid;
   grid-template-columns: minmax(230px, 330px) minmax(0, 1fr);
   gap: clamp(22px, 4vw, 46px);
-  align-items: end;
+  align-items: center;
   min-height: 560px;
   padding: clamp(18px, 4vw, 38px);
   border: 1px solid rgba(255,255,255,.1);
@@ -8559,12 +8573,18 @@ main.film-page .hero {
   position: relative;
   z-index: 1;
 }
+.film-hero-poster-wrap,
+#section-film .poster-wrap,
+main.film-page .poster-wrap {
+  align-self: center;
+}
 .film-hero-poster,
 #section-film .poster {
   width: 100%;
   aspect-ratio: 2 / 3;
   border-radius: 24px;
   object-fit: cover;
+  object-position: center center;
   background: #151528;
   box-shadow: 0 24px 70px rgba(0,0,0,.55);
 }
@@ -8922,7 +8942,7 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
     min-height: 0;
     padding: 14px 22px 18px;
     gap: 20px;
-    align-items: end;
+    align-items: center;
   }
   #section-film .hero h1,
   .movie-page h1 {
@@ -9886,7 +9906,7 @@ body.film-standalone-page {
       display: grid;
       grid-template-columns: minmax(230px, 330px) minmax(0, 1fr);
       gap: clamp(22px, 4vw, 46px);
-      align-items: end;
+      align-items: center;
       min-height: 560px;
       padding: clamp(18px, 4vw, 38px);
       border: 1px solid rgba(255,255,255,.1);
@@ -9924,6 +9944,7 @@ body.film-standalone-page {
       aspect-ratio: 2 / 3;
       border-radius: 24px;
       object-fit: cover;
+      object-position: center center;
       background: #151528;
       box-shadow: 0 24px 70px rgba(0,0,0,.55);
     }
@@ -10190,7 +10211,7 @@ body.film-standalone-page {
         min-height: 0;
         padding: 14px 20px 18px;
         gap: 20px;
-        align-items: end;
+        align-items: center;
       }
       h1 { font-size: clamp(26px, 3.8vw, 44px); }
       .eyebrow { margin-top: 8px; }

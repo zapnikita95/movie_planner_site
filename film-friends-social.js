@@ -52,7 +52,7 @@
       : '';
 
     return (
-      '<section class="film-friends-social" aria-label="Друзья высоко оценили">' +
+      '<section class="film-friends-social' + (high.length === 1 ? ' film-friends-social--compact' : '') + '" aria-label="Друзья высоко оценили">' +
         '<div class="film-friends-social-head">' +
           '<span class="film-friends-social-title">Друзья высоко оценили</span>' +
           '<span class="film-friends-social-badge">' + high.length + '</span>' +
