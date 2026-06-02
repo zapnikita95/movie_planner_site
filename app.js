@@ -4361,11 +4361,11 @@
     const rows = items.length
       ? items.slice(0, 8).map((s) => {
           const kp = escapeHtml(String(s.kp_id));
-          return '<div class="home-dash-row home-suggestion-row film-card-v2" data-kp-id="' + kp + '" tabindex="0" role="button">'
+          return '<a class="home-dash-row home-suggestion-row film-card-v2" href="/f/' + kp + '" data-kp-id="' + kp + '">'
             + '<div class="home-dash-row-text"><div class="home-dash-row-main">'
             + '<div class="home-dash-row-title">' + escapeHtml(s.film_title || 'Фильм') + '</div>'
             + '<div class="home-dash-row-meta">' + escapeHtml(s.author_name || 'Участник') + '</div>'
-            + '</div></div><span class="list-arrow" style="margin-left:8px">›</span></div>';
+            + '</div></div><span class="list-arrow" style="margin-left:8px">›</span></a>';
         }).join('')
       : '<p class="empty-hint">Пока никто не предложил фильм — поделитесь первым из карточки фильма.</p>';
     return '<section class="home-dash-block home-group-suggestions-block">'
@@ -4392,10 +4392,13 @@
     api('/api/site/groups/' + encodeURIComponent(String(chatId)) + '/actions').then((data) => {
       const items = filterGroupFilmSuggestions((data && data.actions) || [], cabinetUserId);
       box.innerHTML = renderGroupSuggestionsHomeHtml(items);
-      box.querySelectorAll('.home-suggestion-row').forEach((row) => {
+      box.querySelectorAll('.home-suggestion-row[data-kp-id]').forEach((row) => {
+        if (row.matches('a[href^="/f/"]')) return;
         row.addEventListener('click', () => {
           const kp = row.getAttribute('data-kp-id');
           if (!kp) return;
+          const href = filmNavHref(kp);
+          if (href) { window.location.href = href; return; }
           pickAddFilm(kp, row);
         });
       });
