@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260602sitefix7">
+    <link rel="stylesheet" href="/style-v2.css?v=20260602sitefix8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -163,10 +163,19 @@
             </button>
             <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <div class="header-util-row" id="header-util-row">
-              <button type="button" class="header-inbox-btn hidden" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
-                <span class="header-inbox-icon" aria-hidden="true">📥</span>
-                <span class="header-inbox-badge hidden" id="header-inbox-badge" aria-hidden="true"></span>
-              </button>
+              <div class="header-inbox-wrap hidden" id="header-inbox-wrap">
+                <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления" aria-haspopup="true" aria-expanded="false">
+                  <span class="header-inbox-icon" aria-hidden="true">📥</span>
+                  <span class="header-inbox-badge hidden" id="header-inbox-badge" aria-hidden="true"></span>
+                </button>
+                <div class="header-inbox-dropdown hidden" id="header-inbox-dropdown" role="dialog" aria-label="Уведомления">
+                  <div class="header-inbox-dropdown-head">
+                    <span class="header-inbox-dropdown-title">Уведомления</span>
+                    <button type="button" class="link-inline header-inbox-dropdown-all" id="header-inbox-see-all">Все</button>
+                  </div>
+                  <div class="header-inbox-dropdown-list" id="header-inbox-dropdown-list" aria-live="polite"></div>
+                </div>
+              </div>
               <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
                 <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
                 <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
@@ -1438,6 +1447,6 @@
     <script src="/page-loading.js?v=20260529mobileparity1"></script>
     <script src="/onboarding-flow.js?v=20260530onboard5"></script>
     <script src="/plan-modal.js?v=20260531voicefix1"></script>
-    <script src="/app.js?v=20260602sitefix7"></script>
+    <script src="/app.js?v=20260602sitefix8"></script>
 </body>
 </html>
