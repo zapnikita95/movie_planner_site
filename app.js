@@ -3827,13 +3827,10 @@
     }
     function syncOauthPrivButtons() {
       const ok = oauthPriv && oauthPriv.checked;
-      [oauthG, oauthY].forEach((btn) => {
-        if (!btn) return;
-        btn.classList.toggle('is-locked', !ok);
-        btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
-      });
       if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
       if (privacyHint) privacyHint.classList.toggle('is-visible', !ok);
+      const reqBtn = document.getElementById('login-email-request-btn');
+      if (reqBtn) reqBtn.disabled = !ok;
     }
     if (oauthPriv) oauthPriv.addEventListener('change', () => {
       syncOauthPrivButtons();
@@ -3842,14 +3839,12 @@
     syncOauthPrivButtons();
     if (oauthG) {
       oauthG.addEventListener('click', () => {
-        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
-        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });

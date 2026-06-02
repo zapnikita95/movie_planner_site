@@ -247,6 +247,11 @@
           '</div>' +
           '<div class="login-auth-pane" id="login-pane-login" data-login-pane="login">' +
             '<div class="login-oauth-caption">Войти с помощью</div>' +
+            '<label class="login-oauth-privacy">' +
+              '<input type="checkbox" id="login-oauth-privacy"/>' +
+              '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+            '</label>' +
+            '<div class="login-privacy-hint" id="login-privacy-hint">Нужно для Telegram и входа по почте.</div>' +
             '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
               '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
                 '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
@@ -258,11 +263,6 @@
                 '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
               '</button>' +
             '</div>' +
-            '<label class="login-oauth-privacy">' +
-              '<input type="checkbox" id="login-oauth-privacy"/>' +
-              '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-            '</label>' +
-            '<div class="login-privacy-hint" id="login-privacy-hint">Отметьте согласие, чтобы продолжить вход.</div>' +
             '<div id="login-bot-panel" class="login-bot-panel hidden">' +
               '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>' +
               '<p class="login-status" id="login-status"></p>' +
@@ -288,14 +288,14 @@
               '<div class="login-register-title">Создать аккаунт</div>' +
               '<form id="login-register-form" class="login-register-form">' +
                 '<input type="text" id="login-register-name" name="display_name" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">' +
-                '<div class="login-email-request-row">' +
-                  '<input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
-                  '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>' +
-                '</div>' +
                 '<label class="login-oauth-privacy login-register-privacy">' +
                   '<input type="checkbox" id="login-register-privacy"/>' +
                   '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
                 '</label>' +
+                '<div class="login-email-request-row">' +
+                  '<input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
+                  '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>' +
+                '</div>' +
                 '<p class="login-status" id="login-register-status"></p>' +
               '</form>' +
               '<form id="login-register-code-form" class="login-email-code-row hidden">' +
@@ -386,16 +386,12 @@
 
   function syncPrivacyLock() {
     var ok = privacyOk();
-    ['login-oauth-google', 'login-oauth-yandex'].forEach(function (id) {
-      var btn = $(id);
-      if (!btn) return;
-      btn.classList.toggle('is-locked', !ok);
-      btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
-    });
     var tgWrap = $('login-tg-widget-wrap');
     if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
     var hint = $('login-privacy-hint');
     if (hint) hint.classList.toggle('is-visible', !ok);
+    var reqBtn = $('login-email-request-btn');
+    if (reqBtn) reqBtn.disabled = !ok;
   }
 
   function finishLogin(data) {
@@ -441,7 +437,6 @@
     var g = $('login-oauth-google');
     if (g) {
       g.addEventListener('click', function () {
-        if (!privacyOk()) { nudgePrivacy(); return; }
         rememberOAuthReturn();
         global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
       });
@@ -449,7 +444,6 @@
     var y = $('login-oauth-yandex');
     if (y) {
       y.addEventListener('click', function () {
-        if (!privacyOk()) { nudgePrivacy(); return; }
         rememberOAuthReturn();
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });

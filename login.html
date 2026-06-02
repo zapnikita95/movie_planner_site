@@ -16,6 +16,8 @@ h1 { font-size:1.35rem; font-weight:700; margin:0 0 8px; line-height:1.25; }
   display:flex; flex-direction:column; gap:12px; }
 label.chk { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.4; color:var(--muted); cursor:pointer; }
 label.chk input { margin-top:3px; flex-shrink:0; }
+.privacy-hint { color:var(--muted); font-size:12px; margin:0; display:none; }
+.privacy-hint.is-visible { display:block; }
 .btn-row { display:flex; flex-direction:column; gap:10px; }
 a.btn, button.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px;
   padding:12px 16px; border-radius:14px; font-weight:600; font-size:15px; text-decoration:none; border:1px solid var(--bd);
@@ -25,6 +27,7 @@ a.btn-google { background:#fff; color:#202124; border-color:#dadce0; }
 a.btn-ya { background:#fc3f1e; border-color:#fc3f1e; color:#fff; }
 a.btn[disabled], button[disabled] { opacity:0.45; pointer-events:none; }
 .tg-slot { min-height:56px; display:flex; align-items:center; justify-content:center; }
+.tg-slot.is-locked { opacity:0.45; pointer-events:none; }
 .err { color:var(--err); font-size:14px; margin:0; }
 .row-code { display:flex; flex-direction:column; gap:8px; }
 input.code { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--bd); background:#0f0f13; color:#fff; font-size:16px; }
@@ -38,12 +41,13 @@ footer.nav a { color:var(--acc); }
   <p class="lead">Тот же аккаунт, что в приложении: Google, Яндекс, Telegram или код из бота.</p>
   <p class="err" id="err-box" role="alert" hidden></p>
   <div class="card">
-    <label class="chk"><input type="checkbox" id="priv"/> Согласен с <a href="/politika.html" target="_blank" rel="noopener">политикой конфиденциальности</a> (нужно для Google и Яндекс)</label>
+    <label class="chk"><input type="checkbox" id="priv"/> Согласен с <a href="/politika.html" target="_blank" rel="noopener">политикой конфиденциальности</a></label>
+    <p class="privacy-hint" id="priv-hint">Нужно для Telegram и входа по почте.</p>
     <div class="btn-row">
-      <a class="btn btn-google" id="go-g" href="/api/site/oauth/google/start?accept=1" disabled>Google</a>
-      <a class="btn btn-ya" id="go-y" href="/api/site/oauth/yandex/start?accept=1" disabled>Яндекс</a>
+      <a class="btn btn-google" id="go-g" href="/api/site/oauth/google/start?accept=1">Google</a>
+      <a class="btn btn-ya" id="go-y" href="/api/site/oauth/yandex/start?accept=1">Яндекс</a>
     </div>
-    <div class="tg-slot" id="tg-wrap">
+    <div class="tg-slot is-locked" id="tg-wrap">
       <script async src="https://telegram.org/js/telegram-widget.js?22"
         data-telegram-login="movie_planner_bot"
         data-size="large"
@@ -55,7 +59,7 @@ footer.nav a { color:var(--acc); }
     <form class="row-code" id="code-form">
       <label for="code" class="lead" style="margin:0">Код из бота /code</label>
       <input class="code" id="code" autocomplete="one-time-code" placeholder="Например AB12CD34EF" maxlength="32"/>
-      <button type="submit" class="btn btn-primary" style="border:none;width:100%">Войти по коду</button>
+      <button type="submit" class="btn btn-primary" id="code-submit" style="border:none;width:100%" disabled>Войти по коду</button>
       <p class="err" id="code-err"></p>
     </form>
   </div>
@@ -64,7 +68,7 @@ footer.nav a { color:var(--acc); }
 <script>
 var SITE_BASE = location.origin.indexOf("movie-planner.ru") >= 0 ? location.origin : "https://movie-planner.ru";
 var ERR_UI = {
-  privacy: "Отметьте согласие с политикой для Google и Яндекс.",
+  privacy: "Отметьте согласие с политикой для Telegram.",
   csrf: "Сессия входа устарела — попробуйте ещё раз.",
   google: "Не удалось войти через Google.",
   yandex: "Не удалось войти через Яндекс.",
@@ -86,10 +90,15 @@ var ERR_UI = {
 })();
 function onTelegramAuth(user) {
   var priv = document.getElementById("priv");
+  if (!priv || !priv.checked) {
+    syncPrivacy();
+    alert("Отметьте согласие с политикой конфиденциальности.");
+    return;
+  }
   fetch("/api/site/auth/telegram-widget", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(Object.assign({}, user, { accept_privacy: !!(priv && priv.checked), acceptPrivacy: !!(priv && priv.checked) }))
+    body: JSON.stringify(Object.assign({}, user, { accept_privacy: true, acceptPrivacy: true }))
   }).then(function(r){ return r.json(); }).then(function(d){
     if (d.success && d.token) {
       saveSession(d);
@@ -111,20 +120,28 @@ function saveSession(d) {
     localStorage.setItem("mp_site_active_chat_id", String(d.chat_id));
   } catch(e) {}
 }
+function syncPrivacy() {
+  var cb = document.getElementById("priv");
+  var ok = cb && cb.checked;
+  var tg = document.getElementById("tg-wrap");
+  var hint = document.getElementById("priv-hint");
+  var codeBtn = document.getElementById("code-submit");
+  if (tg) tg.classList.toggle("is-locked", !ok);
+  if (hint) hint.classList.toggle("is-visible", !ok);
+  if (codeBtn) codeBtn.disabled = !ok;
+}
 document.addEventListener("DOMContentLoaded", function() {
   var cb = document.getElementById("priv");
-  function sync() {
-    var ok = cb && cb.checked;
-    var g = document.getElementById("go-g");
-    var y = document.getElementById("go-y");
-    if (g) g.toggleAttribute("disabled", !ok);
-    if (y) y.toggleAttribute("disabled", !ok);
-  }
-  if (cb) cb.addEventListener("change", sync);
-  sync();
+  if (cb) cb.addEventListener("change", syncPrivacy);
+  syncPrivacy();
   var form = document.getElementById("code-form");
   if (form) form.addEventListener("submit", function(ev) {
     ev.preventDefault();
+    if (!cb || !cb.checked) {
+      syncPrivacy();
+      alert("Отметьте согласие с политикой конфиденциальности.");
+      return;
+    }
     var code = document.getElementById("code").value.trim().toUpperCase();
     if (!code) return;
     fetch("/api/site/validate", {
