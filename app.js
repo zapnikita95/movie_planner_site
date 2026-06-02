@@ -138,6 +138,11 @@
     return kp ? '/f/' + kp : '';
   }
 
+  function isCabinetActive() {
+    const ro = document.getElementById('cabinet-readonly');
+    return !!(getToken() && ro && !ro.classList.contains('hidden'));
+  }
+
   /** GitHub Pages: /f/<kp> — standalone film-page.js (гость и авторизованный). */
   function goToStandaloneFilmPage(kpId, opts) {
     const o = opts || {};
@@ -428,8 +433,46 @@
       goToStandaloneFilmPage(kp, { action: o.action || '' });
       return Promise.resolve();
     }
-    goToStandaloneFilmPage(kp, { action: o.action || '' });
-    return Promise.resolve();
+    if (!isCabinetActive()) {
+      goToStandaloneFilmPage(kp, { action: o.action || '' });
+      return Promise.resolve();
+    }
+    try { closeAccountDropdown(); } catch (_) {}
+    closeAddFilmModal();
+    closeFilmModal();
+    return api('/api/site/film-by-kp/' + kp).then(function (res) {
+      if (res && res.success && res.film_id) {
+        return openFilmPage(Number(res.film_id), {
+          skipHistory: o.skipHistory,
+          replace: o.replace,
+          kpId: kp,
+          action: o.action || '',
+        });
+      }
+      return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.film) {
+            goToStandaloneFilmPage(kp, { action: o.action || '' });
+            return;
+          }
+          showScreen('cabinet-readonly');
+          showFilmPageLayout();
+          _filmModalCurrentId = null;
+          _staffPageKpId = null;
+          try {
+            const path = '/f/' + kp;
+            if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
+            else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+          } catch (_) {}
+          return renderPublicFilmInCabinet(kp, data.film, { action: o.action || '' });
+        })
+        .catch(function () {
+          goToStandaloneFilmPage(kp, { action: o.action || '' });
+        });
+    }).catch(function () {
+      goToStandaloneFilmPage(kp, { action: o.action || '' });
+    });
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
@@ -2487,6 +2530,9 @@
     const o = opts || {};
     const fid = Number(filmId);
     if (!fid) return Promise.resolve();
+    if (isCabinetActive()) {
+      return openFilmPage(fid, { skipHistory: o.skipHistory, replace: o.replace, action: o.action || '' });
+    }
     const cached = _filmModalCache[fid];
     if (cached && cached.film && cached.film.kp_id) {
       return openFilmPageByKp(String(cached.film.kp_id), { replace: true, skipHistory: o.skipHistory, action: o.action || '' });
@@ -4570,6 +4616,10 @@
     if (!card) return;
     const kpId = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').trim();
     const filmId = String(card.getAttribute('data-film-id') || '').trim();
+    if (isCabinetActive()) {
+      openFilmNav(kpId, filmId);
+      return;
+    }
     const href = filmNavHref(kpId);
     if (href) {
       window.location.href = href;
@@ -4692,11 +4742,13 @@
       let startX = 0;
       let scrollLeft = 0;
       let moved = false;
+      let dragDistance = 0;
 
       rail.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         isDown = true;
         moved = false;
+        dragDistance = 0;
         startX = e.pageX;
         scrollLeft = rail.scrollLeft;
         rail.classList.add('is-dragging');
@@ -4713,15 +4765,17 @@
         if (!isDown) return;
         e.preventDefault();
         const dx = e.pageX - startX;
-        if (Math.abs(dx) > 4) moved = true;
+        dragDistance = Math.abs(dx);
+        if (dragDistance > 10) moved = true;
         rail.scrollLeft = scrollLeft - dx * 1.15;
       });
       rail.addEventListener('click', (e) => {
-        if (moved) {
+        if (moved && dragDistance > 10) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          moved = false;
         }
+        moved = false;
+        dragDistance = 0;
       }, true);
     });
   }
@@ -5049,7 +5103,14 @@
     document.addEventListener('click', (e) => {
       const railCard = e.target.closest('.home-poster-tile, .home-pre-card');
       if (railCard && railCard.closest('#home-dashboard-root')) {
-        if (railCard.matches('a[href^="/f/"]')) return;
+        if (railCard.matches('a[href^="/f/"]')) {
+          if (isCabinetActive()) {
+            e.preventDefault();
+            const kp = String(railCard.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
+            if (kp) openFilmPageByKp(kp);
+          }
+          return;
+        }
         const filmId = String(railCard.getAttribute('data-film-id') || '').trim();
         const kpId = String(railCard.getAttribute('data-kp-id') || railCard.getAttribute('data-kp') || '').trim();
         if (filmId || kpId) {
@@ -8255,7 +8316,14 @@
     // Клик по карточке фильма → открыть страницу фильма
     const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
     if (card) {
-      if (card.matches('a[href^="/f/"]')) return;
+      if (card.matches('a[href^="/f/"]')) {
+        if (isCabinetActive()) {
+          e.preventDefault();
+          const kp = String(card.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
+          if (kp) openFilmPageByKp(kp);
+        }
+        return;
+      }
       // Не перехватываем клик, если клик был по кнопке действия внутри карточки
       // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
       const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle], [data-rate-star], .rate-popover');
@@ -13457,7 +13525,11 @@
       }
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (pathKp) {
-        goToStandaloneFilmPage(pathKp);
+        if (getToken()) {
+          try { openFilmPageByKp(pathKp, { skipHistory: true, replace: true }); } catch (_) {}
+        } else {
+          goToStandaloneFilmPage(pathKp);
+        }
         return;
       }
       const pathUser = userIdFromPathname(window.location.pathname) || userIdFromLocation();
