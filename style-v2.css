@@ -11906,6 +11906,10 @@ body.in-cabinet .inbox-fab { display: none !important; }
   cursor: pointer;
   color: inherit;
   font: inherit;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .home-poster-tile-img,
 .home-pre-card-poster {

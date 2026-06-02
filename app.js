@@ -440,6 +440,14 @@
     try { closeAccountDropdown(); } catch (_) {}
     closeAddFilmModal();
     closeFilmModal();
+    showScreen('cabinet-readonly');
+    showFilmPageLayout();
+    try { window.scrollTo(0, 0); } catch (_) {}
+    const pageRootEarly = document.getElementById('film-page-content');
+    if (pageRootEarly) {
+      pageRootEarly.className = 'movie-page loading';
+      pageRootEarly.innerHTML = pageLoadingHtml();
+    }
     return api('/api/site/film-by-kp/' + kp).then(function (res) {
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), {
@@ -4727,52 +4735,40 @@
       + buttonsHtml + '</div></div>';
   }
 
-  function bindHomePosterRailDragScroll(root) {
-    const scope = root || document;
-    scope.querySelectorAll('.home-poster-rail, .home-prem-rail').forEach((rail) => {
-      if (rail._mpDragScrollBound) return;
-      rail._mpDragScrollBound = true;
-      rail.classList.add('home-rail--draggable');
-      let isDown = false;
-      let startX = 0;
-      let scrollLeft = 0;
-      let moved = false;
-      let dragDistance = 0;
+  function homeDashboardFilmTileFromEvent(e) {
+    const tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+    if (!tile || e.target.closest('[data-stop-card-click]')) return null;
+    const kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || '').replace(/\D/g, '')
+      || String((tile.getAttribute('href') || '').replace(/^\/f\//, '')).replace(/\D/g, '');
+    const fid = String(tile.getAttribute('data-film-id') || '').trim();
+    if (!kp && (!fid || fid === 'null')) return null;
+    return { tile, kp, fid };
+  }
 
-      rail.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        isDown = true;
-        moved = false;
-        dragDistance = 0;
-        startX = e.pageX;
-        scrollLeft = rail.scrollLeft;
-        rail.classList.add('is-dragging');
-      });
-      rail.addEventListener('mouseleave', () => {
-        isDown = false;
-        rail.classList.remove('is-dragging');
-      });
-      rail.addEventListener('mouseup', () => {
-        isDown = false;
-        rail.classList.remove('is-dragging');
-      });
-      rail.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const dx = e.pageX - startX;
-        dragDistance = Math.abs(dx);
-        if (dragDistance > 10) moved = true;
-        rail.scrollLeft = scrollLeft - dx * 1.15;
-      });
-      rail.addEventListener('click', (e) => {
-        if (moved && dragDistance > 10) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-        moved = false;
-        dragDistance = 0;
-      }, true);
-    });
+  function openHomeDashboardFilmTile(kp, fid) {
+    if (isCabinetActive()) {
+      openFilmNav(kp, fid);
+      return;
+    }
+    const href = filmNavHref(kp);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    if (fid && fid !== 'null') openFilmPageFromLegacyPath(Number(fid));
+  }
+
+  function bindHomeDashboardFilmNavOnce() {
+    if (window._mpHomeDashFilmNavBound) return;
+    window._mpHomeDashFilmNavBound = true;
+    document.addEventListener('click', (e) => {
+      const hit = homeDashboardFilmTileFromEvent(e);
+      if (!hit) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openHomeDashboardFilmTile(hit.kp, hit.fid);
+    }, true);
   }
 
   function initCabinetMobileHeaderScroll() {
@@ -4942,7 +4938,6 @@
     }
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
-    bindHomePosterRailDragScroll(root);
   }
 
   function fetchPremieresForDisplay(period) {
@@ -5096,24 +5091,7 @@
     if (window._mpHomeNavBound) return;
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
-      const railCard = e.target.closest('.home-poster-tile, .home-pre-card');
-      if (railCard && railCard.closest('#home-dashboard-root')) {
-        if (railCard.matches('a[href^="/f/"]')) {
-          if (isCabinetActive()) {
-            e.preventDefault();
-            const kp = String(railCard.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
-            if (kp) openFilmPageByKp(kp);
-          }
-          return;
-        }
-        const filmId = String(railCard.getAttribute('data-film-id') || '').trim();
-        const kpId = String(railCard.getAttribute('data-kp-id') || railCard.getAttribute('data-kp') || '').trim();
-        if (filmId || kpId) {
-          e.preventDefault();
-          openFilmFromCard(railCard);
-          return;
-        }
-      }
+      if (homeDashboardFilmTileFromEvent(e)) return;
       const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
       if (card && card.closest('#home-dashboard-root') && !e.target.closest('button,a,input,select,textarea,[data-stop-card-click]')) {
         const filmId = String(card.getAttribute('data-film-id') || '').trim();
@@ -8311,6 +8289,7 @@
     // Клик по карточке фильма → открыть страницу фильма
     const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
     if (card) {
+      if (card.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card')) return;
       if (card.matches('a[href^="/f/"]')) {
         if (isCabinetActive()) {
           e.preventDefault();
@@ -8553,6 +8532,7 @@
     _filmModalCurrentId = filmId;
     showScreen('cabinet-readonly');
     showFilmPageLayout();
+    try { window.scrollTo(0, 0); } catch (_) {}
     if (!o.skipHistory) {
       try {
         const kpHint = o.kpId || (_filmModalCache[filmId] && _filmModalCache[filmId].film && _filmModalCache[filmId].film.kp_id);
@@ -13498,6 +13478,7 @@
     bindHeaderSearch();
     bindPlansGotoOnce();
     bindHomeSectionNavOnce();
+    bindHomeDashboardFilmNavOnce();
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
     bindHomeQuickActionsOnce();
