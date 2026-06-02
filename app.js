@@ -3065,6 +3065,7 @@
 
   function showSection(sectionId, opts) {
     const options = opts || {};
+    try { closeAccountDropdown(); } catch (_) {}
     const prevSection = visibleCabinetSectionId();
     if (prevSection === 'settings' && sectionId !== 'settings') {
       _siteOnboardingResumeAfterImportLeave();
@@ -3112,6 +3113,11 @@
     if (rendered && sectionId !== 'settings') _profileSubView = 'hub';
     if (rendered && sectionId === 'settings') {
       try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
+      try {
+        const stEl = document.getElementById('section-settings');
+        if (stEl) stEl.scrollIntoView({ block: 'start', behavior: 'auto' });
+        window.scrollTo(0, 0);
+      } catch (_) {}
     }
     if (rendered && sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
@@ -13528,6 +13534,14 @@
     if (settingsHeaderBtn) {
       settingsHeaderBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        const isMobileCabinet = window.matchMedia('(max-width: 768px)').matches && document.body.classList.contains('in-cabinet');
+        if (isMobileCabinet) {
+          closeAccountDropdown();
+          showSection('settings');
+          if (typeof renderSettingsSection === 'function') renderSettingsSection();
+          return;
+        }
         const dd = document.getElementById('header-settings-dropdown');
         if (dd && dd.classList.contains('hidden')) openAccountDropdown();
         else closeAccountDropdown();

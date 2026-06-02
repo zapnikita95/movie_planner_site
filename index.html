@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Учёт фильмов и сериалов, планы и напоминания. Android-приложение, Telegram Mini App, сайт movie-planner.ru, бот и расширение Chrome.">
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260602sitefix2">
+    <link rel="stylesheet" href="/style-v2.css?v=20260602sitefix3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -540,7 +540,7 @@
                 <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji">🏠</span><span class="cabinet-nav-btn-text">Главная</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">База</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Что посмотреть</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Смотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji">🏆</span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
@@ -603,27 +603,41 @@
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
-                        <div class="base-section-tools-row">
-                            <div class="unwatched-toolbar">
-                                <label for="unwatched-sort">Сортировка:</label>
-                                <select id="unwatched-sort" class="unwatched-sort-select" aria-label="Сортировка непросмотренных">
-                                    <option value="date">Сначала новые</option>
-                                    <option value="date_old">Сначала старые</option>
-                                    <option value="az">от А к Я</option>
-                                    <option value="za">от Я к А</option>
-                                </select>
+                        <div class="base-section-tools-row base-section-tools-row--stack">
+                            <div class="base-search-wrap">
+                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <input type="text" id="section-search-unwatched" class="section-search base-search-input" placeholder="Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                             </div>
-                            <input type="text" id="section-search-unwatched" class="section-search" placeholder="🔍 Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
-                        </div>
-                        <div class="section-filter-row">
-                            <select id="section-filter-unwatched-type" class="section-filter-select" aria-label="Тип">
-                                <option value="any">Все</option>
-                                <option value="film">Фильмы</option>
-                                <option value="series">Сериалы</option>
+                            <select id="unwatched-sort" class="base-sort-select" aria-label="Сортировка непросмотренных">
+                                <option value="date">Сначала новые</option>
+                                <option value="date_old">Сначала старые</option>
+                                <option value="az">от А к Я</option>
+                                <option value="za">от Я к А</option>
                             </select>
-                            <input type="text" id="section-filter-unwatched-year-from" class="section-filter-input section-filter-year" placeholder="Год от" inputmode="numeric" aria-label="Год от">
-                            <input type="text" id="section-filter-unwatched-year-to" class="section-filter-input section-filter-year" placeholder="Год до" inputmode="numeric" aria-label="Год до">
-                            <input type="text" id="section-filter-unwatched-genre" class="section-filter-input section-filter-genre" placeholder="Жанр" aria-label="Жанр">
+                        </div>
+                        <div class="base-filter-toolbar" aria-label="Фильтры">
+                            <div class="base-filter-toolbar-scroll">
+                                <label class="base-filter-chip base-filter-chip--select">
+                                    <span class="base-filter-chip-k">Тип</span>
+                                    <select id="section-filter-unwatched-type" class="base-filter-chip-native" aria-label="Тип">
+                                        <option value="any">Все</option>
+                                        <option value="film">Фильмы</option>
+                                        <option value="series">Сериалы</option>
+                                    </select>
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год от</span>
+                                    <input type="text" id="section-filter-unwatched-year-from" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год от">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год до</span>
+                                    <input type="text" id="section-filter-unwatched-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                    <span class="base-filter-chip-k">Жанр</span>
+                                    <input type="text" id="section-filter-unwatched-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <p class="cabinet-hint">Список фильмов вашей базы. Откройте карточку для действий: оценка, пометка просмотра, просмотр онлайн и планирование.</p>
@@ -637,13 +651,27 @@
                             <button type="button" class="base-tab active" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
-                        <div class="base-section-tools-row">
-                            <input type="text" id="section-search-series" class="section-search" placeholder="🔍 Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                        <div class="base-section-tools-row base-section-tools-row--stack">
+                            <div class="base-search-wrap">
+                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <input type="text" id="section-search-series" class="section-search base-search-input" placeholder="Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
+                            </div>
                         </div>
-                        <div class="section-filter-row">
-                            <input type="text" id="section-filter-series-year-from" class="section-filter-input section-filter-year" placeholder="Год от" inputmode="numeric" aria-label="Год от">
-                            <input type="text" id="section-filter-series-year-to" class="section-filter-input section-filter-year" placeholder="Год до" inputmode="numeric" aria-label="Год до">
-                            <input type="text" id="section-filter-series-genre" class="section-filter-input section-filter-genre" placeholder="Жанр" aria-label="Жанр">
+                        <div class="base-filter-toolbar" aria-label="Фильтры">
+                            <div class="base-filter-toolbar-scroll">
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год от</span>
+                                    <input type="text" id="section-filter-series-year-from" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год от">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год до</span>
+                                    <input type="text" id="section-filter-series-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                    <span class="base-filter-chip-k">Жанр</span>
+                                    <input type="text" id="section-filter-series-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <p class="cabinet-hint">Список сериалов вашей базы. Откройте карточку для управления прогрессом и просмотром.</p>
@@ -661,8 +689,11 @@
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab active" data-base-section="ratings">Оценки</button>
                         </div>
-                        <div class="base-section-tools-row">
-                            <input type="text" id="section-search-ratings" class="section-search" placeholder="🔍 Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
+                        <div class="base-section-tools-row base-section-tools-row--stack">
+                            <div class="base-search-wrap">
+                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <input type="text" id="section-search-ratings" class="section-search base-search-input" placeholder="Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
+                            </div>
                         </div>
                     </div>
                     <p class="cabinet-hint">Ваши и групповые оценки. Откройте карточку фильма или сериала, чтобы изменить оценку и статус просмотра.</p>
@@ -1408,6 +1439,6 @@
     <script src="/page-loading.js?v=20260529mobileparity1"></script>
     <script src="/onboarding-flow.js?v=20260530onboard5"></script>
     <script src="/plan-modal.js?v=20260531voicefix1"></script>
-    <script src="/app.js?v=20260602tgsafari1"></script>
+    <script src="/app.js?v=20260602sitefix3"></script>
 </body>
 </html>

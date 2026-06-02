@@ -534,6 +534,113 @@ body.in-cabinet #section-inbox {
     margin-left: 0;
   }
 }
+.base-section-tools-row--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.base-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.base-search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 15px;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.55;
+}
+.base-search-input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: var(--text-primary, #fff);
+  font-size: 15px;
+}
+.base-search-input::placeholder { color: rgba(255, 255, 255, 0.38); }
+.base-sort-select {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  font-weight: 600;
+}
+.base-filter-toolbar {
+  margin: 0;
+  overflow: hidden;
+}
+.base-filter-toolbar-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 0 4px;
+}
+.base-filter-toolbar-scroll::-webkit-scrollbar { display: none; }
+.base-filter-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  padding: 7px 12px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+  max-width: min(46vw, 200px);
+  cursor: pointer;
+}
+.base-filter-chip--wide { max-width: min(56vw, 240px); }
+.base-filter-chip-k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.1;
+}
+.base-filter-chip-native {
+  width: 100%;
+  min-width: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.base-filter-chip-native:focus { outline: none; }
+.base-filter-chip--select .base-filter-chip-native {
+  cursor: pointer;
+  padding-right: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23ffffff88' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+}
+.base-filter-chip--field .base-filter-chip-native::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+}
 .unwatched-toolbar { display: flex; align-items: center; gap: 12px; }
 .unwatched-sort-select { padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
 .section-search { padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; flex: 1; min-width: 0; }
@@ -1193,7 +1300,7 @@ section {
     bottom: 0;
     z-index: 180;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     margin: 0;
     padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
@@ -1203,7 +1310,7 @@ section {
     backdrop-filter: blur(14px);
     overflow: visible;
   }
-  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="whattowatch"],
+  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="premieres"],
   body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="tournament"] {
     display: none !important;
   }
@@ -1227,8 +1334,7 @@ section {
   body.in-cabinet .cabinet-nav-btn[data-section="home"] { order: 1; }
   body.in-cabinet .cabinet-nav-btn[data-section="plans"] { order: 2; }
   body.in-cabinet .cabinet-nav-btn[data-section="unwatched"] { order: 3; }
-  body.in-cabinet .cabinet-nav-btn[data-section="premieres"] { order: 4; }
-  body.in-cabinet .cabinet-nav-btn[data-section="settings"] { order: 5; }
+  body.in-cabinet .cabinet-nav-btn[data-section="whattowatch"] { order: 4; }
   body.in-cabinet .cabinet-nav-btn.active {
     color: #ff2d7b;
     border: 0;
@@ -1411,9 +1517,9 @@ section {
     align-items: stretch;
     gap: 8px;
   }
-  body.in-cabinet #section-unwatched .base-section-tools-row .section-search,
-  body.in-cabinet #section-series .base-section-tools-row .section-search,
-  body.in-cabinet #section-ratings .base-section-tools-row .section-search {
+  body.in-cabinet #section-unwatched .base-search-wrap,
+  body.in-cabinet #section-series .base-search-wrap,
+  body.in-cabinet #section-ratings .base-search-wrap {
     max-width: none;
   }
   body.in-cabinet #section-unwatched .section-filter-row,
@@ -5943,6 +6049,25 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 }
 .header-settings-btn:hover { opacity: 0.85; background: transparent; text-decoration: none; }
 .header-settings-dropdown { min-width: 260px; max-width: 92vw; }
+#header-settings-dropdown.hidden { display: none !important; }
+#header-settings-dropdown:not(.open) { display: none !important; }
+body:not(.account-menu-open) #header-settings-dropdown { display: none !important; }
+body[data-cabinet-section="settings"] #header-settings-dropdown,
+body[data-cabinet-section="settings"] #header-settings-backdrop,
+body[data-cabinet-section="groups"] #header-settings-dropdown,
+body[data-cabinet-section="groups"] #header-settings-backdrop,
+body[data-cabinet-section="stats"] #header-settings-dropdown,
+body[data-cabinet-section="stats"] #header-settings-backdrop,
+body[data-cabinet-section="shazam"] #header-settings-dropdown,
+body[data-cabinet-section="shazam"] #header-settings-backdrop,
+body[data-cabinet-section="integrations"] #header-settings-dropdown,
+body[data-cabinet-section="integrations"] #header-settings-backdrop,
+body[data-cabinet-section="about"] #header-settings-dropdown,
+body[data-cabinet-section="about"] #header-settings-backdrop {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 .header-settings-backdrop {
   position: fixed;
   inset: 0;
