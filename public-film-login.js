@@ -16,6 +16,74 @@
   };
   var pfBotPoll = null;
   var pfBotDeepLink = null;
+  var pfBotPrefetched = null;
+  var pfBotPrefetchPromise = null;
+
+  function pfBotDeepLinkFromStart(startData, code) {
+    var c = String(code || (startData && startData.code) || '').trim();
+    if (startData && startData.deep_link) return String(startData.deep_link);
+    if (!c) return null;
+    return 'https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(c);
+  }
+
+  function consumePfBotPrefetch(maxAgeMs) {
+    var pref = pfBotPrefetched;
+    if (!pref || !pref.code) return null;
+    if (Date.now() - (pref.ts || 0) > (maxAgeMs || 4 * 60 * 1000)) {
+      pfBotPrefetched = null;
+      return null;
+    }
+    pfBotPrefetched = null;
+    return pref;
+  }
+
+  function prefetchPfBotAuth() {
+    if (pfBotPrefetchPromise) return pfBotPrefetchPromise;
+    pfBotPrefetchPromise = pfFetchJson('/api/auth/telegram-mobile/start', { method: 'POST', body: JSON.stringify({}) })
+      .then(function (startData) {
+        if (startData && startData.success && startData.code) {
+          var code = String(startData.code);
+          pfBotPrefetched = {
+            code: code,
+            deep_link: pfBotDeepLinkFromStart(startData, code),
+            ts: Date.now(),
+          };
+        }
+        return pfBotPrefetched;
+      })
+      .catch(function () { return null; })
+      .finally(function () { pfBotPrefetchPromise = null; });
+    return pfBotPrefetchPromise;
+  }
+
+  function schedulePfBotPrefetch() {
+    try { void prefetchPfBotAuth(); } catch (_e) {}
+  }
+
+  function beginPfBotSession(code, deepLink, statusEl, botPanel, opts) {
+    opts = opts || {};
+    stopPfBotPoll();
+    pfBotDeepLink = deepLink || null;
+    updatePfBotReopenLink(pfBotDeepLink);
+    updatePfBotLoginHint(code);
+    if (botPanel) botPanel.classList.remove('hidden');
+    if (opts.openTelegram && deepLink) {
+      var opened = openPfTelegramLink(deepLink, opts.preOpenedWindow || null);
+      if (!opened && global.MpIsIos && global.MpIsIos()) {
+        setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»');
+      } else if (!opened) {
+        setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
+      }
+    }
+    if (statusEl && (!statusEl.textContent || statusEl.textContent === 'Открываем Telegram…')) {
+      setStatus(statusEl, opts.openTelegram ? 'Нажмите Start на ссылке бота' : 'Открываем Telegram…');
+    }
+    pfBotPoll = setInterval(function () {
+      pollPfBotOnce(code, statusEl).catch(function () {});
+    }, 2500);
+    pollPfBotOnce(code, statusEl).catch(function () {});
+    schedulePfBotPrefetch();
+  }
 
   function pfFetchJson(path, options, timeoutMs) {
     var controller = new AbortController();
@@ -124,6 +192,16 @@
     updatePfBotLoginHint(null);
     if (botPanel) botPanel.classList.remove('hidden');
     setStatus(statusEl, 'Открываем Telegram…');
+
+    var pref = consumePfBotPrefetch();
+    if (pref && pref.code && pref.deep_link) {
+      beginPfBotSession(pref.code, pref.deep_link, statusEl, botPanel, {
+        openTelegram: true,
+        preOpenedWindow: preOpenedWindow,
+      });
+      return;
+    }
+
     pfFetchJson('/api/auth/telegram-mobile/start', { method: 'POST', body: JSON.stringify({}) })
       .then(function (startData) {
         if (!startData.success || !startData.code) {
@@ -131,32 +209,26 @@
             try { preOpenedWindow.close(); } catch (_e) {}
           }
           setStatus(statusEl, 'Не удалось начать вход через бота', 'error');
+          schedulePfBotPrefetch();
           return;
         }
         var code = String(startData.code);
-        pfBotDeepLink = startData.deep_link
-          || ('https://t.me/' + TELEGRAM_BOT_USERNAME + '?start=mobileauth_' + encodeURIComponent(code));
-        updatePfBotReopenLink(pfBotDeepLink);
-        updatePfBotLoginHint(code);
-        var opened = openPfTelegramLink(pfBotDeepLink, preOpenedWindow);
-        if (!opened && typeof global.MpClickWebUrl === 'function') {
-          opened = global.MpClickWebUrl(pfBotDeepLink);
+        var deepLink = pfBotDeepLinkFromStart(startData, code);
+        var isIos = global.MpIsIos && global.MpIsIos();
+        beginPfBotSession(code, deepLink, statusEl, botPanel, {
+          openTelegram: !isIos,
+          preOpenedWindow: preOpenedWindow,
+        });
+        if (isIos && deepLink) {
+          setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»');
         }
-        if (!opened) {
-          setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
-        } else {
-          setStatus(statusEl, 'Нажмите Start на ссылке бота');
-        }
-        pfBotPoll = setInterval(function () {
-          pollPfBotOnce(code, statusEl).catch(function () {});
-        }, 2500);
-        pollPfBotOnce(code, statusEl).catch(function () {});
       })
       .catch(function (err) {
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_e) {}
         }
         setStatus(statusEl, pfNetworkError(err), 'error');
+        schedulePfBotPrefetch();
       });
   }
 
@@ -360,7 +432,10 @@
     });
 
     var priv = $('login-oauth-privacy');
-    if (priv) priv.addEventListener('change', syncPrivacyLock);
+    if (priv) priv.addEventListener('change', function () {
+      syncPrivacyLock();
+      if (priv.checked) schedulePfBotPrefetch();
+    });
     syncPrivacyLock();
 
     var g = $('login-oauth-google');
@@ -392,8 +467,11 @@
     var botReopen = $('login-bot-reopen');
     if (botReopen) {
       botReopen.addEventListener('click', function (e) {
-        if (pfBotDeepLink) return;
         e.preventDefault();
+        if (pfBotDeepLink) {
+          openPfTelegramLink(pfBotDeepLink, null);
+          return;
+        }
         startPfBotAuth($('login-status'), botPanel, null);
       });
     }
@@ -584,6 +662,7 @@
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    schedulePfBotPrefetch();
   }
 
   function close() {
