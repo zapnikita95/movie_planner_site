@@ -251,7 +251,7 @@
               '<input type="checkbox" id="login-oauth-privacy"/>' +
               '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
             '</label>' +
-            '<div class="login-privacy-hint" id="login-privacy-hint">Нужно для Telegram и входа по почте.</div>' +
+            '<div class="login-privacy-hint" id="login-privacy-hint" hidden></div>' +
             '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
               '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
                 '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
@@ -380,16 +380,18 @@
       }, 1600);
     }
     var hint = $('login-privacy-hint');
-    if (hint) hint.classList.add('is-visible');
+    if (hint) hint.classList.remove('is-visible');
     if (statusEl) setStatus(statusEl, 'Отметьте согласие с политикой конфиденциальности', 'error');
   }
 
   function syncPrivacyLock() {
     var ok = privacyOk();
-    var tgWrap = $('login-tg-widget-wrap');
-    if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
-    var hint = $('login-privacy-hint');
-    if (hint) hint.classList.toggle('is-visible', !ok);
+    ['login-oauth-google', 'login-oauth-yandex', 'login-tg-widget-wrap'].forEach(function (id) {
+      var btn = $(id);
+      if (!btn) return;
+      btn.classList.toggle('is-locked', !ok);
+      btn.classList.toggle('login-tg-widget-wrap--locked', !ok);
+    });
     var reqBtn = $('login-email-request-btn');
     if (reqBtn) reqBtn.disabled = !ok;
   }
@@ -437,6 +439,7 @@
     var g = $('login-oauth-google');
     if (g) {
       g.addEventListener('click', function () {
+        if (!privacyOk()) { nudgePrivacy(); return; }
         rememberOAuthReturn();
         global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
       });
@@ -444,6 +447,7 @@
     var y = $('login-oauth-yandex');
     if (y) {
       y.addEventListener('click', function () {
+        if (!privacyOk()) { nudgePrivacy(); return; }
         rememberOAuthReturn();
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });

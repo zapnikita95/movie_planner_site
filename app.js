@@ -4085,20 +4085,21 @@
     const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
     const tgWrap = document.getElementById('login-tg-widget-wrap');
-    const privacyHint = document.getElementById('login-privacy-hint');
     function nudgeOAuthPrivacy() {
       if (oauthPriv) {
         oauthPriv.closest('.login-oauth-privacy')?.classList.add('needs-attention');
         oauthPriv.focus({ preventScroll: true });
         setTimeout(() => oauthPriv.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
       }
-      if (privacyHint) privacyHint.classList.add('is-visible');
       try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
     }
     function syncOauthPrivButtons() {
       const ok = oauthPriv && oauthPriv.checked;
+      [oauthG, oauthY, tgWrap].forEach((btn) => {
+        if (!btn) return;
+        btn.classList.toggle('is-locked', !ok);
+      });
       if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
-      if (privacyHint) privacyHint.classList.toggle('is-visible', !ok);
       const reqBtn = document.getElementById('login-email-request-btn');
       if (reqBtn) reqBtn.disabled = !ok;
     }
@@ -4109,12 +4110,14 @@
     syncOauthPrivButtons();
     if (oauthG) {
       oauthG.addEventListener('click', () => {
+        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
       });
     }
     if (oauthY) {
       oauthY.addEventListener('click', () => {
+        if (!oauthPriv || !oauthPriv.checked) { nudgeOAuthPrivacy(); return; }
         rememberAuthReturnPath();
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
@@ -4188,8 +4191,6 @@
     const regBack = document.getElementById('login-register-back-btn');
     const regPrivacy = document.getElementById('login-register-privacy');
     const oauthPriv = document.getElementById('login-oauth-privacy');
-    const privacyHint = document.getElementById('login-privacy-hint');
-
     function nudgeLoginPrivacy(statusTarget) {
       const privEl = oauthPriv || regPrivacy;
       if (privEl) {
@@ -4197,7 +4198,6 @@
         privEl.focus({ preventScroll: true });
         setTimeout(() => privEl.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
       }
-      if (privacyHint) privacyHint.classList.add('is-visible');
       try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
       if (statusTarget === 'reg') {
         setRegStatus('Отметьте согласие с политикой конфиденциальности', 'error');

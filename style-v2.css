@@ -2798,18 +2798,7 @@ body.in-public-stats .footer-extension-cabinet {
 }
 
 .login-privacy-hint {
-  display: none;
-  margin: 4px 0 0;
-  padding: 9px 11px;
-  border-radius: 10px;
-  background: rgba(255, 45, 123, 0.1);
-  border: 1px solid rgba(255, 45, 123, 0.28);
-  color: #ff9ac3;
-  font-size: 12.5px;
-  line-height: 1.35;
-}
-.login-privacy-hint.is-visible {
-  display: block;
+  display: none !important;
 }
 
 .login-bot-panel {
