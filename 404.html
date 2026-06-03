@@ -5,6 +5,7 @@
   <!--MP_ROUTE_META-->
   <script>
     (function () {
+      var OG_API = 'https://api.movie-planner.ru';
       var path = location.pathname || '';
       var mFilm = path.match(/^\/f\/(\d+)\/?$/);
       var mStaff = path.match(/^\/s\/(\d+)\/?$/);
@@ -12,7 +13,7 @@
       if (mFilm) {
         var kp = mFilm[1];
         try { document.documentElement.classList.add('mp-route-pending'); } catch (_pF) {}
-        var poster = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+        var poster = OG_API + '/api/og/film/' + kp + '.jpg';
         var page = location.origin + '/f/' + kp;
         var ogTitleF = 'Фильм · Movie Planner';
         var ogDescF = 'Карточка фильма в Movie Planner';
@@ -26,7 +27,7 @@
             var payloadF = JSON.parse(xhrF.responseText);
             if (payloadF && payloadF.success && payloadF.film) {
               var fl = payloadF.film;
-              if (fl.poster_url) poster = fl.poster_url;
+              if (fl.og_image_url) poster = fl.og_image_url;
               if (fl.title) {
                 ogTitleF = fl.year ? (fl.title + ' (' + fl.year + ')') : fl.title;
                 pageTitleF = fl.page_title || (ogTitleF + ' — смотреть, описание, рейтинг | Movie Planner');
@@ -50,8 +51,8 @@
           '<meta property="og:description" content="' + escF(ogDescF) + '">' +
           '<meta property="og:image" content="' + escF(poster) + '">' +
           '<meta property="og:image:secure_url" content="' + escF(poster) + '">' +
-          '<meta property="og:image:width" content="1000">' +
-          '<meta property="og:image:height" content="1500">' +
+          '<meta property="og:image:width" content="1200">' +
+          '<meta property="og:image:height" content="630">' +
           '<meta property="og:image:alt" content="Постер: ' + escF(ogTitleF) + '">' +
           '<meta name="description" content="' + escF(ogDescF) + '">' +
           (metaKeywordsF ? ('<meta name="keywords" content="' + escF(metaKeywordsF) + '">') : '') +
@@ -71,7 +72,7 @@
         var pid = mStaff[1];
         try { document.documentElement.classList.add('mp-route-pending'); } catch (_pS) {}
         var pageS = location.origin + '/s/' + pid;
-        var photo = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg';
+        var photo = OG_API + '/api/og/staff/' + pid + '.jpg';
         var ogTitle = 'Персона · Movie Planner';
         var ogDesc = 'Страница актёра и фильмография в Movie Planner';
         var pageTitle = ogTitle;
@@ -84,7 +85,7 @@
             var payload = JSON.parse(xhr.responseText);
             if (payload && payload.success && payload.staff) {
               var st = payload.staff;
-              if (st.photo_url) photo = st.photo_url;
+              if (st.og_image_url) photo = st.og_image_url;
               if (st.og_title) ogTitle = st.og_title;
               if (st.meta_description) ogDesc = st.meta_description;
               else if (st.og_description) ogDesc = st.og_description;
@@ -107,8 +108,8 @@
           '<meta property="og:description" content="' + esc(ogDesc) + '">' +
           '<meta property="og:image" content="' + esc(photo) + '">' +
           '<meta property="og:image:secure_url" content="' + esc(photo) + '">' +
-          '<meta property="og:image:width" content="400">' +
-          '<meta property="og:image:height" content="400">' +
+          '<meta property="og:image:width" content="1200">' +
+          '<meta property="og:image:height" content="630">' +
           '<meta property="og:image:alt" content="Фото: ' + esc(ogTitle) + '">' +
           '<meta name="description" content="' + esc(ogDesc) + '">' +
           (metaKeywordsS ? ('<meta name="keywords" content="' + esc(metaKeywordsS) + '">') : '') +
@@ -131,7 +132,7 @@
         var ogTitleU = 'Профиль · Movie Planner';
         var ogDescU = 'Профиль пользователя Movie Planner';
         var pageTitleU = ogTitleU;
-        var photoU = location.origin + '/api/avatar/' + encodeURIComponent(uid) + '.jpg';
+        var photoU = OG_API + '/api/og/user/' + uid + '.jpg';
         try {
           var xhrU = new XMLHttpRequest();
           xhrU.open('GET', '/api/public/user/' + encodeURIComponent(uid), false);
@@ -140,7 +141,8 @@
             var payloadU = JSON.parse(xhrU.responseText);
             if (payloadU && payloadU.success && payloadU.user) {
               var u = payloadU.user;
-              if (u.photo_url) photoU = u.photo_url.indexOf('http') === 0 ? u.photo_url : (location.origin + u.photo_url);
+              if (u.og_image_url) photoU = u.og_image_url;
+              else if (u.photo_url) photoU = u.photo_url.indexOf('http') === 0 ? u.photo_url : (location.origin + u.photo_url);
               if (u.og_title) ogTitleU = u.og_title;
               if (u.og_description) ogDescU = u.og_description;
               if (u.name) pageTitleU = u.name + ' · Movie Planner';
@@ -160,9 +162,9 @@
           '<meta property="og:description" content="' + escU(ogDescU) + '">' +
           '<meta property="og:image" content="' + escU(photoU) + '">' +
           '<meta property="og:image:secure_url" content="' + escU(photoU) + '">' +
-          '<meta property="og:image:width" content="400">' +
-          '<meta property="og:image:height" content="400">' +
-          '<meta property="og:image:alt" content="Аватар: ' + escU(ogTitleU) + '">' +
+          '<meta property="og:image:width" content="1200">' +
+          '<meta property="og:image:height" content="630">' +
+          '<meta property="og:image:alt" content="Профиль: ' + escU(ogTitleU) + '">' +
           '<meta name="description" content="' + escU(ogDescU) + '">' +
           '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">' +
           '<meta name="twitter:card" content="summary_large_image">' +
