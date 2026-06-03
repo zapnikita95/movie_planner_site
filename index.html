@@ -47,7 +47,7 @@
               window.location.replace(staffUrl + (rest ? '?' + rest : '') + window.location.hash);
               return;
             }
-            if (/^\/u\/\d+\/?/.test(spa) || /^\/user\/\d+\/?/.test(spa)) {
+            if (/^\/u\/-?\d+\/?/.test(spa) || /^\/user\/-?\d+\/?/.test(spa)) {
               var userUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
               userUrl = userUrl.replace(/^\/user\//, '/u/');
               window.location.replace(userUrl + (rest ? '?' + rest : '') + window.location.hash);

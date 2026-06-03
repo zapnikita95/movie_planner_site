@@ -213,7 +213,7 @@
     <script src="/film-page.js?v=20260602sitefix5"></script>
     <script src="/staff-page.js?v=20260602sitefix5"></script>
     <script src="/user-profile-page.js?v=20260602sitefix5"></script>
-    <script src="/user-page.js?v=20260602sitefix5"></script>
+    <script src="/user-page.js?v=20260604userneg1"></script>
   <script>
     (function () {
       var m = location.pathname.match(/^\/f\/(\d+)\/?$/);
@@ -230,7 +230,7 @@
   </script>
   <script>
     (function () {
-      var m = location.pathname.match(/^\/u\/(\d+)\/?$/);
+      var m = location.pathname.match(/^\/u\/(-?\d+)\/?$/);
       if (!m || !window.MpUserPage) return;
       MpUserPage.bootstrap({ userId: m[1] });
     })();

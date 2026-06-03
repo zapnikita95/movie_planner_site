@@ -13680,7 +13680,7 @@
         const m = spaUrl.pathname.match(/^\/u\/(-?\d+)\/?$/);
         if (m) addUserId = m[1];
       } catch (_) {
-        const m = String(spa).match(/^\/u\/(\d+)\/?$/);
+        const m = String(spa).match(/^\/u\/(-?\d+)\/?$/);
         if (m) addUserId = m[1];
       }
     }

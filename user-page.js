@@ -453,7 +453,8 @@
 
   function bootstrap(opts) {
     opts = opts || {};
-    var userId = String(opts.userId || '').replace(/\D/g, '');
+    var rawUid = String(opts.userId || '').trim();
+    var userId = /^-?\d+$/.test(rawUid) ? rawUid : '';
     if (!userId) {
       markRouteReady();
       return;
