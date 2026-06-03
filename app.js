@@ -382,18 +382,52 @@
     }
   }
 
-  function ensureSiteFilmIdForKp(kp) {
-    return api('/api/site/film-by-kp/' + kp).then(function (res) {
-      if (res && res.success && res.film_id) return Number(res.film_id);
-      return api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
-        .then(function (addRes) {
-          if (addRes && addRes.success && addRes.film_id) return Number(addRes.film_id);
-          return api('/api/site/film-by-kp/' + kp).then(function (retry) {
-            if (retry && retry.success && retry.film_id) return Number(retry.film_id);
-            return 0;
+  function mapPublicFilmForHero(pub, kp) {
+    const f = pub || {};
+    return {
+      kp_id: String(kp || f.kp_id || '').replace(/\D/g, ''),
+      title: f.title || 'Фильм',
+      year: f.year,
+      country: f.country,
+      genres: f.genres,
+      description: f.description || f.plot || f.shortDescription,
+      is_series: !!f.is_series,
+      watched: false,
+    };
+  }
+
+  function openFilmHeroByKpPublic(kp, o) {
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) return Promise.resolve();
+    _filmModalCurrentId = null;
+    _staffPageKpId = null;
+    try {
+      const path = '/f/' + kp;
+      if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
+      else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+    } catch (_) {}
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.film) {
+          showToast('Не удалось загрузить фильм', { type: 'error' });
+          return;
+        }
+        const film = mapPublicFilmForHero(data.film, kp);
+        return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+          try {
+            document.title = (enriched.title || 'Фильм') + (enriched.year ? ' (' + enriched.year + ')' : '') + ' · Movie Planner';
+          } catch (_) {}
+          renderFilmDetailHero(enriched, [], [], { user_id: cabinetUserId }, pageRoot, {
+            inBase: false,
+            pendingAction: o.action || '',
           });
+          try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
         });
-    });
+      })
+      .catch(function () {
+        showToast('Ошибка сети', { type: 'error' });
+      });
   }
 
   function openFilmPageByKp(kpId, opts) {
@@ -421,20 +455,18 @@
       pageRootEarly.className = 'movie-page loading';
       pageRootEarly.innerHTML = pageLoadingHtml();
     }
-    return ensureSiteFilmIdForKp(kp).then(function (filmId) {
-      if (!filmId) {
-        showToast('Не удалось открыть фильм', { type: 'error' });
-        goToStandaloneFilmPage(kp, { action: o.action || '' });
-        return;
+    return api('/api/site/film-by-kp/' + kp).then(function (res) {
+      if (res && res.success && res.film_id) {
+        return openFilmPage(Number(res.film_id), {
+          skipHistory: o.skipHistory,
+          replace: o.replace,
+          kpId: kp,
+          action: o.action || '',
+        });
       }
-      return openFilmPage(filmId, {
-        skipHistory: o.skipHistory,
-        replace: o.replace,
-        kpId: kp,
-        action: o.action || '',
-      });
+      return openFilmHeroByKpPublic(kp, o);
     }).catch(function () {
-      showToast('Ошибка сети', { type: 'error' });
+      return openFilmHeroByKpPublic(kp, o);
     });
   }
 
@@ -8929,7 +8961,9 @@
     return parts.slice(0, 8).map((label) => '<span class="chip">' + escapeHtml(label) + '</span>').join('');
   }
 
-  function renderFilmDetailHero(film, ratings, similar, me, content) {
+  function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {
+    const ho = heroOpts || {};
+    const inBase = ho.inBase !== false;
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
@@ -8946,7 +8980,7 @@
       online_link: film.online_link,
       in_cinema: film.in_cinema,
     }, {
-      inBase: true,
+      inBase: inBase,
       watched: !!film.watched,
       authenticated: true,
       myRating,
@@ -8977,8 +9011,13 @@
       similarHtml;
 
     bindFilmModalInteractions(film, content);
-    bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, { inBase: true, authenticated: true });
-    loadFilmFriendsSocial(film);
+    bindFilmPageToolbar(content.querySelector('.film-page-toolbar'), film, {
+      inBase: inBase,
+      authenticated: true,
+      kpId: film.kp_id,
+      pendingAction: ho.pendingAction || '',
+    });
+    if (getToken()) loadFilmFriendsSocial(film);
     loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
   }
 
