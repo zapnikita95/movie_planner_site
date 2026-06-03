@@ -813,7 +813,7 @@
                   '<h3>Контакты</h3>' +
                   '<p>📍 Москва</p>' +
                   '<p>📞 +7 (977) 613-45-08</p>' +
-                  '<p>✉️ <a href="mailto:movie_planner_bot@yandex.com">movie_planner_bot@yandex.com</a></p>' +
+                  '<p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>' +
                   '<p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></p>' +
                 '</div>' +
                 '<div class="footer-social">' +
