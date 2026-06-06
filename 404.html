@@ -187,9 +187,24 @@
   <link rel="stylesheet" href="/style-v2.css?v=20260529searchcard1">
   <style>:root { color-scheme: dark; } .hidden { display: none !important; }
   html.mp-route-pending body { visibility: hidden; }
-  html.mp-route-pending .mp-seo-article { display: none !important; }
+  html.mp-route-pending.mp-has-seo-body body { visibility: visible; }
+  html.mp-route-pending .mp-seo-article { display: block !important; }
   html.mp-route-ready body { visibility: visible; }
-  .mp-seo-article { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+  .mp-seo-article {
+    max-width: 920px;
+    margin: 16px auto 0;
+    padding: 16px;
+    color: rgba(244,246,255,.82);
+    font-size: 14px;
+    line-height: 1.55;
+    text-align: left;
+  }
+  .mp-seo-article h1 { font-size: 22px; line-height: 1.25; margin: 0 0 10px; color: #fff; }
+  .mp-seo-article h2 { font-size: 17px; margin: 16px 0 8px; color: #fff; }
+  .mp-seo-article a { color: #c4b5fd; }
+  .mp-seo-article dl { margin: 0; }
+  .mp-seo-article dt { font-weight: 600; margin-top: 10px; color: #fff; }
+  .mp-seo-article dd { margin: 4px 0 0; }
   </style>
   <script>
     (function () {
