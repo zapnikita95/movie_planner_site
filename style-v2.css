@@ -12544,7 +12544,7 @@ body.in-cabinet .inbox-fab { display: none !important; }
 .footer-apps-cabinet {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
   align-items: center;
   text-align: center;
@@ -12554,6 +12554,52 @@ body.in-cabinet .inbox-fab { display: none !important; }
   font-size: 13px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.footer-store-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+.footer-store-badge {
+  display: block;
+  line-height: 0;
+  border-radius: 7px;
+  overflow: hidden;
+  opacity: 0.92;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.footer-store-badge:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+.footer-store-badge img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+.footer-apps-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  justify-content: center;
+  align-items: center;
+  max-width: 320px;
+}
+.footer-app-mini {
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.footer-app-mini:hover { color: #fff; }
+.footer-apps-sep {
+  color: rgba(255, 255, 255, 0.22);
+  font-size: 12px;
+  user-select: none;
 }
 .footer-apps-links {
   display: flex;
@@ -12636,7 +12682,6 @@ body.in-cabinet .inbox-fab { display: none !important; }
   body.in-cabinet .profile-hub-stats .profile-hub-stat:nth-child(4) {
     /* keep 2x2 on very narrow */
   }
-  body.in-cabinet .footer-apps-cabinet { display: flex !important; }
 }
 
 /* Extended onboarding v2 (shared with onboarding-flow.js) */

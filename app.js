@@ -2347,7 +2347,7 @@
       }
     }
     const footerApps = document.getElementById('cabinet-footer-apps');
-    if (footerApps) footerApps.classList.toggle('hidden', !inCabinet);
+    if (footerApps) footerApps.classList.remove('hidden');
   }
 
   function getSiteSearchRoot() {
@@ -4572,11 +4572,8 @@
         }
         if (ios && rel && rel.ios && rel.ios.url) {
           ios.href = rel.ios.url;
-          ios.classList.remove('hidden');
-          ios.textContent = '🍎 iOS';
         } else if (ios) {
           ios.href = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
-          ios.classList.remove('hidden');
         }
       })
       .catch(() => {

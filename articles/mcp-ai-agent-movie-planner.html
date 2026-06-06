@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP и AI-агенты для Movie Planner: подключите нейросеть к своей базе фильмов</title>
+    <meta name="description" content="Как подключить Claude, Cursor или другого AI-агента к Movie Planner через MCP: добавление фильмов, планирование, билеты, календарь и Smart TV одной фразой.">
+    <link rel="canonical" href="https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html">
+    <meta property="og:title" content="MCP и AI-агенты для Movie Planner">
+    <meta property="og:description" content="Подключите агента на компьютере к Movie Planner: «добавь в календарь», «прикрепи билеты», «запланируй поход в кино» — и это реально выполнится.">
+    <meta property="og:url" content="https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Movie Planner">
+    <link rel="stylesheet" href="../style-v2.css">
+    <link rel="icon" href="../images/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "MCP и AI-агенты для Movie Planner: подключите нейросеть к своей базе фильмов",
+      "description": "Как подключить Claude, Cursor или другого AI-агента к Movie Planner через MCP: добавление фильмов, планирование, билеты, календарь и Smart TV одной фразой.",
+      "datePublished": "2026-05-29",
+      "dateModified": "2026-05-29",
+      "author": {
+        "@type": "Person",
+        "name": "Никита",
+        "url": "https://t.me/zapnikita95"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Movie Planner",
+        "url": "https://movie-planner.ru/"
+      },
+      "mainEntityOfPage": "https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html"
+    }
+    </script>
+</head>
+<body>
+  <div class="content-wrapper subpage-wrapper">
+    <header class="site-header-subpage">
+      <div class="header-content">
+        <a href="/" class="logo"><img src="../images/icon48.png" alt="Movie Planner">Movie Planner</a>
+        <a href="/" class="btn btn-small btn-primary">На главную</a>
+      </div>
+    </header>
+    <main class="container subpage-main">
+        <section class="article-content">
+            <h1>MCP и AI-агенты: подключите нейросеть к Movie Planner</h1>
+            <p class="date">29 мая 2026</p>
+
+            <p>Обычный чат с ИИ умеет <em>советовать</em> фильмы — и забывает через пять минут. <strong>Movie Planner</strong> хранит вашу базу, планы, билеты и напоминания. А через <strong>MCP</strong> (Model Context Protocol) вы подключаете агента на своём компьютере — Claude Desktop, Cursor, другие IDE — и просто говорите: «добавь «Дюну» в календарь на субботу» или «прикрепи билет к плану». Агент вызывает инструменты Movie Planner, и действие реально выполняется.</p>
+
+            <h2>Что такое MCP и зачем он пользователям Movie Planner</h2>
+            <p><strong>MCP</strong> — открытый протокол, через который нейросеть получает доступ к внешним сервисам как к «инструментам». Вместо копирования ссылок и ручного планирования вы формулируете задачу на человеческом языке, а агент дергает API Movie Planner.</p>
+            <p>Это не эксперимент «на будущее»: MCP-сервер Movie Planner уже работает — локально (stdio) и по HTTP на бэкенде. Через полгода–год такой сценарий станет стандартом для любого персонального ассистента. Сейчас — редкое преимущество для тех, кто настроит интеграцию первым.</p>
+
+            <h2>Что можно поручить агенту</h2>
+            <p>Примеры фраз, которые превращаются в реальные действия:</p>
+            <ul>
+                <li>«Добавь фильм <em>Матрица</em> в мою базу» — фильм появится в watchlist;</li>
+                <li>«Запланируй просмотр «Опенгеймер» в кино в субботу в 19:00, кинотеатр Октябрь» — создаётся план с напоминанием;</li>
+                <li>«Добавь это событие в Google Календарь» — пуш в календарь или ссылка на .ics;</li>
+                <li>«Вот скрин билета — прикрепи к плану на воскресенье» — билет сохраняется и придёт в уведомлении за 10 минут до сеанса;</li>
+                <li>«Что у меня в непросмотренном?» — агент читает вашу библиотеку и отвечает по фактам;</li>
+                <li>«Создай группу для друзей и дай invite-ссылку» — общий watchlist для компании;</li>
+                <li>«Запусти Interstellar на телевизоре» — команда на Smart TV через TV-агент;</li>
+                <li>«Поставь оценку 9 фильму, который смотрели вчера» — через API кабинета (расширяется в MCP).</li>
+            </ul>
+            <p>ИИ перестаёт быть собеседником и становится <strong>исполнителем</strong>: план попадает в базу, напоминание придёт в Telegram или приложение, билет не потеряется в галерее.</p>
+
+            <h2>Какие инструменты доступны агенту</h2>
+            <p>Официальный MCP-сервер Movie Planner оборачивает версионированный HTTP API <code>/v1</code>. Основные инструменты:</p>
+            <ul>
+                <li><strong>Фильмы</strong> — добавление по ссылке Кинопоиска или kp_id;</li>
+                <li><strong>Планы</strong> — домашний просмотр или поход в кино с датой, временем и кинотеатром;</li>
+                <li><strong>Календарь</strong> — Google Calendar, подписанные .ics-ссылки;</li>
+                <li><strong>Билеты</strong> — загрузка изображения к кино-плану, чтение списка;</li>
+                <li><strong>Библиотека</strong> — непросмотренное, профиль пользователя;</li>
+                <li><strong>Группы</strong> — создание и invite-ссылки для друзей;</li>
+                <li><strong>Smart TV</strong> — запуск фильма на телевизоре, поиск на Rutube/VK.</li>
+            </ul>
+            <p>Полный контракт: <a href="https://api.movie-planner.ru/developer/openapi.yaml">OpenAPI</a>, обзор для разработчиков — <a href="/agents.html">Нейросети и API</a>.</p>
+
+            <h2>Как подключить (Cursor, Claude Desktop)</h2>
+            <ol>
+                <li>Зарегистрируйтесь в Movie Planner (<a href="https://t.me/movie_planner_bot">Telegram-бот</a> или <a href="https://movie-planner.ru/">сайт</a>).</li>
+                <li>Получите Bearer-токен: войдите в кабинет → раздел «Нейросети и API», или пройдите OAuth2 PKCE для внешнего приложения (<a href="https://api.movie-planner.ru/developer">/developer</a>).</li>
+                <li>Добавьте MCP-сервер в конфиг IDE. Пример для Cursor:</li>
+            </ol>
+            <pre><code>{
+  "mcpServers": {
+    "movie-planner": {
+      "command": "python3",
+      "args": ["-m", "moviebot.mcp_server.stdio_server"],
+      "cwd": "/path/to/movie_planner_bot",
+      "env": {
+        "MP_BASE_URL": "https://api.movie-planner.ru",
+        "MP_BEARER_TOKEN": "ваш_токен"
+      }
+    }
+  }
+}</code></pre>
+            <p>Токен храните в секретах IDE, не коммитьте в git. Альтернатива — HTTP MCP на <code>api.movie-planner.ru/mcp</code> с тем же Bearer в заголовке <code>Authorization</code>.</p>
+
+            <h2>Почему это сильнее обычного GPT</h2>
+            <p>ChatGPT без интеграции не помнит ваш watchlist через месяц, не пришлёт билет в нужный момент и не синхронизирует план с друзьями. Movie Planner + MCP даёт:</p>
+            <ul>
+                <li><strong>персистентную память</strong> — база фильмов и сериалов живёт годами;</li>
+                <li><strong>напоминания</strong> — push и Telegram, не «напомни мне в чате»;</li>
+                <li><strong>группы</strong> — один план видят все участники;</li>
+                <li><strong>билеты и календарь</strong> — исполнение, а не текст «я бы добавил в календарь»;</li>
+                <li><strong>Smart TV</strong> — запуск на телевизоре одной командой агенту.</li>
+            </ul>
+
+            <h2>Безопасность</h2>
+            <p>Агент действует от вашего имени только с вашим токеном. OAuth2 поддерживает scopes: можно выдать доступ только на чтение планов или только на добавление фильмов. Токен можно отозвать в любой момент в кабинете.</p>
+
+            <h2>Куда смотреть дальше</h2>
+            <ul>
+                <li><a href="/agents.html">Страница «Нейросети и API»</a> — авторизация, таблица задач, ссылки;</li>
+                <li><a href="/llms.txt">llms.txt</a> — краткий контекст для LLM и поисковых агентов;</li>
+                <li><a href="https://github.com/zapnikita95/movie_planner_bot">Исходники на GitHub</a> — MCP-сервер в <code>moviebot/mcp_server/</code>;</li>
+                <li><a href="/articles/rasshirenie-chrome-dlya-kinomanov.html">Расширение Chrome</a> — добавление фильмов из браузера без агента.</li>
+            </ul>
+
+            <p>Movie Planner — один из первых русскоязычных сервисов для кино с полноценным MCP и API для агентов. Подключите агента сегодня — и через год вы уже будете жить в мире, где «спроси ИИ» значит «сделай в моём планировщике».</p>
+
+            <div class="back-links">
+                <a href="/">← На главную</a> |
+                <a href="/agents.html">Нейросети и API</a> |
+                <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">Запустить Movie Planner</a>
+            </div>
+        </section>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <h3>Контакты</h3>
+                    <p>📍 Москва</p>
+                    <p>📞 +7 (977) 613-45-08</p>
+                    <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></p>
+                </div>
+                <div class="footer-social">
+                    <h3>Мы в соцсетях</h3>
+                    <div class="social-links">
+                        <a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener" class="social-link" aria-label="Telegram канал"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg></a>
+                        <a href="https://instagram.com/movie_planner_bot" target="_blank" rel="noopener" class="social-link" aria-label="Instagram"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
+            </div>
+        </div>
+    </footer>
+  </div>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
