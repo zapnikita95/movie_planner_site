@@ -142,6 +142,24 @@
     });
   }
 
+  function bindOpenLinks(token) {
+    var mini = document.getElementById('open-plan-miniapp');
+    if (mini) {
+      mini.addEventListener('click', function (e) {
+        if (global.MpOpenTelegramLink) {
+          e.preventDefault();
+          MpOpenTelegramLink(mini.href);
+        }
+      });
+    }
+    var nat = document.getElementById('open-plan-native');
+    if (nat && global.MpAppOpenBanner && MpAppOpenBanner.tryOpenNativeApp) {
+      nat.addEventListener('click', function () {
+        MpAppOpenBanner.tryOpenNativeApp({ kind: 'plan-share', id: token });
+      });
+    }
+  }
+
   function init(opts) {
     opts = opts || {};
     var token = opts.token || parseTokenFromPath();
@@ -152,6 +170,7 @@
     mountAppBanner(token);
     initStandaloneChrome(token);
     bindAccept(token);
+    bindOpenLinks(token);
   }
 
   global.MpPlanSharePage = { init: init };
