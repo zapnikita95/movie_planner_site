@@ -9516,6 +9516,14 @@ body.site-search-sheet-open { overflow: hidden; }
   background: rgba(255,255,255,.045);
   color: #fff;
   text-decoration: none;
+  text-align: center;
+}
+.site-search-card > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
 }
 .site-search-card:hover {
   border-color: rgba(236,72,153,.36);
@@ -9536,14 +9544,19 @@ body.site-search-sheet-open { overflow: hidden; }
 .site-search-card-title {
   font-weight: 900;
   line-height: 1.2;
+  text-align: center;
+  width: 100%;
 }
 .site-search-card-meta {
   margin-top: 5px;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
   color: rgba(244,246,255,.58);
   font-size: 13px;
+  width: 100%;
+  text-align: center;
 }
 @media (max-width: 768px) {
   body.in-search-page .site-search-title,
