@@ -14,7 +14,10 @@
     <header class="site-header-subpage">
       <div class="header-content">
         <a href="/" class="logo"><img src="../images/icon48.png" alt="Movie Planner">Movie Planner</a>
-        <a href="/" class="btn btn-small btn-primary">На главную</a>
+        <div class="site-header-subpage-actions">
+          <a href="/?open_login=1" class="btn btn-small btn-secondary">Войти</a>
+          <a href="/" class="btn btn-small btn-primary">Открыть кабинет</a>
+        </div>
       </div>
     </header>
     <main class="container subpage-main">
@@ -38,15 +41,39 @@
             <h2>Новые серии — уведомления Telegram</h2>
             <p>Сообщение придёт прямо в Telegram, как только серия станет доступна. Не нужно заходить в приложения стримингов и проверять вручную — бот сделает это за вас.</p>
 
-            <div class="back-links">
-                <a href="/">← На главную</a> |
-                <a href="https://t.me/movie_planner_bot" target="_blank" rel="noopener">Запустить Movie Planner</a>
+            <div class="article-cta">
+                <p class="article-cta-lead">Попробуйте в приложении или веб-кабинете</p>
+                <div class="footer-store-row">
+                    <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/app-store-badge.svg" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+                    </a>
+                    <a href="/download" class="footer-store-badge" id="article-cta-android" target="_blank" rel="noopener">
+                        <img src="../images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+                    </a>
+                </div>
+                <div class="article-cta-secondary">
+                    <a href="/?open_login=1">Войти в кабинет</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/">На главную</a>
+                </div>
             </div>
-        </section>
+</section>
     </main>
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
+                <div class="article-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-store-row">
+                        <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/app-store-badge.svg" alt="App Store" width="110" height="36" loading="lazy">
+                        </a>
+                        <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/google-play-badge.svg" alt="Google Play" width="120" height="36" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+
                 <div class="footer-info">
                     <h3>Контакты</h3>
                     <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
@@ -64,6 +91,7 @@
         </div>
     </footer>
   </div>
+  <script src="article-chrome.js"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
