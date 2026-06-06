@@ -2362,6 +2362,40 @@
     return root;
   }
 
+  function isMobileSearchLayout() {
+    try {
+      return window.matchMedia('(max-width: 768px)').matches;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function updateSearchPageChrome() {
+    const hs = document.getElementById('header-search');
+    if (!hs) return;
+    if (document.body.classList.contains('in-search-page')) {
+      hs.classList.toggle('hidden', !isMobileSearchLayout());
+    }
+  }
+
+  function setHeaderSearchDropdownOpen(open) {
+    document.body.classList.toggle('header-search-dropdown-open', !!open);
+  }
+
+  function hideHeaderSearchDropdown() {
+    const dd = document.getElementById('header-search-dropdown');
+    if (dd) dd.classList.add('hidden');
+    setHeaderSearchDropdownOpen(false);
+  }
+
+  function syncSiteSearchFromHeader() {
+    const pageInput = document.getElementById('site-search-input');
+    const headerInput = document.getElementById('header-search-input');
+    if (pageInput && headerInput) pageInput.value = headerInput.value;
+    if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
+    _headerSearchDebounce = setTimeout(() => runSiteSearchPage(), 280);
+  }
+
   function showSiteSearchScreen() {
     ['landing', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
       const el = document.getElementById(id);
@@ -2373,8 +2407,7 @@
     if (header) header.classList.remove('hidden');
     document.body.classList.remove('in-cabinet', 'in-public-stats');
     document.body.classList.add('in-search-page');
-    const hs = document.getElementById('header-search');
-    if (hs) hs.classList.remove('hidden');
+    updateSearchPageChrome();
   }
 
   // P4.3: маппинг между разделами кабинета и URL-путями
@@ -9718,6 +9751,8 @@
     const recF = _readJsonLs(LS_FILM_RECENT, []);
     if (!recQ.length && !recF.length) {
       dd.innerHTML = '<div class="header-search-empty">Введите запрос не менее 2 символов</div>';
+      dd.classList.remove('hidden');
+      setHeaderSearchDropdownOpen(true);
       return;
     }
     let h = '';
@@ -9731,14 +9766,14 @@
     if (recF.length) {
       h += '<div class="header-search-recent-title">Недавние карточки</div>';
       recF.forEach((f) => {
-        const kpAttr = f.kp_id ? (' data-hs-row-kp="' + escapeHtml(String(f.kp_id)) + '"') : '';
-        h += '<div class="hs-result" role="option" tabindex="0"' + kpAttr + '>'
+        h += '<button type="button" class="hs-result hs-result--recent" data-hs-row-kp="' + escapeHtml(String(f.kp_id || '')) + '">'
         + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="">' ) : '<div class="hs-result-poster"></div>')
-        + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div></div></div>';
+        + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div></div></button>';
       });
     }
     dd.innerHTML = h;
     dd.classList.remove('hidden');
+    setHeaderSearchDropdownOpen(true);
   }
 
   function openHeaderSearchResult(kp) {
@@ -9747,7 +9782,7 @@
     const dd = document.getElementById('header-search-dropdown');
     const input = document.getElementById('header-search-input');
     const clearBtn = document.getElementById('header-search-clear');
-    if (dd) dd.classList.add('hidden');
+    hideHeaderSearchDropdown();
     if (input) input.value = '';
     if (clearBtn) clearBtn.classList.add('hidden');
     if (!getToken()) {
@@ -9763,6 +9798,7 @@
     if (!items || !items.length) {
       dd.innerHTML = `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
       dd.classList.remove('hidden');
+      setHeaderSearchDropdownOpen(true);
       return;
     }
     const top = items.slice(0, 6);
@@ -9789,18 +9825,21 @@
       ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${items.length})</button></div>`
       : '');
     dd.classList.remove('hidden');
+    setHeaderSearchDropdownOpen(true);
   }
 
   function runHeaderSearch(query) {
     const seq = ++_headerSearchSeq;
     const dd = document.getElementById('header-search-dropdown');
     if (!query || query.length < 2) {
-      if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+      hideHeaderSearchDropdown();
+      if (dd) dd.innerHTML = '';
       return;
     }
     if (dd) {
       dd.innerHTML = '<div class="header-search-loading">Ищем…</div>';
       dd.classList.remove('hidden');
+      setHeaderSearchDropdownOpen(true);
     }
     // Link shortcut
     if (/kinopoisk\.(ru|com)\/(film|series)\//i.test(query) || /imdb\.com\/title\/tt\d+/i.test(query)) {
@@ -10026,7 +10065,10 @@
         <div class="site-search-hero">
           <h1 class="site-search-title">Поиск</h1>
           <form class="site-search-controls" id="site-search-form">
-            <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
+            <div class="site-search-field">
+              <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
+              <button type="button" class="site-search-mic" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
+            </div>
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
           ${siteSearchFilterToolbarHtml()}
@@ -10036,9 +10078,16 @@
         <div class="site-search-results" id="site-search-results"></div>
       </section>`;
     bindSiteSearchPage();
+    const headerInput = document.getElementById('header-search-input');
+    const headerClear = document.getElementById('header-search-clear');
+    if (headerInput) {
+      headerInput.value = q;
+      if (headerClear) headerClear.classList.toggle('hidden', !q);
+    }
     if (q.length >= 2) runSiteSearchPage();
     const input = document.getElementById('site-search-input');
-    if (input) setTimeout(() => input.focus(), 50);
+    if (input && !isMobileSearchLayout()) setTimeout(() => input.focus(), 50);
+    updateSearchPageChrome();
   }
 
   function bindSiteSearchPage() {
@@ -10056,6 +10105,8 @@
       });
     }
     if (input) input.addEventListener('input', schedule);
+
+    bindSearchVoiceMic(input, document.getElementById('site-search-mic'));
 
     ['site-sf-chip-type', 'site-sf-chip-year', 'site-sf-chip-genre', 'site-sf-open'].forEach((id) => {
       const el = document.getElementById(id);
@@ -10101,9 +10152,13 @@
 
   function runSiteSearchPage() {
     const input = document.getElementById('site-search-input');
+    const headerInput = document.getElementById('header-search-input');
     const results = document.getElementById('site-search-results');
     const status = document.getElementById('site-search-status');
     if (!input || !results) return;
+    if (isMobileSearchLayout() && headerInput && document.body.classList.contains('in-search-page')) {
+      input.value = headerInput.value;
+    }
     const q = input.value.trim();
     if (q.length < 2) {
       results.innerHTML = '';
@@ -10168,6 +10223,59 @@
       });
   }
 
+  function bindSearchVoiceMic(input, mic) {
+    if (!mic || !input || mic._mpVox) return;
+    mic._mpVox = true;
+    mic.addEventListener('click', () => {
+      if (!getToken()) { showToast('Войдите в кабинет'); return; }
+      if (mic._mpRec) {
+        const r = mic._mpRecorder;
+        if (r && r.state === 'recording') { try { r.stop(); } catch (e) {} }
+        return;
+      }
+      if (mic._mpPending) return;
+      if (!navigator.mediaDevices || !window.MediaRecorder) { showToast('В браузере нет записи с микрофона'); return; }
+      mic._mpPending = true;
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        mic._mpPending = false;
+        const ch = [];
+        const opt = (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') && 'audio/webm;codecs=opus') || (MediaRecorder.isTypeSupported('audio/webm') && 'audio/webm') || 'audio/ogg';
+        const rec = new MediaRecorder(stream, { mimeType: opt });
+        mic._mpRecorder = rec;
+        rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) ch.push(ev.data); };
+        rec.onstop = () => {
+          try { stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+          mic._mpRecorder = null;
+          mic.classList.remove('recording');
+          mic._mpRec = false;
+          if (!ch.length) { showToast('Пустая запись'); return; }
+          const blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
+          const fd = new FormData();
+          fd.append('audio', blob, 'q.webm');
+          const h = { Authorization: 'Bearer ' + getToken() };
+          fetch(API_BASE + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: h })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d && d.success && d.text) {
+                input.value = d.text;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                if (document.body.classList.contains('in-search-page') && isMobileSearchLayout()) {
+                  syncSiteSearchFromHeader();
+                } else if (input.id === 'site-search-input') {
+                  runSiteSearchPage();
+                }
+              } else {
+                showToast('Не распознали. Повторите или введите текст');
+              }
+            })
+            .catch(() => { showToast('Ошибка сети'); });
+        };
+        mic._mpRec = true; mic.classList.add('recording');
+        rec.start(100);
+      }).catch(() => { mic._mpPending = false; showToast('Нет доступа к микрофону'); });
+    });
+  }
+
   function bindHeaderSearch() {
     const wrap = document.getElementById('header-search');
     const input = document.getElementById('header-search-input');
@@ -10178,21 +10286,37 @@
     input.addEventListener('input', () => {
       const v = input.value.trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !v);
+      if (document.body.classList.contains('in-search-page') && isMobileSearchLayout()) {
+        syncSiteSearchFromHeader();
+        return;
+      }
       if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
       _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), 280);
     });
     input.addEventListener('focus', () => {
       const v = input.value.trim();
       if (v.length < 2 && dd) showHeaderSearchRecents(dd);
-      else if (v.length >= 2 && dd && dd.innerHTML) dd.classList.remove('hidden');
+      else if (v.length >= 2 && dd && dd.innerHTML) {
+        dd.classList.remove('hidden');
+        setHeaderSearchDropdownOpen(true);
+      }
     });
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { input.value = ''; if (dd) dd.classList.add('hidden'); input.blur(); }
+      if (e.key === 'Escape') {
+        input.value = '';
+        hideHeaderSearchDropdown();
+        input.blur();
+      }
       if (e.key === 'Enter') {
         const v = input.value.trim();
         if (v.length >= 2) {
-          if (dd) dd.classList.add('hidden');
-          openSiteSearchPage(v);
+          hideHeaderSearchDropdown();
+          if (document.body.classList.contains('in-search-page')) {
+            syncSiteSearchFromHeader();
+            runSiteSearchPage();
+          } else {
+            openSiteSearchPage(v);
+          }
         }
       }
     });
@@ -10200,24 +10324,35 @@
       clearBtn.addEventListener('click', () => {
         input.value = '';
         clearBtn.classList.add('hidden');
-        if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+        hideHeaderSearchDropdown();
+        if (document.body.classList.contains('in-search-page') && isMobileSearchLayout()) {
+          syncSiteSearchFromHeader();
+        }
         input.focus();
       });
     }
     document.addEventListener('click', (e) => {
-      if (!wrap.contains(e.target)) {
-        if (dd) dd.classList.add('hidden');
-      }
+      if (!wrap.contains(e.target)) hideHeaderSearchDropdown();
     });
-    // Dropdown delegation
     if (dd) {
+      dd.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
       dd.addEventListener('click', (e) => {
         const recQbtn = e.target.closest('[data-hs-recent-q]');
         if (recQbtn) {
           e.preventDefault();
           e.stopPropagation();
-          const q = recQbtn.getAttribute('data-hs-recent-q') || recQbtn.textContent;
-          if (q && input) { input.value = q; input.dispatchEvent(new Event('input', { bubbles: true })); }
+          const q = (recQbtn.getAttribute('data-hs-recent-q') || recQbtn.textContent || '').trim();
+          if (!q || !input) return;
+          hideHeaderSearchDropdown();
+          if (document.body.classList.contains('in-search-page')) {
+            input.value = q;
+            syncSiteSearchFromHeader();
+            runSiteSearchPage();
+          } else {
+            openSiteSearchPage(q);
+          }
           return;
         }
         const addBtn = e.target.closest('[data-hs-add-kp]');
@@ -10246,6 +10381,7 @@
         const row = e.target.closest('.hs-result[data-hs-row-kp]');
         if (row && !e.target.closest('[data-hs-add-kp]')) {
           e.preventDefault();
+          e.stopPropagation();
           openHeaderSearchResult(row.getAttribute('data-hs-row-kp'));
           return;
         }
@@ -10254,7 +10390,7 @@
           e.preventDefault();
           e.stopPropagation();
           const rowKp = openFilm.closest('[data-hs-row-kp]');
-          if (dd) dd.classList.add('hidden');
+          hideHeaderSearchDropdown();
           input.value = '';
           if (clearBtn) clearBtn.classList.add('hidden');
           if (rowKp && rowKp.getAttribute('data-hs-row-kp')) {
@@ -10268,56 +10404,16 @@
         if (showAll) {
           e.preventDefault();
           const v = input.value.trim();
-          if (dd) dd.classList.add('hidden');
+          hideHeaderSearchDropdown();
           openSiteSearchPage(v);
         }
       });
     }
-    const mic = document.getElementById('header-search-mic');
-    if (mic && !mic._mpVox) {
-      mic._mpVox = true;
-      let rec = null; let ch = [];
-      mic.addEventListener('click', () => {
-        if (!getToken()) { showToast('Войдите в кабинет'); return; }
-        if (mic._mpRec) {
-          const r = mic._mpRecorder;
-          if (r && r.state === 'recording') { try { r.stop(); } catch (e) {} }
-          return;
-        }
-        if (mic._mpPending) return;
-        if (!navigator.mediaDevices || !window.MediaRecorder) { showToast('В браузере нет записи с микрофона'); return; }
-        mic._mpPending = true;
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-          mic._mpPending = false;
-          ch = [];
-          const opt = (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') && 'audio/webm;codecs=opus') || (MediaRecorder.isTypeSupported('audio/webm') && 'audio/webm') || 'audio/ogg';
-          rec = new MediaRecorder(stream, { mimeType: opt });
-          mic._mpRecorder = rec;
-          rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) ch.push(ev.data); };
-          rec.onstop = () => {
-            try { stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
-            mic._mpRecorder = null;
-            mic.classList.remove('recording');
-            mic._mpRec = false;
-            if (!ch.length) { showToast('Пустая запись'); return; }
-            const blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
-            const fd = new FormData();
-            fd.append('audio', blob, 'q.webm');
-            const h = { Authorization: 'Bearer ' + getToken() };
-            fetch(API_BASE + '/api/site/voice-transcribe', { method: 'POST', body: fd, headers: h })
-              .then((r) => r.json())
-              .then((d) => {
-                if (d && d.success && d.text) {
-                  if (input) { input.value = d.text; input.dispatchEvent(new Event('input', { bubbles: true })); }
-                } else {
-                  showToast('Не распознали. Повторите или введите текст');
-                }
-              })
-              .catch(() => { showToast('Ошибка сети'); });
-          };
-          mic._mpRec = true; mic.classList.add('recording');
-          rec.start(100);
-        }).catch(() => { mic._mpPending = false; showToast('Нет доступа к микрофону'); });
+    bindSearchVoiceMic(input, document.getElementById('header-search-mic'));
+    if (!window._mpSearchChromeResize) {
+      window._mpSearchChromeResize = true;
+      window.addEventListener('resize', () => {
+        try { updateSearchPageChrome(); } catch (_) {}
       });
     }
   }
