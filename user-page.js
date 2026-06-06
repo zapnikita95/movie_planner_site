@@ -101,10 +101,16 @@
   function achCircleHtml(a) {
     var id = String((a && (a.id || a.achievement_id)) || '').trim();
     var tip = achTip(a);
+    var name = achName(a);
+    var desc = (a && a.description) || '';
     var icon = (a && a.icon) || '🏅';
     return (
-      '<button type="button" class="user-profile-ach" data-ach-id="' + escapeHtml(id) + '" title="' + escapeHtml(tip) + '" aria-label="' + escapeHtml(tip) + '">' +
+      '<button type="button" class="user-profile-ach" data-ach-id="' + escapeHtml(id) + '" aria-label="' + escapeHtml(tip) + '">' +
         '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+        '<span class="user-profile-ach-tip" role="tooltip">' +
+          '<span class="user-profile-ach-tip-name">' + escapeHtml(name) + '</span>' +
+          (desc ? '<span class="user-profile-ach-tip-desc">' + escapeHtml(desc) + '</span>' : '') +
+        '</span>' +
       '</button>'
     );
   }
@@ -178,21 +184,21 @@
 
     var statsHtml =
       '<div class="user-profile-stats">' +
-        '<div class="user-profile-stat user-profile-stat--static">' +
+        '<button type="button" class="user-profile-stat" data-action="ratings-scroll">' +
           '<span class="user-profile-stat-val">' + escapeHtml(String(ratingsCount)) + '</span>' +
-          '<span class="user-profile-stat-label">оценок</span></div>' +
+          '<span class="user-profile-stat-label">оценок</span></button>' +
         (watchedCount != null
-          ? '<div class="user-profile-stat user-profile-stat--static">' +
+          ? '<button type="button" class="user-profile-stat" data-action="watched-scroll">' +
               '<span class="user-profile-stat-val">' + escapeHtml(String(watchedCount)) + '</span>' +
-              '<span class="user-profile-stat-label">просмотрено</span></div>'
+              '<span class="user-profile-stat-label">просмотр.</span></button>'
           : '') +
-        '<div class="user-profile-stat user-profile-stat--static">' +
+        '<button type="button" class="user-profile-stat" data-action="ach-all">' +
           '<span class="user-profile-stat-val">' + escapeHtml(String(achTotal)) + '</span>' +
-          '<span class="user-profile-stat-label">ачивок</span></div>' +
+          '<span class="user-profile-stat-label">ачивок</span></button>' +
       '</div>';
 
     var recentHtml = recent.length
-      ? '<div class="user-profile-block">' +
+      ? '<div class="user-profile-block" id="user-public-recent-block">' +
           '<h3 class="user-profile-block-title">Последние оценки</h3>' +
           '<div class="user-profile-rating-list">' + recent.map(ratingRowHtml).join('') + '</div>' +
         '</div>'
@@ -251,12 +257,23 @@
       });
     }
 
-    var achAll = document.getElementById('user-public-ach-all');
-    if (achAll) {
-      achAll.addEventListener('click', function () {
+    root.querySelectorAll('[data-action="ach-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         openAllAchievementsModal(achList, achTotal);
       });
-    }
+    });
+    root.querySelectorAll('[data-action="ratings-scroll"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = root.querySelector('#user-public-recent-block');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    root.querySelectorAll('[data-action="watched-scroll"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = root.querySelector('#user-public-recent-block');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
   }
 
   function pageLoadingHtml() {

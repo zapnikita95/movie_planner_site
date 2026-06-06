@@ -34,10 +34,16 @@
 
   function achCircleHtml(a) {
     const tip = achTip(a);
+    const name = achName(a);
+    const desc = (a && a.description) || '';
     const icon = (a && a.icon) || '🏅';
     return (
-      '<button type="button" class="user-profile-ach" title="' + escapeHtml(tip) + '" aria-label="' + escapeHtml(tip) + '">' +
+      '<button type="button" class="user-profile-ach" aria-label="' + escapeHtml(tip) + '">' +
         '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+        '<span class="user-profile-ach-tip" role="tooltip">' +
+          '<span class="user-profile-ach-tip-name">' + escapeHtml(name) + '</span>' +
+          (desc ? '<span class="user-profile-ach-tip-desc">' + escapeHtml(desc) + '</span>' : '') +
+        '</span>' +
       '</button>'
     );
   }
@@ -125,18 +131,18 @@
               '<span class="user-profile-stat-label">непросмотр.</span></button>'
           : '') +
         (watched != null && (isFriend || isSelf)
-          ? '<div class="user-profile-stat user-profile-stat--static">' +
+          ? '<button type="button" class="user-profile-stat" data-action="watched-scroll">' +
               '<span class="user-profile-stat-val">' + escapeHtml(String(watched)) + '</span>' +
-              '<span class="user-profile-stat-label">просмотрено</span></div>'
+              '<span class="user-profile-stat-label">просмотр.</span></button>'
           : '') +
-        '<button type="button" class="user-profile-stat" data-action="ach-scroll">' +
+        '<button type="button" class="user-profile-stat" data-action="ach-all">' +
           '<span class="user-profile-stat-val">' + escapeHtml(String(data.achievements_count || (data.achievements || []).length || 0)) + '</span>' +
           '<span class="user-profile-stat-label">ачивок</span></button>' +
       '</div>';
 
     const recent = (data.recent_ratings || []).slice(0, 12);
     const recentHtml = recent.length
-      ? '<div class="user-profile-block">' +
+      ? '<div class="user-profile-block" id="user-profile-recent-block">' +
           '<h3 class="user-profile-block-title">Последние оценки</h3>' +
           '<div class="user-profile-rating-list">' + recent.map(function (r) { return ratingRowHtml(r, hooks); }).join('') + '</div>' +
           (Number(data.ratings_count) > recent.length
@@ -251,19 +257,27 @@
         })
         .catch(function (e) { if (hooks.toast) hooks.toast((e && e.message) || 'Ошибка', 'error'); });
     });
-    root.querySelector('[data-action="ratings-all"]')?.addEventListener('click', function () {
-      loadRatingsList(root, uid, hooks);
+    root.querySelectorAll('[data-action="ratings-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        loadRatingsList(root, uid, hooks);
+      });
     });
-    root.querySelector('[data-action="unwatched-all"]')?.addEventListener('click', function () {
-      loadUnwatchedList(root, uid, hooks);
+    root.querySelectorAll('[data-action="unwatched-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        loadUnwatchedList(root, uid, hooks);
+      });
     });
-    root.querySelector('[data-action="ach-scroll"]')?.addEventListener('click', function () {
-      var el = root.querySelector('#user-profile-ach-block');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      else if (hooks.toast) hooks.toast('Пока нет достижений');
+    root.querySelectorAll('[data-action="ach-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        loadAchievementsList(root, uid, allAchievements, achTotal, hooks);
+      });
     });
-    root.querySelector('[data-action="ach-all"]')?.addEventListener('click', function () {
-      loadAchievementsList(root, uid, allAchievements, achTotal, hooks);
+    root.querySelectorAll('[data-action="watched-scroll"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = root.querySelector('#user-profile-recent-block');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else if (hooks.toast) hooks.toast('Просмотрено: ' + String(watched != null ? watched : '—'));
+      });
     });
   }
 
