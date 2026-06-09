@@ -10576,13 +10576,49 @@
     { label: '7.5+', value: 7.5 },
     { label: '8+', value: 8 },
   ];
-  const WTW_MENU_MODES = [
-    { id: 'my_unwatched', kind: 'random', emoji: '🎲', title: 'Рандом по своей базе', backDesc: 'Вы получите случайный непросмотренный фильм из вашей базы — удобно, когда не знаете, что включить.' },
-    { id: 'kp_random', kind: 'random', emoji: '🎬', title: 'Рандом по Кинопоиску', backDesc: 'Вы получите случайную картину из каталога Кинопоиска. Можно открыть страницу фильма и добавить в базу.' },
-    { id: 'similar_my_top', kind: 'random', emoji: '⭐', title: 'По моим оценкам 9–10', backDesc: 'Вы получите непросмотренный фильм, похожий на те, что вы оценили на 9 или 10.' },
-    { id: 'wizard', kind: 'wizard', emoji: '🎯', title: 'По жанрам / годам / рейтингу', backDesc: 'Вы пройдёте короткий опрос: источник, жанры, годы и тип — мы подберём фильм под ваши ответы.' },
-    { id: 'premieres_reco', kind: 'premieres_reco', emoji: '🎟️', title: 'Рекомендации премьер', backDesc: 'Вы увидите премьеру, которая совпадёт с вашими любимыми жанрами и актёрами.' },
-  ];
+  const SITE_WTW_SCOPES = {
+    library: {
+      key: 'library',
+      icon: '🧺',
+      label: 'Непросмотренные',
+      modes: [
+        { id: 'my_unwatched', kind: 'random', emoji: '🎲', title: 'Случайный фильм', hint: 'Из ваших непросмотренных' },
+        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', emoji: '🎯', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
+      ],
+    },
+    world: {
+      key: 'world',
+      icon: '🌍',
+      label: 'Со всего мира',
+      modes: [
+        { id: 'kp_random', kind: 'random', emoji: '🎲', title: 'Случайный фильм', hint: 'Из всех фильмов или свежие премьеры' },
+        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', emoji: '🎯', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
+        { id: 'similar_my_top', kind: 'random', emoji: '⭐', title: 'По оценкам в базе', hint: 'Похожие на ваши высокие оценки, ещё не в базе' },
+        { id: 'premieres_reco', kind: 'premieres_reco', emoji: '🎟️', title: 'Рекомендации премьер', hint: 'Новинки в прокате по вашему вкусу' },
+      ],
+    },
+  };
+  let siteWtwScope = 'library';
+
+  function siteWtwScopeLabelHtml(label) {
+    const linesByLabel = {
+      'Непросмотренные': ['Непросмот', 'ренные'],
+      'Со всего мира': ['Со всего', 'мира'],
+    };
+    const lines = linesByLabel[label] || [label];
+    return '<span class="plan-mode-label wtw-scope-label">'
+      + lines.map((line) => '<span class="wtw-scope-label-line">' + escapeHtml(line) + '</span>').join('')
+      + '</span>';
+  }
+
+  function siteWtwModesForScope(scopeKey) {
+    const def = SITE_WTW_SCOPES[scopeKey];
+    return def && def.modes ? def.modes : [];
+  }
+
+  function findSiteWtwMode(id) {
+    return siteWtwModesForScope('library').concat(siteWtwModesForScope('world')).find((m) => m.id === id) || null;
+  }
 
   function setWhatchtwatchResult(html) {
     const el = document.getElementById('whattowatch-result');
@@ -10740,7 +10776,7 @@
       return;
     }
     if (m.kind === 'wizard') {
-      openSiteWtwWizardOverlay();
+      openSiteWtwWizardOverlay(m.wizardScope || null);
       return;
     }
     if (m.kind === 'premieres_reco') {
@@ -10748,30 +10784,62 @@
     }
   }
 
+  function renderSiteWtwModesList(scopeKey) {
+    return siteWtwModesForScope(scopeKey).map((m) =>
+      '<button type="button" class="site-wtw-mode-row" data-wtw-id="' + escapeHtml(m.id) + '">'
+      + '<span class="site-wtw-mode-emoji">' + m.emoji + '</span>'
+      + '<span class="site-wtw-mode-text"><span class="site-wtw-mode-title">' + escapeHtml(m.title) + '</span>'
+      + '<span class="site-wtw-mode-hint">' + escapeHtml(m.hint) + '</span></span>'
+      + '<span class="site-wtw-mode-arrow">›</span></button>',
+    ).join('');
+  }
+
+  function bindSiteWtwModeRows(root) {
+    if (!root) return;
+    root.querySelectorAll('.site-wtw-mode-row').forEach((row) => {
+      const id = row.getAttribute('data-wtw-id');
+      const mode = findSiteWtwMode(id);
+      row.addEventListener('click', () => triggerWtwModeAction(mode));
+    });
+  }
+
   function renderWhattowatchSection() {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
-    root.innerHTML = '<div class="wtw-mode-grid">' + WTW_MENU_MODES.map(renderWtwModeFlipCard).join('') + '</div>'
+    try {
+      const saved = sessionStorage.getItem('mp_wtw_scope');
+      if (saved === 'world' || saved === 'library') siteWtwScope = saved;
+    } catch (_) {}
+
+    const lib = SITE_WTW_SCOPES.library;
+    const world = SITE_WTW_SCOPES.world;
+    root.innerHTML =
+      '<div class="plan-mode-toggle wtw-scope-toggle">'
+      + '<button type="button" class="plan-mode' + (siteWtwScope === 'library' ? ' active' : '') + '" data-site-wtw-scope="library">'
+      + '<span class="plan-mode-icon">' + lib.icon + '</span>' + siteWtwScopeLabelHtml(lib.label) + '</button>'
+      + '<button type="button" class="plan-mode' + (siteWtwScope === 'world' ? ' active' : '') + '" data-site-wtw-scope="world">'
+      + '<span class="plan-mode-icon">' + world.icon + '</span>' + siteWtwScopeLabelHtml(world.label) + '</button>'
+      + '</div>'
+      + '<div class="site-wtw-modes" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
       + '<div id="whattowatch-result" class="whattowatch-result"></div>';
-    root.querySelectorAll('.wtw-flip-card').forEach((card) => {
-      const id = card.getAttribute('data-wtw-id');
-      const mode = WTW_MENU_MODES.find((x) => x.id === id);
-      const run = () => triggerWtwModeAction(mode);
-      card.querySelectorAll('.wtw-flip-action').forEach((btn) => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); run(); });
-      });
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.wtw-flip-action')) return;
-        card.classList.toggle('is-flipped');
-      });
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          if (card.classList.contains('is-flipped')) run();
-          else card.classList.add('is-flipped');
+
+    root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sc = btn.getAttribute('data-site-wtw-scope');
+        if (sc !== 'library' && sc !== 'world') return;
+        siteWtwScope = sc;
+        try { sessionStorage.setItem('mp_wtw_scope', sc); } catch (_) {}
+        root.querySelectorAll('[data-site-wtw-scope]').forEach((b) => {
+          b.classList.toggle('active', b.getAttribute('data-site-wtw-scope') === sc);
+        });
+        const modesEl = root.querySelector('#site-wtw-modes');
+        if (modesEl) {
+          modesEl.innerHTML = renderSiteWtwModesList(sc);
+          bindSiteWtwModeRows(modesEl);
         }
       });
     });
+    bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
   }
 
   function ensureSiteWtwWizardOverlay() {
@@ -10800,14 +10868,15 @@
     document.body.style.overflow = '';
   }
 
-  function openSiteWtwWizardOverlay() {
+  function openSiteWtwWizardOverlay(presetScope) {
     const overlay = ensureSiteWtwWizardOverlay();
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    const preset = presetScope === 'library' || presetScope === 'world' ? presetScope : null;
     const state = {
-      step: 'source',
-      source: 'auto',
+      step: preset ? 'genres' : 'source',
+      source: preset === 'library' ? 'library' : preset === 'world' ? 'kp' : 'auto',
       genres: [],
       yearRanges: [],
       minRating: null,
