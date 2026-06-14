@@ -757,6 +757,40 @@
                     <p class="cabinet-hint">Список сериалов вашей базы. Откройте карточку для управления прогрессом и просмотром.</p>
                     <div id="series-list" class="cards-list"></div>
                 </section>
+                <section id="section-series-hub" class="cabinet-section hidden">
+                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
+                    <div class="plans-filter-tabs series-hub-tabs" role="tablist" aria-label="Сериалы">
+                        <button type="button" class="plans-filter-tab active" data-series-hub-tab="upcoming">🔜 Скоро выходят</button>
+                        <button type="button" class="plans-filter-tab" data-series-hub-tab="recommendations">✨ Рекомендации</button>
+                        <button type="button" class="plans-filter-tab" data-series-hub-tab="library">🗄️ Ваша база</button>
+                    </div>
+                    <div id="series-hub-grid-panel" class="series-hub-grid-panel hidden"></div>
+                    <div id="series-hub-library-panel" class="series-hub-library-panel hidden">
+                        <div class="base-section-tools-row base-section-tools-row--stack">
+                            <div class="base-search-wrap">
+                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <input type="text" id="section-search-series-hub" class="section-search base-search-input" placeholder="Найти" data-section="series-hub" aria-label="Поиск сериалов" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="base-filter-toolbar" aria-label="Фильтры">
+                            <div class="base-filter-toolbar-scroll">
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год от</span>
+                                    <input type="text" id="section-filter-series-hub-year-from" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год от">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field">
+                                    <span class="base-filter-chip-k">Год до</span>
+                                    <input type="text" id="section-filter-series-hub-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
+                                </label>
+                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                    <span class="base-filter-chip-k">Жанр</span>
+                                    <input type="text" id="section-filter-series-hub-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                </label>
+                            </div>
+                        </div>
+                        <div id="series-hub-list" class="cards-list"></div>
+                    </div>
+                </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch">
                     <h2 class="section-title"><span class="section-title-emoji">🎯</span><span class="section-title-text">Что посмотреть</span></h2>
                     <div id="whattowatch-content" class="whattowatch-content"></div>

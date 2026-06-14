@@ -1256,7 +1256,7 @@
         } else {
           loadPlans();
           loadUnwatched();
-          setTimeout(function () { loadSeries(); }, 120);
+          setTimeout(function () { loadSeries(); loadSeriesMixForHome(); }, 120);
           setTimeout(function () { loadRatings(); }, 240);
           handleAuthEntryDeepLinks();
           pathUserBoot = userIdFromLocation();
@@ -2416,6 +2416,7 @@
     plans: '/plans',
     unwatched: '/watchlist',
     series: '/series',
+    'series-hub': '/series-hub',
     whattowatch: '/whattowatch',
     shazam: '/shazam',
     ratings: '/ratings',
@@ -3154,7 +3155,8 @@
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
       tShown = t;
-      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings') ? 'unwatched' : sectionId;
+      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings') ? 'unwatched'
+        : sectionId === 'series-hub' ? 'home' : sectionId;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
         if (b.getAttribute('data-section') === activeNavSection) b.classList.add('active');
@@ -3196,6 +3198,9 @@
       try {
         if (_cabinetMeCache) refreshGroupSuggestions(_cabinetMeCache);
       } catch (_) {}
+    }
+    if (rendered && sectionId === 'series-hub') {
+      try { renderSeriesHubSection(); } catch (_) {}
     }
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.toggle('hidden', sectionId !== 'home');
@@ -4772,7 +4777,7 @@
   const HOME_BLOCK_META = {
     plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
     unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
-    series: { title: 'Сериалы', section: 'series', moreLabel: 'Все сериалы →' },
+    series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
     recent_ratings: { title: 'Недавние оценки', section: 'stats', moreLabel: 'Статистика →' },
     tournament: { title: 'Турнирная таблица', section: 'tournament', moreLabel: 'Вся таблица →' },
@@ -5145,7 +5150,7 @@
     }
 
     if (blockId === 'series') {
-      const items = (typeof seriesItems !== 'undefined' ? seriesItems : []).slice(0, 16);
+      const items = (typeof seriesMixItems !== 'undefined' ? seriesMixItems : []).slice(0, 16);
       if (!items.length) {
         return '<section class="home-dash-block">' + head
           + renderHomeBlockCtaHtml(
@@ -5854,6 +5859,8 @@
   let unwatchedItems = [];
   let unwatchedSortMode = 'date';
   let seriesItems = [];
+  let seriesMixItems = [];
+  let _seriesHubTab = 'upcoming';
   let ratingsItems = [];
 
   function sectionSearchQuery(section) {
@@ -6009,15 +6016,117 @@
       </div>`;
   }
 
+  function seriesListContext() {
+    const hubSec = document.getElementById('section-series-hub');
+    const hubLibrary = hubSec && !hubSec.classList.contains('hidden') && _seriesHubTab === 'library';
+    return {
+      elId: hubLibrary ? 'series-hub-list' : 'series-list',
+      sectionKey: hubLibrary ? 'series-hub' : 'series',
+    };
+  }
+
+  function renderSeriesHubSearchCard(it) {
+    const kp = String(it.kp_id || '');
+    const poster = cleanPosterUrl(it.poster) || posterUrl(it.kp_id);
+    const metaParts = [];
+    if (it.next_episode_label) metaParts.push(it.next_episode_label);
+    else if (it.year) metaParts.push(String(it.year));
+    metaParts.push('Сериал');
+    const meta = metaParts.join(' · ');
+    return '<button type="button" class="site-search-card" data-site-search-kp="' + escapeHtml(kp) + '">'
+      + (poster
+        ? '<img class="site-search-poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'site-search-poster\',textContent:\'📺\'}))">'
+        : '<span class="site-search-poster">📺</span>')
+      + '<span><span class="site-search-card-title">' + escapeHtml(it.title || '') + '</span>'
+      + '<span class="site-search-card-meta"><span>' + escapeHtml(meta) + '</span></span></span></button>';
+  }
+
+  function bindSeriesHubTabsOnce() {
+    const sec = document.getElementById('section-series-hub');
+    if (!sec || sec.dataset.hubBound) return;
+    sec.dataset.hubBound = '1';
+    sec.querySelectorAll('[data-series-hub-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        _seriesHubTab = btn.getAttribute('data-series-hub-tab') || 'upcoming';
+        renderSeriesHubSection();
+      });
+    });
+  }
+
+  function bindSeriesHubLibraryFiltersOnce() {
+    bindSectionSearchOnce('series-hub', renderSeriesList);
+    ['year-from', 'year-to', 'genre'].forEach((suffix) => {
+      const el = document.getElementById('section-filter-series-hub-' + suffix);
+      if (el && !el.dataset.bound) {
+        el.dataset.bound = '1';
+        el.addEventListener('input', renderSeriesList);
+        el.addEventListener('change', renderSeriesList);
+      }
+    });
+  }
+
+  function renderSeriesHubSection() {
+    const sec = document.getElementById('section-series-hub');
+    if (!sec) return;
+    bindSeriesHubTabsOnce();
+    sec.querySelectorAll('[data-series-hub-tab]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-series-hub-tab') === _seriesHubTab);
+    });
+    const gridPanel = document.getElementById('series-hub-grid-panel');
+    const libPanel = document.getElementById('series-hub-library-panel');
+    if (gridPanel) gridPanel.classList.toggle('hidden', _seriesHubTab === 'library');
+    if (libPanel) libPanel.classList.toggle('hidden', _seriesHubTab !== 'library');
+    if (_seriesHubTab === 'library') {
+      bindSeriesHubLibraryFiltersOnce();
+      if (!seriesItems.length) loadSeries();
+      else renderSeriesList();
+      return;
+    }
+    if (!gridPanel) return;
+    gridPanel.classList.remove('hidden');
+    gridPanel.innerHTML = '<p class="empty-hint">Загружаем…</p>';
+    const url = _seriesHubTab === 'upcoming'
+      ? '/api/site/series/upcoming?offset=0&limit=60'
+      : '/api/site/series/recommendations?offset=0&limit=60';
+    api(url).then((data) => {
+      const items = (data && data.items) || [];
+      if (!items.length) {
+        gridPanel.innerHTML = '<p class="empty-hint">'
+          + (_seriesHubTab === 'upcoming'
+            ? 'Нет сериалов с ближайшими сериями'
+            : 'Пока нет рекомендаций — добавьте сериалы в базу')
+          + '</p>';
+        return;
+      }
+      gridPanel.innerHTML = '<div class="site-search-results">' + items.map(renderSeriesHubSearchCard).join('') + '</div>';
+      gridPanel.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const kp = btn.getAttribute('data-site-search-kp');
+          if (kp) openFilmPageByKp(kp);
+        });
+      });
+    }).catch(() => {
+      gridPanel.innerHTML = '<p class="empty-hint">Не удалось загрузить</p>';
+    });
+  }
+
+  function loadSeriesMixForHome() {
+    api('/api/home/rails/series-mix?limit=16').then((data) => {
+      seriesMixItems = (data && data.items) || [];
+      scheduleHomeDashboardRefresh();
+    }).catch(() => {});
+  }
+
   function renderSeriesList() {
-    const el = document.getElementById('series-list');
+    const ctx = seriesListContext();
+    const el = document.getElementById(ctx.elId);
     if (!el) return;
     if (!seriesItems.length) {
       el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте.</p>';
       return;
     }
-    const fs = sectionFilterState('series');
-    const list = filterByTitle(seriesItems, sectionSearchQuery('series'), 'title', ['actors', 'genres', 'year']).filter((s) => {
+    const fs = sectionFilterState(ctx.sectionKey);
+    const list = filterByTitle(seriesItems, sectionSearchQuery(ctx.sectionKey), 'title', ['actors', 'genres', 'year']).filter((s) => {
       if (fs.type === 'awaiting') return !!s.has_subscription;
       if (fs.type === 'watching') return Number(s.watched_count || 0) > 0;
       const y = parseInt(String(s.year || ''), 10);
@@ -13970,6 +14079,7 @@
         if (sec === 'tournament' && typeof renderTournamentSection === 'function') renderTournamentSection();
         if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
         if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
+        if (sec === 'series-hub') { try { renderSeriesHubSection(); } catch (_) {} }
       }
     });
 
