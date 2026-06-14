@@ -301,6 +301,11 @@
       if (kpOpen && /^\d+$/.test(kpOpen)) return false;
       if (staffIdFromPathname(window.location.pathname)) return false;
 
+      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (bootPath === '/' || bootPath === '/index.html') {
+        try { history.replaceState({ section: 'home' }, '', '/home' + window.location.search); } catch (_) {}
+      }
+
       document.body.classList.remove('login-only-overlay');
       const session = getActiveSession();
       const screenId = cabinetScreenIdForSession(session);
@@ -321,6 +326,8 @@
         if (deepSection === 'stats') {
           try { mountStatsSection(); } catch (_) {}
         }
+        try { loadPlans(); } catch (_) {}
+        try { loadUnwatched(); } catch (_) {}
         scheduleSiteOnboardingAfterCabinet();
       }
       return true;
@@ -338,10 +345,10 @@
       const session = getActiveSession();
       const screenId = cabinetScreenIdForSession(session);
       try {
-        if (window.location.pathname !== '/' && window.location.pathname !== '/home') {
-          history.pushState({ section: 'home' }, '', '/');
+        if (window.location.pathname !== '/home') {
+          history.pushState({ section: 'home' }, '', '/home');
         } else {
-          history.replaceState({ section: 'home' }, '', '/');
+          history.replaceState({ section: 'home' }, '', '/home');
         }
       } catch (_) {}
       showScreen(screenId);
@@ -2315,6 +2322,7 @@
   }
 
   function showScreen(screenId) {
+    try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
     ['landing', 'site-search-root', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -4569,21 +4577,22 @@
   function wireCabinetFooterApps() {
     const android = document.getElementById('cabinet-footer-android');
     const ios = document.getElementById('cabinet-footer-ios');
+    const rustore = document.getElementById('cabinet-footer-rustore');
+    const playUrl = 'https://play.google.com/store/apps/details?id=com.movie_planner&hl=ru';
+    const rustoreUrl = 'https://www.rustore.ru/catalog/app/com.movie_planner';
+    const iosDefault = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+    if (android) android.href = playUrl;
+    if (rustore) rustore.href = rustoreUrl;
+    if (ios) ios.href = iosDefault;
     fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((rel) => {
-        if (android) {
-          android.href = (rel && rel.url) ? rel.url : (API_BASE + '/download');
-        }
-        if (ios && rel && rel.ios && rel.ios.url) {
-          ios.href = rel.ios.url;
-        } else if (ios) {
-          ios.href = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+        if (ios && rel && rel.ios && rel.ios.url) ios.href = rel.ios.url;
+        if (android && rel && rel.url && String(rel.url).indexOf('play.google.com') >= 0) {
+          android.href = rel.url;
         }
       })
-      .catch(() => {
-        if (android) android.href = API_BASE + '/download';
-      });
+      .catch(() => {});
   }
 
   function loadExtensionConfig() {
@@ -4900,7 +4909,7 @@
     const title = o.title || '';
     const poster = o.poster || '';
     const metaHtml = o.metaHtml || '';
-    const desc = shortPremiereDescription(o.description || '', 118);
+    const desc = shortPremiereDescription(o.description || '', 180);
     if (!title && !metaHtml && !desc) return '';
     const emoji = o.emoji || '🎬';
     return '<div class="home-film-preview" aria-hidden="true">'
@@ -4910,6 +4919,173 @@
       + (metaHtml ? '<div class="home-film-preview-meta">' + metaHtml + '</div>' : '')
       + (desc ? '<div class="home-film-preview-desc">' + escapeHtml(desc) + '</div>' : '')
       + '</div></div>';
+  }
+
+  const _homeFilmPreviewCache = new Map();
+
+  function homePosterPreviewChipsHtml(meta) {
+    const chips = [];
+    if (meta.year) chips.push('<span class="home-poster-preview-pop-chip">' + escapeHtml(String(meta.year)) + '</span>');
+    if (meta.genres) {
+      String(meta.genres).split(',').slice(0, 2).forEach((g) => {
+        const t = g.trim();
+        if (t) chips.push('<span class="home-poster-preview-pop-chip">' + escapeHtml(t) + '</span>');
+      });
+    }
+    if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+      chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+    }
+    return chips.join('');
+  }
+
+  function homePosterPreviewPopHtml(meta) {
+    const title = meta.title || '';
+    const poster = meta.poster || '';
+    const desc = shortPremiereDescription(meta.description || '', 220);
+    const chips = homePosterPreviewChipsHtml(meta);
+    return '<div class="home-poster-preview-pop-poster">'
+      + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎬</span>')
+      + '</div><div class="home-poster-preview-pop-body">'
+      + '<div class="home-poster-preview-pop-title">' + escapeHtml(title) + '</div>'
+      + (chips ? ('<div class="home-poster-preview-pop-meta">' + chips + '</div>') : '')
+      + '<div class="home-poster-preview-pop-desc' + (desc ? '' : ' is-loading') + '">'
+      + (desc ? escapeHtml(desc) : 'Загружаем описание…')
+      + '</div></div>';
+  }
+
+  function homePosterPreviewMetaFromTile(tile) {
+    const kp = String(tile.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+    const posterAttr = tile.getAttribute('data-poster') || '';
+    return {
+      title: tile.getAttribute('data-title') || (tile.querySelector('.home-poster-tile-title') || {}).textContent || '',
+      year: tile.getAttribute('data-year') || (tile.querySelector('.home-poster-tile-year') || {}).textContent || '',
+      poster: cleanPosterUrl(posterAttr) || (kp ? posterUrl(kp) : ''),
+      description: '',
+      genres: '',
+      rating_kp: null,
+      film_id: tile.getAttribute('data-film-id') || '',
+    };
+  }
+
+  function updateHomePosterPreviewPop(pop, meta) {
+    if (!pop) return;
+    pop.innerHTML = homePosterPreviewPopHtml(meta);
+  }
+
+  function enrichHomePosterPreview(wrap, tile, pop) {
+    const fid = String(tile.getAttribute('data-film-id') || '').trim();
+    const cacheKey = fid ? ('f:' + fid) : ('kp:' + String(tile.getAttribute('data-kp-id') || ''));
+    if (_homeFilmPreviewCache.has(cacheKey)) {
+      updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), _homeFilmPreviewCache.get(cacheKey)));
+      return;
+    }
+    if (!fid) return;
+    const descEl = pop.querySelector('.home-poster-preview-pop-desc');
+    if (descEl) descEl.classList.add('is-loading');
+    api('/api/site/film/' + encodeURIComponent(fid)).then((data) => {
+      if (!data || !data.success || !data.film) return;
+      const film = data.film;
+      const payload = {
+        title: film.title || homePosterPreviewMetaFromTile(tile).title,
+        year: film.year || '',
+        poster: cleanPosterUrl(film.poster) || homePosterPreviewMetaFromTile(tile).poster,
+        description: pickFilmDescription(film) || '',
+        genres: film.genres || '',
+        rating_kp: film.rating_kp != null ? film.rating_kp : null,
+      };
+      _homeFilmPreviewCache.set(cacheKey, payload);
+      updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), payload));
+    }).catch(() => {
+      if (descEl) {
+        descEl.classList.remove('is-loading');
+        descEl.textContent = '';
+      }
+    });
+  }
+
+  function decorateHomePosterPreviews(scope) {
+    const root = scope || document.getElementById('home-dashboard-root');
+    if (!root) return;
+    root.querySelectorAll('.home-poster-tile-wrap:not([data-preview-ready]), #home-dashboard-root .home-poster-tile:not(.home-poster-tile-wrap .home-poster-tile)').forEach((node) => {
+      let wrap = node;
+      let tile = node;
+      if (node.classList.contains('home-poster-tile')) {
+        const outer = document.createElement('div');
+        outer.className = 'home-poster-tile-wrap';
+        node.parentNode.insertBefore(outer, node);
+        outer.appendChild(node);
+        wrap = outer;
+        tile = node;
+      } else {
+        tile = node.querySelector('.home-poster-tile');
+      }
+      if (!tile || wrap.getAttribute('data-preview-ready')) return;
+      wrap.setAttribute('data-preview-ready', '1');
+      const pop = document.createElement('div');
+      pop.className = 'home-poster-preview-pop';
+      pop.setAttribute('aria-hidden', 'true');
+      updateHomePosterPreviewPop(pop, homePosterPreviewMetaFromTile(tile));
+      wrap.appendChild(pop);
+      wrap.addEventListener('mouseenter', () => enrichHomePosterPreview(wrap, tile, pop), { passive: true });
+    });
+  }
+
+  function homeRailEmptyHtml(blockId) {
+    if (blockId === 'unwatched') {
+      return renderHomeBlockCtaHtml(
+        '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
+      );
+    }
+    if (blockId === 'series') {
+      return renderHomeBlockCtaHtml(
+        '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Подобрать</button>'
+      );
+    }
+    return '';
+  }
+
+  function homeRailApiGet(path) {
+    return api(path).catch(() => ({ success: false, items: [], has_more: false, total: 0 }));
+  }
+
+  const _homeRailMounted = new WeakSet();
+
+  function mountHomeDashboardRails() {
+    if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
+    const root = document.getElementById('home-dashboard-root');
+    if (!root) return;
+    root.querySelectorAll('[data-home-rail]').forEach((container) => {
+      if (_homeRailMounted.has(container)) return;
+      _homeRailMounted.add(container);
+      const railId = container.getAttribute('data-home-rail');
+      const blockEl = container.closest('[data-home-block]');
+      const blockId = blockEl ? blockEl.getAttribute('data-home-block') : railId;
+      const metaEl = blockEl ? blockEl.querySelector('[data-home-rail-meta]') : null;
+      MPHomeRails.mountPaginatedHomeRail(container, {
+        railId: railId,
+        period: railId === 'premieres' ? 'upcoming' : undefined,
+        apiGet: homeRailApiGet,
+        posterUrl: (kp) => posterUrl(kp),
+        emptyHtml: homeRailEmptyHtml(blockId),
+        onBatch: () => { decorateHomePosterPreviews(container); },
+        onMeta: (meta) => {
+          if (blockEl && meta && meta.total === 0 && meta.loaded === 0) {
+            blockEl.classList.add('hidden');
+          } else if (blockEl) {
+            blockEl.classList.remove('hidden');
+          }
+          if (!metaEl || !meta || !meta.total) {
+            if (metaEl) metaEl.textContent = '';
+            return;
+          }
+          const tail = meta.hasMore ? ' · листайте вправо' : '';
+          metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
+        },
+      });
+    });
+    decorateHomePosterPreviews(root);
   }
 
   function openFilmFromCard(card) {
@@ -4969,7 +5145,7 @@
     const o = opts || {};
     const rated = !!o.rated;
     if (!items || !items.length) return '';
-    return '<div class="home-poster-rail" role="list">' + items.map((m) => {
+    return '<div class="home-poster-rail home-rail--draggable" role="list">' + items.map((m) => {
       const poster = m.poster || (m.kp_id ? posterUrl(m.kp_id) : '');
       const img = poster
         ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async">'
@@ -4977,17 +5153,26 @@
       const rating = (rated && m.rating != null)
         ? '<span class="home-rated-badge">★ ' + escapeHtml(String(m.rating)) + '</span>'
         : '';
-      const attrs = homeDashNavAttrs(m);
+      const attrs = homeDashNavAttrs(m)
+        + (m.title ? (' data-title="' + escapeHtml(m.title) + '"') : '')
+        + (m.year ? (' data-year="' + escapeHtml(String(m.year)) + '"') : '')
+        + (poster ? (' data-poster="' + escapeHtml(poster) + '"') : '');
       const year = m.year ? escapeHtml(String(m.year)) : '—';
-      const tileHref = filmNavHref(m.kp_id);
-      const tileTag = tileHref ? 'a' : 'button';
-      const tileType = tileHref ? '' : ' type="button"';
-      const tileHrefAttr = tileHref ? (' href="' + escapeHtml(tileHref) + '"') : '';
-      return '<' + tileTag + tileType + ' class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + tileHrefAttr + attrs + '>'
+      const previewMeta = {
+        title: m.title || '',
+        year: m.year || '',
+        poster: poster,
+        description: m.description || '',
+        genres: m.genres || '',
+        rating_kp: m.rating_kp,
+      };
+      const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
+      return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
+        + '<button type="button" class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
         + '<div class="home-poster-tile-img' + (poster ? '' : ' home-poster-tile-img--empty') + '">' + img + rating + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + year + '</div>'
-        + '</' + tileTag + '>';
+        + '</button>' + preview + '</div>';
     }).join('') + '</div>';
   }
 
@@ -5137,29 +5322,19 @@
     }
 
     if (blockId === 'unwatched') {
-      const items = (typeof unwatchedItems !== 'undefined' ? unwatchedItems : []).slice(0, 20);
-      if (!items.length) {
-        return '<section class="home-dash-block">' + head
-          + renderHomeBlockCtaHtml(
-            '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
-            + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
-          ) + '</section>';
-      }
-      return '<section class="home-dash-block">' + head
-        + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
+      return '<section class="home-dash-block" data-home-block="unwatched">' + head
+        + '<div class="home-section-body">'
+        + '<div class="home-poster-rail home-rail--draggable" data-home-rail="unwatched" role="list"></div>'
+        + '<div class="home-rail-meta" data-home-rail-meta="unwatched" aria-live="polite"></div>'
+        + '</div></section>';
     }
 
     if (blockId === 'series') {
-      const items = (typeof seriesMixItems !== 'undefined' ? seriesMixItems : []).slice(0, 16);
-      if (!items.length) {
-        return '<section class="home-dash-block">' + head
-          + renderHomeBlockCtaHtml(
-            '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить сериал</button> '
-            + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Подобрать</button>'
-          ) + '</section>';
-      }
-      return '<section class="home-dash-block">' + head
-        + '<div class="home-section-body">' + renderHomePosterRailHtml(items) + '</div></section>';
+      return '<section class="home-dash-block" data-home-block="series">' + head
+        + '<div class="home-section-body">'
+        + '<div class="home-poster-rail home-rail--draggable" data-home-rail="series-mix" role="list"></div>'
+        + '<div class="home-rail-meta" data-home-rail-meta="series-mix" aria-live="polite"></div>'
+        + '</div></section>';
     }
 
     if (blockId === 'premieres') {
@@ -5180,10 +5355,14 @@
         + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
     }
     if (blockId === 'recent_ratings') {
-      const items = (_homeDashboardCache && _homeDashboardCache.recent_rated) ? _homeDashboardCache.recent_rated.slice(0, 12) : [];
-      if (!items.length) return '';
-      return '<section class="home-dash-block">' + head
-        + '<div class="home-section-body">' + renderHomePosterRailHtml(items, { rated: true }) + '</div></section>';
+      if (_homeDashboardCache && Array.isArray(_homeDashboardCache.recent_rated) && !_homeDashboardCache.recent_rated.length) {
+        return '';
+      }
+      return '<section class="home-dash-block" data-home-block="recent_ratings">' + head
+        + '<div class="home-section-body">'
+        + '<div class="home-poster-rail home-rail--draggable" data-home-rail="recent-rated" role="list"></div>'
+        + '<div class="home-rail-meta" data-home-rail-meta="recent-rated" aria-live="polite"></div>'
+        + '</div></section>';
     }
     if (blockId === 'tournament') {
       if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
@@ -5235,6 +5414,20 @@
     }
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
+    try { mountHomeDashboardRails(); } catch (_) {}
+    try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
+  }
+
+  function bindHomePosterPreviewEnrichOnce(scope) {
+    const root = scope || document.getElementById('home-dashboard-root');
+    if (!root) return;
+    root.querySelectorAll('.home-poster-tile-wrap[data-preview-ready="1"]:not([data-preview-bound])').forEach((wrap) => {
+      wrap.setAttribute('data-preview-bound', '1');
+      const tile = wrap.querySelector('.home-poster-tile');
+      const pop = wrap.querySelector('.home-poster-preview-pop');
+      if (!tile || !pop) return;
+      wrap.addEventListener('mouseenter', () => enrichHomePosterPreview(wrap, tile, pop), { passive: true });
+    });
   }
 
   function fetchPremieresForDisplay(period) {
@@ -5280,13 +5473,15 @@
     if (!hadBlocks) root.innerHTML = pageLoadingHtml();
     applyHomeEmojiVisibility();
 
-    fetchPremieresForDisplay('current_month')
-      .then((prem) => {
+    Promise.all([
+      fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
+      api('/api/miniapp/dashboard', { timeoutMs: 25000 }).catch(() => null),
+    ])
+      .then((pair) => {
+        const prem = pair[0];
+        const dashData = pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
-        return api('/api/miniapp/dashboard', { timeoutMs: 45000 }).catch(() => null);
-      })
-      .then((dashData) => {
         _homeDashboardCache = dashData && dashData.success ? dashData : null;
         _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
         if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
