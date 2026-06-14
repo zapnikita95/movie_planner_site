@@ -7760,6 +7760,17 @@ a.header-settings-nav-item {
   text-underline-offset: 2px;
 }
 .cabinet a[href]:hover { color: #d8efff; }
+.cabinet #home-dashboard-root a.home-poster-tile,
+.cabinet #home-dashboard-root a.home-pre-card,
+.cabinet #home-dashboard-root .home-poster-tile-wrap a.home-poster-tile {
+  color: inherit;
+  text-decoration: none;
+}
+.cabinet #home-dashboard-root a.home-poster-tile:hover,
+.cabinet #home-dashboard-root a.home-pre-card:hover {
+  color: inherit;
+  text-decoration: none;
+}
 /* Глобальный section-стиль landing не должен сжимать секции кабинета */
 .cabinet .cabinet-section {
   max-width: none;

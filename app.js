@@ -5182,16 +5182,12 @@
       const poster = it.poster || posterUrl(it.kp_id);
       const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
       const attrs = homeDashNavAttrs(it);
-      const premHref = filmNavHref(it.kp_id);
-      const premTag = premHref ? 'a' : 'button';
-      const premType = premHref ? '' : ' type="button"';
-      const premHrefAttr = premHref ? (' href="' + escapeHtml(premHref) + '"') : '';
-      return '<' + premTag + premType + ' class="home-pre-card" role="listitem"' + premHrefAttr + attrs + '>'
+      return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
         + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
         + '<div class="home-pre-card-meta">' + (dateLabel ? '📅 ' + escapeHtml(String(dateLabel)) : '') + '</div>'
-        + '</div></' + premTag + '>';
+        + '</div></button>';
     }).join('') + '</div>';
   }
 
