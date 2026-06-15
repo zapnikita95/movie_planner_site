@@ -57,7 +57,16 @@
     coin: { name: 'coins', weight: 'regular' },
     medal: { name: 'medal', weight: 'regular' },
     crown: { name: 'crown', weight: 'regular' },
-    video: { name: 'video-camera', weight: 'regular' },
+    gear: { name: 'gear', weight: 'regular' },
+    globe: { name: 'globe-hemisphere-west', weight: 'regular' },
+    creditCard: { name: 'credit-card', weight: 'regular' },
+    question: { name: 'question', weight: 'regular' },
+    key: { name: 'key', weight: 'regular' },
+    upload: { name: 'upload-simple', weight: 'regular' },
+    desktop: { name: 'desktop', weight: 'regular' },
+    crosshair: { name: 'crosshair', weight: 'regular' },
+    basket: { name: 'basket', weight: 'regular' },
+    pencil: { name: 'pencil-simple', weight: 'regular' },
   };
 
   function iconClass(key, opts) {
