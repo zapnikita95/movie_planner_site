@@ -7961,10 +7961,14 @@ a.header-settings-nav-item {
     min-width: 0;
     width: 100%;
   }
-  body.in-cabinet #section-home .home-poster-tile-wrap:hover,
-  body.in-cabinet #section-home .home-poster-tile:hover,
+  body.in-cabinet #section-home .home-poster-tile-wrap:hover {
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  }
+  body.in-cabinet #section-home .home-poster-tile-wrap:hover .home-poster-tile {
+    transform: translateY(-4px);
+  }
   body.in-cabinet #section-home .home-pre-card:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-4px);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
   }
   body.in-cabinet #section-home .home-poster-tile-title,
@@ -12563,19 +12567,23 @@ body.in-cabinet .inbox-fab { display: none !important; }
   width: 100%;
   background: rgba(255, 255, 255, 0.06) center/cover no-repeat;
   position: relative;
+  overflow: hidden;
 }
 .home-poster-tile-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1);
+  transform-origin: center center;
+  transition: transform 0.28s ease;
 }
-.home-poster-tile-img--empty {
-  display: grid;
-  place-items: center;
-  min-height: 150px;
+.home-poster-tile:hover .home-poster-tile-img img,
+.home-poster-tile-wrap:hover .home-poster-tile-img img {
+  transform: scale(1.06);
 }
-.home-poster-tile-img--empty::after { content: "🎬"; font-size: 28px; opacity: 0.35; }
+.home-poster-tile-img--empty,
+.home-poster-tile-img--empty::after { display: none; }
 .home-poster-tile-title,
 .home-pre-card-title {
   font-size: 13px;
@@ -13704,3 +13712,90 @@ body.in-cabinet #section-whattowatch > .cabinet-hint { display: none; }
   .wtw-flip-emoji { font-size: 52px; }
   .wtw-flip-title { font-size: 15px; }
 }
+
+/* —— Phosphor icons + branded poster placeholder —— */
+.mp-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.88);
+}
+.mp-icon i { font-size: 1em; line-height: 1; }
+.mp-icon--xs i { font-size: 14px; }
+.mp-icon--sm i { font-size: 16px; }
+.mp-icon--md i { font-size: 20px; }
+.mp-icon--lg i { font-size: 28px; }
+.mp-icon--brand-blue { color: #4da3ff; }
+.mp-icon--brand-red { color: #ff6b6b; }
+.mp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mp-icon-btn .mp-icon,
+.mp-icon-btn > i[class^="ph"] {
+  font-size: 22px;
+}
+.cabinet-nav-btn-emoji .mp-icon i,
+.section-title-emoji .mp-icon i {
+  font-size: 18px;
+}
+.section-title-emoji .mp-icon {
+  margin-right: 2px;
+}
+.settings-toggle-icon.mp-icon i,
+.site-inbox-thumb--icon .mp-icon i {
+  font-size: 22px;
+}
+.stat-card-icon .mp-icon i {
+  font-size: 26px;
+}
+.home-pre-card-meta .mp-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+.plan-date-line .mp-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+button[data-mp-icon-inline="1"] > i[class^="ph"] {
+  margin-right: 8px;
+  font-size: 18px;
+  vertical-align: -2px;
+}
+.mp-poster-placeholder,
+img.mp-poster-placeholder,
+.card-poster.mp-poster-placeholder {
+  object-fit: cover;
+  background: #120818;
+}
+.film-card-v2-poster .card-poster,
+.home-dash-row-poster .card-poster,
+.home-film-preview-poster img,
+.home-poster-preview-pop-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-poster-tile,
+.home-poster-tile-wrap > .home-poster-tile {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.site-search-poster,
+.hs-result-poster {
+  width: 48px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #120818;
+}
+.plans-filter-tab .mp-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+.ph-duotone.ph-shuffle { --ph-duotone-opacity: 0.35; }
+.ph-duotone.ph-magic-wand { --ph-duotone-opacity: 0.35; }
+.ph-duotone.ph-microphone { --ph-duotone-opacity: 0.35; }

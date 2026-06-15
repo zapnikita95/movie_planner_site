@@ -259,16 +259,17 @@
 
   function standaloneNavHtml() {
     var tabs = [
-      { href: '/home', label: 'Главная', emoji: '🏠' },
-      { href: '/plans', label: 'Планы', emoji: '📋' },
-      { href: '/premieres', label: 'Премьеры', emoji: '🎭' },
-      { href: '/watchlist', label: 'База', emoji: '🎬' },
-      { href: '/whattowatch', label: 'Что посмотреть', emoji: '🎯' },
-      { href: '/tournament', label: 'Турнир', emoji: '🏆' },
+      { href: '/home', label: 'Главная', icon: 'home' },
+      { href: '/plans', label: 'Планы', icon: 'plans' },
+      { href: '/premieres', label: 'Премьеры', icon: 'premieres' },
+      { href: '/watchlist', label: 'База', icon: 'library' },
+      { href: '/whattowatch', label: 'Что посмотреть', icon: 'watch' },
+      { href: '/tournament', label: 'Турнир', icon: 'tournament' },
     ];
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
       tabs.map(function (t) {
-        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + t.emoji + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
+        var iconHtml = (window.MPIcons && MPIcons.html) ? MPIcons.html(t.icon, { size: 'md' }) : '';
+        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + iconHtml + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
       }).join('') +
     '</nav>';
   }
@@ -331,7 +332,7 @@
         var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
         var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
         return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
-          (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy">' : '<span class="search-result-poster">🎬</span>') +
+          (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">' : '<img class="search-result-poster mp-poster-placeholder" src="/images/film-poster-placeholder.svg" alt="" loading="lazy">') +
           '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
           '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
       }).join('');

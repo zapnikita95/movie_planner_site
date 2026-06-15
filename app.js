@@ -81,6 +81,44 @@
     return { register: register, getFilmId: getFilmId, waitFor: waitFor };
   })();
 
+  const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.svg';
+
+  function mpPosterOnErrorAttr() {
+    return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';
+  }
+
+  function mpPosterOnError(img) {
+    if (!img) return;
+    img.onerror = null;
+    img.src = MP_POSTER_PLACEHOLDER;
+    img.classList.add('mp-poster-placeholder');
+    var wrap = img.closest('.home-poster-tile-img, .home-pre-card-poster, .film-card-v2-poster, .home-dash-row-poster, .home-poster-preview-pop-poster, .home-film-preview-poster, .site-inbox-thumb--poster');
+    if (wrap) wrap.classList.add('film-poster-has-placeholder');
+  }
+  try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
+
+  function filmCardPosterHtml(kpId, posterOverride) {
+    const poster = cleanPosterUrl(posterOverride) || posterUrl(kpId);
+    const src = poster || MP_POSTER_PLACEHOLDER;
+    const phCls = poster ? '' : ' mp-poster-placeholder';
+    return '<img src="' + escapeHtml(src) + '" alt="" class="card-poster' + phCls + '" referrerpolicy="no-referrer" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>';
+  }
+
+  function siteSearchPosterHtml(poster, className) {
+    const p = cleanPosterUrl(poster) || '';
+    const src = p || MP_POSTER_PLACEHOLDER;
+    const phCls = p ? '' : ' mp-poster-placeholder';
+    const cls = className || 'site-search-poster';
+    return '<img class="' + cls + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>';
+  }
+
+  function mpIcon(key, opts) {
+    try {
+      if (window.MPIcons && typeof MPIcons.html === 'function') return MPIcons.html(key, opts || {});
+    } catch (_) {}
+    return '';
+  }
+
   function posterUrl(kpId) {
     if (!kpId) return '';
     return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
@@ -3427,7 +3465,7 @@
         + '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'
         + '<span class="site-inbox-thumb-fallback" aria-hidden="true">' + letter + '</span></div>';
     }
-    return '<div class="site-inbox-thumb site-inbox-thumb--emoji"><span aria-hidden="true">' + escapeHtml(o.emoji || '🎬') + '</span></div>';
+    return '<div class="site-inbox-thumb site-inbox-thumb--icon">' + (o.icon ? mpIcon(o.icon, { size: 'md' }) : mpIcon('library', { size: 'md' })) + '</div>';
   }
 
   function siteInboxOpenFilmBtn(kp, fid, primary) {
@@ -3476,29 +3514,29 @@
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'plan_reminder') {
       if (!kp && pl && pl.plans && pl.plans[0]) kp = siteInboxExtractKp(pl.plans[0], it);
-      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ emoji: '🎟️' });
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
       headline = escapeHtml(filmTitle || (it.title || 'Напоминание о просмотре').trim());
       body = escapeHtml(siteInboxPlanDetail(pl, it));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'rate_reminder') {
-      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ emoji: '⭐' });
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ratings' });
       headline = escapeHtml(filmTitle || 'Пора оценить');
       body = escapeHtml(siteInboxCleanBody(it.body) || 'Поставьте оценку после просмотра');
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'premiere_release') {
-      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ emoji: '🎬' });
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'premieres' });
       headline = escapeHtml(filmTitle || (it.title || 'Премьера').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (['group_share', 'group_share_accepted', 'group_rating', 'group_rate_invite'].includes(it.kind)) {
       if (!kp) kp = siteInboxExtractKp(pl, it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
-        : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ emoji: '👥' }));
+        : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
       headline = escapeHtml(filmTitle || (it.title || kind).trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'weekend_digest') {
-      thumb = siteInboxThumbHtml({ emoji: '🍿' });
+      thumb = siteInboxThumbHtml({ icon: 'popcorn' });
       headline = escapeHtml((it.title || 'Подборка').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       const btns = (pl.film_buttons || []).slice(0, compact ? 2 : 6);
@@ -3510,14 +3548,14 @@
         }).join('');
       }
     } else if (it.kind === 'tournament_month_results') {
-      thumb = siteInboxThumbHtml({ emoji: '🏆' });
+      thumb = siteInboxThumbHtml({ icon: 'tournament' });
       headline = escapeHtml((it.title || 'Итоги турнира').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
     } else {
       const useFilm = !!(kp || fid || filmTitle);
       if (useFilm && kp) thumb = siteInboxThumbHtml({ poster: posterUrl(kp) });
       else if (friendUid && !Number.isNaN(friendUid)) thumb = siteInboxThumbHtml({ uid: friendUid, name: friendName });
-      else thumb = siteInboxThumbHtml({ emoji: '📬' });
+      else thumb = siteInboxThumbHtml({ icon: 'mail' });
       headline = escapeHtml(filmTitle || (it.title || kind).trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
@@ -4911,9 +4949,10 @@
     const metaHtml = o.metaHtml || '';
     const desc = shortPremiereDescription(o.description || '', 180);
     if (!title && !metaHtml && !desc) return '';
-    const emoji = o.emoji || '🎬';
     return '<div class="home-film-preview" aria-hidden="true">'
-      + '<div class="home-film-preview-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : ('<span>' + emoji + '</span>')) + '</div>'
+      + '<div class="home-film-preview-poster">' + (poster
+        ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
+        : ('<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" class="mp-poster-placeholder" loading="lazy">')) + '</div>'
       + '<div class="home-film-preview-body">'
       + '<div class="home-film-preview-title">' + escapeHtml(title) + '</div>'
       + (metaHtml ? '<div class="home-film-preview-meta">' + metaHtml + '</div>' : '')
@@ -4944,7 +4983,9 @@
     const desc = shortPremiereDescription(meta.description || '', 220);
     const chips = homePosterPreviewChipsHtml(meta);
     return '<div class="home-poster-preview-pop-poster">'
-      + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎬</span>')
+      + (poster
+        ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
+        : ('<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" class="mp-poster-placeholder" loading="lazy">'))
       + '</div><div class="home-poster-preview-pop-body">'
       + '<div class="home-poster-preview-pop-title">' + escapeHtml(title) + '</div>'
       + (chips ? ('<div class="home-poster-preview-pop-meta">' + chips + '</div>') : '')
@@ -5125,7 +5166,7 @@
     const cls = ['premiere-bell-btn', extraClass || '', posterBell ? 'premiere-poster-bell--overlay' : '', active ? 'active' : ''].filter(Boolean).join(' ');
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
     const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
-    const icon = active ? '🔕' : '🔔';
+    const icon = active ? mpIcon('bellOff', { size: 'sm' }) : mpIcon('inbox', { size: 'sm' });
     return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
   }
 
@@ -5148,8 +5189,8 @@
     return '<div class="home-poster-rail home-rail--draggable" role="list">' + items.map((m) => {
       const poster = m.poster || (m.kp_id ? posterUrl(m.kp_id) : '');
       const img = poster
-        ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async">'
-        : '';
+        ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>'
+        : '<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
       const rating = (rated && m.rating != null)
         ? '<span class="home-rated-badge">★ ' + escapeHtml(String(m.rating)) + '</span>'
         : '';
@@ -5169,7 +5210,7 @@
       const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
       return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
         + '<button type="button" class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
-        + '<div class="home-poster-tile-img' + (poster ? '' : ' home-poster-tile-img--empty') + '">' + img + rating + '</div>'
+        + '<div class="home-poster-tile-img">' + img + rating + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + year + '</div>'
         + '</button>' + preview + '</div>';
@@ -5186,7 +5227,7 @@
         + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
-        + '<div class="home-pre-card-meta">' + (dateLabel ? '📅 ' + escapeHtml(String(dateLabel)) : '') + '</div>'
+        + '<div class="home-pre-card-meta">' + (dateLabel ? (mpIcon('calendar', { size: 'sm' }) + ' ' + escapeHtml(String(dateLabel))) : '') + '</div>'
         + '</div></button>';
     }).join('') + '</div>';
   }
@@ -5308,7 +5349,7 @@
           emoji: '🎬',
         });
         return '<div class="home-dash-row film-card-v2"' + homeDashNavAttrs(p) + '><div class="home-dash-row-text">'
-          + '<div class="home-dash-row-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span>🎬</span>') + '</div>'
+          + '<div class="home-dash-row-poster">' + filmCardPosterHtml(p.kp_id, poster) + '</div>'
           + '<div class="home-dash-row-main">'
           + '<div class="home-dash-row-title">' + escapeHtml(p.title || '') + '</div>'
           + '<div class="home-dash-row-meta">' + metaLine + '</div>'
@@ -5872,14 +5913,13 @@
     return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
             <div class="film-card-v2-poster">
-              ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-              <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">🎬</div>
+              ${filmCardPosterHtml(p.kp_id, poster)}
               ${buildFilmTelegramTriangle(link)}
               ${buildFilmRateStar(p.film_id, 0)}
             </div>
             <div class="film-card-v2-body">
               <div class="film-card-v2-meta">
-                <span class="plan-date-line">📅 ${escapeHtml(dateLine)}</span>
+                <span class="plan-date-line">${mpIcon('calendar', { size: 'sm' })} ${escapeHtml(dateLine)}</span>
                 <span class="plan-time-line">${escapeHtml(timeLine)}</span>
                 <span class="plan-type">${typeLabel}</span>
               </div>
@@ -5895,7 +5935,7 @@
       return '<div class="plans-list-empty-wrap plans-empty-premieres">'
         + '<p class="empty-hint">Пока нет напоминаний о премьерах.</p>'
         + '<div class="plans-empty-hub">'
-        + '<button type="button" class="home-emoji-btn home-emoji-btn--plan" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">🎭</button>'
+        + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">' + mpIcon('premieres', { size: 'md' }) + '</button>'
         + '</div></div>';
     }
     const hint = _plansViewFilter === 'home' ? 'Нет планов дома'
@@ -5904,9 +5944,9 @@
     return '<div class="plans-list-empty-wrap plans-empty-hub-wrap">'
       + '<p class="empty-hint plans-empty-hub-hint">' + escapeHtml(hint) + '</p>'
       + '<div class="plans-empty-hub" aria-label="Быстрые действия">'
-      + '<button type="button" class="home-emoji-btn home-emoji-btn--plan" data-plans-hub="schedule" title="Запланировать" aria-label="Запланировать">+</button>'
-      + '<button type="button" class="home-emoji-btn" data-plans-hub="whattowatch" title="Что посмотреть" aria-label="Что посмотреть">🎯</button>'
-      + '<button type="button" class="home-emoji-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">🎭</button>'
+      + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="schedule" title="Запланировать" aria-label="Запланировать">' + mpIcon('plus', { size: 'md' }) + '</button>'
+      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="whattowatch" title="Что посмотреть" aria-label="Что посмотреть">' + mpIcon('watch', { size: 'md' }) + '</button>'
+      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">' + mpIcon('premieres', { size: 'md' }) + '</button>'
       + '</div></div>';
   }
 
@@ -6109,8 +6149,7 @@
     return `
       <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched">
         <div class="film-card-v2-poster">
-          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">${m.is_series ? '📺' : '🎬'}</div>
+          ${filmCardPosterHtml(m.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(m.film_id, 0)}
         </div>
@@ -6193,8 +6232,7 @@
     return `
       <div class="card series-card film-card-v2" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}" data-context="series">
         <div class="film-card-v2-poster">
-          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">📺</div>
+          ${filmCardPosterHtml(s.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(s.film_id, 0)}
         </div>
@@ -6225,9 +6263,7 @@
     metaParts.push('Сериал');
     const meta = metaParts.join(' · ');
     return '<button type="button" class="site-search-card" data-site-search-kp="' + escapeHtml(kp) + '">'
-      + (poster
-        ? '<img class="site-search-poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'site-search-poster\',textContent:\'📺\'}))">'
-        : '<span class="site-search-poster">📺</span>')
+      + siteSearchPosterHtml(poster)
       + '<span><span class="site-search-card-title">' + escapeHtml(it.title || '') + '</span>'
       + '<span class="site-search-card-meta"><span>' + escapeHtml(meta) + '</span></span></span></button>';
   }
@@ -6395,8 +6431,7 @@
     return `
       <div class="card film-card film-card-v2" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}" data-context="ratings">
         <div class="film-card-v2-poster">
-          ${poster ? '<img src="' + poster + '" alt="" class="card-poster" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : ''}
-          <div class="film-poster-placeholder" style="${poster ? 'display:none' : ''}">⭐</div>
+          ${filmCardPosterHtml(r.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(r.film_id, r.rating)}
         </div>
@@ -6947,11 +6982,11 @@
     // Summary cards
     if (summaryEl) {
       const cards = [
-        { val: summary.group_films ?? 0, label: 'Просмотренных фильмов', cls: 'stat-card-pink' },
-        { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple' },
-        { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan' },
-        { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green' },
-        { val: summary.active_members ?? 0, label: 'Активных участников', cls: 'stat-card-amber' }
+        { val: summary.group_films ?? 0, label: 'Просмотренных фильмов', cls: 'stat-card-pink', icon: 'library' },
+        { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple', icon: 'ratings' },
+        { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: 'camera' },
+        { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: 'series' },
+        { val: summary.active_members ?? 0, label: 'Активных участников', cls: 'stat-card-amber', icon: 'friends' }
       ];
       summaryEl.innerHTML = cards.map((c) => {
         let scrollTarget = null;
@@ -6965,7 +7000,7 @@
           scrollTarget = 'group-cinema';
         }
         const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
-        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + (c.cls.includes('pink') ? '🎬' : c.cls.includes('purple') ? '⭐' : c.cls.includes('cyan') ? '🎥' : c.cls.includes('green') ? '📺' : '👥') + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
+        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + mpIcon(c.icon || 'library', { size: 'lg' }) + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
       }).join('');
     }
 
@@ -7528,11 +7563,11 @@
     if (style === 'personal') {
       const total = s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0);
       const cards = [
-        { val: s.films_watched || 0, label: 'Фильмов', cls: 'stat-card-pink', icon: '🎬' },
-        { val: (s.series_watched || 0) + ' / ' + (s.episodes_watched || 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: '📺' },
-        { val: s.cinema_visits || 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: '🎥' },
-        { val: total, label: 'Всего просмотров', cls: 'stat-card-purple', icon: '📊' },
-        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка', cls: 'stat-card-amber', icon: '⭐' }
+        { val: s.films_watched || 0, label: 'Фильмов', cls: 'stat-card-pink', icon: 'library' },
+        { val: (s.series_watched || 0) + ' / ' + (s.episodes_watched || 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: 'series' },
+        { val: s.cinema_visits || 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: 'camera' },
+        { val: total, label: 'Всего просмотров', cls: 'stat-card-purple', icon: 'stats' },
+        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка', cls: 'stat-card-amber', icon: 'ratings' }
       ];
       el.innerHTML = cards.map((c) => {
         let scrollTarget = null;
@@ -7541,7 +7576,7 @@
         else if (c.label === 'Сериалов / серий') scrollTarget = 'platforms';
         else if (c.label === 'Походов в кино') scrollTarget = 'cinema';
         const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
-        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + c.icon + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
+        return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + mpIcon(c.icon, { size: 'lg' }) + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
       }).join('');
       el.classList.add('stats-group-summary');
       // Bind click handlers for scroll (personal stats - both cabinet and public)
@@ -10111,7 +10146,7 @@
         ? `<button type="button" class="hs-result-btn hs-btn-open">Открыть</button>`
         : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}" data-stop-hs-row="1">＋ Добавить</button>`;
       return `<div class="hs-result" role="option" tabindex="0" data-hs-row-kp="${escapeHtml(String(it.kp_id || ''))}">
-        ${poster ? `<img class="hs-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'hs-result-poster',textContent:'🎬'}))">` : '<span class="hs-result-poster">🎬</span>'}
+        ${siteSearchPosterHtml(poster, 'hs-result-poster')}
         <div class="hs-result-info">
           <div class="hs-result-title">${escapeHtml(it.title || '')}</div>
           <div class="hs-result-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}${inBase ? '<span>·</span><span class="hs-in-base">в базе</span>' : ''}</div>
@@ -10492,7 +10527,7 @@
           const kpAttr = escapeHtml(String(it.kp_id || ''));
           if (getToken()) {
             return `<button type="button" class="site-search-card" data-site-search-kp="${kpAttr}">
-            ${poster ? `<img class="site-search-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'site-search-poster',textContent:'🎬'}))">` : '<span class="site-search-poster">🎬</span>'}
+            ${siteSearchPosterHtml(poster)}
             <span>
               <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
               <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
@@ -10500,7 +10535,7 @@
           </button>`;
           }
           return `<a class="site-search-card" href="${buildFilmShareUrl(it.kp_id)}">
-            ${poster ? `<img class="site-search-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'site-search-poster',textContent:'🎬'}))">` : '<span class="site-search-poster">🎬</span>'}
+            ${siteSearchPosterHtml(poster)}
             <span>
               <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
               <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
@@ -11551,12 +11586,16 @@
   function settingsToggleRow(opts) {
     const id = opts.id || '';
     const emoji = opts.emoji || '';
+    const icon = opts.icon || '';
     const title = opts.title || '';
     const hint = opts.hint || '';
     const checked = !!opts.checked;
+    const leadIcon = icon
+      ? mpIcon(icon, { size: 'md', className: 'settings-toggle-icon' })
+      : (emoji ? '<span class="settings-toggle-emoji">' + emoji + '</span>' : '');
     return '<label class="settings-toggle-row"' + (id ? ' for="' + escapeHtml(id) + '"' : '') + '>'
       + '<span class="settings-toggle-row-main">'
-      + (emoji ? '<span class="settings-toggle-emoji">' + emoji + '</span>' : '')
+      + leadIcon
       + '<span class="settings-toggle-text">'
       + '<span class="settings-toggle-title">' + escapeHtml(title) + '</span>'
       + (hint ? '<span class="settings-toggle-hint">' + escapeHtml(hint) + '</span>' : '')
@@ -11944,18 +11983,18 @@
       + '<button type="submit" class="btn btn-primary btn-full">Сохранить</button>'
       + '</form></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'profile-settings-searchable', emoji: '🔎', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
-      + settingsToggleRow({ id: 'profile-settings-tournament', emoji: '🏆', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
+      + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
+      + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'settings-notify-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
-      + settingsToggleRow({ id: 'settings-notify-inapp', emoji: '🔔', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
+      + settingsToggleRow({ id: 'settings-notify-tg', icon: 'telegram', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
+      + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'settings-coll-home', emoji: '📁', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
-      + settingsToggleRow({ id: 'settings-emoji-random', emoji: '🎲', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
-      + settingsToggleRow({ id: 'settings-emoji-shazam', emoji: '🔮', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
-      + settingsToggleRow({ id: 'settings-emoji-voice', emoji: '🎤', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
+      + settingsToggleRow({ id: 'settings-coll-home', icon: 'folder', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
+      + settingsToggleRow({ id: 'settings-emoji-random', icon: 'random', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
+      + settingsToggleRow({ id: 'settings-emoji-shazam', icon: 'shazam', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
+      + settingsToggleRow({ id: 'settings-emoji-voice', icon: 'voice', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
       + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
       + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
       + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'

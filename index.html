@@ -25,7 +25,9 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260529norailink1">
+    <link rel="stylesheet" href="/style-v2.css?v=20260529phosphor1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -205,7 +207,7 @@
         <div class="header-search hidden" id="header-search" role="search">
           <span class="header-search-icon" aria-hidden="true">🔍</span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
-          <button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
           <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
@@ -351,12 +353,12 @@
             Собирайте личную базу или общий watchlist с друзьями, планируйте дома и в кино, прикрепляйте билеты — сервис напомнит вовремя. Оценивайте, сравнивайте вкусы и не теряйте фильмы в длинном списке «когда-нибудь».
           </div>
           <div class="what-is-v2-features">
-            <div class="what-is-v2-feature"><span class="feat-icon">📚</span> Watchlist</div>
-            <div class="what-is-v2-feature"><span class="feat-icon">📅</span> Планирование</div>
-            <div class="what-is-v2-feature"><span class="feat-icon">📺</span> Трекер сериалов</div>
-            <div class="what-is-v2-feature"><span class="feat-icon">🎫</span> Билеты в кино</div>
-            <div class="what-is-v2-feature"><span class="feat-icon">👥</span> Группы</div>
-            <div class="what-is-v2-feature"><span class="feat-icon">📊</span> Статистика</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="watchlist"></span> Watchlist</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="calendar"></span> Планирование</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="series"></span> Трекер сериалов</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="ticket"></span> Билеты в кино</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="friends"></span> Группы</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="stats"></span> Статистика</div>
           </div>
         </div>
       </section>
@@ -364,15 +366,15 @@
       <section>
         <h2 class="section-title gradient">Возможности</h2>
         <div class="bento-grid">
-          <div class="bento-card"><h3>📚 Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
-          <div class="bento-card"><h3>📅 Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
-          <div class="bento-card"><h3>📺 Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
-          <div class="bento-card"><h3>🎫 Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="watchlist"></span> Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="calendar"></span> Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="series"></span> Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="ticket"></span> Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
           <div class="bento-card"><h3>⭐ Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
           <div class="bento-card"><h3>📱 Приложение Android</h3><p>Планы, база, билеты и уведомления — актуальный APK на <a href="/download">странице загрузки</a></p></div>
           <div class="bento-card"><h3>✨ Telegram Mini App</h3><p>Интерфейс в Telegram — из меню бота или по <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">кнопке запуска</a></p></div>
           <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb и Letterboxd, отслеживайте просмотр на стримингах</p></div>
-          <div class="bento-card"><h3>📺 Запуск на Smart TV</h3><p>Подключите телевизор в боте или кабинете — в карточке фильма появится «На ТВ» с запуском в Кинопоиск HD, Okko или ivi по QR или с телефона</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="series"></span> Запуск на Smart TV</h3><p>Подключите телевизор в боте или кабинете — в карточке фильма появится «На ТВ» с запуском в Кинопоиск HD, Okko или ivi по QR или с телефона</p></div>
         </div>
       </section>
 
@@ -473,87 +475,87 @@
         <h2 class="section-title">Статьи и гайды</h2>
         <div class="articles-grid">
                 <a href="/articles/treker-serialov-telegram.html" class="article-card">
-                    <span class="article-card-icon">📺</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                     <span class="article-card-title">Трекер сериалов в Telegram</span>
                     <span class="article-card-desc">Уведомления о новых сериях и прогресс просмотра</span>
                 </a>
                 <a href="/articles/uvedomleniya-o-novyh-seriyah.html" class="article-card">
-                    <span class="article-card-icon">🔔</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="inbox"></span>
                     <span class="article-card-title">Уведомления о новых сериях</span>
                     <span class="article-card-desc">Как не пропустить эпизод любимого сериала</span>
                 </a>
                 <a href="/articles/spisok-serialov-v-telegram.html" class="article-card">
-                    <span class="article-card-icon">👥</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                     <span class="article-card-title">Общий список сериалов</span>
                     <span class="article-card-desc">Групповой трекер и марафоны с друзьями</span>
                 </a>
                 <a href="/articles/plan-prosmotra-serialov.html" class="article-card">
-                    <span class="article-card-icon">📅</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="calendar"></span>
                     <span class="article-card-title">Планирование просмотра сериалов</span>
                     <span class="article-card-desc">Трекер и напоминания в Telegram</span>
                 </a>
                 <a href="/articles/kak-vesti-watchlist.html" class="article-card">
-                    <span class="article-card-icon">📚</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
                     <span class="article-card-title">Как вести watchlist</span>
                     <span class="article-card-desc">Список желаемого: фильмы и сериалы</span>
                 </a>
                 <a href="/articles/top-10-serialov.html" class="article-card">
-                    <span class="article-card-icon">⭐</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
                     <span class="article-card-title">Топ-10 возможностей для сериалов</span>
                     <span class="article-card-desc">Всё, что умеет Movie Planner</span>
                 </a>
                 <a href="/articles/vs-letterboxd-trakt.html" class="article-card">
-                    <span class="article-card-icon">⚖️</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                     <span class="article-card-title">Movie Planner vs Letterboxd vs Trakt</span>
                     <span class="article-card-desc">Сравнение сервисов</span>
                 </a>
                 <a href="/articles/kak-plan-pohod-kino.html" class="article-card">
-                    <span class="article-card-icon">🎫</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="ticket"></span>
                     <span class="article-card-title">Походы в кино</span>
                     <span class="article-card-desc">Планирование и билеты</span>
                 </a>
                 <a href="/articles/instrukciya-novichkam.html" class="article-card">
-                    <span class="article-card-icon">🚀</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
                     <span class="article-card-title">Инструкция для новичков</span>
                     <span class="article-card-desc">Первые шаги за 5 минут</span>
                 </a>
                 <a href="/articles/raspoznavanie-filma-po-skreenshotu.html" class="article-card">
-                    <span class="article-card-icon">📸</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="camera"></span>
                     <span class="article-card-title">Распознавание по скриншоту</span>
                     <span class="article-card-desc">Shazam для кино: загрузите кадр — найдите фильм</span>
                 </a>
                 <a href="/articles/sovmestnoe-planirovanie-kino-s-druziami.html" class="article-card">
-                    <span class="article-card-icon">🎬</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
                     <span class="article-card-title">Планирование кино с друзьями</span>
                     <span class="article-card-desc">Общий план, билеты и напоминания для всех</span>
                 </a>
                 <a href="/articles/podbor-filmov-po-emocii.html" class="article-card">
-                    <span class="article-card-icon">🎭</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="premieres"></span>
                     <span class="article-card-title">Подбор фильмов по эмоции</span>
                     <span class="article-card-desc">ИИ подберёт фильмы под ваше настроение</span>
                 </a>
                 <a href="/articles/prilozhenie-iphone-ios-android.html" class="article-card">
-                    <span class="article-card-icon">📱</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="phone"></span>
                     <span class="article-card-title">Приложение для iPhone и Android</span>
                     <span class="article-card-desc">Нативное приложение Movie Planner</span>
                 </a>
                 <a href="/articles/rasshirenie-chrome-dlya-kinomanov.html" class="article-card">
-                    <span class="article-card-icon">🧩</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="extension"></span>
                     <span class="article-card-title">Расширение Chrome</span>
                     <span class="article-card-desc">Добавление фильмов и трекинг серий в браузере</span>
                 </a>
                 <a href="/articles/movie-planner-vs-kinopoisk.html" class="article-card">
-                    <span class="article-card-icon">⚖️</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                     <span class="article-card-title">Movie Planner vs Кинопоиск</span>
                     <span class="article-card-desc">В чём разница и когда что использовать</span>
                 </a>
                 <a href="/articles/movie-planner-vs-myshows.html" class="article-card">
-                    <span class="article-card-icon">📊</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="stats"></span>
                     <span class="article-card-title">Movie Planner vs MyShows</span>
                     <span class="article-card-desc">Сравнение трекеров сериалов</span>
                 </a>
                 <a href="/articles/mcp-ai-agent-movie-planner.html" class="article-card">
-                    <span class="article-card-icon">🤖</span>
+                    <span class="article-card-icon mp-icon" data-mp-icon="robot"></span>
                     <span class="article-card-title">MCP и AI-агенты</span>
                     <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                 </a>
@@ -571,7 +573,7 @@
             <span class="public-stats-owner-name" id="public-stats-owner-name"></span>
           </a>
         </div>
-        <h2 class="section-title section-title--text-only public-stats-page-title"><span class="section-title-emoji">📊</span><span class="section-title-text">Статистика</span></h2>
+        <h2 class="section-title section-title--text-only public-stats-page-title"><span class="section-title-emoji" data-mp-icon="stats"></span><span class="section-title-text">Статистика</span></h2>
         <p class="public-stats-subtitle hidden" id="public-stats-subtitle" aria-hidden="true"></p>
         <div class="stats-month-selector public-stats-selector">
           <label>Период:</label>
@@ -640,12 +642,12 @@
             </div>
             <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <div class="cabinet-nav">
-                <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji">🏠</span><span class="cabinet-nav-btn-text">Главная</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">База</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji">🎯</span><span class="cabinet-nav-btn-text">Смотреть</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji">🎭</span><span class="cabinet-nav-btn-text">Премьеры</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji">🏆</span><span class="cabinet-nav-btn-text">Турнир</span></button>
+                <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
                 <span class="inbox-fab-icon" aria-hidden="true">🔔</span>
@@ -658,16 +660,16 @@
                     </div>
                 </section>
                 <section id="section-inbox" class="cabinet-section hidden" aria-label="Уведомления">
-                    <h2 class="section-title"><span class="section-title-emoji">🔔</span><span class="section-title-text">Уведомления</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="inbox"></span><span class="section-title-text">Уведомления</span></h2>
                     <p class="cabinet-hint">Приглашения и сообщения из групп, напоминания о планах и <b>напоминание поставить оценку</b> после просмотра (как в боте).</p>
                     <div id="site-inbox-root" class="site-inbox-root" aria-live="polite"></div>
                 </section>
                 <section id="section-home" class="cabinet-section">
-                    <h2 class="section-title"><span class="section-title-emoji">🏠</span><span class="section-title-text">Главная</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="home"></span><span class="section-title-text">Главная</span></h2>
                     <div class="home-quick-actions" id="home-quick-actions" aria-label="Быстрые действия">
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="random" data-home-action="random" title="Случайный фильм" aria-label="Случайный фильм">🎲</button>
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="shazam" data-home-action="shazam" title="Подбор по описанию" aria-label="Подбор по описанию">🔮</button>
-                        <button type="button" class="home-emoji-btn" data-home-emoji-key="voice" data-home-action="voice" title="Голосовой ввод" aria-label="Голосовой ввод">🎤</button>
+                        <button type="button" class="home-emoji-btn mp-icon-btn" data-home-emoji-key="random" data-home-action="random" data-mp-icon="random" data-mp-icon-weight="duotone" title="Случайный фильм" aria-label="Случайный фильм"></button>
+                        <button type="button" class="home-emoji-btn mp-icon-btn" data-home-emoji-key="shazam" data-home-action="shazam" data-mp-icon="shazam" data-mp-icon-weight="duotone" title="Подбор по описанию" aria-label="Подбор по описанию"></button>
+                        <button type="button" class="home-emoji-btn mp-icon-btn" data-home-emoji-key="voice" data-home-action="voice" data-mp-icon="voice" data-mp-icon-weight="duotone" title="Голосовой ввод" aria-label="Голосовой ввод"></button>
                     </div>
                     <div id="home-group-suggestions" class="home-group-suggestions hidden" aria-live="polite"></div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
@@ -675,7 +677,7 @@
                 </section>
                 <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
                     <p class="cabinet-hint shazam-page-back-wrap"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
-                    <h2 class="section-title"><span class="section-title-emoji">🔮</span><span class="section-title-text">Подбор по описанию</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="shazam"></span><span class="section-title-text">Подбор по описанию</span></h2>
                     <p class="cabinet-hint home-shazam-hint">Опишите фильм своими словами — те же лимиты, что в мини-приложении.</p>
                     <div id="home-shazam-block" class="home-shazam-block">
                         <div class="home-shazam-row">
@@ -687,19 +689,19 @@
                     </div>
                 </section>
                 <section id="section-plans" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="plans"></span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
                         <div class="plans-filter-tabs" id="plans-filter-tabs" role="tablist" aria-label="Показать планы">
                             <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true">📋 Все планы</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="home" role="tab" aria-selected="false">🏠 Дома</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="cinema" role="tab" aria-selected="false">🎥 Кино</button>
-                            <button type="button" class="plans-filter-tab" data-plans-filter="premieres" role="tab" aria-selected="false">🎭 Премьеры</button>
+                            <button type="button" class="plans-filter-tab" data-plans-filter="premieres" role="tab" aria-selected="false"><span class="mp-icon mp-icon--sm" data-mp-icon="premieres"></span> Премьеры</button>
                         </div>
                         <div class="plans-today-list cards-list" id="plans-list"></div>
                     </div>
                 </section>
                 <section id="section-unwatched" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
@@ -747,7 +749,7 @@
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
@@ -781,7 +783,7 @@
                     <div id="series-list" class="cards-list"></div>
                 </section>
                 <section id="section-series-hub" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="series"></span><span class="section-title-text">Сериалы</span></h2>
                     <div class="plans-filter-tabs series-hub-tabs" role="tablist" aria-label="Сериалы">
                         <button type="button" class="plans-filter-tab active" data-series-hub-tab="upcoming">🔜 Скоро выходят</button>
                         <button type="button" class="plans-filter-tab" data-series-hub-tab="recommendations">✨ Рекомендации</button>
@@ -815,11 +817,11 @@
                     </div>
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch">
-                    <h2 class="section-title"><span class="section-title-emoji">🎯</span><span class="section-title-text">Что посмотреть</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="watch"></span><span class="section-title-text">Что посмотреть</span></h2>
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">База</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
@@ -843,7 +845,7 @@
                     <div id="ratings-list" class="cards-list"></div>
                 </section>
                 <section id="section-stats" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📊</span><span class="section-title-text">Статистика</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="stats"></span><span class="section-title-text">Статистика</span></h2>
                     <div class="stats-month-selector month-selector">
                         <select id="stats-year" class="year-select" aria-label="Год"></select>
                         <div class="month-pills" id="stats-month-pills"></div>
@@ -891,7 +893,7 @@
                     </div>
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
-                    <h2 class="section-title"><span class="section-title-emoji">🎭</span><span class="section-title-text">Премьеры</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <div class="premieres-toolbar">
                         <select id="premieres-period" class="premieres-period-select" aria-label="Период">
                             <option value="prev_month">Прошедший месяц</option>
@@ -909,7 +911,7 @@
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
                 <section id="section-tournament" class="cabinet-section hidden cabinet-tournament">
-                    <h2 class="section-title"><span class="section-title-emoji">🏆</span><span class="section-title-text">Турнирная таблица</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="tournament"></span><span class="section-title-text">Турнирная таблица</span></h2>
                     <div id="tournament-page-root" class="tournament-page-root" aria-live="polite"></div>
                 </section>
                 <section id="section-user" class="cabinet-section hidden cabinet-user-profile" aria-label="Профиль пользователя">
@@ -919,32 +921,32 @@
                     </div>
                 </section>
                 <section id="section-integrations" class="cabinet-section hidden cabinet-integrations">
-                    <h2 class="section-title"><span class="section-title-emoji">🔌</span><span class="section-title-text">Интеграции</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="integrations"></span><span class="section-title-text">Интеграции</span></h2>
                     <p class="cabinet-hint">Необязательные подключения — если нужны нейросети, API или отправка на телевизор.</p>
                     <div class="settings-block settings-list">
-                        <button type="button" class="settings-row" data-int-go="developer">🤖 Нейросети и API</button>
-                        <button type="button" class="settings-row" data-int-go="tv">📺 Подключить ТВ</button>
-                        <button type="button" class="settings-row" data-int-go="extension">🧩 Браузерное расширение</button>
+                        <button type="button" class="settings-row" data-int-go="developer" data-mp-icon="robot" data-mp-icon-inline="1">Нейросети и API</button>
+                        <button type="button" class="settings-row" data-int-go="tv" data-mp-icon="tv" data-mp-icon-inline="1">Подключить ТВ</button>
+                        <button type="button" class="settings-row" data-int-go="extension" data-mp-icon="extension" data-mp-icon-inline="1">Браузерное расширение</button>
                     </div>
                 </section>
                 <section id="section-extension" class="cabinet-section hidden cabinet-extension">
-                    <h2 class="section-title"><span class="section-title-emoji">🧩</span><span class="section-title-text">Браузерное расширение</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="extension"></span><span class="section-title-text">Браузерное расширение</span></h2>
                     <div id="extension-settings-wrap" class="settings-content">
                         <p class="cabinet-hint">Chrome, Safari и другие браузеры — отметка серий на стримингах.</p>
                         <div class="settings-toggle-list" id="extension-toggle-list"></div>
                     </div>
                 </section>
                 <section id="section-developer" class="cabinet-section hidden cabinet-developer">
-                    <h2 class="section-title"><span class="section-title-emoji">🔌</span><span class="section-title-text">Для разработчиков и нейросетей</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="developer"></span><span class="section-title-text">Для разработчиков и нейросетей</span></h2>
                     <p class="cabinet-hint">Подключите ChatGPT, Claude, Zapier, Cursor MCP или свой скрипт к <b>вашему</b> профилю Movie Planner через API.</p>
                     <div id="developer-content" class="settings-content"></div>
                 </section>
                 <section id="section-settings" class="cabinet-section hidden cabinet-settings">
-                    <h2 class="section-title section-title--compact hidden" id="section-settings-title"><span class="section-title-emoji">👤</span><span class="section-title-text">Профиль</span></h2>
+                    <h2 class="section-title section-title--compact hidden" id="section-settings-title"><span class="section-title-emoji" data-mp-icon="profile"></span><span class="section-title-text">Профиль</span></h2>
                     <div id="settings-content" class="settings-content"></div>
                 </section>
                 <section id="section-groups" class="cabinet-section hidden cabinet-groups">
-                    <h2 class="section-title"><span class="section-title-emoji">👥</span><span class="section-title-text">Друзья и группы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="friends"></span><span class="section-title-text">Друзья и группы</span></h2>
 
                     <!-- Tabs -->
                     <div class="soc-tab-row" id="soc-tab-row">
@@ -994,12 +996,12 @@
                             <h3>Два способа пригласить друга</h3>
                             <div class="groups-howto-grid">
                                 <div class="groups-howto-card">
-                                    <div class="groups-howto-emoji">🧩</div>
+                                    <div class="groups-howto-emoji mp-icon mp-icon--lg" data-mp-icon="extension"></div>
                                     <div class="groups-howto-title">Группа</div>
                                     <div class="groups-howto-text">Создайте группу одной кнопкой, получите ссылку и отправьте друзьям. Telegram-чат не нужен.</div>
                                 </div>
                                 <div class="groups-howto-card">
-                                    <div class="groups-howto-emoji">💬</div>
+                                    <div class="groups-howto-emoji mp-icon mp-icon--lg" data-mp-icon="chat"></div>
                                     <div class="groups-howto-title">Telegram-группа</div>
                                     <div class="groups-howto-text">Добавьте бота в чат, отправьте <code>/invite</code> — получите ссылку для друга (7 дней).</div>
                                 </div>
@@ -1008,27 +1010,27 @@
                     </div>
                 </section>
                 <section id="section-tv" class="cabinet-section hidden cabinet-tv">
-                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Подключение телевизора</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="series"></span><span class="section-title-text">Подключение телевизора</span></h2>
                     <div id="tv-settings-wrap" class="tv-settings-wrap">
                         <p class="tv-settings-hint">Выберите тип вашего телевизора — после этого в карточках фильмов появится кнопка «📺 На ТВ»: откроется страница запуска в Кинопоиск HD / Okko / ivi, Cast и QR-код.</p>
                         <div class="tv-type-grid" id="tv-type-grid">
                             <button type="button" class="tv-type-btn" data-tv="android_tv">
-                                <span class="tv-type-emoji">📱</span>
+                                <span class="tv-type-emoji mp-icon" data-mp-icon="phone"></span>
                                 <span class="tv-type-title">Android TV / Яндекс ТВ / Google TV</span>
                                 <span class="tv-type-sub">Cast + мгновенный запуск через агента</span>
                             </button>
                             <button type="button" class="tv-type-btn" data-tv="samsung">
-                                <span class="tv-type-emoji">🔵</span>
+                                <span class="tv-type-emoji mp-icon mp-icon--brand-blue" data-mp-icon="tv"></span>
                                 <span class="tv-type-title">Samsung Smart TV (Tizen)</span>
                                 <span class="tv-type-sub">Smart View + QR-код</span>
                             </button>
                             <button type="button" class="tv-type-btn" data-tv="lg">
-                                <span class="tv-type-emoji">🔴</span>
+                                <span class="tv-type-emoji mp-icon mp-icon--brand-red" data-mp-icon="tv"></span>
                                 <span class="tv-type-title">LG Smart TV (WebOS)</span>
                                 <span class="tv-type-sub">LG Connect Apps + QR</span>
                             </button>
                             <button type="button" class="tv-type-btn" data-tv="other">
-                                <span class="tv-type-emoji">📺</span>
+                                <span class="tv-type-emoji mp-icon" data-mp-icon="tv"></span>
                                 <span class="tv-type-title">Другой Smart TV</span>
                                 <span class="tv-type-sub">Браузер + QR</span>
                             </button>
@@ -1056,7 +1058,7 @@
                     </div>
                 </section>
                 <section id="section-about" class="cabinet-section hidden cabinet-about">
-                    <h2 class="section-title"><span class="section-title-emoji">ℹ️</span><span class="section-title-text">О проекте</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="about"></span><span class="section-title-text">О проекте</span></h2>
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">
@@ -1113,87 +1115,87 @@
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
                             <a href="/articles/treker-serialov-telegram.html" class="article-card">
-                                <span class="article-card-icon">📺</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                                 <span class="article-card-title">Трекер сериалов в Telegram</span>
                                 <span class="article-card-desc">Уведомления о новых сериях и прогресс просмотра</span>
                             </a>
                             <a href="/articles/uvedomleniya-o-novyh-seriyah.html" class="article-card">
-                                <span class="article-card-icon">🔔</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="inbox"></span>
                                 <span class="article-card-title">Уведомления о новых сериях</span>
                                 <span class="article-card-desc">Как не пропустить эпизод любимого сериала</span>
                             </a>
                             <a href="/articles/spisok-serialov-v-telegram.html" class="article-card">
-                                <span class="article-card-icon">👥</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                                 <span class="article-card-title">Общий список сериалов</span>
                                 <span class="article-card-desc">Групповой трекер и марафоны с друзьями</span>
                             </a>
                             <a href="/articles/plan-prosmotra-serialov.html" class="article-card">
-                                <span class="article-card-icon">📅</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="calendar"></span>
                                 <span class="article-card-title">Планирование просмотра сериалов</span>
                                 <span class="article-card-desc">Трекер и напоминания в Telegram</span>
                             </a>
                             <a href="/articles/kak-vesti-watchlist.html" class="article-card">
-                                <span class="article-card-icon">📚</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
                                 <span class="article-card-title">Как вести watchlist</span>
                                 <span class="article-card-desc">Список желаемого: фильмы и сериалы</span>
                             </a>
                             <a href="/articles/top-10-serialov.html" class="article-card">
-                                <span class="article-card-icon">⭐</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
                                 <span class="article-card-title">Топ-10 возможностей для сериалов</span>
                                 <span class="article-card-desc">Всё, что умеет Movie Planner</span>
                             </a>
                             <a href="/articles/vs-letterboxd-trakt.html" class="article-card">
-                                <span class="article-card-icon">⚖️</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                                 <span class="article-card-title">Movie Planner vs Letterboxd vs Trakt</span>
                                 <span class="article-card-desc">Сравнение сервисов</span>
                             </a>
                             <a href="/articles/kak-plan-pohod-kino.html" class="article-card">
-                                <span class="article-card-icon">🎫</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="ticket"></span>
                                 <span class="article-card-title">Походы в кино</span>
                                 <span class="article-card-desc">Планирование и билеты</span>
                             </a>
                             <a href="/articles/instrukciya-novichkam.html" class="article-card">
-                                <span class="article-card-icon">🚀</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
                                 <span class="article-card-title">Инструкция для новичков</span>
                                 <span class="article-card-desc">Первые шаги за 5 минут</span>
                             </a>
                             <a href="/articles/raspoznavanie-filma-po-skreenshotu.html" class="article-card">
-                                <span class="article-card-icon">📸</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="camera"></span>
                                 <span class="article-card-title">Распознавание по скриншоту</span>
                                 <span class="article-card-desc">Shazam для кино: загрузите кадр — найдите фильм</span>
                             </a>
                             <a href="/articles/sovmestnoe-planirovanie-kino-s-druziami.html" class="article-card">
-                                <span class="article-card-icon">🎬</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
                                 <span class="article-card-title">Планирование кино с друзьями</span>
                                 <span class="article-card-desc">Общий план, билеты и напоминания для всех</span>
                             </a>
                             <a href="/articles/podbor-filmov-po-emocii.html" class="article-card">
-                                <span class="article-card-icon">🎭</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="premieres"></span>
                                 <span class="article-card-title">Подбор фильмов по эмоции</span>
                                 <span class="article-card-desc">ИИ подберёт фильмы под ваше настроение</span>
                             </a>
                             <a href="/articles/prilozhenie-iphone-ios-android.html" class="article-card">
-                                <span class="article-card-icon">📱</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="phone"></span>
                                 <span class="article-card-title">Приложение для iPhone и Android</span>
                                 <span class="article-card-desc">Нативное приложение Movie Planner</span>
                             </a>
                             <a href="/articles/rasshirenie-chrome-dlya-kinomanov.html" class="article-card">
-                                <span class="article-card-icon">🧩</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="extension"></span>
                                 <span class="article-card-title">Расширение Chrome</span>
                                 <span class="article-card-desc">Добавление фильмов и трекинг серий в браузере</span>
                             </a>
                             <a href="/articles/movie-planner-vs-kinopoisk.html" class="article-card">
-                                <span class="article-card-icon">⚖️</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                                 <span class="article-card-title">Movie Planner vs Кинопоиск</span>
                                 <span class="article-card-desc">В чём разница и когда что использовать</span>
                             </a>
                             <a href="/articles/movie-planner-vs-myshows.html" class="article-card">
-                                <span class="article-card-icon">📊</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="stats"></span>
                                 <span class="article-card-title">Movie Planner vs MyShows</span>
                                 <span class="article-card-desc">Сравнение трекеров сериалов</span>
                             </a>
                             <a href="/articles/mcp-ai-agent-movie-planner.html" class="article-card">
-                                <span class="article-card-icon">🤖</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="robot"></span>
                                 <span class="article-card-title">MCP и AI-агенты</span>
                                 <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                             </a>
@@ -1343,11 +1345,11 @@
         <div class="container">
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="onboard-main">Главная</button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-plans"><span class="cabinet-nav-btn-emoji">📋</span><span class="cabinet-nav-btn-text">Планы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched"><span class="cabinet-nav-btn-emoji">🎬</span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-series"><span class="cabinet-nav-btn-emoji">📺</span><span class="cabinet-nav-btn-text">Сериалы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-ratings"><span class="cabinet-nav-btn-emoji">⭐</span><span class="cabinet-nav-btn-text">Оценки</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-about"><span class="cabinet-nav-btn-emoji">ℹ️</span><span class="cabinet-nav-btn-text">О проекте</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-series"><span class="cabinet-nav-btn-emoji" data-mp-icon="series"></span><span class="cabinet-nav-btn-text">Сериалы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-ratings"><span class="cabinet-nav-btn-emoji" data-mp-icon="ratings"></span><span class="cabinet-nav-btn-text">Оценки</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-about"><span class="cabinet-nav-btn-emoji" data-mp-icon="about"></span><span class="cabinet-nav-btn-text">О проекте</span></button>
                 <a href="#" id="cabinet-extension-link-onboard" class="btn btn-small btn-secondary cabinet-nav-extension hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
             </div>
             <div class="cabinet-sections onboarding-sections">
@@ -1367,7 +1369,7 @@
                     <p class="cabinet-onboard-intro">Что можно делать дальше:</p>
                     <div class="onboard-scenarios">
                         <div class="onboard-card">
-                            <h3>🎬 Собрать базу</h3>
+                            <h3><span class="mp-icon mp-icon--inline" data-mp-icon="library"></span> Собрать базу</h3>
                             <ul>
                                 <li>Ищите фильмы в строке сверху</li>
                                 <li>Добавляйте в непросмотренные</li>
@@ -1397,27 +1399,27 @@
                     <p class="cabinet-onboard-note">Бот и расширение необязательны. Они просто дополнительные способы добавлять фильмы быстрее.</p>
                 </section>
                 <section id="section-onboard-plans" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📋</span><span class="section-title-text">Планы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="plans"></span><span class="section-title-text">Планы</span></h2>
                     <p class="onboard-empty-hint">Планов пока нет. Добавьте фильм в боте и запланируйте просмотр — тогда он появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-unwatched" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">🎬</span><span class="section-title-text">Непросмотренные</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">Непросмотренные</span></h2>
                     <p class="onboard-empty-hint">Добавьте первый фильм в боте (поиск или ссылка с Кинопоиска/IMDb) или через расширение — он появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-series" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">📺</span><span class="section-title-text">Сериалы</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="series"></span><span class="section-title-text">Сериалы</span></h2>
                     <p class="onboard-empty-hint">Добавьте сериал в боте — здесь будет отображаться прогресс просмотра.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-ratings" class="cabinet-section hidden">
-                    <h2 class="section-title"><span class="section-title-emoji">⭐</span><span class="section-title-text">Оценки</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="ratings"></span><span class="section-title-text">Оценки</span></h2>
                     <p class="onboard-empty-hint">После просмотра поставьте оценку в боте — она появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
                 <section id="section-onboard-about" class="cabinet-section hidden cabinet-about">
-                    <h2 class="section-title"><span class="section-title-emoji">ℹ️</span><span class="section-title-text">О проекте</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="about"></span><span class="section-title-text">О проекте</span></h2>
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">
@@ -1470,87 +1472,87 @@
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
                             <a href="/articles/treker-serialov-telegram.html" class="article-card">
-                                <span class="article-card-icon">📺</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                                 <span class="article-card-title">Трекер сериалов в Telegram</span>
                                 <span class="article-card-desc">Уведомления о новых сериях и прогресс просмотра</span>
                             </a>
                             <a href="/articles/uvedomleniya-o-novyh-seriyah.html" class="article-card">
-                                <span class="article-card-icon">🔔</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="inbox"></span>
                                 <span class="article-card-title">Уведомления о новых сериях</span>
                                 <span class="article-card-desc">Как не пропустить эпизод любимого сериала</span>
                             </a>
                             <a href="/articles/spisok-serialov-v-telegram.html" class="article-card">
-                                <span class="article-card-icon">👥</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                                 <span class="article-card-title">Общий список сериалов</span>
                                 <span class="article-card-desc">Групповой трекер и марафоны с друзьями</span>
                             </a>
                             <a href="/articles/plan-prosmotra-serialov.html" class="article-card">
-                                <span class="article-card-icon">📅</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="calendar"></span>
                                 <span class="article-card-title">Планирование просмотра сериалов</span>
                                 <span class="article-card-desc">Трекер и напоминания в Telegram</span>
                             </a>
                             <a href="/articles/kak-vesti-watchlist.html" class="article-card">
-                                <span class="article-card-icon">📚</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
                                 <span class="article-card-title">Как вести watchlist</span>
                                 <span class="article-card-desc">Список желаемого: фильмы и сериалы</span>
                             </a>
                             <a href="/articles/top-10-serialov.html" class="article-card">
-                                <span class="article-card-icon">⭐</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
                                 <span class="article-card-title">Топ-10 возможностей для сериалов</span>
                                 <span class="article-card-desc">Всё, что умеет Movie Planner</span>
                             </a>
                             <a href="/articles/vs-letterboxd-trakt.html" class="article-card">
-                                <span class="article-card-icon">⚖️</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                                 <span class="article-card-title">Movie Planner vs Letterboxd vs Trakt</span>
                                 <span class="article-card-desc">Сравнение сервисов</span>
                             </a>
                             <a href="/articles/kak-plan-pohod-kino.html" class="article-card">
-                                <span class="article-card-icon">🎫</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="ticket"></span>
                                 <span class="article-card-title">Походы в кино</span>
                                 <span class="article-card-desc">Планирование и билеты</span>
                             </a>
                             <a href="/articles/instrukciya-novichkam.html" class="article-card">
-                                <span class="article-card-icon">🚀</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
                                 <span class="article-card-title">Инструкция для новичков</span>
                                 <span class="article-card-desc">Первые шаги за 5 минут</span>
                             </a>
                             <a href="/articles/raspoznavanie-filma-po-skreenshotu.html" class="article-card">
-                                <span class="article-card-icon">📸</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="camera"></span>
                                 <span class="article-card-title">Распознавание по скриншоту</span>
                                 <span class="article-card-desc">Shazam для кино: загрузите кадр — найдите фильм</span>
                             </a>
                             <a href="/articles/sovmestnoe-planirovanie-kino-s-druziami.html" class="article-card">
-                                <span class="article-card-icon">🎬</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
                                 <span class="article-card-title">Планирование кино с друзьями</span>
                                 <span class="article-card-desc">Общий план, билеты и напоминания для всех</span>
                             </a>
                             <a href="/articles/podbor-filmov-po-emocii.html" class="article-card">
-                                <span class="article-card-icon">🎭</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="premieres"></span>
                                 <span class="article-card-title">Подбор фильмов по эмоции</span>
                                 <span class="article-card-desc">ИИ подберёт фильмы под ваше настроение</span>
                             </a>
                             <a href="/articles/prilozhenie-iphone-ios-android.html" class="article-card">
-                                <span class="article-card-icon">📱</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="phone"></span>
                                 <span class="article-card-title">Приложение для iPhone и Android</span>
                                 <span class="article-card-desc">Нативное приложение Movie Planner</span>
                             </a>
                             <a href="/articles/rasshirenie-chrome-dlya-kinomanov.html" class="article-card">
-                                <span class="article-card-icon">🧩</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="extension"></span>
                                 <span class="article-card-title">Расширение Chrome</span>
                                 <span class="article-card-desc">Добавление фильмов и трекинг серий в браузере</span>
                             </a>
                             <a href="/articles/movie-planner-vs-kinopoisk.html" class="article-card">
-                                <span class="article-card-icon">⚖️</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
                                 <span class="article-card-title">Movie Planner vs Кинопоиск</span>
                                 <span class="article-card-desc">В чём разница и когда что использовать</span>
                             </a>
                             <a href="/articles/movie-planner-vs-myshows.html" class="article-card">
-                                <span class="article-card-icon">📊</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="stats"></span>
                                 <span class="article-card-title">Movie Planner vs MyShows</span>
                                 <span class="article-card-desc">Сравнение трекеров сериалов</span>
                             </a>
                             <a href="/articles/mcp-ai-agent-movie-planner.html" class="article-card">
-                                <span class="article-card-icon">🤖</span>
+                                <span class="article-card-icon mp-icon" data-mp-icon="robot"></span>
                                 <span class="article-card-title">MCP и AI-агенты</span>
                                 <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                             </a>
@@ -1631,9 +1633,9 @@
         <div class="modal-title">Главная страница</div>
         <p class="cabinet-hint">Настройки синхронизируются с мини-приложением (ключи <code>sections_order</code>, <code>sections_hidden</code>, <code>mp_home_emoji_v1</code>).</p>
         <div class="home-layout-emoji-toggles">
-          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-random"> Показывать 🎲</label>
-          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-shazam"> Показывать 🔮</label>
-          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-voice"> Показывать 🎤</label>
+          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-random"> Показывать «Рандом»</label>
+          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-shazam"> Показывать «Подбор по описанию»</label>
+          <label class="home-layout-check"><input type="checkbox" id="home-layout-emoji-voice"> Показывать «Голосовой ввод»</label>
         </div>
         <div class="home-layout-blocks-title">Блоки превью</div>
         <ul class="home-layout-list" id="home-layout-section-list"></ul>
@@ -1665,7 +1667,8 @@
     <script src="/page-loading.js?v=20260529mobileparity1"></script>
     <script src="/onboarding-flow.js?v=20260530onboard5"></script>
     <script src="/plan-modal.js?v=20260531voicefix1"></script>
-    <script src="/home-rails.js?v=20260529homecab1"></script>
-    <script src="/app.js?v=20260529norailink1"></script>
+    <script src="/mp-icons.js?v=20260529phosphor1"></script>
+    <script src="/home-rails.js?v=20260529phosphor1"></script>
+    <script src="/app.js?v=20260529phosphor1"></script>
 </body>
 </html>
