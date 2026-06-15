@@ -12540,6 +12540,10 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
 
 body.in-cabinet .inbox-fab { display: none !important; }
 
+.cabinet.film-page-mode .cabinet-home-stats {
+  display: none !important;
+}
+
 .cabinet-home-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

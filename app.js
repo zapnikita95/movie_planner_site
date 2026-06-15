@@ -3256,7 +3256,7 @@
       try { renderSeriesHubSection(); } catch (_) {}
     }
     const homeStats = document.getElementById('cabinet-home-stats');
-    if (homeStats) homeStats.classList.toggle('hidden', sectionId !== 'home');
+    if (homeStats) homeStats.classList.toggle('hidden', sectionId !== 'home' || isFilmPageOpen());
     if (rendered) {
       try { updateGroupContextFab(); } catch (_) {}
       try { syncHeaderPlanTargetVisibility(sectionId); } catch (_) {}
@@ -5244,9 +5244,10 @@
     if (!box) return;
     const counts = (dashData && dashData.counts) || {};
     const hasAny = counts.total != null || counts.unwatched != null || counts.watched != null || counts.series != null;
-    if (!hasAny) {
+    const showOnHomeOnly = !isFilmPageOpen() && visibleCabinetSectionId() === 'home';
+    if (!hasAny || !showOnHomeOnly) {
       box.classList.add('hidden');
-      box.innerHTML = '';
+      if (!hasAny) box.innerHTML = '';
       return;
     }
     box.classList.remove('hidden');
