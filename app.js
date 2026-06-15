@@ -2265,13 +2265,20 @@
     const extUrl = typeof _chromeExtUrl !== 'undefined' && _chromeExtUrl ? _chromeExtUrl
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">Перейти</div>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="settings">' + mpIcon('profile', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Профиль</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="groups">' + mpIcon('friends', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Друзья и группы</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="stats">' + mpIcon('stats', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Статистика</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">' + mpIcon('shazam', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Подбор по описанию</button>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">' + mpIcon('integrations', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Интеграции</button>';
-    topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">' + mpIcon('desktop', { size: 'sm', className: 'header-settings-nav-icon' }) + ' Расширение для Chrome</a>';
-    topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="about">' + mpIcon('about', { size: 'sm', className: 'header-settings-nav-icon' }) + ' О проекте</button>';
+    const navItems = [
+      { go: 'settings', icon: 'profile', label: 'Профиль' },
+      { go: 'groups', icon: 'friends', label: 'Друзья и группы' },
+      { go: 'stats', icon: 'stats', label: 'Статистика' },
+      { go: 'shazam', icon: 'shazam', label: 'Подбор по описанию' },
+      { go: 'integrations', icon: 'integrations', label: 'Интеграции' },
+      { go: 'about', icon: 'about', label: 'О проекте', ext: false },
+    ];
+    navItems.forEach((item) => {
+      topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="' + escapeHtml(item.go) + '">'
+        + mpIcon(item.icon, { size: 'sm', className: 'header-nav-item-icon' }) + ' ' + escapeHtml(item.label) + '</button>';
+    });
+    topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">'
+      + mpIcon('laptop', { size: 'sm', className: 'header-nav-item-icon' }) + ' Расширение для Chrome</a>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const personalCount = sessions.filter((s) => s.is_personal).length;
@@ -5412,13 +5419,11 @@
         ? top.map((item, i) => {
             const score = Number(item[nom.field] || 0);
             const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
-            return '<button type="button" class="home-tourn-row tourn-lb-row tourn-podium-row' + (item.is_me ? ' home-tourn-row-me tourn-podium-row-me' : '') + '"' + uidAttr + '>'
-              + '<span class="tourn-podium-rank home-tourn-rank">' + medal(i) + '</span>'
-              + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(item) + '</span>'
-              + '<span class="tourn-podium-body">'
-              + '<span class="tourn-podium-name home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-              + '<span class="tourn-podium-score home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
-              + '</span></button>';
+            return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
+              + '<span class="home-tourn-rank">' + medal(i) + '</span>'
+              + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+              + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
+              + '</button>';
           }).join('')
         : '<p class="empty-hint">Пока пусто — станьте первым участником месяца</p>';
       const meInTop = top.some((item) => item.is_me);
@@ -5542,7 +5547,7 @@
     const isGroup = _cabinetMeCache && _cabinetMeCache.is_group_profile;
     const links = [];
     if (!isGroup && hidden.indexOf('tournament') >= 0) {
-      links.push('<button type="button" class="home-more-row" data-home-show-section="tournament"><span class="mp-icon" data-mp-icon="tournament"></span><span>Турнирная таблица</span><span class="list-arrow">›</span></button>');
+      links.push('<button type="button" class="home-more-row" data-home-show-section="tournament"><span class="home-more-row-icon">' + mpIcon('tournament', { size: 'sm' }) + '</span><span>Турнирная таблица</span><span class="list-arrow">›</span></button>');
     }
     if (!links.length) {
       moreRoot.innerHTML = '';
@@ -5551,45 +5556,31 @@
     }
     moreRoot.classList.remove('hidden');
     moreRoot.innerHTML = '<section class="home-more-section"><h3 class="home-dash-h">Ещё</h3><div class="home-more-list">' + links.join('') + '</div></section>';
-    try { window.MPIcons && MPIcons.hydrate(moreRoot); } catch (_) {}
   }
 
-  function tournamentPodiumAvatarHtml(w) {
-    const name = (w && w.name) || '?';
-    const letter = escapeHtml(String(name).trim().charAt(0).toUpperCase() || '?');
-    const src = resolveMediaUrl(w && w.photo_url);
-    if (src) {
-      return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'tourn-podium-avatar-letter\',textContent:\'' + letter + '\'}))">';
-    }
-    return '<span class="tourn-podium-avatar-letter">' + letter + '</span>';
-  }
-
-  const TOURNAMENT_MONTH_UPPER = [
-    '', 'ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ',
-    'ИЮЛЬ', 'АВГУСТ', 'СЕНТЯБРЬ', 'ОКТЯБРЬ', 'НОЯБРЬ', 'ДЕКАБРЬ',
-  ];
   const TOURNAMENT_CURRENT_FROM_DAY = 6;
-  let _tournLiveCache = null;
-  let _tournResultsCache = null;
-  let _tournActiveNomId = null;
-  let _tournPeriodKind = null;
+  const TOURNAMENT_MONTH_UPPER = ['', 'ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ', 'ИЮЛЬ', 'АВГУСТ', 'СЕНТЯБРЬ', 'ОКТЯБРЬ', 'НОЯБРЬ', 'ДЕКАБРЬ'];
+  let _siteTournamentLiveCache = null;
+  let _siteTournamentResultsCache = null;
+  let _siteTournamentPeriodKind = null;
+  let _siteTournamentActiveNomId = null;
 
-  function tournamentMskParts() {
+  function tournamentMskPartsSite() {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Europe/Moscow',
       year: 'numeric',
       month: 'numeric',
       day: 'numeric',
     }).formatToParts(new Date());
-    const pick = (t) => parseInt((parts.find((p) => p.type === t) || {}).value || '0', 10);
+    const pick = (t) => parseInt(parts.find((p) => p.type === t)?.value || '0', 10);
     return { year: pick('year'), month: pick('month'), day: pick('day') };
   }
 
-  function tournamentDefaultPeriodKind() {
-    return tournamentMskParts().day >= TOURNAMENT_CURRENT_FROM_DAY ? 'current' : 'previous';
+  function tournamentDefaultPeriodKindSite() {
+    return tournamentMskPartsSite().day >= TOURNAMENT_CURRENT_FROM_DAY ? 'current' : 'previous';
   }
 
-  function tournamentNomScore(item, nom) {
+  function tournamentNomScoreSite(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
       return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
@@ -5597,56 +5588,78 @@
     return Number(item[nom.field] || 0);
   }
 
-  function tournamentRowVisible(item, nom) {
+  function tournamentRowVisibleSite(item, nom) {
     if (!nom) return false;
     if (nom.id === 'ratings_month') return Number(item.ratings_month || 0) > 0;
-    if (nom.id === 'cinema_month') return tournamentNomScore(item, nom) > 0;
+    if (nom.id === 'cinema_month') return tournamentNomScoreSite(item, nom) > 0;
     if (nom.id === 'watch_series_month') return Number(item.watch_series_month || 0) >= 2;
     if (nom.id === 'episodes_watched_month') return Number(item.episodes_watched_month || 0) > 0;
     return true;
   }
 
-  function tournamentNomIconKey(nom) {
-    const id = (nom && nom.id) || '';
-    if (id === 'ratings_month') return 'ratings';
-    if (id === 'cinema_month') return 'camera';
-    if (id === 'watch_series_month' || id === 'episodes_watched_month') return 'series';
-    return 'tournament';
+  function tournamentNomIconSite(nom) {
+    const map = {
+      ratings_month: 'ratings',
+      cinema_month: 'ticket',
+      watch_series_month: 'fire',
+      episodes_watched_month: 'series',
+    };
+    const id = nom && nom.id;
+    return mpIcon(map[id] || 'tournament', { size: 'sm' });
   }
 
-  function tournamentNomTitleHtml(nom) {
-    return mpIcon(tournamentNomIconKey(nom), { size: 'sm', className: 'tourn-nom-title-icon' })
-      + ' <span>' + escapeHtml((nom && nom.label) || '') + '</span>';
+  function tournamentNomTitleSite(nom) {
+    return tournamentNomIconSite(nom) + ' <span class="tourn-nom-title-text">' + escapeHtml((nom && nom.label) || '') + '</span>';
   }
 
-  function tournamentMonthSwitchHtml(targetPeriod, label) {
+  function tournamentMonthSwitchSiteHtml(targetPeriod, label) {
     if (!label) return '';
     return '<button type="button" class="tourn-month-switch" data-tourn-period="' + escapeHtml(targetPeriod) + '" aria-label="Показать ' + escapeHtml(label) + '">' + escapeHtml(label) + '</button>';
   }
 
-  function tournamentPageHeadbarHtml(opts) {
+  function tournamentPageHeadbarSiteHtml(opts) {
     const o = opts || {};
     return '<div class="tourn-page-headbar">'
       + '<div class="tourn-page-headbar-text">'
-      + (o.kicker ? ('<p class="tourn-page-kicker">' + escapeHtml(o.kicker) + '</p>') : '')
+      + (o.kicker ? '<p class="tourn-page-kicker">' + escapeHtml(o.kicker) + '</p>' : '')
       + '<h2 class="tourn-page-head">' + escapeHtml(o.title || '') + '</h2>'
-      + (o.sub ? ('<p class="tourn-page-sub cabinet-hint">' + escapeHtml(o.sub) + '</p>') : '')
+      + (o.sub ? '<p class="tourn-page-sub cabinet-hint">' + escapeHtml(o.sub) + '</p>' : '')
       + '</div>'
       + (o.switchBtn || '')
       + '</div>';
   }
 
-  function tournamentPodiumRowSiteHtml(w, nom, rankIndex) {
-    const medal = (w.rank != null)
-      ? (w.rank === 1 ? '🥇' : w.rank === 2 ? '🥈' : w.rank === 3 ? '🥉' : (w.rank + '.'))
-      : (rankIndex === 0 ? '🥇' : rankIndex === 1 ? '🥈' : rankIndex === 2 ? '🥉' : ((rankIndex + 1) + '.'));
+  function tournamentPodiumAvatarHtml(w) {
+    const name = (w && w.name) || '?';
+    const letter = escapeHtml(String(name).trim().charAt(0).toUpperCase() || '?');
+    const src = resolveMediaUrl(w && w.photo_url);
+    if (src) {
+      return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode(\'' + letter + '\'))">';
+    }
+    return '<span class="tourn-podium-avatar-letter">' + letter + '</span>';
+  }
+
+  function tournamentPodiumRowSiteHtml(w, nom) {
+    const medal = w.rank === 1 ? '🥇' : w.rank === 2 ? '🥈' : w.rank === 3 ? '🥉' : (w.rank + '.');
     const uidAttr = w.user_id != null ? (' data-user-profile="' + Number(w.user_id) + '"') : '';
-    const score = w.score != null ? Number(w.score) : tournamentNomScore(w, nom);
     return '<button type="button" class="tourn-podium-row' + (w.is_me ? ' tourn-podium-row-me' : '') + '"' + uidAttr + '>'
       + '<span class="tourn-podium-rank">' + medal + '</span>'
       + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(w) + '</span>'
       + '<span class="tourn-podium-body">'
       + '<span class="tourn-podium-name">' + escapeHtml(w.name || '—') + (w.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+      + '<span class="tourn-podium-score">' + Number(w.score || 0) + ' ' + escapeHtml((nom && nom.unit) || '') + '</span>'
+      + '</span></button>';
+  }
+
+  function tournamentLbRowSiteHtml(item, index, nom) {
+    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1 + '.');
+    const score = tournamentNomScoreSite(item, nom);
+    const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
+    return '<button type="button" class="tourn-lb-row tourn-podium-row' + (item.is_me ? ' tourn-podium-row-me' : '') + '"' + uidAttr + '>'
+      + '<span class="tourn-podium-rank">' + medal + '</span>'
+      + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(item) + '</span>'
+      + '<span class="tourn-podium-body">'
+      + '<span class="tourn-podium-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
       + '<span class="tourn-podium-score">' + score + ' ' + escapeHtml((nom && nom.unit) || '') + '</span>'
       + '</span></button>';
   }
@@ -5655,7 +5668,7 @@
     const o = opts || {};
     const periodLabel = (data.period && data.period.label) ? data.period.label : '';
     const sections = data.sections || [];
-    const switchBtn = o.switchBtn || tournamentMonthSwitchHtml('current', data.current_month_button || TOURNAMENT_MONTH_UPPER[tournamentMskParts().month] || '');
+    const switchBtn = o.switchBtn || tournamentMonthSwitchSiteHtml('current', data.current_month_button || TOURNAMENT_MONTH_UPPER[tournamentMskPartsSite().month] || '');
     let body = '';
     if (!sections.length) {
       body = '<p class="tourn-page-empty">За ' + escapeHtml(periodLabel || 'прошлый месяц') + ' никто не набрал очки в турнире.</p>';
@@ -5663,14 +5676,14 @@
       body = sections.map((sec) => {
         const nom = sec.nomination || {};
         const rows = (sec.winners || []).map((w) => tournamentPodiumRowSiteHtml(w, nom)).join('');
-        return '<section class="tourn-nom-block"><h3 class="tourn-nom-title">' + tournamentNomTitleHtml(nom) + '</h3><div class="tourn-nom-list">' + rows + '</div></section>';
+        return '<section class="tourn-nom-block"><h3 class="tourn-nom-title">' + tournamentNomTitleSite(nom) + '</h3><div class="tourn-nom-list">' + rows + '</div></section>';
       }).join('');
     }
     return '<div class="tourn-page">'
-      + tournamentPageHeadbarHtml({
+      + tournamentPageHeadbarSiteHtml({
         kicker: 'Итоги',
         title: periodLabel,
-        sub: 'Топ-3 в каждой номинации',
+        sub: 'Топ-10 в каждой номинации',
         switchBtn: switchBtn,
       })
       + '<div class="tourn-sections">' + body + '</div>'
@@ -5682,21 +5695,21 @@
     const noms = (data.nominations && data.nominations.length) ? data.nominations : [];
     const activeId = o.activeNomId || (noms[0] && noms[0].id) || 'ratings_month';
     const nom = noms.find((n) => n.id === activeId) || noms[0] || { id: 'ratings_month', label: 'Оценки', unit: 'оценок' };
-    const items = (data.leaderboard || []).filter((x) => tournamentRowVisible(x, nom));
-    const sorted = items.slice().sort((a, b) => tournamentNomScore(b, nom) - tournamentNomScore(a, nom));
+    const items = (data.leaderboard || []).filter((x) => tournamentRowVisibleSite(x, nom));
+    const sorted = items.slice().sort((a, b) => tournamentNomScoreSite(b, nom) - tournamentNomScoreSite(a, nom));
     const periodLabel = (data.period && data.period.label) ? data.period.label : (data.current_month_label || '');
-    const switchBtn = o.switchBtn || tournamentMonthSwitchHtml('previous', data.previous_month_button || '');
+    const switchBtn = o.switchBtn || tournamentMonthSwitchSiteHtml('previous', data.previous_month_button || '');
     const listHtml = sorted.length
-      ? sorted.map((item, i) => tournamentPodiumRowSiteHtml(item, nom, i)).join('')
+      ? sorted.map((item, i) => tournamentLbRowSiteHtml(item, i, nom)).join('')
       : '<p class="tourn-page-empty">Пока пусто — оцените фильм, добавьте билет к сеансу или зайдите два дня подряд.</p>';
     const tabsHtml = noms.length
-      ? ('<div class="tourn-lb-tabs" id="tourn-lb-tabs" role="tablist">' + noms.map((n) =>
+      ? '<div class="tourn-lb-tabs" id="tourn-lb-tabs" role="tablist">' + noms.map((n) =>
         '<button type="button" class="chip tourn-lb-tab' + (n.id === activeId ? ' active' : '') + '" data-tourn-nom="' + escapeHtml(n.id) + '" role="tab">'
-        + mpIcon(tournamentNomIconKey(n), { size: 'sm' }) + ' ' + escapeHtml(n.label) + '</button>'
-      ).join('') + '</div>')
+        + tournamentNomIconSite(n) + ' ' + escapeHtml(n.label || '') + '</button>',
+      ).join('') + '</div>'
       : '';
     return '<div class="tourn-page tourn-page--live">'
-      + tournamentPageHeadbarHtml({
+      + tournamentPageHeadbarSiteHtml({
         kicker: 'Турнир',
         title: periodLabel,
         sub: 'Таблица идёт',
@@ -5707,84 +5720,75 @@
       + '</div>';
   }
 
-  function bindTournamentSectionInteractions(root, rerender) {
-    if (!root) return;
+  function bindTournamentPeriodSwitchSite(root, onSwitch) {
+    if (!root || typeof onSwitch !== 'function') return;
     root.querySelectorAll('[data-tourn-period]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const p = btn.getAttribute('data-tourn-period');
-        if (p === 'current' || p === 'previous') rerender(p);
-      });
-    });
-    root.querySelectorAll('[data-tourn-nom]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-tourn-nom');
-        if (id) rerender('current', id);
+        if (p === 'current' || p === 'previous') onSwitch(p);
       });
     });
   }
 
-  function renderTournamentSection(forceKind, nomId) {
+  function bindTournamentLiveTabsSite(root, data, activeNomId, rerender) {
+    const tabsEl = root && root.querySelector('#tourn-lb-tabs');
+    if (!tabsEl || typeof rerender !== 'function') return;
+    tabsEl.querySelectorAll('[data-tourn-nom]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-tourn-nom') || activeNomId;
+        rerender(id);
+      });
+    });
+  }
+
+  function renderTournamentSection() {
     const root = document.getElementById('tournament-page-root');
     if (!root) return;
-    if (forceKind === undefined && nomId === undefined) {
-      _tournPeriodKind = tournamentDefaultPeriodKind();
-    }
-    const kind = forceKind || _tournPeriodKind || tournamentDefaultPeriodKind();
-    _tournPeriodKind = kind;
+    const periodKind = _siteTournamentPeriodKind || tournamentDefaultPeriodKindSite();
 
-    function paintLive(data) {
-      _tournActiveNomId = nomId || _tournActiveNomId || (data.nominations && data.nominations[0] && data.nominations[0].id) || 'ratings_month';
-      root.innerHTML = tournamentLivePageSiteHtml(data, { activeNomId: _tournActiveNomId });
-      bindTournamentSectionInteractions(root, renderTournamentSection);
-      try { window.MPIcons && MPIcons.hydrate(root); } catch (_) {}
+    function showError(hint) {
+      root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint || 'Не удалось загрузить таблицу') + '</p>';
     }
 
-    function paintResults(data) {
-      root.innerHTML = tournamentResultsPageSiteHtml(data);
-      bindTournamentSectionInteractions(root, renderTournamentSection);
-      try { window.MPIcons && MPIcons.hydrate(root); } catch (_) {}
-    }
-
-    if (kind === 'current') {
-      if (nomId && _tournLiveCache) {
-        paintLive(_tournLiveCache);
+    function renderPeriod(kind, nomId) {
+      _siteTournamentPeriodKind = kind;
+      root.innerHTML = pageLoadingHtml();
+      if (kind === 'current') {
+        const load = _siteTournamentLiveCache
+          ? Promise.resolve(_siteTournamentLiveCache)
+          : api('/api/tournament/leaderboard').then((data) => {
+            if (data && data.success) _siteTournamentLiveCache = data;
+            return data;
+          });
+        load.then((data) => {
+          if (!data || !data.success) {
+            showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
+            return;
+          }
+          _siteTournamentActiveNomId = nomId || _siteTournamentActiveNomId || (data.nominations && data.nominations[0] && data.nominations[0].id) || 'ratings_month';
+          root.innerHTML = tournamentLivePageSiteHtml(data, { activeNomId: _siteTournamentActiveNomId });
+          bindTournamentPeriodSwitchSite(root, (p) => renderPeriod(p));
+          bindTournamentLiveTabsSite(root, data, _siteTournamentActiveNomId, (id) => renderPeriod('current', id));
+        }).catch(() => showError());
         return;
       }
-      root.innerHTML = pageLoadingHtml();
-      api('/api/tournament/leaderboard').then((data) => {
+      const load = _siteTournamentResultsCache
+        ? Promise.resolve(_siteTournamentResultsCache)
+        : api('/api/tournament/results?period=previous').then((data) => {
+          if (data && data.success) _siteTournamentResultsCache = data;
+          return data;
+        });
+      load.then((data) => {
         if (!data || !data.success) {
-          const hint = data && data.error === 'timeout'
-            ? 'Сервер не ответил вовремя — обновите страницу'
-            : 'Не удалось загрузить таблицу';
-          root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint) + '</p>';
+          showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
           return;
         }
-        _tournLiveCache = data;
-        paintLive(data);
-      }).catch(() => {
-        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
-      });
-      return;
+        root.innerHTML = tournamentResultsPageSiteHtml(data);
+        bindTournamentPeriodSwitchSite(root, (p) => renderPeriod(p));
+      }).catch(() => showError());
     }
 
-    if (_tournResultsCache && forceKind === 'previous') {
-      paintResults(_tournResultsCache);
-      return;
-    }
-    root.innerHTML = pageLoadingHtml();
-    api('/api/tournament/results?period=previous').then((data) => {
-      if (!data || !data.success) {
-        const hint = data && data.error === 'timeout'
-          ? 'Сервер не ответил вовремя — обновите страницу'
-          : 'Не удалось загрузить таблицу';
-        root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint) + '</p>';
-        return;
-      }
-      _tournResultsCache = data;
-      paintResults(data);
-    }).catch(() => {
-      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить таблицу</p>';
-    });
+    renderPeriod(periodKind, _siteTournamentActiveNomId);
   }
 
   function bindHomeSectionNavOnce() {
@@ -10570,7 +10574,7 @@
           <form class="site-search-controls" id="site-search-form">
             <div class="site-search-field">
               <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
-              <button type="button" class="site-search-mic mp-icon-btn" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">${mpIcon('voice', { size: 'md', weight: 'duotone' })}</button>
+              <button type="button" class="site-search-mic" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
             </div>
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
@@ -11085,11 +11089,11 @@
   const SITE_WTW_SCOPES = {
     library: {
       key: 'library',
-      icon: 'basket',
+      icon: 'watchlist',
       label: 'Непросмотренные',
       modes: [
         { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из ваших непросмотренных' },
-        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'crosshair', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
+        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
       ],
     },
     world: {
@@ -11098,7 +11102,7 @@
       label: 'Со всего мира',
       modes: [
         { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из всех фильмов или свежие премьеры' },
-        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'crosshair', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
+        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
         { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: 'По оценкам в базе', hint: 'Похожие на ваши высокие оценки, ещё не в базе' },
         { id: 'premieres_reco', kind: 'premieres_reco', icon: 'ticket', title: 'Рекомендации премьер', hint: 'Новинки в прокате по вашему вкусу' },
       ],
@@ -11165,9 +11169,9 @@
       + '<div class="site-pick-result-actions">'
       + '<button type="button" class="btn btn-primary site-pick-open">На страницу фильма</button>'
       + (inBase
-        ? '<button type="button" class="btn btn-primary site-pick-plan">📅 Запланировать</button>'
+        ? '<button type="button" class="btn btn-primary site-pick-plan">' + mpIcon('calendar', { size: 'sm' }) + ' Запланировать</button>'
         : '<button type="button" class="btn btn-primary site-pick-add">Добавить в базу</button>')
-      + '<button type="button" class="btn btn-secondary site-pick-again">🎲 Ещё</button>'
+      + '<button type="button" class="btn btn-secondary site-pick-again">' + mpIcon('random', { size: 'sm' }) + ' Ещё</button>'
       + '</div></div></div>';
   }
 
@@ -11269,7 +11273,7 @@
   function renderWtwModeFlipCard(m) {
     return '<div class="wtw-flip-card" data-wtw-kind="' + escapeHtml(m.kind) + '" data-wtw-id="' + escapeHtml(m.id) + '" tabindex="0" role="button" aria-label="' + escapeHtml(m.title) + '">'
       + '<div class="wtw-flip-inner">'
-      + '<div class="wtw-flip-front"><span class="wtw-flip-icon">' + mpIcon(m.icon || 'watch', { size: 'lg', weight: m.icon === 'random' ? 'duotone' : 'regular' }) + '</span><span class="wtw-flip-title">' + escapeHtml(m.title) + '</span></div>'
+      + '<div class="wtw-flip-front"><span class="wtw-flip-emoji">' + m.emoji + '</span><span class="wtw-flip-title">' + escapeHtml(m.title) + '</span></div>'
       + '<div class="wtw-flip-back"><p class="wtw-flip-desc">' + escapeHtml(m.backDesc) + '</p>'
       + '<button type="button" class="btn btn-primary wtw-flip-action">Подобрать</button></div>'
       + '</div></div>';
@@ -11291,13 +11295,15 @@
   }
 
   function renderSiteWtwModesList(scopeKey) {
-    return siteWtwModesForScope(scopeKey).map((m) =>
-      '<button type="button" class="site-wtw-mode-row" data-wtw-id="' + escapeHtml(m.id) + '">'
-      + '<span class="site-wtw-mode-icon">' + mpIcon(m.icon || 'watch', { size: 'md', weight: m.icon === 'random' ? 'duotone' : 'regular' }) + '</span>'
-      + '<span class="site-wtw-mode-text"><span class="site-wtw-mode-title">' + escapeHtml(m.title) + '</span>'
-      + '<span class="site-wtw-mode-hint">' + escapeHtml(m.hint) + '</span></span>'
-      + '<span class="site-wtw-mode-arrow">›</span></button>',
-    ).join('');
+    return siteWtwModesForScope(scopeKey).map((m) => {
+      const iconKey = m.icon || 'watch';
+      const weight = iconKey === 'random' ? 'duotone' : 'regular';
+      return '<button type="button" class="site-wtw-mode-row" data-wtw-id="' + escapeHtml(m.id) + '">'
+        + '<span class="site-wtw-mode-icon">' + mpIcon(iconKey, { size: 'md', weight: weight }) + '</span>'
+        + '<span class="site-wtw-mode-text"><span class="site-wtw-mode-title">' + escapeHtml(m.title) + '</span>'
+        + '<span class="site-wtw-mode-hint">' + escapeHtml(m.hint) + '</span></span>'
+        + '<span class="site-wtw-mode-arrow">›</span></button>';
+    }).join('');
   }
 
   function bindSiteWtwModeRows(root) {
@@ -11346,7 +11352,6 @@
       });
     });
     bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
-    try { window.MPIcons && MPIcons.hydrate(root); } catch (_) {}
   }
 
   function ensureSiteWtwWizardOverlay() {
@@ -11735,7 +11740,7 @@
         </p>
         <p class="muted small" style="margin-bottom:8px">Базовый URL API: <code id="developer-api-base" style="font-size:12px"></code></p>
         <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
-          <button type="button" class="settings-row" id="developer-copy-api-token">🔑 Скопировать API-ключ</button>
+          <button type="button" class="settings-row" id="developer-copy-api-token" data-mp-icon="key" data-mp-icon-inline="1">Скопировать API-ключ</button>
           <a href="${API_BASE}/developer" class="settings-row" rel="noopener">Документация, OpenAPI и OAuth</a>
           <a href="${API_BASE}/integration" class="settings-row" rel="noopener">Запасная страница токена</a>
         </div>
@@ -11753,6 +11758,7 @@
       document.getElementById('developer-api-token-hint'),
       document.getElementById('developer-api-base'),
     );
+    try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(root); } catch (_) {}
   }
 
   function settingsToggleRow(opts) {
@@ -11990,16 +11996,18 @@
     return url;
   }
 
-  function profileListItemHtml(title, hint, attrs, iconKey) {
+  function profileListItemHtml(title, hint, attrs) {
     const a = attrs || {};
     let data = '';
     if (a.sub) data = ' data-profile-sub="' + escapeHtml(a.sub) + '"';
     if (a.section) data = ' data-profile-section="' + escapeHtml(a.section) + '"';
     if (a.href) data = ' data-profile-href="' + escapeHtml(a.href) + '"';
     if (a.id) data += ' id="' + escapeHtml(a.id) + '"';
-    const iconHtml = iconKey ? mpIcon(iconKey, { size: 'md' }) : '';
+    const leadIcon = a.icon
+      ? mpIcon(a.icon, { size: 'md', className: 'mp-list-icon' })
+      : (a.emoji ? '<span class="mp-list-emoji">' + a.emoji + '</span>' : '');
     return '<button type="button" class="mp-list-item"' + data + '>'
-      + '<span class="mp-list-icon">' + iconHtml + '</span>'
+      + leadIcon
       + '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(title) + '</span>'
       + (hint ? '<span class="mp-list-hint">' + escapeHtml(hint) + '</span>' : '')
       + '</span><span class="mp-list-arrow">›</span></button>';
@@ -12088,13 +12096,13 @@
         + '</div>'
         + statsHtml
         + '<div class="mp-list">'
-        + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { section: 'groups' }, 'friends')
-        + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { sub: 'billing' }, 'creditCard')
-        + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { section: 'integrations' }, 'integrations')
-        + profileListItemHtml('Настройки', 'Тема, импорт, уведомления', { sub: 'settings' }, 'gear')
-        + profileListItemHtml('Скачать приложение', downloadHint, { id: 'profile-hub-download' }, 'phone')
-        + profileListItemHtml('FAQ', 'Частые вопросы', { section: 'about' }, 'question')
-        + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { section: 'about' }, 'about')
+        + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
+        + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
+        + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { icon: 'integrations', section: 'integrations' })
+        + profileListItemHtml('Настройки', 'Тема, импорт, уведомления', { icon: 'gear', sub: 'settings' })
+        + profileListItemHtml('Скачать приложение', downloadHint, { icon: 'phone', id: 'profile-hub-download' })
+        + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
+        + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
         + '</div>'
         + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
         + '</div>';
@@ -12173,8 +12181,8 @@
       + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact">'
-      + profileListItemHtml('Импорт оценок', 'Кинопоиск, MyShows, IMDb', { sub: 'import' }, 'upload')
-      + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { sub: 'accounts' }, 'key')
+      + profileListItemHtml('Импорт оценок', 'Кинопоиск, MyShows, IMDb', { icon: 'puzzle', sub: 'import' })
+      + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { icon: 'key', sub: 'accounts' })
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
@@ -12234,7 +12242,7 @@
     root.innerHTML = '<div class="profile-sub-page settings-page">'
       + profileSubBackHtml()
       + '<h3 class="profile-sub-title">Импорт оценок</h3>'
-      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Импорт</h3>'
+      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">' + mpIcon('puzzle', { size: 'sm' }) + ' Импорт</h3>'
       + '<div class="settings-import-tabs" role="tablist">'
       + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
       + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
