@@ -1310,7 +1310,10 @@
           setTimeout(function () { loadRatings(); }, 240);
           handleAuthEntryDeepLinks();
           pathUserBoot = userIdFromLocation();
-          if (pathUserBoot) {
+          const pathTagBoot = filmTagIdFromPathname(window.location.pathname);
+          if (pathTagBoot) {
+            openFilmTagView(pathTagBoot, { replace: true, skipPush: true, skipReturnCapture: true });
+          } else if (pathUserBoot) {
             openUserProfile(pathUserBoot, { replace: true, skipPush: true, skipReturnCapture: true });
           } else {
           const pathStaff2 = staffIdFromPathname(window.location.pathname);
@@ -1331,7 +1334,7 @@
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
         try { mountStatsSection(); } catch (_) {}
       }
-      if (pathStaff || filmKp || pathUserBoot || pathFid) scheduleOnboarding = false;
+      if (pathStaff || filmKp || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
       if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
     });
   }
@@ -2582,6 +2585,9 @@
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
     if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
     if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
+    if (sectionId === 'unwatched' || sectionId === 'series' || sectionId === 'ratings') {
+      try { refreshBaseUserTagPills(); } catch (_) {}
+    }
     if (sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
@@ -2590,6 +2596,7 @@
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
+  const _filmTagPathRe = /^\/tags\/(\d+)(?:\/?)?$/;
   const _userPathRe = /^\/(?:u|user)\/(-?\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
   let _userProfileReturnSection = 'home';
@@ -2649,6 +2656,95 @@
     const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
     const m = p.match(_userPathRe);
     return m ? parseInt(m[1], 10) : null;
+  }
+
+  function filmTagIdFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_filmTagPathRe);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  let _filmTagReturnSection = 'unwatched';
+  let _currentFilmTagId = null;
+
+  function pushFilmTagUrl(tagId, replace) {
+    try {
+      const path = '/tags/' + tagId;
+      const url = path + window.location.search + window.location.hash;
+      if (replace) {
+        window.history.replaceState({ section: 'film-tag', tagId: tagId }, '', url);
+      } else if (window.location.pathname !== path) {
+        window.history.pushState({ section: 'film-tag', tagId: tagId }, '', url);
+      }
+    } catch (_) {}
+  }
+
+  function closeFilmTagView(opts) {
+    const o = opts || {};
+    _currentFilmTagId = null;
+    showSection(_filmTagReturnSection || 'unwatched', { replace: !!o.replace, skipPush: false });
+    try { restoreDocumentTitle(); } catch (_) {}
+  }
+
+  function openFilmTagView(tagId, opts) {
+    const tid = Number(tagId);
+    if (!tid || !getToken()) {
+      showToast('Войдите в кабинет');
+      return;
+    }
+    const o = opts || {};
+    if (!o.skipReturnCapture) {
+      if (o.returnSection) {
+        _filmTagReturnSection = o.returnSection;
+      } else if (!filmTagIdFromPathname(window.location.pathname)) {
+        const cur = currentCabinetSectionId();
+        if (cur && cur !== 'film-tag' && cur !== 'film') _filmTagReturnSection = cur;
+      }
+    }
+    _currentFilmTagId = tid;
+    showSection('film-tag', { replace: !!o.replace, skipPush: true });
+    if (!o.skipPush) pushFilmTagUrl(tid, !!o.replace);
+    if (global.MpFilmUserTags && typeof global.MpFilmUserTags.mountView === 'function') {
+      global.MpFilmUserTags.mountView(tid, {
+        onFilmClick: function (kp, fid) {
+          if (kp) openFilmPageByKp(kp);
+          else if (fid) openFilmPageFromLegacyPath(fid);
+        },
+        onTitle: function (title) {
+          try { document.title = title; } catch (_) {}
+        },
+      });
+    }
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
+  }
+
+  function bindFilmTagViewChromeOnce() {
+    if (window._mpFilmTagViewBound) return;
+    window._mpFilmTagViewBound = true;
+    const back = document.getElementById('film-tag-view-back');
+    if (back) {
+      back.addEventListener('click', function () {
+        try {
+          if (window.history.length > 1) window.history.back();
+          else closeFilmTagView({ replace: true });
+        } catch (_) {
+          closeFilmTagView({ replace: true });
+        }
+      });
+    }
+    if (global.MpFilmUserTags && typeof global.MpFilmUserTags.bindBasePillsOnce === 'function') {
+      global.MpFilmUserTags.bindBasePillsOnce(openFilmTagView);
+    }
+  }
+
+  function refreshBaseUserTagPills() {
+    try {
+      if (global.MpFilmUserTags && typeof global.MpFilmUserTags.refreshBasePills === 'function') {
+        return global.MpFilmUserTags.refreshBasePills();
+      }
+    } catch (_) {}
+    return Promise.resolve();
   }
 
   function userIdFromLocation() {
@@ -3213,7 +3309,7 @@
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
       tShown = t;
-      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings') ? 'unwatched'
+      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag') ? 'unwatched'
         : sectionId === 'series-hub' ? 'home' : sectionId;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
@@ -4575,6 +4671,7 @@
         }
       } catch (_) {}
       showCabinetAfterLogin(me);
+      try { refreshBaseUserTagPills(); } catch (_) {}
       try {
         const params = new URLSearchParams(window.location.search);
         const friendUid = params.get('friend_open') || params.get('user_open');
@@ -11130,14 +11227,7 @@
   let siteWtwScope = 'library';
 
   function siteWtwScopeLabelHtml(label) {
-    const linesByLabel = {
-      'Непросмотренные': ['Непросмот', 'ренные'],
-      'Со всего мира': ['Со всего', 'мира'],
-    };
-    const lines = linesByLabel[label] || [label];
-    return '<span class="plan-mode-label wtw-scope-label">'
-      + lines.map((line) => '<span class="wtw-scope-label-line">' + escapeHtml(line) + '</span>').join('')
-      + '</span>';
+    return '<span class="plan-mode-label wtw-scope-label">' + escapeHtml(label) + '</span>';
   }
 
   function siteWtwModesForScope(scopeKey) {
@@ -14454,6 +14544,7 @@
     bindHomeQuickActionsOnce();
     bindLogoHomeNavigation();
     bindUserProfileChromeOnce();
+    bindFilmTagViewChromeOnce();
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
@@ -14481,6 +14572,11 @@
       const pathUser = userIdFromPathname(window.location.pathname) || userIdFromLocation();
       if (pathUser && getToken()) {
         try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
+        return;
+      }
+      const pathTag = filmTagIdFromPathname(window.location.pathname);
+      if (pathTag && getToken()) {
+        try { openFilmTagView(pathTag, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
         return;
       }
       const pathF = filmIdFromPathname(window.location.pathname);
@@ -14752,6 +14848,15 @@
       el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
     });
   }
+
+  try {
+    window.api = api;
+    window.escapeHtml = escapeHtml;
+    window.posterUrl = posterUrl;
+    window.openFilmPageByKp = openFilmPageByKp;
+    window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
+    window.openFilmTagView = openFilmTagView;
+  } catch (_) {}
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

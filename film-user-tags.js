@@ -187,15 +187,154 @@
           if (tag) {
             btn.innerHTML = '<span data-tag-emoji>' + (tag.emoji || "🏷️") + "</span>";
           }
+          refreshBaseTagPills();
           if (opts && opts.onAssigned) opts.onAssigned(tag);
         },
       });
     });
   }
 
+  function renderTagPillHtml(tag, deps) {
+    var d = deps || defaultDeps();
+    var name = d.escapeHtml(tag.name || "Тег");
+    var emoji = d.escapeHtml(tag.emoji || "🏷️");
+    return (
+      '<button type="button" class="base-tab base-user-tag-pill" data-film-tag-id="' + tag.id + '">' +
+        emoji + " " + name +
+      "</button>"
+    );
+  }
+
+  function renderTagFilmsGridHtml(films, deps) {
+    var d = deps || defaultDeps();
+    var posterUrl = (global.posterUrl && typeof global.posterUrl === "function")
+      ? global.posterUrl
+      : function (kpId) {
+          if (!kpId) return "";
+          return "https://st.kp.yandex.net/images/film_big/" + String(kpId).replace(/\D/g, "") + ".jpg";
+        };
+    if (!films || !films.length) {
+      return '<p class="empty-hint">Пока нет фильмов с этим тегом</p>';
+    }
+    return films.map(function (f) {
+      var poster = d.escapeHtml(f.poster || posterUrl(f.kp_id) || "");
+      var title = d.escapeHtml(f.title || "—");
+      var year = f.year ? d.escapeHtml(String(f.year)) : "";
+      var series = f.is_series ? " · сериал" : "";
+      var kp = f.kp_id ? String(f.kp_id) : "";
+      var fid = f.id ? String(f.id) : "";
+      return (
+        '<button type="button" class="movie-poster film-tag-view-poster" data-kp-id="' + d.escapeHtml(kp) + '" data-film-id="' + d.escapeHtml(fid) + '">' +
+          '<div class="search-poster-media">' +
+            (poster
+              ? '<img class="movie-poster-img" src="' + poster + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+              : '<div class="movie-poster-img"></div>') +
+          "</div>" +
+          '<div class="movie-poster-body">' +
+            '<div class="movie-poster-title">' + title + "</div>" +
+            (year || series ? '<div class="movie-poster-meta">' + year + series + "</div>" : "") +
+          "</div>" +
+        "</button>"
+      );
+    }).join("");
+  }
+
+  function bindTagViewPosters(root, hooks) {
+    if (!root) return;
+    root.querySelectorAll(".film-tag-view-poster").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var kp = btn.getAttribute("data-kp-id") || "";
+        var fid = btn.getAttribute("data-film-id") || "";
+        if (hooks && typeof hooks.onFilmClick === "function") {
+          hooks.onFilmClick(kp, fid);
+          return;
+        }
+        if (kp && global.openFilmPageByKp) {
+          global.openFilmPageByKp(kp);
+        } else if (fid && global.openFilmPageFromLegacyPath) {
+          global.openFilmPageFromLegacyPath(fid);
+        }
+      });
+    });
+  }
+
+  function mountTagView(tagId, hooks) {
+    var d = Object.assign({}, defaultDeps(), (hooks && hooks.deps) || {});
+    var titleEl = document.getElementById("film-tag-view-title");
+    var metaEl = document.getElementById("film-tag-view-meta");
+    var gridEl = document.getElementById("film-tag-view-grid");
+    if (!gridEl) return Promise.resolve(false);
+    gridEl.innerHTML = '<p class="empty-hint">Загрузка…</p>';
+    if (metaEl) metaEl.textContent = "";
+    return d.apiGet(d.apiPrefix + "/" + tagId).then(function (data) {
+      if (!data || !data.success) {
+        if (gridEl) gridEl.innerHTML = '<p class="empty-hint">Тег не найден</p>';
+        return false;
+      }
+      var tag = data.tag || {};
+      var films = data.films || [];
+      if (titleEl) {
+        var titleText = titleEl.querySelector(".section-title-text") || titleEl;
+        titleText.textContent = (tag.emoji || "🏷️") + " " + (tag.name || "Тег");
+      }
+      if (metaEl) metaEl.textContent = (tag.films_count || films.length || 0) + " фильмов";
+      gridEl.innerHTML = renderTagFilmsGridHtml(films, d);
+      bindTagViewPosters(gridEl, hooks);
+      try {
+        if (hooks && typeof hooks.onTitle === "function") {
+          hooks.onTitle((tag.name || "Тег") + " · Movie Planner");
+        }
+      } catch (_) {}
+      return true;
+    }).catch(function () {
+      if (gridEl) gridEl.innerHTML = '<p class="empty-hint">Не удалось загрузить тег</p>';
+      return false;
+    });
+  }
+
+  var _baseTagPillsBound = false;
+  function bindBaseTagPillsOnce(openTagViewFn) {
+    if (_baseTagPillsBound) return;
+    _baseTagPillsBound = true;
+    document.addEventListener("click", function (e) {
+      var pill = e.target.closest("[data-film-tag-id]");
+      if (!pill || !pill.classList.contains("base-user-tag-pill")) return;
+      e.preventDefault();
+      var tagId = parseInt(pill.getAttribute("data-film-tag-id"), 10);
+      if (!tagId) return;
+      if (typeof openTagViewFn === "function") {
+        openTagViewFn(tagId);
+      } else if (global.MpFilmUserTags && typeof global.MpFilmUserTags.openView === "function") {
+        global.MpFilmUserTags.openView(tagId);
+      }
+    });
+  }
+
+  function refreshBaseTagPills() {
+    var d = defaultDeps();
+    var rows = document.querySelectorAll(".base-user-tags-row[data-base-tags]");
+    if (!rows.length) return Promise.resolve();
+    if (!global.getToken || !global.getToken()) {
+      rows.forEach(function (row) { row.innerHTML = ""; });
+      return Promise.resolve();
+    }
+    return d.apiGet(d.apiPrefix).then(function (data) {
+      var tags = (data && data.success && data.tags) ? data.tags : [];
+      var html = tags.length
+        ? tags.map(function (t) { return renderTagPillHtml(t, d); }).join("")
+        : "";
+      rows.forEach(function (row) { row.innerHTML = html; });
+    }).catch(function () {
+      rows.forEach(function (row) { row.innerHTML = ""; });
+    });
+  }
+
   global.MpFilmUserTags = {
     openPicker: openFilmTagPicker,
     bindButton: bindFilmTagButton,
+    refreshBasePills: refreshBaseTagPills,
+    bindBasePillsOnce: bindBaseTagPillsOnce,
+    mountView: mountTagView,
     TAG_EMOJIS: TAG_EMOJIS,
   };
 })(typeof window !== "undefined" ? window : globalThis);

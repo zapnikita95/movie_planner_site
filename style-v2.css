@@ -215,6 +215,20 @@ body.in-cabinet #section-inbox {
   border-color: rgba(255,45,123,.45);
   background: linear-gradient(135deg, rgba(255,45,123,.8), rgba(124,60,255,.8));
 }
+.base-user-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.base-user-tags-row:empty {
+  display: none;
+}
+.base-user-tag-pill {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .film-card-v2,
 .home-dash-row[data-film-id],
@@ -541,9 +555,14 @@ body.in-cabinet #section-inbox {
 }
 .base-section-tools-row--stack {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+.base-section-tools-row--stack .base-search-wrap {
+  flex: 1 1 180px;
+  min-width: 0;
 }
 .base-search-wrap {
   position: relative;
@@ -571,7 +590,10 @@ body.in-cabinet #section-inbox {
 }
 .base-search-input::placeholder { color: rgba(255, 255, 255, 0.38); }
 .base-sort-select {
-  width: 100%;
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 148px;
+  max-width: 100%;
   padding: 11px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1519,8 +1541,8 @@ section {
   body.in-cabinet #section-unwatched .base-section-tools-row,
   body.in-cabinet #section-series .base-section-tools-row,
   body.in-cabinet #section-ratings .base-section-tools-row {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     gap: 8px;
   }
   body.in-cabinet #section-unwatched .base-search-wrap,
@@ -12735,9 +12757,9 @@ body.in-cabinet .inbox-fab { display: none !important; }
 .mp-list-item:last-child { border-bottom: 0; }
 .mp-list-item:active { background: rgba(255, 255, 255, 0.05); }
 .mp-list-emoji { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
-.mp-list-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.mp-list-title { font-size: 15px; font-weight: 700; color: #fff; }
-.mp-list-hint { font-size: 12px; color: rgba(255, 255, 255, 0.55); line-height: 1.3; }
+.mp-list-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mp-list-title { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.25; }
+.mp-list-hint { font-size: 12px; color: rgba(255, 255, 255, 0.55); line-height: 1.35; margin-top: 1px; }
 .mp-list-arrow { color: rgba(255, 255, 255, 0.35); font-size: 18px; flex-shrink: 0; }
 
 .profile-hub { display: flex; flex-direction: column; gap: 14px; }
@@ -13161,15 +13183,15 @@ body.in-cabinet .inbox-fab { display: none !important; }
   flex-shrink: 0;
 }
 .wtw-scope-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.15;
+  display: block;
+  line-height: 1.2;
   font-size: 12px;
   text-align: center;
+  white-space: normal;
+  word-break: break-word;
 }
 .wtw-scope-label-line {
-  display: block;
+  display: inline;
 }
 .site-wtw-modes {
   display: flex;
@@ -13201,25 +13223,25 @@ body.in-cabinet .inbox-fab { display: none !important; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
   font-size: 22px;
   line-height: 1;
-  flex-shrink: 0;
 }
 .site-wtw-mode-text {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .site-wtw-mode-title {
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.25;
 }
 .site-wtw-mode-hint {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
+  line-height: 1.35;
 }
 .site-wtw-mode-arrow {
   color: rgba(255, 255, 255, 0.35);
@@ -14057,4 +14079,47 @@ img.mp-poster-placeholder,
 .film-tag-pick-list {
   max-height: 50vh;
   overflow-y: auto;
+}
+.list-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.list-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.list-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.35;
+}
+.film-tag-view-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.film-tag-view-head .section-title {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+.film-tag-view-meta {
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.film-tag-view-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 900px) {
+  .film-tag-view-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
 }
