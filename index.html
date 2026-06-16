@@ -23,6 +23,9 @@
     <meta name="twitter:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
     <meta name="twitter:image" content="https://api.movie-planner.ru/api/og/home.jpg">
     <link rel="canonical" href="https://movie-planner.ru/">
+    <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/">
+    <link rel="alternate" hreflang="en" href="https://movie-planner.ru/?lang=en">
+    <link rel="alternate" hreflang="x-default" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="stylesheet" href="/style-v2.css?v=20260617coll3">
@@ -77,6 +80,14 @@
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
             window.history.replaceState(null, '', newUrl);
           }
+        } catch (_) {}
+      })();
+      // ?lang=en|ru — persist before i18n boot
+      (function () {
+        try {
+          var lp = new URLSearchParams(window.location.search);
+          var lang = lp.get('lang');
+          if (lang === 'en' || lang === 'ru') localStorage.setItem('mp.ui_locale', lang);
         } catch (_) {}
       })();
       // Залогинен — сразу кабинет (/home), без мелькания лендинга
@@ -263,13 +274,14 @@
         <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
         <div class="header-search hidden" id="header-search" role="search">
           <span class="header-search-icon" aria-hidden="true">🔍</span>
-          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
-          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
-          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <input type="text" id="header-search-input" class="header-search-input" data-i18n-placeholder="site.header.searchPlaceholder" placeholder="Найти фильм или сериал…" autocomplete="off" data-i18n-aria="nav.search" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" data-i18n-aria="site.header.voiceInput" data-i18n-title="site.header.voiceInput" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" data-i18n-aria="common.clear" aria-label="Очистить">×</button>
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
         <div class="header-buttons">
-          <button type="button" class="btn-primary" data-action="login">Войти</button>
+          <button type="button" class="mp-lang-toggle" id="mp-lang-toggle" aria-label="English" title="English">🇬🇧</button>
+          <button type="button" class="btn-primary" data-action="login" data-i18n="site.header.signIn">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
             <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
@@ -278,25 +290,25 @@
             <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <div class="header-util-row" id="header-util-row">
               <div class="header-inbox-wrap hidden" id="header-inbox-wrap">
-                <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления" aria-haspopup="true" aria-expanded="false">
+                <button type="button" class="header-inbox-btn" id="header-inbox-btn" data-i18n-aria="site.header.notifications" data-i18n-title="site.header.notifications" aria-label="Уведомления" title="Уведомления" aria-haspopup="true" aria-expanded="false">
                   <span class="header-inbox-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
                   <span class="header-inbox-badge hidden" id="header-inbox-badge" aria-hidden="true"></span>
                 </button>
-                <div class="header-inbox-dropdown hidden" id="header-inbox-dropdown" role="dialog" aria-label="Уведомления">
+                <div class="header-inbox-dropdown hidden" id="header-inbox-dropdown" role="dialog" data-i18n-aria="site.header.notifications" aria-label="Уведомления">
                   <div class="header-inbox-dropdown-head">
-                    <span class="header-inbox-dropdown-title">Уведомления</span>
-                    <button type="button" class="link-inline header-inbox-dropdown-all" id="header-inbox-see-all">Все</button>
+                    <span class="header-inbox-dropdown-title" data-i18n="site.header.notifications">Уведомления</span>
+                    <button type="button" class="link-inline header-inbox-dropdown-all" id="header-inbox-see-all" data-i18n="common.all">Все</button>
                   </div>
                   <div class="header-inbox-dropdown-list" id="header-inbox-dropdown-list" aria-live="polite"></div>
                 </div>
               </div>
-              <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
+              <button type="button" class="header-coins-btn hidden" id="header-coins-btn" data-i18n-aria="site.header.coins" data-i18n-title="site.header.yourCoins" aria-label="Монетки" title="Ваши монетки">
                 <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
                 <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
               </button>
-              <select id="header-plan-target" class="header-plan-target hidden" aria-label="Куда сохранить план"></select>
+              <select id="header-plan-target" class="header-plan-target hidden" data-i18n-aria="site.header.planTarget" aria-label="Куда сохранить план"></select>
             </div>
-            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки"><span class="header-settings-btn-icon mp-icon" data-mp-icon="gear" aria-hidden="true"></span><span class="header-settings-btn-text">Настройки</span></button>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" data-i18n-title="nav.settings" title="Настройки"><span class="header-settings-btn-icon mp-icon" data-mp-icon="gear" aria-hidden="true"></span><span class="header-settings-btn-text" data-i18n="nav.settings">Настройки</span></button>
             <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
           </div>
         </div>
@@ -307,22 +319,22 @@
     <div class="modal hidden" id="login-modal">
       <div data-action="close-login" style="position:absolute;inset:0;z-index:0;cursor:pointer"></div>
       <div class="modal-content" style="position:relative;z-index:1">
-        <button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>
+        <button type="button" class="modal-close" data-action="close-login" data-i18n-aria="common.close" aria-label="Закрыть">&times;</button>
         <div class="modal-title">Movie Planner</div>
 
-        <div class="login-auth-tabs" role="tablist" aria-label="Вход и регистрация">
-          <button type="button" class="login-auth-tab active" data-login-tab="login" role="tab" aria-selected="true">Вход</button>
-          <button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false">Регистрация</button>
+        <div class="login-auth-tabs" role="tablist" data-i18n-aria="site.login.tabsLabel" aria-label="Вход и регистрация">
+          <button type="button" class="login-auth-tab active" data-login-tab="login" role="tab" aria-selected="true" data-i18n="site.login.signInTab">Вход</button>
+          <button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false" data-i18n="site.login.registerTab">Регистрация</button>
         </div>
 
         <div class="login-auth-pane" id="login-pane-login" data-login-pane="login">
-          <div class="login-oauth-caption">Войти с помощью</div>
+          <div class="login-oauth-caption" data-i18n="site.login.signInWith">Войти с помощью</div>
           <label class="login-oauth-privacy">
             <input type="checkbox" id="login-oauth-privacy"/>
             <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
           </label>
           <div class="login-privacy-hint" id="login-privacy-hint" hidden></div>
-          <div class="login-methods-grid" role="group" aria-label="Способы входа">
+          <div class="login-methods-grid" role="group" data-i18n-aria="site.login.methodsLabel" aria-label="Способы входа">
             <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Войти через Google">
               <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
               <span class="visually-hidden">Google</span>
@@ -337,48 +349,48 @@
           </div>
 
           <div id="login-bot-panel" class="login-bot-panel hidden">
-            <p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>
+            <p class="login-bot-wait-lead" data-i18n="site.login.botWaitLead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>
             <p class="login-status" id="login-status"></p>
             <p class="login-bot-fallback hidden" id="login-bot-fallback"></p>
-            <a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>
+            <a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen" data-i18n="site.login.reopenBot">Открыть бота ещё раз</a>
           </div>
 
           <div class="login-email-section">
-            <div class="login-email-caption">Войти по почте</div>
+            <div class="login-email-caption" data-i18n="site.login.emailSignIn">Войти по почте</div>
             <form id="login-email-form" class="login-email-request-row">
               <input type="email" id="login-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
-              <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-email-request-btn">Код</button>
+              <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-email-request-btn" data-i18n="site.login.sendCode">Код</button>
             </form>
             <p class="login-status" id="login-email-status"></p>
             <form id="login-email-code-form" class="login-email-code-row hidden">
-              <input type="text" id="login-email-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
-              <button type="submit" class="modal-button modal-button-primary">Войти</button>
-              <button type="button" class="modal-button login-email-back-btn" id="login-email-back-btn">Назад</button>
+              <input type="text" id="login-email-code" name="code" data-i18n-placeholder="site.login.codeFromEmail" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
+              <button type="submit" class="modal-button modal-button-primary" data-i18n="site.header.signIn">Войти</button>
+              <button type="button" class="modal-button login-email-back-btn" id="login-email-back-btn" data-i18n="common.back">Назад</button>
             </form>
           </div>
         </div>
 
         <div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">
           <div class="login-register-card">
-            <div class="login-register-title">Создать аккаунт</div>
+            <div class="login-register-title" data-i18n="site.login.createAccount">Создать аккаунт</div>
             <form id="login-register-form" class="login-register-form">
-              <input type="text" id="login-register-name" name="display_name" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">
+              <input type="text" id="login-register-name" name="display_name" data-i18n-placeholder="site.login.profileName" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">
               <label class="login-oauth-privacy login-register-privacy">
                 <input type="checkbox" id="login-register-privacy"/>
                 <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
               </label>
               <div class="login-email-request-row">
                 <input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">
-                <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>
+                <button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn" data-i18n="site.login.sendCode">Код</button>
               </div>
               <p class="login-status" id="login-register-status"></p>
             </form>
             <form id="login-register-code-form" class="login-email-code-row hidden">
-              <input type="text" id="login-register-code" name="code" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
-              <button type="submit" class="modal-button modal-button-primary">Завершить</button>
-              <button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>
+              <input type="text" id="login-register-code" name="code" data-i18n-placeholder="site.login.codeFromEmail" placeholder="Код из письма" maxlength="8" inputmode="numeric" autocomplete="one-time-code" class="modal-input login-email-code-input">
+              <button type="submit" class="modal-button modal-button-primary" data-i18n="site.login.finish">Завершить</button>
+              <button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn" data-i18n="common.back">Назад</button>
             </form>
-            <div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>
+            <div class="login-register-switch"><span data-i18n="site.login.haveAccount">Уже есть аккаунт?</span> <button type="button" data-login-tab-jump="login" data-i18n="site.header.signIn">Войти</button></div>
           </div>
         </div>
       </div>
@@ -387,15 +399,15 @@
     <!-- Landing -->
     <main id="landing">
       <section>
-        <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
-        <h1 class="hero-title">Ваш кинотеатр<br>Ваши <span class="gradient">правила</span></h1>
-        <p class="hero-subtitle">Личная база фильмов и сериалов, планы просмотра, билеты, напоминания и общий watchlist с друзьями</p>
+        <div class="hero-label" data-i18n="site.landing.heroLabel">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
+        <h1 class="hero-title"><span data-i18n="site.landing.heroTitleLine1">Ваш кинотеатр</span><br><span data-i18n="site.landing.heroTitleLine2" data-i18n-fallback="Ваши правила">Ваши <span class="gradient">правила</span></span></h1>
+        <p class="hero-subtitle" data-i18n="site.landing.heroSubtitle">Личная база фильмов и сериалов, планы просмотра, билеты, напоминания и общий watchlist с друзьями</p>
         <p hidden id="hero-product-matrix">Movie Planner: планер фильмов и сериалов, watchlist, отметка просмотренных, уведомления о новых сериях, коллекции и папки по рубрикам, оценки с друзьями. Android, iOS, веб-кабинет movie-planner.ru, Telegram Mini App, расширение Chrome.</p>
         <div class="hero-buttons">
-          <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
-          <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
-          <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
-          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
+          <a href="/download" class="btn-primary mp-app-download" data-i18n="site.landing.downloadApp">Скачать приложение</a>
+          <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener" data-i18n="site.landing.openMiniApp">Открыть Mini App</a>
+          <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener" data-i18n="site.landing.telegramBot">Telegram-бот</a>
+          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text" data-i18n="site.landing.chromeExt">Расширение Chrome</span></a>
         </div>
       </section>
 
@@ -403,27 +415,27 @@
 
       <section>
         <div class="what-is-v2">
-          <div class="what-is-v2-label">Что такое Movie Planner</div>
+          <div class="what-is-v2-label" data-i18n="site.landing.whatIsLabel">Что такое Movie Planner</div>
           <div class="what-is-v2-title">
-            Трекер фильмов и сериалов<br>
-            с <span class="gradient-text">планированием<wbr> просмотров</span>
+            <span data-i18n="site.landing.whatIsTitle1">Трекер фильмов и сериалов</span><br>
+            с <span class="gradient-text" data-i18n="site.landing.whatIsTitle2">планированием<wbr> просмотров</span>
           </div>
-          <div class="what-is-v2-text">
+          <div class="what-is-v2-text" data-i18n="site.landing.whatIsText">
             Собирайте личную базу или общий watchlist с друзьями, планируйте дома и в кино, прикрепляйте билеты — сервис напомнит вовремя. Оценивайте, сравнивайте вкусы и не теряйте фильмы в длинном списке «когда-нибудь».
           </div>
           <div class="what-is-v2-features">
             <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="watchlist"></span> Watchlist</div>
-            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="calendar"></span> Планирование</div>
-            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="series"></span> Трекер сериалов</div>
-            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="ticket"></span> Билеты в кино</div>
-            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="friends"></span> Группы</div>
-            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="stats"></span> Статистика</div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="calendar"></span> <span data-i18n="site.landing.featurePlanning">Планирование</span></div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="series"></span> <span data-i18n="site.landing.featureSeries">Трекер сериалов</span></div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="ticket"></span> <span data-i18n="site.landing.featureTickets">Билеты в кино</span></div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="friends"></span> <span data-i18n="site.landing.featureGroups">Группы</span></div>
+            <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="stats"></span> <span data-i18n="site.landing.featureStats">Статистика</span></div>
           </div>
         </div>
       </section>
 
       <section>
-        <h2 class="section-title gradient">Возможности</h2>
+        <h2 class="section-title gradient" data-i18n="site.landing.featuresTitle">Возможности</h2>
         <div class="bento-grid">
           <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="watchlist"></span> Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
           <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="calendar"></span> Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
@@ -706,12 +718,12 @@
             </div>
             <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <div class="cabinet-nav">
-                <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
+                <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text" data-i18n="nav.home">Главная</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text" data-i18n="nav.plans">Планы</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text" data-i18n="nav.library">База</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text" data-i18n="nav.watch">Смотреть</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text" data-i18n="nav.premieres">Премьеры</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text" data-i18n="nav.tournament">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
                 <span class="inbox-fab-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
@@ -1757,6 +1769,10 @@
     <button type="button" id="group-context-fab" class="group-context-fab hidden" aria-label="Личный профиль" title="Личный профиль">👤</button>
 
     </div><!-- /content-wrapper -->
+    <script src="/miniapp/i18n/core.js?v=20260617i18n1"></script>
+    <script src="/miniapp/i18n/ru.js?v=20260617i18n1"></script>
+    <script src="/miniapp/i18n/en.js?v=20260617i18n1"></script>
+    <script src="/site-i18n.js?v=20260617i18n1"></script>
     <script src="/telegram-open.js?v=20260602tgsafari1"></script>
     <script src="/film-friends-social.js?v=20260603filmfix1"></script>
     <script src="/user-profile-page.js?v=20260529searchcard1"></script>

@@ -5,12 +5,20 @@
 (function (global) {
   "use strict";
 
+  function siteT(key, fallback) {
+    try {
+      if (global.siteT) return global.siteT(key, fallback);
+      if (global.SiteI18n && global.SiteI18n.t) return global.SiteI18n.t(key, fallback);
+      if (global.MP_I18N && global.MP_I18N.t) return global.MP_I18N.t(key, fallback);
+    } catch (_) {}
+    return fallback != null ? fallback : key;
+  }
+
   const STATE_KEY = "mp_onboard_v2_state";
   const MAX_SIMILAR_LOADS = 15;
   const MAX_TILES = 100;
 
-  const COINS_EXPLAIN =
-    "Монетки — внутренняя валюта Movie Planner. Их можно тратить на билеты к сеансам, Шazam и прокачанные рекомендации. Получайте монетки за активность: импорт, оценки, планы и стрики.";
+  function coinsExplain() { return siteT("site.onboard.coinsExplain", "Монетки — внутренняя валюта Movie Planner. Их можно тратить на билеты к сеансам, Shazam и прокачанные рекомендации. Получайте монетки за активность: импорт, оценки, планы и стрики."); }
 
   function readState() {
     try {
@@ -49,7 +57,7 @@
       ov.innerHTML =
         '<div class="mp-dialog-card mp-onboard-dialog-card">' +
         (o.dismissX
-          ? '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label="Закрыть">✕</button>'
+          ? '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label="' + siteT('common.close', 'Закрыть') + '">✕</button>'
           : "") +
         html +
         "</div>";
@@ -111,15 +119,15 @@
 
   async function stepInterest(deps) {
     const html =
-      '<div class="mp-onboard-title">Что вам интересно больше?</div>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.interestTitle', 'Что вам интересно больше?') + '</div>' +
       '<div class="mp-onboard-opts">' +
-      optionRow("movies", "Фильмы", true, "ob-interest") +
-      optionRow("series", "Сериалы", false, "ob-interest") +
-      optionRow("premieres", "Премьеры", false, "ob-interest") +
-      optionRow("other", "Другое (укажите)", false, "ob-interest") +
+      optionRow("movies", siteT("site.onboard.movies", "Фильмы"), true, "ob-interest") +
+      optionRow("series", siteT("site.onboard.seriesLabel", "Сериалы"), false, "ob-interest") +
+      optionRow("premieres", siteT("site.onboard.premieresLabel", "Премьеры"), false, "ob-interest") +
+      optionRow("other", siteT("site.onboard.otherSpecify", "Другое (укажите)"), false, "ob-interest") +
       "</div>" +
-      embeddedField("ob-other-text", "Напишите, что вас интересует", false) +
-      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">Продолжить</button>';
+      embeddedField("ob-other-text", siteT("site.onboard.otherPlaceholder", "Напишите, что вас интересует"), false) +
+      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">' + siteT('site.onboard.continue', 'Продолжить') + '</button>';
     const res = await showCenterDialog(deps, html, {
       dismissX: true,
       bind: function (ov, close) {
@@ -137,7 +145,7 @@
           const interest = sel ? sel.value : "movies";
           const otherText = otherInp ? otherInp.value.trim() : "";
           if (interest === "other" && !otherText) {
-            deps.toast("Укажите, что вас интересует");
+            deps.toast(siteT("site.onboard.specifyInterest", "Укажите, что вас интересует"));
             return;
           }
           close({ interest: interest, otherText: otherText });
@@ -149,14 +157,14 @@
 
   async function stepDbSource(deps, mediaLabel) {
     const html =
-      '<div class="mp-onboard-title">Где вы ведёте базу просмотренного?</div>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.dbSourceTitle', 'Где вы ведёте базу просмотренного?') + '</div>' +
       '<div class="mp-onboard-opts">' +
-      optionRow("kp", "Кинопоиск / MyShows / IMDb", true, "ob-db") +
-      optionRow("other", "Другой сервис", false, "ob-db") +
-      optionRow("none", "Нет базы", false, "ob-db") +
+      optionRow("kp", siteT("site.onboard.dbKp", "Кинопоиск / MyShows / IMDb"), true, "ob-db") +
+      optionRow("other", siteT("site.onboard.dbOther", "Другой сервис"), false, "ob-db") +
+      optionRow("none", siteT("site.onboard.dbNone", "Нет базы"), false, "ob-db") +
       "</div>" +
-      embeddedField("ob-db-other", "Какой сервис?", false) +
-      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">Продолжить</button>';
+      embeddedField("ob-db-other", siteT("site.onboard.dbOtherPlaceholder", "Какой сервис?"), false) +
+      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">' + siteT('site.onboard.continue', 'Продолжить') + '</button>';
     return showCenterDialog(deps, html, {
       dismissX: true,
       bind: function (ov, close) {
@@ -174,7 +182,7 @@
           const db = sel ? sel.value : "none";
           const dbOther = otherInp ? otherInp.value.trim() : "";
           if (db === "other" && !dbOther) {
-            deps.toast("Укажите сервис");
+            deps.toast(siteT("site.onboard.specifyService", "Укажите сервис"));
             return;
           }
           close({ dbSource: db, dbOther: dbOther });
@@ -185,7 +193,7 @@
 
   async function stepImportChoice(deps) {
     const html =
-      '<div class="mp-onboard-title">Импорт оценок</div>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.importTitle', 'Импорт оценок') + '</div>' +
       '<p class="mp-onboard-text">Перенесите просмотренное — получите <strong>2000 монеток</strong>.</p>' +
       '<div class="list" style="margin-top:10px">' +
       '<button type="button" class="list-item" data-ob-import="kp">' +
@@ -197,7 +205,7 @@
       '<span class="list-text"><span class="list-title">MyShows / IMDb</span></span>' +
       '<span class="list-arrow">›</span></button>' +
       "</div>" +
-      '<button type="button" class="btn-ghost btn-full" data-ob-skip-import style="margin-top:12px">Пропустить</button>';
+      '<button type="button" class="btn-ghost btn-full" data-ob-skip-import style="margin-top:12px">' + siteT('site.onboard.skipImport', 'Пропустить') + '</button>';
     return showCenterDialog(deps, html, {
       dismissX: true,
       bind: function (ov, close) {
@@ -216,12 +224,12 @@
 
   async function showCoinsModal(deps, extraHtml) {
     const html =
-      '<div class="mp-onboard-title">🪙 Монетки</div>' +
+      '<div class="mp-onboard-title">🪙 ' + siteT('site.onboard.coinsTitle', 'Монетки') + '</div>' +
       '<p class="mp-onboard-text">' +
-      deps.escapeHtml(COINS_EXPLAIN) +
+      deps.escapeHtml(coinsExplain()) +
       "</p>" +
       (extraHtml || "") +
-      '<button type="button" class="btn-primary btn-full" data-ob-close="ok" style="margin-top:14px">Понятно</button>';
+      '<button type="button" class="btn-primary btn-full" data-ob-close="ok" style="margin-top:14px">' + siteT('site.onboard.gotIt', 'Понятно') + '</button>';
     await showCenterDialog(deps, html, {});
   }
 
@@ -238,12 +246,12 @@
       })
       .join("");
     const html =
-      '<div class="mp-onboard-title">Выберите жанры</div>' +
-      '<p class="mp-onboard-text muted small">Можно несколько</p>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.genresTitle', 'Выберите жанры') + '</div>' +
+      '<p class="mp-onboard-text muted small">' + siteT('site.onboard.genresHint', 'Можно несколько') + '</p>' +
       '<div class="chips-wrap mp-onboard-genres">' +
       chips +
       "</div>" +
-      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">Продолжить</button>';
+      '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">' + siteT('site.onboard.continue', 'Продолжить') + '</button>';
     return showCenterDialog(deps, html, {
       dismissX: true,
       bind: function (ov, close) {
@@ -291,7 +299,7 @@
       "</div>" +
       '<div class="movie-poster-meta">' +
       (it.year ? deps.escapeHtml(String(it.year)) : "") +
-      (it.is_series ? " • сериал" : "") +
+      (it.is_series ? " • " + siteT("site.onboard.seriesBadge", "сериал") : "") +
       "</div></div></button>"
     );
   }
@@ -425,7 +433,7 @@
       }
 
       ov.innerHTML =
-        '<button type="button" class="mp-onboard-dismiss mp-onboard-picker-x" data-ob-x aria-label="Закрыть">✕</button>' +
+        '<button type="button" class="mp-onboard-dismiss mp-onboard-picker-x" data-ob-x aria-label="' + siteT('common.close', 'Закрыть') + '">✕</button>' +
         '<div class="mp-onboard-picker-inner">' +
         '<div class="mp-onboard-picker-title">' +
         titleQ +
@@ -434,7 +442,7 @@
         '<div id="ob-pick-scroll" class="mp-onboard-grid-scroll">' +
         '<div id="ob-pick-grid" class="movies-grid mp-onboard-pick-grid"></div>' +
         "</div></div>" +
-        '<button type="button" class="btn-primary btn-full mp-onboard-picker-confirm" id="ob-pick-confirm" disabled>Подтвердить</button>' +
+        '<button type="button" class="btn-primary btn-full mp-onboard-picker-confirm" id="ob-pick-confirm" disabled>' + siteT('site.onboard.confirm', 'Подтвердить') + '</button>' +
         "</div>";
 
       deps.lockViewportScroll();
@@ -456,7 +464,7 @@
             return selected.has(String(it.kp_id));
           });
           btn.disabled = true;
-          btn.textContent = "Загружаем похожие…";
+          btn.textContent = siteT("site.onboard.loadingSimilar", "Загружаем похожие…");
           await Promise.all(
             Array.from(selected).map(function (kp) {
               return loadSimilar(kp);
