@@ -6375,6 +6375,14 @@ body[data-cabinet-section="about"] #header-settings-backdrop {
   -webkit-tap-highlight-color: transparent;
 }
 .header-settings-backdrop.hidden { display: none !important; }
+body.account-menu-open #site-header {
+  overflow: visible !important;
+  z-index: 290 !important;
+}
+body.account-menu-open #header-settings-dropdown.open {
+  z-index: 291 !important;
+  pointer-events: auto;
+}
 .mp-touch-blocker {
   display: none;
   position: fixed;
