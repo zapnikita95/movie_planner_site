@@ -13887,3 +13887,91 @@ img.mp-poster-placeholder,
 .ph-duotone.ph-shuffle { --ph-duotone-opacity: 0.35; }
 .ph-duotone.ph-magic-wand { --ph-duotone-opacity: 0.35; }
 .ph-duotone.ph-microphone { --ph-duotone-opacity: 0.35; }
+
+/* Landing: карусель премьер (SEO-ссылки на /f/) */
+.landing-premieres {
+  margin: 36px 0 12px;
+  padding: 0 4px;
+}
+.landing-premieres-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.landing-premieres-all {
+  color: #c4b5fd;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.landing-premieres-all:hover { text-decoration: underline; }
+.landing-premieres-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  scrollbar-width: thin;
+  padding-bottom: 8px;
+}
+.landing-premieres-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 14px;
+  width: max-content;
+}
+.landing-pre-card {
+  flex: 0 0 140px;
+  width: 140px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(17, 20, 36, 0.92);
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.landing-pre-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.45);
+}
+.landing-pre-card-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: #12151c;
+  overflow: hidden;
+}
+.landing-pre-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-pre-date {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+}
+.landing-pre-card-body { padding: 8px 10px 10px; }
+.landing-pre-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.landing-pre-card-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(170, 179, 210, 0.92);
+}
