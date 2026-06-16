@@ -192,6 +192,12 @@
   html.mp-route-pending.mp-has-seo-body body { visibility: visible; }
   html.mp-route-pending .mp-seo-article { display: block !important; }
   html.mp-route-ready body { visibility: visible; }
+  html.mp-route-ready .mp-seo-article,
+  body.film-standalone-page .mp-seo-article,
+  body.staff-standalone-page .mp-seo-article,
+  body.user-standalone-page .mp-seo-article {
+    display: none !important;
+  }
   .mp-seo-article {
     max-width: 920px;
     margin: 16px auto 0;
