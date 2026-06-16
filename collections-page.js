@@ -24,6 +24,32 @@
       .replace(/"/g, "&quot;");
   }
 
+  function stripHtml(s) {
+    if (s == null) return "";
+    var str = String(s).trim();
+    if (!str || str.indexOf("<") === -1) return str;
+    try {
+      var tmp = document.createElement("div");
+      tmp.innerHTML = str;
+      var text = (tmp.textContent || tmp.innerText || "").trim();
+      if (text) return text;
+    } catch (_) {}
+    return str.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function cleanTitle(s) {
+    return esc(stripHtml(s));
+  }
+
+  function iconHtml(key, opts) {
+    try {
+      if (global.MPIcons && typeof global.MPIcons.html === "function") {
+        return global.MPIcons.html(key, opts || { size: "md", className: "mp-list-icon" });
+      }
+    } catch (_) {}
+    return "";
+  }
+
   function apiGet(path) {
     return global.api(path);
   }
@@ -109,15 +135,25 @@
     var action = o.action || "";
     var actionLabel = o.actionLabel || "";
     if (!action) {
-      return '<p class="cabinet-hint collections-empty">' + esc(hint) + "</p>";
+      return '<p class="empty-hint collections-empty-hint">' + esc(hint) + "</p>";
     }
     return (
-      '<div class="collections-empty-state">'
-      + '<p class="cabinet-hint collections-empty">' + esc(hint) + "</p>"
-      + '<button type="button" class="btn btn-primary collections-empty-add" data-coll-action="' + esc(action) + '">'
-      + '<span class="mp-icon mp-icon--sm" data-mp-icon="plus" aria-hidden="true"></span>'
-      + '<span>' + esc(actionLabel) + "</span></button></div>"
+      '<p class="empty-hint collections-empty-hint">' + esc(hint) + "</p>"
+      + '<button type="button" class="collections-action-btn" data-coll-action="' + esc(action) + '">'
+      + iconHtml("plus", { size: "sm", className: "collections-action-btn-icon" })
+      + "<span>" + esc(actionLabel) + "</span></button>"
     );
+  }
+
+  function listLeadHtml(o) {
+    if (o.emoji) {
+      return '<span class="mp-list-emoji">' + esc(o.emoji) + "</span>";
+    }
+    if (o.icon) {
+      var cls = "mp-list-icon" + (o.iconClass || "");
+      return iconHtml(o.icon, { size: "md", className: cls });
+    }
+    return iconHtml("folder", { size: "md", className: "mp-list-icon" });
   }
 
   function listItemHtml(opts) {
@@ -125,12 +161,24 @@
     return (
       '<button type="button" class="mp-list-item collections-list-item" data-coll-action="' + esc(o.action) + '"'
       + (o.id != null ? ' data-coll-id="' + esc(String(o.id)) + '"' : "")
-      + '>'
-      + '<span class="mp-list-emoji">' + esc(o.emoji || "📁") + "</span>"
-      + '<span class="mp-list-text"><span class="mp-list-title">' + esc(o.title || "") + "</span>"
+      + ">"
+      + listLeadHtml(o)
+      + '<span class="mp-list-text"><span class="mp-list-title">' + cleanTitle(o.title || "") + "</span>"
       + (o.hint ? '<span class="mp-list-hint">' + esc(o.hint) + "</span>" : "")
-      + '</span><span class="mp-list-arrow">›</span></button>'
+      + '</span><span class="mp-list-arrow" aria-hidden="true">›</span></button>'
     );
+  }
+
+  function fillListEl(el, items, mapFn, emptyHtml) {
+    if (!el) return;
+    if (items && items.length) {
+      el.className = "mp-list collections-list";
+      el.innerHTML = items.map(mapFn).join("");
+    } else {
+      el.className = "collections-empty-wrap";
+      el.innerHTML = emptyHtml || '<p class="empty-hint collections-empty-hint">Пока пусто</p>';
+    }
+    hydrateIcons(el);
   }
 
   function filmsGridHtml(films) {
@@ -159,9 +207,9 @@
     return (
       '<div class="collections-page">'
       + '<p class="collections-intro cabinet-hint">Теги — метки на карточках фильмов. Коллекции — списки, которые вы собираете сами. Подборки — готовые списки от Movie Planner.</p>'
-      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои теги</h3></div><div class="mp-list" id="collections-tags-list"><div class="settings-loading">Загружаем…</div></div></section>'
-      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои коллекции</h3><button type="button" class="collections-link-btn" data-coll-action="new"><span class="mp-icon mp-icon--sm" data-mp-icon="plus" aria-hidden="true"></span> Новая</button></div><div class="mp-list" id="collections-mine-list"><div class="settings-loading">Загружаем…</div></div></section>'
-      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Общие подборки</h3></div><div class="mp-list" id="collections-public-list"><div class="settings-loading">Загружаем…</div></div></section>'
+      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои теги</h3></div><div class="collections-list-host" id="collections-tags-list"><div class="settings-loading">Загружаем…</div></div></section>'
+      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои коллекции</h3><button type="button" class="collections-link-btn" data-coll-action="new">' + iconHtml("plus", { size: "sm", className: "collections-link-btn-icon" }) + '<span>Новая</span></button></div><div class="collections-list-host" id="collections-mine-list"><div class="settings-loading">Загружаем…</div></div></section>'
+      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Общие подборки</h3></div><div class="collections-list-host" id="collections-public-list"><div class="settings-loading">Загружаем…</div></div></section>'
       + "</div>"
     );
   }
@@ -338,49 +386,46 @@
       var mineEl = root.querySelector("#collections-mine-list");
       var pubEl = root.querySelector("#collections-public-list");
       if (tagsEl) {
-        tagsEl.innerHTML = tags.length
-          ? tags.map(function (t) {
-            return listItemHtml({
-              action: "tag",
-              id: t.id,
-              emoji: t.emoji || "🏷️",
-              title: t.name,
-              hint: (t.films_count || 0) + " фильмов",
-            });
-          }).join("")
-          : emptyStateHtml({ hint: "Назначьте тег на карточке фильма в базе" });
+        fillListEl(tagsEl, tags, function (t) {
+          return listItemHtml({
+            action: "tag",
+            id: t.id,
+            emoji: t.emoji || null,
+            icon: t.emoji ? null : "tag",
+            title: t.name,
+            hint: (t.films_count || 0) + " фильмов",
+          });
+        }, emptyStateHtml({ hint: "Назначьте тег на карточке фильма в базе" }));
       }
       if (mineEl) {
-        mineEl.innerHTML = mine.length
-          ? mine.map(function (c) {
-            return listItemHtml({
-              action: "mine",
-              id: c.id,
-              emoji: c.emoji || "📁",
-              title: c.name,
-              hint: (c.films_count || 0) + " фильмов",
-            });
-          }).join("")
-          : emptyStateHtml({
-            hint: "Соберите свой список фильмов",
-            action: "new",
-            actionLabel: "Создать коллекцию",
+        fillListEl(mineEl, mine, function (c) {
+          return listItemHtml({
+            action: "mine",
+            id: c.id,
+            emoji: c.emoji || null,
+            icon: c.emoji ? null : "folder",
+            title: c.name,
+            hint: (c.films_count || 0) + " фильмов",
           });
-        hydrateIcons(mineEl);
+        }, emptyStateHtml({
+          hint: "Соберите свой список фильмов",
+          action: "new",
+          actionLabel: "Создать коллекцию",
+        }));
       }
       if (pubEl) {
-        pubEl.innerHTML = pub.length
-          ? pub.map(function (c) {
-            return listItemHtml({
-              action: "public",
-              id: c.id,
-              emoji: "🌐",
-              title: c.name,
-              hint: (c.films_count || 0) + " в подборке · у вас " + (c.in_user_library_count || 0),
-            });
-          }).join("")
-          : '<p class="cabinet-hint collections-empty">Скоро появятся новые подборки</p>';
+        fillListEl(pubEl, pub, function (c) {
+          return listItemHtml({
+            action: "public",
+            id: c.id,
+            icon: "globe",
+            iconClass: " mp-list-icon--public",
+            title: c.name,
+            hint: (c.films_count || 0) + " в подборке · у вас " + (c.in_user_library_count || 0),
+          });
+        }, '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
       }
+      hydrateIcons(root);
     }).catch(function () {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить. Попробуйте обновить страницу.</p>';
     });
@@ -399,7 +444,7 @@
       var films = data.films || [];
       var titleEl = root.querySelector(".collections-detail-title");
       var hintEl = root.querySelector(".collections-detail-hint");
-      if (titleEl) titleEl.textContent = (c.emoji || "📁") + " " + (c.name || "");
+      if (titleEl) titleEl.textContent = ((c.emoji || "📁") + " " + stripHtml(c.name || "")).trim();
       if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
       var body = root.querySelector("#collections-detail-body");
       if (body) {
@@ -423,7 +468,7 @@
       var films = data.films || [];
       var titleEl = root.querySelector(".collections-detail-title");
       var hintEl = root.querySelector(".collections-detail-hint");
-      if (titleEl) titleEl.textContent = "🌐 " + (c.name || "");
+      if (titleEl) titleEl.textContent = stripHtml(c.name || "");
       if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
       var body = root.querySelector("#collections-detail-body");
       if (body) {
@@ -464,9 +509,9 @@
       root.innerHTML =
         '<div class="collections-guest">'
         + '<p class="cabinet-hint collections-intro">Теги, личные списки и готовые подборки Movie Planner — в одном месте.</p>'
-        + '<button type="button" class="btn btn-primary collections-guest-login" id="collections-guest-login">'
-        + '<span class="mp-icon mp-icon--sm" data-mp-icon="user" aria-hidden="true"></span>'
-        + '<span>Войти в кабинет</span></button>'
+        + '<button type="button" class="collections-action-btn collections-guest-login" id="collections-guest-login">'
+        + iconHtml("profile", { size: "sm", className: "collections-action-btn-icon" })
+        + "<span>Войти в кабинет</span></button>"
         + "</div>";
       hydrateIcons(root);
       var loginBtn = document.getElementById("collections-guest-login");

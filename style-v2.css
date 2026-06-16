@@ -973,6 +973,74 @@ header {
   align-items: center;
 }
 
+.mp-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(12, 8, 28, 0.55);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mp-lang-toggle:hover {
+  transform: scale(1.06);
+  border-color: rgba(255, 45, 123, 0.55);
+  box-shadow: 0 0 16px rgba(155, 77, 255, 0.35);
+}
+
+body.in-cabinet .mp-lang-toggle {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+.mp-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.mp-lang-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+body.in-cabinet .mp-lang-toggle {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+.settings-lang-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-lang-btn.active {
+  border-color: rgba(255, 45, 123, 0.55);
+  background: rgba(255, 45, 123, 0.12);
+}
+
 
 .btn-primary {
   background: linear-gradient(135deg, #ff2d7b, #9b4dff);
@@ -14128,13 +14196,14 @@ img.mp-poster-placeholder,
 .base-tab--collections {
   margin-left: auto;
   border-color: rgba(124, 60, 255, 0.35);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(124, 60, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
 }
 .base-tab--collections:hover {
   border-color: rgba(124, 60, 255, 0.55);
-  background: rgba(124, 60, 255, 0.12);
+  background: rgba(124, 60, 255, 0.16);
 }
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .base-tabs .base-tab--collections {
     margin-left: 0;
     flex: 1 1 calc(50% - 4px);
@@ -14142,74 +14211,128 @@ img.mp-poster-placeholder,
   }
 }
 .collections-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  margin-top: 8px;
 }
 .collections-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 .collections-intro {
   margin: 0 0 4px;
+  line-height: 1.55;
 }
 .collections-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 .collections-block-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 8px;
 }
 .collections-block-title {
   margin: 0;
   font-family: 'Unbounded', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.01em;
   color: #fff;
 }
 .collections-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  margin: -4px -6px -4px 0;
   border: 0;
+  border-radius: 10px;
   background: transparent;
   color: #ff5aa5;
   font: inherit;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 0;
+  transition: background 0.15s, color 0.15s;
 }
-.collections-link-btn:hover { color: #ff2d7b; }
-.collections-empty {
-  margin: 8px 2px 0;
+.collections-link-btn:hover {
+  color: #ff2d7b;
+  background: rgba(255, 45, 123, 0.1);
 }
-.collections-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 8px 2px 0;
+.collections-link-btn-icon.mp-icon i {
+  font-size: 15px;
 }
-.collections-empty-add,
-.collections-guest-login {
+.collections-list-host .settings-loading {
+  padding: 12px 2px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.collections-empty-wrap {
+  padding: 2px 0 4px;
+}
+.collections-empty-hint {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.collections-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 90, 165, 0.35);
+  background: rgba(255, 45, 123, 0.08);
+  color: #ff5aa5;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.collections-link-btn {
+.collections-action-btn:hover {
+  background: rgba(255, 45, 123, 0.14);
+  border-color: rgba(255, 90, 165, 0.55);
+  color: #ff2d7b;
+}
+.collections-action-btn-icon.mp-icon i {
+  font-size: 16px;
+}
+.mp-list.collections-list {
+  margin: 0;
+}
+.collections-list-item {
+  min-height: 58px;
+}
+.collections-list-item .mp-list-icon {
+  flex-shrink: 0;
+  width: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.82);
+}
+.collections-list-item .mp-list-icon--public {
+  color: #7cb8ff;
+}
+.collections-list-item .mp-list-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .collections-guest {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 14px;
-  padding: 8px 0 16px;
+  padding: 4px 0 12px;
 }
 .collections-page--detail .collections-detail-head {
   margin-top: 4px;
@@ -14217,9 +14340,10 @@ img.mp-poster-placeholder,
 .collections-detail-title {
   margin: 0;
   font-family: 'Unbounded', sans-serif;
-  font-size: 18px;
+  font-size: clamp(17px, 4vw, 20px);
   font-weight: 700;
   color: #fff;
+  line-height: 1.3;
 }
 .collections-detail-hint {
   margin: 6px 0 0;
@@ -14285,78 +14409,6 @@ img.mp-poster-placeholder,
   gap: 10px;
   margin-top: 18px;
 }
-@media (min-width: 640px) {
-  .collections-films-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (min-width: 900px) {
-  .collections-films-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-  }
-}
-
-.base-tab--collections {
-  margin-left: auto;
-  border-color: rgba(124, 60, 255, 0.35);
-  background: rgba(124, 60, 255, 0.12);
-  color: rgba(255, 255, 255, 0.88);
-}
-@media (max-width: 560px) {
-  .base-tab--collections {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-.collections-content { margin-top: 8px; }
-.collections-page { display: flex; flex-direction: column; gap: 20px; }
-.collections-intro { margin: 0 0 4px; }
-.collections-block-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.collections-block-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: #fff;
-}
-.collections-link-btn {
-  border: 0;
-  background: transparent;
-  color: rgba(255, 45, 123, 0.95);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 0;
-}
-.collections-empty { margin: 8px 0; }
-.collections-detail-head { margin: 8px 0 14px; }
-.collections-detail-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-}
-.collections-detail-hint {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-}
-.collections-films-grid { margin-top: 8px; }
-.collections-delete-btn { margin-top: 16px; }
-.collections-guest {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: flex-start;
-}
 .landing-feature-promo.collections-landing-promo {
   margin: 0 0 28px;
   padding: 28px 22px;
@@ -14364,24 +14416,18 @@ img.mp-poster-placeholder,
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(124, 60, 255, 0.18), rgba(255, 45, 123, 0.12));
 }
-.landing-feature-promo-title {
-  margin: 0 0 10px;
-  font-size: clamp(24px, 4vw, 34px);
-  font-weight: 800;
-  color: #fff;
-}
-.landing-feature-promo-text {
-  margin: 0 0 16px;
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.55;
-  max-width: 640px;
-}
-.landing-feature-promo-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+@media (min-width: 640px) {
+  .collections-films-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @media (min-width: 900px) {
+  .collections-page {
+    gap: 24px;
+  }
+  .collections-block-head {
+    margin-bottom: 10px;
+  }
   .collections-films-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
