@@ -2588,8 +2588,8 @@
     if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
     if (sectionId === 'collections') {
       try {
-        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
-          global.MpCollectionsPage.render({ resetView: true });
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
+          window.MpCollectionsPage.render({ resetView: true });
         }
       } catch (_) {}
     }
@@ -3426,8 +3426,8 @@
     }
     if (rendered && sectionId === 'collections') {
       try {
-        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
-          global.MpCollectionsPage.render();
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
+          window.MpCollectionsPage.render();
         }
       } catch (_) {}
       try { window.scrollTo(0, 0); } catch (_) {}
@@ -4655,15 +4655,15 @@
         renderHeader(null);
         handleAuthEntryDeepLinks();
         try {
-          if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
-            global.MpCollectionsPage.showGuestPromo();
+          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+            window.MpCollectionsPage.showGuestPromo();
           }
         } catch (_) {}
         return;
       }
       try {
-        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.hideGuestPromo === 'function') {
-          global.MpCollectionsPage.hideGuestPromo();
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.hideGuestPromo === 'function') {
+          window.MpCollectionsPage.hideGuestPromo();
         }
       } catch (_) {}
       cabinetHasData = !!me.has_data;
@@ -4733,8 +4733,8 @@
       renderHeader(null);
       handleAuthEntryDeepLinks();
       try {
-        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
-          global.MpCollectionsPage.showGuestPromo();
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+          window.MpCollectionsPage.showGuestPromo();
         }
       } catch (_) {}
     });
@@ -5960,6 +5960,11 @@
       if (collEntry) {
         e.preventDefault();
         markCabinetUserNav('collections');
+        try {
+          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.resetView === 'function') {
+            window.MpCollectionsPage.resetView();
+          }
+        } catch (_) {}
         showSection('collections');
         afterCabinetSectionShown('collections');
         return;
@@ -12198,8 +12203,8 @@
         if (sec === 'about') { try { bindFaq && bindFaq(); } catch (_) {} }
         if (sec === 'collections') {
           try {
-            if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
-              global.MpCollectionsPage.render({ resetView: true });
+            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
+              window.MpCollectionsPage.render({ resetView: true });
             }
           } catch (_) {}
         }
@@ -14802,8 +14807,8 @@
             renderHeader(null);
             handleAuthEntryDeepLinks();
             try {
-              if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
-                global.MpCollectionsPage.showGuestPromo();
+              if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+                window.MpCollectionsPage.showGuestPromo();
               }
             } catch (_) {}
           }
@@ -14814,8 +14819,8 @@
           renderHeader(null);
           handleAuthEntryDeepLinks();
           try {
-            if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
-              global.MpCollectionsPage.showGuestPromo();
+            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+              window.MpCollectionsPage.showGuestPromo();
             }
           } catch (_) {}
         });
@@ -14837,8 +14842,8 @@
         renderHeader(null);
         handleAuthEntryDeepLinks();
         try {
-          if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
-            global.MpCollectionsPage.showGuestPromo();
+          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+            window.MpCollectionsPage.showGuestPromo();
           }
         } catch (_) {}
       }
@@ -14921,21 +14926,15 @@
   }
 
   try {
-    window.api = api;
-    window.escapeHtml = escapeHtml;
-    window.posterUrl = posterUrl;
-    window.openFilmPageByKp = openFilmPageByKp;
-    window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
-    window.openFilmTagView = openFilmTagView;
-  } catch (_) {}
-
-  try {
     window.getToken = getToken;
     window.api = api;
     window.escapeHtml = escapeHtml;
+    window.posterUrl = posterUrl;
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
     window.restoreDocumentTitle = restoreDocumentTitle;
+    window.openFilmPageByKp = openFilmPageByKp;
+    window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
     window.openFilmTagView = openFilmTagView;
     window.__mpOpenFilmTagFromCollections = function (tagId) {
       openFilmTagView(tagId, { returnSection: 'collections' });
