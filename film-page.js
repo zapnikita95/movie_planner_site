@@ -776,7 +776,10 @@
           '</header>' +
           appOpenBannerHtml() +
           '<main class="film-page">' +
-            '<section class="hero">' +
+            '<section class="hero film-hero-with-tag">' +
+              '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
+                (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
+              '</button>' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
@@ -1356,6 +1359,11 @@
             setCurrentRating(v, btn);
           });
         });
+        var tagBtn = document.getElementById('film-user-tag-btn');
+        if (tagBtn && !token()) {
+          tagBtn.setAttribute('title', 'добавить в список');
+          tagBtn.addEventListener('click', function () { loginNow('tag'); });
+        }
       }
       rebindGuestToolbarActions();
       var loginBtn = document.getElementById('login-btn');
@@ -1495,6 +1503,10 @@
           bindFilmPlanDropdowns(root, function (place) {
             openStandalonePlanModal(film, place === 'cinema' ? 'cinema' : 'home');
           });
+          var tagBtn = document.getElementById('film-user-tag-btn');
+          if (tagBtn && global.MpFilmUserTags && global.MpFilmUserTags.bindButton) {
+            global.MpFilmUserTags.bindButton(tagBtn, film.film_id);
+          }
         }
       }
 

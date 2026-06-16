@@ -9539,7 +9539,10 @@
 
     content.className = 'movie-page';
     content.innerHTML =
-      '<section class="hero" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+      '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
+          (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
+        '</button>' +
         '<div class="poster-wrap">' +
           (poster
             ? '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.style.opacity=.22">'
@@ -9563,6 +9566,16 @@
       kpId: film.kp_id,
       pendingAction: ho.pendingAction || '',
     });
+    var tagBtn = content.querySelector('#film-user-tag-btn');
+    if (tagBtn && film.film_id && global.MpFilmUserTags && global.MpFilmUserTags.bindButton) {
+      global.MpFilmUserTags.bindButton(tagBtn, film.film_id);
+    } else if (tagBtn && !getToken()) {
+      tagBtn.setAttribute('title', 'добавить в список');
+      tagBtn.addEventListener('click', function () {
+        if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('tag');
+        else showLoginModalOverlay();
+      });
+    }
     if (getToken()) loadFilmFriendsSocial(film);
     loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
   }

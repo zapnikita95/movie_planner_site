@@ -13983,3 +13983,78 @@ img.mp-poster-placeholder,
   font-size: 11px;
   color: rgba(170, 179, 210, 0.92);
 }
+
+/* Film user tags */
+.film-hero-with-tag {
+  position: relative;
+}
+.film-hero-tag-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 14, 24, 0.72);
+  color: #f4f6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.film-hero-tag-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.film-hero-tag-ico {
+  font-size: 18px;
+}
+.mp-dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4f6ff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.film-tag-dialog-card {
+  position: relative;
+  padding: 20px 16px 16px;
+  max-width: 420px;
+}
+.mp-dialog-title {
+  margin: 0 28px 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.film-tag-emoji-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.film-tag-emoji-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 20px;
+  cursor: pointer;
+}
+.film-tag-emoji-btn.active {
+  border-color: #ff2d7b;
+  background: rgba(255, 45, 123, 0.18);
+}
+.film-tag-pick-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
