@@ -2492,6 +2492,7 @@
     settings: '/settings',
     developer: '/my-api',
     inbox: '/inbox',
+    collections: '/features/collections',
   };
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
 
@@ -2585,6 +2586,13 @@
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
     if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
     if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
+    if (sectionId === 'collections') {
+      try {
+        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
+          global.MpCollectionsPage.render({ resetView: true });
+        }
+      } catch (_) {}
+    }
     if (sectionId === 'unwatched' || sectionId === 'series' || sectionId === 'ratings') {
       try { refreshBaseUserTagPills(); } catch (_) {}
     }
@@ -3330,7 +3338,9 @@
     if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
       _filmModalCurrentId = null;
       if (readonly) readonly.classList.remove('film-page-mode');
-      try { restoreDocumentTitle(); } catch (e) {}
+      if (sectionId !== 'collections') {
+        try { restoreDocumentTitle(); } catch (e) {}
+      }
     }
     if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
       pushSectionUrl(sectionId, !!options.replace);
@@ -3413,6 +3423,14 @@
     }
     if (rendered && sectionId === 'stats') {
       try { mountStatsSection(); } catch (_) {}
+    }
+    if (rendered && sectionId === 'collections') {
+      try {
+        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
+          global.MpCollectionsPage.render();
+        }
+      } catch (_) {}
+      try { window.scrollTo(0, 0); } catch (_) {}
     }
     if (rendered && sectionId === 'user' && _currentUserProfileId) {
       try {
@@ -4636,8 +4654,18 @@
         showScreen('landing');
         renderHeader(null);
         handleAuthEntryDeepLinks();
+        try {
+          if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
+            global.MpCollectionsPage.showGuestPromo();
+          }
+        } catch (_) {}
         return;
       }
+      try {
+        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.hideGuestPromo === 'function') {
+          global.MpCollectionsPage.hideGuestPromo();
+        }
+      } catch (_) {}
       cabinetHasData = !!me.has_data;
       cabinetUserId = me.user_id || null;
       _cabinetMeCache = me;
@@ -4704,6 +4732,11 @@
       showScreen('landing');
       renderHeader(null);
       handleAuthEntryDeepLinks();
+      try {
+        if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
+          global.MpCollectionsPage.showGuestPromo();
+        }
+      } catch (_) {}
     });
   }
 
@@ -5921,6 +5954,20 @@
         e.preventDefault();
         const sec = baseTab.getAttribute('data-base-section');
         if (sec) showSection(sec);
+        return;
+      }
+      const collEntry = e.target.closest('[data-go-collections]');
+      if (collEntry) {
+        e.preventDefault();
+        markCabinetUserNav('collections');
+        showSection('collections');
+        afterCabinetSectionShown('collections');
+        return;
+      }
+      const collFilm = e.target.closest('#collections-content .collections-film-card');
+      if (collFilm) {
+        e.preventDefault();
+        openFilmFromCard(collFilm);
         return;
       }
       const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
@@ -12149,6 +12196,13 @@
         if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
         if (sec === 'integrations') { /* section wired in showSection */ }
         if (sec === 'about') { try { bindFaq && bindFaq(); } catch (_) {} }
+        if (sec === 'collections') {
+          try {
+            if (global.MpCollectionsPage && typeof global.MpCollectionsPage.render === 'function') {
+              global.MpCollectionsPage.render({ resetView: true });
+            }
+          } catch (_) {}
+        }
       });
     });
     root.querySelectorAll('[data-profile-href]').forEach((btn) => {
@@ -12208,6 +12262,7 @@
         + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
         + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
         + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { icon: 'integrations', section: 'integrations' })
+        + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
         + profileListItemHtml('Настройки', 'Тема, импорт, уведомления', { icon: 'gear', sub: 'settings' })
         + profileListItemHtml('Скачать приложение', downloadHint, { icon: 'phone', id: 'profile-hub-download' })
         + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
@@ -12290,6 +12345,7 @@
       + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact">'
+      + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
       + profileListItemHtml('Импорт оценок', 'Кинопоиск, MyShows, IMDb', { icon: 'puzzle', sub: 'import' })
       + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { icon: 'key', sub: 'accounts' })
       + '</section>'
@@ -14745,6 +14801,11 @@
             showScreen('landing');
             renderHeader(null);
             handleAuthEntryDeepLinks();
+            try {
+              if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
+                global.MpCollectionsPage.showGuestPromo();
+              }
+            } catch (_) {}
           }
         })
         .catch(() => {
@@ -14752,6 +14813,11 @@
           showScreen('landing');
           renderHeader(null);
           handleAuthEntryDeepLinks();
+          try {
+            if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
+              global.MpCollectionsPage.showGuestPromo();
+            }
+          } catch (_) {}
         });
       return;
     }
@@ -14770,6 +14836,11 @@
         showScreen('landing');
         renderHeader(null);
         handleAuthEntryDeepLinks();
+        try {
+          if (global.MpCollectionsPage && typeof global.MpCollectionsPage.showGuestPromo === 'function') {
+            global.MpCollectionsPage.showGuestPromo();
+          }
+        } catch (_) {}
       }
     }
     }
@@ -14856,6 +14927,19 @@
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
     window.openFilmTagView = openFilmTagView;
+  } catch (_) {}
+
+  try {
+    window.getToken = getToken;
+    window.api = api;
+    window.escapeHtml = escapeHtml;
+    window.showToast = showToast;
+    window.showLoginModalOverlay = showLoginModalOverlay;
+    window.restoreDocumentTitle = restoreDocumentTitle;
+    window.openFilmTagView = openFilmTagView;
+    window.__mpOpenFilmTagFromCollections = function (tagId) {
+      openFilmTagView(tagId, { returnSection: 'collections' });
+    };
   } catch (_) {}
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

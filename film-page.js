@@ -252,6 +252,7 @@
     stats: '/stats',
     shazam: '/shazam',
     integrations: '/integrations',
+    collections: '/features/collections',
     about: '/about',
     home: '/home',
     tournament: '/tournament',

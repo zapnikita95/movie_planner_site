@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617settings1">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617coll1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,6 +100,19 @@
             window.history.replaceState({ section: 'home' }, '', '/home' + qs + hash);
           }
           document.documentElement.classList.add('mp-auth-boot');
+        } catch (_) {}
+      })();
+      // SEO для /features/collections (краулеры и первый paint)
+      (function () {
+        try {
+          var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
+          if (path !== '/features/collections') return;
+          document.title = 'Коллекции фильмов — Movie Planner';
+          var desc = 'Личные коллекции, теги и редакционные подборки в Movie Planner: группируйте фильмы и сериалы по рубрикам.';
+          var md = document.querySelector('meta[name="description"]');
+          if (md) md.setAttribute('content', desc);
+          var canon = document.querySelector('link[rel="canonical"]');
+          if (canon) canon.href = 'https://movie-planner.ru/features/collections';
         } catch (_) {}
       })();
     </script>
@@ -736,6 +749,7 @@
                             <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
+                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
@@ -785,6 +799,7 @@
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab active" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
+                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
@@ -858,6 +873,7 @@
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab active" data-base-section="ratings">Оценки</button>
+                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
@@ -883,6 +899,10 @@
                     </div>
                     <div id="film-tag-view-meta" class="film-tag-view-meta"></div>
                     <div id="film-tag-view-grid" class="movies-grid film-tag-view-grid"></div>
+                </section>
+                <section id="section-collections" class="cabinet-section hidden" aria-label="Коллекции">
+                    <h1 class="section-title collections-seo-title"><span class="section-title-emoji" data-mp-icon="folder"></span><span class="section-title-text">Коллекции</span></h1>
+                    <div id="collections-content" class="collections-content"></div>
                 </section>
                 <section id="section-stats" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="stats"></span><span class="section-title-text">Статистика</span></h2>
@@ -1718,9 +1738,10 @@
     <script src="/onboarding-flow.js?v=20260530onboard5"></script>
     <script src="/plan-modal.js?v=20260531voicefix1"></script>
     <script src="/film-user-tags.js?v=20260617tags2"></script>
+    <script src="/collections-page.js?v=20260617coll1"></script>
     <script src="/mp-icons.js?v=20260529phosphor2"></script>
     <script src="/home-rails.js?v=20260529phosphor2"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/app.js?v=20260529filmcabinet1"></script>
+    <script src="/app.js?v=20260617coll1"></script>
 </body>
 </html>
