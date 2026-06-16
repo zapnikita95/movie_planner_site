@@ -217,6 +217,35 @@
       }
     })();
   </script>
+  <script>
+    (function () {
+      var m = location.pathname.match(/^\/f\/(\d+)\/?$/);
+      if (!m) return;
+      var kp = m[1];
+      try {
+        if (sessionStorage.getItem('mp_public_film_force') === kp) return;
+      } catch (_e) {}
+      var token = null;
+      try {
+        var active = localStorage.getItem('mp_site_active_chat_id');
+        var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+        if (Array.isArray(sessions)) {
+          for (var i = 0; i < sessions.length; i++) {
+            if (String(sessions[i].chat_id) === String(active) && sessions[i].token) {
+              token = sessions[i].token;
+              break;
+            }
+          }
+        }
+        if (!token) token = localStorage.getItem('mp_site_token');
+      } catch (_e2) {}
+      if (!token) return;
+      var params = new URLSearchParams(location.search || '');
+      params.set('kp_open', kp);
+      params.delete('__spa');
+      location.replace('/?' + params.toString() + location.hash);
+    })();
+  </script>
 </head>
 <body>
   <!--MP_ROUTE_SEO_BODY-->
@@ -236,6 +265,25 @@
     (function () {
       var m = location.pathname.match(/^\/f\/(\d+)\/?$/);
       if (!m || !window.MpFilmPage) return;
+      try {
+        if (sessionStorage.getItem('mp_public_film_force') === m[1]) {
+          MpFilmPage.bootstrap({ kpId: m[1] });
+          return;
+        }
+        var active = localStorage.getItem('mp_site_active_chat_id');
+        var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+        var token = null;
+        if (Array.isArray(sessions)) {
+          for (var i = 0; i < sessions.length; i++) {
+            if (String(sessions[i].chat_id) === String(active) && sessions[i].token) {
+              token = sessions[i].token;
+              break;
+            }
+          }
+        }
+        if (!token) token = localStorage.getItem('mp_site_token');
+        if (token) return;
+      } catch (_e) {}
       MpFilmPage.bootstrap({ kpId: m[1] });
     })();
   </script>

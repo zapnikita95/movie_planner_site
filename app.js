@@ -486,8 +486,13 @@
       return Promise.resolve();
     }
     if (!isCabinetActive()) {
-      goToStandaloneFilmPage(kp, { action: o.action || '' });
-      return Promise.resolve();
+      const ro = document.getElementById('cabinet-readonly');
+      if (getToken() && ro) {
+        showScreen('cabinet-readonly');
+      } else {
+        goToStandaloneFilmPage(kp, { action: o.action || '' });
+        return Promise.resolve();
+      }
     }
     try { closeAccountDropdown(); } catch (_) {}
     closeAddFilmModal();
@@ -14584,6 +14589,12 @@
     if (!isPublicStats) {
     const pathKpBoot = kpIdFromPathname(window.location.pathname);
     if (pathKpBoot && document.getElementById('landing')) {
+      if (getToken()) {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('kp_open')) params.set('kp_open', pathKpBoot);
+        window.location.replace('/?' + params.toString() + window.location.hash);
+        return;
+      }
       window.location.replace('/f/' + pathKpBoot);
       return;
     }
