@@ -2,7 +2,64 @@
   'use strict';
 
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
-  var IOS_URL = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+  var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+  var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
+
+  var root = document.documentElement;
+  var locale = (root.getAttribute('lang') || 'ru').slice(0, 2);
+  if (document.body && document.body.getAttribute('data-mp-article-locale')) {
+    locale = document.body.getAttribute('data-mp-article-locale');
+  }
+
+  var COPY = {
+    ru: {
+      'sign-in': 'Войти',
+      'open-cabinet': 'Открыть кабинет',
+      'cta-lead': 'Попробуйте в приложении или веб-кабинете',
+      'sign-in-link': 'Войти в кабинет',
+      'home-link': 'На главную',
+      'lang-switch': 'English',
+      'search-placeholder': 'Найти фильм или сериал…',
+      'search-label': 'Поиск',
+      'voice-input': 'Голосовой ввод',
+      'clear': 'Очистить',
+      'download-appstore': 'Скачать в App Store',
+      'download-play': 'Скачать в Google Play',
+      'download-rustore': 'Скачать в RuStore'
+    },
+    en: {
+      'sign-in': 'Sign in',
+      'open-cabinet': 'Open cabinet',
+      'cta-lead': 'Try the app or web cabinet',
+      'sign-in-link': 'Sign in to cabinet',
+      'home-link': 'Home',
+      'lang-switch': 'Русский',
+      'search-placeholder': 'Search for a film or series…',
+      'search-label': 'Search',
+      'voice-input': 'Voice search',
+      'clear': 'Clear',
+      'download-appstore': 'Download on the App Store',
+      'download-play': 'Get it on Google Play',
+      'download-rustore': 'Get it on RuStore'
+    }
+  };
+
+  var strings = COPY[locale] || COPY.ru;
+  var iosUrl = locale === 'en' ? IOS_URL_EN : IOS_URL_RU;
+
+  function t(key) {
+    return strings[key] || COPY.ru[key] || key;
+  }
+
+  function applyChromeCopy() {
+    Object.keys(strings).forEach(function (key) {
+      document.querySelectorAll('[data-mp-chrome="' + key + '"]').forEach(function (el) {
+        el.textContent = strings[key];
+      });
+    });
+    var loginBtn = document.getElementById('login-btn');
+    if (loginBtn) loginBtn.textContent = t('sign-in');
+  }
 
   function headerShellHtml() {
     var search = global.MpFilmPage && typeof MpFilmPage.standaloneHeaderSearchHtml === 'function'
@@ -10,9 +67,9 @@
       : (
         '<div class="header-search" id="header-search" role="search">' +
           '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-          '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
-          '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
-          '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+          '<input type="text" id="header-search-input" class="header-search-input" placeholder="' + t('search-placeholder') + '" autocomplete="off" aria-label="' + t('search-label') + '">' +
+          '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="' + t('voice-input') + '" title="' + t('voice-input') + '">🎤</button>' +
+          '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="' + t('clear') + '">×</button>' +
           '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
         '</div>'
       );
@@ -21,7 +78,7 @@
         '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
         search +
         '<div class="header-buttons">' +
-          '<button type="button" class="btn-primary" id="login-btn">Войти</button>' +
+          '<button type="button" class="btn-primary" id="login-btn">' + t('sign-in') + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -30,7 +87,7 @@
   function rustoreBadgeHtml() {
     return (
       '<a href="' + RUSTORE_URL + '" class="footer-store-badge article-store-rustore" data-store="rustore" target="_blank" rel="noopener">' +
-        '<img src="/images/rustore-badge.svg?v=20260529rustore1" alt="Скачать в RuStore" width="135" height="40" loading="lazy">' +
+        '<img src="/images/rustore-badge.svg?v=20260529rustore1" alt="' + t('download-rustore') + '" width="135" height="40" loading="lazy">' +
       '</a>'
     );
   }
@@ -64,17 +121,17 @@
       '<div class="footer-apps-extra">' +
         '<a href="https://t.me/movie_planner_bot/app" class="footer-app-mini" target="_blank" rel="noopener">Telegram Mini App</a>' +
         '<span class="footer-apps-sep" aria-hidden="true">·</span>' +
-        '<a href="https://t.me/movie_planner_bot" class="footer-app-mini" target="_blank" rel="noopener">Telegram-бот</a>' +
+        '<a href="https://t.me/movie_planner_bot" class="footer-app-mini" target="_blank" rel="noopener">Telegram bot</a>' +
         '<span class="footer-apps-sep" aria-hidden="true">·</span>' +
-        '<a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" class="footer-app-mini" target="_blank" rel="noopener">Расширение Chrome</a>' +
+        '<a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" class="footer-app-mini" target="_blank" rel="noopener">Chrome extension</a>' +
       '</div>'
     );
   }
 
   function resolveStoreLinks() {
-    var androidSel = '#article-cta-android, .footer-store-row a[href="/download"], .footer-store-row a[href="../download"]';
-    document.querySelectorAll('.footer-store-row a[href="' + IOS_URL + '"], .footer-store-row a[href*="apps.apple.com"]').forEach(function (a) {
-      a.href = IOS_URL;
+    var androidSel = '#article-cta-android, #article-cta-android-footer, .footer-store-row a[href="/download"], .footer-store-row a[href="../download"]';
+    document.querySelectorAll('.footer-store-row a[href="' + IOS_URL_RU + '"], .footer-store-row a[href="' + IOS_URL_EN + '"], .footer-store-row a[href*="apps.apple.com"]').forEach(function (a) {
+      a.href = iosUrl;
     });
     fetch('https://api.movie-planner.ru/api/app/release', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -96,6 +153,7 @@
     upgradeHeader();
     upgradeStoreBadges();
     upgradeFooter();
+    applyChromeCopy();
     resolveStoreLinks();
 
     if (!global.MpFilmPage || typeof MpFilmPage.initStandaloneSiteChrome !== 'function') return;
