@@ -2556,6 +2556,38 @@
     return vis.id.replace(/^section-/, '');
   }
 
+  function cabinetReadonlyActive() {
+    const readonly = document.getElementById('cabinet-readonly');
+    if (!readonly) return false;
+    if (!readonly.classList.contains('hidden')) return true;
+    try {
+      return document.documentElement.classList.contains('mp-auth-boot');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function syncBaseSectionTabs(sectionId) {
+    const readonly = document.getElementById('cabinet-readonly');
+    if (!readonly) return;
+    const map = {
+      unwatched: 'unwatched',
+      series: 'series',
+      ratings: 'ratings',
+      'film-tag': 'unwatched',
+      collections: 'collections',
+    };
+    const active = map[sectionId];
+    if (!active) return;
+    readonly.querySelectorAll('.base-tabs').forEach((tabs) => {
+      tabs.querySelectorAll('.base-tab').forEach((tab) => {
+        const bs = tab.getAttribute('data-base-section');
+        const isCollTab = tab.hasAttribute('data-go-collections');
+        tab.classList.toggle('active', active === 'collections' && isCollTab || bs === active);
+      });
+    });
+  }
+
   function applyCabinetDeepSection(opts) {
     const options = opts || {};
     const now = Date.now();
@@ -3309,7 +3341,7 @@
     const onboarding = document.getElementById('cabinet-onboarding');
     let rendered = false;
     let tShown = null;
-    if (readonly && !readonly.classList.contains('hidden')) {
+    if (cabinetReadonlyActive()) {
       readonly.classList.toggle('cabinet-home-root', sectionId === 'home');
       const topbar = readonly.querySelector('.cabinet-topbar');
       if (topbar) topbar.classList.toggle('hidden', sectionId !== 'home');
@@ -3317,12 +3349,13 @@
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
       tShown = t;
-      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag') ? 'unwatched'
+      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag' || sectionId === 'collections') ? 'unwatched'
         : sectionId === 'series-hub' ? 'home' : sectionId;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
         if (b.getAttribute('data-section') === activeNavSection) b.classList.add('active');
       });
+      syncBaseSectionTabs(sectionId);
       rendered = true;
     } else if (onboarding && !onboarding.classList.contains('hidden')) {
       onboarding.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
@@ -14667,6 +14700,13 @@
         if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
         if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
         if (sec === 'series-hub') { try { renderSeriesHubSection(); } catch (_) {} }
+        if (sec === 'collections') {
+          try {
+            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
+              window.MpCollectionsPage.render({ resetView: true });
+            }
+          } catch (_) {}
+        }
       }
     });
 
@@ -14837,16 +14877,24 @@
       if (pathStaffGuest) {
         redirectToPublicStaffPage(pathStaffGuest);
         return;
-      } else {
-        showScreen('landing');
-        renderHeader(null);
-        handleAuthEntryDeepLinks();
-        try {
-          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-            window.MpCollectionsPage.showGuestPromo();
-          }
-        } catch (_) {}
       }
+      const guestDeep = sectionFromPath(window.location.pathname);
+      if (guestDeep === 'collections') {
+        showScreen('cabinet-readonly');
+        renderHeader(null);
+        showSection('collections', { skipPush: true });
+        afterCabinetSectionShown('collections');
+        handleAuthEntryDeepLinks();
+        return;
+      }
+      showScreen('landing');
+      renderHeader(null);
+      handleAuthEntryDeepLinks();
+      try {
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+          window.MpCollectionsPage.showGuestPromo();
+        }
+      } catch (_) {}
     }
     }
 

@@ -14186,6 +14186,24 @@ img.mp-poster-placeholder,
 .collections-empty {
   margin: 8px 2px 0;
 }
+.collections-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 8px 2px 0;
+}
+.collections-empty-add,
+.collections-guest-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.collections-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .collections-guest {
   display: flex;
   flex-direction: column;

@@ -95,6 +95,31 @@
     }
   }
 
+  function hydrateIcons(root) {
+    try {
+      if (global.MPIcons && typeof global.MPIcons.hydrate === 'function') {
+        global.MPIcons.hydrate(root || document);
+      }
+    } catch (_) {}
+  }
+
+  function emptyStateHtml(opts) {
+    var o = opts || {};
+    var hint = o.hint || "Пока пусто";
+    var action = o.action || "";
+    var actionLabel = o.actionLabel || "";
+    if (!action) {
+      return '<p class="cabinet-hint collections-empty">' + esc(hint) + "</p>";
+    }
+    return (
+      '<div class="collections-empty-state">'
+      + '<p class="cabinet-hint collections-empty">' + esc(hint) + "</p>"
+      + '<button type="button" class="btn btn-primary collections-empty-add" data-coll-action="' + esc(action) + '">'
+      + '<span class="mp-icon mp-icon--sm" data-mp-icon="plus" aria-hidden="true"></span>'
+      + '<span>' + esc(actionLabel) + "</span></button></div>"
+    );
+  }
+
   function listItemHtml(opts) {
     var o = opts || {};
     return (
@@ -135,7 +160,7 @@
       '<div class="collections-page">'
       + '<p class="collections-intro cabinet-hint">Теги — метки на карточках фильмов. Коллекции — списки, которые вы собираете сами. Подборки — готовые списки от Movie Planner.</p>'
       + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои теги</h3></div><div class="mp-list" id="collections-tags-list"><div class="settings-loading">Загружаем…</div></div></section>'
-      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои коллекции</h3><button type="button" class="collections-link-btn" data-coll-action="new">+ Новая</button></div><div class="mp-list" id="collections-mine-list"><div class="settings-loading">Загружаем…</div></div></section>'
+      + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Мои коллекции</h3><button type="button" class="collections-link-btn" data-coll-action="new"><span class="mp-icon mp-icon--sm" data-mp-icon="plus" aria-hidden="true"></span> Новая</button></div><div class="mp-list" id="collections-mine-list"><div class="settings-loading">Загружаем…</div></div></section>'
       + '<section class="collections-block"><div class="collections-block-head"><h3 class="collections-block-title">Общие подборки</h3></div><div class="mp-list" id="collections-public-list"><div class="settings-loading">Загружаем…</div></div></section>'
       + "</div>"
     );
@@ -295,6 +320,7 @@
   function renderHub(root) {
     root.innerHTML = hubSkeleton();
     bindRoot(root);
+    hydrateIcons(root);
     Promise.all([
       apiGet("/api/miniapp/collections?kind=all"),
       apiGet("/api/site/film-user-tags"),
@@ -322,7 +348,7 @@
               hint: (t.films_count || 0) + " фильмов",
             });
           }).join("")
-          : '<p class="cabinet-hint collections-empty">Назначьте тег на карточке фильма в базе</p>';
+          : emptyStateHtml({ hint: "Назначьте тег на карточке фильма в базе" });
       }
       if (mineEl) {
         mineEl.innerHTML = mine.length
@@ -335,7 +361,12 @@
               hint: (c.films_count || 0) + " фильмов",
             });
           }).join("")
-          : '<p class="cabinet-hint collections-empty">Создайте коллекцию или добавьте фильм из карточки</p>';
+          : emptyStateHtml({
+            hint: "Соберите свой список фильмов",
+            action: "new",
+            actionLabel: "Создать коллекцию",
+          });
+        hydrateIcons(mineEl);
       }
       if (pubEl) {
         pubEl.innerHTML = pub.length
@@ -432,9 +463,12 @@
     if (!hasSiteAuth()) {
       root.innerHTML =
         '<div class="collections-guest">'
-        + '<p class="cabinet-hint">Войдите в кабинет, чтобы видеть свои коллекции, теги и подборки.</p>'
-        + '<button type="button" class="btn btn-primary" id="collections-guest-login">Войти в кабинет</button>'
+        + '<p class="cabinet-hint collections-intro">Теги, личные списки и готовые подборки Movie Planner — в одном месте.</p>'
+        + '<button type="button" class="btn btn-primary collections-guest-login" id="collections-guest-login">'
+        + '<span class="mp-icon mp-icon--sm" data-mp-icon="user" aria-hidden="true"></span>'
+        + '<span>Войти в кабинет</span></button>'
         + "</div>";
+      hydrateIcons(root);
       var loginBtn = document.getElementById("collections-guest-login");
       if (loginBtn) {
         loginBtn.addEventListener("click", function () {

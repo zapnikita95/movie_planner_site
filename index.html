@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617coll1">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617coll2">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,6 +100,28 @@
             window.history.replaceState({ section: 'home' }, '', '/home' + qs + hash);
           }
           document.documentElement.classList.add('mp-auth-boot');
+        } catch (_) {}
+      })();
+      // /features/collections — первый paint: База + секция коллекций (не мелькание «Главная»)
+      (function () {
+        try {
+          var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
+          if (path !== '/features/collections') return;
+          function paintCollectionsDeep() {
+            var home = document.getElementById('section-home');
+            var coll = document.getElementById('section-collections');
+            if (home) home.classList.add('hidden');
+            if (coll) coll.classList.remove('hidden');
+            document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn').forEach(function (b) {
+              b.classList.remove('active');
+              if (b.getAttribute('data-section') === 'unwatched') b.classList.add('active');
+            });
+          }
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', paintCollectionsDeep);
+          } else {
+            paintCollectionsDeep();
+          }
         } catch (_) {}
       })();
       // SEO для /features/collections (краулеры и первый paint)
@@ -901,7 +923,15 @@
                     <div id="film-tag-view-grid" class="movies-grid film-tag-view-grid"></div>
                 </section>
                 <section id="section-collections" class="cabinet-section hidden" aria-label="Коллекции">
-                    <h1 class="section-title collections-seo-title"><span class="section-title-emoji" data-mp-icon="folder"></span><span class="section-title-text">Коллекции</span></h1>
+                    <h1 class="section-title collections-seo-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h1>
+                    <div class="base-section-toolbar">
+                        <div class="base-tabs" role="tablist" aria-label="База">
+                            <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
+                            <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
+                            <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
+                            <button type="button" class="base-tab base-tab--collections active" data-go-collections="1">Коллекции</button>
+                        </div>
+                    </div>
                     <div id="collections-content" class="collections-content"></div>
                 </section>
                 <section id="section-stats" class="cabinet-section hidden">
@@ -1738,10 +1768,10 @@
     <script src="/onboarding-flow.js?v=20260530onboard5"></script>
     <script src="/plan-modal.js?v=20260531voicefix1"></script>
     <script src="/film-user-tags.js?v=20260617tags2"></script>
-    <script src="/collections-page.js?v=20260617coll1"></script>
+    <script src="/collections-page.js?v=20260617coll2"></script>
     <script src="/mp-icons.js?v=20260529phosphor2"></script>
     <script src="/home-rails.js?v=20260529phosphor2"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/app.js?v=20260617coll1"></script>
+    <script src="/app.js?v=20260617coll2"></script>
 </body>
 </html>
