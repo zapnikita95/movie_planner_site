@@ -453,21 +453,19 @@
       dd.classList.remove('open');
     }
     var bd = document.getElementById('header-settings-backdrop');
-    if (bd) bd.classList.add('hidden');
+    if (bd) bd.remove();
     document.body.classList.remove('account-menu-open');
   }
 
-  function ensureStandaloneSettingsBackdrop() {
-    var el = document.getElementById('header-settings-backdrop');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'header-settings-backdrop';
-      el.className = 'header-settings-backdrop hidden';
-      el.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(el);
-      el.addEventListener('click', function () { closeStandaloneAccountDropdown(); });
-    }
-    return el;
+  function bindStandaloneAccountOutsideClose() {
+    if (document.documentElement.dataset.mpStandaloneAccountOutsideClose) return;
+    document.documentElement.dataset.mpStandaloneAccountOutsideClose = '1';
+    document.addEventListener('click', function (e) {
+      var dd = document.getElementById('header-settings-dropdown');
+      if (!dd || dd.classList.contains('hidden') || !document.body.classList.contains('account-menu-open')) return;
+      if (e.target.closest('#header-settings-dropdown') || e.target.closest('#header-settings-btn')) return;
+      closeStandaloneAccountDropdown();
+    });
   }
 
   function blockStandaloneGhostClicks(ms) {
@@ -541,7 +539,9 @@
     });
     var logoutBtn = dd.querySelector('[data-action="logout-all"]');
     if (logoutBtn) bindStandaloneLogoutBtn(logoutBtn, opts.kpId || '');
-    ensureStandaloneSettingsBackdrop().classList.remove('hidden');
+    bindStandaloneAccountOutsideClose();
+    var staleBd = document.getElementById('header-settings-backdrop');
+    if (staleBd) staleBd.remove();
     document.body.classList.add('account-menu-open');
     dd.classList.remove('hidden');
     dd.classList.add('open');

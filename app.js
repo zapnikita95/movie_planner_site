@@ -2209,17 +2209,20 @@
   }
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
-  function ensureSettingsBackdrop() {
-    let el = document.getElementById('header-settings-backdrop');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'header-settings-backdrop';
-      el.className = 'header-settings-backdrop hidden';
-      el.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(el);
-      el.addEventListener('click', () => closeAccountDropdown());
-    }
-    return el;
+  function removeSettingsBackdrop() {
+    const bd = document.getElementById('header-settings-backdrop');
+    if (bd) bd.remove();
+  }
+
+  function bindAccountDropdownOutsideClose() {
+    if (document.documentElement.dataset.mpAccountOutsideClose) return;
+    document.documentElement.dataset.mpAccountOutsideClose = '1';
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('header-settings-dropdown');
+      if (!dd || dd.classList.contains('hidden') || !document.body.classList.contains('account-menu-open')) return;
+      if (e.target.closest('#header-settings-dropdown') || e.target.closest('#header-settings-btn')) return;
+      closeAccountDropdown();
+    });
   }
 
   function blockGhostClicks(ms) {
@@ -2260,8 +2263,7 @@
     const settingsBtn = document.getElementById('header-settings-btn');
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'false');
     if (dd) { dd.classList.add('hidden'); dd.classList.remove('open'); }
-    const bd = document.getElementById('header-settings-backdrop');
-    if (bd) bd.classList.add('hidden');
+    removeSettingsBackdrop();
     document.body.classList.remove('account-menu-open');
   }
 
@@ -2328,7 +2330,8 @@
     }
     const logoutAllBtn = dd.querySelector('[data-action="logout-all"]');
     if (logoutAllBtn) bindAccountLogoutBtn(logoutAllBtn);
-    ensureSettingsBackdrop().classList.remove('hidden');
+    bindAccountDropdownOutsideClose();
+    removeSettingsBackdrop();
     document.body.classList.add('account-menu-open');
     dd.classList.remove('hidden');
     dd.classList.add('open');
@@ -14648,6 +14651,8 @@
   }
 
   function initAfterAuthEntry() {
+    removeSettingsBackdrop();
+    bindAccountDropdownOutsideClose();
     bindLogin();
     bindFaq();
     initCarousels();
