@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet10">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet11">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,15 +34,14 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet10";
+        var BUILD = "20260617cabinet11";
+        try { localStorage.setItem("mp_cabinet_build_v2", BUILD); } catch (_) {}
         try {
-          var k = "mp_cabinet_build_v2";
-          if (localStorage.getItem(k) !== BUILD) {
-            localStorage.setItem(k, BUILD);
-            if (location.search.indexOf("mpbuild=") === -1) {
-              var q = location.search ? location.search + "&" : "?";
-              location.replace(location.pathname + q + "mpbuild=" + BUILD + location.hash);
-            }
+          if (location.search.indexOf("mpbuild=") !== -1) {
+            var p = new URLSearchParams(location.search);
+            p.delete("mpbuild");
+            var rest = p.toString();
+            history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
           }
         } catch (_) {}
       })();
@@ -266,6 +265,7 @@
     </script>
 </head>
 <body>
+  <!--MP_ROUTE_SEO_BODY-->
   <div class="parallax-bg" id="parallaxBg"></div>
   <div class="content-wrapper">
     <header id="site-header">
@@ -1784,6 +1784,6 @@
     <script src="/mp-icons.js?v=20260617icons2"></script>
     <script src="/home-rails.js?v=20260617seriesfix1"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/cabinet-app.js?v=20260617cabinet10"></script>
+    <script src="/cabinet-app.js?v=20260617cabinet11"></script>
 </body>
 </html>

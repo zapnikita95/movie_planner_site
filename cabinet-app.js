@@ -195,20 +195,30 @@
       if (getToken()) {
         openFilmPageByKp(kp, { replace: true, action: o.action || '' });
       } else {
-        showScreen('cabinet-readonly');
-        renderHeader(null);
-        showFilmPageLayout();
-        const pageRoot = document.getElementById('film-page-content');
-        if (pageRoot) {
-          pageRoot.className = 'movie-page loading';
-          pageRoot.innerHTML = pageLoadingHtml();
-        }
-        openFilmHeroByKpPublic(kp, { replace: true, action: o.action || '' });
+        bootGuestFilmPage(kp, { action: o.action || '' });
       }
       return true;
     }
     window.location.href = href;
     return true;
+  }
+
+  /** Гость на /f/:kp в index.html — карточка фильма, не лендинг. */
+  function bootGuestFilmPage(kp, opts) {
+    const o = opts || {};
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!id) return Promise.resolve();
+    document.body.classList.remove('login-only-overlay');
+    showScreen('cabinet-readonly');
+    renderHeader(null);
+    showFilmPageLayout();
+    const pageRoot = document.getElementById('film-page-content');
+    if (pageRoot) {
+      pageRoot.className = 'movie-page loading';
+      pageRoot.innerHTML = pageLoadingHtml();
+    }
+    try { document.documentElement.classList.add('mp-route-ready'); } catch (_) {}
+    return openFilmHeroByKpPublic(id, { replace: true, action: o.action || '' });
   }
 
   /** GitHub Pages: /f/<kp> живёт в 404.html; index с /f/ — туда же. При logout — сброс сессии. */
@@ -406,6 +416,7 @@
 
       document.body.classList.remove('login-only-overlay');
       document.documentElement.classList.add('mp-auth-boot');
+      try { document.documentElement.classList.add('mp-route-ready'); } catch (_) {}
       showScreen('cabinet-readonly');
       showFilmPageLayout();
       const stub = cachedSessionMeStub();
@@ -1812,7 +1823,7 @@
       removeSessionByToken(token);
       const failKp = filmKpFromLocation();
       if (failKp) {
-        redirectToPublicFilmPage(failKp);
+        bootGuestFilmPage(failKp);
         return body;
       }
       const failStaff = staffKpFromLocation();
@@ -4739,7 +4750,8 @@
         if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
         const failKp = filmKpFromLocation();
         if (failKp) {
-          redirectToPublicFilmPage(failKp);
+          clearStaleSiteSession();
+          bootGuestFilmPage(failKp);
           return;
         }
         const failStaff = staffKpFromLocation();
@@ -4817,7 +4829,7 @@
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
       const failKp = filmKpFromLocation();
       if (failKp) {
-        redirectToPublicFilmPage(failKp);
+        bootGuestFilmPage(failKp);
         return;
       }
       const failStaff = staffKpFromLocation();
@@ -15020,6 +15032,12 @@
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
         redirectToPublicStaffPage(pathStaffGuest);
+        return;
+      }
+      const pathKpGuest = kpIdFromPathname(window.location.pathname);
+      if (pathKpGuest && /^\d+$/.test(pathKpGuest)) {
+        bootGuestFilmPage(pathKpGuest);
+        handleAuthEntryDeepLinks();
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
