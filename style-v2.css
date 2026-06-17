@@ -882,7 +882,7 @@ body.in-cabinet #section-inbox {
 .btn { padding: 10px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25; }
 .btn-small { padding: 10px 16px; font-size: 13px; }
 .cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); overflow-x: auto; padding-bottom: 4px; }
-.cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.78); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
 .cabinet-nav-btn.active { color: #ff2d7b; border-bottom-color: #ff2d7b; }
 .cabinet-nav-extension { margin-left: auto; flex-shrink: 0; align-self: center; }
@@ -14892,4 +14892,13 @@ img.mp-poster-placeholder,
     min-width: 0;
     overflow-x: hidden;
   }
+}
+
+.footer-apps-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
 }

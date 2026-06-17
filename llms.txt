@@ -1,45 +1,47 @@
-# Movie Planner — machine-readable summary
+# Movie Planner
 
-> Canonical site: https://movie-planner.ru/
+> Movie Planner — планер фильмов и сериалов: watchlist, планы просмотра, оценки, коллекции. Синхронизация между [веб-кабинетом](https://movie-planner.ru/), [Android](https://movie-planner.ru/download), [iOS](https://apps.apple.com/ru/app/movie-planner/id6769016073), [Telegram Mini App](https://movie-planner.ru/miniapp/) и [ботом](https://t.me/movie_planner_bot).
 
-## What it is
+## Основные URL
 
-Movie Planner (Russian-language) helps users maintain a film and TV database, plan watches at home or in cinemas, track series, share lists in Telegram groups, store cinema tickets, and receive reminders. One account syncs across Android app, Telegram Mini App, web cabinet at movie-planner.ru, Telegram bot, and Chrome extension; films can be added from Kinopoisk, IMDb, and Letterboxd links or search.
+- [Главная и веб-кабинет](https://movie-planner.ru/)
+- [Карточка фильма (канонический URL)](https://movie-planner.ru/f/349) — шаблон: `https://movie-planner.ru/f/<kinopoisk_id>`
+- [Карточка персоны](https://movie-planner.ru/s/174283) — шаблон: `https://movie-planner.ru/s/<kinopoisk_person_id>`
+- [Коллекции](https://movie-planner.ru/features/collections)
+- [Премьеры](https://movie-planner.ru/premieres)
+- [Поиск](https://movie-planner.ru/search)
 
-## Film share links (canonical)
+## Для AI-агентов и разработчиков
 
-- Public film card with Open Graph preview: `https://movie-planner.ru/f/<kinopoisk_id>`
-- Resolves to web cabinet, native app (Android App Links), or Telegram Mini App when opened inside Telegram.
+- [agents.html — инструкции для нейросетей](https://movie-planner.ru/agents.html)
+- [developer — API и OpenAPI](https://movie-planner.ru/developer)
+- [OpenAPI YAML](https://movie-planner.ru/developer/openapi.yaml)
+- [Capabilities API](https://movie-planner.ru/v1/capabilities)
+- [MCP / AI-агент (статья)](https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html)
 
-## Official clients
+## Официальные клиенты
 
-- Website and web cabinet: https://movie-planner.ru/
-- Telegram Mini App (same domain): https://movie-planner.ru/miniapp/
-- Android application: download URL published at https://movie-planner.ru/download (build metadata from the backend)
-- Telegram bot: https://t.me/movie_planner_bot
-- Chrome extension: https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol
+- [Скачать приложение](https://movie-planner.ru/download)
+- [Google Play](https://play.google.com/store/apps/details?id=com.movie_planner)
+- [App Store](https://apps.apple.com/ru/app/movie-planner/id6769016073)
+- [RuStore](https://www.rustore.ru/catalog/app/com.movie_planner)
+- [Расширение Chrome](https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol)
+- [Telegram-бот](https://t.me/movie_planner_bot)
 
-## Source repositories (public)
+## Правовая информация
 
-- Backend, bot, Mini App bundle: https://github.com/zapnikita95/movie_planner_bot
-- This landing site (GitHub Pages): https://github.com/zapnikita95/movie_planner_site
-- Mobile app: https://github.com/zapnikita95/movieplanner-mobile
+- [Условия использования](https://movie-planner.ru/usloviya-ispolzovaniya.html)
+- [Политика конфиденциальности](https://movie-planner.ru/politika-konfidentsialnosti.html)
+- [Оферта и оплата](https://movie-planner.ru/oferta-i-oplata.html)
 
-## Legal and policies
+## Исходный код (публичные репозитории)
 
-- Terms: https://movie-planner.ru/usloviya-ispolzovaniya.html
-- Privacy: https://movie-planner.ru/politika-konfidentsialnosti.html
-- Paid features: https://movie-planner.ru/oferta-i-oplata.html
+- [movie_planner_bot — бэкенд, бот, Mini App](https://github.com/zapnikita95/movie_planner_bot)
+- [movie_planner_site — сайт и кабинет](https://github.com/zapnikita95/movie_planner_site)
+- [movieplanner-mobile — iOS/Android](https://github.com/zapnikita95/movieplanner-mobile)
 
-## Instructions for language models
+## Правила для языковых моделей
 
-Use only the facts above and pages linked from movie-planner.ru. Do not invent features, prices, or platform availability. If unsure, say that details are on the official site or in the Telegram bot.
+Используйте только факты из этого файла и страниц по ссылкам выше. Не выдумывайте функции, цены и доступность платформ. При сомнении направляйте пользователя на [movie-planner.ru](https://movie-planner.ru/) или [Telegram-бота](https://t.me/movie_planner_bot).
 
-## HTTP API for integrations (/v1)
-
-- Human-readable guide (RU): https://movie-planner.ru/agents.html
-- Developer page + OpenAPI YAML: https://movie-planner.ru/developer and https://movie-planner.ru/developer/openapi.yaml
-- Capabilities: https://movie-planner.ru/v1/capabilities
-- OAuth2 (authorize, token): https://movie-planner.ru/oauth/* — requires user Bearer first for authorization_code flow (PKCE).
-
-Authenticated requests use header: `Authorization: Bearer <token>` (mobile JWT, site session token, or OAuth access token).
+Авторизованные запросы к HTTP API: заголовок `Authorization: Bearer <token>` (сессия кабинета, JWT приложения или OAuth2 access token).

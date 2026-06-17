@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/">
+    <!--MP_ROUTE_META-->
     <title>Movie Planner — планер фильмов и сериалов: приложение, watchlist, кабинет</title>
     <meta name="description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
     <meta name="keywords" content="movie planner, movie-planner.ru, муви планер, планер фильмов, планер для просмотра фильмов, планер просмотра кино, кинопланера, кино планировщик, планировщик фильмов, планировщик сериалов, приложение для фильмов, приложение для сериалов, приложение отмечать просмотренные фильмы, приложение для списка фильмов, приложение для оценки фильмов с друзьями, список фильмов и сериалов, watchlist, watchlist кино, уведомления о новых сериях, трекер сериалов, отметить просмотренные серии, папки по рубрикам, коллекции фильмов, сортировка фильмов и сериалов, мои фильмы и сериалы расширение, расширение Chrome для кино, скачать movie planner">
-    <meta name="google-site-verification" content="BUJSpGPrPkPnVgLV2eHrFrPVTuumNdtDUwbI9CzQVwM" />
-    <!-- Open Graph -->
     <meta property="og:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
     <meta property="og:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
     <meta property="og:type" content="website">
@@ -17,17 +16,24 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ru_RU">
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
     <meta name="twitter:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
     <meta name="twitter:image" content="https://api.movie-planner.ru/api/og/home.jpg">
     <link rel="canonical" href="https://movie-planner.ru/">
+    <!--/MP_ROUTE_META-->
+    <meta name="google-site-verification" content="BUJSpGPrPkPnVgLV2eHrFrPVTuumNdtDUwbI9CzQVwM" />
+    <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet17">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
+    <link rel="preload" href="/style-v2.css?v=20260617cabinet18" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet18">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
+    </noscript>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -35,7 +41,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet17";
+        var BUILD = "20260617cabinet18";
         try { localStorage.setItem("mp_cabinet_build_v2", BUILD); } catch (_) {}
         try {
           if (location.search.indexOf("mpbuild=") !== -1) {
@@ -1689,7 +1695,7 @@
                     <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" id="cabinet-footer-extension-link" class="btn btn-small btn-secondary hidden" target="_blank" rel="noopener">💻 Установить расширение</a>
                 </div>
                 <div class="footer-apps-cabinet" id="cabinet-footer-apps">
-                    <h4>Приложения</h4>
+                    <h2 class="footer-apps-title">Приложения</h2>
                     <div class="footer-store-row">
                         <a href="https://play.google.com/store/apps/details?id=com.movie_planner&amp;hl=ru" id="cabinet-footer-android" class="footer-store-badge" target="_blank" rel="noopener">
                             <img src="/images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
@@ -1775,21 +1781,44 @@
     <button type="button" id="group-context-fab" class="group-context-fab hidden" aria-label="Личный профиль" title="Личный профиль">👤</button>
 
     </div><!-- /content-wrapper -->
-    <script defer src="/telegram-open.js?v=20260602tgsafari1"></script>
-    <script defer src="/film-friends-social.js?v=20260603filmfix1"></script>
-    <script defer src="/user-profile-page.js?v=20260529searchcard1"></script>
-    <script defer src="/user-page.js?v=20260529searchcard1"></script>
-    <script defer src="/public-film-login.js?v=20260602tgsafari1"></script>
-    <script defer src="/app-open-banner.js?v=20260531appstore1"></script>
-    <script defer src="/app-download.js?v=20260531platformicons1"></script>
-    <script defer src="/page-loading.js?v=20260529mobileparity1"></script>
-    <script defer src="/onboarding-flow.js?v=20260617i18nfix3"></script>
-    <script defer src="/plan-modal.js?v=20260617i18nfix3"></script>
-    <script defer src="/film-user-tags.js?v=20260617tags3"></script>
-    <script defer src="/collections-page.js?v=20260617i18nfix3"></script>
-    <script defer src="/mp-icons.js?v=20260617icons2"></script>
-    <script defer src="/home-rails.js?v=20260617seriesfix1"></script>
-    <script defer src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script defer src="/cabinet-app.js?v=20260617cabinet17"></script>
+    <script>
+      (function () {
+        var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+        var isFilm = /^\/f\/\d+$/.test(path);
+        var isStaff = /^\/s\/\d+$/.test(path);
+        var isRoute = isFilm || isStaff;
+        var core = [
+          'telegram-open.js?v=20260602tgsafari1',
+          'film-friends-social.js?v=20260603filmfix1',
+          'public-film-login.js?v=20260602tgsafari1',
+          'page-loading.js?v=20260529mobileparity1',
+          'plan-modal.js?v=20260617i18nfix3',
+          'film-user-tags.js?v=20260617tags3',
+          'mp-icons.js?v=20260617icons2'
+        ];
+        var cabinet = [
+          'user-profile-page.js?v=20260529searchcard1',
+          'user-page.js?v=20260529searchcard1',
+          'app-open-banner.js?v=20260531appstore1',
+          'app-download.js?v=20260531platformicons1',
+          'onboarding-flow.js?v=20260617i18nfix3',
+          'collections-page.js?v=20260617i18nfix3',
+          'home-rails.js?v=20260617seriesfix1',
+          'landing-premiere-carousel.js?v=20260617prem1'
+        ];
+        var list = core.concat(isRoute ? [] : cabinet);
+        list.push('cabinet-app.js?v=20260617cabinet18');
+        function loadAt(i) {
+          if (i >= list.length) return;
+          var s = document.createElement('script');
+          s.src = '/' + list[i];
+          s.defer = true;
+          s.onload = function () { loadAt(i + 1); };
+          s.onerror = function () { loadAt(i + 1); };
+          document.body.appendChild(s);
+        }
+        loadAt(0);
+      })();
+    </script>
 </body>
 </html>
