@@ -788,15 +788,15 @@
                 '<div class="film-page-toolbar">' +
                   '<div class="film-toolbar-plan-wrap">' +
                     '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
-                    '<div class="film-toolbar-friends-wrap">' +
-                      '<div id="film-friends-social-block" class="hidden"></div>' +
-                    '</div>' +
                   '</div>' +
                   '<div class="film-toolbar-icons">' +
                     '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
                     '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
                     '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
                     '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
+                  '</div>' +
+                  '<div class="film-toolbar-friends-wrap">' +
+                    '<div id="film-friends-social-block" class="hidden"></div>' +
                   '</div>' +
                   '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
                     '<div class="public-rating-title">Ваша оценка</div>' +

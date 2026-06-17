@@ -8515,11 +8515,11 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
-/* Друзья высоко оценили — узкая плашка по центру под кнопкой плана */
+/* Друзья высоко оценили — узкая плашка по центру под иконками тулбара */
 .film-toolbar-friends-wrap {
-  display: block;
-  width: auto;
-  max-width: min(100%, 520px);
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 #film-friends-social-block {
   display: inline-block;
@@ -8945,11 +8945,13 @@ a.header-settings-nav-item {
 }
 .site-inbox-act-row { margin-bottom: 4px; }
 
-/* Film page in cabinet (desktop): hide duplicate topbar/nav */
+/* Film page in cabinet (desktop): hide duplicate profile topbar only */
 @media (min-width: 769px) {
-  .cabinet.film-page-mode .cabinet-topbar,
-  .cabinet.film-page-mode .cabinet-nav {
+  .cabinet.film-page-mode .cabinet-topbar {
     display: none !important;
+  }
+  .cabinet.film-page-mode .cabinet-nav {
+    display: flex !important;
   }
 }
 /* Cabinet topbar only on home section */
@@ -9207,10 +9209,7 @@ main.film-page .film-hero-crew {
 }
 .film-toolbar-plan-wrap {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
   width: 100%;
 }
 .film-toolbar-plan-wrap .action-dropdown {
