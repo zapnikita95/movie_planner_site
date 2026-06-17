@@ -224,8 +224,38 @@ body.in-cabinet #section-inbox {
   display: none;
 }
 .base-user-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   max-width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4f6ff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.base-user-tag-pill:hover,
+.base-user-tag-pill:focus-visible {
+  border-color: rgba(255, 45, 123, 0.42);
+  background: rgba(255, 45, 123, 0.1);
+  transform: translateY(-1px);
+}
+.base-user-tag-emoji {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.base-user-tag-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -8435,6 +8465,21 @@ a.header-settings-nav-item {
 #film-friends-social-block.hidden {
   display: none;
 }
+@media (min-width: 861px) {
+  #film-friends-social-block:not(.hidden) {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #film-friends-social-block .film-friends-social {
+    width: min(100%, 520px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
 .film-friends-social {
   padding: 12px 14px;
   border-radius: 14px;
@@ -8538,9 +8583,9 @@ a.header-settings-nav-item {
 }
 @media (min-width: 861px) {
   .film-friends-social--compact {
-    display: inline-block;
-    max-width: min(50%, 440px);
-    width: max-content;
+    display: block;
+    max-width: min(100%, 520px);
+    width: 100%;
     padding: 8px 12px;
   }
   .film-friends-social--compact .film-friends-social-head {
@@ -14206,7 +14251,7 @@ img.mp-poster-placeholder,
   padding: 20px 16px 16px;
   max-width: 420px;
 }
-.mp-dialog-title {
+.film-tag-dialog-card .mp-dialog-title {
   margin: 0 28px 12px 0;
   font-size: 18px;
   font-weight: 700;
@@ -14215,6 +14260,7 @@ img.mp-poster-placeholder,
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: flex-start;
 }
 .film-tag-emoji-btn {
   width: 40px;
@@ -14223,32 +14269,169 @@ img.mp-poster-placeholder,
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   font-size: 20px;
+  line-height: 1;
   cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.film-tag-emoji-btn--mini {
+  width: 34px;
+  height: 34px;
+  font-size: 17px;
+  border-radius: 8px;
 }
 .film-tag-emoji-btn.active {
   border-color: #ff2d7b;
   background: rgba(255, 45, 123, 0.18);
 }
+.film-tag-emoji-plus,
+.film-tag-emoji-custom {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+}
+.film-tag-emoji-more {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 112px;
+  overflow-y: auto;
+  padding: 4px 2px 2px;
+  margin-top: -2px;
+}
+.film-tag-emoji-more.hidden {
+  display: none;
+}
+.film-tag-emoji-native {
+  position: fixed;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.film-tag-name-field {
+  display: block;
+  margin-top: 14px;
+}
+.film-tag-name-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+.film-tag-name-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.film-tag-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+.film-tag-name-input:focus {
+  border-color: rgba(255, 45, 123, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+}
+.film-tag-dialog-actions {
+  margin-top: 16px;
+}
+.film-tag-btn-create {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(236, 72, 153, 0.22);
+}
+.film-tag-btn-create--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+  color: #f4f6ff;
+}
+.film-tag-btn-create:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 .film-tag-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: 50vh;
   overflow-y: auto;
 }
-.list-text {
+.film-tag-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f4f6ff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.film-tag-pick-item:hover,
+.film-tag-pick-item:focus-visible {
+  border-color: rgba(255, 45, 123, 0.35);
+  background: rgba(255, 45, 123, 0.08);
+}
+.film-tag-pick-emoji {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+.film-tag-pick-text {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
-.list-title {
+.film-tag-pick-title {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.25;
 }
-.list-hint {
+.film-tag-pick-hint {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
-  line-height: 1.35;
+}
+.film-tag-pick-empty {
+  padding: 12px 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  text-align: center;
+}
+.film-tag-btn-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.film-icon-btn--tagged .film-hero-tag-ico {
+  display: none;
 }
 .film-tag-view-head {
   display: flex;

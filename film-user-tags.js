@@ -5,6 +5,15 @@
   "use strict";
 
   var TAG_EMOJIS = ["🏷️", "🎬", "🍿", "💖", "🔥", "⭐", "🌙", "🎭", "🚀", "🎃", "🧛", "🐉"];
+  var TAG_EMOJI_MORE = [
+    "😀", "😎", "🥳", "😍", "🤩", "😭", "🤯", "🥶", "🤠", "👻",
+    "💀", "👽", "🤖", "🎉", "🎊", "🎁", "🎄", "☃️", "🌈", "⚡",
+    "💎", "🍺", "🍷", "☕", "🍕", "🍣", "🌮", "🍩", "🧁", "🍫",
+    "📺", "🎮", "🎧", "📚", "✈️", "🏖️", "🏔️", "🌃", "🛸", "🦄",
+    "🐱", "🐶", "🦊", "🐼", "🦁", "🐸", "🦉", "🐙", "🌸", "🌺",
+    "💜", "💙", "💚", "💛", "🧡", "❤️", "🖤", "🤍", "💔", "💯",
+    "👍", "👎", "✨", "💫", "🌟", "🔮", "🎯", "🏆", "🥇", "🎖️",
+  ];
 
   function defaultDeps() {
     return {
@@ -45,6 +54,73 @@
     ov.remove();
   }
 
+  function setTagButtonEmoji(btn, tag) {
+    if (!btn || !tag) return;
+    var emoji = tag.emoji || "🏷️";
+    btn.innerHTML = '<span class="film-tag-btn-emoji" data-tag-emoji>' + emoji + "</span>";
+    btn.title = tag.name || "Тег";
+    btn.classList.add("film-icon-btn--tagged");
+  }
+
+  function bindEmojiPicker(ov, getSelected, setSelected) {
+    function paintActive() {
+      var cur = getSelected();
+      ov.querySelectorAll("[data-emoji]").forEach(function (b) {
+        b.classList.toggle("active", (b.getAttribute("data-emoji") || "") === cur);
+      });
+    }
+    ov.querySelectorAll("[data-emoji]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setSelected(btn.getAttribute("data-emoji") || "🏷️");
+        paintActive();
+      });
+    });
+    var plusBtn = ov.querySelector("[data-emoji-more-toggle]");
+    var morePanel = ov.querySelector(".film-tag-emoji-more");
+    if (plusBtn && morePanel) {
+      plusBtn.addEventListener("click", function () {
+        morePanel.classList.toggle("hidden");
+        plusBtn.classList.toggle("active", !morePanel.classList.contains("hidden"));
+      });
+    }
+    var nativeInput = ov.querySelector(".film-tag-emoji-native");
+    if (nativeInput) {
+      nativeInput.addEventListener("input", function () {
+        var val = (nativeInput.value || "").trim();
+        if (!val) return;
+        var ch = Array.from(val).pop();
+        if (!ch) return;
+        setSelected(ch);
+        paintActive();
+        nativeInput.value = "";
+      });
+      var customBtn = ov.querySelector("[data-emoji-custom]");
+      if (customBtn) {
+        customBtn.addEventListener("click", function () {
+          nativeInput.focus();
+          try { nativeInput.click(); } catch (_) {}
+        });
+      }
+    }
+    paintActive();
+  }
+
+  function emojiRowHtml(selectedEmoji) {
+    var base = TAG_EMOJIS.map(function (e) {
+      return '<button type="button" class="film-tag-emoji-btn' + (e === selectedEmoji ? " active" : "") + '" data-emoji="' + e + '">' + e + "</button>";
+    }).join("");
+    var more = TAG_EMOJI_MORE.map(function (e) {
+      return '<button type="button" class="film-tag-emoji-btn film-tag-emoji-btn--mini" data-emoji="' + e + '">' + e + "</button>";
+    }).join("");
+    return (
+      base +
+      '<button type="button" class="film-tag-emoji-btn film-tag-emoji-plus" data-emoji-more-toggle aria-label="Ещё эмодзи">+</button>' +
+      '<button type="button" class="film-tag-emoji-btn film-tag-emoji-custom" data-emoji-custom aria-label="Свой эмодзи">…</button>' +
+      '<div class="film-tag-emoji-more hidden">' + more + "</div>" +
+      '<input type="text" class="film-tag-emoji-native" maxlength="8" aria-hidden="true" tabindex="-1" />'
+    );
+  }
+
   function openCreateTagForm(deps, filmId, onAssigned) {
     var d = deps || defaultDeps();
     var selectedEmoji = "🏷️";
@@ -54,27 +130,21 @@
       '<div class="mp-dialog-card film-tag-dialog-card">' +
         '<button type="button" class="mp-dialog-close" data-close="1" aria-label="Закрыть">×</button>' +
         '<h3 class="mp-dialog-title">Новый тег</h3>' +
-        '<div class="film-tag-emoji-row">' +
-          TAG_EMOJIS.map(function (e) {
-            return '<button type="button" class="film-tag-emoji-btn' + (e === selectedEmoji ? " active" : "") + '" data-emoji="' + e + '">' + e + "</button>";
-          }).join("") +
+        '<div class="film-tag-emoji-row">' + emojiRowHtml(selectedEmoji) + "</div>" +
+        '<label class="film-tag-name-field">' +
+          '<span class="film-tag-name-label">Название</span>' +
+          '<input type="text" id="film-tag-name" class="film-tag-name-input" placeholder="Например, на выходные" maxlength="80" autocomplete="off" />' +
+        "</label>" +
+        '<div class="film-tag-dialog-actions">' +
+          '<button type="button" class="film-tag-btn-create" id="film-tag-create-save">Создать</button>' +
         "</div>" +
-        '<input type="text" id="film-tag-name" class="input-primary" placeholder="Название" maxlength="80" style="width:100%;margin-top:12px" />' +
-        '<button type="button" class="btn-primary btn-full" id="film-tag-create-save" style="margin-top:14px">Создать</button>' +
       "</div>";
     ov._unlock = d.lockViewportScroll();
     document.body.appendChild(ov);
+    bindEmojiPicker(ov, function () { return selectedEmoji; }, function (e) { selectedEmoji = e; });
     ov.querySelector("[data-close]").addEventListener("click", function () { closeOverlay(ov); });
     ov.addEventListener("click", function (e) {
       if (e.target === ov) closeOverlay(ov);
-    });
-    ov.querySelectorAll("[data-emoji]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        selectedEmoji = btn.getAttribute("data-emoji") || "🏷️";
-        ov.querySelectorAll("[data-emoji]").forEach(function (b) {
-          b.classList.toggle("active", b === btn);
-        });
-      });
     });
     ov.querySelector("#film-tag-create-save").addEventListener("click", function () {
       var nameEl = ov.querySelector("#film-tag-name");
@@ -92,10 +162,13 @@
           return;
         }
         return d.apiPost(d.apiPrefix + "/assign", { tag_id: res.tag.id, film_id: filmId }).then(function (assignRes) {
-          closeOverlay(ov);
-          if (assignRes && assignRes.success && onAssigned) {
-            onAssigned(assignRes.tag || res.tag);
+          if (!assignRes || !assignRes.success) {
+            d.toast("Тег создан, но не привязан к фильму");
+            saveBtn.disabled = false;
+            return;
           }
+          closeOverlay(ov);
+          if (onAssigned) onAssigned(assignRes.tag || res.tag);
         });
       }).catch(function (e) {
         d.toast((e && e.message) || "Ошибка");
@@ -118,21 +191,25 @@
       var listHtml = tags.length
         ? tags.map(function (t) {
             return (
-              '<button type="button" class="list-item film-tag-pick-item" data-tag-id="' + t.id + '">' +
-                '<span class="list-emoji">' + d.escapeHtml(t.emoji || "🏷️") + "</span>" +
-                '<span class="list-text"><span class="list-title">' + d.escapeHtml(t.name) + "</span>" +
-                '<span class="list-hint">' + (t.films_count || 0) + " фильмов</span></span>" +
+              '<button type="button" class="film-tag-pick-item" data-tag-id="' + t.id + '">' +
+                '<span class="film-tag-pick-emoji">' + d.escapeHtml(t.emoji || "🏷️") + "</span>" +
+                '<span class="film-tag-pick-text">' +
+                  '<span class="film-tag-pick-title">' + d.escapeHtml(t.name) + "</span>" +
+                  '<span class="film-tag-pick-hint">' + (t.films_count || 0) + " фильмов</span>" +
+                "</span>" +
               "</button>"
             );
           }).join("")
-        : '<div class="empty small"><div class="empty-text">Нет тегов</div></div>';
+        : '<div class="film-tag-pick-empty">Пока нет тегов</div>';
 
       ov.innerHTML =
         '<div class="mp-dialog-card film-tag-dialog-card">' +
           '<button type="button" class="mp-dialog-close" data-close="1" aria-label="Закрыть">×</button>' +
           '<h3 class="mp-dialog-title">Тег для фильма</h3>' +
-          '<div class="list film-tag-pick-list">' + listHtml + "</div>" +
-          '<button type="button" class="btn-secondary btn-full" id="film-tag-create-btn" style="margin-top:12px">Создать тег</button>' +
+          '<div class="film-tag-pick-list">' + listHtml + "</div>" +
+          '<div class="film-tag-dialog-actions">' +
+            '<button type="button" class="film-tag-btn-create film-tag-btn-create--ghost" id="film-tag-create-btn">Создать тег</button>' +
+          "</div>" +
         "</div>";
 
       ov._unlock = d.lockViewportScroll();
@@ -151,10 +228,13 @@
           if (!tagId) return;
           btn.disabled = true;
           d.apiPost(d.apiPrefix + "/assign", { tag_id: tagId, film_id: filmId }).then(function (res) {
-            closeOverlay(ov);
-            if (res && res.success && opts && opts.onAssigned) {
-              opts.onAssigned(res.tag);
+            if (!res || !res.success) {
+              d.toast("Не удалось привязать тег");
+              btn.disabled = false;
+              return;
             }
+            closeOverlay(ov);
+            if (opts && opts.onAssigned) opts.onAssigned(res.tag);
           }).catch(function (e) {
             d.toast((e && e.message) || "Ошибка");
             btn.disabled = false;
@@ -169,12 +249,9 @@
   function bindFilmTagButton(btn, filmId, opts) {
     if (!btn || !filmId) return;
     var d = Object.assign({}, defaultDeps(), opts || {});
-    var iconEl = btn.querySelector("[data-tag-emoji]") || btn.querySelector(".mp-icon");
     if (global.getToken && global.getToken()) {
       global.api(d.apiPrefix + "/for-film/" + filmId).then(function (res) {
-        if (res && res.success && res.tag) {
-          btn.innerHTML = '<span data-tag-emoji>' + (res.tag.emoji || "🏷️") + "</span>";
-        }
+        if (res && res.success && res.tag) setTagButtonEmoji(btn, res.tag);
       }).catch(function () {});
     }
     btn.addEventListener("click", function () {
@@ -184,9 +261,7 @@
       }
       openFilmTagPicker(filmId, {
         onAssigned: function (tag) {
-          if (tag) {
-            btn.innerHTML = '<span data-tag-emoji>' + (tag.emoji || "🏷️") + "</span>";
-          }
+          if (tag) setTagButtonEmoji(btn, tag);
           refreshBaseTagPills();
           if (opts && opts.onAssigned) opts.onAssigned(tag);
         },
@@ -199,8 +274,9 @@
     var name = d.escapeHtml(tag.name || "Тег");
     var emoji = d.escapeHtml(tag.emoji || "🏷️");
     return (
-      '<button type="button" class="base-tab base-user-tag-pill" data-film-tag-id="' + tag.id + '">' +
-        emoji + " " + name +
+      '<button type="button" class="base-user-tag-pill" data-film-tag-id="' + tag.id + '" title="' + name + '">' +
+        '<span class="base-user-tag-emoji">' + emoji + "</span>" +
+        '<span class="base-user-tag-name">' + name + "</span>" +
       "</button>"
     );
   }
