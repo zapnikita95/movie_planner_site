@@ -33,6 +33,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script>window.global = window;</script>
     <script>
+      (function () {
+        var BUILD = "28ec47a";
+        try {
+          var k = "mp_cabinet_build_v2";
+          if (localStorage.getItem(k) !== BUILD) {
+            localStorage.setItem(k, BUILD);
+            if (location.search.indexOf("mpbuild=") === -1) {
+              var q = location.search ? location.search + "&" : "?";
+              location.replace(location.pathname + q + "mpbuild=" + BUILD + location.hash);
+            }
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <script>
       // SPA shim (P4.3): path из ?__spa=... — только после CSS (иначе /f/ ломает относительные href).
       (function () {
         try {
@@ -1773,6 +1788,6 @@
     <script src="/mp-icons.js?v=20260529phosphor2"></script>
     <script src="/home-rails.js?v=20260529phosphor2"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/app.js?v=20260617i18nfix3"></script>
+    <script src="/cabinet-app.js?v=28ec47a"></script>
 </body>
 </html>

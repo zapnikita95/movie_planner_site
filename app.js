@@ -2762,20 +2762,22 @@
   function bindFilmTagViewChromeOnce() {
     if (window._mpFilmTagViewBound) return;
     window._mpFilmTagViewBound = true;
-    const back = document.getElementById('film-tag-view-back');
-    if (back) {
-      back.addEventListener('click', function () {
-        try {
-          if (window.history.length > 1) window.history.back();
-          else closeFilmTagView({ replace: true });
-        } catch (_) {
-          closeFilmTagView({ replace: true });
-        }
-      });
-    }
-    if (window.MpFilmUserTags && typeof window.MpFilmUserTags.bindBasePillsOnce === 'function') {
-      window.MpFilmUserTags.bindBasePillsOnce(openFilmTagView);
-    }
+    try {
+      const back = document.getElementById('film-tag-view-back');
+      if (back) {
+        back.addEventListener('click', function () {
+          try {
+            if (window.history.length > 1) window.history.back();
+            else closeFilmTagView({ replace: true });
+          } catch (_) {
+            closeFilmTagView({ replace: true });
+          }
+        });
+      }
+      if (window.MpFilmUserTags && typeof window.MpFilmUserTags.bindBasePillsOnce === 'function') {
+        window.MpFilmUserTags.bindBasePillsOnce(openFilmTagView);
+      }
+    } catch (_) {}
   }
 
   function refreshBaseUserTagPills() {
@@ -14638,7 +14640,7 @@
     bindHomeQuickActionsOnce();
     bindLogoHomeNavigation();
     bindUserProfileChromeOnce();
-    bindFilmTagViewChromeOnce();
+    try { bindFilmTagViewChromeOnce(); } catch (_) {}
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
