@@ -1295,8 +1295,10 @@
         });
       }
       function goCabinet(action) {
-        var suffix = action ? '&action=' + encodeURIComponent(action) : '';
-        window.location.href = '/?kp_open=' + encodeURIComponent(kpId) + suffix;
+        if (action) {
+          try { sessionStorage.setItem('mp_public_film_action', String(action) + ':' + kpId); } catch (_) {}
+        }
+        window.location.href = '/f/' + encodeURIComponent(kpId);
       }
       function addCurrentFilm() {
         if (!token()) { rememberAction('add'); loginNow('add'); return; }

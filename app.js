@@ -181,7 +181,7 @@
     return !!(getToken() && ro && !ro.classList.contains('hidden'));
   }
 
-  /** GitHub Pages: /f/<kp> — standalone film-page.js (гость и авторизованный). */
+  /** GitHub Pages: /f/<kp> — inline в index.html (гость и авторизованный). */
   function goToStandaloneFilmPage(kpId, opts) {
     const o = opts || {};
     const href = filmNavHref(kpId);
@@ -189,6 +189,23 @@
     const kp = href.replace(/^\/f\//, '');
     if (o.action) {
       try { sessionStorage.setItem('mp_public_film_action', String(o.action) + ':' + kp); } catch (_) {}
+    }
+    const pathKp = kpIdFromPathname(window.location.pathname);
+    if (pathKp === kp && document.getElementById('landing') && document.getElementById('film-page-content')) {
+      if (getToken()) {
+        openFilmPageByKp(kp, { replace: true, action: o.action || '' });
+      } else {
+        showScreen('cabinet-readonly');
+        renderHeader(null);
+        showFilmPageLayout();
+        const pageRoot = document.getElementById('film-page-content');
+        if (pageRoot) {
+          pageRoot.className = 'movie-page loading';
+          pageRoot.innerHTML = pageLoadingHtml();
+        }
+        openFilmHeroByKpPublic(kp, { replace: true, action: o.action || '' });
+      }
+      return true;
     }
     window.location.href = href;
     return true;
@@ -239,11 +256,17 @@
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (!pathKp || !/^\d+$/.test(pathKp)) return false;
       if (getToken()) return false;
-      if (document.getElementById('landing')) {
-        goToStandaloneFilmPage(pathKp);
-        return true;
+      if (!document.getElementById('landing')) return false;
+      showScreen('cabinet-readonly');
+      renderHeader(null);
+      showFilmPageLayout();
+      const pageRoot = document.getElementById('film-page-content');
+      if (pageRoot) {
+        pageRoot.className = 'movie-page loading';
+        pageRoot.innerHTML = pageLoadingHtml();
       }
-      return false;
+      openFilmHeroByKpPublic(pathKp, { replace: true });
+      return true;
     } catch (_) {
       return false;
     }
@@ -367,6 +390,31 @@
         try { loadPlans(); } catch (_) {}
         try { loadUnwatched(); } catch (_) {}
         scheduleSiteOnboardingAfterCabinet();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** /f/:kp + токен — сразу кабинет и спиннер фильма, без редиректа на /?kp_open=. */
+  function bootAuthenticatedFilmShell() {
+    try {
+      if (!getToken() || !document.getElementById('landing')) return false;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (!pathKp || !/^\d+$/.test(pathKp)) return false;
+
+      document.body.classList.remove('login-only-overlay');
+      document.documentElement.classList.add('mp-auth-boot');
+      showScreen('cabinet-readonly');
+      showFilmPageLayout();
+      const stub = cachedSessionMeStub();
+      if (stub) renderHeader(stub);
+
+      const pageRoot = document.getElementById('film-page-content');
+      if (pageRoot) {
+        pageRoot.className = 'movie-page loading';
+        pageRoot.innerHTML = pageLoadingHtml();
       }
       return true;
     } catch (_) {
@@ -1264,58 +1312,72 @@
   }
 
   function showCabinetAfterLogin(me) {
+    document.body.classList.remove('login-only-overlay');
+    showScreen('cabinet-readonly');
+    let pathFid = null;
+    let scheduleOnboarding = true;
+    let pathUserBoot = null;
+    const params = new URLSearchParams(window.location.search);
+    const pathKp = kpIdFromPathname(window.location.pathname);
+    const queryKp = params.get('kp_open');
+    let pendingKp = null;
+    let pendingAction = '';
+    try {
+      pendingKp = sessionStorage.getItem('mp_pending_kp_open');
+      pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
+      if (pendingKp && /^\d+$/.test(pendingKp)) {
+        sessionStorage.removeItem('mp_pending_kp_open');
+        sessionStorage.removeItem('mp_pending_kp_action');
+      } else {
+        pendingKp = null;
+      }
+    } catch (_) {}
+    const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
+      || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
+      || pendingKp;
+
+    function deferCabinetLists() {
+      setTimeout(function () {
+        loadPlans();
+        loadUnwatched();
+        loadSeries();
+        loadRatings();
+      }, 1500);
+    }
+
+    if (filmKp) {
+      void uiToursEnsureHydrated(true);
+      openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+      deferCabinetLists();
+      scheduleOnboarding = false;
+      const statsSection = document.getElementById('section-stats');
+      if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
+        try { mountStatsSection(); } catch (_) {}
+      }
+      return Promise.resolve();
+    }
+
     return uiToursEnsureHydrated(true).then(function () {
-      document.body.classList.remove('login-only-overlay');
-      showScreen('cabinet-readonly');
-      let pathFid = null;
-      let scheduleOnboarding = true;
-      let pathUserBoot = null;
-      const params = new URLSearchParams(window.location.search);
-        const pathKp = kpIdFromPathname(window.location.pathname);
-        const queryKp = params.get('kp_open');
-        let pendingKp = null;
-        let pendingAction = '';
-        try {
-          pendingKp = sessionStorage.getItem('mp_pending_kp_open');
-          pendingAction = sessionStorage.getItem('mp_pending_kp_action') || '';
-          if (pendingKp && /^\d+$/.test(pendingKp)) {
-            sessionStorage.removeItem('mp_pending_kp_open');
-            sessionStorage.removeItem('mp_pending_kp_action');
-          } else {
-            pendingKp = null;
-          }
-        } catch (_) {}
-        const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
-          || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
-          || pendingKp;
-        const pathStaff = staffIdFromPathname(window.location.pathname);
-        if (pathStaff) {
-          openStaffPage(pathStaff, { replace: true });
-          loadPlans();
-          loadUnwatched();
-          loadSeries();
-          loadRatings();
-        } else if (filmKp) {
-          if (!isFilmPageOpen()) {
-            openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
-          }
-          loadPlans();
-          loadUnwatched();
-          loadSeries();
-          loadRatings();
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      if (pathStaff) {
+        openStaffPage(pathStaff, { replace: true });
+        loadPlans();
+        loadUnwatched();
+        loadSeries();
+        loadRatings();
+      } else {
+        loadPlans();
+        loadUnwatched();
+        setTimeout(function () { loadSeries(); loadSeriesMixForHome(); }, 120);
+        setTimeout(function () { loadRatings(); }, 240);
+        handleAuthEntryDeepLinks();
+        pathUserBoot = userIdFromLocation();
+        const pathTagBoot = filmTagIdFromPathname(window.location.pathname);
+        if (pathTagBoot) {
+          openFilmTagView(pathTagBoot, { replace: true, skipPush: true, skipReturnCapture: true });
+        } else if (pathUserBoot) {
+          openUserProfile(pathUserBoot, { replace: true, skipPush: true, skipReturnCapture: true });
         } else {
-          loadPlans();
-          loadUnwatched();
-          setTimeout(function () { loadSeries(); loadSeriesMixForHome(); }, 120);
-          setTimeout(function () { loadRatings(); }, 240);
-          handleAuthEntryDeepLinks();
-          pathUserBoot = userIdFromLocation();
-          const pathTagBoot = filmTagIdFromPathname(window.location.pathname);
-          if (pathTagBoot) {
-            openFilmTagView(pathTagBoot, { replace: true, skipPush: true, skipReturnCapture: true });
-          } else if (pathUserBoot) {
-            openUserProfile(pathUserBoot, { replace: true, skipPush: true, skipReturnCapture: true });
-          } else {
           const pathStaff2 = staffIdFromPathname(window.location.pathname);
           if (pathStaff2) {
             openStaffPage(pathStaff2, { skipHistory: true, replace: true });
@@ -1328,13 +1390,13 @@
               afterCabinetSectionShown(deepSection);
             }
           }
-          }
         }
+      }
       const statsSection = document.getElementById('section-stats');
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
         try { mountStatsSection(); } catch (_) {}
       }
-      if (pathStaff || filmKp || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
+      if (pathStaff || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
       if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
     });
   }
@@ -14886,20 +14948,14 @@
     });
 
     if (!isPublicStats) {
-    const pathKpBoot = kpIdFromPathname(window.location.pathname);
-    if (pathKpBoot && document.getElementById('landing')) {
-      if (!getToken()) {
-        window.location.replace('/f/' + pathKpBoot);
-        return;
-      }
-      // logged-in: stay on /f/:kp — loadMeAndShowCabinet opens film via pathKp
-    }
     try {
       const spaBoot = new URLSearchParams(window.location.search).get('__spa') || '';
       const spaKp = spaBoot.match(/^\/f\/(\d+)\/?/);
       if (spaKp && document.getElementById('landing')) {
-        window.location.replace('/f/' + spaKp[1]);
-        return;
+        const spaParams = new URLSearchParams(window.location.search);
+        spaParams.delete('__spa');
+        const rest = spaParams.toString();
+        history.replaceState(null, '', '/f/' + spaKp[1] + (rest ? '?' + rest : '') + window.location.hash);
       }
     } catch (_) {}
     if (isSearchLocation()) {
@@ -14954,6 +15010,7 @@
     }
 
     if (getToken()) {
+      bootAuthenticatedFilmShell();
       if (!bootAuthenticatedFilmDeepLink()) {
         bootAuthenticatedCabinetShell();
         loadMeAndShowCabinet();
