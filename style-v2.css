@@ -9574,15 +9574,19 @@ body.login-only-overlay .parallax-bg {
   main.film-page .hero h1 {
     font-size: clamp(32px, 11vw, 54px) !important;
   }
-  .film-toolbar-plan-wrap .action-dropdown,
-  .film-toolbar-plan {
-    width: 100%;
-  }
-  .film-icon-btn:hover,
-  .film-icon-btn:focus-visible {
-    width: 58px;
-    padding: 0;
-  }
+    .film-toolbar-plan-wrap .action-dropdown,
+    .film-toolbar-plan {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    .film-icon-btn:hover,
+    .film-icon-btn:focus-visible {
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+    }
   .film-icon-btn:hover .film-icon-label,
   .film-icon-btn:focus-visible .film-icon-label {
     max-width: 0;
@@ -14848,14 +14852,88 @@ img.mp-poster-placeholder,
   }
 }
 
-/* Film toolbar: fit icon row on narrow phones (320px) */
-@media (max-width: 400px) {
-  #section-film .film-page-toolbar,
-  main.film-page .film-page-toolbar {
+/* Film toolbar: fit plan button, icons and friends block on narrow phones */
+@media (max-width: 480px) {
+  #film-page-content,
+  #film-page-content > section.hero,
+  #film-page-content .hero-content,
+  #section-film .hero-content,
+  main.film-page .hero-content {
+    min-width: 0;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
+    overflow-x: hidden;
   }
+
+  #film-page-content > section.hero,
+  #section-film .hero,
+  main.film-page .hero {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #film-page-content .film-page-toolbar,
+  #section-film .film-page-toolbar,
+  main.film-page .film-page-toolbar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-top: 10px;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  #film-page-content .film-toolbar-plan-wrap,
+  #section-film .film-toolbar-plan-wrap,
+  main.film-page .film-toolbar-plan-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  #film-page-content .film-toolbar-plan-wrap .action-dropdown,
+  #section-film .film-toolbar-plan-wrap .action-dropdown,
+  main.film-page .film-toolbar-plan-wrap .action-dropdown {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #film-page-content .film-toolbar-plan,
+  #film-page-content .film-toolbar-plan-wrap .action-dropdown-btn,
+  #film-page-content .film-toolbar-plan-wrap > button,
+  #section-film .film-toolbar-plan,
+  #section-film .film-toolbar-plan-wrap .action-dropdown-btn,
+  #section-film .film-toolbar-plan-wrap > button,
+  main.film-page .film-toolbar-plan,
+  main.film-page .film-toolbar-plan-wrap .action-dropdown-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0 10px;
+    font-size: 13px;
+    font-weight: 800;
+    min-height: 46px;
+    gap: 6px;
+    box-shadow: 0 8px 22px rgba(236, 72, 153, 0.22);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #film-page-content .film-toolbar-plan .film-icon-ico,
+  #section-film .film-toolbar-plan .film-icon-ico {
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  #film-page-content .film-toolbar-icons,
   #section-film .film-toolbar-icons,
   main.film-page .film-toolbar-icons {
     display: grid;
@@ -14863,34 +14941,91 @@ img.mp-poster-placeholder,
     gap: 6px;
     width: 100%;
     max-width: 100%;
-    flex-wrap: nowrap;
-    justify-content: stretch;
-  }
-  #section-film .film-icon-btn,
-  main.film-page .film-icon-btn {
-    width: 100%;
     min-width: 0;
-    max-width: 100%;
-    height: 44px;
-    font-size: 17px;
-    border-radius: 14px;
+    box-sizing: border-box;
   }
+
+  #film-page-content .film-icon-btn,
+  #section-film .film-icon-btn,
+  main.film-page .film-icon-btn,
+  #film-page-content .film-icon-btn:hover,
+  #film-page-content .film-icon-btn:focus-visible,
+  #film-page-content .film-icon-btn.is-active,
+  #film-page-content .film-icon-btn--watched.on,
+  #section-film .film-icon-btn:hover,
+  #section-film .film-icon-btn:focus-visible,
   #section-film .film-icon-btn.is-active,
+  #section-film .film-icon-btn--watched.on,
+  main.film-page .film-icon-btn:hover,
+  main.film-page .film-icon-btn:focus-visible,
   main.film-page .film-icon-btn.is-active {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    height: 42px;
+    padding: 0 !important;
+    font-size: 16px;
+    border-radius: 12px;
+    box-sizing: border-box;
   }
-  #section-film .film-toolbar-plan-wrap .action-dropdown,
-  #section-film .film-toolbar-plan-wrap > .film-toolbar-plan,
-  main.film-page .film-toolbar-plan-wrap .action-dropdown,
-  main.film-page .film-toolbar-plan-wrap > .film-toolbar-plan {
+
+  #film-page-content .film-icon-btn .film-icon-label,
+  #section-film .film-icon-btn .film-icon-label,
+  main.film-page .film-icon-btn .film-icon-label {
+    display: none !important;
+  }
+
+  #film-page-content .film-toolbar-friends-wrap,
+  #section-film .film-toolbar-friends-wrap {
     width: 100%;
     max-width: 100%;
-  }
-  #section-film .hero-content,
-  main.film-page .hero-content {
     min-width: 0;
-    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  #film-page-content #film-friends-social-block,
+  #section-film #film-friends-social-block,
+  #film-friends-social-block {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #film-page-content #film-friends-social-block > section,
+  #section-film #film-friends-social-block > section,
+  #film-friends-social-block > section.film-friends-social,
+  #film-friends-social-block .film-friends-social {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 12px;
+  }
+
+  #film-friends-social-block .film-friends-social-list {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  #film-friends-social-block .film-friend-rating-chip {
+    max-width: 100%;
+  }
+
+  #film-friends-social-block .film-friend-rating-name {
+    max-width: min(120px, 42vw);
+  }
+}
+
+/* legacy narrow breakpoint — keep in sync */
+@media (max-width: 400px) {
+  #section-film .film-page-toolbar,
+  main.film-page .film-page-toolbar {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
