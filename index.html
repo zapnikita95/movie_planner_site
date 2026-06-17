@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet8">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet9">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet8";
+        var BUILD = "20260617cabinet9";
         try {
           var k = "mp_cabinet_build_v2";
           if (localStorage.getItem(k) !== BUILD) {
@@ -272,7 +272,7 @@
       <div class="header-content">
         <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
         <div class="header-search hidden" id="header-search" role="search">
-          <span class="header-search-icon" aria-hidden="true">🔍</span>
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
           <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
           <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
@@ -439,7 +439,7 @@
           <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="calendar"></span> Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
           <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="series"></span> Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
           <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="ticket"></span> Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
-          <div class="bento-card"><h3>⭐ Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
+          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="ratings"></span> Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
           <div class="bento-card"><h3>📱 Приложение Android</h3><p>Планы, база, билеты и уведомления — актуальный APK на <a href="/download">странице загрузки</a></p></div>
           <div class="bento-card"><h3>✨ Telegram Mini App</h3><p>Интерфейс в Telegram — из меню бота или по <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">кнопке запуска</a></p></div>
           <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb и Letterboxd, отслеживайте просмотр на стримингах</p></div>
@@ -766,7 +766,7 @@
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="plans"></span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
                         <div class="plans-filter-tabs" id="plans-filter-tabs" role="tablist" aria-label="Показать планы">
-                            <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true">📋 Все планы</button>
+                            <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true"><span class="mp-icon mp-icon--sm" data-mp-icon="clipboard"></span> Все планы</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="home" role="tab" aria-selected="false">🏠 Дома</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="cinema" role="tab" aria-selected="false">🎥 Кино</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="premieres" role="tab" aria-selected="false"><span class="mp-icon mp-icon--sm" data-mp-icon="premieres"></span> Премьеры</button>
@@ -786,7 +786,7 @@
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack base-section-tools-row--search-only">
                             <div class="base-search-wrap">
-                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <span class="base-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
                                 <input type="text" id="section-search-unwatched" class="section-search base-search-input" placeholder="Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                             </div>
                         </div>
@@ -838,7 +838,7 @@
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
                             <div class="base-search-wrap">
-                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <span class="base-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
                                 <input type="text" id="section-search-series" class="section-search base-search-input" placeholder="Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
                             </div>
                         </div>
@@ -873,7 +873,7 @@
                     <div id="series-hub-library-panel" class="series-hub-library-panel hidden">
                         <div class="base-section-tools-row base-section-tools-row--stack">
                             <div class="base-search-wrap">
-                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <span class="base-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
                                 <input type="text" id="section-search-series-hub" class="section-search base-search-input" placeholder="Найти" data-section="series-hub" aria-label="Поиск сериалов" autocomplete="off">
                             </div>
                         </div>
@@ -912,7 +912,7 @@
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
                             <div class="base-search-wrap">
-                                <span class="base-search-icon" aria-hidden="true">🔍</span>
+                                <span class="base-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
                                 <input type="text" id="section-search-ratings" class="section-search base-search-input" placeholder="Найти" data-section="ratings" aria-label="Поиск в разделе Оценки" autocomplete="off">
                             </div>
                         </div>
@@ -1781,9 +1781,9 @@
     <script src="/plan-modal.js?v=20260617i18nfix3"></script>
     <script src="/film-user-tags.js?v=20260617tags2"></script>
     <script src="/collections-page.js?v=20260617i18nfix3"></script>
-    <script src="/mp-icons.js?v=20260617cabinet1"></script>
+    <script src="/mp-icons.js?v=20260617icons2"></script>
     <script src="/home-rails.js?v=20260617seriesfix1"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/cabinet-app.js?v=20260617cabinet8"></script>
+    <script src="/cabinet-app.js?v=20260617cabinet9"></script>
 </body>
 </html>

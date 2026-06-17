@@ -6953,6 +6953,39 @@
     return div.innerHTML;
   }
 
+  function mpStatsTitle(iconKey, text, dataKey) {
+    try {
+      if (window.MPIcons && typeof window.MPIcons.statsTitle === 'function') {
+        return window.MPIcons.statsTitle(iconKey, text, dataKey);
+      }
+    } catch (_) {}
+    return '<div class="stats-block-title"><span>' + escapeHtml(text || '') + '</span></div>';
+  }
+  function mpRatingInline(value, prefix) {
+    try {
+      if (window.MPIcons && typeof window.MPIcons.ratingInline === 'function') {
+        return window.MPIcons.ratingInline(value, prefix);
+      }
+    } catch (_) {}
+    return (prefix || '') + (value != null && value !== '' ? value : '—');
+  }
+  function mpActionLabel(iconKey, text) {
+    try {
+      if (window.MPIcons && typeof window.MPIcons.actionLabel === 'function') {
+        return window.MPIcons.actionLabel(iconKey, text);
+      }
+    } catch (_) {}
+    return escapeHtml(text || '');
+  }
+  function mpPosterPh() {
+    try {
+      if (window.MPIcons && typeof window.MPIcons.html === 'function') {
+        return window.MPIcons.html('film', { className: 'mp-poster-ph', size: 'md' });
+      }
+    } catch (_) {}
+    return '';
+  }
+
   // ——— Статистика ———
   const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
@@ -7465,7 +7498,7 @@
 
     // Top films
     if (topFilms.length) {
-      blocks.push('<div class="stats-block"><div class="stats-block-title">🏆 Топ фильмов группы</div><p class="stats-block-sub">По средней оценке участников</p>' +
+      blocks.push('<div class="stats-block">' + mpStatsTitle('tournament', 'Топ фильмов группы') + '<p class="stats-block-sub">По средней оценке участников</p>' +
         topFilms.slice(0, 10).map((f, i) => {
           const ratedBy = f.rated_by || [];
           const voters = ratedBy.map((r) => {
@@ -7491,7 +7524,7 @@
       const minW = c > 0 ? 'min-width:24px;' : '';
       return '<div class="rating-bar-row"><div class="rating-bar-label">' + r + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + minW + bgStyle + '">' + (c > 0 ? c : '') + '</div></div><div class="rating-bar-count">' + c + '</div></div>';
     }).join('');
-    blocks.push('<div class="stats-block"><div class="stats-block-title">📊 Распределение оценок группы</div><p class="stats-block-sub">Средняя группы: <span style="color:' + ratingColor(+avgRb) + ';font-weight:700">' + avgRb + '</span></p>' + bars + '</div>');
+    blocks.push('<div class="stats-block">' + mpStatsTitle('stats', 'Распределение оценок группы') + '<p class="stats-block-sub">Средняя группы: <span style="color:' + ratingColor(+avgRb) + ';font-weight:700">' + avgRb + '</span></p>' + bars + '</div>');
 
     // Leaderboard
     const lb = leaderboard;
@@ -7528,7 +7561,7 @@
       }).join('');
     }
     const lbPref = ctx.lbPrefix || 'lb';
-    blocks.push('<div class="stats-block"><div class="stats-block-title">🏆 Лидерборд</div><div class="stats-lb-tabs">' +
+    blocks.push('<div class="stats-block">' + mpStatsTitle('tournament', 'Лидерборд') + '<div class="stats-lb-tabs">' +
       '<button type="button" class="stats-lb-tab active" data-lb="watched">Просмотры</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="ratings">Оценки</button>' +
       '<button type="button" class="stats-lb-tab" data-lb="avg_rating">Средняя</button>' +
@@ -7546,14 +7579,14 @@
         const dateStr = c.date ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
         return '<div class="watched-row">' +
           (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
-          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + (c.year ? c.year + ' · ' : '') + dateStr + (c.rating != null ? ' · ⭐ ' + c.rating : '') + '</div></div></div>';
+          '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + (c.year ? c.year + ' · ' : '') + dateStr + (c.rating != null ? ' · ' + mpRatingInline(c.rating) : '') + '</div></div></div>';
       }).join('');
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🎥 Походы в кино</div>' + cinemaHtml + '</div>');
+      blocks.push('<div class="stats-block stats-block-full">' + mpStatsTitle('ticket', 'Походы в кино', 'cinema') + cinemaHtml + '</div>');
     }
 
     // Controversial
     if (controversial.length) {
-      blocks.push('<div class="stats-block"><div class="stats-block-title">🔥 Спорные фильмы</div><p class="stats-block-sub">Самый большой разброс оценок</p>' +
+      blocks.push('<div class="stats-block">' + mpStatsTitle('fire', 'Спорные фильмы') + '<p class="stats-block-sub">Самый большой разброс оценок</p>' +
         controversial.slice(0, 5).map((f) => {
           const rats = (f.ratings || []).map((r) => {
             const m = memberById(members, r.user_id);
@@ -7576,7 +7609,7 @@
         const offset = circ * (1 - pct / 100);
         return '<div class="stats-compat-card"><div class="stats-compat-avatars">' + groupAvatar(m1) + groupAvatar(m2) + '</div><div class="stats-compat-ring"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="' + r + '" fill="none" stroke="var(--bg-surface-alt)" stroke-width="6"/><circle cx="40" cy="40" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="6" stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/></svg><div class="stats-compat-value">' + pct + '%</div></div><div class="stats-compat-label">' + escapeHtml((m1 ? m1.first_name : '') + ' & ' + (m2 ? m2.first_name : '')) + ' · ' + (c.common_films ?? 0) + ' общих</div></div>';
       }).join('');
-      blocks.push('<div class="stats-block"><div class="stats-block-title">💕 Совпадение вкусов</div><div class="stats-compat-grid">' + compatCards + '</div></div>');
+      blocks.push('<div class="stats-block">' + mpStatsTitle('heart', 'Совпадение вкусов') + '<div class="stats-compat-grid">' + compatCards + '</div></div>');
     }
 
     // Genres
@@ -7594,7 +7627,7 @@
         }).join('');
         return '<div class="stats-genre-row"><div class="stats-genre-label">' + escapeHtml(g.genre || '') + '</div><div class="stats-genre-bars">' + bars + '</div></div>';
       }).join('');
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🎭 Жанры: кто что смотрит</div><div class="stats-genre-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || m.username || '') + '</span>').join('') + '</div>' + genreRows + '</div>');
+      blocks.push('<div class="stats-block stats-block-full">' + mpStatsTitle('masks', 'Жанры: кто что смотрит') + '<div class="stats-genre-legend">' + members.map((m) => '<span>' + groupAvatar(m, 'sm') + ' ' + escapeHtml(m.first_name || m.username || '') + '</span>').join('') + '</div>' + genreRows + '</div>');
     }
 
     // Achievements
@@ -7604,7 +7637,7 @@
         const cls = a.earned ? 'earned' : '';
         return '<div class="stats-achievement ' + cls + '"><div class="stats-achievement-icon">' + (a.icon || '🏅') + '</div><div class="stats-achievement-name">' + escapeHtml(a.name || '') + '</div><div class="stats-achievement-desc">' + escapeHtml(a.description || '') + '</div>' + (holder ? '<div class="stats-achievement-holder">' + escapeHtml(holder.first_name || holder.username || '') + '</div>' : '<div class="stats-achievement-holder stats-achievement-locked">Не получена</div>') + '</div>';
       }).join('');
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">🏅 Ачивки месяца</div><div class="stats-achievements-grid">' + achCards + '</div></div>');
+      blocks.push('<div class="stats-block stats-block-full">' + mpStatsTitle('medal', 'Ачивки месяца') + '<div class="stats-achievements-grid">' + achCards + '</div></div>');
     }
 
     // Heatmap: цвет по отношению к средней активности группы
@@ -7635,7 +7668,7 @@
         });
         cols += '<div class="stats-heatmap-col"><div class="stats-heatmap-day">' + d + '</div>' + cells + '</div>';
       }
-      blocks.push('<div class="stats-block stats-block-full"><div class="stats-block-title">📅 Активность группы по дням</div><div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
+      blocks.push('<div class="stats-block stats-block-full">' + mpStatsTitle('calendar', 'Активность группы по дням') + '<div class="stats-heatmap-wrap"><div class="stats-heatmap">' + cols + '</div></div><div class="stats-heatmap-legend-bar">Меньше <span class="stats-heatmap-cell"></span><span class="stats-heatmap-cell l1"></span><span class="stats-heatmap-cell l2"></span><span class="stats-heatmap-cell l3"></span><span class="stats-heatmap-cell l4"></span> Больше</div></div>');
     }
 
     // Watched list
@@ -7644,6 +7677,7 @@
     blocks.push('<div class="stats-block stats-block-full">' + buildWatchedBlockHtml(watched, period, watchedOptions) + '</div>');
 
     gridEl.innerHTML = blocks.join('');
+    try { if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') window.MPIcons.hydrate(gridEl); } catch (_) {}
     bindWatchedExpand(gridEl);
     const watchedWrap = gridEl.querySelector('.watched-block-wrap');
     if (watchedWrap) bindWatchedChangeMonth(watchedWrap.closest('.stats-block-full') || gridEl, period, watchedOptions);
@@ -7676,7 +7710,7 @@
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.toLowerCase().includes('просмотренное') || text.includes('📋');
+              return title.getAttribute('data-stats-key') === 'watched' || text.toLowerCase().includes('просмотренное');
             });
           } else if (targetId === 'group-rating-breakdown') {
             // Find "Распределение оценок" block
@@ -7684,7 +7718,7 @@
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes('Распределение оценок') || text.includes('📊');
+              return title.getAttribute('data-stats-key') === 'rating-breakdown' || text.includes('Распределение оценок');
             });
           } else if (targetId === 'group-platforms') {
             // Find "Платформы" block
@@ -7692,7 +7726,7 @@
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes('Платформы') || text.includes('📺');
+              return title.getAttribute('data-stats-key') === 'platforms' || text.includes('Платформы');
             });
           } else if (targetId === 'group-cinema') {
             // Find "Походы в кино" block
@@ -7700,7 +7734,7 @@
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes('Походы в кино') || text.includes('🎥');
+              return title.getAttribute('data-stats-key') === 'cinema' || text.includes('Походы в кино');
             });
           }
           if (target) scrollToStatsSection(target);
@@ -8049,18 +8083,18 @@
   function renderStatsTopFilms(list, elId, period) {
     const el = document.getElementById(elId || 'stats-top-films');
     if (!el) return;
-    if (!list.length) { el.innerHTML = '<div class="stats-block-title">🏆 Топ оценок</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    if (!list.length) { el.innerHTML = mpStatsTitle('tournament', 'Топ оценок', 'top') + '<p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
     const VISIBLE = 5;
     const full = list.slice(0, 10);
     const visible = full.slice(0, VISIBLE);
     const hasMore = full.length > VISIBLE;
-    let html = '<div class="stats-block-title">🏆 Топ оценок</div>';
+    let html = mpStatsTitle('tournament', 'Топ оценок', 'top');
     html += visible.map((f, i) => {
       const poster = posterUrl(f.kp_id);
       return '<div class="top-film-row"><span class="top-film-rank">' + (i + 1) + '</span>' +
         (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
         '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div></div>' +
-        '<span class="top-film-rating">⭐ ' + (f.rating != null ? f.rating : '—') + '</span></div>';
+        '<span class="top-film-rating">' + mpRatingInline(f.rating) + '</span></div>';
     }).join('');
     if (hasMore) {
       const rest = full.slice(VISIBLE);
@@ -8070,7 +8104,7 @@
         return '<div class="top-film-row"><span class="top-film-rank">' + (VISIBLE + i + 1) + '</span>' +
           (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
           '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(f.title || '') + '</div><div class="top-film-meta">' + escapeHtml((f.year ? f.year + ' · ' : '') + (f.genre || '')) + '</div></div>' +
-          '<span class="top-film-rating">⭐ ' + (f.rating != null ? f.rating : '—') + '</span></div>';
+          '<span class="top-film-rating">' + mpRatingInline(f.rating) + '</span></div>';
       }).join('') + '</div></div>';
     }
     el.innerHTML = html;
@@ -8094,27 +8128,27 @@
       const minW = c > 0 ? 'min-width:24px;' : '';
       rows.push('<div class="rating-bar-row"><div class="rating-bar-label">' + i + '</div><div class="rating-bar-track"><div class="rating-bar-fill" style="width:' + pct + '%;' + minW + (bg ? 'background:' + bg : '') + '">' + fillInner + '</div></div><div class="rating-bar-count">' + c + '</div></div>');
     }
-    el.innerHTML = '<div class="stats-block-title">📊 Распределение оценок</div>' + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
+    el.innerHTML = mpStatsTitle('stats', 'Распределение оценок', 'rating-breakdown') + (rows.length ? rows.join('') : '<p class="empty-hint">Нет данных.</p>');
   }
 
   function renderStatsCinema(list, elId) {
     const el = document.getElementById(elId || 'stats-cinema');
     if (!el) return;
-    if (!list.length) { el.innerHTML = '<div class="stats-block-title">🎥 Походы в кино</div><p class="empty-hint">Нет походов в кино за выбранный период.</p>'; return; }
-    el.innerHTML = '<div class="stats-block-title">🎥 Походы в кино</div>' + list.map((c) => {
+    if (!list.length) { el.innerHTML = mpStatsTitle('ticket', 'Походы в кино', 'cinema') + '<p class="empty-hint">Нет походов в кино за выбранный период.</p>'; return; }
+    el.innerHTML = mpStatsTitle('ticket', 'Походы в кино', 'cinema') + list.map((c) => {
       const poster = posterUrl(c.kp_id);
       const dateStr = c.date ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
       return '<div class="watched-row">' +
         (poster ? '<img src="' + poster + '" alt="" class="top-film-poster" loading="lazy">' : '<div class="top-film-poster"></div>') +
-        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + escapeHtml((c.year ? c.year + ' · ' : '') + (dateStr || '') + (c.rating != null ? ' · ⭐ ' + c.rating : '')) + '</div></div></div>';
+        '<div class="top-film-info"><div class="top-film-name">' + escapeHtml(c.title || '') + '</div><div class="top-film-meta">' + escapeHtml((c.year ? c.year + ' · ' : '') + (dateStr || '')) + (c.rating != null ? ' · ' + mpRatingInline(c.rating) : '') + '</div></div></div>';
     }).join('');
   }
 
   function renderStatsPlatforms(list, elId) {
     const el = document.getElementById(elId || 'stats-platforms');
     if (!el) return;
-    if (!list.length) { el.innerHTML = '<div class="stats-block-title">📺 Платформы</div><p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
-    el.innerHTML = '<div class="stats-block-title">📺 Платформы</div>' + list.map((p) =>
+    if (!list.length) { el.innerHTML = mpStatsTitle('tv', 'Платформы', 'platforms') + '<p class="empty-hint">Нет данных за выбранный период.</p>'; return; }
+    el.innerHTML = mpStatsTitle('tv', 'Платформы', 'platforms') + list.map((p) =>
       '<div class="platform-row"><span>' + escapeHtml(p.platform || '') + '</span><span>' + (p.count != null ? p.count : 0) + '</span></div>'
     ).join('');
   }
@@ -8123,13 +8157,13 @@
     options = options || {};
     const canEdit = !!options.canEdit;
     const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
-    const title = monthLabel ? '📋 Всё просмотренное за ' + monthLabel : '📋 Просмотренное';
-    if (!list.length) return '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>';
+    const title = mpStatsTitle('clipboard', monthLabel ? ('Всё просмотренное за ' + monthLabel) : 'Просмотренное', 'watched');
+    if (!list.length) return title + '<p class="empty-hint">Нет данных за выбранный период.</p>';
     const itemsHtml = list.map((w) => {
       const poster = posterUrl(w.kp_id);
       const dateObj = w.date ? new Date(w.date + 'T12:00:00') : null;
       const metaDate = dateObj ? (dateObj.getDate() + ' ' + MONTH_SHORT[(dateObj.getMonth())].toLowerCase()) : '';
-      const metaStr = metaDate + (w.rating != null ? ' · ⭐ ' + w.rating : '');
+      const metaStr = metaDate + (w.rating != null ? ' · ' + mpRatingInline(w.rating) : '');
       let badgeCls = 'badge-film';
       let badgeLabel = 'Фильм';
       if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
@@ -8150,7 +8184,7 @@
     if (restCount > 0) {
       expandHtml = '<div class="watched-expand-wrap"><button type="button" class="watched-expand-btn">Развернуть ещё ' + restCount + '</button></div>';
     }
-    return '<div class="stats-block-title">' + title + '</div><div class="watched-block-wrap' + collapsedClass + '"><div class="watched-list">' + itemsHtml + '</div>' + expandHtml + '</div>';
+    return title + '<div class="watched-block-wrap' + collapsedClass + '"><div class="watched-list">' + itemsHtml + '</div>' + expandHtml + '</div>';
   }
 
   function bindWatchedExpand(container) {
@@ -8491,7 +8525,7 @@
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
     const planItems = [
       `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
-      `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>`,
+      `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">${mpActionLabel('ticket', 'В кино')}</button>`,
       `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
     const watchItems = [];
@@ -8502,7 +8536,7 @@
     }
     if (tvSettings && tvSettings.tv_type) {
       watchItems.push(
-        `<button type="button" class="action-dropdown-item" data-tv-launch="1" data-kp="${kp}" data-title="${titleAttr}">📺 На ТВ</button>`
+        `<button type="button" class="action-dropdown-item" data-tv-launch="1" data-kp="${kp}" data-title="${titleAttr}">${mpActionLabel('tv', 'На ТВ')}</button>`
       );
     }
     if (showCinemaWatch) {
@@ -8989,7 +9023,7 @@
     modal.innerHTML = `
       <div class="tv-launch-box" style="position:relative">
         <button type="button" class="tv-launch-close" aria-label="Закрыть">×</button>
-        <h3>📺 Запуск на ТВ</h3>
+        <h3 class="tv-launch-title">${mpActionLabel('tv', 'Запуск на ТВ')}</h3>
         <div class="tv-launch-sub">${escapeHtml(title || 'Фильм')}</div>
         <div id="tv-launch-content"><div style="color:var(--text-muted,#aaa);padding:16px 0;">Отправляю команду…</div></div>
       </div>`;
@@ -13448,7 +13482,7 @@
       actionsEl.innerHTML = `
         <button type="button" class="btn btn-primary" id="soc-invite-friend-btn">👋 Пригласить друга</button>
         <button type="button" class="btn btn-secondary" id="soc-activity-btn">Лента активности</button>
-        <button type="button" class="btn btn-secondary" id="soc-lb-btn">🏆 Рейтинг друзей</button>
+        <button type="button" class="btn btn-secondary mp-action-btn" id="soc-lb-btn"><span class="mp-icon mp-icon--sm" data-mp-icon="tournament"></span><span>Рейтинг друзей</span></button>
       `;
       actionsEl.querySelector('#soc-invite-friend-btn')?.addEventListener('click', () => void shareFriendInviteLink());
       actionsEl.querySelector('#soc-activity-btn')?.addEventListener('click', _openFriendsActivity);
@@ -13589,7 +13623,7 @@
     const fromFriend = data.from_friend_library || [];
     const fromMe = data.from_my_library || [];
     const fillActions = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
-      '<button type="button" class="btn btn-secondary" data-wt-go-search>🔍 Поиск</button>' +
+      '<button type="button" class="btn btn-secondary mp-action-btn" data-wt-go-search><span class="mp-icon mp-icon--sm" data-mp-icon="search"></span><span>Поиск</span></button>' +
       '<button type="button" class="btn btn-secondary" data-wt-go-premieres>🎟 Премьеры</button>' +
       '</div>';
     const modal = _friendModal(`
@@ -13712,7 +13746,7 @@
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px';
     modal.innerHTML = `<div class="soc-lb-modal-card" style="background:var(--surface,#fff);border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow:auto">
-      <div style="font-size:17px;font-weight:700;margin-bottom:12px">🏆 Рейтинг друзей</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span class="mp-icon mp-icon--sm" data-mp-icon="tournament"></span><span>Рейтинг друзей</span></div>
       <div id="soc-lb-tabs" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;-webkit-overflow-scrolling:touch"></div>
       <div id="soc-lb-list"></div>
       <button type="button" class="soc-lb-close" style="margin-top:16px;width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;background:none;cursor:pointer">Закрыть</button>

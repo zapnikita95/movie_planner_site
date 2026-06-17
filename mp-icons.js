@@ -74,6 +74,15 @@
     sortAz: { name: 'text-aa', weight: 'regular' },
     sortZa: { name: 'text-aa', weight: 'regular' },
     sort: { name: 'arrows-down-up', weight: 'regular' },
+    clipboard: { name: 'clipboard-text', weight: 'regular' },
+    copy: { name: 'copy', weight: 'regular' },
+    heart: { name: 'heart', weight: 'regular' },
+    masks: { name: 'mask-happy', weight: 'regular' },
+    palette: { name: 'palette', weight: 'regular' },
+    cinema: { name: 'film-strip', weight: 'regular' },
+    check: { name: 'check', weight: 'bold' },
+    basket: { name: 'basket', weight: 'regular' },
+    sparkle: { name: 'sparkle', weight: 'regular' },
   };
 
   function iconClass(key, opts) {
@@ -117,11 +126,38 @@
     scope.querySelectorAll('[data-mp-icon]').forEach(fillSlot);
   }
 
+  function statsTitle(iconKey, text, dataKey) {
+    var attr = dataKey ? (' data-stats-key="' + String(dataKey).replace(/"/g, '') + '"') : '';
+    return '<div class="stats-block-title"' + attr + '>' +
+      html(iconKey, { className: 'stats-block-title-icon', size: 'sm' }) +
+      '<span>' + (text || '') + '</span></div>';
+  }
+
+  function ratingInline(value, prefix) {
+    var pre = prefix ? String(prefix) : '';
+    var shown = value != null && value !== '' ? value : '—';
+    return pre + '<span class="stats-rating-inline">' +
+      html('ratings', { className: 'stats-inline-icon', size: 'xs' }) +
+      '<span>' + shown + '</span></span>';
+  }
+
+  function actionLabel(iconKey, text) {
+    return html(iconKey, { className: 'mp-action-icon', size: 'sm' }) + '<span>' + (text || '') + '</span>';
+  }
+
+  function posterPlaceholder() {
+    return '<span class="mp-poster-ph mp-icon" data-mp-icon="film"></span>';
+  }
+
   global.MPIcons = {
     html: html,
     className: iconClass,
     hydrate: hydrate,
     ICONS: ICONS,
+    statsTitle: statsTitle,
+    ratingInline: ratingInline,
+    actionLabel: actionLabel,
+    posterPlaceholder: posterPlaceholder,
   };
 
   if (document.readyState === 'loading') {
