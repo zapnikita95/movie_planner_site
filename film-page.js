@@ -113,7 +113,7 @@
     var cur = Number(current) || 0;
     var html = '';
     for (var i = 1; i <= 10; i++) {
-      html += '<button type="button" class="rating-star' + (cur >= i ? ' filled' : '') + '" data-rating-value="' + i + '" aria-label="Оценить на ' + i + '">' + i + '</button>';
+      html += '<button type="button" class="rating-star' + (cur >= i ? ' filled' : '') + '" data-rating-value="' + i + '" aria-label=siteT('site.cabinet.otsenit_na_i', 'Оценить на \' + i + \'')>' + i + '</button>';
     }
     if (cur) html += '<span class="rating-current" data-rating-current>' + cur + '/10</span>';
     return html;
@@ -169,13 +169,13 @@
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
       : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>';
     var addIconBtn = !inBase
-      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="' + siteT('film.addToLibrary', 'Добавить в базу') + '" title="' + siteT('film.addToLibrary', 'Добавить в базу') + '"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
+      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label=siteT('site.cabinet.sitet_film_addtolibrary_dobavit', '\' + siteT(\'film.addToLibrary\', \'Добавить в базу\') + \'') title=siteT('site.cabinet.sitet_film_addtolibrary_dobavit', '\' + siteT(\'film.addToLibrary\', \'Добавить в базу\') + \'')><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', t('film.markWatched', 'Отметить просмотренным'))) + '" title="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', t('film.markWatched', 'Отметить просмотренным'))) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.watched', 'Просмотрен')) + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label=siteT('site.cabinet.watched_sitet_site_film', '\' + (watched ? siteT(\'site.film.watched\', \'Просмотрен\') : siteT(\'site.film.markWatched\', t(\'film.markWatched\', \'Отметить просмотренным\'))) + \'') title=siteT('site.cabinet.watched_sitet_site_film', '\' + (watched ? siteT(\'site.film.watched\', \'Просмотрен\') : siteT(\'site.film.markWatched\', t(\'film.markWatched\', \'Отметить просмотренным\'))) + \'')><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.watched', 'Просмотрен')) + '</span></button>'
       : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
-    var rateAria = myRating ? ('Оценка ' + myRating) : siteT('site.film.rate', 'Оценить');
+    var rateAria = myRating ? (siteT('site.cabinet.otsenka_2', 'Оценка ') + myRating) : siteT('site.film.rate', 'Оценить');
     var rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
     var rateLabelHtml = myRating ? '' : '<span class="film-icon-label">Оценить</span>';
     var rateBtn = canRate && !ratingLocked
@@ -183,8 +183,8 @@
       : '';
     return '<div class="film-page-toolbar">' + planBlock +
       '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtn +
-      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
+      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label=siteT('site.cabinet.interesnye_fakty', 'Интересные факты') title=siteT('site.cabinet.interesnye_fakty', 'Интересные факты')><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label=siteT('site.film.share', 'Поделиться') title=siteT('site.film.share', 'Поделиться')><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
       '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>' +
       '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div></div>';
   }
@@ -208,7 +208,7 @@
       var active = localStorage.getItem('mp_site_active_chat_id');
       var row = mpSessions().find(function (x) { return String(x.chat_id) === String(active); });
       return (row && row.name) || siteT('nav.profile', 'Профиль');
-    } catch (_e) { return 'Профиль'; }
+    } catch (_e) { return siteT('site.menu.profile', 'Профиль'); }
   }
 
   var _filmPlanDropdownDocBound = false;
@@ -254,9 +254,9 @@
   function standaloneHeaderSearchHtml() {
     return '<div class="header-search" id="header-search" role="search">' +
       '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-      '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label="Поиск">' +
-      '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
-      '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+      '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label=siteT('nav.search', 'Поиск')>' +
+      '<button type="button" class="header-search-mic" id="header-search-mic" aria-label=siteT('site.header.voiceInput', 'Голосовой ввод') title=siteT('site.header.voiceInput', 'Голосовой ввод')>🎤</button>' +
+      '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label=siteT('common.clear', 'Очистить')>×</button>' +
       '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
     '</div>';
   }
@@ -282,7 +282,7 @@
       { href: '/whattowatch', label: siteT('nav.watch', 'Что посмотреть'), icon: 'watch' },
       { href: '/tournament', label: siteT('nav.tournament', 'Турнир'), icon: 'tournament' },
     ];
-    return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="' + siteT('site.film.navSections', 'Разделы') + '">' +
+    return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label=siteT('site.cabinet.sitet_site_film_navsections', '\' + siteT(\'site.film.navSections\', \'Разделы\') + \'')>' +
       tabs.map(function (t) {
         var iconHtml = (window.MPIcons && MPIcons.html) ? MPIcons.html(t.icon, { size: 'md' }) : '';
         return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + iconHtml + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
@@ -292,7 +292,7 @@
 
   function setStandaloneHeaderAvatar(el, url, name, apiBase) {
     if (!el) return;
-    var initial = String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
+    var initial = String(name || siteT('site.cabinet.p', 'П')).trim().charAt(0).toUpperCase() || siteT('site.cabinet.p', 'П');
     var src = String(url || '').trim();
     if (src && !/^https?:\/\//i.test(src) && src.indexOf('data:') !== 0) {
       if (src.indexOf('/api/') === 0) src = apiBase + src;
@@ -622,7 +622,7 @@
     var mainSelector = opts.mainSelector || 'main.film-page';
     var header = document.getElementById('site-header');
     if (!header) return;
-    var name = (me && me.name) || 'Профиль';
+    var name = (me && me.name) || siteT('site.menu.profile', 'Профиль');
     var coinsVal = '—';
     if (me && me.coins) {
       coinsVal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? String(me.coins.balance) : '—');
@@ -637,19 +637,19 @@
         standaloneHeaderSearchHtml() +
         '<div class="header-buttons">' +
           '<div class="header-user-wrap account-switcher" id="header-user-wrap" style="position:relative">' +
-            '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
+            '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label=siteT('site.menu.profile', 'Профиль')>' +
               '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
               '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
             '</button>' +
             '<div class="header-util-row">' +
-              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
+              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label=siteT('site.header.notifications', 'Уведомления') title=siteT('site.header.notifications', 'Уведомления')>' +
                 '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
               '</button>' +
-              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
+              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label=siteT('site.header.coins', 'Монетки')>' +
                 '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
               '</button>' +
             '</div>' +
-            '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">' +
+            '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title=siteT('nav.settings', 'Настройки')>' +
               '<span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>' +
             '</button>' +
             '<div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>' +
@@ -780,9 +780,9 @@
               '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
               '<div class="header-search" id="header-search" role="search">' +
                 '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-                '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label="Поиск">' +
-                '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
-                '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
+                '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label=siteT('nav.search', 'Поиск')>' +
+                '<button type="button" class="header-search-mic" id="header-search-mic" aria-label=siteT('site.header.voiceInput', 'Голосовой ввод') title=siteT('site.header.voiceInput', 'Голосовой ввод')>🎤</button>' +
+                '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label=siteT('common.clear', 'Очистить')>×</button>' +
                 '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
               '</div>' +
               '<div class="header-buttons">' +
@@ -793,10 +793,10 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
+              '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label=siteT('film.a11yTag', 'Тег') title=siteT('film.a11yTag', 'Тег')>' +
                 (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
               '</button>' +
-              '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
+              '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt=siteT('site.cabinet.poster_2', 'Постер') onerror="this.style.opacity=.22"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
@@ -805,10 +805,10 @@
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
                   '<div class="film-toolbar-icons">' +
-                    '<button type="button" class="film-icon-btn" id="add-btn" aria-label="' + siteT('film.addToLibrary', 'Добавить в базу') + '" title="' + siteT('film.addToLibrary', 'Добавить в базу') + '"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
-                    '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
-                    '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-                    '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="add-btn" aria-label=siteT('site.cabinet.sitet_film_addtolibrary_dobavit', '\' + siteT(\'film.addToLibrary\', \'Добавить в базу\') + \'') title=siteT('site.cabinet.sitet_film_addtolibrary_dobavit', '\' + siteT(\'film.addToLibrary\', \'Добавить в базу\') + \'')><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label=siteT('site.film.rate', 'Оценить') title=siteT('site.film.rate', 'Оценить')><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
+                    '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label=siteT('site.cabinet.interesnye_fakty', 'Интересные факты') title=siteT('site.cabinet.interesnye_fakty', 'Интересные факты')><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label=siteT('site.film.share', 'Поделиться') title=siteT('site.film.share', 'Поделиться')><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
                   '</div>' +
                   '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
                     '<div class="public-rating-title">Ваша оценка</div>' +
@@ -825,7 +825,7 @@
               '</div>' +
             '</section>' +
           '</main>' +
-          '<aside id="film-seo-root" class="film-seo-root visually-hidden" aria-label="О фильме"></aside>' +
+          '<aside id="film-seo-root" class="film-seo-root visually-hidden" aria-label=siteT('site.cabinet.o_filme', 'О фильме')></aside>' +
           '<footer class="footer">' +
             '<div class="container">' +
               '<div class="footer-content">' +
@@ -839,7 +839,7 @@
                 '<div class="footer-social">' +
                   '<h3>Мы в соцсетях</h3>' +
                   '<div class="social-links">' +
-                    '<a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener" class="social-link" aria-label="Telegram канал"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg></a>' +
+                    '<a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener" class="social-link" aria-label=siteT('site.cabinet.telegram_kanal', 'Telegram канал')><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg></a>' +
                     '<a href="https://instagram.com/movie_planner_bot" target="_blank" rel="noopener" class="social-link" aria-label="Instagram"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>' +
                   '</div>' +
                 '</div>' +
@@ -924,9 +924,9 @@
           meta('property', 'og:image:secure_url', img);
           meta('property', 'og:image:width', '1000');
           meta('property', 'og:image:height', '1500');
-          meta('property', 'og:image:alt', 'Постер: ' + headline);
+          meta('property', 'og:image:alt', siteT('site.cabinet.poster', 'Постер: ') + headline);
           meta('name', 'twitter:image', img);
-          meta('name', 'twitter:image:alt', 'Постер: ' + headline);
+          meta('name', 'twitter:image:alt', siteT('site.cabinet.poster', 'Постер: ') + headline);
         }
         meta('name', 'twitter:card', 'summary_large_image');
         meta('name', 'twitter:title', headline);
@@ -942,7 +942,7 @@
         canon.href = (film && film.canonical) || pageUrl;
       }
       setPageFavicon(poster);
-      setOgFromFilm(null, 'Фильм');
+      setOgFromFilm(null, siteT('site.film.fallbackTitle', 'Фильм'));
 
       function setFilmJsonLd(film) {
         try {
@@ -971,7 +971,7 @@
           var payload = {
             '@context': 'https://schema.org',
             '@type': 'Movie',
-            name: title || ('Фильм ' + kp),
+            name: title || (siteT('site.cabinet.film_2', 'Фильм ') + kp),
             description: description,
             url: pageUrl,
             image: image || undefined,
@@ -1034,7 +1034,7 @@
           .split(/[,;/|]+/)
           .map(function (s) { return s.trim(); })
           .filter(Boolean);
-        if (!parts.length) parts = [isSeries ? 'сериал' : 'фильм'];
+        if (!parts.length) parts = [isSeries ? siteT('site.onboard.seriesBadge', 'сериал') : siteT('site.cabinet.film', 'фильм')];
         parts.slice(0, 8).forEach(function (label) {
           var chip = document.createElement('span');
           chip.className = 'chip';
@@ -1152,7 +1152,7 @@
             var expanded = fullEl.classList.contains('hidden');
             fullEl.classList.toggle('hidden', !expanded);
             shortEl.classList.toggle('hidden', expanded);
-            moreBtn.textContent = expanded ? 'свернуть' : 'ещё';
+            moreBtn.textContent = expanded ? siteT('film.castLess', 'свернуть') : siteT('film.castMore', 'ещё');
             moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
           });
         }
@@ -1201,7 +1201,7 @@
       function filmTitleForPlan() {
         var el = document.getElementById('film-title');
         var raw = el ? String(el.textContent || '').trim() : '';
-        return raw.replace(/\s*\(\d{4}\)\s*$/, '').trim() || 'Фильм';
+        return raw.replace(/\s*\(\d{4}\)\s*$/, '').trim() || siteT('site.film.fallbackTitle', 'Фильм');
       }
 
       function openStandalonePlanModal(filmLike, place) {
@@ -1274,7 +1274,7 @@
           }
           var f = data.film;
           publicFilmCountry = f.country || '';
-          var title = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
+          var title = (f.title || siteT('site.film.fallbackTitle', 'Фильм')) + (f.year ? ' (' + f.year + ')' : '');
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
@@ -1319,13 +1319,13 @@
           .then(function (d) {
             if (!d) return;
             if (d.success) {
-              if (hint) hint.textContent = 'Фильм добавлен';
+              if (hint) hint.textContent = siteT('site.toast.filmAdded', 'Фильм добавлен');
               loadAuthFilmState();
             } else if (hint) {
               hint.textContent = d.error || t('site.toast.addFailed', 'Не удалось добавить');
             }
           })
-          .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
+          .catch(function () { if (hint) hint.textContent = siteT('site.cabinet.networkError', 'Ошибка сети'); });
       }
       function planCurrentFilm() {
         startPlanFlow('home');
@@ -1349,14 +1349,14 @@
           .then(function (d) {
             if (!d) return;
             if (d.success) {
-              hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
+              hint.textContent = siteT('site.cabinet.otsenka_2', 'Оценка ') + String(v) + siteT('site.cabinet.10_sohranena', '/10 сохранена');
               if (anchor) showPublicCoinPop(anchor, Number(d.coins_added) || 40);
               showPublicToast(t('site.cabinet.str_c4c381', 'Оценка сохранена. Начислили монетки за активность.'));
               loadAuthFilmState();
             } else hint.textContent = d.error || t('site.cabinet.str_73d2c5', 'Не удалось поставить оценку');
           })
           .catch(function (e) {
-            hint.textContent = (e && e.message) || 'Ошибка оценки';
+            hint.textContent = (e && e.message) || siteT('site.cabinet.oshibka_otsenki', 'Ошибка оценки');
           });
       }
       function rebindGuestToolbarActions() {
@@ -1375,7 +1375,7 @@
         });
         var tagBtn = document.getElementById('film-user-tag-btn');
         if (tagBtn && !token()) {
-          tagBtn.setAttribute('title', 'добавить в список');
+          tagBtn.setAttribute('title', siteT('site.cabinet.dobavit_v_spisok', 'добавить в список'));
           tagBtn.addEventListener('click', function () { loginNow('tag'); });
         }
       }

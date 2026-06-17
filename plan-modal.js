@@ -148,18 +148,18 @@
   function resolveRuWeekdayToken(tok) {
     const x = String(tok || "")
       .toLowerCase()
-      .replace(/ё/g, "е")
+      .replace(/ё/g, t('site.cabinet.e', 'е'))
       .replace(/[^а-яa-z]/g, "");
     if (!x) return null;
     const pairs = Object.entries(RU_WEEKDAYS).sort((a, b) => b[0].length - a[0].length);
     for (const [key, dow] of pairs) {
-      const k = key.replace(/ё/g, "е");
+      const k = key.replace(/ё/g, t('site.cabinet.e', 'е'));
       if (x === k || (x.startsWith(k) && k.length >= 2)) return dow;
     }
     return null;
   }
   function ruRelDayWordToN(w) {
-    const x = String(w || "").toLowerCase().replace(/ё/g, "е");
+    const x = String(w || "t('site.cabinet.tolowercase_replace_yo_g', ').toLowerCase().replace(/ё/g, ')е");
     return RU_REL_DAY_WORDS[x] != null ? RU_REL_DAY_WORDS[x] : null;
   }
   function parseRuDateTime(text, base) {
@@ -171,7 +171,7 @@
     d.setSeconds(0, 0);
     let dateSet = false, timeSet = false;
 
-    if (ruHasWholeWord(s, "послезавтра")) {
+    if (ruHasWholeWord(s, t('site.cabinet.poslezavtra', 'послезавтра'))) {
       d.setDate(d.getDate() + 2);
       dateSet = true;
     } else if (/после\s+завтра/i.test(s)) {
@@ -220,10 +220,10 @@
       d.setDate(d.getDate() + 7);
       dateSet = true;
     }
-    if (!dateSet && ruHasWholeWord(s, "завтра")) {
+    if (!dateSet && ruHasWholeWord(s, t('site.cabinet.zavtra', 'завтра'))) {
       d.setDate(d.getDate() + 1);
       dateSet = true;
-    } else if (!dateSet && ruHasWholeWord(s, "сегодня")) {
+    } else if (!dateSet && ruHasWholeWord(s, t('site.cabinet.segodnya_2', 'сегодня'))) {
       dateSet = true;
     }
     if (!dateSet) {
@@ -346,7 +346,7 @@
     if (diffDays === 0) return `Сегодня в ${time}`;
     if (diffDays === 1) return `Завтра в ${time}`;
     if (diffDays === 2) return `Послезавтра в ${time}`;
-    const wk = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"][d.getDay()];
+    const wk = [t('site.cabinet.vs', 'вс'), t('site.cabinet.pn', 'пн'), t('site.cabinet.vt', 'вт'), t('site.cabinet.sr', 'ср'), t('site.cabinet.cht', 'чт'), t('site.cabinet.pt', 'пт'), t('site.cabinet.sb', 'сб')][d.getDay()];
     return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}, ${wk} в ${time}`;
   }
   function openPlanModal(opts) {
@@ -358,7 +358,7 @@
     var film = opts.film || {};
     var kp = String(film.kp_id || opts.kpId || '').replace(/\D/g, '');
     var fid = film.film_id != null ? Number(film.film_id) : null;
-    var title = film.title || opts.title || 'Фильм';
+    var title = film.title || opts.title || t('site.film.fallbackTitle', 'Фильм');
     var year = film.year != null ? String(film.year) : '';
     var poster = film.poster || film.poster_url || (kp ? ('https://st.kp.yandex.net/images/film_big/' + kp + '.jpg') : '');
 
@@ -423,7 +423,7 @@
       var today = new Date(now); today.setSeconds(0, 0);
       var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
       chips.push(mk(t('plan.chipToday', 'Сегодня'), today), mk(t('plan.chipTomorrow', 'Завтра'), tomorrow));
-      var names = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+      var names = [t('site.cabinet.vs', 'вс'), t('site.cabinet.pn', 'пн'), t('site.cabinet.vt', 'вт'), t('site.cabinet.sr', 'ср'), t('site.cabinet.cht', 'чт'), t('site.cabinet.pt', 'пт'), t('site.cabinet.sb', 'сб')];
       for (var i = 2; i < 5; i++) {
         var dd = new Date(now); dd.setDate(dd.getDate() + i);
         var nm = names[dd.getDay()];
@@ -455,7 +455,7 @@
       ) : '';
 
       card.innerHTML =
-        '<button type="button" class="mp-onboard-dismiss" data-plan-close data-i18n-aria="common.close" aria-label="' + escapeHtml(t('common.close', 'Закрыть')) + '">✕</button>' +
+        '<button type="button" class="mp-onboard-dismiss" data-plan-close data-i18n-aria="common.close" aria-label=t('site.cabinet.escapehtml_t_common_close', '\' + escapeHtml(t(\'common.close\', \'Закрыть\')) + \'')>✕</button>' +
         '<div class="mp-onboard-title">' + escapeHtml(t('plan.title', 'Запланировать')) + '</div>' +
         '<div class="plan-page-wrap mp-plan-modal-body">' +
         '<div class="plan-mode-toggle">' +
@@ -470,7 +470,7 @@
         selHtml +
         '<div class="field"><label class="field-label">' + escapeHtml(t('plan.whenLabel', 'Когда')) + '</label>' +
         '<div class="search-relative"><span class="search-icon">🗣️</span>' +
-        '<input id="mp-plan-natural" class="search-input plan-modal-input" placeholder="' + escapeHtml(t('plan.whenPlaceholder', 'Например: завтра вечером')) + '" autocomplete="off">' +
+        '<input id="mp-plan-natural" class="search-input plan-modal-input" placeholder=t('site.cabinet.escapehtml_t_plan_whenplaceholder', '\' + escapeHtml(t(\'plan.whenPlaceholder\', \'Например: завтра вечером\')) + \'') autocomplete="off">' +
         '<button type="button" id="mp-plan-natural-clear" class="search-clear hidden">✕</button></div>' +
         '<div id="mp-plan-natural-preview" class="muted small plan-natural-preview-line"></div>' +
         '<div class="dt-row plan-dt-row">' +
@@ -487,12 +487,12 @@
           '<div id="mp-plan-tickets-list" class="plan-pending-tickets"></div>' +
           '<div class="ticket-upload-row">' +
           '<button type="button" class="btn btn-secondary btn-full" id="mp-plan-file-btn">' + escapeHtml(t('plan.attachTicket', '＋ Прикрепить билет')) + '</button>' +
-          '<button type="button" class="btn btn-secondary ticket-upload-cam" id="mp-plan-cam-btn" aria-label="' + escapeHtml(t('plan.photoTicket', 'Сфотографировать билет')) + '">📷</button></div>' +
+          '<button type="button" class="btn btn-secondary ticket-upload-cam" id="mp-plan-cam-btn" aria-label=t('site.cabinet.escapehtml_t_plan_phototicket', '\' + escapeHtml(t(\'plan.photoTicket\', \'Сфотографировать билет\')) + \'')>📷</button></div>' +
           '<input type="file" id="mp-plan-file-inp" class="hidden" accept="image/*,.pdf,application/pdf" multiple>' +
           '<input type="file" id="mp-plan-cam-inp" class="hidden" accept="image/*" capture="environment"></div>' +
           '<div class="field"><label class="field-label">' + escapeHtml(t('plan.cinemaLabel', 'Кинотеатр')) + '</label>' +
           '<div class="search-relative"><span class="search-icon">📍</span>' +
-          '<input id="mp-cinema-input" class="search-input plan-modal-input" placeholder="' + escapeHtml(t('plan.cinemaPlaceholder', 'Например, «Каро 11 Октябрь»')) + '" autocomplete="off">' +
+          '<input id="mp-cinema-input" class="search-input plan-modal-input" placeholder=t('site.cabinet.escapehtml_t_plan_cinemaplaceholder', '\' + escapeHtml(t(\'plan.cinemaPlaceholder\', \'Например, «Каро 11 Октябрь»\')) + \'') autocomplete="off">' +
           '<button type="button" id="mp-cinema-clear" class="search-clear hidden">✕</button></div>' +
           '<div id="mp-cinema-fav-chips" class="dt-quick cinema-fav-chips-row">' + buildFavCinemaChipsHtml() + '</div>' +
           '<div id="mp-cinema-results" class="picker-results hidden"></div>' +
@@ -552,7 +552,7 @@
       var parts = [];
       if (data && data.film && data.film.title) parts.push(data.film.title);
       if (d.datetime_iso) parts.push(String(d.datetime_iso).replace('T', ' '));
-      return parts.length ? ('Распознано: ' + parts.join(' · ')) : ('Распознано: ' + ((data && data.transcript) || ''));
+      return parts.length ? (t('site.cabinet.raspoznano', 'Распознано: ') + parts.join(' · ')) : (t('site.cabinet.raspoznano', 'Распознано: ') + ((data && data.transcript) || ''));
     }
 
     function bindForm() {
@@ -642,7 +642,7 @@
           setVoicePanel(false);
           return;
         }
-        setVoicePanel(true, 'Распознаём речь…', t('plan.voiceProcessingSub', 'Подставим дату и время'), true);
+        setVoicePanel(true, t('plan.voiceProcessingTitle', 'Распознаём речь…'), t('plan.voiceProcessingSub', 'Подставим дату и время'), true);
         var ext = (blob.type || '').includes('mp4') ? 'm4a' : ((blob.type || '').includes('ogg') ? 'ogg' : 'webm');
         var fd = new FormData();
         fd.append('audio', blob, 'voice.' + ext);
@@ -674,7 +674,7 @@
             var sess = voiceSess;
             if (sess.tick) clearInterval(sess.tick);
             if (sess.maxT) clearTimeout(sess.maxT);
-            setVoicePanel(true, 'Отправляем…', 'Почти готово', true);
+            setVoicePanel(true, t('site.cabinet.otpravlyaem', 'Отправляем…'), t('site.cabinet.pochti_gotovo', 'Почти готово'), true);
             try { if (sess.rec && sess.rec.state === 'recording') sess.rec.stop(); } catch (_e) {}
             return;
           }
@@ -686,11 +686,11 @@
             var started = Date.now();
             voiceBtn.classList.add('recording');
             voiceBtn.textContent = t('site.cabinet.str_44180e', '⏹ Остановить запись');
-            setVoicePanel(true, 'Слушаю…', t('site.cabinet.str_5b18bf', 'Скажите дату, время и «дома» или «в кино»'), false);
+            setVoicePanel(true, t('site.cabinet.slushayu', 'Слушаю…'), t('site.cabinet.str_5b18bf', 'Скажите дату, время и «дома» или «в кино»'), false);
             rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
             rec.onstop = function () {
               voiceBtn.classList.remove('recording');
-              voiceBtn.textContent = '🎤 Надиктовать план';
+              voiceBtn.textContent = t('plan.voiceRecord', '🎤 Надиктовать план');
               voiceSess = null;
               var blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
               uploadVoiceBlob(blob, Date.now() - started);
@@ -831,7 +831,7 @@
             var cLon = card.querySelector('#mp-cinema-lon'); if (cLon && cLon.value) body.cinema_lon = parseFloat(cLon.value);
           }
           submit.disabled = true;
-          submit.textContent = 'Сохраняем…';
+          submit.textContent = t('planForm.saving', 'Сохраняем…');
           var endpoint = isCinema ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
           apiJson(endpoint, { method: 'POST', body: JSON.stringify(body) })
             .then(function (res) {

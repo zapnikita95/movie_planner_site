@@ -57,7 +57,7 @@
       ov.innerHTML =
         '<div class="mp-dialog-card mp-onboard-dialog-card">' +
         (o.dismissX
-          ? '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label="' + siteT('common.close', 'Закрыть') + '">✕</button>'
+          ? '<button type="button" class="mp-onboard-dismiss" data-ob-x aria-label=siteT('site.cabinet.sitet_common_close_zakryt', '\' + siteT(\'common.close\', \'Закрыть\') + \'')>✕</button>'
           : "") +
         html +
         "</div>";
@@ -433,7 +433,7 @@
       }
 
       ov.innerHTML =
-        '<button type="button" class="mp-onboard-dismiss mp-onboard-picker-x" data-ob-x aria-label="' + siteT('common.close', 'Закрыть') + '">✕</button>' +
+        '<button type="button" class="mp-onboard-dismiss mp-onboard-picker-x" data-ob-x aria-label=siteT('site.cabinet.sitet_common_close_zakryt', '\' + siteT(\'common.close\', \'Закрыть\') + \'')>✕</button>' +
         '<div class="mp-onboard-picker-inner">' +
         '<div class="mp-onboard-picker-title">' +
         titleQ +
@@ -493,7 +493,7 @@
                 ? 'Какие сериалы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
                 : 'Какие фильмы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?';
           }
-          btn.textContent = "Подтвердить";
+          btn.textContent = siteT('site.onboard.confirm', 'Подтвердить');
           paintGrid(0, true);
           bindGrid();
           const sc = ov.querySelector("#ob-pick-scroll");

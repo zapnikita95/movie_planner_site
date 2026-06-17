@@ -4,6 +4,13 @@
 (function (global) {
   "use strict";
 
+  function t(key, fallback) {
+    if (global.siteT) return global.siteT(key, fallback);
+    if (global.SiteI18n && global.SiteI18n.t) return global.SiteI18n.t(key, fallback);
+    if (global.MP_I18N && global.MP_I18N.t) return global.MP_I18N.t(key, fallback);
+    return fallback != null ? String(fallback) : String(key);
+  }
+
   var SEO = {
     title: t("site.cabinet.movie_planner_5f429e", "Коллекции фильмов — Movie Planner"),
     description: t("site.cabinet.str_97943a", "Личные коллекции, теги и редакционные подборки в Movie Planner: группируйте фильмы и сериалы по рубрикам, открывайте списки одним кликом."),
@@ -131,7 +138,7 @@
 
   function emptyStateHtml(opts) {
     var o = opts || {};
-    var hint = o.hint || "Пока пусто";
+    var hint = o.hint || t('site.cabinet.poka_pusto', 'Пока пусто');
     var action = o.action || "";
     var actionLabel = o.actionLabel || "";
     if (!action) {
@@ -195,7 +202,7 @@
           '<button type="button" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '">'
           + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.svg\'"></div>'
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
-          + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
+          + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? t('site.cabinet.serial', ' · сериал') : "") + "</div></div>"
           + "</button>"
         );
       }).join("")
@@ -285,9 +292,9 @@
     ov.className = "mp-dialog-overlay collections-dialog-overlay";
     ov.innerHTML =
       '<div class="mp-dialog-card collections-dialog-card">'
-      + '<button type="button" class="mp-dialog-close" data-close="1" aria-label="Закрыть">×</button>'
+      + '<button type="button" class="mp-dialog-close" data-close="1" aria-label=t('common.close', 'Закрыть')>×</button>'
       + '<h3 class="mp-dialog-title">Новая коллекция</h3>'
-      + '<input type="text" id="coll-new-name" class="input-primary" placeholder="Название" maxlength="80" style="width:100%;margin-top:12px" />'
+      + '<input type="text" id="coll-new-name" class="input-primaryt('site.cabinet.placeholder_t_site_cabinet', ' placeholder=t(\'site.cabinet.nazvanie\', \'Название\') maxlength=')80" style="width:100%;margin-top:12px" />'
       + '<input type="text" id="coll-new-emoji" class="input-primary" placeholder="📁" maxlength="8" style="width:100%;margin-top:10px" />'
       + '<button type="button" class="btn-primary btn-full" id="coll-new-save" style="margin-top:14px">Создать</button>'
       + "</div>";
@@ -393,7 +400,7 @@
             emoji: t.emoji || null,
             icon: t.emoji ? null : "tag",
             title: t.name,
-            hint: (t.films_count || 0) + " фильмов",
+            hint: (t.films_count || 0) + t('site.cabinet.filmov', ' фильмов'),
           });
         }, emptyStateHtml({ hint: t("site.cabinet.str_043775", "Назначьте тег на карточке фильма в базе") }));
       }
@@ -405,12 +412,12 @@
             emoji: c.emoji || null,
             icon: c.emoji ? null : "folder",
             title: c.name,
-            hint: (c.films_count || 0) + " фильмов",
+            hint: (c.films_count || 0) + t('site.cabinet.filmov', ' фильмов'),
           });
         }, emptyStateHtml({
           hint: t("site.cabinet.str_8f817a", "Соберите свой список фильмов"),
           action: "new",
-          actionLabel: "Создать коллекцию",
+          actionLabel: t('site.cabinet.sozdat_kollektsiyu', 'Создать коллекцию'),
         }));
       }
       if (pubEl) {
@@ -432,7 +439,7 @@
   }
 
   function renderMineDetail(root, cid) {
-    root.innerHTML = detailSkeleton("Коллекция", "📁", "");
+    root.innerHTML = detailSkeleton(t('site.cabinet.kollektsiya', 'Коллекция'), "📁", "");
     bindRoot(root);
     apiGet("/api/miniapp/collections/mine/" + cid).then(function (data) {
       if (!data || !data.success || !data.collection) {
@@ -445,7 +452,7 @@
       var titleEl = root.querySelector(".collections-detail-title");
       var hintEl = root.querySelector(".collections-detail-hint");
       if (titleEl) titleEl.textContent = ((c.emoji || "📁") + " " + stripHtml(c.name || "")).trim();
-      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
+      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + t('site.cabinet.filmov', ' фильмов');
       var body = root.querySelector("#collections-detail-body");
       if (body) {
         body.innerHTML = filmsGridHtml(films)
@@ -457,7 +464,7 @@
   }
 
   function renderPublicDetail(root, tid) {
-    root.innerHTML = detailSkeleton("Подборка", "🌐", "");
+    root.innerHTML = detailSkeleton(t('site.cabinet.podborka', 'Подборка'), "🌐", "");
     bindRoot(root);
     apiGet("/api/miniapp/collections/public/" + tid).then(function (data) {
       if (!data || !data.success || !data.collection) {
@@ -469,7 +476,7 @@
       var titleEl = root.querySelector(".collections-detail-title");
       var hintEl = root.querySelector(".collections-detail-hint");
       if (titleEl) titleEl.textContent = stripHtml(c.name || "");
-      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
+      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + t('site.cabinet.filmov', ' фильмов');
       var body = root.querySelector("#collections-detail-body");
       if (body) {
         body.innerHTML = filmsGridHtml(films)
