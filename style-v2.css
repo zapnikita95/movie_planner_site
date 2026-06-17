@@ -8515,26 +8515,28 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
-/* Друзья высоко оценили — узкий блок по центру под кнопкой «Запланировать» */
+/* Друзья высоко оценили — узкая плашка по центру под кнопкой плана */
 .film-toolbar-friends-wrap {
-  display: flex;
-  justify-content: center;
-  width: 100%;
+  display: block;
+  width: auto;
+  max-width: min(100%, 520px);
 }
 #film-friends-social-block {
-  margin-top: 0;
-  max-width: min(100%, 520px);
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
 }
 #film-friends-social-block.hidden {
   display: none;
 }
 #film-friends-social-block > section.film-friends-social,
-#film-friends-social-block .film-friends-social {
-  width: fit-content;
-  max-width: min(100%, 520px);
-  box-sizing: border-box;
-}
+#film-friends-social-block .film-friends-social,
 .film-friends-social {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -8637,9 +8639,9 @@ a.header-settings-nav-item {
 }
 @media (min-width: 861px) {
   .film-friends-social--compact {
-    display: block;
-    width: fit-content;
-    max-width: min(100%, 520px);
+    display: inline-block;
+    width: auto;
+    max-width: 100%;
     padding: 8px 12px;
   }
   .film-friends-social--compact .film-friends-social-head {
@@ -9205,9 +9207,16 @@ main.film-page .film-hero-crew {
 }
 .film-toolbar-plan-wrap {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 10px;
+  width: 100%;
 }
 .film-toolbar-plan-wrap .action-dropdown {
+  width: min(100%, 520px);
+}
+.film-toolbar-plan-wrap > .film-toolbar-plan {
   width: min(100%, 520px);
 }
 .film-toolbar-plan,
