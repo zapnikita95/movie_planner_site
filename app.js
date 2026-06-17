@@ -8479,7 +8479,7 @@
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
         buildRatingStars(myRating) + '</div></div>' +
-        (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title="Поделиться оценкой" aria-label="Поделиться оценкой">↗</button>' : '') + '</div>' : '');
+        (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!opts.isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title="Поделиться оценкой" aria-label="Поделиться оценкой">↗</button>' : '') + '</div>' : '');
     }
     const planBlock = (authenticated && inBase)
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
@@ -9726,6 +9726,7 @@
       myRating,
       canRate: !(isVirtualRoom && !canRateInGroup),
       ratingLocked: isVirtualRoom && !canRateInGroup,
+      isVirtualRoom,
     });
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'

@@ -963,6 +963,24 @@ body {
   overflow-x: hidden;
 }
 
+body.in-cabinet,
+body.film-standalone-page,
+body.user-standalone-page,
+body.staff-standalone-page {
+  background: var(--bg-main);
+}
+
+body.in-cabinet .parallax-bg,
+body.in-cabinet .parallax-emoji,
+body.film-standalone-page .parallax-bg,
+body.film-standalone-page .parallax-emoji,
+body.user-standalone-page .parallax-bg,
+body.user-standalone-page .parallax-emoji,
+body.staff-standalone-page .parallax-bg,
+body.staff-standalone-page .parallax-emoji {
+  display: none !important;
+}
+
 .parallax-bg {
   position: fixed;
   top: 0;
@@ -1338,7 +1356,7 @@ section {
 @media (max-width: 768px) {
   body.in-cabinet {
     --mp-mobile-header-offset: 86px;
-    background: #0f0f13;
+    background: var(--bg-main);
   }
   body.in-cabinet .parallax-bg,
   body.in-cabinet .parallax-emoji {
@@ -6494,16 +6512,6 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 #header-settings-dropdown.hidden { display: none !important; }
 #header-settings-dropdown:not(.open) { display: none !important; }
 body:not(.account-menu-open) #header-settings-dropdown { display: none !important; }
-body[data-cabinet-section="settings"] #header-settings-dropdown,
-body[data-cabinet-section="groups"] #header-settings-dropdown,
-body[data-cabinet-section="stats"] #header-settings-dropdown,
-body[data-cabinet-section="shazam"] #header-settings-dropdown,
-body[data-cabinet-section="integrations"] #header-settings-dropdown,
-body[data-cabinet-section="about"] #header-settings-dropdown {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
 body.account-menu-open #site-header {
   overflow: visible !important;
   z-index: 290 !important;
@@ -10260,10 +10268,7 @@ body.staff-standalone-page .staff-page-content {
 body.film-standalone-page {
   margin: 0;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(900px 620px at 20% -10%, rgba(168,85,247,.22), transparent 60%),
-    radial-gradient(760px 520px at 84% 4%, rgba(236,72,153,.16), transparent 58%),
-    #070711;
+  background: var(--bg-main);
   color: #f4f6ff;
   min-height: 100vh;
 }
