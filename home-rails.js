@@ -9,7 +9,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 500;
   var RAIL_IMAGE_EAGER_COUNT = 20;
   var RAIL_IMAGE_WARM_MARGIN_PX = 520;
-  var RAIL_CACHE_VERSION = 4;
+  var RAIL_CACHE_VERSION = 5;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -317,7 +317,13 @@
           }
         })
         .catch(function () {
-          if (!items.length) hasMore = false;
+          if (!items.length) {
+            hasMore = false;
+            if (config.emptyHtml) container.outerHTML = config.emptyHtml;
+            if (typeof config.onMeta === "function") {
+              config.onMeta({ total: 0, loaded: 0, hasMore: false, failed: true });
+            }
+          }
         })
         .finally(function () {
           loading = false;

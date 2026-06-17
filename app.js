@@ -5264,7 +5264,10 @@
   }
 
   function homeRailApiGet(path) {
-    return api(path).catch(() => ({ success: false, items: [], has_more: false, total: 0 }));
+    const p = String(path || '');
+    const timeoutMs = p.indexOf('series-mix') >= 0 ? 90000 : undefined;
+    const opts = timeoutMs ? { timeoutMs } : {};
+    return api(p, opts).catch(() => ({ success: false, items: [], has_more: false, total: 0 }));
   }
 
   const _homeRailMounted = new WeakSet();
@@ -5288,7 +5291,7 @@
         emptyHtml: homeRailEmptyHtml(blockId),
         onBatch: () => { decorateHomePosterPreviews(container); },
         onMeta: (meta) => {
-          if (blockEl && meta && meta.total === 0 && meta.loaded === 0) {
+          if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && meta.failed !== true) {
             blockEl.classList.add('hidden');
           } else if (blockEl) {
             blockEl.classList.remove('hidden');
@@ -5532,7 +5535,7 @@
           + '<div class="home-dash-row-meta">' + metaLine + '</div>'
           + '</div></div>' + preview + '</div>';
       }).join('');
-      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block" data-home-block="plans">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
 
     if (blockId === 'unwatched') {
@@ -5559,13 +5562,13 @@
       }
       items = items.slice(0, 12);
       if (!items.length) {
-        return '<section class="home-dash-block">' + head
+        return '<section class="home-dash-block" data-home-block="premieres">' + head
           + renderHomeBlockCtaHtml(
             '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Смотреть премьеры</button> '
             + '<button type="button" class="btn btn-small btn-secondary" data-plans-action="open-add-film">Добавить фильм</button>'
           ) + '</section>';
       }
-      return '<section class="home-dash-block">' + head
+      return '<section class="home-dash-block" data-home-block="premieres">' + head
         + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
     }
     if (blockId === 'recent_ratings') {
@@ -5611,6 +5614,35 @@
   let _homePremierePreview = [];
   let _homePremiereRollover = false;
   let _premieresRolloverActive = false;
+
+  const _HOME_ASYNC_RAIL_BLOCKS = { unwatched: 1, series: 1, recent_ratings: 1 };
+
+  function _patchHomeStaticBlocks() {
+    const root = document.getElementById('home-dashboard-root');
+    if (!root) return;
+    const order = loadHomeSectionsOrder();
+    const hidden = loadHomeSectionsHidden();
+    let needsFullPaint = false;
+    order.forEach((bid) => {
+      if (bid === 'tournament') return;
+      if (hidden.indexOf(bid) >= 0) return;
+      if (_HOME_ASYNC_RAIL_BLOCKS[bid]) return;
+      const html = renderHomeBlockHtml(bid);
+      const el = root.querySelector('[data-home-block="' + bid + '"]');
+      if (html) {
+        if (el) el.outerHTML = html;
+        else needsFullPaint = true;
+      } else if (el) {
+        el.remove();
+      }
+    });
+    if (needsFullPaint) {
+      _paintHomeDashboardBlocks();
+      return;
+    }
+    renderHomeMoreLinks(hidden);
+    try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
+  }
 
   function _paintHomeDashboardBlocks() {
     const root = document.getElementById('home-dashboard-root');
@@ -5707,7 +5739,8 @@
       .catch(() => {})
       .finally(() => {
         applyHomeEmojiVisibility();
-        _paintHomeDashboardBlocks();
+        if (hadBlocks) _patchHomeStaticBlocks();
+        else _paintHomeDashboardBlocks();
       });
   }
 
