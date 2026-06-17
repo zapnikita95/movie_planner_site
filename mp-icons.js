@@ -69,6 +69,11 @@
     laptop: { name: 'laptop', weight: 'regular' },
     target: { name: 'target', weight: 'regular' },
     x: { name: 'x', weight: 'regular' },
+    sortNew: { name: 'sort-descending', weight: 'regular' },
+    sortOld: { name: 'sort-ascending', weight: 'regular' },
+    sortAz: { name: 'text-aa', weight: 'regular' },
+    sortZa: { name: 'text-aa', weight: 'regular' },
+    sort: { name: 'arrows-down-up', weight: 'regular' },
   };
 
   function iconClass(key, opts) {

@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617coll3">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet2">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "1d9be61";
+        var BUILD = "20260617cabinet2";
         try {
           var k = "mp_cabinet_build_v2";
           if (localStorage.getItem(k) !== BUILD) {
@@ -790,19 +790,14 @@
                             <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
-                        <div class="base-section-tools-row base-section-tools-row--stack">
+                        <div class="base-section-tools-row base-section-tools-row--stack base-section-tools-row--search-only">
                             <div class="base-search-wrap">
                                 <span class="base-search-icon" aria-hidden="true">🔍</span>
                                 <input type="text" id="section-search-unwatched" class="section-search base-search-input" placeholder="Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
                             </div>
-                            <select id="unwatched-sort" class="base-sort-select" aria-label="Сортировка непросмотренных">
-                                <option value="date">Сначала новые</option>
-                                <option value="date_old">Сначала старые</option>
-                                <option value="az">от А к Я</option>
-                                <option value="za">от Я к А</option>
-                            </select>
                         </div>
                         <div class="base-filter-toolbar" aria-label="Фильтры">
+                            <div class="base-filter-toolbar-inner">
                             <div class="base-filter-toolbar-scroll">
                                 <label class="base-filter-chip base-filter-chip--select">
                                     <span class="base-filter-chip-k">Тип</span>
@@ -824,6 +819,13 @@
                                     <span class="base-filter-chip-k">Жанр</span>
                                     <input type="text" id="section-filter-unwatched-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
                                 </label>
+                            </div>
+                            <div class="base-sort-icon-group" id="unwatched-sort" role="group" aria-label="Сортировка">
+                                <button type="button" class="base-sort-icon-btn active" data-sort="date" title="Сначала новые" aria-label="Сначала новые"><span class="mp-icon" data-mp-icon="sortNew"></span></button>
+                                <button type="button" class="base-sort-icon-btn" data-sort="date_old" title="Сначала старые" aria-label="Сначала старые"><span class="mp-icon" data-mp-icon="sortOld"></span></button>
+                                <button type="button" class="base-sort-icon-btn" data-sort="az" title="от А к Я" aria-label="от А к Я"><span class="mp-icon" data-mp-icon="sortAz"></span></button>
+                                <button type="button" class="base-sort-icon-btn" data-sort="za" title="от Я к А" aria-label="от Я к А"><span class="mp-icon" data-mp-icon="sortZa"></span></button>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -1785,9 +1787,9 @@
     <script src="/plan-modal.js?v=20260617i18nfix3"></script>
     <script src="/film-user-tags.js?v=20260617i18nfix3"></script>
     <script src="/collections-page.js?v=20260617i18nfix3"></script>
-    <script src="/mp-icons.js?v=20260529phosphor2"></script>
+    <script src="/mp-icons.js?v=20260617cabinet1"></script>
     <script src="/home-rails.js?v=20260529phosphor2"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/cabinet-app.js?v=1d9be61"></script>
+    <script src="/cabinet-app.js?v=20260617cabinet2"></script>
 </body>
 </html>

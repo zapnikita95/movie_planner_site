@@ -6554,18 +6554,29 @@
     el.innerHTML = list.length ? list.map(renderUnwatchedCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
   }
 
+  function bindUnwatchedSortIcons() {
+    const group = document.getElementById('unwatched-sort');
+    if (!group || group.dataset.bound) return;
+    group.dataset.bound = '1';
+    group.querySelectorAll('.base-sort-icon-btn[data-sort]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        unwatchedSortMode = btn.getAttribute('data-sort') || 'date';
+        group.querySelectorAll('.base-sort-icon-btn').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        renderUnwatchedList();
+      });
+    });
+    group.querySelectorAll('.base-sort-icon-btn').forEach((b) => {
+      b.classList.toggle('active', (b.getAttribute('data-sort') || '') === unwatchedSortMode);
+    });
+    try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(group); } catch (_) {}
+  }
+
   function loadUnwatched() {
     api('/api/site/unwatched').then((data) => {
       unwatchedItems = Array.isArray(data && data.items) ? data.items : [];
-      const sortSelect = document.getElementById('unwatched-sort');
-      if (sortSelect && !sortSelect.dataset.bound) {
-        sortSelect.dataset.bound = '1';
-        sortSelect.addEventListener('change', () => {
-          unwatchedSortMode = sortSelect.value;
-          renderUnwatchedList();
-        });
-      }
-      if (sortSelect) sortSelect.value = unwatchedSortMode;
+      bindUnwatchedSortIcons();
       bindSectionSearchOnce('unwatched', renderUnwatchedList);
       ['type', 'year-from', 'year-to', 'genre'].forEach((suffix) => {
         const el = document.getElementById('section-filter-unwatched-' + suffix);
@@ -10588,6 +10599,188 @@
     yearMin: SITE_SEARCH_YEAR_MIN,
     yearMax: SITE_SEARCH_YEAR_MAX,
   };
+  let _siteSearchSortMode = 'relevance';
+  let _siteSearchExpandKey = '';
+
+  function siteSearchSortItems(items) {
+    const list = (items || []).slice();
+    if (_siteSearchSortMode === 'year_desc') {
+      list.sort((a, b) => (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0));
+    } else if (_siteSearchSortMode === 'year_asc') {
+      list.sort((a, b) => (parseInt(a.year, 10) || 0) - (parseInt(b.year, 10) || 0));
+    } else if (_siteSearchSortMode === 'title_az') {
+      list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
+    } else if (_siteSearchSortMode === 'title_za') {
+      list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
+    }
+    return list;
+  }
+
+  function siteSearchResultCardHtml(it) {
+    const poster = cleanPosterUrl(it.poster);
+    const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
+    const year = it.year && String(it.year) !== 'null' ? String(it.year) : '—';
+    const kpAttr = escapeHtml(String(it.kp_id || ''));
+    const img = poster
+      ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+      : '';
+    const body = '<div class="home-poster-tile-img">' + img + '</div>'
+      + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
+      + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
+    if (getToken()) {
+      return '<div class="home-poster-tile-wrap"><button type="button" class="home-poster-tile site-search-card" data-site-search-kp="' + kpAttr + '">' + body + '</button></div>';
+    }
+    return '<div class="home-poster-tile-wrap"><a class="home-poster-tile site-search-card" href="' + buildFilmShareUrl(it.kp_id) + '">' + body + '</a></div>';
+  }
+
+  function siteSearchCloseExpandPanel() {
+    _siteSearchExpandKey = '';
+    const panel = document.getElementById('site-search-filter-panel');
+    if (panel) {
+      panel.classList.add('hidden');
+      panel.setAttribute('aria-hidden', 'true');
+      panel.innerHTML = '';
+    }
+    document.querySelectorAll('#site-search-filter-toolbar .search-filter-chip').forEach((chip) => {
+      chip.classList.remove('active');
+      chip.setAttribute('aria-expanded', 'false');
+    });
+    const sortBtn = document.getElementById('site-search-sort-btn');
+    if (sortBtn) {
+      sortBtn.classList.remove('active');
+      sortBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function siteSearchToggleExpand(key) {
+    if (_siteSearchExpandKey === key) {
+      siteSearchCloseExpandPanel();
+      return;
+    }
+    _siteSearchExpandKey = key;
+    const panel = document.getElementById('site-search-filter-panel');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    panel.setAttribute('aria-hidden', 'false');
+    document.querySelectorAll('#site-search-filter-toolbar .search-filter-chip').forEach((chip) => {
+      const on = chip.getAttribute('data-sf-expand') === key;
+      chip.classList.toggle('active', on);
+      chip.setAttribute('aria-expanded', on ? 'true' : 'false');
+    });
+    const sortBtn = document.getElementById('site-search-sort-btn');
+    if (sortBtn) {
+      const onSort = key === 'sort';
+      sortBtn.classList.toggle('active', onSort);
+      sortBtn.setAttribute('aria-expanded', onSort ? 'true' : 'false');
+    }
+    if (key === 'type') {
+      const typeLab = { any: 'Все', film: 'Фильмы', series: 'Сериалы' };
+      panel.innerHTML = '<div class="search-filter-pills" role="listbox" aria-label="Тип">' +
+        ['any', 'film', 'series'].map((v) =>
+          '<button type="button" class="search-filter-pill' + (_siteSearchFilterState.type === v ? ' active' : '') +
+          '" data-sf-type="' + v + '">' + escapeHtml(typeLab[v]) + '</button>'
+        ).join('') + '</div>';
+      panel.querySelectorAll('[data-sf-type]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          _siteSearchFilterState.type = btn.getAttribute('data-sf-type') || 'any';
+          siteSearchRefreshFilterChipLabels();
+          siteSearchCloseExpandPanel();
+          runSiteSearchPage();
+        });
+      });
+      return;
+    }
+    if (key === 'year') {
+      panel.innerHTML =
+        '<div class="site-search-year-range-wrap">' +
+          '<div class="site-search-year-range-values">' +
+            '<span id="site-sf-y-lo">' + _siteSearchFilterState.yearMin + '</span>' +
+            '<span class="muted small">—</span>' +
+            '<span id="site-sf-y-hi">' + _siteSearchFilterState.yearMax + '</span>' +
+          '</div>' +
+          '<div class="site-search-year-range-track">' +
+            '<input type="range" id="site-sf-y-min" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + _siteSearchFilterState.yearMin + '" step="1" aria-label="Год от">' +
+            '<input type="range" id="site-sf-y-max" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + _siteSearchFilterState.yearMax + '" step="1" aria-label="Год до">' +
+          '</div>' +
+        '</div>';
+      const yMin = document.getElementById('site-sf-y-min');
+      const yMax = document.getElementById('site-sf-y-max');
+      const applyYears = () => {
+        let lo = parseInt(yMin.value, 10);
+        let hi = parseInt(yMax.value, 10);
+        if (Number.isNaN(lo)) lo = SITE_SEARCH_YEAR_MIN;
+        if (Number.isNaN(hi)) hi = SITE_SEARCH_YEAR_MAX;
+        if (lo > hi) { yMax.value = String(lo); hi = lo; }
+        if (hi < lo) { yMin.value = String(hi); lo = hi; }
+        _siteSearchFilterState.yearMin = lo;
+        _siteSearchFilterState.yearMax = hi;
+        siteSearchUpdateYearRangeLabels();
+        siteSearchRefreshFilterChipLabels();
+      };
+      if (yMin && yMax) {
+        yMin.addEventListener('input', applyYears);
+        yMax.addEventListener('input', applyYears);
+        yMin.addEventListener('change', () => { applyYears(); siteSearchCloseExpandPanel(); runSiteSearchPage(); });
+        yMax.addEventListener('change', () => { applyYears(); siteSearchCloseExpandPanel(); runSiteSearchPage(); });
+      }
+      return;
+    }
+    if (key === 'genre') {
+      const genreChips = SITE_SEARCH_GENRE_QUICK.map((g) =>
+        '<button type="button" class="search-genre-quick-chip' + ((_siteSearchFilterState.genre || '').toLowerCase() === g ? ' active' : '') +
+        '" data-site-genre="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>'
+      ).join('');
+      panel.innerHTML =
+        '<div class="search-genre-quick" id="site-sf-genre-quick">' + genreChips + '</div>' +
+        '<input id="site-sf-genre" class="site-search-filter-input" type="text" value="' + escapeHtml(_siteSearchFilterState.genre || '') + '" placeholder="Или введите свой…" autocomplete="off">';
+      const genreQuick = document.getElementById('site-sf-genre-quick');
+      const genreInput = document.getElementById('site-sf-genre');
+      const applyGenre = (val) => {
+        _siteSearchFilterState.genre = val || '';
+        siteSearchRefreshFilterChipLabels();
+        siteSearchCloseExpandPanel();
+        runSiteSearchPage();
+      };
+      if (genreQuick) {
+        genreQuick.addEventListener('click', (e) => {
+          const chip = e.target.closest('[data-site-genre]');
+          if (!chip) return;
+          applyGenre(chip.getAttribute('data-site-genre') || '');
+        });
+      }
+      if (genreInput) {
+        genreInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            applyGenre(genreInput.value.trim());
+          }
+        });
+        genreInput.addEventListener('change', () => applyGenre(genreInput.value.trim()));
+      }
+      return;
+    }
+    if (key === 'sort') {
+      const sortLab = {
+        relevance: 'По релевантности',
+        year_desc: 'Сначала новые',
+        year_asc: 'Сначала старые',
+        title_az: 'от А к Я',
+        title_za: 'от Я к А',
+      };
+      panel.innerHTML = '<div class="search-filter-pills" role="listbox" aria-label="Сортировка">' +
+        Object.keys(sortLab).map((v) =>
+          '<button type="button" class="search-filter-pill' + (_siteSearchSortMode === v ? ' active' : '') +
+          '" data-sf-sort="' + v + '">' + escapeHtml(sortLab[v]) + '</button>'
+        ).join('') + '</div>';
+      panel.querySelectorAll('[data-sf-sort]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          _siteSearchSortMode = btn.getAttribute('data-sf-sort') || 'relevance';
+          siteSearchCloseExpandPanel();
+          runSiteSearchPage();
+        });
+      });
+    }
+  }
 
   function siteSearchFiltersActive() {
     const st = _siteSearchFilterState;
@@ -10614,8 +10807,6 @@
       const g = (_siteSearchFilterState.genre || '').trim();
       gv.textContent = g ? (g.length > 22 ? g.slice(0, 20) + '…' : g) : 'Любой';
     }
-    const badge = document.getElementById('site-sf-badge');
-    if (badge) badge.classList.toggle('hidden', !siteSearchFiltersActive());
   }
 
   function siteSearchSetFilterToolbarVisible(show) {
@@ -10632,97 +10823,8 @@
     const lHi = document.getElementById('site-sf-y-hi');
     if (elLo && lLo) lLo.textContent = elLo.value;
     if (elHi && lHi) lHi.textContent = elHi.value;
-  }
-
-  function siteSearchOpenFilterSheet() {
-    const sheet = document.getElementById('site-sf-sheet');
-    const openBtn = document.getElementById('site-sf-open');
-    const t = document.getElementById('site-sf-type');
-    const g = document.getElementById('site-sf-genre');
-    const yMin = document.getElementById('site-sf-y-min');
-    const yMax = document.getElementById('site-sf-y-max');
-    if (t) t.value = _siteSearchFilterState.type || 'any';
-    if (g) g.value = _siteSearchFilterState.genre || '';
-    if (yMin) yMin.value = String(_siteSearchFilterState.yearMin);
-    if (yMax) yMax.value = String(_siteSearchFilterState.yearMax);
-    siteSearchUpdateYearRangeLabels();
-    if (sheet) sheet.classList.remove('hidden');
-    if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('site-search-sheet-open');
-  }
-
-  function siteSearchCloseFilterSheet() {
-    const sheet = document.getElementById('site-sf-sheet');
-    const openBtn = document.getElementById('site-sf-open');
-    if (sheet) sheet.classList.add('hidden');
-    if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('site-search-sheet-open');
-  }
-
-  function siteSearchApplyFiltersFromSheet() {
-    const t = document.getElementById('site-sf-type');
-    const g = document.getElementById('site-sf-genre');
-    const yMin = document.getElementById('site-sf-y-min');
-    const yMax = document.getElementById('site-sf-y-max');
-    _siteSearchFilterState.type = (t && t.value) || 'any';
-    _siteSearchFilterState.genre = (g && g.value) || '';
-    _siteSearchFilterState.yearMin = parseInt((yMin && yMin.value) || SITE_SEARCH_YEAR_MIN, 10);
-    _siteSearchFilterState.yearMax = parseInt((yMax && yMax.value) || SITE_SEARCH_YEAR_MAX, 10);
-    if (Number.isNaN(_siteSearchFilterState.yearMin)) _siteSearchFilterState.yearMin = SITE_SEARCH_YEAR_MIN;
-    if (Number.isNaN(_siteSearchFilterState.yearMax)) _siteSearchFilterState.yearMax = SITE_SEARCH_YEAR_MAX;
-    siteSearchRefreshFilterChipLabels();
-    siteSearchCloseFilterSheet();
-    runSiteSearchPage();
-  }
-
-  function siteSearchResetFiltersSheet() {
-    const t = document.getElementById('site-sf-type');
-    const g = document.getElementById('site-sf-genre');
-    const yMin = document.getElementById('site-sf-y-min');
-    const yMax = document.getElementById('site-sf-y-max');
-    if (t) t.value = 'any';
-    if (g) g.value = '';
-    if (yMin) yMin.value = String(SITE_SEARCH_YEAR_MIN);
-    if (yMax) yMax.value = String(SITE_SEARCH_YEAR_MAX);
-    siteSearchUpdateYearRangeLabels();
-  }
-
-  function siteSearchFilterSheetHtml() {
-    const genreChips = SITE_SEARCH_GENRE_QUICK.map((g) =>
-      '<button type="button" class="search-genre-quick-chip" data-site-genre="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>'
-    ).join('');
-    return (
-      '<div id="site-sf-sheet" class="site-search-sheet-backdrop hidden" role="presentation">' +
-        '<div class="site-search-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="site-sf-sheet-title">' +
-          '<div class="site-search-sheet-title" id="site-sf-sheet-title">Фильтры поиска</div>' +
-          '<div class="site-search-sheet-body">' +
-            '<label class="site-search-filter-label" for="site-sf-type">Тип</label>' +
-            '<select id="site-sf-type" class="site-search-filter-select">' +
-              '<option value="any">Все</option><option value="film">Фильмы</option><option value="series">Сериалы</option>' +
-            '</select>' +
-            '<label class="site-search-filter-label">Год выхода</label>' +
-            '<div class="site-search-year-range-wrap">' +
-              '<div class="site-search-year-range-values">' +
-                '<span id="site-sf-y-lo">' + SITE_SEARCH_YEAR_MIN + '</span>' +
-                '<span class="muted small">—</span>' +
-                '<span id="site-sf-y-hi">' + SITE_SEARCH_YEAR_MAX + '</span>' +
-              '</div>' +
-              '<div class="site-search-year-range-track">' +
-                '<input type="range" id="site-sf-y-min" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MIN + '" step="1" aria-label="Год от">' +
-                '<input type="range" id="site-sf-y-max" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MAX + '" step="1" aria-label="Год до">' +
-              '</div>' +
-            '</div>' +
-            '<label class="site-search-filter-label" for="site-sf-genre">Жанр</label>' +
-            '<div class="search-genre-quick" id="site-sf-genre-quick">' + genreChips + '</div>' +
-            '<input id="site-sf-genre" class="site-search-filter-input" type="text" placeholder="Или введите свой…" autocomplete="off">' +
-          '</div>' +
-          '<div class="site-search-sheet-footer">' +
-            '<button type="button" class="btn btn-secondary" id="site-sf-reset">Сбросить</button>' +
-            '<button type="button" class="btn btn-primary" id="site-sf-apply">Применить</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    );
+    if (!elLo && lLo) lLo.textContent = String(_siteSearchFilterState.yearMin);
+    if (!elHi && lHi) lHi.textContent = String(_siteSearchFilterState.yearMax);
   }
 
   function siteSearchFilterToolbarHtml() {
@@ -10730,26 +10832,24 @@
       '<div id="site-search-filter-toolbar" class="search-filter-toolbar hidden" aria-hidden="true">' +
         '<div class="search-filter-toolbar-inner">' +
           '<div class="search-filter-toolbar-scroll">' +
-            '<button type="button" class="search-filter-chip" id="site-sf-chip-type" aria-haspopup="dialog">' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-type" data-sf-expand="type" aria-expanded="false">' +
               '<span class="search-filter-chip-k">Тип</span>' +
               '<span class="search-filter-chip-v" id="site-sf-chip-type-val">Все</span>' +
             '</button>' +
-            '<button type="button" class="search-filter-chip" id="site-sf-chip-year" aria-haspopup="dialog">' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-year" data-sf-expand="year" aria-expanded="false">' +
               '<span class="search-filter-chip-k">Год</span>' +
               '<span class="search-filter-chip-v" id="site-sf-chip-year-val">Любой</span>' +
             '</button>' +
-            '<button type="button" class="search-filter-chip" id="site-sf-chip-genre" aria-haspopup="dialog">' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-genre" data-sf-expand="genre" aria-expanded="false">' +
               '<span class="search-filter-chip-k">Жанр</span>' +
               '<span class="search-filter-chip-v" id="site-sf-chip-genre-val">Любой</span>' +
             '</button>' +
           '</div>' +
-          '<button type="button" class="search-filter-funnel-btn" id="site-sf-open" aria-label="Все фильтры" aria-haspopup="dialog" aria-expanded="false">' +
-            '<svg class="search-filter-funnel-svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">' +
-              '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>' +
-            '</svg>' +
-            '<span id="site-sf-badge" class="search-filters-badge hidden" aria-hidden="true"></span>' +
+          '<button type="button" class="search-sort-icon-btn" id="site-search-sort-btn" data-sf-expand="sort" aria-label="Сортировка" aria-expanded="false">' +
+            '<span class="mp-icon" data-mp-icon="sort"></span>' +
           '</button>' +
         '</div>' +
+        '<div id="site-search-filter-panel" class="search-filter-panel hidden" aria-hidden="true"></div>' +
       '</div>'
     );
   }
@@ -10782,7 +10882,6 @@
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
           ${siteSearchFilterToolbarHtml()}
-          ${siteSearchFilterSheetHtml()}
           <div class="site-search-status" id="site-search-status"></div>
         </div>
         <div class="site-search-results" id="site-search-results"></div>
@@ -10818,46 +10917,12 @@
 
     bindSearchVoiceMic(input, document.getElementById('site-search-mic'));
 
-    ['site-sf-chip-type', 'site-sf-chip-year', 'site-sf-chip-genre', 'site-sf-open'].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('click', siteSearchOpenFilterSheet);
+    document.querySelectorAll('#site-search-filter-toolbar [data-sf-expand]').forEach((el) => {
+      el.addEventListener('click', () => {
+        siteSearchToggleExpand(el.getAttribute('data-sf-expand') || '');
+      });
     });
-    const sheet = document.getElementById('site-sf-sheet');
-    if (sheet) {
-      sheet.addEventListener('click', (e) => {
-        if (e.target === sheet) siteSearchCloseFilterSheet();
-      });
-    }
-    const applyBtn = document.getElementById('site-sf-apply');
-    const resetBtn = document.getElementById('site-sf-reset');
-    if (applyBtn) applyBtn.addEventListener('click', siteSearchApplyFiltersFromSheet);
-    if (resetBtn) resetBtn.addEventListener('click', siteSearchResetFiltersSheet);
-
-    const yMin = document.getElementById('site-sf-y-min');
-    const yMax = document.getElementById('site-sf-y-max');
-    if (yMin && yMax) {
-      const syncYears = () => {
-        let lo = parseInt(yMin.value, 10);
-        let hi = parseInt(yMax.value, 10);
-        if (Number.isNaN(lo)) lo = SITE_SEARCH_YEAR_MIN;
-        if (Number.isNaN(hi)) hi = SITE_SEARCH_YEAR_MAX;
-        if (lo > hi) { yMax.value = String(lo); hi = lo; }
-        if (hi < lo) { yMin.value = String(hi); lo = hi; }
-        siteSearchUpdateYearRangeLabels();
-      };
-      yMin.addEventListener('input', syncYears);
-      yMax.addEventListener('input', syncYears);
-    }
-
-    const genreQuick = document.getElementById('site-sf-genre-quick');
-    const genreInput = document.getElementById('site-sf-genre');
-    if (genreQuick && genreInput) {
-      genreQuick.addEventListener('click', (e) => {
-        const chip = e.target.closest('[data-site-genre]');
-        if (!chip) return;
-        genreInput.value = chip.getAttribute('data-site-genre') || '';
-      });
-    }
+    try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(document.getElementById('site-search-filter-toolbar')); } catch (_) {}
   }
 
   function runSiteSearchPage() {
@@ -10893,33 +10958,20 @@
       params.set('year_to', String(st.yearMax));
     }
     fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('search http ' + r.status);
+        return r.json();
+      })
       .then((data) => {
         if (seq !== _siteSearchSeq) return;
-        const items = (data && data.items) || [];
+        if (data && data.success === false && data.error === 'rate_limited') {
+          if (status) status.textContent = 'Слишком много запросов, подождите';
+          results.innerHTML = '';
+          return;
+        }
+        const items = siteSearchSortItems((data && data.items) || []);
         if (status) status.textContent = items.length ? 'Найдено: ' + items.length : 'Ничего не нашлось';
-        results.innerHTML = items.map((it) => {
-          const poster = cleanPosterUrl(it.poster);
-          const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
-          const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
-          const kpAttr = escapeHtml(String(it.kp_id || ''));
-          if (getToken()) {
-            return `<button type="button" class="site-search-card" data-site-search-kp="${kpAttr}">
-            ${siteSearchPosterHtml(poster)}
-            <span>
-              <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
-              <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
-            </span>
-          </button>`;
-          }
-          return `<a class="site-search-card" href="${buildFilmShareUrl(it.kp_id)}">
-            ${siteSearchPosterHtml(poster)}
-            <span>
-              <span class="site-search-card-title">${escapeHtml(it.title || '')}</span>
-              <span class="site-search-card-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}</span>
-            </span>
-          </a>`;
-        }).join('');
+        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
         results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
             const kp = btn.getAttribute('data-site-search-kp');
