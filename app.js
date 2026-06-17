@@ -5,8 +5,6 @@
 (function () {
   'use strict';
 
-  const global = typeof window !== 'undefined' ? window : globalThis;
-
   const API_BASE = (function () {
     try {
       var loc = window.location;
@@ -2747,8 +2745,8 @@
     _currentFilmTagId = tid;
     showSection('film-tag', { replace: !!o.replace, skipPush: true });
     if (!o.skipPush) pushFilmTagUrl(tid, !!o.replace);
-    if (global.MpFilmUserTags && typeof global.MpFilmUserTags.mountView === 'function') {
-      global.MpFilmUserTags.mountView(tid, {
+    if (window.MpFilmUserTags && typeof window.MpFilmUserTags.mountView === 'function') {
+      window.MpFilmUserTags.mountView(tid, {
         onFilmClick: function (kp, fid) {
           if (kp) openFilmPageByKp(kp);
           else if (fid) openFilmPageFromLegacyPath(fid);
@@ -2775,15 +2773,15 @@
         }
       });
     }
-    if (global.MpFilmUserTags && typeof global.MpFilmUserTags.bindBasePillsOnce === 'function') {
-      global.MpFilmUserTags.bindBasePillsOnce(openFilmTagView);
+    if (window.MpFilmUserTags && typeof window.MpFilmUserTags.bindBasePillsOnce === 'function') {
+      window.MpFilmUserTags.bindBasePillsOnce(openFilmTagView);
     }
   }
 
   function refreshBaseUserTagPills() {
     try {
-      if (global.MpFilmUserTags && typeof global.MpFilmUserTags.refreshBasePills === 'function') {
-        return global.MpFilmUserTags.refreshBasePills();
+      if (window.MpFilmUserTags && typeof window.MpFilmUserTags.refreshBasePills === 'function') {
+        return window.MpFilmUserTags.refreshBasePills();
       }
     } catch (_) {}
     return Promise.resolve();
@@ -2861,8 +2859,8 @@
 
   function mountUserProfilePage(userId) {
     const root = document.getElementById('user-profile-root');
-    if (!root || !global.MpUserProfile || typeof global.MpUserProfile.mount !== 'function') return;
-    global.MpUserProfile.mount(root, userId, buildUserProfileHooks());
+    if (!root || !window.MpUserProfile || typeof window.MpUserProfile.mount !== 'function') return;
+    window.MpUserProfile.mount(root, userId, buildUserProfileHooks());
   }
 
   function closeUserProfile(opts) {
@@ -2891,7 +2889,7 @@
     showSection('user', { replace: !!o.replace, skipPush: true });
     if (!o.skipPush) pushUserProfileUrl(uid, !!o.replace);
     const shell = document.querySelector('#section-user .user-profile-shell');
-    if (shell && global.MpAppOpenBanner && typeof MpAppOpenBanner.mountAppOpenBannerBefore === 'function') {
+    if (shell && window.MpAppOpenBanner && typeof MpAppOpenBanner.mountAppOpenBannerBefore === 'function') {
       MpAppOpenBanner.mountAppOpenBannerBefore(shell, { id: uid, kind: 'user' });
     }
     mountUserProfilePage(uid);
@@ -9725,7 +9723,7 @@
     content.innerHTML =
       '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
-          (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
+          (window.MPIcons ? window.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
           (poster
@@ -9751,12 +9749,12 @@
       pendingAction: ho.pendingAction || '',
     });
     var tagBtn = content.querySelector('#film-user-tag-btn');
-    if (tagBtn && film.film_id && global.MpFilmUserTags && global.MpFilmUserTags.bindButton) {
-      global.MpFilmUserTags.bindButton(tagBtn, film.film_id);
+    if (tagBtn && film.film_id && window.MpFilmUserTags && window.MpFilmUserTags.bindButton) {
+      window.MpFilmUserTags.bindButton(tagBtn, film.film_id);
     } else if (tagBtn && !getToken()) {
       tagBtn.setAttribute('title', 'добавить в список');
       tagBtn.addEventListener('click', function () {
-        if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('tag');
+        if (window.MpPublicFilmLogin) window.MpPublicFilmLogin.open('tag');
         else showLoginModalOverlay();
       });
     }
@@ -9808,8 +9806,8 @@
     if (!film || !film.kp_id || !getToken()) return;
     const kpNorm = String(film.kp_id).replace(/\D/g, '');
     if (!kpNorm) return;
-    if (global.MpFilmFriendsSocial && typeof global.MpFilmFriendsSocial.mount === 'function') {
-      global.MpFilmFriendsSocial.mount({
+    if (window.MpFilmFriendsSocial && typeof window.MpFilmFriendsSocial.mount === 'function') {
+      window.MpFilmFriendsSocial.mount({
         kpId: kpNorm,
         containerId: 'film-friends-social-block',
         fetchFn: (path) => api(path),
@@ -13720,7 +13718,7 @@
   }
 
   // ── /Friends JS ─────────────────────────────────────────────────────────────
-  try { global.MpSiteOpenFriendProfile = openUserProfile; } catch (_) {}
+  try { window.MpSiteOpenFriendProfile = openUserProfile; } catch (_) {}
 
   function renderGroupsSection() {
     const list = document.getElementById('groups-list');
