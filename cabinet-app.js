@@ -441,7 +441,7 @@
       ensureLoggedInHeader();
 
       const pageRoot = document.getElementById('film-page-content');
-      if (pageRoot) {
+      if (pageRoot && !paintFilmRouteBoot(pathKp, {})) {
         pageRoot.className = 'movie-page loading';
         pageRoot.innerHTML = pageLoadingHtml();
       }
@@ -518,6 +518,38 @@
     };
   }
 
+  function readMpRouteBoot() {
+    try {
+      const el = document.getElementById('mp-route-boot');
+      if (!el) return null;
+      return JSON.parse(el.textContent || '');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function filmFromRouteBoot(kp) {
+    const boot = readMpRouteBoot();
+    if (!boot || boot.type !== 'film') return null;
+    if (String(boot.kp_id || '').replace(/\D/g, '') !== String(kp || '').replace(/\D/g, '')) return null;
+    return mapPublicFilmForHero(boot, kp);
+  }
+
+  function paintFilmRouteBoot(kp, opts) {
+    const film = filmFromRouteBoot(kp);
+    const pageRoot = document.getElementById('film-page-content');
+    if (!film || !pageRoot) return false;
+    try {
+      document.title = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '') + ' · Movie Planner';
+    } catch (_) {}
+    renderFilmDetailHero(film, [], [], { user_id: cabinetUserId }, pageRoot, {
+      inBase: false,
+      pendingAction: (opts && opts.action) || '',
+      fromRouteBoot: true,
+    });
+    return true;
+  }
+
   function openFilmHeroByKpPublic(kp, o) {
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return Promise.resolve();
@@ -583,8 +615,10 @@
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
     if (pageRootEarly) {
-      pageRootEarly.className = 'movie-page loading';
-      pageRootEarly.innerHTML = pageLoadingHtml();
+      if (!paintFilmRouteBoot(kp, o)) {
+        pageRootEarly.className = 'movie-page loading';
+        pageRootEarly.innerHTML = pageLoadingHtml();
+      }
     }
     return api('/api/site/film-by-kp/' + kp).then(function (res) {
       if (res && res.success && res.film_id) {
@@ -9712,8 +9746,11 @@
         }
         renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
       } else {
-        pageRoot.className = 'movie-page loading';
-        pageRoot.innerHTML = pageLoadingHtml();
+        const kpHint = o.kpId || kpIdFromPathname(window.location.pathname);
+        if (!kpHint || !paintFilmRouteBoot(kpHint, o)) {
+          pageRoot.className = 'movie-page loading';
+          pageRoot.innerHTML = pageLoadingHtml();
+        }
       }
     };
     if (_filmModalCache[filmId]) {

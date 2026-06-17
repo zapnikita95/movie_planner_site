@@ -14825,3 +14825,71 @@ img.mp-poster-placeholder,
     gap: 12px;
   }
 }
+
+/* Film/staff routes: tighter header → nav gap on desktop/tablet */
+@media (min-width: 1024px) {
+  body.in-cabinet #cabinet-readonly.cabinet.film-page-mode {
+    padding-top: 12px;
+  }
+  body.in-cabinet #cabinet-readonly.cabinet.film-page-mode > .container > .cabinet-nav {
+    margin-top: -4px;
+    margin-bottom: 10px;
+  }
+  body.film-standalone-page .page-shell > #site-header,
+  body.staff-standalone-page .page-shell > #site-header,
+  body.user-standalone-page .page-shell > #site-header {
+    margin-bottom: 10px;
+  }
+  body.film-standalone-page .film-standalone-nav,
+  body.staff-standalone-page .film-standalone-nav,
+  body.user-standalone-page .film-standalone-nav {
+    margin-bottom: 8px;
+    padding-bottom: 2px;
+  }
+}
+
+/* Film toolbar: fit icon row on narrow phones (320px) */
+@media (max-width: 400px) {
+  #section-film .film-page-toolbar,
+  main.film-page .film-page-toolbar {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #section-film .film-toolbar-icons,
+  main.film-page .film-toolbar-icons {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    justify-content: stretch;
+  }
+  #section-film .film-icon-btn,
+  main.film-page .film-icon-btn {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 44px;
+    font-size: 17px;
+    border-radius: 14px;
+  }
+  #section-film .film-icon-btn.is-active,
+  main.film-page .film-icon-btn.is-active {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #section-film .film-toolbar-plan-wrap .action-dropdown,
+  #section-film .film-toolbar-plan-wrap > .film-toolbar-plan,
+  main.film-page .film-toolbar-plan-wrap .action-dropdown,
+  main.film-page .film-toolbar-plan-wrap > .film-toolbar-plan {
+    width: 100%;
+    max-width: 100%;
+  }
+  #section-film .hero-content,
+  main.film-page .hero-content {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+}
