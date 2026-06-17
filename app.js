@@ -150,9 +150,42 @@
     } catch (_) {}
   }
 
+  function activateExtensionLinkMode() {
+    try {
+      sessionStorage.setItem('mp_ext_pending', '1');
+      localStorage.setItem('mp_ext_pending', '1');
+    } catch (_) {}
+  }
+
+  function openLoginForExtension() {
+    activateExtensionLinkMode();
+    if (getToken()) return;
+    showLoginModalOverlay();
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('open_login') !== '1') {
+        params.set('open_login', '1');
+        params.set('mp_ext', '1');
+        const next = window.location.pathname + '?' + params.toString() + window.location.hash;
+        history.replaceState({}, '', next);
+      }
+    } catch (_) {}
+  }
+
+  if (!window._mpExtLoginBridgeBound) {
+    window._mpExtLoginBridgeBound = true;
+    document.addEventListener('mp-ext-open-login', openLoginForExtension);
+    window.addEventListener('message', (ev) => {
+      if (!ev || !ev.data || ev.data.type !== 'mp-ext-open-login') return;
+      if (ev.data.source && ev.data.source !== 'mp-extension') return;
+      openLoginForExtension();
+    });
+  }
+
   function tryOpenLoginOnlyOverlay() {
     try {
       const params = new URLSearchParams(window.location.search);
+      if (params.get('mp_ext') === '1') activateExtensionLinkMode();
       if (params.get('open_login') !== '1' || getToken()) return;
       showLoginModalOverlay();
     } catch (_) {}
