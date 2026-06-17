@@ -37,7 +37,7 @@
     }
     return (
       '<div id="app-open-banner" class="app-open-banner hidden">' +
-        '<span class="app-open-text">' + siteT('site.film.openInApp', 'Открыть в приложении Movie Planner?') + '</span>' +
+        '<span class="app-open-text">' + siteT('site.film.openInApp', t('site.film.openInApp', 'Открыть в приложении Movie Planner?')) + '</span>' +
         '<div class="app-open-actions">' +
           '<button type="button" class="btn-app-open" id="app-open-btn">' + escapeHtml(siteT('site.film.openInAppBtn', 'Открыть')) + '</button>' +
           '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">' + escapeHtml(siteT('site.film.openInAppLater', 'Позже')) + '</button>' +
@@ -63,8 +63,8 @@
   function isFilmDescPlaceholder(text) {
     var s = String(text || '').trim().toLowerCase();
     if (!s) return true;
-    if (s.indexOf('откройте в movie planner') === 0) return true;
-    if (s.indexOf('откройте фильм в movie planner') === 0) return true;
+    if (s.indexOf(t('site.cabinet.movie_planner_83dfe3', 'откройте в movie planner')) === 0) return true;
+    if (s.indexOf(t('site.cabinet.movie_planner_edf114', 'откройте фильм в movie planner')) === 0) return true;
     return false;
   }
 
@@ -91,8 +91,8 @@
     var plot = pickFilmDescription(film);
     if (plot) return trimMetaText(title + '. ' + plot, 160);
     var genres = film && film.genres ? String(film.genres).trim() : '';
-    if (genres) return trimMetaText(title + ' — ' + genres + '. ' + siteT('site.film.cardOnMp', 'Карточка на Movie Planner.'), 160);
-    return title + ' — ' + siteT('site.film.cardPage', 'карточка фильма на Movie Planner.');
+    if (genres) return trimMetaText(title + ' — ' + genres + '. ' + siteT('site.film.cardOnMp', t('site.film.cardOnMp', 'Карточка на Movie Planner.')), 160);
+    return title + ' — ' + siteT('site.film.cardPage', t('site.film.cardPage', 'карточка фильма на Movie Planner.'));
   }
 
   function setFilmDescription(text) {
@@ -172,7 +172,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="' + siteT('film.addToLibrary', 'Добавить в базу') + '" title="' + siteT('film.addToLibrary', 'Добавить в базу') + '"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', 'Отметить просмотренным')) + '" title="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', 'Отметить просмотренным')) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.watched', 'Просмотрен')) + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', t('film.markWatched', 'Отметить просмотренным'))) + '" title="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', t('film.markWatched', 'Отметить просмотренным'))) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.watched', 'Просмотрен')) + '</span></button>'
       : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     var rateAria = myRating ? ('Оценка ' + myRating) : siteT('site.film.rate', 'Оценить');
@@ -254,7 +254,7 @@
   function standaloneHeaderSearchHtml() {
     return '<div class="header-search" id="header-search" role="search">' +
       '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-      '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+      '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label="Поиск">' +
       '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
       '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
       '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
@@ -595,7 +595,7 @@
       coinsBtn.dataset.mpCoinsBound = '1';
       coinsBtn.addEventListener('click', function () {
         var c = me.coins;
-        var msg = c.is_infinite ? 'Безлимитные монетки' : ('Монетки: ' + (c.balance != null ? c.balance : '—'));
+        var msg = c.is_infinite ? t('site.cabinet.str_9de57e', 'Безлимитные монетки') : ('Монетки: ' + (c.balance != null ? c.balance : '—'));
         try {
           var el = document.getElementById('public-toast');
           if (!el) {
@@ -762,12 +762,12 @@
       var apiBase = opts.apiBase || API_BASE;
       var pageUrl = (opts.pageUrl || (window.location.origin + '/f/' + kpId));
       var fallbackFacts = [
-        'Добавьте фильм в базу, чтобы он появился в вашем Movie Planner.',
-        'Оценка сохранится в профиле и поможет рекомендациям.',
-        'Фильм можно сразу запланировать для домашнего просмотра или кинотеатра.'
+        t('site.cabinet.str_366a34', 'Добавьте фильм в базу, чтобы он появился в вашем Movie Planner.'),
+        t('site.cabinet.str_450092', 'Оценка сохранится в профиле и поможет рекомендациям.'),
+        t('site.cabinet.str_2a6324', 'Фильм можно сразу запланировать для домашнего просмотра или кинотеатра.')
       ];
 
-      document.title = 'Фильм · Movie Planner';
+      document.title = t('site.cabinet.movie_planner_4208f6', 'Фильм · Movie Planner');
       document.documentElement.style.setProperty('--film-backdrop', 'url("' + poster + '")');
       try {
         document.documentElement.classList.remove('mp-route-pending');
@@ -780,7 +780,7 @@
               '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
               '<div class="header-search" id="header-search" role="search">' +
                 '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-                '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+                '<input type="text" id="header-search-input" class="header-search-input" placeholder=t("site.header.searchPlaceholder", "Найти фильм или сериал…") autocomplete="off" aria-label="Поиск">' +
                 '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
                 '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
                 '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
@@ -845,7 +845,7 @@
                 '</div>' +
               '</div>' +
               '<div class="footer-bottom">' +
-                '<p>© ' + String(new Date().getFullYear()) + ' Movie Planner. Все права защищены. · ' +
+                '<p>© ' + String(new Date().getFullYear()) + t('site.cabinet.movie_planner_c4f860', ' Movie Planner. Все права защищены. · ') +
                   '<a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a>' +
                   ' · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Политика конфиденциальности</a>' +
                   ' · <a href="/oferta-i-oplata.html" class="footer-link-muted">Оплата и оферта</a>' +
@@ -896,7 +896,7 @@
 
       function setOgFromFilm(film, headline) {
         var head = document.head;
-        var title = (film && film.page_title) || (headline + ' — смотреть онлайн, описание, рейтинг, актёры | Movie Planner');
+        var title = (film && film.page_title) || (headline + t('site.cabinet.str_a18806', ' — смотреть онлайн, описание, рейтинг, актёры | Movie Planner'));
         var desc = (film && film.meta_description) || filmMetaDescription(film, headline);
         var keywords = (film && film.meta_keywords) || '';
         var img = String((film && film.poster_url) || poster || '').trim();
@@ -961,7 +961,7 @@
           var kp = String(kpId || '').replace(/\D/g, '');
           var title = String((film && film.title) || '').trim();
           var year = Number((film && film.year) || 0) || null;
-          var description = String((pickFilmDescription(film) || title || 'Фильм в Movie Planner')).trim();
+          var description = String((pickFilmDescription(film) || title || t('site.cabinet.movie_planner_436c42', 'Фильм в Movie Planner'))).trim();
           var image = String((film && film.poster_url) || poster || '').trim();
           var genres = String((film && film.genres) || '')
             .split(/[,;/|]+/)
@@ -1206,7 +1206,7 @@
 
       function openStandalonePlanModal(filmLike, place) {
         if (!window.MpPlanModal || typeof MpPlanModal.open !== 'function') {
-          showPublicToast(siteT('plan.planUnavailable', 'Форма плана недоступна'));
+          showPublicToast(siteT('plan.planUnavailable', t('plan.planUnavailable', 'Форма плана недоступна')));
           return;
         }
         var fl = filmLike || {};
@@ -1244,7 +1244,7 @@
             }
             return ensureFilm().then(function (d) {
               if (!d || !d.success) {
-                if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм';
+                if (hint) hint.textContent = (d && d.error) || t('site.cabinet.str_911168', 'Не удалось подготовить фильм');
                 return;
               }
               openStandalonePlanModal({ kp_id: kpId, film_id: d.film_id, title: filmTitleForPlan() }, place);
@@ -1322,7 +1322,7 @@
               if (hint) hint.textContent = 'Фильм добавлен';
               loadAuthFilmState();
             } else if (hint) {
-              hint.textContent = d.error || 'Не удалось добавить';
+              hint.textContent = d.error || t('site.toast.addFailed', 'Не удалось добавить');
             }
           })
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
@@ -1334,7 +1334,7 @@
         if (!token()) { rememberAction('rate' + String(v)); loginNow('rate' + String(v)); return; }
         ensureFilm()
           .then(function (d) {
-            if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+            if (!d || !d.success || !d.film_id) throw new Error(t('site.cabinet.str_911168', 'Не удалось подготовить фильм'));
             return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/rating', {
               method: 'POST',
               headers: authHeaders(),
@@ -1351,9 +1351,9 @@
             if (d.success) {
               hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
               if (anchor) showPublicCoinPop(anchor, Number(d.coins_added) || 40);
-              showPublicToast('Оценка сохранена. Начислили монетки за активность.');
+              showPublicToast(t('site.cabinet.str_c4c381', 'Оценка сохранена. Начислили монетки за активность.'));
               loadAuthFilmState();
-            } else hint.textContent = d.error || 'Не удалось поставить оценку';
+            } else hint.textContent = d.error || t('site.cabinet.str_73d2c5', 'Не удалось поставить оценку');
           })
           .catch(function (e) {
             hint.textContent = (e && e.message) || 'Ошибка оценки';
@@ -1439,7 +1439,7 @@
             var url = pageUrl;
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(url).then(function () {
-                showPublicToast('Ссылка скопирована');
+                showPublicToast(t('site.cabinet.str_fbd40e', 'Ссылка скопирована'));
               }).catch(function () { showPublicToast(url); });
             } else {
               showPublicToast(url);
