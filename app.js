@@ -281,6 +281,7 @@
       const tok = getToken();
       if (tok) removeSessionByToken(tok);
       localStorage.removeItem('mp_site_token');
+      syncSessionHtmlClass();
     } catch (_) {}
   }
 
@@ -379,6 +380,23 @@
     }
   }
 
+  function syncSessionHtmlClass() {
+    try {
+      if (getToken()) {
+        document.documentElement.classList.add('mp-session');
+      } else {
+        document.documentElement.classList.remove('mp-session');
+        document.documentElement.classList.remove('mp-auth-boot');
+      }
+    } catch (_) {}
+  }
+
+  function ensureLoggedInHeader() {
+    if (!getToken()) return;
+    const me = _cabinetMeCache || cachedSessionMeStub();
+    if (me) renderHeader(me);
+  }
+
   function cabinetScreenIdForSession() {
     return 'cabinet-readonly';
   }
@@ -401,11 +419,11 @@
       }
 
       document.body.classList.remove('login-only-overlay');
+      syncSessionHtmlClass();
       const session = getActiveSession();
       const screenId = cabinetScreenIdForSession(session);
       showScreen(screenId);
-      const stub = cachedSessionMeStub();
-      if (stub) renderHeader(stub);
+      ensureLoggedInHeader();
 
       bindUserProfileChromeOnce();
       const bootUserId = userIdFromLocation();
@@ -439,10 +457,10 @@
 
       document.body.classList.remove('login-only-overlay');
       document.documentElement.classList.add('mp-auth-boot');
+      syncSessionHtmlClass();
       showScreen('cabinet-readonly');
       showFilmPageLayout();
-      const stub = cachedSessionMeStub();
-      if (stub) renderHeader(stub);
+      ensureLoggedInHeader();
 
       const pageRoot = document.getElementById('film-page-content');
       if (pageRoot) {
@@ -569,6 +587,7 @@
     if (!isCabinetActive()) {
       const ro = document.getElementById('cabinet-readonly');
       if (getToken() && ro) {
+        ensureLoggedInHeader();
         showScreen('cabinet-readonly');
       } else {
         goToStandaloneFilmPage(kp, { action: o.action || '' });
@@ -578,7 +597,10 @@
     try { closeAccountDropdown(); } catch (_) {}
     closeAddFilmModal();
     closeFilmModal();
-    showScreen('cabinet-readonly');
+    ensureLoggedInHeader();
+    if (!isCabinetActive()) {
+      showScreen('cabinet-readonly');
+    }
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
@@ -1567,6 +1589,7 @@
       setSessions(sessions);
     }
     setActiveChatId(chatId);
+    syncSessionHtmlClass();
     if (modalEl) modalEl.classList.add('hidden');
     document.body.classList.remove('login-only-overlay');
     bootAuthenticatedCabinetShell();
@@ -2469,7 +2492,22 @@
   }
 
   function showScreen(screenId) {
-    try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+    const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
+    if (inCabinet && getToken()) {
+      syncSessionHtmlClass();
+      ensureLoggedInHeader();
+      if (screenId === 'cabinet-readonly') {
+        const roEarly = document.getElementById('cabinet-readonly');
+        if (document.body.classList.contains('in-cabinet') && roEarly && !roEarly.classList.contains('hidden')) {
+          return;
+        }
+      }
+    } else if (!getToken()) {
+      try {
+        document.documentElement.classList.remove('mp-auth-boot');
+        document.documentElement.classList.remove('mp-session');
+      } catch (_) {}
+    }
     ['landing', 'site-search-root', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -2478,7 +2516,6 @@
     if (header) header.classList.remove('hidden');
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
-    const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
     document.body.classList.toggle('in-cabinet', inCabinet);
     if (!inCabinet) {
       try { document.body.removeAttribute('data-cabinet-section'); } catch (_) {}
@@ -2490,16 +2527,17 @@
       hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding' || screenId === 'public-stats'));
     }
     if (screenId === 'public-stats') {
-      const loginBtn = document.querySelector('#site-header [data-action="login"]');
-      const userWrap = document.getElementById('header-user-wrap');
       if (getToken()) {
-        const stub = cachedSessionMeStub();
-        if (stub) renderHeader(stub);
-        else if (_cabinetMeCache) renderHeader(_cabinetMeCache);
+        ensureLoggedInHeader();
       } else {
+        const loginBtn = document.querySelector('#site-header [data-action="login"]');
+        const userWrap = document.getElementById('header-user-wrap');
         if (loginBtn) loginBtn.classList.remove('hidden');
         if (userWrap) userWrap.classList.add('hidden');
       }
+    }
+    if (inCabinet && getToken()) {
+      ensureLoggedInHeader();
     }
     const footerApps = document.getElementById('cabinet-footer-apps');
     if (footerApps) footerApps.classList.remove('hidden');
@@ -9665,7 +9703,10 @@
     closeAddFilmModal();
     closeFilmModal();
     _filmModalCurrentId = filmId;
-    showScreen('cabinet-readonly');
+    ensureLoggedInHeader();
+    if (!isCabinetActive()) {
+      showScreen('cabinet-readonly');
+    }
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     if (!o.skipHistory) {
@@ -12359,6 +12400,7 @@
     setActiveChatId(null);
     clearStaleSiteSession();
     closeAccountDropdown();
+    syncSessionHtmlClass();
     window.dispatchEvent(new CustomEvent('mp:logout'));
   }
 
@@ -14970,6 +15012,10 @@
       _cabinetNavBootstrapped = false;
       _cabinetPendingSection = null;
       _cabinetNavLockUntil = 0;
+      try {
+        document.documentElement.classList.remove('mp-session');
+        document.documentElement.classList.remove('mp-auth-boot');
+      } catch (_) {}
       renderHeader(null);
       const pathKpLogout = kpIdFromPathname(window.location.pathname);
       if (pathKpLogout && /^\d+$/.test(pathKpLogout)) {

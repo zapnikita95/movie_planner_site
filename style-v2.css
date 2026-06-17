@@ -6,6 +6,11 @@
 html.mp-auth-boot #landing { display: none !important; }
 html.mp-auth-boot #cabinet-readonly.hidden { display: block !important; }
 html.mp-auth-boot body { visibility: visible; }
+
+/* Сессия: не мелькать «Войти» до renderHeader(me) */
+html.mp-session #site-header [data-action="login"] { display: none !important; }
+html.mp-session #header-user-wrap { display: flex !important; }
+html.mp-session #landing { display: none !important; }
 #login-modal { display: none; }
 #login-modal:not(.hidden) { display: flex !important; }
 .cabinet-section.hidden { display: none !important; }

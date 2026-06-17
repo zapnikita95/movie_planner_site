@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet15">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet16">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet15";
+        var BUILD = "20260617cabinet16";
         try { localStorage.setItem("mp_cabinet_build_v2", BUILD); } catch (_) {}
         try {
           if (location.search.indexOf("mpbuild=") !== -1) {
@@ -109,6 +109,11 @@
             window.history.replaceState({ section: 'home' }, '', '/home' + qs + hash);
           }
           document.documentElement.classList.add('mp-auth-boot');
+          document.documentElement.classList.add('mp-session');
+          try {
+            var profileName = document.getElementById('header-profile-name');
+            if (profileName && session.name) profileName.textContent = session.name;
+          } catch (_) {}
         } catch (_) {}
       })();
       // /features/collections — первый paint: База + секция коллекций (не мелькание «Главная»)
@@ -1784,6 +1789,6 @@
     <script src="/mp-icons.js?v=20260617icons2"></script>
     <script src="/home-rails.js?v=20260617seriesfix1"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/cabinet-app.js?v=20260617cabinet15"></script>
+    <script src="/cabinet-app.js?v=20260617cabinet16"></script>
 </body>
 </html>
