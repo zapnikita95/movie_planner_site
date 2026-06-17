@@ -605,6 +605,12 @@
     var mainSelector = opts.mainSelector || 'main.film-page';
     var header = document.getElementById('site-header');
     if (!header) return;
+    if (opts.cabinetMode) {
+      bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
+      bindStandaloneSearch(apiBase, opts.loginNow);
+      bindStandaloneLogoHome();
+      return;
+    }
     var name = (me && me.name) || 'Профиль';
     var coinsVal = '—';
     if (me && me.coins) {
@@ -714,8 +720,90 @@
     return { refresh: refresh, loginNow: loginNow };
   }
 
+  function readMpRouteBoot() {
+    try {
+      var el = document.getElementById('mp-route-boot');
+      if (!el) return null;
+      return JSON.parse(el.textContent || '');
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  function buildFilmMainInnerHtml(kpId, poster) {
+    return (
+      '<section class="hero film-hero-with-tag">' +
+        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
+          (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
+        '</button>' +
+        '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
+        '<div class="hero-content">' +
+          '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
+          '<div class="eyebrow" id="chips"></div>' +
+          '<div class="film-hero-crew" id="film-cast-root"></div>' +
+          '<p class="description skeleton" id="film-desc"></p>' +
+          '<div class="film-page-toolbar">' +
+            '<div class="film-toolbar-plan-wrap">' +
+              '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
+            '</div>' +
+            '<div class="film-toolbar-icons">' +
+              '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
+              '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
+              '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+              '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
+            '</div>' +
+            '<div class="film-toolbar-friends-wrap">' +
+              '<div id="film-friends-social-block" class="hidden"></div>' +
+            '</div>' +
+            '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
+              '<div class="public-rating-title">Ваша оценка</div>' +
+              '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n) {
+                  return '<button class="rate-btn" data-rate="' + n + '" type="button">' + n + '</button>';
+                }).join('') +
+              '</div>' +
+            '</div>' +
+            '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
+          '</div>' +
+          '<p class="status" id="hint"></p>' +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  function paintCabinetRouteBoot(kpId, pageRoot, poster) {
+    var boot = readMpRouteBoot();
+    if (!boot || boot.type !== 'film') return false;
+    if (String(boot.kp_id || '').replace(/\D/g, '') !== String(kpId || '').replace(/\D/g, '')) return false;
+    var title = boot.title || 'Фильм';
+    var year = boot.year ? ' (' + boot.year + ')' : '';
+    pageRoot.className = 'movie-page';
+    pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, boot.poster_url || poster);
+    var titleEl = document.getElementById('film-title');
+    if (titleEl) titleEl.textContent = title + year;
+    var chips = document.getElementById('chips');
+    if (chips && boot.genres) {
+      String(boot.genres).split(/[,;/|]+/).slice(0, 8).forEach(function (label) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = String(label || '').trim();
+        if (chip.textContent) chips.appendChild(chip);
+      });
+    }
+    if (boot.description) setFilmDescription(boot.description);
+    try {
+      document.title = title + year + ' · Movie Planner';
+    } catch (_e) {}
+    return true;
+  }
+
+  function filmHeroContentRoot(cabinetMode) {
+    return document.querySelector(cabinetMode ? '#film-page-content .hero-content' : '.film-page .hero-content');
+  }
+
   function renderFilmPage(opts) {
     opts = opts || {};
+    var cabinetMode = !!opts.cabinetMode;
     var kpId = String(opts.kpId || '').replace(/\D/g, '');
     if (!kpId) return;
 
@@ -756,6 +844,17 @@
         document.documentElement.classList.remove('mp-route-pending');
         document.documentElement.classList.add('mp-route-ready');
       } catch (_route) {}
+
+      if (cabinetMode) {
+        var pageRoot = document.getElementById('film-page-content');
+        if (!pageRoot) return;
+        if (!paintCabinetRouteBoot(kpId, pageRoot, poster)) {
+          pageRoot.className = 'movie-page loading';
+          pageRoot.innerHTML = (global.MpPageLoading && MpPageLoading.html())
+            ? MpPageLoading.html()
+            : '<div class="mp-page-loading" role="status"><div class="mp-page-loading-spinner"></div></div>';
+        }
+      } else {
       document.body.innerHTML =
         '<div class="page-shell">' +
           '<header id="site-header">' +
@@ -844,7 +943,9 @@
           '</footer>' +
         '</div>';
 
-      if (tokenEarly() && !forcePublic) {
+      }
+
+      if (tokenEarly() && !forcePublic && !cabinetMode) {
         applyStandaloneAuthChrome({
           success: true,
           name: sessionNameFromStorage(),
@@ -1440,20 +1541,9 @@
       }
       setupAppOpenBanner({ id: kpId, kind: 'film' });
       bindPublicFilmToolbar();
-      var standaloneChrome = initStandaloneSiteChrome({
-        apiBase: apiBase,
-        mainSelector: 'main.film-page',
-        spaReturnPath: '/f/' + kpId,
-        kpId: kpId,
-        kpId: kpId,
-        forcePublic: forcePublic,
-        bindLogin: false,
-        loginNow: loginNow,
-        onLoginSuccess: function () { loadAuthFilmState(); loadFilmFriendsSocialBlock(); consumePendingAction(); },
-      });
 
       function applyAuthToolbar(filmState) {
-        var hero = document.querySelector('.film-page .hero-content');
+        var hero = filmHeroContentRoot(cabinetMode);
         if (!hero) return;
         var old = hero.querySelector('.film-page-toolbar');
         if (old) old.remove();
@@ -1469,10 +1559,10 @@
 
       function bindAuthToolbar(film, filmState) {
         filmState = filmState || {};
-        var opts = filmState.toolbarOpts || {};
+        var toolbarOpts = filmState.toolbarOpts || {};
         var root = document.querySelector('.film-page-toolbar');
         if (!root) return;
-        if (opts.inBase && film.film_id) {
+        if (toolbarOpts.inBase && film.film_id) {
           var watchedBtn = root.querySelector('[data-action="toggle-watched"]');
           if (watchedBtn) {
             watchedBtn.addEventListener('click', function () {
@@ -1568,10 +1658,24 @@
           .catch(function () {});
       }
 
+      initStandaloneSiteChrome({
+        apiBase: apiBase,
+        mainSelector: cabinetMode ? '#film-page-content' : 'main.film-page',
+        spaReturnPath: '/f/' + kpId,
+        kpId: kpId,
+        forcePublic: forcePublic,
+        cabinetMode: cabinetMode,
+        bindLogin: !cabinetMode,
+        loginNow: loginNow,
+        onLoginSuccess: function () { loadAuthFilmState(); loadFilmFriendsSocialBlock(); consumePendingAction(); },
+      });
 
       loadAuthFilmState();
       loadFilmFriendsSocialBlock();
       consumePendingAction();
+      if (opts.onReady) {
+        try { opts.onReady(); } catch (_ready) {}
+      }
   }
 
   function bootstrap(opts) {
@@ -1579,7 +1683,7 @@
     try {
       document.documentElement.classList.remove('mp-route-pending');
       document.documentElement.classList.add('mp-route-ready');
-      document.body.classList.add('film-standalone-page');
+      if (!opts.cabinetMode) document.body.classList.add('film-standalone-page');
     } catch (_e) {}
     renderFilmPage(opts);
   }

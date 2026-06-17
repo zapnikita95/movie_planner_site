@@ -1412,6 +1412,13 @@
       }, 1500);
     }
 
+    if (filmKp && window.__MP_FILM_RENDERED) {
+      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      deferCabinetLists();
+      scheduleOnboarding = false;
+      return Promise.resolve();
+    }
+
     if (filmKp) {
       void uiToursEnsureHydrated(true);
       openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
@@ -15106,6 +15113,18 @@
             }
           } catch (_) {}
         });
+      return;
+    }
+
+    if (window.__MP_FILM_ROUTE_LITE_READY) {
+      if (getToken()) {
+        loadMeAndShowCabinet();
+      } else {
+        handleAuthEntryDeepLinks();
+      }
+      const footerYearElLite = document.getElementById('footer-year');
+      if (footerYearElLite) footerYearElLite.textContent = new Date().getFullYear();
+      initCabinetMobileHeaderScroll();
       return;
     }
 
