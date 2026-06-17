@@ -8635,7 +8635,9 @@
           '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
-        '<div id="film-friends-social-block" class="hidden"></div>' +
+        '<div class="film-toolbar-friends-wrap">' +
+          '<div id="film-friends-social-block" class="hidden"></div>' +
+        '</div>' +
         '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
           '<div class="public-rating-title">Ваша оценка</div>' + ratingInner +
         '</div>' +

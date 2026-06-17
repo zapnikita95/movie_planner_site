@@ -8515,20 +8515,23 @@ a.header-settings-nav-item {
   color: var(--text-muted, #aaa);
 }
 
-/* Друзья высоко оценили (страница фильма) — по центру кнопки «Запланировать» (520px) */
-#film-friends-social-block {
+/* Друзья высоко оценили — узкий блок по центру под кнопкой «Запланировать» */
+.film-toolbar-friends-wrap {
   display: flex;
   justify-content: center;
   width: 100%;
-  margin-top: 14px;
+}
+#film-friends-social-block {
+  margin-top: 0;
+  max-width: min(100%, 520px);
 }
 #film-friends-social-block.hidden {
   display: none;
 }
 #film-friends-social-block > section.film-friends-social,
 #film-friends-social-block .film-friends-social {
-  width: min(100%, 520px);
-  max-width: 520px;
+  width: fit-content;
+  max-width: min(100%, 520px);
   box-sizing: border-box;
 }
 .film-friends-social {
@@ -8635,8 +8638,8 @@ a.header-settings-nav-item {
 @media (min-width: 861px) {
   .film-friends-social--compact {
     display: block;
-    width: min(100%, 520px);
-    max-width: 520px;
+    width: fit-content;
+    max-width: min(100%, 520px);
     padding: 8px 12px;
   }
   .film-friends-social--compact .film-friends-social-head {
