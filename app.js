@@ -348,7 +348,7 @@
       if (!session) return null;
       return {
         success: true,
-        name: session.name || t('site.cabinet.profile', 'Профиль'),
+        name: session.name || 'Профиль',
         has_data: !!session.has_data,
         chat_id: session.chat_id,
       };
@@ -465,7 +465,7 @@
     const f = pub || {};
     return {
       kp_id: String(kp || f.kp_id || '').replace(/\D/g, ''),
-      title: f.title || t('site.cabinet.filmFallback', 'Фильм'),
+      title: f.title || 'Фильм',
       year: f.year,
       country: f.country,
       genres: f.genres,
@@ -489,13 +489,13 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.film) {
-          showToast(t('site.toast.filmLoadFailed', 'Не удалось загрузить фильм'), { type: 'error' });
+          showToast('Не удалось загрузить фильм', { type: 'error' });
           return;
         }
         const film = mapPublicFilmForHero(data.film, kp);
         return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
           try {
-            document.title = (enriched.title || t('site.cabinet.filmFallback', 'Фильм')) + (enriched.year ? ' (' + enriched.year + ')' : '') + ' · Movie Planner';
+            document.title = (enriched.title || 'Фильм') + (enriched.year ? ' (' + enriched.year + ')' : '') + ' · Movie Planner';
           } catch (_) {}
           renderFilmDetailHero(enriched, [], [], { user_id: cabinetUserId }, pageRoot, {
             inBase: false,
@@ -505,7 +505,7 @@
         });
       })
       .catch(function () {
-        showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+        showToast('Ошибка сети', { type: 'error' });
       });
   }
 
@@ -555,7 +555,7 @@
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
-  // Использование: showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована')).
+  // Использование: showToast('📋 Ссылка скопирована').
   function showToast(message, opts) {
     try {
       let el = document.getElementById('mp-global-toast');
@@ -837,9 +837,9 @@
   }
 
   const SITE_WTW_GENRES_FALLBACK = [
-    t('search.genre.drama', 'драма'), t('search.genre.comedy', 'комедия'), t('search.genre.thriller', 'триллер'), t('search.genre.scifi', 'фантастика'), t('search.genre.fantasy', 'фэнтези'), t('search.genre.action', 'боевик'),
-    t('search.genre.mystery', 'детектив'), t('search.genre.romance', 'мелодрама'), t('search.genre.adventure', 'приключения'), t('search.genre.horror', 'ужасы'), t('search.genre.crime', 'криминал'), t('search.genre.animation', 'мультфильм'),
-    t('search.genre.biography', 'биография'), t('search.genre.history', 'история'), t('search.genre.war', 'военный'), t('search.genre.family', 'семейный'), t('search.genre.anime', 'аниме'), t('search.genre.documentary', 'документальный'),
+    'драма', 'комедия', 'триллер', 'фантастика', 'фэнтези', 'боевик',
+    'детектив', 'мелодрама', 'приключения', 'ужасы', 'криминал', 'мультфильм',
+    'биография', 'история', 'военный', 'семейный', 'аниме', 'документальный',
   ];
 
   function siteLockViewportScroll() {
@@ -947,7 +947,7 @@
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return;
     if (typeof window.MpPlanModal?.open !== 'function') {
-      showToast(t('plan.planUnavailable', t('site.cabinet.planFormUnavailable', t('plan.planUnavailable', 'Форма плана недоступна'))), { type: 'error' });
+      showToast(t('plan.planUnavailable', 'Форма плана недоступна'), { type: 'error' });
       return;
     }
     MpPlanModal.open({
@@ -963,9 +963,9 @@
       onToast(msg) {
         showToast(msg, { type: /не|ошиб/i.test(String(msg || '')) ? 'error' : 'info' });
       },
-      film: { kp_id: kp, title: title || t('site.cabinet.filmFallback', 'Фильм') },
+      film: { kp_id: kp, title: title || 'Фильм' },
       kpId: kp,
-      title: title || t('site.cabinet.filmFallback', 'Фильм'),
+      title: title || 'Фильм',
       mode: place === 'cinema' ? 'cinema' : 'home',
       onSuccess() {
         showSection('plans', { replace: true });
@@ -990,15 +990,15 @@
 
   function getSiteHomeTourSteps() {
     return [
-      { selector: '#header-search', text: t('site.cabinet.searchLead', 'Поиск фильмов и сериалов — добавляйте в базу прямо с сайта.') },
-      { selector: '#cabinet-user-hero', text: t('site.cabinet.profileLead', 'Ваш профиль: имя, аватар и переход в настройки.') },
-      { selector: '#inbox-fab', text: t('site.cabinet.inboxLead', 'Уведомления: приглашения, планы и напоминания поставить оценку.') },
-      { selector: '.cabinet-nav', text: t('site.cabinet.sectionsLead', 'Разделы кабинета: главная, планы, премьеры, база, подбор и турнир.') },
-      { selector: '#home-quick-actions', text: t('site.cabinet.str_0b3319', 'Быстрые кнопки: случайный фильм, подбор по описанию и голосовой ввод.') },
+      { selector: '#header-search', text: 'Поиск фильмов и сериалов — добавляйте в базу прямо с сайта.' },
+      { selector: '#cabinet-user-hero', text: 'Ваш профиль: имя, аватар и переход в настройки.' },
+      { selector: '#inbox-fab', text: 'Уведомления: приглашения, планы и напоминания поставить оценку.' },
+      { selector: '.cabinet-nav', text: 'Разделы кабинета: главная, планы, премьеры, база, подбор и турнир.' },
+      { selector: '#home-quick-actions', text: 'Быстрые кнопки: случайный фильм, подбор по описанию и голосовой ввод.' },
       {
         selector: '#home-dashboard-root .home-dash-block',
         fallback: '#home-dashboard-root',
-        text: t('site.cabinet.str_3cf512', 'Блоки на главной: планы, непросмотренное, сериалы и премьеры. Настраиваются в шестерёнке.'),
+        text: 'Блоки на главной: планы, непросмотренное, сериалы и премьеры. Настраиваются в шестерёнке.',
       },
       {
         selector: '#section-plans .cabinet-plans-toolbar',
@@ -1007,7 +1007,7 @@
           try { renderPlansList && renderPlansList(); } catch (_) {}
           return 280;
         },
-        text: t('site.cabinet.str_729063', 'Планы: добавляйте фильмы в базу и смотрите ближайшие сеансы дома и в кино.'),
+        text: 'Планы: добавляйте фильмы в базу и смотрите ближайшие сеансы дома и в кино.',
       },
       {
         selector: '.cabinet-nav-btn[data-section="whattowatch"]',
@@ -1015,11 +1015,11 @@
           showSection('home', { replace: true, skipPush: true });
           return 180;
         },
-        text: t('site.cabinet.str_0a969d', '«Что посмотреть» — случайный выбор и мастер по жанрам, если не знаете, что включить.'),
+        text: '«Что посмотреть» — случайный выбор и мастер по жанрам, если не знаете, что включить.',
       },
       {
         selector: '.cabinet-nav-btn[data-section="unwatched"]',
-        text: t('site.cabinet.str_3e6187', '«База» — непросмотренные, сериалы и все ваши оценки.'),
+        text: '«База» — непросмотренные, сериалы и все ваши оценки.',
       },
       {
         selector: '.cabinet-nav-btn[data-section="tournament"]',
@@ -1027,7 +1027,7 @@
           showSection('home', { replace: true, skipPush: true });
           return 180;
         },
-        text: t('site.cabinet.str_88b765', 'Турнир киноманов: оценки, походы в кино и сериалы — топ-3 каждый месяц получают монетки.'),
+        text: 'Турнир киноманов: оценки, походы в кино и сериалы — топ-3 каждый месяц получают монетки.',
       },
     ];
   }
@@ -1489,17 +1489,17 @@
       const personalCount = sessions.filter((s) => s.is_personal).length;
       const groupCount = sessions.filter((s) => !s.is_personal).length;
       if (isPersonal && personalCount >= MAX_PERSONAL) {
-        if (statusEl) { statusEl.textContent = t('site.cabinet.2_c841c5', 'Максимум 2 личных кабинета'); statusEl.className = 'login-status error'; }
+        if (statusEl) { statusEl.textContent = 'Максимум 2 личных кабинета'; statusEl.className = 'login-status error'; }
         return { ok: false, error: 'max_personal' };
       }
       if (!isPersonal && groupCount >= MAX_GROUP) {
-        if (statusEl) { statusEl.textContent = t('site.cabinet.2_386b83', 'Максимум 2 групповых кабинета'); statusEl.className = 'login-status error'; }
+        if (statusEl) { statusEl.textContent = 'Максимум 2 групповых кабинета'; statusEl.className = 'login-status error'; }
         return { ok: false, error: 'max_group' };
       }
       sessions.push({
         chat_id: chatId,
         token: data.token,
-        name: data.name || t('site.cabinet.profile', 'Профиль'),
+        name: data.name || 'Профиль',
         has_data: !!data.has_data,
         is_personal: isPersonal,
       });
@@ -1568,7 +1568,7 @@
       try { tok = decodeURIComponent(tok); } catch (_) {}
       const chatId = params.get('chat_id');
       if (chatId == null || chatId === '') return false;
-      let name = params.get('name') || t('site.cabinet.profile', 'Профиль');
+      let name = params.get('name') || 'Профиль';
       try { name = decodeURIComponent(name); } catch (_) {}
       const data = {
         token: tok,
@@ -1580,7 +1580,7 @@
       const modal = document.getElementById('login-modal');
       const r = applySiteSessionLogin(data, modal, null);
       if (!r.ok) {
-        try { showToast(t('site.toast.tooManyProfiles', 'Слишком много сохранённых профилей — удалите один в настройках.'), { type: 'error' }); } catch (_) {}
+        try { showToast('Слишком много сохранённых профилей — удалите один в настройках.', { type: 'error' }); } catch (_) {}
         history.replaceState(null, '', location.pathname + location.search);
         return false;
       }
@@ -1607,7 +1607,7 @@
         body: JSON.stringify({ code }),
       });
       if (!checkData.success || !checkData.access) {
-        try { showToast(t('site.toast.telegramLinkExpired', 'Ссылка для входа устарела — войдите через Telegram ещё раз'), { type: 'error' }); } catch (_) {}
+        try { showToast('Ссылка для входа устарела — войдите через Telegram ещё раз', { type: 'error' }); } catch (_) {}
         return false;
       }
       const exchangeData = await authApiJson('/api/site/session/from-jwt', {
@@ -1615,7 +1615,7 @@
         body: JSON.stringify({ access: checkData.access }),
       });
       if (!exchangeData.success || !exchangeData.token) {
-        try { showToast(exchangeData.error || t('site.cabinet.str_af8efb', 'Не удалось создать сессию'), { type: 'error' }); } catch (_) {}
+        try { showToast(exchangeData.error || 'Не удалось создать сессию', { type: 'error' }); } catch (_) {}
         return false;
       }
       const r = applySiteSessionLogin(
@@ -1630,13 +1630,13 @@
         null,
       );
       if (!r.ok) {
-        try { showToast(t('site.toast.tooManyProfiles', 'Слишком много сохранённых профилей — удалите один в настройках.'), { type: 'error' }); } catch (_) {}
+        try { showToast('Слишком много сохранённых профилей — удалите один в настройках.', { type: 'error' }); } catch (_) {}
         return false;
       }
       if (tryReturnAfterAuth()) return true;
       return true;
     } catch (_) {
-      try { showToast(t('site.toast.telegramSignInFailed', 'Не удалось войти по ссылке из Telegram'), { type: 'error' }); } catch (_) {}
+      try { showToast('Не удалось войти по ссылке из Telegram', { type: 'error' }); } catch (_) {}
       return false;
     }
   }
@@ -1918,11 +1918,11 @@
     const ratingVal = opts.ratingVal;
     const filmId = opts.filmId != null ? opts.filmId : (film && film.film_id) || null;
     if (!film || !film.kp_id) {
-      showToast(t('site.toast.shareOpenFailed', 'Не удалось открыть шеринг'), { type: 'error' });
+      showToast('Не удалось открыть шеринг', { type: 'error' });
       return;
     }
     if (mode === 'rating' && (filmId == null || ratingVal == null)) {
-      showToast(t('site.toast.noRatingData', 'Нет данных оценки'), { type: 'error' });
+      showToast('Нет данных оценки', { type: 'error' });
       return;
     }
     let friends = [];
@@ -1939,14 +1939,14 @@
         return !p.is_personal;
       });
     } catch (e) {
-      showToast(t('site.toast.listLoadFailed', 'Не удалось загрузить список'), { type: 'error' });
+      showToast('Не удалось загрузить список', { type: 'error' });
       return;
     }
     const shareable = profiles.filter(function (p) {
       return p.can_share_to_group !== false;
     });
     if (!friends.length && !shareable.length) {
-      showToast(t('site.toast.addFriendsHint', 'Добавьте друзей или создайте группу в разделе «Друзья и группы».'), { type: 'error' });
+      showToast('Добавьте друзей или создайте группу в разделе «Друзья и группы».', { type: 'error' });
       return;
     }
     let tab = friends.length ? 'friends' : 'groups';
@@ -2029,7 +2029,7 @@
       friendsPanelHtml +
       groupsPanelHtml +
       '<div class="list-title-section" style="margin-top:14px">Сообщение (необязательно)</div>' +
-      '<textarea id="share-grp-msg" class="input-primary share-film-textarea" placeholder=t("site.cabinet.21_00_64e63b", "Например: «Посмотрим завтра в 21:00?»") rows="3" style="resize:vertical;width:100%"></textarea>' +
+      '<textarea id="share-grp-msg" class="input-primary share-film-textarea" placeholder="Например: «Посмотрим завтра в 21:00?»" rows="3" style="resize:vertical;width:100%"></textarea>' +
       '<div style="display:flex;gap:10px;margin-top:16px">' +
       '<button class="btn btn-secondary" style="flex:1" id="share-grp-cancel" type="button">Отмена</button>' +
       '<button class="btn btn-primary" style="flex:1" id="share-grp-send" type="button">Отправить</button>' +
@@ -2067,7 +2067,7 @@
         const fr = overlay.querySelector('input[name="share-fr"]:checked');
         const toUser = Number((fr && fr.value) || 0);
         if (!toUser) {
-          showToast(t('site.toast.pickFriend', 'Выберите друга'), { type: 'error' });
+          showToast('Выберите друга', { type: 'error' });
           return;
         }
         try {
@@ -2081,12 +2081,12 @@
           });
           if (res && res.success) {
             close();
-            showToast(t('site.toast.filmSentToFriend', 'Фильм отправлен другу'));
+            showToast('Фильм отправлен другу');
           } else {
             showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
           }
         } catch (e) {
-          showToast(t('site.toast.sendError', 'Ошибка отправки'), { type: 'error' });
+          showToast('Ошибка отправки', { type: 'error' });
         } finally {
           if (sendBtn) {
             sendBtn.disabled = false;
@@ -2098,7 +2098,7 @@
       const rad = overlay.querySelector('input[name="share-grp"]:checked');
       const chatId = Number((rad && rad.value) || 0);
       if (!chatId) {
-        showToast(t('site.toast.pickGroup', 'Выберите группу'), { type: 'error' });
+        showToast('Выберите группу', { type: 'error' });
         return;
       }
       if (mode === 'rating') {
@@ -2113,12 +2113,12 @@
           });
           if (res && res.success !== false) {
             close();
-            showToast('Оценка ' + ratingVal + t('site.cabinet.10_536047', '/10 сохранена в группе'));
+            showToast('Оценка ' + ratingVal + '/10 сохранена в группе');
           } else {
             showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
           }
         } catch (e) {
-          showToast(t('site.toast.sendError', 'Ошибка отправки'), { type: 'error' });
+          showToast('Ошибка отправки', { type: 'error' });
         } finally {
           if (sendBtn) {
             sendBtn.disabled = false;
@@ -2143,12 +2143,12 @@
         });
         if (res && res.success) {
           close();
-          showToast(t('site.toast.sentToGroup', 'Отправлено в группу'));
+          showToast('Отправлено в группу');
         } else {
           showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
         }
       } catch (e) {
-        showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+        showToast('Ошибка сети', { type: 'error' });
       } finally {
         if (sendBtn) {
           sendBtn.disabled = false;
@@ -2312,7 +2312,7 @@
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">' + escapeHtml(t('site.menu.goTo', 'Перейти')) + '</div>';
     const navItems = [
-      { go: 'settings', icon: 'profile', label: t('site.menu.profile', t('site.cabinet.profile', 'Профиль')) },
+      { go: 'settings', icon: 'profile', label: t('site.menu.profile', 'Профиль') },
       { go: 'groups', icon: 'friends', label: t('site.menu.friendsGroups', 'Друзья и группы') },
       { go: 'stats', icon: 'stats', label: t('site.menu.stats', 'Статистика') },
       { go: 'shazam', icon: 'shazam', label: t('site.menu.pickByDesc', 'Подбор по описанию') },
@@ -2384,7 +2384,7 @@
       const profileName = document.getElementById('header-profile-name');
       const profileAvatar = document.getElementById('header-profile-avatar');
       if (profilePill) profilePill.classList.remove('hidden');
-      if (profileName) profileName.textContent = me.name || t('site.cabinet.profile', 'Профиль');
+      if (profileName) profileName.textContent = me.name || 'Профиль';
       setAvatarEl(profileAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');
@@ -2768,7 +2768,7 @@
   function openFilmTagView(tagId, opts) {
     const tid = Number(tagId);
     if (!tid || !getToken()) {
-      showToast(t('site.toast.signInRequired', 'Войдите в кабинет'));
+      showToast('Войдите в кабинет');
       return;
     }
     const o = opts || {};
@@ -2890,7 +2890,7 @@
         showToast(msg, type === 'error' ? { type: 'error' } : {});
       },
       onTitle: function (name) {
-        try { document.title = (name || t('site.cabinet.profile', 'Профиль')) + ' · Movie Planner'; } catch (_) {}
+        try { document.title = (name || 'Профиль') + ' · Movie Planner'; } catch (_) {}
       },
     };
   }
@@ -2911,7 +2911,7 @@
   function openUserProfile(userId, opts) {
     const uid = Number(userId);
     if (!uid || !getToken()) {
-      showToast(t('site.toast.signInRequired', 'Войдите в кабинет'));
+      showToast('Войдите в кабинет');
       return;
     }
     const o = opts || {};
@@ -3213,7 +3213,7 @@
         const rk = btn.getAttribute('data-role-key') || '';
         const ids = btn._importIds || [];
         if (!rk || !ids.length) {
-          showToast(t('site.toast.noFilmsToAdd', 'Нет фильмов для добавления'));
+          showToast('Нет фильмов для добавления');
           return;
         }
         if (!window.confirm('Добавить ' + ids.length + ' фильмов в базу?')) return;
@@ -3229,7 +3229,7 @@
             showToast((res && res.error) || 'Импорт не удался', { type: 'error' });
           }
         }).catch(function () {
-          showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+          showToast('Ошибка сети', { type: 'error' });
         }).finally(function () { btn.disabled = false; });
       });
     });
@@ -3248,7 +3248,7 @@
     if (!kp) return Promise.resolve();
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) {
-      showToast(t('site.toast.pageUnavailable', 'Страница недоступна'));
+      showToast('Страница недоступна');
       return Promise.resolve();
     }
     _staffPageKpId = kp;
@@ -3292,7 +3292,7 @@
       renderStaffPageContent(detail, pageRoot);
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
     }).catch(function () {
-      showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+      showToast('Ошибка сети', { type: 'error' });
     });
   }
 
@@ -3517,7 +3517,7 @@
     const hBadge = document.getElementById('header-inbox-badge');
     const hBtn = document.getElementById('header-inbox-btn');
     const n = Math.max(0, Number(count) || 0);
-    const label = n > 0 ? (t('site.cabinet.str_f1d335', 'Уведомления, непрочитанных: ') + n) : 'Уведомления';
+    const label = n > 0 ? ('Уведомления, непрочитанных: ' + n) : 'Уведомления';
     const badgeText = n > 99 ? '99+' : String(n);
 
     if (hBtn) {
@@ -3695,7 +3695,7 @@
     if (it.kind === 'friend_request' && fromUid && !Number.isNaN(fromUid)) {
       thumb = siteInboxThumbHtml({ uid: fromUid, name: pl.from_name || friendName });
       headline = escapeHtml((it.title || 'Заявка в друзья').trim());
-      body = escapeHtml(siteInboxCleanBody(it.body) || (pl.from_name ? pl.from_name + t('site.cabinet.str_271c9c', ' хочет добавить вас в друзья') : ''));
+      body = escapeHtml(siteInboxCleanBody(it.body) || (pl.from_name ? pl.from_name + ' хочет добавить вас в друзья' : ''));
       actions = '<button type="button" class="btn btn-small btn-primary site-inbox-fr-accept" data-fr-uid="' + fromUid + '">Принять</button>'
         + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + fromUid + '" aria-label="Отклонить">✕</button>'
         + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-profile" data-fr-uid="' + fromUid + '">Профиль</button>';
@@ -3712,13 +3712,13 @@
     } else if (it.kind === 'plan_reminder') {
       if (!kp && pl && pl.plans && pl.plans[0]) kp = siteInboxExtractKp(pl.plans[0], it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
-      headline = escapeHtml(filmTitle || (it.title || t('site.cabinet.str_d9c003', 'Напоминание о просмотре')).trim());
+      headline = escapeHtml(filmTitle || (it.title || 'Напоминание о просмотре').trim());
       body = escapeHtml(siteInboxPlanDetail(pl, it));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'rate_reminder') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ratings' });
       headline = escapeHtml(filmTitle || 'Пора оценить');
-      body = escapeHtml(siteInboxCleanBody(it.body) || t('site.cabinet.str_3d917b', 'Поставьте оценку после просмотра'));
+      body = escapeHtml(siteInboxCleanBody(it.body) || 'Поставьте оценку после просмотра');
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'premiere_release') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'premieres' });
@@ -3819,7 +3819,7 @@
       return api('/api/friends/requests').catch(() => null).then((fReq) => ({ data, fReq }));
     }).then(({ data, fReq }) => {
       if (!data || !data.success) {
-        listEl.innerHTML = '<p class="cabinet-hint header-inbox-empty">' + escapeHtml((data && data.error) || t('site.cabinet.str_f08d81', 'Не удалось загрузить')) + '</p>';
+        listEl.innerHTML = '<p class="cabinet-hint header-inbox-empty">' + escapeHtml((data && data.error) || 'Не удалось загрузить') + '</p>';
         return;
       }
       const items = (data.items || []).slice(0, 12);
@@ -3923,11 +3923,11 @@
           desc = 'оценил' + (it.value != null ? ' ' + it.value + '/10' : '') + ' — '
             + (kp ? '<button type="button" class="link-inline site-inbox-act-film" data-kp-id="' + escapeHtml(kp) + '">' + title + '</button>' : title);
         } else if (it.event_type === 'achievement') {
-          desc = t('site.cabinet.str_316fa9', 'получил достижение «') + escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || 'Ачивка')) + '»';
+          desc = 'получил достижение «' + escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || 'Ачивка')) + '»';
         } else if (it.event_type === 'plan_home' || it.event_type === 'plan_cinema') {
           const title = escapeHtml(it.film_title || 'фильм');
           const kp = it.kp_id != null ? String(it.kp_id) : '';
-          const verb = it.event_type === 'plan_home' ? 'запланировал дома' : t('site.cabinet.str_4952eb', 'запланировал в кино');
+          const verb = it.event_type === 'plan_home' ? 'запланировал дома' : 'запланировал в кино';
           desc = verb + ' — ' + (kp ? '<button type="button" class="link-inline site-inbox-act-film" data-kp-id="' + escapeHtml(kp) + '">' + title + '</button>' : title);
         } else {
           desc = escapeHtml(it.event_type || '');
@@ -4084,7 +4084,7 @@
       return api('/api/friends/requests').catch(() => null).then((fReq) => ({ data, fReq }));
     }).then(({ data, fReq }) => {
       if (!data || !data.success) {
-        if (incomingPanel) incomingPanel.innerHTML = '<p class="cabinet-hint">' + escapeHtml((data && data.error) || t('site.cabinet.str_f08d81', 'Не удалось загрузить')) + '</p>';
+        if (incomingPanel) incomingPanel.innerHTML = '<p class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить') + '</p>';
         return;
       }
       const items = data.items || [];
@@ -4171,11 +4171,11 @@
           statusEl.className = 'login-status';
         }
       } else if (!opened) {
-        try { showToast(t('site.toast.reopenBot', 'Нажмите «Открыть бота ещё раз»'), { type: 'error', duration: 4200 }); } catch (_) {}
+        try { showToast('Нажмите «Открыть бота ещё раз»', { type: 'error', duration: 4200 }); } catch (_) {}
       }
     }
-    if (statusEl && (!statusEl.textContent || statusEl.textContent === t('site.cabinet.telegram_373738', 'Открываем Telegram…'))) {
-      statusEl.textContent = o.openTelegram ? t('site.cabinet.start_a53cf8', 'Нажмите Start на ссылке бота') : t('site.cabinet.telegram_373738', 'Открываем Telegram…');
+    if (statusEl && (!statusEl.textContent || statusEl.textContent === 'Открываем Telegram…')) {
+      statusEl.textContent = o.openTelegram ? 'Нажмите Start на ссылке бота' : 'Открываем Telegram…';
       statusEl.className = 'login-status';
     }
     _siteBotAuthPoll = setInterval(function () {
@@ -4208,9 +4208,9 @@
 
   function siteBotAuthStartErrorMessage(startData) {
     const err = startData && startData.error;
-    if (err === 'rate_limit' || err === 'http_429') return t('site.cabinet.str_76166e', 'Слишком много попыток — подождите минуту');
-    if (err === 'http_503' || err === 'http_502') return t('site.cabinet.str_83c121', 'Сервер временно недоступен — попробуйте позже');
-    return t('site.cabinet.str_cbcfcb', 'Не удалось начать вход через бота');
+    if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
+    if (err === 'http_503' || err === 'http_502') return 'Сервер временно недоступен — попробуйте позже';
+    return 'Не удалось начать вход через бота';
   }
 
   function updateSiteBotReopenLink(url) {
@@ -4233,7 +4233,7 @@
       el.classList.add('hidden');
       return;
     }
-    el.textContent = t('site.cabinet.start_login_06b58a', 'Если Start не сработал — отправьте боту: /login ') + code;
+    el.textContent = 'Если Start не сработал — отправьте боту: /login ' + code;
     el.classList.remove('hidden');
   }
 
@@ -4253,7 +4253,7 @@
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
         stopSiteBotAuthPoll();
-        if (statusEl) { statusEl.textContent = t('site.cabinet.telegram_c8c5f5', 'Время истекло — нажмите Telegram ещё раз'); statusEl.className = 'login-status error'; }
+        if (statusEl) { statusEl.textContent = 'Время истекло — нажмите Telegram ещё раз'; statusEl.className = 'login-status error'; }
       }
       return false;
     }
@@ -4263,7 +4263,7 @@
       body: JSON.stringify({ access: checkData.access }),
     });
     if (!exchangeData.success || !exchangeData.token) {
-      if (statusEl) { statusEl.textContent = exchangeData.error || t('site.cabinet.str_af8efb', 'Не удалось создать сессию'); statusEl.className = 'login-status error'; }
+      if (statusEl) { statusEl.textContent = exchangeData.error || 'Не удалось создать сессию'; statusEl.className = 'login-status error'; }
       return true;
     }
     applySiteSessionLogin(
@@ -4287,7 +4287,7 @@
     updateSiteBotReopenLink(null);
     updateSiteBotLoginHint(null);
     if (botPanel) botPanel.classList.remove('hidden');
-    if (statusEl) { statusEl.textContent = t('site.cabinet.telegram_373738', 'Открываем Telegram…'); statusEl.className = 'login-status'; }
+    if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
 
     const pref = consumeSiteBotPrefetch();
     if (pref && pref.code && pref.deep_link) {
@@ -4331,7 +4331,7 @@
       if (preOpenedWindow && !preOpenedWindow.closed) {
         try { preOpenedWindow.close(); } catch (_) {}
       }
-      if (statusEl) { statusEl.textContent = t('site.cabinet.networkError', 'Ошибка сети'); statusEl.className = 'login-status error'; }
+      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'login-status error'; }
       scheduleSiteBotAuthPrefetch();
     }
   }
@@ -4372,7 +4372,7 @@
         oauthPriv.focus({ preventScroll: true });
         setTimeout(() => oauthPriv.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
       }
-      try { showToast(t('site.toast.privacyRequired', 'Сначала отметьте согласие с политикой'), { type: 'error', duration: 2600 }); } catch (_) {}
+      try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
     }
     function syncOauthPrivButtons() {
       const ok = oauthPriv && oauthPriv.checked;
@@ -4479,11 +4479,11 @@
         privEl.focus({ preventScroll: true });
         setTimeout(() => privEl.closest('.login-oauth-privacy')?.classList.remove('needs-attention'), 1600);
       }
-      try { showToast(t('site.toast.privacyRequired', 'Сначала отметьте согласие с политикой'), { type: 'error', duration: 2600 }); } catch (_) {}
+      try { showToast('Сначала отметьте согласие с политикой', { type: 'error', duration: 2600 }); } catch (_) {}
       if (statusTarget === 'reg') {
-        setRegStatus(t('site.cabinet.str_ad49c2', 'Отметьте согласие с политикой конфиденциальности'), 'error');
+        setRegStatus('Отметьте согласие с политикой конфиденциальности', 'error');
       } else {
-        setStatus(t('site.cabinet.str_ad49c2', 'Отметьте согласие с политикой конфиденциальности'), 'error');
+        setStatus('Отметьте согласие с политикой конфиденциальности', 'error');
       }
     }
 
@@ -4517,7 +4517,7 @@
         e.preventDefault();
         const email = (emailInput && emailInput.value || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-          setStatus(t('site.cabinet.email_3bb6a1', 'Укажите корректный email'), 'error');
+          setStatus('Укажите корректный email', 'error');
           return;
         }
         if (!oauthPriv || !oauthPriv.checked) {
@@ -4535,8 +4535,8 @@
           if (!data.success) {
             setStatus(
               data.error === 'rate_limit'
-                ? t('site.cabinet.str_af274c', 'Слишком часто. Попробуйте через минуту.')
-                : (data.message || t('site.cabinet.email_3c7877', 'Не удалось отправить код. Проверьте email и повторите.')),
+                ? 'Слишком часто. Попробуйте через минуту.'
+                : (data.message || 'Не удалось отправить код. Проверьте email и повторите.'),
               'error',
             );
             return;
@@ -4557,7 +4557,7 @@
         e.preventDefault();
         const email = (regEmail && regEmail.value || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-          setRegStatus(t('site.cabinet.email_3bb6a1', 'Укажите корректный email'), 'error');
+          setRegStatus('Укажите корректный email', 'error');
           return;
         }
         const name = registrationName();
@@ -4580,8 +4580,8 @@
           if (!data.success) {
             setRegStatus(
               data.error === 'rate_limit'
-                ? t('site.cabinet.str_af274c', 'Слишком часто. Попробуйте через минуту.')
-                : (data.message || t('site.cabinet.str_578006', 'Не удалось отправить код')),
+                ? 'Слишком часто. Попробуйте через минуту.'
+                : (data.message || 'Не удалось отправить код'),
               'error',
             );
             return;
@@ -4612,7 +4612,7 @@
         const email = (regEmail && regEmail.value || '').trim().toLowerCase();
         const code = (regCode && regCode.value || '').trim();
         if (!/^\d{4,8}$/.test(code)) {
-          setRegStatus(t('site.cabinet.str_c708a7', 'Введите код из письма'), 'error');
+          setRegStatus('Введите код из письма', 'error');
           return;
         }
         setRegStatus('Проверка…');
@@ -4630,7 +4630,7 @@
             body: JSON.stringify({ access: verifyData.access }),
           });
           if (!exchangeData.success || !exchangeData.token) {
-            setRegStatus(exchangeData.error || t('site.cabinet.str_af8efb', 'Не удалось создать сессию'), 'error');
+            setRegStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
             return;
           }
           await applyDisplayNameIfNeeded(exchangeData.token, registrationName());
@@ -4656,7 +4656,7 @@
         const email = (emailInput && emailInput.value || '').trim().toLowerCase();
         const code = (codeInput && codeInput.value || '').trim();
         if (!/^\d{4,8}$/.test(code)) {
-          setStatus(t('site.cabinet.str_c708a7', 'Введите код из письма'), 'error');
+          setStatus('Введите код из письма', 'error');
           return;
         }
         setStatus('Проверка…');
@@ -4674,7 +4674,7 @@
             body: JSON.stringify({ access: verifyData.access }),
           });
           if (!exchangeData.success || !exchangeData.token) {
-            setStatus(exchangeData.error || t('site.cabinet.str_af8efb', 'Не удалось создать сессию'), 'error');
+            setStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
             return;
           }
           const sessions = getSessions();
@@ -5036,7 +5036,7 @@
   }
 
   const HOME_BLOCK_META = {
-    plans: { title: t('home.section.upcomingPlans', 'Ближайшие просмотры'), section: 'plans', moreLabel: 'Все планы →' },
+    plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
     unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
@@ -5067,7 +5067,7 @@
           const kp = escapeHtml(String(s.kp_id));
           return '<a class="home-dash-row home-suggestion-row film-card-v2" href="/f/' + kp + '" data-kp-id="' + kp + '">'
             + '<div class="home-dash-row-text"><div class="home-dash-row-main">'
-            + '<div class="home-dash-row-title">' + escapeHtml(s.film_title || t('site.cabinet.filmFallback', 'Фильм')) + '</div>'
+            + '<div class="home-dash-row-title">' + escapeHtml(s.film_title || 'Фильм') + '</div>'
             + '<div class="home-dash-row-meta">' + escapeHtml(s.author_name || 'Участник') + '</div>'
             + '</div></div><span class="list-arrow" style="margin-left:8px">›</span></a>';
         }).join('')
@@ -5204,7 +5204,7 @@
       + '<div class="home-poster-preview-pop-title">' + escapeHtml(title) + '</div>'
       + (chips ? ('<div class="home-poster-preview-pop-meta">' + chips + '</div>') : '')
       + '<div class="home-poster-preview-pop-desc' + (desc ? '' : ' is-loading') + '">'
-      + (desc ? escapeHtml(desc) : t('site.cabinet.str_f20cf0', 'Загружаем описание…'))
+      + (desc ? escapeHtml(desc) : 'Загружаем описание…')
       + '</div></div>';
   }
 
@@ -5379,7 +5379,7 @@
     const posterBell = (extraClass || '').indexOf('premiere-poster-bell') >= 0;
     const cls = ['premiere-bell-btn', extraClass || '', posterBell ? 'premiere-poster-bell--overlay' : '', active ? 'active' : ''].filter(Boolean).join(' ');
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
-    const label = active ? 'Отслеживается' : t('site.cabinet.str_63182e', 'Отслеживать премьеру');
+    const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
     const icon = active ? mpIcon('bellOff', { size: 'sm' }) : mpIcon('inbox', { size: 'sm' });
     return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
   }
@@ -5891,7 +5891,7 @@
       + tournamentPageHeadbarSiteHtml({
         kicker: 'Итоги',
         title: periodLabel,
-        sub: t('site.cabinet.10_0499df', 'Топ-10 в каждой номинации'),
+        sub: 'Топ-10 в каждой номинации',
         switchBtn: switchBtn,
       })
       + '<div class="tourn-sections">' + body + '</div>'
@@ -5955,7 +5955,7 @@
     const periodKind = _siteTournamentPeriodKind || tournamentDefaultPeriodKindSite();
 
     function showError(hint) {
-      root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint || t('site.cabinet.str_d27df1', 'Не удалось загрузить таблицу')) + '</p>';
+      root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(hint || 'Не удалось загрузить таблицу') + '</p>';
     }
 
     function renderPeriod(kind, nomId) {
@@ -5970,7 +5970,7 @@
           });
         load.then((data) => {
           if (!data || !data.success) {
-            showError(data && data.error === 'timeout' ? t('site.cabinet.str_db9eed', 'Сервер не ответил вовремя — обновите страницу') : t('site.cabinet.str_d27df1', 'Не удалось загрузить таблицу'));
+            showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
             return;
           }
           _siteTournamentActiveNomId = nomId || _siteTournamentActiveNomId || (data.nominations && data.nominations[0] && data.nominations[0].id) || 'ratings_month';
@@ -5988,7 +5988,7 @@
         });
       load.then((data) => {
         if (!data || !data.success) {
-          showError(data && data.error === 'timeout' ? t('site.cabinet.str_db9eed', 'Сервер не ответил вовремя — обновите страницу') : t('site.cabinet.str_d27df1', 'Не удалось загрузить таблицу'));
+          showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
           return;
         }
         root.innerHTML = tournamentResultsPageSiteHtml(data);
@@ -6080,7 +6080,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: t('home.section.upcomingPlans', 'Ближайшие просмотры'), unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
+    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -6177,7 +6177,7 @@
       const q = (ta && ta.value || '').trim();
       if (q.length < 3) {
         if (status) {
-          status.textContent = t('site.cabinet.3_830256', 'Введите хотя бы 3 символа');
+          status.textContent = 'Введите хотя бы 3 символа';
           status.classList.remove('hidden');
         }
         return;
@@ -6190,7 +6190,7 @@
       api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: q }) })
         .then((data) => {
           if (!data || !data.success) {
-            const err = (data && data.message) || (data && data.error) || t('site.cabinet.str_0aec6b', 'Не удалось выполнить поиск');
+            const err = (data && data.message) || (data && data.error) || 'Не удалось выполнить поиск';
             if (status) status.textContent = typeof err === 'string' ? err : 'Ошибка';
             return;
           }
@@ -6218,7 +6218,7 @@
         })
         .catch(() => {
           if (status) {
-            status.textContent = t('site.cabinet.networkError', 'Ошибка сети');
+            status.textContent = 'Ошибка сети';
             status.classList.remove('hidden');
           }
         });
@@ -6266,10 +6266,10 @@
     const pid = parseInt(planId, 10);
     if (!pid || Number.isNaN(pid)) return;
     if (!getToken()) {
-      showToast(t('site.toast.signInRequired', 'Войдите в кабинет'), { type: 'error' });
+      showToast('Войдите в кабинет', { type: 'error' });
       return;
     }
-    showToast(t('site.toast.preparingEventLink', 'Готовим ссылку на событие…'), { duration: 1600 });
+    showToast('Готовим ссылку на событие…', { duration: 1600 });
     api('/api/site/plans/' + pid + '/share', { method: 'POST', body: JSON.stringify({}) })
       .then(function (res) {
         if (!res || res.success === false || !res.share_url) {
@@ -6278,25 +6278,25 @@
           return;
         }
         const url = res.share_url;
-        const line = t('site.cabinet.movie_planner_2c9284', '🎬 Событие в Movie Planner — присоединяйтесь к просмотру');
+        const line = '🎬 Событие в Movie Planner — присоединяйтесь к просмотру';
         if (navigator.share) {
           navigator.share({ title: line, text: line + '\n' + url, url: url }).catch(function () {
             copyToClipboard(url + '\n' + line).then(function () {
-              showToast(t('site.toast.linkCopiedPublic', '📋 Ссылка скопирована — вставьте в паблик или чат'));
+              showToast('📋 Ссылка скопирована — вставьте в паблик или чат');
             }).catch(function () {
               showToast(url);
             });
           });
         } else {
           copyToClipboard(url + '\n' + line).then(function () {
-            showToast(t('site.toast.publicLinkCopied', '📋 Ссылка для паблика скопирована'));
+            showToast('📋 Ссылка для паблика скопирована');
           }).catch(function () {
             showToast(url);
           });
         }
       })
       .catch(function () {
-        showToast(t('site.toast.linkCreateFailed', 'Не удалось создать ссылку'), { type: 'error' });
+        showToast('Не удалось создать ссылку', { type: 'error' });
       });
   }
 
@@ -6310,7 +6310,7 @@
     const titleSafe = escapeHtml(p.title || '');
     const planId = p.id != null ? String(p.id) : '';
     const shareRow = planId
-      ? '<div class="plan-card-share-row"><button type="button" class="btn btn-small plan-card-share-btn" data-plan-share-id="' + escapeHtml(planId) + '" title=t("site.cabinet.str_da86a6", "Публичная страница с датой, группой, вступлением и календарём")>↗ Поделиться событием</button></div>'
+      ? '<div class="plan-card-share-row"><button type="button" class="btn btn-small plan-card-share-btn" data-plan-share-id="' + escapeHtml(planId) + '" title="Публичная страница с датой, группой, вступлением и календарём">↗ Поделиться событием</button></div>'
       : '';
     return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
@@ -6342,7 +6342,7 @@
     }
     const hint = _plansViewFilter === 'home' ? 'Нет планов дома'
       : _plansViewFilter === 'cinema' ? 'Нет планов в кино'
-        : t('site.cabinet.str_bddfea', 'Пока ничего не запланировано');
+        : 'Пока ничего не запланировано';
     return '<div class="plans-list-empty-wrap plans-empty-hub-wrap">'
       + '<p class="empty-hint plans-empty-hub-hint">' + escapeHtml(hint) + '</p>'
       + '<div class="plans-empty-hub" aria-label="Быстрые действия">'
@@ -6456,7 +6456,7 @@
     api('/api/site/plans').then((data) => {
       if (!data.success) {
         if (window._mpApiAuthDegraded) {
-          try { showToast(t('site.toast.plansLoadFailedRefresh', 'Не удалось загрузить планы — обновите страницу'), { type: 'error' }); } catch (_) {}
+          try { showToast('Не удалось загрузить планы — обновите страницу', { type: 'error' }); } catch (_) {}
         }
         return;
       }
@@ -6485,7 +6485,7 @@
       renderPlansList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }).catch(() => {
-      try { showToast(t('site.toast.plansLoadFailed', 'Не удалось загрузить планы'), { type: 'error' }); } catch (_) {}
+      try { showToast('Не удалось загрузить планы', { type: 'error' }); } catch (_) {}
     });
   }
 
@@ -6722,8 +6722,8 @@
       if (!items.length) {
         gridPanel.innerHTML = '<p class="empty-hint">'
           + (_seriesHubTab === 'upcoming'
-            ? t('site.cabinet.str_fbe57e', 'Нет сериалов с ближайшими сериями')
-            : t('site.cabinet.str_7cd518', 'Пока нет рекомендаций — добавьте сериалы в базу'))
+            ? 'Нет сериалов с ближайшими сериями'
+            : 'Пока нет рекомендаций — добавьте сериалы в базу')
           + '</p>';
         return;
       }
@@ -6779,11 +6779,11 @@
         }).then((data) => {
           if (!data || data.success !== true) throw new Error((data && (data.message || data.error)) || 'save_failed');
           seriesItems = seriesItems.map((it) => (String(it.film_id) === String(filmId) ? ({ ...it, has_subscription: !!data.subscribed }) : it));
-          showToast(data.subscribed ? t('site.cabinet.str_4ab716', 'Добавлено в ⏰ Ожидаю') : t('site.cabinet.str_5388da', 'Убрано из ⏰ Ожидаю'));
+          showToast(data.subscribed ? 'Добавлено в ⏰ Ожидаю' : 'Убрано из ⏰ Ожидаю');
           renderSeriesList();
           try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }).catch((e) => {
-          showToast((e && e.message) || t('site.cabinet.str_4d86be', 'Не удалось сохранить'));
+          showToast((e && e.message) || 'Не удалось сохранить');
           btn.disabled = false;
         });
       });
@@ -6999,7 +6999,7 @@
               alert('Debug: ' + JSON.stringify(r.debug, null, 2));
             }
           })
-          .catch(() => alert(t('site.cabinet.debug_fa2f84', 'Ошибка загрузки debug')));
+          .catch(() => alert('Ошибка загрузки debug'));
       });
     }
   }
@@ -7030,7 +7030,7 @@
         if (!data || !data.success) {
           if (error) {
             error.classList.remove('hidden');
-            const msg = (data && data.error) || t('site.cabinet.str_899206', 'Не удалось загрузить статистику.');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
             error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
           }
           return;
@@ -7063,7 +7063,7 @@
       .catch(() => {
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
-        if (error) { error.classList.remove('hidden'); error.textContent = t('site.cabinet.str_c02bfd', 'Сервис статистики пока недоступен.'); }
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
       });
   }
 
@@ -7100,7 +7100,7 @@
         if (!data || !data.success) {
           if (error) {
             error.classList.remove('hidden');
-            const msg = (data && data.error) || t('site.cabinet.str_899206', 'Не удалось загрузить статистику.');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
             error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
           }
           return;
@@ -7121,7 +7121,7 @@
       .catch(() => {
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
-        if (error) { error.classList.remove('hidden'); error.textContent = t('site.cabinet.str_c02bfd', 'Сервис статистики пока недоступен.'); }
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
       });
   }
 
@@ -7187,7 +7187,7 @@
         if (!data || !data.success) {
           if (error) {
             error.classList.remove('hidden');
-            const msg = (data && data.error) || t('site.cabinet.str_899206', 'Не удалось загрузить статистику.');
+            const msg = (data && data.error) || 'Не удалось загрузить статистику.';
             error.textContent = msg + (data && data.debug ? ' [' + data.debug + ']' : '');
           }
           return;
@@ -7216,7 +7216,7 @@
       .catch(() => {
         if (loading) loading.classList.add('hidden');
         if (content) content.style.visibility = '';
-        if (error) { error.classList.remove('hidden'); error.textContent = t('site.cabinet.str_c02bfd', 'Сервис статистики пока недоступен.'); }
+        if (error) { error.classList.remove('hidden'); error.textContent = 'Сервис статистики пока недоступен.'; }
       });
   }
 
@@ -7241,7 +7241,7 @@
     const userId = data.user_id;
     const profile = data.user_profile || {};
     const user = data.user || {};
-    const name = profile.first_name || user.name || user.username || t('site.cabinet.profile', 'Профиль');
+    const name = profile.first_name || user.name || user.username || 'Профиль';
     if (nameEl) nameEl.textContent = name;
     if (userId) {
       link.href = '/u/' + encodeURIComponent(String(userId));
@@ -7350,16 +7350,16 @@
       }
       const groupTitle = (group.title || 'Группа').length > 35 ? (group.title || 'Группа').slice(0, 32) + '…' : (group.title || 'Группа');
       headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(groupTitle) + '</span></h3>' +
-        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + t('site.cabinet.str_3ebb20', ' фильмов за всё время')) + '</div></div>' + shareHtml;
+        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + ' фильмов за всё время') + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
         if (!u) return;
         const self = this;
         copyToClipboard(u).then(() => {
           self.textContent = 'Скопировано!';
-          showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
+          showToast('📋 Ссылка скопирована');
           setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
-        }).catch(() => showToast(t('site.toast.copyFailed', 'Не удалось скопировать'), { type: 'error' }));
+        }).catch(() => showToast('Не удалось скопировать', { type: 'error' }));
       });
       headerEl.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
         const btn = this;
@@ -7374,25 +7374,25 @@
               (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
             } else {
               btn.disabled = false;
-              btn.textContent = t('site.cabinet.str_15927f', 'Включить публичную ссылку');
+              btn.textContent = 'Включить публичную ссылку';
             }
           })
-          .catch(() => { btn.disabled = false; btn.textContent = t('site.cabinet.str_15927f', 'Включить публичную ссылку'); });
+          .catch(() => { btn.disabled = false; btn.textContent = 'Включить публичную ссылку'; });
       });
     }
 
     // Summary cards
     if (summaryEl) {
       const cards = [
-        { val: summary.group_films ?? 0, label: t('site.cabinet.str_3b1cdd', 'Просмотренных фильмов'), cls: 'stat-card-pink', icon: 'library' },
+        { val: summary.group_films ?? 0, label: 'Просмотренных фильмов', cls: 'stat-card-pink', icon: 'library' },
         { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple', icon: 'ratings' },
         { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: 'camera' },
         { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: 'series' },
-        { val: summary.active_members ?? 0, label: t('site.cabinet.str_40a553', 'Активных участников'), cls: 'stat-card-amber', icon: 'friends' }
+        { val: summary.active_members ?? 0, label: 'Активных участников', cls: 'stat-card-amber', icon: 'friends' }
       ];
       summaryEl.innerHTML = cards.map((c) => {
         let scrollTarget = null;
-        if (c.label === t('site.cabinet.str_3b1cdd', 'Просмотренных фильмов')) {
+        if (c.label === 'Просмотренных фильмов') {
           scrollTarget = 'group-watched';
         } else if (c.label === 'Оценок поставлено') {
           scrollTarget = 'group-rating-breakdown';
@@ -7409,7 +7409,7 @@
     // MVP
     if (mvpEl && mvp.user_id != null) {
       const mvpMember = memberById(members, mvp.user_id);
-      const reasonLabels = { most_active: t('site.cabinet.str_f8340a', 'Больше всех смотрел и оценивал'), most_ratings: 'Лидер по оценкам', most_cinema: t('site.cabinet.str_b4af99', 'Больше всех в кино'), most_series: 'Больше всех серий' };
+      const reasonLabels = { most_active: 'Больше всех смотрел и оценивал', most_ratings: 'Лидер по оценкам', most_cinema: 'Больше всех в кино', most_series: 'Больше всех серий' };
       mvpEl.innerHTML = '<div class="stats-mvp-card"><div class="stats-mvp-crown">👑</div><div class="stats-mvp-title">Киноман месяца</div>' +
         groupAvatar(mvpMember, 'xl') +
         '<div class="stats-mvp-name">' + escapeHtml(mvpMember ? (mvpMember.first_name || mvpMember.username || 'Участник') : '') + '</div>' +
@@ -7649,7 +7649,7 @@
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes(t('site.cabinet.str_68dde0', 'Распределение оценок')) || text.includes('📊');
+              return text.includes('Распределение оценок') || text.includes('📊');
             });
           } else if (targetId === 'group-platforms') {
             // Find "Платформы" block
@@ -7931,9 +7931,9 @@
         const self = this;
         copyToClipboard(u).then(() => {
           self.textContent = 'Скопировано!';
-          showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
+          showToast('📋 Ссылка скопирована');
           setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
-        }).catch(() => showToast(t('site.toast.copyFailed', 'Не удалось скопировать'), { type: 'error' }));
+        }).catch(() => showToast('Не удалось скопировать', { type: 'error' }));
       });
       el.classList.remove('hidden');
     } else {
@@ -7951,10 +7951,10 @@
               (function () { const g = window._getStatsMonthYear ? window._getStatsMonthYear() : (function () { const y = document.getElementById('stats-year'); const p = document.getElementById('stats-month-pills'); const a = p && p.querySelector('.month-pill.active'); const m = a ? parseInt(a.getAttribute('data-month'), 10) : now.getMonth() + 1; return { m, y: y ? parseInt(y.value, 10) : now.getFullYear() }; })(); loadStats(g.m, g.y); })();
             } else {
               this.disabled = false;
-              this.textContent = t('site.cabinet.str_15927f', 'Включить публичную ссылку');
+              this.textContent = 'Включить публичную ссылку';
             }
           })
-          .catch(() => { this.disabled = false; this.textContent = t('site.cabinet.str_15927f', 'Включить публичную ссылку'); });
+          .catch(() => { this.disabled = false; this.textContent = 'Включить публичную ссылку'; });
       });
     }
   }
@@ -8088,7 +8088,7 @@
     options = options || {};
     const canEdit = !!options.canEdit;
     const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
-    const title = monthLabel ? t('site.cabinet.str_686e02', '📋 Всё просмотренное за ') + monthLabel : '📋 Просмотренное';
+    const title = monthLabel ? '📋 Всё просмотренное за ' + monthLabel : '📋 Просмотренное';
     if (!list.length) return '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>';
     const itemsHtml = list.map((w) => {
       const poster = posterUrl(w.kp_id);
@@ -8096,7 +8096,7 @@
       const metaDate = dateObj ? (dateObj.getDate() + ' ' + MONTH_SHORT[(dateObj.getMonth())].toLowerCase()) : '';
       const metaStr = metaDate + (w.rating != null ? ' · ⭐ ' + w.rating : '');
       let badgeCls = 'badge-film';
-      let badgeLabel = t('site.cabinet.filmFallback', 'Фильм');
+      let badgeLabel = 'Фильм';
       if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
       else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = 'Сериал'; }
       const dataAttrs = ' data-film-id="' + (w.film_id || '') + '" data-source="' + (w.source || '') + '" data-user-id="' + (w.user_id != null ? String(w.user_id) : '') + '" data-can-change="' + (w.can_change_month && w.source ? '1' : '0') + '"';
@@ -8168,7 +8168,7 @@
         else { alert(res && res.error ? res.error : 'Ошибка'); }
       }).catch(function (err) {
         console.warn('set-watched-month failed', err);
-        alert(t('site.cabinet.str_7d79e8', 'Не удалось сохранить. Проверьте интернет или попробуйте позже.'));
+        alert('Не удалось сохранить. Проверьте интернет или попробуйте позже.');
       });
     });
   }
@@ -8506,7 +8506,7 @@
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
         buildRatingStars(myRating) + '</div></div>' +
-        (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title=t("site.cabinet.str_13bcaf", "Поделиться оценкой") aria-label=t("site.cabinet.str_13bcaf", "Поделиться оценкой")>↗</button>' : '') + '</div>' : '');
+        (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button>' + (!isVirtualRoom ? '<button type="button" class="film-share-mini-btn" data-action="share-rating-modal" title="Поделиться оценкой" aria-label="Поделиться оценкой">↗</button>' : '') + '</div>' : '');
     }
     const planBlock = (authenticated && inBase)
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
@@ -8515,7 +8515,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     const watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')) + '" title="' + (watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
       : '';
     const rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     const rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
@@ -8619,12 +8619,12 @@
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
           .then(function (res) {
             if (res && res.success && res.film_id) {
-              showToast(t('site.toast.filmAdded', 'Фильм добавлен'));
+              showToast('Фильм добавлен');
               return openFilmPage(Number(res.film_id), { skipHistory: true, replace: true, kpId: kpNorm });
             }
             showToast((res && res.error) || 'Не удалось добавить', { type: 'error' });
           })
-          .catch(function () { showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' }); })
+          .catch(function () { showToast('Ошибка сети', { type: 'error' }); })
           .finally(function () { addBtn.disabled = false; });
       });
     }
@@ -8637,9 +8637,9 @@
             if (res && res.success && res.film_id) {
               return openFilmPage(Number(res.film_id), { skipHistory: true, replace: true, kpId: kpNorm, pendingAction: 'plan' });
             }
-            showToast((res && res.error) || t('site.cabinet.str_911168', 'Не удалось подготовить фильм'), { type: 'error' });
+            showToast((res && res.error) || 'Не удалось подготовить фильм', { type: 'error' });
           })
-          .catch(function () { showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' }); });
+          .catch(function () { showToast('Ошибка сети', { type: 'error' }); });
       });
     }
     const rateGrid = root.querySelector('#rate-grid');
@@ -8651,7 +8651,7 @@
           if (!getToken()) { showLoginModalOverlay(); return; }
           api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
             .then(function (addRes) {
-              if (!addRes || !addRes.success || !addRes.film_id) throw new Error((addRes && addRes.error) || t('site.cabinet.str_911168', 'Не удалось подготовить фильм'));
+              if (!addRes || !addRes.success || !addRes.film_id) throw new Error((addRes && addRes.error) || 'Не удалось подготовить фильм');
               const fid = Number(addRes.film_id);
               return api('/api/site/film/' + fid + '/rating', { method: 'POST', body: JSON.stringify({ rating: v }) })
                 .then(function (rateRes) { return { rateRes: rateRes, fid: fid }; });
@@ -8664,7 +8664,7 @@
                 applyCoinsFeedback(btn, Number(res.coins_added) || 0);
                 return openFilmPage(fid, { skipHistory: true, replace: true, kpId: kpNorm });
               }
-              showToast((res && res.error) || t('site.cabinet.str_73d2c5', 'Не удалось поставить оценку'), { type: 'error' });
+              showToast((res && res.error) || 'Не удалось поставить оценку', { type: 'error' });
             })
             .catch(function (e) { showToast((e && e.message) || 'Ошибка оценки', { type: 'error' }); });
         });
@@ -8808,7 +8808,7 @@
       body: JSON.stringify({ rating }),
     }).then((res) => {
       if (!res || !res.success) {
-        showToast((res && (res.message || res.error)) || t('site.cabinet.str_55db21', 'Не удалось сохранить оценку'), { type: 'error' });
+        showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
       if (res.show_tournament_intro) {
@@ -8847,14 +8847,14 @@
       }
       refreshFilmDetailFromApi(filmId);
     }).catch(() => {
-      showToast(t('site.toast.serverNoResponseRetry', 'Сервер не отвечает. Попробуйте позже.'), { type: 'error' });
+      showToast('Сервер не отвечает. Попробуйте позже.', { type: 'error' });
     });
   }
 
   function submitQuickRatingDelete(filmId, context, starBtn) {
     api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
       if (!res || !res.success) {
-        showToast((res && (res.message || res.error)) || t('site.cabinet.str_2203bf', 'Не удалось удалить оценку'), { type: 'error' });
+        showToast((res && (res.message || res.error)) || 'Не удалось удалить оценку', { type: 'error' });
         return;
       }
       closeRatePopover();
@@ -8924,8 +8924,8 @@
     const yaUrl = `https://afisha.yandex.ru/events/?text=${q}`;
     const ramblerUrl = `https://www.rambler.ru/search?query=${q}+%D0%B1%D0%B8%D0%BB%D0%B5%D1%82%D1%8B&utm_source=kassa`;
     const items = [
-      { icon: '🟡', name: t('site.cabinet.str_78c4cd', 'Кинопоиск — сеансы'), url: kpSessionsUrl, sub: t('site.cabinet.str_0548f8', 'Все кинотеатры в одном месте') },
-      { icon: '🔴', name: 'Яндекс.Афиша', url: yaUrl, sub: t('site.cabinet.str_6d8e6f', 'Сеансы и покупка билета') },
+      { icon: '🟡', name: 'Кинопоиск — сеансы', url: kpSessionsUrl, sub: 'Все кинотеатры в одном месте' },
+      { icon: '🔴', name: 'Яндекс.Афиша', url: yaUrl, sub: 'Сеансы и покупка билета' },
       { icon: '🟣', name: 'Рамблер/касса', url: ramblerUrl, sub: 'Поиск сеансов' },
     ];
     const pop = document.createElement('div');
@@ -8955,7 +8955,7 @@
       <div class="tv-launch-box" style="position:relative">
         <button type="button" class="tv-launch-close" aria-label="Закрыть">×</button>
         <h3>📺 Запуск на ТВ</h3>
-        <div class="tv-launch-sub">${escapeHtml(title || t('site.cabinet.filmFallback', 'Фильм'))}</div>
+        <div class="tv-launch-sub">${escapeHtml(title || 'Фильм')}</div>
         <div id="tv-launch-content"><div style="color:var(--text-muted,#aaa);padding:16px 0;">Отправляю команду…</div></div>
       </div>`;
     document.body.appendChild(modal);
@@ -8998,8 +8998,8 @@
       wrap.innerHTML = settingsToggleRow({
         id: 'ext-auto-mark-episodes',
         emoji: '✅',
-        title: t('site.cabinet.str_ff0b61', 'Отмечать серии автоматически'),
-        hint: t('site.cabinet.str_eed475', 'При распознавании серии на сайте'),
+        title: 'Отмечать серии автоматически',
+        hint: 'При распознавании серии на сайте',
         checked: autoMark,
       });
       const input = document.getElementById('ext-auto-mark-episodes');
@@ -9013,11 +9013,11 @@
           }).then((res) => {
             if (!res || !res.success) {
               input.checked = !want;
-              alert((res && res.error) || t('site.cabinet.str_4d86be', 'Не удалось сохранить'));
+              alert((res && res.error) || 'Не удалось сохранить');
             }
           }).catch(() => {
             input.checked = !want;
-            alert(t('site.cabinet.str_4d86be', 'Не удалось сохранить'));
+            alert('Не удалось сохранить');
           });
         });
       }
@@ -9078,7 +9078,7 @@
       if (disconnectBtn && !disconnectBtn._bound) {
         disconnectBtn._bound = true;
         disconnectBtn.addEventListener('click', () => {
-          if (!window.confirm(t('site.cabinet.str_915a74', 'Отключить телевизор? Кнопка «На ТВ» исчезнет с карточек фильмов.'))) return;
+          if (!window.confirm('Отключить телевизор? Кнопка «На ТВ» исчезнет с карточек фильмов.')) return;
           api('/api/site/tv/settings', {
             method: 'POST',
             body: JSON.stringify({ tv_type: null }),
@@ -9098,7 +9098,7 @@
       const status = document.getElementById('tv-current-status');
       if (status) {
         const names = {
-          android_tv: t('site.cabinet.android_tv_google_tv_d74d87', 'Android TV / Яндекс ТВ / Google TV'),
+          android_tv: 'Android TV / Яндекс ТВ / Google TV',
           samsung: 'Samsung Smart TV (Tizen)',
           lg: 'LG Smart TV (WebOS)',
           other: 'Smart TV',
@@ -9139,7 +9139,7 @@
       const badge = document.getElementById('tv-agent-status-badge');
       if (badge) {
         if (tvSettings.agent_token_exists) {
-          badge.textContent = tvSettings.agent_online ? 'онлайн' : t('site.cabinet.str_607f83', 'токен сгенерирован');
+          badge.textContent = tvSettings.agent_online ? 'онлайн' : 'токен сгенерирован';
           badge.classList.toggle('online', !!tvSettings.agent_online);
         } else {
           badge.textContent = 'не подключён';
@@ -9177,7 +9177,7 @@
       if (resetBtn && !resetBtn._bound) {
         resetBtn._bound = true;
         resetBtn.addEventListener('click', () => {
-          if (!confirm(t('site.cabinet.str_4dfe0b', 'Сбросить токен агента? Старый агент перестанет работать.'))) return;
+          if (!confirm('Сбросить токен агента? Старый агент перестанет работать.')) return;
           api('/api/site/tv/agent', { method: 'DELETE' }).then((data) => {
             if (data && data.success) {
               tvSettings.agent_token_exists = false;
@@ -9449,7 +9449,7 @@
     }).catch(function () {
       if (content) {
         content.className = 'film-modal-content loading';
-        content.innerHTML = t('site.cabinet.networkError', 'Ошибка сети');
+        content.innerHTML = 'Ошибка сети';
       }
     });
   }
@@ -9471,7 +9471,7 @@
       '<div class="film-modal-poster-wrap">'
       + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<div style="color:#665;">🎬</div>')
       + '</div><div class="film-modal-info">'
-      + '<h2>' + escapeHtml(film.title || t('site.cabinet.filmFallback', 'Фильм')) + ' <span style="opacity:.6;font-weight:400;">' + escapeHtml(String(year)) + '</span></h2>'
+      + '<h2>' + escapeHtml(film.title || 'Фильм') + ' <span style="opacity:.6;font-weight:400;">' + escapeHtml(String(year)) + '</span></h2>'
       + '<div class="film-modal-meta">' + genres + '</div>'
       + '<p class="cabinet-hint">Фильма пока нет в базе — добавьте, чтобы ставить оценки и планировать просмотр.</p>'
       + '<div class="film-modal-actions">'
@@ -9548,12 +9548,12 @@
   function openFilmPage(filmId, opts) {
     const o = opts || {};
     if (!getToken()) {
-      showToast(t('site.toast.signInRequired', 'Войдите в кабинет'));
+      showToast('Войдите в кабинет');
       return;
     }
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) {
-      showToast(t('site.toast.filmPageUnavailable', 'Страница фильма недоступна'));
+      showToast('Страница фильма недоступна');
       return;
     }
     closeAddFilmModal();
@@ -9691,8 +9691,8 @@
   function isFilmDescPlaceholder(text) {
     const s = String(text || '').trim().toLowerCase();
     if (!s) return true;
-    if (s.startsWith(t('site.cabinet.movie_planner_83dfe3', 'откройте в movie planner'))) return true;
-    if (s.startsWith(t('site.cabinet.movie_planner_edf114', 'откройте фильм в movie planner'))) return true;
+    if (s.startsWith('откройте в movie planner')) return true;
+    if (s.startsWith('откройте фильм в movie planner')) return true;
     return false;
   }
 
@@ -9737,7 +9737,7 @@
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = posterUrl(film.kp_id);
-    const titleText = (film.title || t('site.cabinet.filmFallback', 'Фильм')) + (film.year ? ' (' + film.year + ')' : '');
+    const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
@@ -9953,7 +9953,7 @@
     const watchedHtml = `
       <button type="button" class="watched-toggle ${film.watched ? 'on' : ''}" data-action="toggle-watched">
         <span class="wt-mark">${film.watched ? '✓' : ''}</span>
-        <span>${film.watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')}</span>
+        <span>${film.watched ? 'Просмотрен' : 'Отметить просмотренным'}</span>
       </button>`;
 
     // Actions
@@ -10105,7 +10105,7 @@
   function setRating(filmId, rating, anchorBtn) {
     const cache = _filmModalCache[filmId];
     if (cache && cache.film && cache.film.is_virtual_room && cache.film.can_rate_in_group === false) {
-      showToast(t('site.toast.ratingAdminsOnly', 'В группе оценки ставят только админы и создатель.'), { type: 'error' });
+      showToast('В группе оценки ставят только админы и создатель.', { type: 'error' });
       return;
     }
     api('/api/site/film/' + filmId + '/rating', {
@@ -10113,7 +10113,7 @@
       body: JSON.stringify({ rating }),
     }).then(function (res) {
       if (!res || !res.success) {
-        showToast((res && (res.message || res.error)) || t('site.cabinet.str_55db21', 'Не удалось сохранить оценку'), { type: 'error' });
+        showToast((res && (res.message || res.error)) || 'Не удалось сохранить оценку', { type: 'error' });
         return;
       }
       applyCoinsFeedback(anchorBtn, Number(res.coins_added) || 0);
@@ -10128,20 +10128,20 @@
         } catch (e) {}
       });
     }).catch(function () {
-      showToast(t('site.toast.serverNoResponse', 'Сервер не отвечает'), { type: 'error' });
+      showToast('Сервер не отвечает', { type: 'error' });
     });
   }
 
   function deleteRating(filmId) {
     api('/api/site/film/' + filmId + '/rating', { method: 'DELETE' }).then((res) => {
       if (!res || !res.success) {
-        showToast((res && (res.message || res.error)) || t('site.cabinet.str_2203bf', 'Не удалось удалить оценку'), { type: 'error' });
+        showToast((res && (res.message || res.error)) || 'Не удалось удалить оценку', { type: 'error' });
         return;
       }
       removeRatingFromLists(filmId);
       refreshFilmDetailFromApi(filmId);
     }).catch(() => {
-      showToast(t('site.toast.serverNoResponse', 'Сервер не отвечает'), { type: 'error' });
+      showToast('Сервер не отвечает', { type: 'error' });
     });
   }
 
@@ -10223,7 +10223,7 @@
       setTimeout(() => input.focus(), 30);
     }
     const status = document.getElementById('add-film-status');
-    if (status) { status.textContent = t('site.cabinet.str_317fb2', 'Начните вводить название или вставьте ссылку.'); status.className = 'add-film-status'; }
+    if (status) { status.textContent = 'Начните вводить название или вставьте ссылку.'; status.className = 'add-film-status'; }
     const results = document.getElementById('add-film-results');
     if (results) results.innerHTML = '';
   }
@@ -10237,7 +10237,7 @@
 
   function renderAddSearchMovieCard(it) {
     const poster = it.poster || '';
-    const meta = [it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм'), it.year].filter(Boolean).join(' · ');
+    const meta = [it.type === 'series' ? 'Сериал' : 'Фильм', it.year].filter(Boolean).join(' · ');
     const inBase = it.already_in_base_film_id;
     const addBtn = inBase
       ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
@@ -10301,7 +10301,7 @@
     const status = document.getElementById('add-film-status');
     const results = document.getElementById('add-film-results');
     if (!query || query.length < 2) {
-      if (status) { status.textContent = t('site.cabinet.2_675066', 'Введите минимум 2 символа.'); status.className = 'add-film-status'; }
+      if (status) { status.textContent = 'Введите минимум 2 символа.'; status.className = 'add-film-status'; }
       if (results) results.innerHTML = '';
       return;
     }
@@ -10320,7 +10320,7 @@
         const items = data.items || [];
         const people = (peopleData && peopleData.success && Array.isArray(peopleData.users)) ? peopleData.users : [];
         if (!items.length && !people.length) {
-          if (status) { status.textContent = t('site.cabinet.str_d5eb53', 'Ничего не нашлось.'); status.className = 'add-film-status'; }
+          if (status) { status.textContent = 'Ничего не нашлось.'; status.className = 'add-film-status'; }
           if (results) results.innerHTML = '';
           return;
         }
@@ -10337,14 +10337,14 @@
                 if (!r || r.success === false) {
                   btn.disabled = false;
                   btn.textContent = 'Добавить';
-                  showToast((r && r.error) || t('site.cabinet.str_9832d6', 'Не удалось отправить запрос'), { type: 'error' });
+                  showToast((r && r.error) || 'Не удалось отправить запрос', { type: 'error' });
                   return;
                 }
                 btn.textContent = 'Запрос отправлен';
               }).catch(() => {
                 btn.disabled = false;
                 btn.textContent = 'Добавить';
-                showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+                showToast('Ошибка сети', { type: 'error' });
               });
             });
           });
@@ -10352,7 +10352,7 @@
       })
       .catch(() => {
         if (seq !== _addFilmSearchSeq) return;
-        if (status) { status.textContent = t('site.cabinet.str_581327', 'Ошибка сети. Повторите попытку.'); status.className = 'add-film-status error'; }
+        if (status) { status.textContent = 'Ошибка сети. Повторите попытку.'; status.className = 'add-film-status error'; }
       });
   }
 
@@ -10368,7 +10368,7 @@
         if (!data || !data.success) {
           if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
           const status = document.getElementById('add-film-status');
-          if (status) { status.textContent = (data && data.error) || t('site.cabinet.str_510037', 'Не удалось добавить фильм.'); status.className = 'add-film-status error'; }
+          if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
           return;
         }
         if (btn) {
@@ -10394,11 +10394,11 @@
 
   function pickAddFilmByLink(link) {
     const status = document.getElementById('add-film-status');
-    if (status) { status.textContent = t('site.cabinet.str_22f2a9', 'Добавляем по ссылке…'); status.className = 'add-film-status'; }
+    if (status) { status.textContent = 'Добавляем по ссылке…'; status.className = 'add-film-status'; }
     return api('/api/site/add-film/by-link', { method: 'POST', body: JSON.stringify({ link }) })
       .then((data) => {
         if (!data || !data.success) {
-          if (status) { status.textContent = (data && data.error) || t('site.cabinet.str_5da7d9', 'Не удалось распознать ссылку.'); status.className = 'add-film-status error'; }
+          if (status) { status.textContent = (data && data.error) || 'Не удалось распознать ссылку.'; status.className = 'add-film-status error'; }
           return false;
         }
         if (status) { status.textContent = data.already_existed ? 'Фильм уже в базе.' : '✓ Фильм добавлен!'; status.className = 'add-film-status'; }
@@ -10487,7 +10487,7 @@
     if (!f) return;
     const fid = f.film_id != null ? f.film_id : f.id;
     if (!fid) return;
-    const row = { film_id: Number(fid), title: f.title || t('site.cabinet.filmFallback', 'Фильм'), kp_id: f.kp_id };
+    const row = { film_id: Number(fid), title: f.title || 'Фильм', kp_id: f.kp_id };
     const a = _readJsonLs(LS_FILM_RECENT, []);
     const next = [row].concat(a.filter((x) => String(x.film_id) !== String(row.film_id))).slice(0, 8);
     _writeJsonLs(LS_FILM_RECENT, next);
@@ -10551,7 +10551,7 @@
     const top = items.slice(0, 6);
     dd.innerHTML = top.map((it) => {
       const poster = cleanPosterUrl(it.poster);
-      const typeLabel = it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм');
+      const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
       const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
       const inBase = it.already_in_base_film_id;
       const isPublicSearch = !getToken();
@@ -10616,8 +10616,8 @@
   const SITE_SEARCH_YEAR_MIN = 1900;
   const SITE_SEARCH_YEAR_MAX = new Date().getFullYear() + 2;
   const SITE_SEARCH_GENRE_QUICK = [
-    t('search.genre.drama', 'драма'), t('search.genre.comedy', 'комедия'), t('search.genre.thriller', 'триллер'), t('search.genre.scifi', 'фантастика'), t('search.genre.action', 'боевик'), t('search.genre.horror', 'ужасы'),
-    t('search.genre.mystery', 'детектив'), t('search.genre.romance', 'мелодрама'), t('search.genre.family', 'семейный'), 'анимация',
+    'драма', 'комедия', 'триллер', 'фантастика', 'боевик', 'ужасы',
+    'детектив', 'мелодрама', 'семейный', 'анимация',
   ];
   let _siteSearchFilterState = {
     type: 'any',
@@ -10805,7 +10805,7 @@
     const root = getSiteSearchRoot();
     if (!root) return;
     showSiteSearchScreen();
-    try { document.title = t('site.cabinet.movie_planner_63a837', 'Поиск · Movie Planner'); } catch (_) {}
+    try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
     const q = String((initial && initial.q) || '').trim();
     root.innerHTML = `
       <section class="site-search-page" id="site-search-page">
@@ -10813,7 +10813,7 @@
           <h1 class="site-search-title">Поиск</h1>
           <form class="site-search-controls" id="site-search-form">
             <div class="site-search-field">
-              <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder=t("site.cabinet.str_f80dc8", "Название фильма, сериала, имя…") autocomplete="off">
+              <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
               <button type="button" class="site-search-mic" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
             </div>
             <button class="site-search-submit" type="submit">Найти</button>
@@ -10910,7 +10910,7 @@
     if (q.length < 2) {
       results.innerHTML = '';
       siteSearchSetFilterToolbarVisible(false);
-      if (status) status.textContent = t('site.cabinet.2_910a4a', 'Введите не менее 2 символов');
+      if (status) status.textContent = 'Введите не менее 2 символов';
       return;
     }
     siteSearchSetFilterToolbarVisible(true);
@@ -10937,7 +10937,7 @@
         if (status) status.textContent = items.length ? 'Найдено: ' + items.length : 'Ничего не нашлось';
         results.innerHTML = items.map((it) => {
           const poster = cleanPosterUrl(it.poster);
-          const typeLabel = it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм');
+          const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
           const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
           const kpAttr = escapeHtml(String(it.kp_id || ''));
           if (getToken()) {
@@ -10974,14 +10974,14 @@
     if (!mic || !input || mic._mpVox) return;
     mic._mpVox = true;
     mic.addEventListener('click', () => {
-      if (!getToken()) { showToast(t('site.toast.signInRequired', 'Войдите в кабинет')); return; }
+      if (!getToken()) { showToast('Войдите в кабинет'); return; }
       if (mic._mpRec) {
         const r = mic._mpRecorder;
         if (r && r.state === 'recording') { try { r.stop(); } catch (e) {} }
         return;
       }
       if (mic._mpPending) return;
-      if (!navigator.mediaDevices || !window.MediaRecorder) { showToast(t('site.toast.micUnsupported', 'В браузере нет записи с микрофона')); return; }
+      if (!navigator.mediaDevices || !window.MediaRecorder) { showToast('В браузере нет записи с микрофона'); return; }
       mic._mpPending = true;
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         mic._mpPending = false;
@@ -10995,7 +10995,7 @@
           mic._mpRecorder = null;
           mic.classList.remove('recording');
           mic._mpRec = false;
-          if (!ch.length) { showToast(t('site.toast.emptyRecording', 'Пустая запись')); return; }
+          if (!ch.length) { showToast('Пустая запись'); return; }
           const blob = new Blob(ch, { type: rec.mimeType || 'audio/webm' });
           const fd = new FormData();
           fd.append('audio', blob, 'q.webm');
@@ -11012,14 +11012,14 @@
                   runSiteSearchPage();
                 }
               } else {
-                showToast(t('site.toast.voiceRetry', 'Не распознали. Повторите или введите текст'));
+                showToast('Не распознали. Повторите или введите текст');
               }
             })
-            .catch(() => { showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети'))); });
+            .catch(() => { showToast('Ошибка сети'); });
         };
         mic._mpRec = true; mic.classList.add('recording');
         rec.start(100);
-      }).catch(() => { mic._mpPending = false; showToast(t('site.toast.micDenied', 'Нет доступа к микрофону')); });
+      }).catch(() => { mic._mpPending = false; showToast('Нет доступа к микрофону'); });
     });
   }
 
@@ -11176,9 +11176,9 @@
     const heroName = document.getElementById('cabinet-user-name');
     const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
-    nameEl.textContent = me.name || t('site.cabinet.profile', 'Профиль');
+    nameEl.textContent = me.name || 'Профиль';
     if (kickerEl) kickerEl.textContent = greetingByHour() + ',';
-    if (heroName) heroName.textContent = (me.name || t('site.cabinet.profile', 'Профиль')) + '!';
+    if (heroName) heroName.textContent = (me.name || 'Профиль') + '!';
     let heroAvatarUrl = me.photo_url || me.avatar_url || '';
     if (!heroAvatarUrl && me.is_group_profile && me.room_emoji && (/^https?:\/\//i.test(me.room_emoji) || String(me.room_emoji).startsWith('/api/'))) {
       heroAvatarUrl = me.room_emoji;
@@ -11212,7 +11212,7 @@
     menu.innerHTML = '<div class="profile-menu-hint">Загружаем профили…</div>';
     api('/api/site/profiles').then((data) => {
       if (!data || !data.success) {
-        menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || t('site.cabinet.str_421e91', 'Не удалось загрузить профили')) + '</div>';
+        menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
         return;
       }
       const profiles = data.profiles || [];
@@ -11227,7 +11227,7 @@
           : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
         const typeLabel = groupKindLabel(p).toLowerCase();
         const active = p.is_active || String(p.chat_id) === String(activeChatId);
-        const disp = escapeHtml(p.display_name || p.name || t('site.cabinet.profile', 'Профиль'));
+        const disp = escapeHtml(p.display_name || p.name || 'Профиль');
         const nameHtml = active
           ? `<div class="profile-menu-item-name profile-menu-item-name-active">${disp}</div>`
           : `<div class="profile-menu-item-name">${disp}</div>`;
@@ -11259,7 +11259,7 @@
   function switchProfileTo(chatId) {
     api('/api/site/profiles/switch', { method: 'POST', body: JSON.stringify({ target_chat_id: Number(chatId) }) }).then((data) => {
       if (!data || !data.success) {
-        alert((data && data.error) || t('site.cabinet.str_b930d6', 'Не удалось переключить профиль.'));
+        alert((data && data.error) || 'Не удалось переключить профиль.');
         return;
       }
       const sessions = getSessions();
@@ -11304,9 +11304,9 @@
   // ————————————————————————————————————————————————————
 
   const WTW_GENRES_FALLBACK = [
-    t('search.genre.drama', 'драма'), t('search.genre.comedy', 'комедия'), t('search.genre.thriller', 'триллер'), t('search.genre.scifi', 'фантастика'), t('search.genre.fantasy', 'фэнтези'), t('search.genre.action', 'боевик'),
-    t('search.genre.mystery', 'детектив'), t('search.genre.romance', 'мелодрама'), t('search.genre.adventure', 'приключения'), t('search.genre.horror', 'ужасы'), t('search.genre.crime', 'криминал'), t('search.genre.animation', 'мультфильм'),
-    t('search.genre.biography', 'биография'), t('search.genre.history', 'история'), t('search.genre.war', 'военный'), t('search.genre.family', 'семейный'), t('search.genre.anime', 'аниме'), t('search.genre.documentary', 'документальный'),
+    'драма', 'комедия', 'триллер', 'фантастика', 'фэнтези', 'боевик',
+    'детектив', 'мелодрама', 'приключения', 'ужасы', 'криминал', 'мультфильм',
+    'биография', 'история', 'военный', 'семейный', 'аниме', 'документальный',
   ];
   const WTW_YEAR_PRESETS = [
     { label: 'Любой', from: undefined, to: undefined },
@@ -11332,8 +11332,8 @@
       icon: 'watchlist',
       label: 'Непросмотренные',
       modes: [
-        { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: t('site.cabinet.str_cd4bb1', 'Из ваших непросмотренных') },
-        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: t('site.cabinet.str_f31613', 'Жанры, годы, режиссёр, актёр') },
+        { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из ваших непросмотренных' },
+        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
       ],
     },
     world: {
@@ -11341,10 +11341,10 @@
       icon: 'globe',
       label: 'Со всего мира',
       modes: [
-        { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: t('site.cabinet.str_145759', 'Из всех фильмов или свежие премьеры') },
-        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: t('site.cabinet.str_361ac9', 'Жанры, годы, рейтинг') },
-        { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: 'По оценкам в базе', hint: t('site.cabinet.str_68aa0c', 'Похожие на ваши высокие оценки, ещё не в базе') },
-        { id: 'premieres_reco', kind: 'premieres_reco', icon: 'ticket', title: t('site.cabinet.str_ae86be', 'Рекомендации премьер'), hint: t('site.cabinet.str_6ec074', 'Новинки в прокате по вашему вкусу') },
+        { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из всех фильмов или свежие премьеры' },
+        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
+        { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: 'По оценкам в базе', hint: 'Похожие на ваши высокие оценки, ещё не в базе' },
+        { id: 'premieres_reco', kind: 'premieres_reco', icon: 'ticket', title: 'Рекомендации премьер', hint: 'Новинки в прокате по вашему вкусу' },
       ],
     },
   };
@@ -11377,7 +11377,7 @@
   function sitePickFilmDesc(film, fallback) {
     const d = String((film && film.description) || '').replace(/\s+/g, ' ').trim();
     if (d) return d.length > 320 ? d.slice(0, 320).replace(/\s+\S*$/, '') + '…' : d;
-    return fallback || t('site.cabinet.str_e21dce', 'Откройте страницу фильма — там полное описание и действия с базой.');
+    return fallback || 'Откройте страницу фильма — там полное описание и действия с базой.';
   }
 
   function renderSitePickResultCard(film, opts) {
@@ -11457,7 +11457,7 @@
     api('/api/miniapp/random', { method: 'POST', body: JSON.stringify({ mode: mode }) })
       .then((data) => {
         if (!data || !data.film) {
-          const msg = (data && data.message) || t('site.cabinet.str_74cfa7', 'Нет подходящих фильмов. Попробуйте другой режим.');
+          const msg = (data && data.message) || 'Нет подходящих фильмов. Попробуйте другой режим.';
           if (root) root.innerHTML = '<div class="site-pick-empty">' + escapeHtml(msg) + '</div>';
           return;
         }
@@ -11734,12 +11734,12 @@
           if (res && res.film) state.film = res.film;
           else {
             state.film = null;
-            state.status = t('site.cabinet.str_a3f7b7', 'Под эти фильтры ничего не нашлось. Попробуйте смягчить условия.');
+            state.status = 'Под эти фильтры ничего не нашлось. Попробуйте смягчить условия.';
           }
         })
         .catch((e) => {
           state.film = null;
-          state.status = (e && e.message) || t('site.cabinet.str_ac0e99', 'Не удалось подобрать фильм');
+          state.status = (e && e.message) || 'Не удалось подобрать фильм';
         })
         .finally(() => {
           state.loading = false;
@@ -11760,7 +11760,7 @@
       if (state.step === 'source') {
         inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Откуда подбирать?</h3>'
           + ['library', 'kp', 'auto'].map((src) => {
-            const labels = { library: [t('site.cabinet.str_246ddf', '🧺 Из вашей библиотеки'), t('site.cabinet.str_f03afa', 'Фильмы, которые вы добавили')], kp: ['🎬 С Кинопоиска', 'Из всей базы KP'], auto: ['✨ Смешанно', t('site.cabinet.str_739995', 'Сначала ваша база, затем Кинопоиск')] };
+            const labels = { library: ['🧺 Из вашей библиотеки', 'Фильмы, которые вы добавили'], kp: ['🎬 С Кинопоиска', 'Из всей базы KP'], auto: ['✨ Смешанно', 'Сначала ваша база, затем Кинопоиск'] };
             const L = labels[src];
             return '<button type="button" class="wtw-wizard-opt' + (state.source === src ? ' wtw-wizard-opt--on' : '') + '" data-src="' + src + '"><span class="wtw-wizard-opt-title">' + L[0] + '</span><span class="wtw-wizard-opt-hint">' + L[1] + '</span><span class="wtw-wizard-opt-check">' + (state.source === src ? '✓' : '') + '</span></button>';
           }).join('')
@@ -11936,7 +11936,7 @@
     const tok = getToken();
     if (!tok) {
       copyBtn.disabled = true;
-      if (hintEl) hintEl.textContent = t('site.cabinet.str_63fdc2', 'Войдите в кабинет — токен доступен после входа.');
+      if (hintEl) hintEl.textContent = 'Войдите в кабинет — токен доступен после входа.';
       return;
     }
     copyBtn.disabled = false;
@@ -11948,15 +11948,15 @@
         .then((r) => r.json().catch(() => ({})))
         .then((j) => {
           if (!j || !j.success || !j.token) {
-            if (hintEl) hintEl.textContent = (j && j.error) ? String(j.error) : t('site.cabinet.str_dc5853', 'Не удалось получить токен. Обновите страницу.');
+            if (hintEl) hintEl.textContent = (j && j.error) ? String(j.error) : 'Не удалось получить токен. Обновите страницу.';
             return;
           }
           if (baseEl && j.api_base_url) baseEl.textContent = j.api_base_url;
           return copyToClipboard(j.token)
-            .then(() => { showToast(t('site.toast.tokenCopied', 'Токен скопирован')); })
+            .then(() => { showToast('Токен скопирован'); })
             .catch(() => { alert('Не удалось скопировать'); });
         })
-        .catch(() => { alert(t('site.cabinet.networkError', 'Ошибка сети')); });
+        .catch(() => { alert('Ошибка сети'); });
     });
   }
 
@@ -12071,7 +12071,7 @@
 
     const lead = hasPaid
       ? 'Активен план <b>' + escapeHtml(proLabel) + '</b>. Для полного доступа оформите PRO.'
-      : t('site.cabinet.str_4ec5d1', 'Рекомендации, билеты и сериалы без монетных лимитов.');
+      : 'Рекомендации, билеты и сериалы без монетных лимитов.';
 
     return '<div class="settings-billing-free">'
       + '<p class="settings-billing-lead">' + lead + '</p>'
@@ -12093,7 +12093,7 @@
         if (!loc) return;
         api('/api/miniapp/settings', { method: 'POST', body: JSON.stringify({ ui_locale: loc }) })
           .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.common.loadFailed', t('site.cabinet.str_4d86be', 'Не удалось сохранить')), false); return; }
+            if (!r || !r.success) { setStatus(t('site.common.loadFailed', 'Не удалось сохранить'), false); return; }
             if (window.SiteI18n && window.SiteI18n.persistLocale) {
               window.SiteI18n.persistLocale(loc, null);
             } else if (window.MP_I18N && window.MP_I18N.setLocale) {
@@ -12104,16 +12104,16 @@
               b.classList.toggle('active', b.getAttribute('data-ui-locale') === loc);
             });
           })
-          .catch(() => setStatus(t('site.common.networkError', t('site.cabinet.networkError', 'Ошибка сети')), false));
+          .catch(() => setStatus(t('site.common.networkError', 'Ошибка сети'), false));
       });
     });
     const saveNotif = (partial) => {
       api('/api/miniapp/settings', { method: 'POST', body: JSON.stringify({ notifications: partial }) })
         .then((r) => {
-          if (!r || !r.success) { setStatus(t('site.common.loadFailed', t('site.cabinet.str_70fb57', 'Не удалось сохранить уведомления')), false); return; }
+          if (!r || !r.success) { setStatus(t('site.common.loadFailed', 'Не удалось сохранить уведомления'), false); return; }
           setStatus(t('common.saved', 'Сохранено'), true);
         })
-        .catch(() => setStatus(t('site.common.networkError', t('site.cabinet.networkError', 'Ошибка сети')), false));
+        .catch(() => setStatus(t('site.common.networkError', 'Ошибка сети'), false));
     };
     const tgN = root.querySelector('#settings-notify-tg');
     if (tgN) tgN.addEventListener('change', () => saveNotif({ notify_telegram: !!tgN.checked }));
@@ -12130,14 +12130,14 @@
         }).then((r) => {
           if (!r || !r.success) {
             collHomeEl.checked = !want;
-            setStatus(t('site.cabinet.str_4d86be', 'Не удалось сохранить'), false);
+            setStatus('Не удалось сохранить', false);
             return;
           }
           setStatus('Сохранено', true);
           try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }).catch(() => {
           collHomeEl.checked = !want;
-          setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false);
+          setStatus('Ошибка сети', false);
         });
       });
     }
@@ -12189,7 +12189,7 @@
         const list = root.querySelector('#settings-home-sections-list');
         if (list) list.innerHTML = buildSettingsHomeSectionsListHtml();
         try { scheduleHomeDashboardRefresh(); } catch (_) {}
-        setStatus(t('site.cabinet.str_392199', 'Порядок восстановлен'), true);
+        setStatus('Порядок восстановлен', true);
       });
     }
 
@@ -12197,7 +12197,7 @@
       btn.addEventListener('click', () => {
         const accept = root.querySelector('#settings-billing-accept');
         if (accept && !accept.checked) {
-          setStatus(t('site.cabinet.str_56ef90', 'Отметьте принятие условий оплаты'), false);
+          setStatus('Отметьте принятие условий оплаты', false);
           return;
         }
         const period = btn.getAttribute('data-billing-period');
@@ -12217,7 +12217,7 @@
             window.location.href = r.confirmation_url;
             return;
           }
-          setStatus((r && (r.message || r.error)) || t('site.cabinet.str_515b1c', 'Не удалось создать платёж'), false);
+          setStatus((r && (r.message || r.error)) || 'Не удалось создать платёж', false);
           btn.disabled = false;
         }).catch(() => {
           setStatus('Ошибка оплаты', false);
@@ -12329,12 +12329,12 @@
       }
       const name = (u.first_name || u.username)
         ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
-        : t('site.cabinet.profile', 'Профиль');
+        : 'Профиль';
       const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
       const hasPaid = !!(sub && sub.active);
       const friendsCount = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
       const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
-      const downloadHint = t('site.cabinet.android_iphone_1939fc', 'Android или iPhone');
+      const downloadHint = 'Android или iPhone';
       const avatarUrl = resolveProfileAvatarUrl(u);
       const statsHtml = totals ? (
         '<div class="profile-hub-stats">'
@@ -12356,14 +12356,14 @@
         + '</div>'
         + statsHtml
         + '<div class="mp-list">'
-        + profileListItemHtml('Друзья и группы', t('site.cabinet.str_3bba9e', 'Друзья, активность, группы'), { icon: 'friends', section: 'groups' })
-        + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : t('site.cabinet.str_9bb532', 'Тарифы и оформление')), { icon: 'creditCard', sub: 'billing' })
-        + profileListItemHtml('Интеграции', t('site.cabinet.str_1a2834', 'Нейросети, расширение и телевизор'), { icon: 'integrations', section: 'integrations' })
-        + profileListItemHtml('Коллекции', t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
-        + profileListItemHtml('Настройки', t('site.cabinet.str_c78762', 'Тема, импорт, уведомления'), { icon: 'gear', sub: 'settings' })
-        + profileListItemHtml(t('site.landing.downloadApp', 'Скачать приложение'), downloadHint, { icon: 'phone', id: 'profile-hub-download' })
+        + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
+        + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
+        + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { icon: 'integrations', section: 'integrations' })
+        + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
+        + profileListItemHtml('Настройки', 'Тема, импорт, уведомления', { icon: 'gear', sub: 'settings' })
+        + profileListItemHtml('Скачать приложение', downloadHint, { icon: 'phone', id: 'profile-hub-download' })
         + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
-        + profileListItemHtml('О сервисе', t('site.cabinet.str_5f03cd', 'Автор, миссия и ссылки'), { icon: 'about', section: 'about' })
+        + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
         + '</div>'
         + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
         + '</div>';
@@ -12404,7 +12404,7 @@
     const homeEmoji = loadHomeEmojiVis();
     const name = (u.first_name || u.username)
       ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
-      : t('site.menu.profile', t('site.cabinet.profile', 'Профиль'));
+      : t('site.menu.profile', 'Профиль');
     const avatarUrl = resolveProfileAvatarUrl(u);
 
     root.innerHTML = '<div class="profile-sub-page settings-page">'
@@ -12432,15 +12432,15 @@
       + '<button type="submit" class="btn btn-primary btn-full">' + escapeHtml(t('common.save', 'Сохранить')) + '</button>'
       + '</form></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: t('site.cabinet.str_7a55fd', 'Профиль в поиске по людям'), hint: t('site.cabinet.str_42e29e', 'Если выключить, вас не найдут по имени, почте или Telegram'), checked: u.profile_searchable !== false })
-      + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: 'Турнирные таблицы', hint: t('site.cabinet.str_9b1ca7', 'Участие в рейтинге оценок'), checked: u.tournament_participation === true })
+      + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
+      + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'settings-notify-tg', icon: 'telegram', title: t('site.cabinet.telegram_b15979', 'Сообщения в Telegram'), hint: t('site.cabinet.str_a018fd', 'Напоминания в личке с ботом'), checked: notifTg })
-      + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: 'Инбокс на сайте', hint: t('site.cabinet.str_2ad3a5', 'Приглашения и напоминания в кабинете'), checked: notifInapp })
+      + settingsToggleRow({ id: 'settings-notify-tg', icon: 'telegram', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
+      + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'settings-coll-home', icon: 'folder', title: t('site.cabinet.str_982c75', 'Коллекции на главной'), hint: t('site.cabinet.str_81bbb4', 'Блок «Мои коллекции» под превью'), checked: collOnHome })
+      + settingsToggleRow({ id: 'settings-coll-home', icon: 'folder', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
       + settingsToggleRow({ id: 'settings-emoji-random', icon: 'random', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
       + settingsToggleRow({ id: 'settings-emoji-shazam', icon: 'shazam', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
       + settingsToggleRow({ id: 'settings-emoji-voice', icon: 'voice', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
@@ -12449,9 +12449,9 @@
       + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact">'
-      + profileListItemHtml('Коллекции', t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
-      + profileListItemHtml('Импорт оценок', t('site.cabinet.myshows_imdb_57ebfc', 'Кинопоиск, MyShows, IMDb'), { icon: 'puzzle', sub: 'import' })
-      + profileListItemHtml('Аккаунты и вход', t('site.cabinet.google_244424', 'Google, Яндекс, почта'), { icon: 'key', sub: 'accounts' })
+      + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
+      + profileListItemHtml('Импорт оценок', 'Кинопоиск, MyShows, IMDb', { icon: 'puzzle', sub: 'import' })
+      + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { icon: 'key', sub: 'accounts' })
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
@@ -12519,7 +12519,7 @@
       + '<div id="settings-import-kp" class="settings-import-pane">'
       + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
       + '<form class="settings-import-form" id="profile-import-form">'
-      + '<input type="text" id="profile-import-kp" placeholder=t("site.cabinet.id_6d78de", "Ссылка на профиль или ID") autocomplete="off">'
+      + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
       + '<div class="settings-import-counts" id="profile-import-counts">'
       + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
         const label = n === 'all' ? 'Всё' : String(n);
@@ -12534,7 +12534,7 @@
       + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
       + '<form class="settings-import-form" id="profile-import-external-form">'
       + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
-      + '<textarea id="profile-import-payload" placeholder=t("site.cabinet.csv_html_0a4977", "Вставьте CSV/ссылку/HTML...") rows="6"></textarea>'
+      + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
       + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
       + '</form></div>'
       + '<p class="profile-settings-status" id="profile-import-status"></p>'
@@ -12609,15 +12609,15 @@
       if (job.phase === 'scraping') {
         const pg = Number(job.page || 0);
         const tail = Number(job.tail_imported || 0);
-        return t('site.cabinet.str_ac67f0', 'Догружаем с сайта Кинопоиска') + (pg ? '… стр. ' + pg : '…') + (tail ? ' · +' + tail : '');
+        return 'Догружаем с сайта Кинопоиска' + (pg ? '… стр. ' + pg : '…') + (tail ? ' · +' + tail : '');
       }
-      if (job.phase === 'loading' && processed === 0) return t('site.cabinet.str_c9aa87', 'Загружаем оценки с Кинопоиска…');
+      if (job.phase === 'loading' && processed === 0) return 'Загружаем оценки с Кинопоиска…';
       return 'Обработано ' + processed + ' из ' + target + ' · добавлено ' + imported + ', пропущено ' + skipped;
     }
     if (job.status === 'done') {
-      return t('site.cabinet.str_5e5de5', 'Готово: добавлено ') + imported + (skipped ? ', пропущено ' + skipped + ' (уже в профиле)' : '');
+      return 'Готово: добавлено ' + imported + (skipped ? ', пропущено ' + skipped + ' (уже в профиле)' : '');
     }
-    if (job.status === 'error') return job.error || t('site.cabinet.str_d626cb', 'Не удалось завершить импорт');
+    if (job.status === 'error') return job.error || 'Не удалось завершить импорт';
     return '';
   }
 
@@ -12700,7 +12700,7 @@
         })
           .then((r) => {
             if (!r || !r.success) {
-              setStatus(t('site.cabinet.str_e04036', 'Не удалось сохранить фото'), false);
+              setStatus('Не удалось сохранить фото', false);
               btn.disabled = false;
               return;
             }
@@ -12708,7 +12708,7 @@
             loadMeAndShowCabinet();
           })
           .catch(() => {
-            setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false);
+            setStatus('Ошибка сети', false);
             btn.disabled = false;
           });
       });
@@ -12759,11 +12759,11 @@
         const value = input ? input.value.trim() : '';
         api('/api/miniapp/profile', { method: 'POST', body: JSON.stringify({ display_name: value }) })
           .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.cabinet.str_eaf1af', 'Не удалось сохранить имя'), false); return; }
+            if (!r || !r.success) { setStatus('Не удалось сохранить имя', false); return; }
             setStatus('Имя сохранено', true);
             loadMeAndShowCabinet();
           })
-          .catch(() => setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false));
+          .catch(() => setStatus('Ошибка сети', false));
       });
     }
     let avatarGridLoaded = false;
@@ -12796,12 +12796,12 @@
         })
           .then((r) => r.json().catch(() => ({})))
           .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.cabinet.str_e04036', 'Не удалось сохранить фото'), false); return; }
+            if (!r || !r.success) { setStatus('Не удалось сохранить фото', false); return; }
             setStatus('Фото сохранено', true);
             fileInput.value = '';
             loadMeAndShowCabinet();
           })
-          .catch(() => setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false))
+          .catch(() => setStatus('Ошибка сети', false))
           .finally(() => { uploadPhotoBtn.disabled = false; });
       });
     }
@@ -12813,10 +12813,10 @@
           body: JSON.stringify({ profile_searchable: !!searchable.checked }),
         })
           .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.cabinet.str_8fd715', 'Не удалось сохранить настройку поиска'), false); return; }
-            setStatus(searchable.checked ? t('site.cabinet.str_580b73', 'Профиль виден в поиске') : t('site.cabinet.str_38cdf3', 'Профиль скрыт из поиска'), true);
+            if (!r || !r.success) { setStatus('Не удалось сохранить настройку поиска', false); return; }
+            setStatus(searchable.checked ? 'Профиль виден в поиске' : 'Профиль скрыт из поиска', true);
           })
-          .catch(() => setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false));
+          .catch(() => setStatus('Ошибка сети', false));
       });
     }
     const tournamentToggle = root.querySelector('#profile-settings-tournament');
@@ -12827,11 +12827,11 @@
           body: JSON.stringify({ tournament_participation: !!tournamentToggle.checked }),
         })
           .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.cabinet.str_a0c6db', 'Не удалось сохранить настройку турнира'), false); return; }
-            setStatus(tournamentToggle.checked ? t('site.cabinet.str_34ce66', 'Вы участвуете в турнире') : t('site.cabinet.str_0c23c0', 'Вы не участвуете в турнире'), true);
+            if (!r || !r.success) { setStatus('Не удалось сохранить настройку турнира', false); return; }
+            setStatus(tournamentToggle.checked ? 'Вы участвуете в турнире' : 'Вы не участвуете в турнире', true);
             try { scheduleHomeDashboardRefresh(); } catch (_) {}
           })
-          .catch(() => setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false));
+          .catch(() => setStatus('Ошибка сети', false));
       });
     }
     root.querySelectorAll('[data-profile-link]').forEach((btn) => {
@@ -12915,7 +12915,7 @@
         const raw = input ? input.value.trim() : '';
         if (!raw) {
           if (importStatus) {
-            importStatus.textContent = t('site.cabinet.id_c32b3e', 'Вставьте ссылку или ID профиля.');
+            importStatus.textContent = 'Вставьте ссылку или ID профиля.';
             importStatus.className = 'profile-settings-status error';
           }
           return;
@@ -12940,9 +12940,9 @@
           if (!r || !r.success) {
             renderProfileImportProgress(root, null);
             const btn = importForm.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = false; btn.textContent = t('site.cabinet.str_e2d93a', 'Импортировать оценки'); }
+            if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
             if (importStatus) {
-              importStatus.textContent = (r && (r.message || r.error)) || t('site.cabinet.str_c9f056', 'Не удалось запустить импорт');
+              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
               importStatus.className = 'profile-settings-status error';
             }
             return;
@@ -12951,9 +12951,9 @@
         }).catch(() => {
           renderProfileImportProgress(root, null);
           const btn = importForm.querySelector('button[type="submit"]');
-          if (btn) { btn.disabled = false; btn.textContent = t('site.cabinet.str_e2d93a', 'Импортировать оценки'); }
+          if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
           if (importStatus) {
-            importStatus.textContent = t('site.cabinet.networkError', 'Ошибка сети');
+            importStatus.textContent = 'Ошибка сети';
             importStatus.className = 'profile-settings-status error';
           }
         });
@@ -12969,7 +12969,7 @@
         const payload = payloadEl ? String(payloadEl.value || '').trim() : '';
         if (!payload) {
           if (importStatus) {
-            importStatus.textContent = t('site.cabinet.str_f6f782', 'Вставьте экспорт перед импортом');
+            importStatus.textContent = 'Вставьте экспорт перед импортом';
             importStatus.className = 'profile-settings-status error';
           }
           return;
@@ -12980,7 +12980,7 @@
         }).then((r) => {
           if (!r || !r.success) {
             if (importStatus) {
-              importStatus.textContent = (r && (r.message || r.error)) || t('site.cabinet.str_c9f056', 'Не удалось запустить импорт');
+              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
               importStatus.className = 'profile-settings-status error';
             }
             return;
@@ -13000,7 +13000,7 @@
           startProfileImportPoll(root);
         }).catch(() => {
           if (importStatus) {
-            importStatus.textContent = t('site.cabinet.networkError', 'Ошибка сети');
+            importStatus.textContent = 'Ошибка сети';
             importStatus.className = 'profile-settings-status error';
           }
         });
@@ -13024,16 +13024,16 @@
     if (p.is_personal) return;
     const isOwner = (p.my_role || '') === 'owner';
     const doDelete = isVirt && isOwner
-      && window.confirm(t('site.cabinet.str_89a010', 'Удалить комнату навсегда? Данные и участники будут сняты.'));
+      && window.confirm('Удалить комнату навсегда? Данные и участники будут сняты.');
     const doLeave = !doDelete
       && window.confirm(isVirt
-        ? t('site.cabinet.str_e11655', 'Покинуть комнату? К базе вы потеряете доступ, пока вас снова не пригласят.')
+        ? 'Покинуть комнату? К базе вы потеряете доступ, пока вас снова не пригласят.'
         : 'Покинуть группу в кабинете? (Telegram-чат не удалится.)');
     if (!doDelete && !doLeave) return;
     if (doDelete) {
       api('/api/site/rooms/' + encodeURIComponent(id), { method: 'DELETE' }).then((r) => {
         if (r && r.success) { renderGroupsSection(); loadMeAndShowCabinet(); }
-        else { alert((r && r.message) || (r && r.error) || t('site.cabinet.str_65f3fe', 'Не удалось удалить')); }
+        else { alert((r && r.message) || (r && r.error) || 'Не удалось удалить'); }
       });
       return;
     }
@@ -13096,7 +13096,7 @@
             method: 'PATCH',
             body: JSON.stringify({ role, can_manage_admins: canD }),
           }).then((r) => {
-            if (r && r.success) { showToast(t('site.toast.saved', 'Сохранено')); openRoomMembersModal(chatId); }
+            if (r && r.success) { showToast('Сохранено'); openRoomMembersModal(chatId); }
             else { alert((r && r.error) || 'Ошибка'); }
           });
         });
@@ -13228,7 +13228,7 @@
             method: 'PATCH',
             body: JSON.stringify({ is_discoverable: !!disEl.checked }),
           }).then((r) => {
-            if (r && r.success) showToast(t('site.toast.saved', 'Сохранено'));
+            if (r && r.success) showToast('Сохранено');
             else { disEl.checked = !disEl.checked; alert((r && r.error) || 'Ошибка'); }
           });
         });
@@ -13242,7 +13242,7 @@
             method: 'PATCH',
             body: JSON.stringify({ join_approval_mode: mode }),
           }).then((r) => {
-            if (r && r.success) { showToast(t('site.toast.saved', 'Сохранено')); openRoomAccessModal(chatId); }
+            if (r && r.success) { showToast('Сохранено'); openRoomAccessModal(chatId); }
             else alert((r && r.error) || 'Ошибка');
           });
         });
@@ -13255,7 +13255,7 @@
             method: 'PATCH',
             body: JSON.stringify({ join_approver_user_ids: picks }),
           }).then((r) => {
-            if (r && r.success) showToast(t('site.toast.saved', 'Сохранено'));
+            if (r && r.success) showToast('Сохранено');
             else { cb.checked = !cb.checked; alert((r && r.error) || 'Ошибка'); }
           });
         });
@@ -13310,13 +13310,13 @@
   async function shareFriendInviteLink() {
     const uid = cabinetUserId;
     if (!uid) {
-      showToast(t('site.toast.signInRequired', 'Войдите в кабинет'), { type: 'error' });
+      showToast('Войдите в кабинет', { type: 'error' });
       return;
     }
     const webLink = 'https://movie-planner.ru/u/' + encodeURIComponent(String(uid)) + '?invite=1';
     const me = _cabinetMeCache || {};
     const name = (me.name || me.first_name || 'Movie Planner').trim();
-    const text = name + t('site.cabinet.movie_planner_621257', ' хочет добавить Вас в друзья в Movie Planner 🎬');
+    const text = name + ' хочет добавить Вас в друзья в Movie Planner 🎬';
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Movie Planner', text: text, url: webLink });
@@ -13325,7 +13325,7 @@
     }
     try {
       await copyToClipboard(webLink);
-      showToast(t('site.toast.inviteLinkCopied', 'Ссылка приглашения скопирована'));
+      showToast('Ссылка приглашения скопирована');
     } catch (_) {
       showToast('Ссылка: ' + webLink);
     }
@@ -13416,7 +13416,7 @@
     try {
       const data = await apiText(`/api/friends/search?q=${encodeURIComponent(q)}`);
       if (!data || data.success === false) {
-        out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || t('site.cabinet.str_0aec6b', 'Не удалось выполнить поиск')) + '</div>';
+        out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || 'Не удалось выполнить поиск') + '</div>';
         return;
       }
       const users = (data && data.users) || [];
@@ -13455,7 +13455,7 @@
         });
       });
     } catch (e) {
-      out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((e && e.message) || t('site.cabinet.networkError', 'Ошибка сети')) + '</div>';
+      out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((e && e.message) || 'Ошибка сети') + '</div>';
     }
   }
 
@@ -13479,7 +13479,7 @@
       <div style="font-size:17px;font-weight:700;margin-bottom:12px">Совпадение вкусов${data && data.taste_match != null ? ' · ' + data.taste_match + '%' : ''}</div>
       ${items.length ? items.map((it) => `
         <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:6px">
-          <span>${escapeHtml(it.film_title || t('site.cabinet.filmFallback', 'Фильм'))}</span>
+          <span>${escapeHtml(it.film_title || 'Фильм')}</span>
           <strong style="color:var(--accent,#ff2d7b)">${it.my_rating}/10 · ${it.friend_rating}/10</strong>
         </div>`).join('') : '<div class="cabinet-hint">Пока нет фильмов, которые вы оба оценили</div>'}
     `);
@@ -13492,7 +13492,7 @@
   function _wtFilmTileHtml(f, mode) {
     const kp = f && f.kp_id;
     if (!kp) return '';
-    const title = escapeHtml(f.title || t('site.cabinet.filmFallback', 'Фильм'));
+    const title = escapeHtml(f.title || 'Фильм');
     const year = f.year ? '<div style="font-size:11px;color:#888">' + escapeHtml(String(f.year)) + '</div>' : '';
     let posterAction = '';
     if (mode === 'add' && !f.in_my_library) {
@@ -13527,11 +13527,11 @@
     try {
       data = await api('/api/friends/watch-together?with_user_id=' + encodeURIComponent(userId));
     } catch (e) {
-      showToast(t('site.toast.picksLoadFailed', 'Не удалось загрузить подборку'), { type: 'error' });
+      showToast('Не удалось загрузить подборку', { type: 'error' });
       return;
     }
     if (!data || data.success === false) {
-      showToast(data && data.error === 'not_friends' ? t('site.cabinet.str_ca3ebf', 'Сначала добавьте в друзья') : 'Не удалось загрузить подборку', { type: 'error' });
+      showToast(data && data.error === 'not_friends' ? 'Сначала добавьте в друзья' : 'Не удалось загрузить подборку', { type: 'error' });
       return;
     }
     const friendName = escapeHtml((data.friend_name || 'друга').trim());
@@ -13570,10 +13570,10 @@
           await api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) });
           btn.textContent = '✓';
           btn.style.background = '#22c55e';
-          showToast(t('site.toast.filmAdded', 'Фильм добавлен'), { type: 'success' });
+          showToast('Фильм добавлен', { type: 'success' });
         } catch (err) {
           btn.disabled = false;
-          showToast(t('site.toast.addFailed', 'Не удалось добавить'), { type: 'error' });
+          showToast('Не удалось добавить', { type: 'error' });
         }
       });
     });
@@ -13586,10 +13586,10 @@
         try {
           await api('/api/friends/recommend', { method: 'POST', body: JSON.stringify({ to_user_id: userId, kp_id: kp }) });
           btn.textContent = '✓';
-          showToast(t('site.toast.inviteSent', 'Приглашение отправлено'), { type: 'success' });
+          showToast('Приглашение отправлено', { type: 'success' });
         } catch (err) {
           btn.disabled = false;
-          showToast(t('site.toast.sendFailed', 'Не удалось отправить'), { type: 'error' });
+          showToast('Не удалось отправить', { type: 'error' });
         }
       });
     });
@@ -13742,7 +13742,7 @@
       const qs = q ? ('?q=' + encodeURIComponent(q)) : '';
       const data = await api('/api/site/groups/discover' + qs);
       if (!data || data.success === false) {
-        out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || t('site.cabinet.str_0aec6b', 'Не удалось выполнить поиск')) + '</div>';
+        out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || 'Не удалось выполнить поиск') + '</div>';
         return;
       }
       const items = (data && data.groups) || [];
@@ -13769,17 +13769,17 @@
           if (!chatId) return;
           try {
             const rr = await api('/api/site/rooms/' + chatId + '/join-request', { method: 'POST', body: '{}' });
-            showToast(rr && rr.status === 'approved' ? t('site.cabinet.str_cb1af4', 'Вы вступили в группу') : 'Заявка отправлена');
+            showToast(rr && rr.status === 'approved' ? 'Вы вступили в группу' : 'Заявка отправлена');
             btn.textContent = rr && rr.status === 'approved' ? 'В группе' : 'Отправлено';
             btn.disabled = true;
             renderGroupsSection();
           } catch (e) {
-            showToast((e && e.message) || t('site.cabinet.str_cf4a09', 'Не удалось отправить заявку'), { type: 'error' });
+            showToast((e && e.message) || 'Не удалось отправить заявку', { type: 'error' });
           }
         });
       });
     } catch (e) {
-      out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((e && e.message) || t('site.cabinet.networkError', 'Ошибка сети')) + '</div>';
+      out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((e && e.message) || 'Ошибка сети') + '</div>';
     }
   }
 
@@ -13794,7 +13794,7 @@
     list.innerHTML = pageLoadingHtml();
     api('/api/site/profiles').then((data) => {
       if (!data || !data.success) {
-        list.innerHTML = '<div class="cabinet-hint">' + escapeHtml((data && data.error) || t('site.cabinet.str_421e91', 'Не удалось загрузить профили')) + '</div>';
+        list.innerHTML = '<div class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
         return;
       }
       const profiles = data.profiles || [];
@@ -13815,7 +13815,7 @@
           ${showClose ? '<button type="button" class="group-card-close" data-action="group-exit" data-cid="' + escapeHtml(String(p.chat_id)) + '" title="Удалить или выйти">×</button>' : ''}
           <div class="group-card-head">
             <span class="group-card-emoji">${escapeHtml(emoji)}</span>
-            <span class="group-card-name">${escapeHtml(p.display_name || p.name || t('site.cabinet.profile', 'Профиль'))}</span>
+            <span class="group-card-name">${escapeHtml(p.display_name || p.name || 'Профиль')}</span>
             <span class="group-card-type">${escapeHtml(type)}</span>
           </div>
           <div class="group-card-meta"><span>🎬 ${p.movies_count || 0}</span><span>⭐ ${p.ratings_count || 0}</span></div>
@@ -13983,7 +13983,7 @@
     const emojiActive = document.querySelector('#create-room-emoji-row .create-room-emoji-btn.active');
     const name = (nameInput && nameInput.value || '').trim();
     const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
-    if (!name) { if (statusEl) { statusEl.textContent = t('site.cabinet.str_0a695e', 'Введите название группы'); statusEl.className = 'add-film-status error'; } return; }
+    if (!name) { if (statusEl) { statusEl.textContent = 'Введите название группы'; statusEl.className = 'add-film-status error'; } return; }
     const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
     const groupKind = (kindBtn && kindBtn.getAttribute('data-kind')) || 'friends';
     const body = { name, emoji, group_kind: groupKind };
@@ -13998,7 +13998,7 @@
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
       if (!data || !data.success) {
-        if (statusEl) { statusEl.textContent = (data && data.error) || t('site.cabinet.str_6d9fc6', 'Не удалось создать группу'); statusEl.className = 'add-film-status error'; }
+        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать группу'; statusEl.className = 'add-film-status error'; }
         return;
       }
       closeCreateRoomModal();
@@ -14015,7 +14015,7 @@
       // После закрытия share-modal — обновим кабинет
     }).catch(() => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
-      if (statusEl) { statusEl.textContent = t('site.cabinet.networkError', 'Ошибка сети'); statusEl.className = 'add-film-status error'; }
+      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'add-film-status error'; }
     });
   }
 
@@ -14023,14 +14023,14 @@
     if (!chatId) return;
     api(`/api/site/rooms/${encodeURIComponent(chatId)}/invite`, { method: 'POST' }).then((data) => {
       if (!data || !data.success) {
-        showToast((data && data.error) || t('site.cabinet.str_83d718', 'Не удалось создать приглашение'), { type: 'error' });
+        showToast((data && data.error) || 'Не удалось создать приглашение', { type: 'error' });
         return;
       }
       // Сразу копируем ссылку в буфер и даём пользователю понять,
       // что всё получилось — даже если модалка не откроется по каким-то причинам.
       copyToClipboard(data.invite_url)
-        .then(() => showToast(t('site.toast.linkCopiedFriend', '📋 Ссылка скопирована — отправьте другу')))
-        .catch(() => showToast(t('site.toast.linkCreated', '🔗 Ссылка создана — нажмите «Скопировать» в окне')));
+        .then(() => showToast('📋 Ссылка скопирована — отправьте другу'))
+        .catch(() => showToast('🔗 Ссылка создана — нажмите «Скопировать» в окне'));
       showShareInvite({
         chat_id: chatId,
         url: data.invite_url,
@@ -14058,7 +14058,7 @@
     if (titleEl) titleEl.textContent = `Пригласить в «${groupName}»`;
     if (hintEl) hintEl.textContent = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner.`;
     if (metaEl) {
-      const parts = [t('site.cabinet.7_d0b7d4', 'Ссылка действует 7 дней'), 'до 10 приглашений'];
+      const parts = ['Ссылка действует 7 дней', 'до 10 приглашений'];
       metaEl.textContent = parts.join(' · ');
     }
     const text = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner. Вступить?`;
@@ -14072,12 +14072,12 @@
         copyToClipboard(url)
           .then(() => {
             copyBtn.textContent = '✅ Скопировано';
-            showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
+            showToast('📋 Ссылка скопирована');
             setTimeout(() => { copyBtn.textContent = '📋 Скопировать'; }, 1500);
           })
           .catch(() => {
             copyBtn.textContent = '✅ Скопировано';
-            showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
+            showToast('📋 Ссылка скопирована');
           });
       });
     }
@@ -14162,8 +14162,8 @@
     apiText('/api/site/premieres/' + encodeURIComponent(kp) + '/notify', options).then((data) => {
       if (!data || !data.success) {
         const msg = data && (data.message || data.error);
-        const hint = msg === 'server error' ? t('site.cabinet.str_a6c967', 'Сервер не смог сохранить напоминание. Попробуйте позже.') : msg;
-        showToast(hint || t('site.cabinet.str_cc5cb4', 'Не удалось изменить напоминание'), { type: 'error' });
+        const hint = msg === 'server error' ? 'Сервер не смог сохранить напоминание. Попробуйте позже.' : msg;
+        showToast(hint || 'Не удалось изменить напоминание', { type: 'error' });
         button.disabled = false;
         button.innerHTML = oldHtml;
         return;
@@ -14171,9 +14171,9 @@
       updatePremiereReminderState(kp, data, isOn);
       if (typeof onDone === 'function') onDone(kp, data);
       else renderPremieresList();
-      showToast(isOn ? t('site.cabinet.str_69d602', 'Премьера отслеживается') : t('site.cabinet.str_5c27c2', 'Напоминание отключено'));
+      showToast(isOn ? 'Премьера отслеживается' : 'Напоминание отключено');
     }).catch(() => {
-      showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
+      showToast('Ошибка сети', { type: 'error' });
       button.disabled = false;
       button.innerHTML = oldHtml;
     });
@@ -14204,8 +14204,8 @@
         if (!_premieresData.length) {
           if (errorEl) {
             errorEl.textContent = _premieresRolloverActive
-              ? t('site.cabinet.str_4f3e72', 'В этом календарном месяце премьер не осталось — откройте «Следующий месяц».')
-              : t('site.cabinet.str_46d266', 'На этот период премьер нет.');
+              ? 'В этом календарном месяце премьер не осталось — откройте «Следующий месяц».'
+              : 'На этот период премьер нет.';
             errorEl.classList.remove('hidden');
           }
         }
@@ -14353,7 +14353,7 @@
     const statusEl = document.getElementById('invite-confirm-status');
     const submitBtn = document.getElementById('invite-confirm-submit');
     if (emojiEl) emojiEl.textContent = '👥';
-    if (titleEl) titleEl.textContent = t('site.cabinet.str_22e66e', 'Загружаем приглашение…');
+    if (titleEl) titleEl.textContent = 'Загружаем приглашение…';
     if (hintEl) hintEl.textContent = '';
     if (metaEl) metaEl.textContent = '';
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
@@ -14377,25 +14377,25 @@
       .then((r) => r.json().catch(() => ({})))
       .then((info) => {
         if (!info || !info.success) {
-          if (titleEl) titleEl.textContent = t('site.cabinet.str_6c8236', 'Не удалось загрузить приглашение');
-          if (hintEl) hintEl.textContent = t('site.cabinet.str_a5656b', 'Попросите отправителя создать новую ссылку.');
+          if (titleEl) titleEl.textContent = 'Не удалось загрузить приглашение';
+          if (hintEl) hintEl.textContent = 'Попросите отправителя создать новую ссылку.';
           return;
         }
         if (info.is_expired) {
           if (emojiEl) emojiEl.textContent = '⌛';
-          if (titleEl) titleEl.textContent = t('site.cabinet.str_ab3868', 'Ссылка больше не работает');
+          if (titleEl) titleEl.textContent = 'Ссылка больше не работает';
           if (hintEl) {
             hintEl.textContent = info.reason === 'uses_exhausted'
-              ? t('site.cabinet.str_2fa912', 'Лимит использований этой ссылки исчерпан. Попросите создать новую.')
-              : t('site.cabinet.str_b2095a', 'Срок действия ссылки истёк. Попросите отправителя сгенерировать новую.');
+              ? 'Лимит использований этой ссылки исчерпан. Попросите создать новую.'
+              : 'Срок действия ссылки истёк. Попросите отправителя сгенерировать новую.';
           }
           return;
         }
         if (emojiEl) emojiEl.textContent = info.emoji || '👥';
-        if (titleEl) titleEl.textContent = t('site.cabinet.str_c58229', 'Присоединиться к «') + (info.name || 'Группа') + '»?';
+        if (titleEl) titleEl.textContent = 'Присоединиться к «' + (info.name || 'Группа') + '»?';
         if (hintEl) {
           const inviterName = info.inviter_name || 'Пользователь';
-          hintEl.textContent = inviterName + t('site.cabinet.str_bfd277', ' приглашает Вас в «') + (info.name || 'Группа') + t('site.cabinet.movie_planner_859ff0', '» в Movie Planner.');
+          hintEl.textContent = inviterName + ' приглашает Вас в «' + (info.name || 'Группа') + '» в Movie Planner.';
         }
         if (metaEl) {
           const parts = [];
@@ -14409,8 +14409,8 @@
         }
       })
       .catch(() => {
-        if (titleEl) titleEl.textContent = t('site.cabinet.str_6c8236', 'Не удалось загрузить приглашение');
-        if (hintEl) hintEl.textContent = t('site.cabinet.str_32592c', 'Проверьте интернет и попробуйте ещё раз.');
+        if (titleEl) titleEl.textContent = 'Не удалось загрузить приглашение';
+        if (hintEl) hintEl.textContent = 'Проверьте интернет и попробуйте ещё раз.';
       });
   }
 
@@ -14437,7 +14437,7 @@
       try { localStorage.setItem('mp_pending_invite_token', token); } catch (_) {}
       const statusEl = document.getElementById('invite-confirm-status');
       if (statusEl) {
-        statusEl.textContent = t('site.cabinet.str_7c4e8c', 'Нужно войти, чтобы присоединиться. Откроется окно входа…');
+        statusEl.textContent = 'Нужно войти, чтобы присоединиться. Откроется окно входа…';
         statusEl.className = 'add-film-status';
       }
       setTimeout(() => {
@@ -14461,7 +14461,7 @@
       if (!data || !data.success) {
         const statusEl = document.getElementById('invite-confirm-status');
         const submitBtn = document.getElementById('invite-confirm-submit');
-        if (statusEl) { statusEl.textContent = (data && data.error) || t('site.cabinet.str_31e639', 'Не удалось присоединиться'); statusEl.className = 'add-film-status error'; }
+        if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось присоединиться'; statusEl.className = 'add-film-status error'; }
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Присоединиться'; }
         return;
       }
@@ -14501,8 +14501,8 @@
       ? 'Вы уже в «' + info.name + '»'
       : 'Готово! Вы в «' + info.name + '»';
     if (hintEl) hintEl.textContent = info.already_member
-      ? t('site.cabinet.str_85a885', 'Продолжайте пользоваться общей базой фильмов и планов.')
-      : t('site.cabinet.str_b16d79', 'Теперь вам доступны общие планы и фильмы этой группы. Переключайтесь между профилями через меню в правом верхнем углу.');
+      ? 'Продолжайте пользоваться общей базой фильмов и планов.'
+      : 'Теперь вам доступны общие планы и фильмы этой группы. Переключайтесь между профилями через меню в правом верхнем углу.';
     if (gotoBtn) {
       gotoBtn.onclick = () => {
         modal.classList.add('hidden');
@@ -14604,16 +14604,16 @@
       });
       const d = await r.json().catch(() => ({}));
       if (d.success || r.ok) {
-        showToast(t('site.toast.nowFriends', 'Теперь вы друзья! 🎉'));
+        showToast('Теперь вы друзья! 🎉');
         if (overlayEl) overlayEl.remove();
         try { loadMeAndShowCabinet(); } catch (_) {}
       } else {
         showToast(d.error || 'Ошибка', { type: 'error' });
-        if (btn) { btn.disabled = false; btn.textContent = t('site.cabinet.str_343d9a', 'Принять приглашение'); }
+        if (btn) { btn.disabled = false; btn.textContent = 'Принять приглашение'; }
       }
     } catch (_) {
-      showToast(t('site.toast.networkErrorAlt', 'Сетевая ошибка'), { type: 'error' });
-      if (btn) { btn.disabled = false; btn.textContent = t('site.cabinet.str_343d9a', 'Принять приглашение'); }
+      showToast('Сетевая ошибка', { type: 'error' });
+      if (btn) { btn.disabled = false; btn.textContent = 'Принять приглашение'; }
     }
   }
 
@@ -15062,7 +15062,7 @@
     // Opera: показывать «Установить расширение Opera» вместо Chrome
     const isOpera = /opr|opera/i.test(navigator.userAgent);
     document.querySelectorAll('.ext-btn-text').forEach(function (el) {
-      el.textContent = isOpera ? t('site.cabinet.opera_2e56c5', 'Установить расширение Opera') : t('site.cabinet.chrome_dd0ded', 'Установить расширение Chrome');
+      el.textContent = isOpera ? 'Установить расширение Opera' : 'Установить расширение Chrome';
     });
   }
 

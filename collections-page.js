@@ -5,8 +5,8 @@
   "use strict";
 
   var SEO = {
-    title: t("site.cabinet.movie_planner_5f429e", "Коллекции фильмов — Movie Planner"),
-    description: t("site.cabinet.str_97943a", "Личные коллекции, теги и редакционные подборки в Movie Planner: группируйте фильмы и сериалы по рубрикам, открывайте списки одним кликом."),
+    title: "Коллекции фильмов — Movie Planner",
+    description: "Личные коллекции, теги и редакционные подборки в Movie Planner: группируйте фильмы и сериалы по рубрикам, открывайте списки одним кликом.",
     path: "/features/collections",
     canonical: "https://movie-planner.ru/features/collections",
   };
@@ -314,7 +314,7 @@
         emoji: (emojiEl && emojiEl.value && emojiEl.value.trim()) || undefined,
       }).then(function (res) {
         if (!res || !res.success || !res.collection) {
-          toast(t("site.cabinet.str_fd771a", "Не удалось создать"), { type: "error" });
+          toast("Не удалось создать", { type: "error" });
           saveBtn.disabled = false;
           return;
         }
@@ -335,7 +335,7 @@
     if (btn) btn.disabled = true;
     apiPost("/api/miniapp/collections/public/" + tagId + "/import", { mode: "all" }).then(function (res) {
       if (!res || !res.success) {
-        toast(t("site.toast.addFailed", "Не удалось добавить"), { type: "error" });
+        toast("Не удалось добавить", { type: "error" });
         if (btn) btn.disabled = false;
         return;
       }
@@ -354,14 +354,14 @@
 
   function deleteMineCollection(cid) {
     if (!cid) return;
-    if (!window.confirm(t("site.cabinet.str_e5156b", "Удалить коллекцию? Фильмы в базе останутся."))) return;
+    if (!window.confirm("Удалить коллекцию? Фильмы в базе останутся.")) return;
     apiDelete("/api/miniapp/collections/mine/" + cid).then(function () {
       toast("Коллекция удалена", { type: "success" });
       _view = "hub";
       _viewId = null;
       renderCollectionsSection();
     }).catch(function () {
-      toast(t("site.cabinet.str_65f3fe", "Не удалось удалить"), { type: "error" });
+      toast("Не удалось удалить", { type: "error" });
     });
   }
 
@@ -395,7 +395,7 @@
             title: t.name,
             hint: (t.films_count || 0) + " фильмов",
           });
-        }, emptyStateHtml({ hint: t("site.cabinet.str_043775", "Назначьте тег на карточке фильма в базе") }));
+        }, emptyStateHtml({ hint: "Назначьте тег на карточке фильма в базе" }));
       }
       if (mineEl) {
         fillListEl(mineEl, mine, function (c) {
@@ -408,7 +408,7 @@
             hint: (c.films_count || 0) + " фильмов",
           });
         }, emptyStateHtml({
-          hint: t("site.cabinet.str_8f817a", "Соберите свой список фильмов"),
+          hint: "Соберите свой список фильмов",
           action: "new",
           actionLabel: "Создать коллекцию",
         }));
@@ -421,7 +421,7 @@
             icon: "globe",
             iconClass: " mp-list-icon--public",
             title: c.name,
-            hint: (c.films_count || 0) + t("site.cabinet.str_2c76ba", " в подборке · у вас ") + (c.in_user_library_count || 0),
+            hint: (c.films_count || 0) + " в подборке · у вас " + (c.in_user_library_count || 0),
           });
         }, '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
       }

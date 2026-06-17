@@ -119,14 +119,14 @@
 
   async function stepInterest(deps) {
     const html =
-      '<div class="mp-onboard-title">' + siteT('site.onboard.interestTitle', t('site.onboard.interestTitle', 'Что вам интересно больше?')) + '</div>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.interestTitle', 'Что вам интересно больше?') + '</div>' +
       '<div class="mp-onboard-opts">' +
       optionRow("movies", siteT("site.onboard.movies", "Фильмы"), true, "ob-interest") +
       optionRow("series", siteT("site.onboard.seriesLabel", "Сериалы"), false, "ob-interest") +
       optionRow("premieres", siteT("site.onboard.premieresLabel", "Премьеры"), false, "ob-interest") +
       optionRow("other", siteT("site.onboard.otherSpecify", "Другое (укажите)"), false, "ob-interest") +
       "</div>" +
-      embeddedField("ob-other-text", siteT("site.onboard.otherPlaceholder", t("site.onboard.otherPlaceholder", "Напишите, что вас интересует")), false) +
+      embeddedField("ob-other-text", siteT("site.onboard.otherPlaceholder", "Напишите, что вас интересует"), false) +
       '<button type="button" class="btn-primary btn-full" data-ob-continue style="margin-top:16px">' + siteT('site.onboard.continue', 'Продолжить') + '</button>';
     const res = await showCenterDialog(deps, html, {
       dismissX: true,
@@ -145,7 +145,7 @@
           const interest = sel ? sel.value : "movies";
           const otherText = otherInp ? otherInp.value.trim() : "";
           if (interest === "other" && !otherText) {
-            deps.toast(siteT("site.onboard.specifyInterest", t("site.onboard.specifyInterest", "Укажите, что вас интересует")));
+            deps.toast(siteT("site.onboard.specifyInterest", "Укажите, что вас интересует"));
             return;
           }
           close({ interest: interest, otherText: otherText });
@@ -157,9 +157,9 @@
 
   async function stepDbSource(deps, mediaLabel) {
     const html =
-      '<div class="mp-onboard-title">' + siteT('site.onboard.dbSourceTitle', t('site.onboard.dbSourceTitle', 'Где вы ведёте базу просмотренного?')) + '</div>' +
+      '<div class="mp-onboard-title">' + siteT('site.onboard.dbSourceTitle', 'Где вы ведёте базу просмотренного?') + '</div>' +
       '<div class="mp-onboard-opts">' +
-      optionRow("kp", siteT("site.onboard.dbKp", t("site.onboard.dbKp", "Кинопоиск / MyShows / IMDb")), true, "ob-db") +
+      optionRow("kp", siteT("site.onboard.dbKp", "Кинопоиск / MyShows / IMDb"), true, "ob-db") +
       optionRow("other", siteT("site.onboard.dbOther", "Другой сервис"), false, "ob-db") +
       optionRow("none", siteT("site.onboard.dbNone", "Нет базы"), false, "ob-db") +
       "</div>" +
@@ -312,7 +312,7 @@
     const titleQ = isImportWant
       ? 'Что из похожего вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
       : mode === "watched"
-        ? t("site.onboard.markWatchedHtml", "Отметьте, что вы смотрели")
+        ? "Отметьте, что вы смотрели"
         : mediaType === "series"
           ? 'Какие сериалы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
           : 'Какие фильмы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?';
@@ -464,7 +464,7 @@
             return selected.has(String(it.kp_id));
           });
           btn.disabled = true;
-          btn.textContent = siteT("site.onboard.loadingSimilar", t("site.onboard.loadingSimilar", "Загружаем похожие…"));
+          btn.textContent = siteT("site.onboard.loadingSimilar", "Загружаем похожие…");
           await Promise.all(
             Array.from(selected).map(function (kp) {
               return loadSimilar(kp);

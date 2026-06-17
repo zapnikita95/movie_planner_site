@@ -638,11 +638,11 @@
       var voiceStatus = card.querySelector('#mp-plan-voice-status');
       function uploadVoiceBlob(blob, durMs) {
         if (!blob.size || durMs < 800) {
-          if (voiceStatus) voiceStatus.textContent = t('plan.voiceTooShort', 'Слишком короткая запись');
+          if (voiceStatus) voiceStatus.textContent = 'Слишком короткая запись';
           setVoicePanel(false);
           return;
         }
-        setVoicePanel(true, 'Распознаём речь…', t('plan.voiceProcessingSub', 'Подставим дату и время'), true);
+        setVoicePanel(true, 'Распознаём речь…', 'Подставим дату и время', true);
         var ext = (blob.type || '').includes('mp4') ? 'm4a' : ((blob.type || '').includes('ogg') ? 'ogg' : 'webm');
         var fd = new FormData();
         fd.append('audio', blob, 'voice.' + ext);
@@ -660,14 +660,14 @@
             if (voiceStatus) voiceStatus.textContent = msg;
           })
           .catch(function (e) {
-            if (voiceStatus) voiceStatus.textContent = (e && e.message) || t('plan.voiceFailed', 'Не удалось распознать');
+            if (voiceStatus) voiceStatus.textContent = (e && e.message) || 'Не удалось распознать';
           })
           .finally(function () { setVoicePanel(false); });
       }
       if (voiceBtn) {
         voiceBtn.addEventListener('click', function () {
           if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices) {
-            onToast(t('plan.voiceNotSupported', 'Запись голоса не поддерживается в этом браузере'));
+            onToast('Запись голоса не поддерживается в этом браузере');
             return;
           }
           if (voiceSess) {
@@ -685,8 +685,8 @@
             var chunks = [];
             var started = Date.now();
             voiceBtn.classList.add('recording');
-            voiceBtn.textContent = t('site.cabinet.str_44180e', '⏹ Остановить запись');
-            setVoicePanel(true, 'Слушаю…', t('site.cabinet.str_5b18bf', 'Скажите дату, время и «дома» или «в кино»'), false);
+            voiceBtn.textContent = '⏹ Остановить запись';
+            setVoicePanel(true, 'Слушаю…', 'Скажите дату, время и «дома» или «в кино»', false);
             rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
             rec.onstop = function () {
               voiceBtn.classList.remove('recording');
@@ -699,7 +699,7 @@
             voiceSess = { rec: rec, aborted: false, tick: null, maxT: setTimeout(function () {
               try { if (rec.state === 'recording') rec.stop(); } catch (_e) {}
             }, 30000) };
-          }).catch(function () { onToast(t('site.toast.micDenied', 'Нет доступа к микрофону')); });
+          }).catch(function () { onToast('Нет доступа к микрофону'); });
         });
       }
 
@@ -814,7 +814,7 @@
           if (!state.selected) { onToast('Выберите фильм'); return; }
           var dVal = (dateEl && dateEl.value) || state.date;
           var tVal = (timeEl && timeEl.value) || state.time;
-          if (!dVal || !tVal) { onToast(t('site.cabinet.str_88639e', 'Укажите дату и время')); return; }
+          if (!dVal || !tVal) { onToast('Укажите дату и время'); return; }
           var dt = new Date(dVal + 'T' + tVal);
           if (isNaN(dt.getTime())) { onToast('Некорректная дата'); return; }
           var body = { plan_datetime: dt.toISOString() };
@@ -840,20 +840,20 @@
                 var fd = new FormData();
                 for (var i = 0; i < pendingTicketFiles.length; i++) fd.append('file', pendingTicketFiles[i]);
                 return fetch(apiBase + '/api/miniapp/plans/' + encodeURIComponent(pid) + '/tickets', { method: 'POST', headers: headersForMultipart(), body: fd })
-                  .catch(function () { onToast(t('site.cabinet.str_3acff9', 'План сохранён, билеты не загрузились')); return res; })
+                  .catch(function () { onToast('План сохранён, билеты не загрузились'); return res; })
                   .then(function () { return res; });
               }
               return res;
             })
             .then(function (res) {
               close();
-              onToast(isCinema ? t('site.cabinet.str_90edc7', 'План в кино сохранён') : t('site.cabinet.str_cc2670', 'План дома сохранён'));
+              onToast(isCinema ? 'План в кино сохранён' : 'План дома сохранён');
               onSuccess(res);
             })
             .catch(function (e) {
               submit.disabled = false;
               submit.textContent = t('common.save', 'Сохранить');
-              onToast((e && e.message) || t('site.cabinet.str_5bd20b', 'Не удалось сохранить план'));
+              onToast((e && e.message) || 'Не удалось сохранить план');
             });
         });
       }
