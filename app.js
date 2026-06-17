@@ -592,7 +592,7 @@
 
   function showCoinsInfoToast(coins) {
     const bal = coins && coins.is_infinite ? '∞' : (coins && coins.balance != null ? coins.balance : '—');
-    const streak = coins && Number(coins.streak_days) > 0 ? t('site.cabinet.strik', ' · стрик ') + Number(coins.streak_days) + t('site.cabinet.dn', ' дн.') : '';
+    const streak = coins && Number(coins.streak_days) > 0 ? ' · стрик ' + Number(coins.streak_days) + ' дн.' : '';
     showToast('🪙 Монетки: ' + bal + streak + '. +5 за фильм, +40 за оценку. Списания: подборы, билеты, премьеры и сериалы. PRO — без списаний.', { duration: 5200 });
   }
 
@@ -1236,7 +1236,7 @@
             return;
           }
           textEl.textContent = step.text;
-          nextBtn.textContent = idx === steps.length - 1 ? t('onboarding.gotIt', 'Понятно') : t('onboarding.next', 'Далее');
+          nextBtn.textContent = idx === steps.length - 1 ? 'Понятно' : 'Далее';
           applyCardPlacement(step);
 
           const runSpotlight = function () {
@@ -1400,7 +1400,7 @@
     const sessions = getSessions();
     const personal = sessions.find((s) => s && s.is_personal !== false && s.name);
     const active = getActiveSession();
-    return (personal && personal.name) || (active && active.is_personal !== false && active.name) || t('site.cabinet.polzovatel', 'Пользователь');
+    return (personal && personal.name) || (active && active.is_personal !== false && active.name) || 'Пользователь';
   }
 
   function setActiveChatId(chatId) {
@@ -1711,7 +1711,7 @@
             .map((p) => {
               const label =
                 (p.emoji ? String(p.emoji).trim() + ' ' : '👥 ') +
-                (p.display_name || p.name || t('film.shareSectionGroup', 'Группа'));
+                (p.display_name || p.name || 'Группа');
               return (
                 '<option value="' +
                 escapeHtml(String(p.chat_id)) +
@@ -1978,7 +1978,7 @@
               escapeHtml((f.name || '?')[0].toUpperCase()) +
               '</span>' +
               '<span class="list-text"><span class="list-title">' +
-              escapeHtml(f.name || t('film.shareSectionFriend', 'Друг')) +
+              escapeHtml(f.name || 'Друг') +
               '</span></span></label>'
             );
           })
@@ -1992,7 +1992,7 @@
         shareable
           .map(function (p, i) {
             const nm =
-              p.display_name != null && p.display_name !== '' ? p.display_name : p.name || t('film.shareSectionGroup', 'Группа');
+              p.display_name != null && p.display_name !== '' ? p.display_name : p.name || 'Группа';
             return (
               '<label class="list-item" style="cursor:pointer">' +
               '<input type="radio" name="share-grp" value="' +
@@ -2073,7 +2073,7 @@
         try {
           if (sendBtn) {
             sendBtn.disabled = true;
-            sendBtn.textContent = t('login.sending', 'Отправка…');
+            sendBtn.textContent = 'Отправка…';
           }
           const res = await api('/api/friends/recommend', {
             method: 'POST',
@@ -2090,7 +2090,7 @@
         } finally {
           if (sendBtn) {
             sendBtn.disabled = false;
-            sendBtn.textContent = t('film.sendBtn', 'Отправить');
+            sendBtn.textContent = 'Отправить';
           }
         }
         return;
@@ -2105,7 +2105,7 @@
         try {
           if (sendBtn) {
             sendBtn.disabled = true;
-            sendBtn.textContent = t('login.sending', 'Отправка…');
+            sendBtn.textContent = 'Отправка…';
           }
           const res = await api('/api/site/film/' + filmId + '/rating/broadcast-to-group', {
             method: 'POST',
@@ -2122,7 +2122,7 @@
         } finally {
           if (sendBtn) {
             sendBtn.disabled = false;
-            sendBtn.textContent = t('film.sendBtn', 'Отправить');
+            sendBtn.textContent = 'Отправить';
           }
         }
         return;
@@ -2130,7 +2130,7 @@
       try {
         if (sendBtn) {
           sendBtn.disabled = true;
-          sendBtn.textContent = t('login.sending', 'Отправка…');
+          sendBtn.textContent = 'Отправка…';
         }
         const res = await api('/api/site/groups/' + encodeURIComponent(chatId) + '/share-film', {
           method: 'POST',
@@ -2152,7 +2152,7 @@
       } finally {
         if (sendBtn) {
           sendBtn.disabled = false;
-          sendBtn.textContent = t('film.sendBtn', 'Отправить');
+          sendBtn.textContent = 'Отправить';
         }
       }
     });
@@ -2209,7 +2209,7 @@
   }
 
   function avatarInitial(name) {
-    return String(name || t('site.cabinet.p', 'П')).trim().charAt(0).toUpperCase() || t('site.cabinet.p', 'П');
+    return String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
   }
 
   function resolveMediaUrl(url) {
@@ -2235,10 +2235,10 @@
 
   function greetingByHour() {
     const h = new Date().getHours();
-    if (h >= 5 && h < 12) return t('home.greetMorning', 'Доброе утро');
-    if (h >= 12 && h < 18) return t('home.greetDay', 'Добрый день');
-    if (h >= 18 && h < 23) return t('home.greetEvening', 'Добрый вечер');
-    return t('home.greetNight', 'Доброй ночи');
+    if (h >= 5 && h < 12) return 'Доброе утро';
+    if (h >= 12 && h < 18) return 'Добрый день';
+    if (h >= 18 && h < 23) return 'Добрый вечер';
+    return 'Доброй ночи';
   }
 
   function pageLoadingHtml() {
@@ -2282,7 +2282,7 @@
       }
       if (btn.disabled) return;
       btn.disabled = true;
-      btn.textContent = t('site.film.signingOut', 'Выход…');
+      btn.textContent = 'Выход…';
       blockGhostClicks(520);
       setTimeout(() => logoutAllSessions(), 32);
     };
@@ -3138,7 +3138,7 @@
         const btn = sec.querySelector('.staff-import-btn');
         if (btn) {
           btn.disabled = !importable.length;
-          btn.textContent = importable.length ? t('site.cabinet.v_bazu_2', 'В базу → (') + importable.length + ')' : t('site.cabinet.v_bazu_3', 'В базу →');
+          btn.textContent = importable.length ? 'В базу → (' + importable.length + ')' : 'В базу →';
           btn.setAttribute('data-role-key', block.role_key || '');
           btn._importIds = importable;
         }
@@ -3216,7 +3216,7 @@
           showToast(t('site.toast.noFilmsToAdd', 'Нет фильмов для добавления'));
           return;
         }
-        if (!window.confirm(t('site.cabinet.dobavit', 'Добавить ') + ids.length + t('site.cabinet.filmov_v_bazu', ' фильмов в базу?'))) return;
+        if (!window.confirm('Добавить ' + ids.length + ' фильмов в базу?')) return;
         btn.disabled = true;
         api('/api/site/persons/' + person.kp_person_id + '/import', {
           method: 'POST',
@@ -3287,7 +3287,7 @@
       }
       pageRoot.className = 'container film-page-container staff-page-content';
       try {
-        document.title = ((detail.person && detail.person.name_ru) || t('site.cabinet.persona', 'Персона')) + ' · Movie Planner';
+        document.title = ((detail.person && detail.person.name_ru) || 'Персона') + ' · Movie Planner';
       } catch (_) {}
       renderStaffPageContent(detail, pageRoot);
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
@@ -3517,7 +3517,7 @@
     const hBadge = document.getElementById('header-inbox-badge');
     const hBtn = document.getElementById('header-inbox-btn');
     const n = Math.max(0, Number(count) || 0);
-    const label = n > 0 ? (t('site.cabinet.str_f1d335', 'Уведомления, непрочитанных: ') + n) : t('site.header.notifications', 'Уведомления');
+    const label = n > 0 ? (t('site.cabinet.str_f1d335', 'Уведомления, непрочитанных: ') + n) : 'Уведомления';
     const badgeText = n > 99 ? '99+' : String(n);
 
     if (hBtn) {
@@ -3537,8 +3537,8 @@
     if (n <= 0) {
       badge.classList.add('hidden');
       badge.textContent = '';
-      fab.setAttribute('aria-label', t('site.header.notifications', 'Уведомления'));
-      fab.setAttribute('title', t('site.header.notifications', 'Уведомления'));
+      fab.setAttribute('aria-label', 'Уведомления');
+      fab.setAttribute('title', 'Уведомления');
       return;
     }
     badge.classList.remove('hidden');
@@ -3561,26 +3561,26 @@
 
   function siteInboxKindLabel(k) {
     const map = {
-      group_share: t('film.shareSectionGroup', 'Группа'),
-      group_share_accepted: t('film.shareSectionGroup', 'Группа'),
-      group_rating: t('film.shareSectionGroup', 'Группа'),
-      group_rate_invite: t('film.shareSectionGroup', 'Группа'),
-      group_join: t('film.shareSectionGroup', 'Группа'),
-      group_invite_accepted: t('film.shareSectionGroup', 'Группа'),
-      plan_reminder: t('nav.plans', 'Планы'),
-      premiere_release: t('site.cabinet.premera', 'Премьера'),
-      rate_reminder: t('site.cabinet.otsenka_2', 'Оценка'),
-      friend_request: t('film.shareTabFriends', 'Друзья'),
-      friend_request_accepted: t('film.shareTabFriends', 'Друзья'),
-      friend_film_rec: t('film.shareTabFriends', 'Друзья'),
-      friend_rating_shared: t('film.shareTabFriends', 'Друзья'),
-      weekend_digest: t('site.cabinet.podborka', 'Подборка'),
-      tournament_month_results: t('nav.tournament', 'Турнир'),
-      import_episodes_done: t('site.onboard.series', 'Сериалы'),
+      group_share: 'Группа',
+      group_share_accepted: 'Группа',
+      group_rating: 'Группа',
+      group_rate_invite: 'Группа',
+      group_join: 'Группа',
+      group_invite_accepted: 'Группа',
+      plan_reminder: 'Планы',
+      premiere_release: 'Премьера',
+      rate_reminder: 'Оценка',
+      friend_request: 'Друзья',
+      friend_request_accepted: 'Друзья',
+      friend_film_rec: 'Друзья',
+      friend_rating_shared: 'Друзья',
+      weekend_digest: 'Подборка',
+      tournament_month_results: 'Турнир',
+      import_episodes_done: 'Сериалы',
     };
     if (map[k]) return map[k];
     const raw = String(k || '').replace(/_/g, ' ').trim();
-    if (!raw) return t('site.cabinet.soobschenie', 'Сообщение');
+    if (!raw) return 'Сообщение';
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }
 
@@ -3597,8 +3597,8 @@
     const ds = sod(d);
     const today = sod(new Date());
     const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    if (ds === today) return t('site.cabinet.segodnya', 'Сегодня, ') + time;
-    if (ds === today - 86400000) return t('site.cabinet.vchera', 'Вчера, ') + time;
+    if (ds === today) return 'Сегодня, ' + time;
+    if (ds === today - 86400000) return 'Вчера, ' + time;
     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ', ' + time;
   }
 
@@ -3642,8 +3642,8 @@
     const parts = [];
     if (pl && pl.time_hm) parts.push('🕐 ' + pl.time_hm);
     if (pl && pl.plan_type === 'cinema' && pl.cinema_name) parts.push('📍 ' + String(pl.cinema_name).trim());
-    else if (pl && pl.plan_type === 'home') parts.push(t('schedule.tab.home', '🏠 Дома'));
-    if (pl && pl.has_tickets) parts.push(t('site.cabinet.bilety', '🎟️ Билеты'));
+    else if (pl && pl.plan_type === 'home') parts.push('🏠 Дома');
+    if (pl && pl.has_tickets) parts.push('🎟️ Билеты');
     if (parts.length) return parts.join(' · ');
     const cleaned = siteInboxCleanBody(it && it.body);
     if (!cleaned) return '';
@@ -3694,19 +3694,19 @@
 
     if (it.kind === 'friend_request' && fromUid && !Number.isNaN(fromUid)) {
       thumb = siteInboxThumbHtml({ uid: fromUid, name: pl.from_name || friendName });
-      headline = escapeHtml((it.title || t('site.cabinet.zayavka_v_druzya', 'Заявка в друзья')).trim());
+      headline = escapeHtml((it.title || 'Заявка в друзья').trim());
       body = escapeHtml(siteInboxCleanBody(it.body) || (pl.from_name ? pl.from_name + t('site.cabinet.str_271c9c', ' хочет добавить вас в друзья') : ''));
       actions = '<button type="button" class="btn btn-small btn-primary site-inbox-fr-accept" data-fr-uid="' + fromUid + '">Принять</button>'
-        + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + fromUid + '" aria-label=t('site.cabinet.otklonit', 'Отклонить')>✕</button>'
+        + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + fromUid + '" aria-label="Отклонить">✕</button>'
         + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-profile" data-fr-uid="' + fromUid + '">Профиль</button>';
     } else if (it.kind === 'friend_request_accepted' && profileUid && !Number.isNaN(profileUid)) {
       thumb = siteInboxThumbHtml({ uid: profileUid, name: pl.name || friendName });
-      headline = escapeHtml((it.title || t('site.cabinet.teper_vy_druzya', 'Теперь вы друзья')).trim());
+      headline = escapeHtml((it.title || 'Теперь вы друзья').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       actions = '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-profile" data-fr-uid="' + profileUid + '">Открыть профиль</button>';
     } else if (['friend_film_rec', 'friend_rating_shared'].includes(it.kind) && (friendUid && !Number.isNaN(friendUid))) {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ uid: friendUid, name: friendName });
-      headline = escapeHtml(filmTitle || (it.title || '').trim() || t('site.cabinet.film_ot_druga', 'Фильм от друга'));
+      headline = escapeHtml(filmTitle || (it.title || '').trim() || 'Фильм от друга');
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'plan_reminder') {
@@ -3717,12 +3717,12 @@
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'rate_reminder') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ratings' });
-      headline = escapeHtml(filmTitle || t('site.cabinet.pora_otsenit', 'Пора оценить'));
+      headline = escapeHtml(filmTitle || 'Пора оценить');
       body = escapeHtml(siteInboxCleanBody(it.body) || t('site.cabinet.str_3d917b', 'Поставьте оценку после просмотра'));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'premiere_release') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'premieres' });
-      headline = escapeHtml(filmTitle || (it.title || t('site.cabinet.premera', 'Премьера')).trim());
+      headline = escapeHtml(filmTitle || (it.title || 'Премьера').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (['group_share', 'group_share_accepted', 'group_rating', 'group_rate_invite'].includes(it.kind)) {
@@ -3734,7 +3734,7 @@
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
     } else if (it.kind === 'weekend_digest') {
       thumb = siteInboxThumbHtml({ icon: 'popcorn' });
-      headline = escapeHtml((it.title || t('site.cabinet.podborka', 'Подборка')).trim());
+      headline = escapeHtml((it.title || 'Подборка').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       const btns = (pl.film_buttons || []).slice(0, compact ? 2 : 6);
       if (btns.length) {
@@ -3746,7 +3746,7 @@
       }
     } else if (it.kind === 'tournament_month_results') {
       thumb = siteInboxThumbHtml({ icon: 'tournament' });
-      headline = escapeHtml((it.title || t('site.cabinet.itogi_turnira', 'Итоги турнира')).trim());
+      headline = escapeHtml((it.title || 'Итоги турнира').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
     } else {
       const useFilm = !!(kp || fid || filmTitle);
@@ -3898,8 +3898,8 @@
     const sod = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
     const ds = sod(d);
     const today = sod(new Date());
-    if (ds === today) return t('plan.chipToday', 'Сегодня');
-    if (ds === today - 86400000) return t('site.cabinet.vchera_2', 'Вчера');
+    if (ds === today) return 'Сегодня';
+    if (ds === today - 86400000) return 'Вчера';
     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   }
   function siteFriendsActivityGroupedHtml(items) {
@@ -3908,7 +3908,7 @@
     (items || []).forEach((it) => {
       const key = siteFriendsActivityDateKey(it.happened_at) || 'unknown';
       if (!idx[key]) {
-        idx[key] = { label: siteFriendsActivityDateLabel(it.happened_at) || t('site.cabinet.ranshe', 'Раньше'), items: [] };
+        idx[key] = { label: siteFriendsActivityDateLabel(it.happened_at) || 'Раньше', items: [] };
         groups.push(idx[key]);
       }
       idx[key].items.push(it);
@@ -3918,16 +3918,16 @@
         const ach = it.achievement || {};
         let desc = '';
         if (it.event_type === 'rating') {
-          const title = escapeHtml(it.film_title || t('site.cabinet.film', 'фильм'));
+          const title = escapeHtml(it.film_title || 'фильм');
           const kp = it.kp_id != null ? String(it.kp_id) : '';
-          desc = t('site.cabinet.otsenil', 'оценил') + (it.value != null ? ' ' + it.value + '/10' : '') + ' — '
+          desc = 'оценил' + (it.value != null ? ' ' + it.value + '/10' : '') + ' — '
             + (kp ? '<button type="button" class="link-inline site-inbox-act-film" data-kp-id="' + escapeHtml(kp) + '">' + title + '</button>' : title);
         } else if (it.event_type === 'achievement') {
           desc = t('site.cabinet.str_316fa9', 'получил достижение «') + escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || 'Ачивка')) + '»';
         } else if (it.event_type === 'plan_home' || it.event_type === 'plan_cinema') {
-          const title = escapeHtml(it.film_title || t('site.cabinet.film', 'фильм'));
+          const title = escapeHtml(it.film_title || 'фильм');
           const kp = it.kp_id != null ? String(it.kp_id) : '';
-          const verb = it.event_type === 'plan_home' ? t('site.cabinet.zaplaniroval_doma', 'запланировал дома') : t('site.cabinet.str_4952eb', 'запланировал в кино');
+          const verb = it.event_type === 'plan_home' ? 'запланировал дома' : t('site.cabinet.str_4952eb', 'запланировал в кино');
           desc = verb + ' — ' + (kp ? '<button type="button" class="link-inline site-inbox-act-film" data-kp-id="' + escapeHtml(kp) + '">' + title + '</button>' : title);
         } else {
           desc = escapeHtml(it.event_type || '');
@@ -3971,7 +3971,7 @@
     if (!incoming || !incoming.length) return '';
     const rows = incoming.slice(0, 5).map((r) => {
       const uid = Number(r.user_id);
-      const name = escapeHtml(r.name || t('site.cabinet.polzovatel', 'Пользователь'));
+      const name = escapeHtml(r.name || 'Пользователь');
       const thumb = siteInboxThumbHtml({ uid: uid, name: r.name });
       return '<div class="site-inbox-fr-row site-inbox-fr-row--rich">'
         + thumb
@@ -3979,7 +3979,7 @@
         + '<button type="button" class="link-inline site-inbox-fr-profile" data-fr-uid="' + uid + '">' + name + '</button>'
         + '<div class="site-inbox-fr-actions">'
         + '<button type="button" class="btn btn-small btn-primary site-inbox-fr-accept" data-fr-uid="' + uid + '">Принять</button>'
-        + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + uid + '" aria-label=t('site.cabinet.otklonit', 'Отклонить')>✕</button>'
+        + '<button type="button" class="btn btn-small btn-secondary site-inbox-fr-decline" data-fr-uid="' + uid + '" aria-label="Отклонить">✕</button>'
         + '</div></div></div>';
     }).join('');
     return '<div class="site-inbox-card site-inbox-card--friend-req site-inbox-card--rich">'
@@ -4167,7 +4167,7 @@
       const opened = openTelegramAuthLink(deepLink, o.preOpenedWindow || null);
       if (!opened && typeof window.MpIsIos === 'function' && window.MpIsIos()) {
         if (statusEl) {
-          statusEl.textContent = t('site.toast.reopenBot', 'Нажмите «Открыть бота ещё раз»');
+          statusEl.textContent = 'Нажмите «Открыть бота ещё раз»';
           statusEl.className = 'login-status';
         }
       } else if (!opened) {
@@ -4277,7 +4277,7 @@
       modalEl,
       statusEl,
     );
-    if (statusEl) { statusEl.textContent = t('film.doneTitle', 'Готово'); statusEl.className = 'login-status success'; }
+    if (statusEl) { statusEl.textContent = 'Готово'; statusEl.className = 'login-status success'; }
     return true;
   }
 
@@ -4323,7 +4323,7 @@
       });
       if (isIos && deepLink) {
         if (statusEl) {
-          statusEl.textContent = t('site.toast.reopenBot', 'Нажмите «Открыть бота ещё раз»');
+          statusEl.textContent = 'Нажмите «Открыть бота ещё раз»';
           statusEl.className = 'login-status';
         }
       }
@@ -4524,14 +4524,14 @@
           nudgeLoginPrivacy('login');
           return;
         }
-        if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = t('site.cabinet.otpravlyaem', 'Отправляем…'); }
+        if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = 'Отправляем…'; }
         setStatus('');
         try {
           const data = await authApiJson('/api/auth/email/request-code', {
             method: 'POST',
             body: JSON.stringify({ email, accept_privacy: true }),
           });
-          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = t('site.login.sendCode', 'Код'); }
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
           if (!data.success) {
             setStatus(
               data.error === 'rate_limit'
@@ -4541,12 +4541,12 @@
             );
             return;
           }
-          setStatus(t('site.cabinet.kod_otpravlen', 'Код отправлен'), 'success');
+          setStatus('Код отправлен', 'success');
           reqForm.classList.add('hidden');
           if (codeForm) codeForm.classList.remove('hidden');
           if (codeInput) setTimeout(() => codeInput.focus(), 100);
         } catch (err) {
-          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = t('site.login.sendCode', 'Код'); }
+          if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
           setStatus(authNetworkError(err), 'error');
         }
       });
@@ -4562,21 +4562,21 @@
         }
         const name = registrationName();
         if (!name) {
-          setRegStatus(t('site.cabinet.ukazhite_imya', 'Укажите имя'), 'error');
+          setRegStatus('Укажите имя', 'error');
           return;
         }
         if (!regPrivacy || !regPrivacy.checked) {
           nudgeLoginPrivacy('reg');
           return;
         }
-        if (regBtn) { regBtn.disabled = true; regBtn.textContent = t('site.cabinet.otpravlyaem', 'Отправляем…'); }
+        if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
         setRegStatus('');
         try {
           const data = await authApiJson('/api/auth/email/request-code', {
             method: 'POST',
             body: JSON.stringify({ email, accept_privacy: true, acceptPrivacy: true }),
           });
-          if (regBtn) { regBtn.disabled = false; regBtn.textContent = t('site.login.sendCode', 'Код'); }
+          if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
           if (!data.success) {
             setRegStatus(
               data.error === 'rate_limit'
@@ -4586,12 +4586,12 @@
             );
             return;
           }
-          setRegStatus(t('site.cabinet.kod_otpravlen', 'Код отправлен'), 'success');
+          setRegStatus('Код отправлен', 'success');
           regForm.classList.add('hidden');
           if (regCodeForm) regCodeForm.classList.remove('hidden');
           if (regCode) setTimeout(() => regCode.focus(), 80);
         } catch (err) {
-          if (regBtn) { regBtn.disabled = false; regBtn.textContent = t('site.login.sendCode', 'Код'); }
+          if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
           setRegStatus(authNetworkError(err), 'error');
         }
       });
@@ -4615,14 +4615,14 @@
           setRegStatus(t('site.cabinet.str_c708a7', 'Введите код из письма'), 'error');
           return;
         }
-        setRegStatus(t('login.verifying', 'Проверка…'));
+        setRegStatus('Проверка…');
         try {
           const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
             body: JSON.stringify({ email, code }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setRegStatus(verifyData.message || verifyData.error || t('site.cabinet.nevernyy_kod', 'Неверный код'), 'error');
+            setRegStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
             return;
           }
           const exchangeData = await authApiJson('/api/site/session/from-jwt', {
@@ -4635,7 +4635,7 @@
           }
           await applyDisplayNameIfNeeded(exchangeData.token, registrationName());
           applySiteSessionLogin({ ...exchangeData, name: registrationName() || exchangeData.name, is_personal: true }, modal, regStatus);
-          setRegStatus(t('film.doneTitle', 'Готово'), 'success');
+          setRegStatus('Готово', 'success');
         } catch (err) {
           setRegStatus(authNetworkError(err), 'error');
         }
@@ -4659,14 +4659,14 @@
           setStatus(t('site.cabinet.str_c708a7', 'Введите код из письма'), 'error');
           return;
         }
-        setStatus(t('login.verifying', 'Проверка…'));
+        setStatus('Проверка…');
         try {
           const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
             body: JSON.stringify({ email, code }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setStatus(verifyData.message || verifyData.error || t('site.cabinet.nevernyy_kod', 'Неверный код'), 'error');
+            setStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
             return;
           }
           const exchangeData = await authApiJson('/api/site/session/from-jwt', {
@@ -4696,7 +4696,7 @@
           }
           setSessions(sessions);
           setActiveChatId(chatId);
-          setStatus(t('site.cabinet.dobro_pozhalovat', 'Добро пожаловать!'), 'success');
+          setStatus('Добро пожаловать!', 'success');
           setTimeout(() => {
             if (modal) modal.classList.add('hidden');
             loadMeAndShowCabinet();
@@ -4898,9 +4898,9 @@
   }
 
   function _planTypeLabel(p) {
-    const place = p.plan_type === 'cinema' ? t('site.cabinet.v_kino_2', '🎥 В кино') : t('schedule.tab.home', '🏠 Дома');
+    const place = p.plan_type === 'cinema' ? '🎥 В кино' : '🏠 Дома';
     if (p.is_premiere_reminder) {
-      return t('site.cabinet.premera_2', '🎭 Премьера · ') + place;
+      return '🎭 Премьера · ' + place;
     }
     return place;
   }
@@ -4945,7 +4945,7 @@
     ov.setAttribute('aria-modal', 'true');
     ov.innerHTML = ''
       + '<div class="site-tournament-intro-card">'
-      + '<button type="button" class="site-tournament-intro-x" data-tourn-intro-x aria-label=t('common.close', 'Закрыть')>✕</button>'
+      + '<button type="button" class="site-tournament-intro-x" data-tourn-intro-x aria-label="Закрыть">✕</button>'
       + '<div class="site-tournament-intro-title">' + mpIcon('tournament', { size: 'lg' }) + ' Турнир киноманов</div>'
       + '<p class="site-tournament-intro-text">Участвуйте в турнире среди киноманов, оценивайте фильмы, ходите в кино и регулярно заходите в приложение, чтобы получить призы!</p>'
       + '<p class="site-tournament-intro-foot">Отказаться от участия в турнирах можно в настройках.</p>'
@@ -5036,12 +5036,12 @@
   }
 
   const HOME_BLOCK_META = {
-    plans: { title: t('home.section.upcomingPlans', 'Ближайшие просмотры'), section: 'plans', moreLabel: t('site.cabinet.vse_plany', 'Все планы →') },
-    unwatched: { title: t('site.onboard.unwatched', 'Непросмотренные'), section: 'unwatched', moreLabel: t('home.section.allList', 'Весь список →') },
-    series: { title: t('site.onboard.series', 'Сериалы'), section: 'series-hub', moreLabel: t('home.section.all', 'Все →') },
-    premieres: { title: t('nav.premieres', 'Премьеры'), section: 'premieres', moreLabel: t('home.section.allPremieres', 'Все премьеры →') },
-    recent_ratings: { title: t('home.section.recentRated', 'Недавние оценки'), section: 'stats', moreLabel: t('home.section.stats', 'Статистика →') },
-    tournament: { title: t('onboarding.intro.tournament.title', 'Турнирная таблица'), section: 'tournament', moreLabel: t('home.section.fullTable', 'Вся таблица →') },
+    plans: { title: t('home.section.upcomingPlans', 'Ближайшие просмотры'), section: 'plans', moreLabel: 'Все планы →' },
+    unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
+    series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
+    premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
+    recent_ratings: { title: 'Недавние оценки', section: 'stats', moreLabel: 'Статистика →' },
+    tournament: { title: 'Турнирная таблица', section: 'tournament', moreLabel: 'Вся таблица →' },
   };
 
   let _homeTournamentPreview = null;
@@ -5068,7 +5068,7 @@
           return '<a class="home-dash-row home-suggestion-row film-card-v2" href="/f/' + kp + '" data-kp-id="' + kp + '">'
             + '<div class="home-dash-row-text"><div class="home-dash-row-main">'
             + '<div class="home-dash-row-title">' + escapeHtml(s.film_title || t('site.cabinet.filmFallback', 'Фильм')) + '</div>'
-            + '<div class="home-dash-row-meta">' + escapeHtml(s.author_name || t('dashboard.memberFallback', 'Участник')) + '</div>'
+            + '<div class="home-dash-row-meta">' + escapeHtml(s.author_name || 'Участник') + '</div>'
             + '</div></div><span class="list-arrow" style="margin-left:8px">›</span></a>';
         }).join('')
       : '<p class="empty-hint">Пока никто не предложил фильм — поделитесь первым из карточки фильма.</p>';
@@ -5335,8 +5335,8 @@
             if (metaEl) metaEl.textContent = '';
             return;
           }
-          const tail = meta.hasMore ? t('site.cabinet.listayte_vpravo', ' · листайте вправо') : '';
-          metaEl.textContent = meta.loaded + t('site.cabinet.iz', ' из ') + meta.total + tail;
+          const tail = meta.hasMore ? ' · листайте вправо' : '';
+          metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
         },
       });
     });
@@ -5379,7 +5379,7 @@
     const posterBell = (extraClass || '').indexOf('premiere-poster-bell') >= 0;
     const cls = ['premiere-bell-btn', extraClass || '', posterBell ? 'premiere-poster-bell--overlay' : '', active ? 'active' : ''].filter(Boolean).join(' ');
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
-    const label = active ? t('site.cabinet.otslezhivaetsya', 'Отслеживается') : t('site.cabinet.str_63182e', 'Отслеживать премьеру');
+    const label = active ? 'Отслеживается' : t('site.cabinet.str_63182e', 'Отслеживать премьеру');
     const icon = active ? mpIcon('bellOff', { size: 'sm' }) : mpIcon('inbox', { size: 'sm' });
     return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
   }
@@ -5393,7 +5393,7 @@
       + ' data-poster="' + escapeHtml(it.poster || '') + '"'
       + ' data-year="' + escapeHtml(String(it.year || '')) + '"'
       + ' data-genres="' + escapeHtml(String(it.genres || '')) + '"'
-      + ' title=t('site.film.share', 'Поделиться') aria-label=t('site.film.share', 'Поделиться')>↗</button>';
+      + ' title="Поделиться" aria-label="Поделиться">↗</button>';
   }
 
   function renderHomePosterRailHtml(items, opts) {
@@ -5619,7 +5619,7 @@
     if (blockId === 'tournament') {
       if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
       const tp = _homeTournamentPreview;
-      const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: t('dashboard.tournamentRatingsUnit', 'оценок'), label: t('site.onboard.ratings', 'Оценки') };
+      const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: 'оценок', label: 'Оценки' };
       const top = (tp && tp.top) || [];
       const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.');
       const headExtra = tp && tp.period_label ? ('<div class="cabinet-hint">' + escapeHtml(tp.period_label) + ' · ' + escapeHtml(nom.label) + '</div>') : '';
@@ -5767,7 +5767,7 @@
   }
 
   const TOURNAMENT_CURRENT_FROM_DAY = 6;
-  const TOURNAMENT_MONTH_UPPER = ['', t('site.cabinet.yanvar', 'ЯНВАРЬ'), t('site.cabinet.fevral_2', 'ФЕВРАЛЬ'), t('site.cabinet.mart', 'МАРТ'), t('site.cabinet.aprel', 'АПРЕЛЬ'), t('site.cabinet.may_2', 'МАЙ'), t('site.cabinet.iyun', 'ИЮНЬ'), t('site.cabinet.iyul', 'ИЮЛЬ'), t('site.cabinet.avgust_2', 'АВГУСТ'), t('site.cabinet.sentyabr_2', 'СЕНТЯБРЬ'), t('site.cabinet.oktyabr', 'ОКТЯБРЬ'), t('site.cabinet.noyabr', 'НОЯБРЬ'), t('site.cabinet.dekabr_2', 'ДЕКАБРЬ')];
+  const TOURNAMENT_MONTH_UPPER = ['', 'ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ', 'ИЮЛЬ', 'АВГУСТ', 'СЕНТЯБРЬ', 'ОКТЯБРЬ', 'НОЯБРЬ', 'ДЕКАБРЬ'];
   let _siteTournamentLiveCache = null;
   let _siteTournamentResultsCache = null;
   let _siteTournamentPeriodKind = null;
@@ -5822,7 +5822,7 @@
 
   function tournamentMonthSwitchSiteHtml(targetPeriod, label) {
     if (!label) return '';
-    return '<button type="button" class="tourn-month-switch" data-tourn-period="' + escapeHtml(targetPeriod) + '" aria-label=t('site.cabinet.pokazat_escapehtml_label', 'Показать \' + escapeHtml(label) + \'')>' + escapeHtml(label) + '</button>';
+    return '<button type="button" class="tourn-month-switch" data-tourn-period="' + escapeHtml(targetPeriod) + '" aria-label="Показать ' + escapeHtml(label) + '">' + escapeHtml(label) + '</button>';
   }
 
   function tournamentPageHeadbarSiteHtml(opts) {
@@ -5879,7 +5879,7 @@
     const switchBtn = o.switchBtn || tournamentMonthSwitchSiteHtml('current', data.current_month_button || TOURNAMENT_MONTH_UPPER[tournamentMskPartsSite().month] || '');
     let body = '';
     if (!sections.length) {
-      body = '<p class="tourn-page-empty">За ' + escapeHtml(periodLabel || t('site.cabinet.proshlyy_mesyats', 'прошлый месяц')) + ' никто не набрал очки в турнире.</p>';
+      body = '<p class="tourn-page-empty">За ' + escapeHtml(periodLabel || 'прошлый месяц') + ' никто не набрал очки в турнире.</p>';
     } else {
       body = sections.map((sec) => {
         const nom = sec.nomination || {};
@@ -5889,7 +5889,7 @@
     }
     return '<div class="tourn-page">'
       + tournamentPageHeadbarSiteHtml({
-        kicker: t('site.cabinet.itogi', 'Итоги'),
+        kicker: 'Итоги',
         title: periodLabel,
         sub: t('site.cabinet.10_0499df', 'Топ-10 в каждой номинации'),
         switchBtn: switchBtn,
@@ -5902,7 +5902,7 @@
     const o = opts || {};
     const noms = (data.nominations && data.nominations.length) ? data.nominations : [];
     const activeId = o.activeNomId || (noms[0] && noms[0].id) || 'ratings_month';
-    const nom = noms.find((n) => n.id === activeId) || noms[0] || { id: 'ratings_month', label: t('site.onboard.ratings', 'Оценки'), unit: t('dashboard.tournamentRatingsUnit', 'оценок') };
+    const nom = noms.find((n) => n.id === activeId) || noms[0] || { id: 'ratings_month', label: 'Оценки', unit: 'оценок' };
     const items = (data.leaderboard || []).filter((x) => tournamentRowVisibleSite(x, nom));
     const sorted = items.slice().sort((a, b) => tournamentNomScoreSite(b, nom) - tournamentNomScoreSite(a, nom));
     const periodLabel = (data.period && data.period.label) ? data.period.label : (data.current_month_label || '');
@@ -5918,9 +5918,9 @@
       : '';
     return '<div class="tourn-page tourn-page--live">'
       + tournamentPageHeadbarSiteHtml({
-        kicker: t('nav.tournament', 'Турнир'),
+        kicker: 'Турнир',
         title: periodLabel,
-        sub: t('site.cabinet.tablitsa_idyot', 'Таблица идёт'),
+        sub: 'Таблица идёт',
         switchBtn: switchBtn,
       })
       + tabsHtml
@@ -6080,7 +6080,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: t('home.section.upcomingPlans', 'Ближайшие просмотры'), unwatched: t('site.onboard.unwatched', 'Непросмотренные'), series: t('site.onboard.series', 'Сериалы'), premieres: t('nav.premieres', 'Премьеры'), tournament: t('onboarding.intro.tournament.title', 'Турнирная таблица') };
+    const titles = { plans: t('home.section.upcomingPlans', 'Ближайшие просмотры'), unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -6088,8 +6088,8 @@
         + '<label class="home-layout-vis"><input type="checkbox" class="home-layout-show-cb"' + (vis ? ' checked' : '') + '> '
         + escapeHtml(title) + '</label>'
         + '<span class="home-layout-order">'
-        + '<button type="button" class="btn btn-small btn-secondary home-layout-up" aria-label=t('site.cabinet.vyshe', 'Выше')>↑</button>'
-        + '<button type="button" class="btn btn-small btn-secondary home-layout-down" aria-label=t('site.cabinet.nizhe', 'Ниже')>↓</button>'
+        + '<button type="button" class="btn btn-small btn-secondary home-layout-up" aria-label="Выше">↑</button>'
+        + '<button type="button" class="btn btn-small btn-secondary home-layout-down" aria-label="Ниже">↓</button>'
         + '</span></li>';
     }).join('');
   }
@@ -6183,7 +6183,7 @@
         return;
       }
       if (status) {
-        status.textContent = t('site.film.searching', 'Ищем…');
+        status.textContent = 'Ищем…';
         status.classList.remove('hidden');
       }
       if (results) results.innerHTML = '';
@@ -6191,7 +6191,7 @@
         .then((data) => {
           if (!data || !data.success) {
             const err = (data && data.message) || (data && data.error) || t('site.cabinet.str_0aec6b', 'Не удалось выполнить поиск');
-            if (status) status.textContent = typeof err === 'string' ? err : t('search.errorTitle', 'Ошибка');
+            if (status) status.textContent = typeof err === 'string' ? err : 'Ошибка';
             return;
           }
           if (status) status.classList.add('hidden');
@@ -6273,7 +6273,7 @@
     api('/api/site/plans/' + pid + '/share', { method: 'POST', body: JSON.stringify({}) })
       .then(function (res) {
         if (!res || res.success === false || !res.share_url) {
-          const err = (res && (res.error || res.message)) || t('site.toast.linkCreateFailed', 'Не удалось создать ссылку');
+          const err = (res && (res.error || res.message)) || 'Не удалось создать ссылку';
           showToast(err, { type: 'error' });
           return;
         }
@@ -6337,18 +6337,18 @@
       return '<div class="plans-list-empty-wrap plans-empty-premieres">'
         + '<p class="empty-hint">Пока нет напоминаний о премьерах.</p>'
         + '<div class="plans-empty-hub">'
-        + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="premieres" title=t('nav.premieres', 'Премьеры') aria-label=t('nav.premieres', 'Премьеры')>' + mpIcon('premieres', { size: 'md' }) + '</button>'
+        + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">' + mpIcon('premieres', { size: 'md' }) + '</button>'
         + '</div></div>';
     }
-    const hint = _plansViewFilter === 'home' ? t('site.cabinet.net_planov_doma', 'Нет планов дома')
-      : _plansViewFilter === 'cinema' ? t('site.cabinet.net_planov_v_kino', 'Нет планов в кино')
+    const hint = _plansViewFilter === 'home' ? 'Нет планов дома'
+      : _plansViewFilter === 'cinema' ? 'Нет планов в кино'
         : t('site.cabinet.str_bddfea', 'Пока ничего не запланировано');
     return '<div class="plans-list-empty-wrap plans-empty-hub-wrap">'
       + '<p class="empty-hint plans-empty-hub-hint">' + escapeHtml(hint) + '</p>'
-      + '<div class="plans-empty-hub" aria-label=t('home.quickActions', 'Быстрые действия')>'
-      + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="schedule" title=t('plan.title', 'Запланировать') aria-label=t('plan.title', 'Запланировать')>' + mpIcon('plus', { size: 'md' }) + '</button>'
-      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="whattowatch" title=t('nav.watchA11y', 'Что посмотреть') aria-label=t('nav.watchA11y', 'Что посмотреть')>' + mpIcon('watch', { size: 'md' }) + '</button>'
-      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="premieres" title=t('nav.premieres', 'Премьеры') aria-label=t('nav.premieres', 'Премьеры')>' + mpIcon('premieres', { size: 'md' }) + '</button>'
+      + '<div class="plans-empty-hub" aria-label="Быстрые действия">'
+      + '<button type="button" class="home-emoji-btn home-emoji-btn--plan mp-icon-btn" data-plans-hub="schedule" title="Запланировать" aria-label="Запланировать">' + mpIcon('plus', { size: 'md' }) + '</button>'
+      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="whattowatch" title="Что посмотреть" aria-label="Что посмотреть">' + mpIcon('watch', { size: 'md' }) + '</button>'
+      + '<button type="button" class="home-emoji-btn mp-icon-btn" data-plans-hub="premieres" title="Премьеры" aria-label="Премьеры">' + mpIcon('premieres', { size: 'md' }) + '</button>'
       + '</div></div>';
   }
 
@@ -6537,7 +6537,7 @@
     const link = filmDeepLink(m.film_id, m.kp_id, m.is_series);
     const year = m.year ? ` (${m.year})` : '';
     const poster = posterUrl(m.kp_id);
-    const ratingStr = m.rating_kp != null ? t('site.cabinet.kp', ' · КП: ') + Number(m.rating_kp).toFixed(1) : '';
+    const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
     const desc = (m.description || '').trim();
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const streamingUrl = (m.online_link || '').trim();
@@ -6545,7 +6545,7 @@
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
       : '';
     const progressStatus = m.is_series
-      ? (m.progress ? t('site.cabinet.progress', 'Прогресс: ') + escapeHtml(m.progress) : t('site.cabinet.ne_nachat', 'Не начат'))
+      ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
       : '';
     const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
     return `
@@ -6621,7 +6621,7 @@
 
   function renderSeriesCard(s) {
     const link = filmDeepLink(s.film_id, s.kp_id, true);
-    const progress = s.progress ? `Прогресс: ${s.progress}` : t('site.cabinet.ne_nachat', 'Не начат');
+    const progress = s.progress ? `Прогресс: ${s.progress}` : 'Не начат';
     const poster = posterUrl(s.kp_id);
     const streamingUrl = (s.online_link || '').trim();
     const subActive = !!s.has_subscription;
@@ -6662,7 +6662,7 @@
     const metaParts = [];
     if (it.next_episode_label) metaParts.push(it.next_episode_label);
     else if (it.year) metaParts.push(String(it.year));
-    metaParts.push(t('film.seriesBadge', 'Сериал'));
+    metaParts.push('Сериал');
     const meta = metaParts.join(' · ');
     return '<button type="button" class="site-search-card" data-site-search-kp="' + escapeHtml(kp) + '">'
       + siteSearchPosterHtml(poster)
@@ -6820,7 +6820,7 @@
     const link = filmDeepLink(r.film_id, r.kp_id, false);
     const year = r.year ? ` (${r.year})` : '';
     const poster = posterUrl(r.kp_id);
-    const ratingKpStr = r.rating_kp != null ? t('site.cabinet.kp', ' · КП: ') + Number(r.rating_kp).toFixed(1) : '';
+    const ratingKpStr = r.rating_kp != null ? ' · КП: ' + Number(r.rating_kp).toFixed(1) : '';
     const desc = (r.description || '').trim();
     const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const raterStr = (r.rater_username && r.rater_username.trim()) ? ' · ' + escapeHtml(r.rater_username.trim()) : '';
@@ -6856,7 +6856,7 @@
       list = list.filter((r) => (r.rater_username || '').trim() === ratingsMemberFilter);
     }
     if (!list.length) {
-      el.innerHTML = '<p class="empty-hint">' + (ratingsItems.length ? t('site.cabinet.nichego_ne_naydeno', 'Ничего не найдено') : t('site.cabinet.net_otsenok', 'Нет оценок.')) + '</p>';
+      el.innerHTML = '<p class="empty-hint">' + (ratingsItems.length ? 'Ничего не найдено' : 'Нет оценок.') + '</p>';
       return;
     }
     el.innerHTML = list.map(renderRatingsCard).join('');
@@ -6919,9 +6919,9 @@
   }
 
   // ——— Статистика ———
-  const MONTH_NAMES = [t('site.cabinet.yanvar_2', 'Январь'), t('site.cabinet.fevral', 'Февраль'), t('site.cabinet.mart_2', 'Март'), t('site.cabinet.aprel_2', 'Апрель'), t('site.cabinet.may', 'Май'), t('site.cabinet.iyun_4', 'Июнь'), t('site.cabinet.iyul_4', 'Июль'), t('site.cabinet.avgust', 'Август'), t('site.cabinet.sentyabr', 'Сентябрь'), t('site.cabinet.oktyabr_2', 'Октябрь'), t('site.cabinet.noyabr_2', 'Ноябрь'), t('site.cabinet.dekabr', 'Декабрь')];
+  const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-  const MONTH_SHORT = [t('site.cabinet.yanv', 'Янв'), t('site.cabinet.fev_2', 'Фев'), t('site.cabinet.mar', 'Мар'), t('site.cabinet.apr_2', 'Апр'), t('site.cabinet.may', 'Май'), t('site.cabinet.iyun_3', 'Июн'), t('site.cabinet.iyul_2', 'Июл'), t('site.cabinet.avg_2', 'Авг'), t('site.cabinet.sen_2', 'Сен'), t('site.cabinet.okt', 'Окт'), t('site.cabinet.noya', 'Ноя'), t('site.cabinet.dek_2', 'Дек')];
+  const MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
   function mountStatsSection() {
     initStatsSelectors();
@@ -7091,7 +7091,7 @@
     if (loading) { loading.classList.remove('hidden'); loading.innerHTML = pageLoadingHtml(); }
     if (error) { error.classList.add('hidden'); error.textContent = ''; }
     if (content) content.style.visibility = 'hidden';
-    if (subtitle) subtitle.textContent = t('site.cabinet.statistika_gruppy', 'Статистика группы');
+    if (subtitle) subtitle.textContent = 'Статистика группы';
 
     apiPublic('/api/site/group-stats/public/' + encodeURIComponent(slug) + '?month=' + (month || new Date().getMonth() + 1) + '&year=' + (year || new Date().getFullYear()))
       .then((data) => {
@@ -7106,7 +7106,7 @@
           return;
         }
         const group = data.group || {};
-        if (subtitle) subtitle.textContent = t('site.cabinet.statistika', 'Статистика: ') + (group.title || 'Группа');
+        if (subtitle) subtitle.textContent = 'Статистика: ' + (group.title || 'Группа');
         const ctx = {
           headerEl: document.getElementById('public-stats-group-header'),
           summaryEl: document.getElementById('public-stats-summary'),
@@ -7177,7 +7177,7 @@
     if (content) content.style.visibility = 'hidden';
     if (groupWrap) groupWrap.classList.add('hidden');
     if (personalWrap) personalWrap.classList.add('hidden');
-    if (subtitle) subtitle.textContent = t('site.landing.featureStats', 'Статистика');
+    if (subtitle) subtitle.textContent = 'Статистика';
     document.getElementById('public-stats-ach-panel')?.classList.remove('open');
 
     apiPublic('/api/site/stats/public/' + encodeURIComponent(slug) + '?month=' + (month || new Date().getMonth() + 1) + '&year=' + (year || new Date().getFullYear()))
@@ -7193,7 +7193,7 @@
           return;
         }
         const user = data.user || {};
-        if (subtitle) subtitle.textContent = t('site.cabinet.statistika', 'Статистика: ') + (user.name || slug);
+        if (subtitle) subtitle.textContent = 'Статистика: ' + (user.name || slug);
         if (groupWrap) groupWrap.classList.add('hidden');
         if (personalWrap) personalWrap.classList.remove('hidden');
         renderPublicStatsOwnerBar(data, 'user');
@@ -7228,9 +7228,9 @@
     if (!bar || !link) return;
     if (type === 'group') {
       const group = data.group || {};
-      const title = (group.title || t('film.shareSectionGroup', 'Группа')).trim();
+      const title = (group.title || 'Группа').trim();
       link.href = '/';
-      link.setAttribute('aria-label', t('site.legal.homeLink', 'На главную'));
+      link.setAttribute('aria-label', 'На главную');
       if (nameEl) nameEl.textContent = title;
       if (avatarEl) {
         avatarEl.innerHTML = escapeHtml((title[0] || 'G').toUpperCase());
@@ -7245,10 +7245,10 @@
     if (nameEl) nameEl.textContent = name;
     if (userId) {
       link.href = '/u/' + encodeURIComponent(String(userId));
-      link.setAttribute('aria-label', t('site.cabinet.profil', 'Профиль ') + name);
+      link.setAttribute('aria-label', 'Профиль ' + name);
     } else {
       link.href = '/';
-      link.setAttribute('aria-label', t('site.legal.homeLink', 'На главную'));
+      link.setAttribute('aria-label', 'На главную');
     }
     if (avatarEl) {
       const photo = userId ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(userId)) + '.jpg') : '';
@@ -7348,15 +7348,15 @@
       } else if (isCabinet) {
         shareHtml = '<div class="stats-group-share"><span class="stats-personal-share-note">Поделиться: </span><button type="button" class="btn btn-small btn-primary stats-enable-share-btn">Включить публичную ссылку</button></div>';
       }
-      const groupTitle = (group.title || t('film.shareSectionGroup', 'Группа')).length > 35 ? (group.title || t('film.shareSectionGroup', 'Группа')).slice(0, 32) + '…' : (group.title || t('film.shareSectionGroup', 'Группа'));
+      const groupTitle = (group.title || 'Группа').length > 35 ? (group.title || 'Группа').slice(0, 32) + '…' : (group.title || 'Группа');
       headerEl.innerHTML = '<div class="stats-group-header-inner"><h3 class="stats-group-title">Статистика: <span class="stats-group-name">' + escapeHtml(groupTitle) + '</span></h3>' +
-        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + t('site.cabinet.uchastnikov_2', ' участников')) + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + t('site.cabinet.str_3ebb20', ' фильмов за всё время')) + '</div></div>' + shareHtml;
+        '<div class="stats-group-meta">' + escapeHtml((group.members_active || 0) + ' участников') + ' &middot; ' + escapeHtml((group.total_films_alltime || 0) + t('site.cabinet.str_3ebb20', ' фильмов за всё время')) + '</div></div>' + shareHtml;
       headerEl.querySelector('.stats-group-copy-btn')?.addEventListener('click', function () {
         const u = this.getAttribute('data-url');
         if (!u) return;
         const self = this;
         copyToClipboard(u).then(() => {
-          self.textContent = t('site.cabinet.skopirovano', 'Скопировано!');
+          self.textContent = 'Скопировано!';
           showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
           setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
         }).catch(() => showToast(t('site.toast.copyFailed', 'Не удалось скопировать'), { type: 'error' }));
@@ -7364,7 +7364,7 @@
       headerEl.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
         const btn = this;
         btn.disabled = true;
-        btn.textContent = t('site.cabinet.vklyuchenie', 'Включение…');
+        btn.textContent = 'Включение…';
         api('/api/site/group-stats/settings', { method: 'PUT', body: JSON.stringify({ public_enabled: true }) })
           .then((r) => {
             if (r.success) {
@@ -7385,20 +7385,20 @@
     if (summaryEl) {
       const cards = [
         { val: summary.group_films ?? 0, label: t('site.cabinet.str_3b1cdd', 'Просмотренных фильмов'), cls: 'stat-card-pink', icon: 'library' },
-        { val: summary.group_ratings ?? 0, label: t('site.cabinet.otsenok_postavleno', 'Оценок поставлено'), cls: 'stat-card-purple', icon: 'ratings' },
-        { val: summary.group_cinema ?? 0, label: t('site.cabinet.pohodov_v_kino', 'Походов в кино'), cls: 'stat-card-cyan', icon: 'camera' },
-        { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: t('site.cabinet.serialov_seriy', 'Сериалов / серий'), cls: 'stat-card-green', icon: 'series' },
+        { val: summary.group_ratings ?? 0, label: 'Оценок поставлено', cls: 'stat-card-purple', icon: 'ratings' },
+        { val: summary.group_cinema ?? 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: 'camera' },
+        { val: (summary.group_series ?? 0) + ' / ' + (summary.group_episodes ?? 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: 'series' },
         { val: summary.active_members ?? 0, label: t('site.cabinet.str_40a553', 'Активных участников'), cls: 'stat-card-amber', icon: 'friends' }
       ];
       summaryEl.innerHTML = cards.map((c) => {
         let scrollTarget = null;
         if (c.label === t('site.cabinet.str_3b1cdd', 'Просмотренных фильмов')) {
           scrollTarget = 'group-watched';
-        } else if (c.label === t('site.cabinet.otsenok_postavleno', 'Оценок поставлено')) {
+        } else if (c.label === 'Оценок поставлено') {
           scrollTarget = 'group-rating-breakdown';
-        } else if (c.label === t('site.cabinet.serialov_seriy', 'Сериалов / серий')) {
+        } else if (c.label === 'Сериалов / серий') {
           scrollTarget = 'group-platforms';
-        } else if (c.label === t('site.cabinet.pohodov_v_kino', 'Походов в кино')) {
+        } else if (c.label === 'Походов в кино') {
           scrollTarget = 'group-cinema';
         }
         const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
@@ -7409,10 +7409,10 @@
     // MVP
     if (mvpEl && mvp.user_id != null) {
       const mvpMember = memberById(members, mvp.user_id);
-      const reasonLabels = { most_active: t('site.cabinet.str_f8340a', 'Больше всех смотрел и оценивал'), most_ratings: t('site.cabinet.lider_po_otsenkam', 'Лидер по оценкам'), most_cinema: t('site.cabinet.str_b4af99', 'Больше всех в кино'), most_series: t('site.cabinet.bolshe_vseh_seriy', 'Больше всех серий') };
+      const reasonLabels = { most_active: t('site.cabinet.str_f8340a', 'Больше всех смотрел и оценивал'), most_ratings: 'Лидер по оценкам', most_cinema: t('site.cabinet.str_b4af99', 'Больше всех в кино'), most_series: 'Больше всех серий' };
       mvpEl.innerHTML = '<div class="stats-mvp-card"><div class="stats-mvp-crown">👑</div><div class="stats-mvp-title">Киноман месяца</div>' +
         groupAvatar(mvpMember, 'xl') +
-        '<div class="stats-mvp-name">' + escapeHtml(mvpMember ? (mvpMember.first_name || mvpMember.username || t('dashboard.memberFallback', 'Участник')) : '') + '</div>' +
+        '<div class="stats-mvp-name">' + escapeHtml(mvpMember ? (mvpMember.first_name || mvpMember.username || 'Участник') : '') + '</div>' +
         '<div class="stats-mvp-meta">' + escapeHtml(mvpMember && mvpMember.username ? mvpMember.username : '') + ' · ' + escapeHtml(reasonLabels[mvp.reason] || mvp.reason || '') + '</div>' +
         '<div class="stats-mvp-stats">' +
         '<div class="stats-mvp-stat"><span class="stats-mvp-stat-val">' + (mvp.films ?? 0) + '</span><span class="stats-mvp-stat-lbl">просмотров</span></div>' +
@@ -7461,7 +7461,7 @@
     // Leaderboard
     const lb = leaderboard;
     const lbTabs = ['watched', 'ratings', 'avg_rating', 'cinema'];
-    const lbLabels = { watched: t('site.cabinet.prosmotry', 'Просмотры'), ratings: t('site.onboard.ratings', 'Оценки'), avg_rating: t('site.cabinet.srednyaya_2', 'Средняя'), cinema: t('plan.cinemaLabel', 'Кинотеатр') };
+    const lbLabels = { watched: 'Просмотры', ratings: 'Оценки', avg_rating: 'Средняя', cinema: 'Кинотеатр' };
     const lbData = {};
     lbTabs.forEach((key) => {
       const arr = lb[key] || [];
@@ -7489,7 +7489,7 @@
         const pct = maxVal ? (val / maxVal) * 100 : 0;
         const color = m && m.avatar_color ? m.avatar_color : '#9b4dff';
         const vc = lbValueClass(lbType, val, pct);
-        return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || t('dashboard.memberFallback', 'Участник')) : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value ' + vc + '">' + val + suffix + '</div></div>';
+        return '<div class="stats-lb-row"><div class="stats-lb-rank">' + (i + 1) + '</div>' + groupAvatar(m) + '<div class="stats-lb-info"><div class="stats-lb-name">' + escapeHtml(m ? (m.first_name || m.username || 'Участник') : '') + '</div></div><div class="stats-lb-bar-wrap"><div class="stats-lb-bar" style="width:' + pct + '%;background:' + color + '"></div></div><div class="stats-lb-value ' + vc + '">' + val + suffix + '</div></div>';
       }).join('');
     }
     const lbPref = ctx.lbPrefix || 'lb';
@@ -7596,7 +7596,7 @@
             else if (v <= avg * 2.5) lvl = 'l3';
             else lvl = 'l4';
           }
-          cells += '<div class="stats-heatmap-cell ' + lvl + '" title=t('site.cabinet.den_d_v', 'День \' + d + \': \' + v + \'')></div>';
+          cells += '<div class="stats-heatmap-cell ' + lvl + '" title="День ' + d + ': ' + v + '"></div>';
         });
         cols += '<div class="stats-heatmap-col"><div class="stats-heatmap-day">' + d + '</div>' + cells + '</div>';
       }
@@ -7636,15 +7636,15 @@
           let target = null;
           const allBlocks = Array.from(gridEl.querySelectorAll('.stats-block'));
           if (targetId === 'group-watched') {
-            // Find block with t('site.cabinet.prosmotrennoe_3', 'просмотренное') or t('site.cabinet.prosmotrennoe_2', 'Просмотренное') in title
+            // Find block with "просмотренное" or "Просмотренное" in title
             target = allBlocks.find((b) => {
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.toLowerCase().includes(t('site.cabinet.prosmotrennoe_3', 'просмотренное')) || text.includes('📋');
+              return text.toLowerCase().includes('просмотренное') || text.includes('📋');
             });
           } else if (targetId === 'group-rating-breakdown') {
-            // Find t('site.cabinet.str_68dde0', 'Распределение оценок') block
+            // Find "Распределение оценок" block
             target = allBlocks.find((b) => {
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
@@ -7652,20 +7652,20 @@
               return text.includes(t('site.cabinet.str_68dde0', 'Распределение оценок')) || text.includes('📊');
             });
           } else if (targetId === 'group-platforms') {
-            // Find t('site.cabinet.platformy', 'Платформы') block
+            // Find "Платформы" block
             target = allBlocks.find((b) => {
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes(t('site.cabinet.platformy', 'Платформы')) || text.includes('📺');
+              return text.includes('Платформы') || text.includes('📺');
             });
           } else if (targetId === 'group-cinema') {
-            // Find t('site.cabinet.pohody_v_kino', 'Походы в кино') block
+            // Find "Походы в кино" block
             target = allBlocks.find((b) => {
               const title = b.querySelector('.stats-block-title');
               if (!title) return false;
               const text = title.textContent || '';
-              return text.includes(t('site.cabinet.pohody_v_kino', 'Походы в кино')) || text.includes('🎥');
+              return text.includes('Походы в кино') || text.includes('🎥');
             });
           }
           if (target) scrollToStatsSection(target);
@@ -7678,9 +7678,9 @@
     if (!dateStr || typeof dateStr !== 'string') return '';
     const m = dateStr.match(/^(\d{4})-(\d{2})/);
     if (!m) return dateStr;
-    const months = [t('site.cabinet.yanvarya', 'января'), t('site.cabinet.fevralya', 'февраля'), t('site.cabinet.marta', 'марта'), t('site.cabinet.aprelya', 'апреля'), t('site.cabinet.maya', 'мая'), t('site.cabinet.iyunya', 'июня'), t('site.cabinet.iyulya', 'июля'), t('site.cabinet.avgusta', 'августа'), t('site.cabinet.sentyabrya', 'сентября'), t('site.cabinet.oktyabrya', 'октября'), t('site.cabinet.noyabrya', 'ноября'), t('site.cabinet.dekabrya', 'декабря')];
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     const month = months[parseInt(m[2], 10) - 1] || m[2];
-    return t('site.cabinet.s', 'с ') + month + ' ' + m[1];
+    return 'с ' + month + ' ' + m[1];
   }
 
   function renderStatsProfilePersonal(data, ctx) {
@@ -7692,13 +7692,13 @@
     const profile = data.user_profile || {};
     const user = data.user || {};
     const achievements = data.achievements || [];
-    const name = profile.first_name || user.name || ('@' + (profile.username || user.username || '').replace(/^@/, '')) || t('site.cabinet.polzovatel', 'Пользователь');
+    const name = profile.first_name || user.name || ('@' + (profile.username || user.username || '').replace(/^@/, '')) || 'Пользователь';
     const initial = (name[0] || '?').toUpperCase();
     const since = formatMemberSince(profile.member_since);
     const meta = [
-      profile.total_films_alltime != null ? '🎬 ' + profile.total_films_alltime + t('site.cabinet.filmov_2', ' фильмов') : null,
-      profile.total_series_alltime != null ? '📺 ' + profile.total_series_alltime + t('site.cabinet.serialov', ' сериалов') : null,
-      profile.avg_rating_alltime != null ? '⭐ ' + Number(profile.avg_rating_alltime).toFixed(1) + t('site.cabinet.srednyaya', ' средняя') : null,
+      profile.total_films_alltime != null ? '🎬 ' + profile.total_films_alltime + ' фильмов' : null,
+      profile.total_series_alltime != null ? '📺 ' + profile.total_series_alltime + ' сериалов' : null,
+      profile.avg_rating_alltime != null ? '⭐ ' + Number(profile.avg_rating_alltime).toFixed(1) + ' средняя' : null,
       since ? '📅 ' + since : null
     ].filter(Boolean).join(' · ');
     const earned = achievements.filter((a) => a.earned);
@@ -7719,24 +7719,24 @@
   }
 
   const ACH_CATEGORIES = {
-    'films_': t('site.cabinet.kinoman', '🎬 Киноман'),
-    'ratings_': t('site.cabinet.kritik', '⭐ Критик'),
-    'cinema_': t('site.cabinet.kinozritel', '🎟️ Кинозритель'),
-    'series_completed_': t('site.cabinet.serialy', '📺 Сериалы'),
-    'series_ep_': t('site.cabinet.serii', '🔥 Серии'),
-    'genres_': t('site.cabinet.vseyadnyy', '🌈 Всеядный'),
-    'plans_': t('site.cabinet.planirovschik', '📅 Планировщик'),
-    'friends_': t('site.cabinet.druzya', '🤝 Друзья')
+    'films_': '🎬 Киноман',
+    'ratings_': '⭐ Критик',
+    'cinema_': '🎟️ Кинозритель',
+    'series_completed_': '📺 Сериалы',
+    'series_ep_': '🔥 Серии',
+    'genres_': '🌈 Всеядный',
+    'plans_': '📅 Планировщик',
+    'friends_': '🤝 Друзья'
   };
   function getAchCategory(achId) {
     if (!achId) return null;
     for (const prefix in ACH_CATEGORIES) {
       if (achId.startsWith(prefix)) return ACH_CATEGORIES[prefix];
     }
-    return t('site.cabinet.osobye', '🏆 Особые');
+    return '🏆 Особые';
   }
 
-  const ACH_RARITY_LABEL_RU_SITE = { common: t('site.cabinet.obychnaya', 'Обычная'), rare: t('site.cabinet.redkaya', 'Редкая'), epic: t('site.cabinet.epicheskaya', 'Эпическая'), legendary: t('site.cabinet.legendarnaya', 'Легендарная') };
+  const ACH_RARITY_LABEL_RU_SITE = { common: 'Обычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная' };
 
   function showAchievementCelebrationModal(a) {
     if (!a || !a.id) return Promise.resolve();
@@ -7751,7 +7751,7 @@
         '<div class="mp-dialog-card ach-celebration-card">' +
         '<div class="ach-celebration-kicker">Новая ачивка</div>' +
         '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(a.icon || '🏅') + '</div>' +
-        '<h2 class="ach-celebration-title">' + escapeHtml(a.name || t('site.cabinet.achivka', 'Ачивка')) + '</h2>' +
+        '<h2 class="ach-celebration-title">' + escapeHtml(a.name || 'Ачивка') + '</h2>' +
         '<p class="ach-celebration-desc">' + escapeHtml(a.description || '') + '</p>' +
         (rare ? '<div class="ach-celebration-rarity">' + escapeHtml(rare) + '</div>' : '') +
         '<button type="button" class="btn-primary btn-full ach-celebration-btn" id="ach-celebration-ok">Ура!</button>' +
@@ -7826,11 +7826,11 @@
     };
     const byCategory = {};
     list.forEach(function (a) {
-      const cat = getAchCategory(a.id) || t('site.cabinet.prochee', 'Прочее');
+      const cat = getAchCategory(a.id) || 'Прочее';
       if (!byCategory[cat]) byCategory[cat] = [];
       byCategory[cat].push(a);
     });
-    const categoryOrder = [t('site.cabinet.kinoman', '🎬 Киноман'), t('site.cabinet.kritik', '⭐ Критик'), t('site.cabinet.kinozritel', '🎟️ Кинозритель'), t('site.cabinet.serialy', '📺 Сериалы'), t('site.cabinet.serii', '🔥 Серии'), t('site.cabinet.vseyadnyy', '🌈 Всеядный'), t('site.cabinet.planirovschik', '📅 Планировщик'), t('site.cabinet.osobye', '🏆 Особые')];
+    const categoryOrder = ['🎬 Киноман', '⭐ Критик', '🎟️ Кинозритель', '📺 Сериалы', '🔥 Серии', '🌈 Всеядный', '📅 Планировщик', '🏆 Особые'];
     let html = '';
     categoryOrder.forEach(function (cat) {
       const items = byCategory[cat];
@@ -7892,13 +7892,13 @@
     const group = data.group || {};
     const s = data.summary || {};
     const achievements = data.achievements || [];
-    const title = group.title || t('film.shareSectionGroup', 'Группа');
-    const initial = (title[0] || t('site.cabinet.g', 'Г')).toUpperCase();
+    const title = group.title || 'Группа';
+    const initial = (title[0] || 'Г').toUpperCase();
     const meta = [
-      s.group_films != null ? '🎬 ' + s.group_films + t('site.cabinet.filmov_2', ' фильмов') : null,
-      s.group_ratings != null ? '⭐ ' + s.group_ratings + t('site.cabinet.otsenok', ' оценок') : null,
-      s.group_cinema != null ? '🎥 ' + s.group_cinema + t('site.cabinet.v_kino', ' в кино') : null,
-      (group.members_active || 0) ? '👥 ' + group.members_active + t('site.cabinet.uchastnikov_2', ' участников') : null
+      s.group_films != null ? '🎬 ' + s.group_films + ' фильмов' : null,
+      s.group_ratings != null ? '⭐ ' + s.group_ratings + ' оценок' : null,
+      s.group_cinema != null ? '🎥 ' + s.group_cinema + ' в кино' : null,
+      (group.members_active || 0) ? '👥 ' + group.members_active + ' участников' : null
     ].filter(Boolean).join(' · ');
     const earned = achievements.filter((a) => a.earned);
     const show = earned.slice(0, 5);
@@ -7930,7 +7930,7 @@
         if (!u) return;
         const self = this;
         copyToClipboard(u).then(() => {
-          self.textContent = t('site.cabinet.skopirovano', 'Скопировано!');
+          self.textContent = 'Скопировано!';
           showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
           setTimeout(() => { self.textContent = 'Копировать'; }, 2000);
         }).catch(() => showToast(t('site.toast.copyFailed', 'Не удалось скопировать'), { type: 'error' }));
@@ -7941,7 +7941,7 @@
       el.classList.remove('hidden');
       el.querySelector('.stats-enable-share-btn')?.addEventListener('click', function () {
         this.disabled = true;
-        this.textContent = t('site.cabinet.vklyuchenie', 'Включение…');
+        this.textContent = 'Включение…';
         api('/api/site/stats/settings', { method: 'PUT', body: JSON.stringify({ public_enabled: true }) })
           .then((r) => {
             if (r.success) {
@@ -7965,18 +7965,18 @@
     if (style === 'personal') {
       const total = s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0);
       const cards = [
-        { val: s.films_watched || 0, label: t('site.cabinet.filmov', 'Фильмов'), cls: 'stat-card-pink', icon: 'library' },
-        { val: (s.series_watched || 0) + ' / ' + (s.episodes_watched || 0), label: t('site.cabinet.serialov_seriy', 'Сериалов / серий'), cls: 'stat-card-green', icon: 'series' },
-        { val: s.cinema_visits || 0, label: t('site.cabinet.pohodov_v_kino', 'Походов в кино'), cls: 'stat-card-cyan', icon: 'camera' },
-        { val: total, label: t('site.cabinet.vsego_prosmotrov', 'Всего просмотров'), cls: 'stat-card-purple', icon: 'stats' },
-        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: t('site.cabinet.srednyaya_otsenka', 'Средняя оценка'), cls: 'stat-card-amber', icon: 'ratings' }
+        { val: s.films_watched || 0, label: 'Фильмов', cls: 'stat-card-pink', icon: 'library' },
+        { val: (s.series_watched || 0) + ' / ' + (s.episodes_watched || 0), label: 'Сериалов / серий', cls: 'stat-card-green', icon: 'series' },
+        { val: s.cinema_visits || 0, label: 'Походов в кино', cls: 'stat-card-cyan', icon: 'camera' },
+        { val: total, label: 'Всего просмотров', cls: 'stat-card-purple', icon: 'stats' },
+        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка', cls: 'stat-card-amber', icon: 'ratings' }
       ];
       el.innerHTML = cards.map((c) => {
         let scrollTarget = null;
-        if (c.label === t('site.cabinet.filmov', 'Фильмов')) scrollTarget = 'watched';
-        else if (c.label === t('site.cabinet.srednyaya_otsenka', 'Средняя оценка')) scrollTarget = 'rating-breakdown';
-        else if (c.label === t('site.cabinet.serialov_seriy', 'Сериалов / серий')) scrollTarget = 'platforms';
-        else if (c.label === t('site.cabinet.pohodov_v_kino', 'Походов в кино')) scrollTarget = 'cinema';
+        if (c.label === 'Фильмов') scrollTarget = 'watched';
+        else if (c.label === 'Средняя оценка') scrollTarget = 'rating-breakdown';
+        else if (c.label === 'Сериалов / серий') scrollTarget = 'platforms';
+        else if (c.label === 'Походов в кино') scrollTarget = 'cinema';
         const clickable = scrollTarget ? ' style="cursor:pointer" data-scroll-to="' + escapeHtml(scrollTarget) + '"' : '';
         return '<div class="stat-card ' + c.cls + '"' + clickable + '><div class="stat-card-icon">' + mpIcon(c.icon, { size: 'lg' }) + '</div><div class="stat-card-value">' + escapeHtml(String(c.val)) + '</div><div class="stat-card-label">' + escapeHtml(c.label) + '</div></div>';
       }).join('');
@@ -8001,12 +8001,12 @@
     } else {
       el.classList.remove('stats-group-summary');
       el.innerHTML = [
-        { val: s.films_watched || 0, label: t('site.cabinet.filmov', 'Фильмов') },
-        { val: s.series_watched || 0, label: t('dashboard.statsSeriesShort', 'Сериалов') },
-        { val: s.episodes_watched || 0, label: t('site.cabinet.seriy', 'Серий') },
-        { val: s.cinema_visits || 0, label: t('site.cabinet.pohodov_v_kino', 'Походов в кино') },
-        { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0), label: t('site.cabinet.vsego_prosmotrov', 'Всего просмотров') },
-        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: t('site.cabinet.srednyaya_otsenka', 'Средняя оценка') }
+        { val: s.films_watched || 0, label: 'Фильмов' },
+        { val: s.series_watched || 0, label: 'Сериалов' },
+        { val: s.episodes_watched || 0, label: 'Серий' },
+        { val: s.cinema_visits || 0, label: 'Походов в кино' },
+        { val: s.total_watched != null ? s.total_watched : (s.films_watched || 0) + (s.episodes_watched || 0), label: 'Всего просмотров' },
+        { val: s.avg_rating != null ? Number(s.avg_rating).toFixed(1) : '—', label: 'Средняя оценка' }
       ].map((x) => '<div class="stat-card"><div class="stat-card-value">' + escapeHtml(String(x.val)) + '</div><div class="stat-card-label">' + escapeHtml(x.label) + '</div></div>').join('');
     }
   }
@@ -8088,7 +8088,7 @@
     options = options || {};
     const canEdit = !!options.canEdit;
     const monthLabel = period && period.label ? (period.label.split(' ')[0] || '').toLowerCase() : '';
-    const title = monthLabel ? t('site.cabinet.str_686e02', '📋 Всё просмотренное за ') + monthLabel : t('site.cabinet.prosmotrennoe', '📋 Просмотренное');
+    const title = monthLabel ? t('site.cabinet.str_686e02', '📋 Всё просмотренное за ') + monthLabel : '📋 Просмотренное';
     if (!list.length) return '<div class="stats-block-title">' + title + '</div><p class="empty-hint">Нет данных за выбранный период.</p>';
     const itemsHtml = list.map((w) => {
       const poster = posterUrl(w.kp_id);
@@ -8097,10 +8097,10 @@
       const metaStr = metaDate + (w.rating != null ? ' · ⭐ ' + w.rating : '');
       let badgeCls = 'badge-film';
       let badgeLabel = t('site.cabinet.filmFallback', 'Фильм');
-      if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = t('site.cabinet.kino', 'Кино'); }
-      else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = t('film.seriesBadge', 'Сериал'); }
+      if (w.is_cinema) { badgeCls = 'badge-cinema'; badgeLabel = 'Кино'; }
+      else if (w.type === 'series') { badgeCls = 'badge-series'; badgeLabel = 'Сериал'; }
       const dataAttrs = ' data-film-id="' + (w.film_id || '') + '" data-source="' + (w.source || '') + '" data-user-id="' + (w.user_id != null ? String(w.user_id) : '') + '" data-can-change="' + (w.can_change_month && w.source ? '1' : '0') + '"';
-      const actionsHtml = canEdit ? '<div class="watched-item-actions"><button type="button" class="watched-menu-dots" aria-label=t('home.moreTitle', 'Ещё')>⋮</button><div class="watched-menu-dropdown hidden"><button type="button" data-action="change-watched-month">Изменить месяц просмотра</button></div></div>' : '';
+      const actionsHtml = canEdit ? '<div class="watched-item-actions"><button type="button" class="watched-menu-dots" aria-label="Ещё">⋮</button><div class="watched-menu-dropdown hidden"><button type="button" data-action="change-watched-month">Изменить месяц просмотра</button></div></div>' : '';
       return '<div class="watched-item"' + dataAttrs + '>' +
         (poster ? '<img src="' + poster + '" alt="' + escapeHtml(w.title || '') + '" class="watched-poster" loading="lazy" onerror="this.style.background=\'var(--bg-surface-alt)\'">' : '<div class="watched-poster"></div>') +
         '<div class="watched-info"><div class="watched-name">' + escapeHtml(w.title || '') + '</div><div class="watched-meta">' + escapeHtml(metaStr) + '</div></div>' +
@@ -8131,7 +8131,7 @@
   }
 
   function openChangeMonthModal(filmId, source, userId, isGroup, currentMonth, currentYear, onSuccess) {
-    const MONTH_NAMES = [t('site.cabinet.yanvar_2', 'Январь'), t('site.cabinet.fevral', 'Февраль'), t('site.cabinet.mart_2', 'Март'), t('site.cabinet.aprel_2', 'Апрель'), t('site.cabinet.may', 'Май'), t('site.cabinet.iyun_4', 'Июнь'), t('site.cabinet.iyul_4', 'Июль'), t('site.cabinet.avgust', 'Август'), t('site.cabinet.sentyabr', 'Сентябрь'), t('site.cabinet.oktyabr_2', 'Октябрь'), t('site.cabinet.noyabr_2', 'Ноябрь'), t('site.cabinet.dekabr', 'Декабрь')];
+    const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     const now = new Date();
     let monthHtml = '';
     for (let m = 1; m <= 12; m++) monthHtml += '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + MONTH_NAMES[m - 1] + '</option>';
@@ -8142,7 +8142,7 @@
     modal.id = 'change-month-modal';
     modal.innerHTML =
       '<div class="modal-content">' +
-        '<button type="button" class="modal-close" aria-label=t('common.close', 'Закрыть')>&times;</button>' +
+        '<button type="button" class="modal-close" aria-label="Закрыть">&times;</button>' +
         '<div class="modal-title">Изменить месяц</div>' +
         '<div class="modal-hint">Укажите месяц, в который перенести просмотр. Ачивки не отзываются.</div>' +
         '<div class="change-month-fields">' +
@@ -8270,7 +8270,7 @@
         for (let i = 0; i < total; i++) {
           const dot = document.createElement('span');
           dot.className = 'dot' + (i === 0 ? ' active' : '');
-          dot.setAttribute('aria-label', t('site.cabinet.slayd', 'Слайд ') + (i + 1));
+          dot.setAttribute('aria-label', 'Слайд ' + (i + 1));
           dot.addEventListener('click', () => goTo(i));
           dotsEl.appendChild(dot);
         }
@@ -8440,7 +8440,7 @@
     return (
       `<button type="button" class="film-card-rate-star${cur ? ' is-rated' : ''}" ` +
       `data-rate-star="1" data-rate-film-id="${filmId}" data-current-rating="${cur}" ` +
-      `title=t('site.cabinet.otsenit_film', 'Оценить фильм') aria-label=t('site.cabinet.otsenit_film', 'Оценить фильм')>` +
+      `title="Оценить фильм" aria-label="Оценить фильм">` +
       `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.5l2.955 6.305 6.545.835-4.77 4.62 1.2 6.74L12 17.77l-5.93 3.23 1.2-6.74L2.5 9.64l6.545-.835L12 2.5z"/></svg>` +
       (label ? `<span class="film-card-rate-star-label">${label}</span>` : '') +
       `</button>`
@@ -8512,13 +8512,13 @@
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
       : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>';
     const addIconBtn = !inBase
-      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label=t('film.addToBase', 'Добавить в базу') title=t('film.addToBase', 'Добавить в базу')><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
+      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     const watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label=t('site.cabinet.watched_prosmotren_t_film', '\' + (watched ? \'Просмотрен\' : t(\'film.markWatched\', \'Отметить просмотренным\')) + \'') title=t('site.cabinet.watched_prosmotren_t_film', '\' + (watched ? \'Просмотрен\' : t(\'film.markWatched\', \'Отметить просмотренным\')) + \'')><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? t('site.film.watched', 'Просмотрен') : t('site.film.watched', 'Просмотрен')) + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')) + '" title="' + (watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
       : '';
     const rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
-    const rateAria = myRating ? (t('site.cabinet.otsenka', 'Оценка ') + myRating) : t('site.film.rate', 'Оценить');
+    const rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
     const rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
     const rateLabelHtml = myRating ? '' : '<span class="film-icon-label">Оценить</span>';
     const rateBtn = canRate && !ratingLocked
@@ -8531,8 +8531,8 @@
           addIconBtn +
           watchIconBtn +
           rateBtn +
-          '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label=t('site.cabinet.interesnye_fakty', 'Интересные факты') title=t('site.cabinet.interesnye_fakty', 'Интересные факты')><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-          '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label=t('site.film.share', 'Поделиться') title=t('site.film.share', 'Поделиться')><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
+          '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+          '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
           '<div class="public-rating-title">Ваша оценка</div>' + ratingInner +
@@ -8711,7 +8711,7 @@
     const pop = document.createElement('div');
     pop.className = 'rate-popover';
     pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', t('site.cabinet.otsenite_film', 'Оцените фильм'));
+    pop.setAttribute('aria-label', 'Оцените фильм');
 
     const stars = [];
     for (let i = 1; i <= 10; i += 1) {
@@ -8726,7 +8726,7 @@
     pop.innerHTML =
       `<div class="rate-popover-header">` +
         `<span class="rate-popover-title">Ваша оценка</span>` +
-        `<button type="button" class="rate-popover-close" data-rate-close="1" aria-label=t('common.close', 'Закрыть')>×</button>` +
+        `<button type="button" class="rate-popover-close" data-rate-close="1" aria-label="Закрыть">×</button>` +
       `</div>` +
       `<div class="rate-popover-stars">${stars.join('')}</div>` +
       (removeBtn ? `<div class="rate-popover-actions">${removeBtn}</div>` : '');
@@ -8821,7 +8821,7 @@
         const cache = _filmModalCache[filmId];
         const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
         const idx = cache.ratings.findIndex((r) => String(r.user_id) === String(myUserId));
-        const row = { user_id: myUserId, rating, username: t('site.cabinet.vy', 'Вы') };
+        const row = { user_id: myUserId, rating, username: 'Вы' };
         if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
         cache.film.watched = true;
       }
@@ -8907,12 +8907,12 @@
 
   function iconForStreaming(name) {
     const n = (name || '').toLowerCase();
-    if (n.includes(t('site.cabinet.kinopoisk', 'кинопоиск')) || n.includes('kinopoisk')) return '🟡';
+    if (n.includes('кинопоиск') || n.includes('kinopoisk')) return '🟡';
     if (n.includes('okko')) return '🟠';
     if (n.includes('ivi')) return '🔵';
     if (n.includes('netflix')) return '🔴';
     if (n.includes('more') || n.includes('start')) return '🟢';
-    if (n.includes('premier') || n.includes(t('site.cabinet.premer', 'премьер'))) return '🟣';
+    if (n.includes('premier') || n.includes('премьер')) return '🟣';
     return '🎬';
   }
 
@@ -8925,8 +8925,8 @@
     const ramblerUrl = `https://www.rambler.ru/search?query=${q}+%D0%B1%D0%B8%D0%BB%D0%B5%D1%82%D1%8B&utm_source=kassa`;
     const items = [
       { icon: '🟡', name: t('site.cabinet.str_78c4cd', 'Кинопоиск — сеансы'), url: kpSessionsUrl, sub: t('site.cabinet.str_0548f8', 'Все кинотеатры в одном месте') },
-      { icon: '🔴', name: t('site.cabinet.yandeks_afisha', 'Яндекс.Афиша'), url: yaUrl, sub: t('site.cabinet.str_6d8e6f', 'Сеансы и покупка билета') },
-      { icon: '🟣', name: t('site.cabinet.rambler_kassa', 'Рамблер/касса'), url: ramblerUrl, sub: t('site.cabinet.poisk_seansov', 'Поиск сеансов') },
+      { icon: '🔴', name: 'Яндекс.Афиша', url: yaUrl, sub: t('site.cabinet.str_6d8e6f', 'Сеансы и покупка билета') },
+      { icon: '🟣', name: 'Рамблер/касса', url: ramblerUrl, sub: 'Поиск сеансов' },
     ];
     const pop = document.createElement('div');
     pop.className = 'streaming-popover tickets-popover';
@@ -8953,7 +8953,7 @@
     modal.className = 'tv-launch-modal';
     modal.innerHTML = `
       <div class="tv-launch-box" style="position:relative">
-        <button type="button" class="tv-launch-close" aria-label=t('common.close', 'Закрыть')>×</button>
+        <button type="button" class="tv-launch-close" aria-label="Закрыть">×</button>
         <h3>📺 Запуск на ТВ</h3>
         <div class="tv-launch-sub">${escapeHtml(title || t('site.cabinet.filmFallback', 'Фильм'))}</div>
         <div id="tv-launch-content"><div style="color:var(--text-muted,#aaa);padding:16px 0;">Отправляю команду…</div></div>
@@ -9139,10 +9139,10 @@
       const badge = document.getElementById('tv-agent-status-badge');
       if (badge) {
         if (tvSettings.agent_token_exists) {
-          badge.textContent = tvSettings.agent_online ? t('site.cabinet.onlayn', 'онлайн') : t('site.cabinet.str_607f83', 'токен сгенерирован');
+          badge.textContent = tvSettings.agent_online ? 'онлайн' : t('site.cabinet.str_607f83', 'токен сгенерирован');
           badge.classList.toggle('online', !!tvSettings.agent_online);
         } else {
-          badge.textContent = t('site.cabinet.ne_podklyuchyon', 'не подключён');
+          badge.textContent = 'не подключён';
           badge.classList.remove('online');
         }
       }
@@ -9328,9 +9328,9 @@
         return;
       }
       // Не перехватываем клик, если клик был по кнопке действия внутри карточки
-      // (tel-btn, streaming-btn, tickets-btn, t('site.cabinet.v_telegram', 'В Telegram')).
+      // (tel-btn, streaming-btn, tickets-btn, "В Telegram").
       const actionBtn = e.target.closest('.btn-primary, .film-tv-btn, .film-streaming-btn, .tickets-btn, a[href^="http"].btn, [data-action], .film-card-tg-triangle, .action-dropdown, .action-dropdown-btn, .action-dropdown-item, [data-dropdown-toggle], [data-rate-star], .rate-popover');
-      // t('site.cabinet.v_telegram', 'В Telegram') теперь должна нормально открываться — её не блокируем.
+      // "В Telegram" теперь должна нормально открываться — её не блокируем.
       if (actionBtn && actionBtn !== card && !actionBtn.classList.contains('film-card-main')) {
         return;
       }
@@ -9404,11 +9404,11 @@
       return Promise.resolve(_filmModalCache[filmId]);
     }
     content.className = 'film-modal-content loading';
-    content.innerHTML = t('site.cabinet.zagruzhaem', 'Загружаем…');
+    content.innerHTML = 'Загружаем…';
     return api('/api/site/film/' + filmId).then(function (detail) {
       if (!detail || !detail.success) {
         content.className = 'film-modal-content loading';
-        content.innerHTML = t('site.toast.filmLoadFailed', 'Не удалось загрузить фильм');
+        content.innerHTML = 'Не удалось загрузить фильм';
         return null;
       }
       const myRating = filmMyRating(detail.ratings || [], detail.me);
@@ -9482,7 +9482,7 @@
     if (addBtn) {
       addBtn.addEventListener('click', () => {
         addBtn.disabled = true;
-        addBtn.textContent = t('site.cabinet.dobavlyaem', 'Добавляем…');
+        addBtn.textContent = 'Добавляем…';
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: film.kp_id }) })
           .then((r) => {
             if (r && r.success && r.film_id) {
@@ -9491,12 +9491,12 @@
               if (typeof loadUnwatched === 'function') loadUnwatched();
             } else {
               addBtn.disabled = false;
-              addBtn.textContent = t('film.addToBase', 'Добавить в базу');
+              addBtn.textContent = 'Добавить в базу';
             }
           })
           .catch(() => {
             addBtn.disabled = false;
-            addBtn.textContent = t('film.addToBase', 'Добавить в базу');
+            addBtn.textContent = 'Добавить в базу';
           });
       });
     }
@@ -9597,7 +9597,7 @@
     return api('/api/site/film/' + filmId).then(function (detail) {
       if (!detail || !detail.success) {
         pageRoot.className = 'movie-page';
-        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || t('site.cabinet.oshibka', 'ошибка')) + '</p>';
+        pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p>';
         return;
       }
       if (_filmModalCurrentId !== filmId) return;
@@ -9724,7 +9724,7 @@
       .split(/[,;/|]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    if (!parts.length) parts.push(film && film.is_series ? t('site.onboard.seriesBadge', 'сериал') : t('site.cabinet.film', 'фильм'));
+    if (!parts.length) parts.push(film && film.is_series ? 'сериал' : 'фильм');
     return parts.slice(0, 8).map((label) => '<span class="chip">' + escapeHtml(label) + '</span>').join('');
   }
 
@@ -9761,7 +9761,7 @@
     content.className = 'movie-page';
     content.innerHTML =
       '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
-        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label=t('film.a11yTag', 'Тег') title=t('film.a11yTag', 'Тег')>' +
+        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
           (global.MPIcons ? global.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
@@ -9791,7 +9791,7 @@
     if (tagBtn && film.film_id && global.MpFilmUserTags && global.MpFilmUserTags.bindButton) {
       global.MpFilmUserTags.bindButton(tagBtn, film.film_id);
     } else if (tagBtn && !getToken()) {
-      tagBtn.setAttribute('title', t('site.cabinet.dobavit_v_spisok', 'добавить в список'));
+      tagBtn.setAttribute('title', 'добавить в список');
       tagBtn.addEventListener('click', function () {
         if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('tag');
         else showLoginModalOverlay();
@@ -9832,7 +9832,7 @@
   if (ctry) {
     parts.push('<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>');
   }
-    if (film.director && film.director !== t('site.cabinet.ne_ukazan', 'Не указан')) {
+    if (film.director && film.director !== 'Не указан') {
       parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + escapeHtml(film.director) + '</div>');
     }
     if (film.actors) {
@@ -9943,7 +9943,7 @@
       ? `<div class="film-modal-section"><h3>Оценки участников</h3><div class="rating-group-list">${
           ratings.map((r) => {
             const isMine = myUserId && String(r.user_id) === String(myUserId);
-            const who = isMine ? t('site.cabinet.vy', 'Вы') : (r.username || t('dashboard.memberFallback', 'Участник'));
+            const who = isMine ? 'Вы' : (r.username || 'Участник');
             return `<div class="rg-row ${isMine ? 'mine' : ''}"><span>${escapeHtml(who)}</span><span class="rg-rating">★ ${Number(r.rating).toFixed(0)}</span></div>`;
           }).join('')
         }</div></div>`
@@ -9953,7 +9953,7 @@
     const watchedHtml = `
       <button type="button" class="watched-toggle ${film.watched ? 'on' : ''}" data-action="toggle-watched">
         <span class="wt-mark">${film.watched ? '✓' : ''}</span>
-        <span>${film.watched ? t('site.film.watched', 'Просмотрен') : t('film.markWatched', 'Отметить просмотренным')}</span>
+        <span>${film.watched ? 'Просмотрен' : t('film.markWatched', 'Отметить просмотренным')}</span>
       </button>`;
 
     // Actions
@@ -10025,7 +10025,7 @@
         const collapsed = fullEl.classList.contains('hidden');
         fullEl.classList.toggle('hidden', !collapsed);
         shortEl.classList.toggle('hidden', collapsed);
-        actorsMoreBtn.textContent = collapsed ? t('film.castLess', 'свернуть') : t('film.castMore', 'ещё');
+        actorsMoreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
         actorsMoreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
       });
     }
@@ -10237,20 +10237,20 @@
 
   function renderAddSearchMovieCard(it) {
     const poster = it.poster || '';
-    const meta = [it.type === 'series' ? t('film.seriesBadge', 'Сериал') : t('site.cabinet.filmFallback', 'Фильм'), it.year].filter(Boolean).join(' · ');
+    const meta = [it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм'), it.year].filter(Boolean).join(' · ');
     const inBase = it.already_in_base_film_id;
     const addBtn = inBase
-      ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title=t('site.film.openInAppBtn', 'Открыть') aria-label=t('site.film.openInAppBtn', 'Открыть')>✓</button>`
-      : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title=t('planForm.addBtn', 'Добавить') aria-label=t('planForm.addBtn', 'Добавить')>＋</button>`;
+      ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
+      : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
     return `<div class="add-search-result">
       <div class="add-search-result-poster-wrap" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
         ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
         ${addBtn}
-        <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title=t('site.film.share', 'Поделиться') aria-label=t('site.film.share', 'Поделиться')>↗</button>
+        <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title="Поделиться" aria-label="Поделиться">↗</button>
       </div>
       <div class="add-search-result-info">
         <div class="add-search-result-title">${escapeHtml(it.title || '')}</div>
-        <div class="add-search-result-meta">${escapeHtml(meta)}${inBase ? t('film.inLibrarySuffix', ' · в базе') : ''}</div>
+        <div class="add-search-result-meta">${escapeHtml(meta)}${inBase ? ' · в базе' : ''}</div>
       </div>
     </div>`;
   }
@@ -10269,7 +10269,7 @@
             : `<button type="button" class="add-search-person-add" data-uid="${Number(u.user_id)}">Добавить</button>`;
         return `<div class="add-search-person-row">
           <div class="soc-friend-avatar">${escapeHtml(letter)}</div>
-          <div class="add-search-person-name">${escapeHtml(u.name || t('site.cabinet.polzovatel', 'Пользователь'))}</div>
+          <div class="add-search-person-name">${escapeHtml(u.name || 'Пользователь')}</div>
           ${action}
         </div>`;
       }).join('')}</div>
@@ -10305,7 +10305,7 @@
       if (results) results.innerHTML = '';
       return;
     }
-    if (status) { status.textContent = t('site.film.searching', 'Ищем…'); status.className = 'add-film-status'; }
+    if (status) { status.textContent = 'Ищем…'; status.className = 'add-film-status'; }
     Promise.all([
       api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(_addFilmType)),
       api('/api/friends/search?q=' + encodeURIComponent(query)).catch(() => ({ success: false, users: [] })),
@@ -10313,7 +10313,7 @@
       .then(([data, peopleData]) => {
         if (seq !== _addFilmSearchSeq) return;
         if (!data || !data.success) {
-          if (status) { status.textContent = (data && data.error) || t('site.cabinet.oshibka_poiska', 'Ошибка поиска.'); status.className = 'add-film-status error'; }
+          if (status) { status.textContent = (data && data.error) || 'Ошибка поиска.'; status.className = 'add-film-status error'; }
           if (results) results.innerHTML = '';
           return;
         }
@@ -10324,7 +10324,7 @@
           if (results) results.innerHTML = '';
           return;
         }
-        if (status) { status.textContent = t('site.cabinet.naydeno', 'Найдено: ') + (items.length + people.length); status.className = 'add-film-status'; }
+        if (status) { status.textContent = 'Найдено: ' + (items.length + people.length); status.className = 'add-film-status'; }
         if (results) {
           results.innerHTML = renderAddFilmSearchResults(items, people);
           results.querySelectorAll('.add-search-person-add').forEach((btn) => {
@@ -10336,14 +10336,14 @@
               api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) }).then((r) => {
                 if (!r || r.success === false) {
                   btn.disabled = false;
-                  btn.textContent = t('planForm.addBtn', 'Добавить');
+                  btn.textContent = 'Добавить';
                   showToast((r && r.error) || t('site.cabinet.str_9832d6', 'Не удалось отправить запрос'), { type: 'error' });
                   return;
                 }
-                btn.textContent = t('friends.requestSent', 'Запрос отправлен');
+                btn.textContent = 'Запрос отправлен';
               }).catch(() => {
                 btn.disabled = false;
-                btn.textContent = t('planForm.addBtn', 'Добавить');
+                btn.textContent = 'Добавить';
                 showToast(t('site.toast.networkError', t('site.cabinet.networkError', 'Ошибка сети')), { type: 'error' });
               });
             });
@@ -10360,7 +10360,7 @@
     if (!kpId) return;
     const origHtml = btn ? btn.innerHTML : '';
     const compactBtn = btn && btn.classList && btn.classList.contains('add-search-poster-action');
-    if (btn) { btn.disabled = true; btn.textContent = compactBtn ? '…' : t('site.cabinet.dobavlyaem', 'Добавляем…'); }
+    if (btn) { btn.disabled = true; btn.textContent = compactBtn ? '…' : 'Добавляем…'; }
     const addPromise = api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kpId }) });
     kpAddSync.register(kpId, addPromise);
     addPromise
@@ -10372,7 +10372,7 @@
           return;
         }
         if (btn) {
-          btn.textContent = compactBtn ? '✓' : (data.already_existed ? t('site.cabinet.uzhe_v_baze', 'Уже в базе') : t('site.cabinet.dobavlen', '✓ Добавлен'));
+          btn.textContent = compactBtn ? '✓' : (data.already_existed ? 'Уже в базе' : '✓ Добавлен');
           btn.disabled = true;
           if (compactBtn && data.film_id) {
             btn.classList.add('is-open');
@@ -10401,7 +10401,7 @@
           if (status) { status.textContent = (data && data.error) || t('site.cabinet.str_5da7d9', 'Не удалось распознать ссылку.'); status.className = 'add-film-status error'; }
           return false;
         }
-        if (status) { status.textContent = data.already_existed ? t('site.cabinet.film_uzhe_v_baze', 'Фильм уже в базе.') : t('site.cabinet.film_dobavlen', '✓ Фильм добавлен!'); status.className = 'add-film-status'; }
+        if (status) { status.textContent = data.already_existed ? 'Фильм уже в базе.' : '✓ Фильм добавлен!'; status.className = 'add-film-status'; }
         if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
         setTimeout(() => { closeAddFilmModal(); if (!data.already_existed) showSection('unwatched'); }, 900);
         return true;
@@ -10551,7 +10551,7 @@
     const top = items.slice(0, 6);
     dd.innerHTML = top.map((it) => {
       const poster = cleanPosterUrl(it.poster);
-      const typeLabel = it.type === 'series' ? t('film.seriesBadge', 'Сериал') : t('site.cabinet.filmFallback', 'Фильм');
+      const typeLabel = it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм');
       const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
       const inBase = it.already_in_base_film_id;
       const isPublicSearch = !getToken();
@@ -10617,7 +10617,7 @@
   const SITE_SEARCH_YEAR_MAX = new Date().getFullYear() + 2;
   const SITE_SEARCH_GENRE_QUICK = [
     t('search.genre.drama', 'драма'), t('search.genre.comedy', 'комедия'), t('search.genre.thriller', 'триллер'), t('search.genre.scifi', 'фантастика'), t('search.genre.action', 'боевик'), t('search.genre.horror', 'ужасы'),
-    t('search.genre.mystery', 'детектив'), t('search.genre.romance', 'мелодрама'), t('search.genre.family', 'семейный'), t('site.cabinet.animatsiya', 'анимация'),
+    t('search.genre.mystery', 'детектив'), t('search.genre.romance', 'мелодрама'), t('search.genre.family', 'семейный'), 'анимация',
   ];
   let _siteSearchFilterState = {
     type: 'any',
@@ -10637,19 +10637,19 @@
   }
 
   function siteSearchRefreshFilterChipLabels() {
-    const typeLab = { any: t('common.all', 'Все'), film: t('search.filterFilms', 'Фильмы'), series: t('site.onboard.series', 'Сериалы') };
+    const typeLab = { any: 'Все', film: 'Фильмы', series: 'Сериалы' };
     const tv = document.getElementById('site-sf-chip-type-val');
     const yv = document.getElementById('site-sf-chip-year-val');
     const gv = document.getElementById('site-sf-chip-genre-val');
-    if (tv) tv.textContent = typeLab[_siteSearchFilterState.type] || t('common.all', 'Все');
+    if (tv) tv.textContent = typeLab[_siteSearchFilterState.type] || 'Все';
     if (yv) {
       const lo = _siteSearchFilterState.yearMin;
       const hi = _siteSearchFilterState.yearMax;
-      yv.textContent = lo <= SITE_SEARCH_YEAR_MIN && hi >= SITE_SEARCH_YEAR_MAX ? t('search.filterAny', 'Любой') : (lo + '–' + hi);
+      yv.textContent = lo <= SITE_SEARCH_YEAR_MIN && hi >= SITE_SEARCH_YEAR_MAX ? 'Любой' : (lo + '–' + hi);
     }
     if (gv) {
       const g = (_siteSearchFilterState.genre || '').trim();
-      gv.textContent = g ? (g.length > 22 ? g.slice(0, 20) + '…' : g) : t('search.filterAny', 'Любой');
+      gv.textContent = g ? (g.length > 22 ? g.slice(0, 20) + '…' : g) : 'Любой';
     }
     const badge = document.getElementById('site-sf-badge');
     if (badge) badge.classList.toggle('hidden', !siteSearchFiltersActive());
@@ -10745,13 +10745,13 @@
                 '<span id="site-sf-y-hi">' + SITE_SEARCH_YEAR_MAX + '</span>' +
               '</div>' +
               '<div class="site-search-year-range-track">' +
-                '<input type="range" id="site-sf-y-min" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MIN + '" step="1" aria-label=t('search.yearFromA11y', 'Год от')>' +
-                '<input type="range" id="site-sf-y-max" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MAX + '" step="1" aria-label=t('search.yearToA11y', 'Год до')>' +
+                '<input type="range" id="site-sf-y-min" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MIN + '" step="1" aria-label="Год от">' +
+                '<input type="range" id="site-sf-y-max" min="' + SITE_SEARCH_YEAR_MIN + '" max="' + SITE_SEARCH_YEAR_MAX + '" value="' + SITE_SEARCH_YEAR_MAX + '" step="1" aria-label="Год до">' +
               '</div>' +
             '</div>' +
             '<label class="site-search-filter-label" for="site-sf-genre">Жанр</label>' +
             '<div class="search-genre-quick" id="site-sf-genre-quick">' + genreChips + '</div>' +
-            '<input id="site-sf-genre" class="site-search-filter-input" type="textt('site.cabinet.placeholder_t_search_genrecustomplaceholder', ' placeholder=t(\'search.genreCustomPlaceholder\', \'Или введите свой…\') autocomplete=')off">' +
+            '<input id="site-sf-genre" class="site-search-filter-input" type="text" placeholder="Или введите свой…" autocomplete="off">' +
           '</div>' +
           '<div class="site-search-sheet-footer">' +
             '<button type="button" class="btn btn-secondary" id="site-sf-reset">Сбросить</button>' +
@@ -10780,7 +10780,7 @@
               '<span class="search-filter-chip-v" id="site-sf-chip-genre-val">Любой</span>' +
             '</button>' +
           '</div>' +
-          '<button type="button" class="search-filter-funnel-btn" id="site-sf-open" aria-label=t('search.allFilters', 'Все фильтры') aria-haspopup="dialog" aria-expanded="false">' +
+          '<button type="button" class="search-filter-funnel-btn" id="site-sf-open" aria-label="Все фильтры" aria-haspopup="dialog" aria-expanded="false">' +
             '<svg class="search-filter-funnel-svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">' +
               '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>' +
             '</svg>' +
@@ -10814,7 +10814,7 @@
           <form class="site-search-controls" id="site-search-form">
             <div class="site-search-field">
               <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder=t("site.cabinet.str_f80dc8", "Название фильма, сериала, имя…") autocomplete="off">
-              <button type="button" class="site-search-mic" id="site-search-mic" aria-label=t('site.header.voiceInput', 'Голосовой ввод') title=t('site.header.voiceInput', 'Голосовой ввод')>🎤</button>
+              <button type="button" class="site-search-mic" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
             </div>
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
@@ -10917,7 +10917,7 @@
     siteSearchRefreshFilterChipLabels();
     const st = _siteSearchFilterState;
     const seq = ++_siteSearchSeq;
-    if (status) status.textContent = t('site.film.searching', 'Ищем…');
+    if (status) status.textContent = 'Ищем…';
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
     } catch (_) {}
@@ -10934,10 +10934,10 @@
       .then((data) => {
         if (seq !== _siteSearchSeq) return;
         const items = (data && data.items) || [];
-        if (status) status.textContent = items.length ? t('site.cabinet.naydeno', 'Найдено: ') + items.length : t('site.film.searchNothing', 'Ничего не нашлось');
+        if (status) status.textContent = items.length ? 'Найдено: ' + items.length : 'Ничего не нашлось';
         results.innerHTML = items.map((it) => {
           const poster = cleanPosterUrl(it.poster);
-          const typeLabel = it.type === 'series' ? t('film.seriesBadge', 'Сериал') : t('site.cabinet.filmFallback', 'Фильм');
+          const typeLabel = it.type === 'series' ? 'Сериал' : t('site.cabinet.filmFallback', 'Фильм');
           const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
           const kpAttr = escapeHtml(String(it.kp_id || ''));
           if (getToken()) {
@@ -10966,7 +10966,7 @@
       })
       .catch(() => {
         if (seq !== _siteSearchSeq) return;
-        if (status) status.textContent = t('friends.searchErrorTitle', 'Ошибка поиска');
+        if (status) status.textContent = 'Ошибка поиска';
       });
   }
 
@@ -11115,7 +11115,7 @@
           addPromise
             .then((data) => {
               if (data && data.success) {
-                addBtn.textContent = data.already_existed ? t('site.cabinet.uzhe_v_baze', 'Уже в базе') : t('site.cabinet.dobavlen', '✓ Добавлен');
+                addBtn.textContent = data.already_existed ? 'Уже в базе' : '✓ Добавлен';
                 if (!data.already_existed && typeof loadUnwatched === 'function') loadUnwatched();
               } else {
                 addBtn.disabled = false;
@@ -11309,7 +11309,7 @@
     t('search.genre.biography', 'биография'), t('search.genre.history', 'история'), t('search.genre.war', 'военный'), t('search.genre.family', 'семейный'), t('search.genre.anime', 'аниме'), t('search.genre.documentary', 'документальный'),
   ];
   const WTW_YEAR_PRESETS = [
-    { label: t('search.filterAny', 'Любой'), from: undefined, to: undefined },
+    { label: 'Любой', from: undefined, to: undefined },
     { label: '2020+', from: 2020 },
     { label: '2010–2019', from: 2010, to: 2019 },
     { label: '2000–2009', from: 2000, to: 2009 },
@@ -11317,10 +11317,10 @@
     { label: '1980–1989', from: 1980, to: 1989 },
     { label: '1970–1979', from: 1970, to: 1979 },
     { label: '1960–1969', from: 1960, to: 1969 },
-    { label: t('site.cabinet.do_1960_g', 'До 1960 г.'), to: 1959 },
+    { label: 'До 1960 г.', to: 1959 },
   ];
   const WTW_RATING_PRESETS = [
-    { label: t('search.filterAny', 'Любой'), value: null },
+    { label: 'Любой', value: null },
     { label: '6+', value: 6 },
     { label: '7+', value: 7 },
     { label: '7.5+', value: 7.5 },
@@ -11330,20 +11330,20 @@
     library: {
       key: 'library',
       icon: 'watchlist',
-      label: t('site.onboard.unwatched', 'Непросмотренные'),
+      label: 'Непросмотренные',
       modes: [
-        { id: 'my_unwatched', kind: 'random', icon: 'random', title: t('random.modeRandomTitle', 'Случайный фильм'), hint: t('site.cabinet.str_cd4bb1', 'Из ваших непросмотренных') },
-        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: t('random.modeWizardTitle', 'Пожелания'), hint: t('site.cabinet.str_f31613', 'Жанры, годы, режиссёр, актёр') },
+        { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: t('site.cabinet.str_cd4bb1', 'Из ваших непросмотренных') },
+        { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: t('site.cabinet.str_f31613', 'Жанры, годы, режиссёр, актёр') },
       ],
     },
     world: {
       key: 'world',
       icon: 'globe',
-      label: t('site.cabinet.so_vsego_mira', 'Со всего мира'),
+      label: 'Со всего мира',
       modes: [
-        { id: 'kp_random', kind: 'random', icon: 'random', title: t('random.modeRandomTitle', 'Случайный фильм'), hint: t('site.cabinet.str_145759', 'Из всех фильмов или свежие премьеры') },
-        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: t('random.modeWizardTitle', 'Пожелания'), hint: t('site.cabinet.str_361ac9', 'Жанры, годы, рейтинг') },
-        { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: t('random.modeRatingsTitle', 'По оценкам в базе'), hint: t('site.cabinet.str_68aa0c', 'Похожие на ваши высокие оценки, ещё не в базе') },
+        { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: t('site.cabinet.str_145759', 'Из всех фильмов или свежие премьеры') },
+        { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: t('site.cabinet.str_361ac9', 'Жанры, годы, рейтинг') },
+        { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: 'По оценкам в базе', hint: t('site.cabinet.str_68aa0c', 'Похожие на ваши высокие оценки, ещё не в базе') },
         { id: 'premieres_reco', kind: 'premieres_reco', icon: 'ticket', title: t('site.cabinet.str_ae86be', 'Рекомендации премьер'), hint: t('site.cabinet.str_6ec074', 'Новинки в прокате по вашему вкусу') },
       ],
     },
@@ -11385,7 +11385,7 @@
     if (!film) return '';
     const poster = cleanPosterUrl(film.poster) || posterUrl(film.kp_id);
     const year = film.year ? String(film.year) : '';
-    const title = film.title || t('site.cabinet.bez_nazvaniya', 'Без названия');
+    const title = film.title || 'Без названия';
     const desc = sitePickFilmDesc(film, o.descFallback);
     const rating = (film.rating != null && !isNaN(Number(film.rating)))
       ? '<span class="mp-rating-pill">★ ' + escapeHtml(Number(film.rating).toFixed(1)) + '</span>'
@@ -11430,7 +11430,7 @@
     if (addBtn) {
       addBtn.addEventListener('click', () => {
         addBtn.disabled = true;
-        addBtn.textContent = t('site.cabinet.dobavlyaem', 'Добавляем…');
+        addBtn.textContent = 'Добавляем…';
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: film.kp_id }) })
           .then((r) => {
             if (r && r.success && r.film_id) {
@@ -11439,12 +11439,12 @@
               openFilmPage(Number(r.film_id), { kpId: film.kp_id });
             } else {
               addBtn.disabled = false;
-              addBtn.textContent = t('film.addToBase', 'Добавить в базу');
+              addBtn.textContent = 'Добавить в базу';
             }
           })
           .catch(() => {
             addBtn.disabled = false;
-            addBtn.textContent = t('film.addToBase', 'Добавить в базу');
+            addBtn.textContent = 'Добавить в базу';
           });
       });
     }
@@ -11596,7 +11596,7 @@
     el.setAttribute('aria-hidden', 'true');
     el.innerHTML = '<div class="wtw-wizard-overlay-backdrop" data-wtw-wizard-close="1"></div>'
       + '<div class="wtw-wizard-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="wtw-wizard-overlay-title">'
-      + '<button type="button" class="wtw-wizard-overlay-close" data-wtw-wizard-close="1" aria-label=t('common.close', 'Закрыть')>&times;</button>'
+      + '<button type="button" class="wtw-wizard-overlay-close" data-wtw-wizard-close="1" aria-label="Закрыть">&times;</button>'
       + '<div id="wtw-wizard-overlay-body"></div></div>';
     document.body.appendChild(el);
     el.querySelectorAll('[data-wtw-wizard-close]').forEach((b) => {
@@ -11672,7 +11672,7 @@
       const y0 = state.wtwMeta && state.wtwMeta.library_year_min;
       const y1 = state.wtwMeta && state.wtwMeta.library_year_max;
       if ((state.source === 'library' || state.source === 'auto') && typeof y0 === 'number' && typeof y1 === 'number' && y1 > y0) {
-        base.splice(1, 0, { label: t('site.cabinet.v_vashey_baze', 'В вашей базе (') + y0 + '–' + y1 + ')', from: y0, to: y1 });
+        base.splice(1, 0, { label: 'В вашей базе (' + y0 + '–' + y1 + ')', from: y0, to: y1 });
       }
       return base;
     }
@@ -11760,7 +11760,7 @@
       if (state.step === 'source') {
         inner += '<h3 class="wtw-step-title" id="wtw-wizard-overlay-title">Откуда подбирать?</h3>'
           + ['library', 'kp', 'auto'].map((src) => {
-            const labels = { library: [t('site.cabinet.str_246ddf', '🧺 Из вашей библиотеки'), t('site.cabinet.str_f03afa', 'Фильмы, которые вы добавили')], kp: [t('site.cabinet.s_kinopoiska', '🎬 С Кинопоиска'), t('site.cabinet.iz_vsey_bazy_kp', 'Из всей базы KP')], auto: [t('site.cabinet.smeshanno', '✨ Смешанно'), t('site.cabinet.str_739995', 'Сначала ваша база, затем Кинопоиск')] };
+            const labels = { library: [t('site.cabinet.str_246ddf', '🧺 Из вашей библиотеки'), t('site.cabinet.str_f03afa', 'Фильмы, которые вы добавили')], kp: ['🎬 С Кинопоиска', 'Из всей базы KP'], auto: ['✨ Смешанно', t('site.cabinet.str_739995', 'Сначала ваша база, затем Кинопоиск')] };
             const L = labels[src];
             return '<button type="button" class="wtw-wizard-opt' + (state.source === src ? ' wtw-wizard-opt--on' : '') + '" data-src="' + src + '"><span class="wtw-wizard-opt-title">' + L[0] + '</span><span class="wtw-wizard-opt-hint">' + L[1] + '</span><span class="wtw-wizard-opt-check">' + (state.source === src ? '✓' : '') + '</span></button>';
           }).join('')
@@ -11818,7 +11818,7 @@
           inner += renderSitePickResultCard(state.film, { onAgain: runPick });
           inner += '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Изменить фильтры</button><button type="button" class="btn btn-secondary" data-wtw-wizard-close="1">Закрыть</button></div>';
         } else {
-          inner += '<div class="site-pick-empty">' + escapeHtml(state.status || t('site.cabinet.nichego_ne_naydeno', 'Ничего не найдено')) + '</div>'
+          inner += '<div class="site-pick-empty">' + escapeHtml(state.status || 'Ничего не найдено') + '</div>'
             + '<div class="wtw-wizard-nav"><button type="button" class="btn btn-secondary" id="wtw-wiz-back">← Назад</button></div>';
         }
       }
@@ -12026,9 +12026,9 @@
       return '<div class="settings-sec-row" data-section-id="' + escapeHtml(id) + '">'
         + '<span class="settings-sec-title">' + escapeHtml(title) + '</span>'
         + '<span class="settings-sec-controls">'
-        + '<button type="button" class="settings-sec-btn" data-sec-act="up" aria-label=t('site.cabinet.vyshe', 'Выше')>↑</button>'
-        + '<button type="button" class="settings-sec-btn" data-sec-act="down" aria-label=t('site.cabinet.nizhe', 'Ниже')>↓</button>'
-        + '<label class="settings-switch settings-switch--compact" aria-label=t('site.cabinet.pokazyvat', 'Показывать')>'
+        + '<button type="button" class="settings-sec-btn" data-sec-act="up" aria-label="Выше">↑</button>'
+        + '<button type="button" class="settings-sec-btn" data-sec-act="down" aria-label="Ниже">↓</button>'
+        + '<label class="settings-switch settings-switch--compact" aria-label="Показывать">'
         + '<input type="checkbox" data-sec-visible="' + escapeHtml(id) + '"' + (vis ? ' checked' : '') + '>'
         + '<span class="settings-switch-slider"></span></label>'
         + '</span></div>';
@@ -12050,17 +12050,17 @@
       return '<div class="settings-billing-pro">'
         + '<div class="settings-billing-pro-badge">💎 PRO</div>'
         + '<p class="settings-billing-pro-title">' + escapeHtml(proLabel) + '</p>'
-        + '<p class="settings-billing-pro-meta">' + (until ? t('site.cabinet.do', 'до ') + escapeHtml(until) : (isLifetime ? t('site.cabinet.bessrochno', 'бессрочно') : t('site.cabinet.aktivna', 'активна'))) + '</p>'
+        + '<p class="settings-billing-pro-meta">' + (until ? 'до ' + escapeHtml(until) : (isLifetime ? 'бессрочно' : 'активна')) + '</p>'
         + '<p class="settings-billing-pro-hint">Функции за монетки доступны без ограничений.</p>'
         + '</div>';
     }
 
     let prices = '';
     const rows = [
-      ['month', t('site.cabinet.mesyats', 'Месяц'), 'btn-primary'],
-      ['3months', t('site.cabinet.3_mesyatsa', '3 месяца'), 'btn-secondary'],
-      ['year', t('search.filterYear', 'Год'), 'btn-secondary'],
-      ['lifetime', t('site.cabinet.navsegda', 'Навсегда'), 'btn-secondary'],
+      ['month', 'Месяц', 'btn-primary'],
+      ['3months', '3 месяца', 'btn-secondary'],
+      ['year', 'Год', 'btn-secondary'],
+      ['lifetime', 'Навсегда', 'btn-secondary'],
     ];
     rows.forEach(([period, label, cls]) => {
       const price = all[period];
@@ -12133,7 +12133,7 @@
             setStatus(t('site.cabinet.str_4d86be', 'Не удалось сохранить'), false);
             return;
           }
-          setStatus(t('common.saved', 'Сохранено'), true);
+          setStatus('Сохранено', true);
           try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }).catch(() => {
           collHomeEl.checked = !want;
@@ -12150,7 +12150,7 @@
         cur[key] = !!el.checked;
         saveHomeEmojiVis(cur);
         try { applyHomeEmojiVisibility(); } catch (_) {}
-        setStatus(t('common.saved', 'Сохранено'), true);
+        setStatus('Сохранено', true);
       });
     }
     bindEmojiToggle('settings-emoji-random', 'random');
@@ -12220,7 +12220,7 @@
           setStatus((r && (r.message || r.error)) || t('site.cabinet.str_515b1c', 'Не удалось создать платёж'), false);
           btn.disabled = false;
         }).catch(() => {
-          setStatus(t('site.cabinet.oshibka_oplaty', 'Ошибка оплаты'), false);
+          setStatus('Ошибка оплаты', false);
           btn.disabled = false;
         });
       });
@@ -12333,7 +12333,7 @@
       const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
       const hasPaid = !!(sub && sub.active);
       const friendsCount = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
-      const friendsLabel = friendsCount === 1 ? t('site.cabinet.drug', 'друг') : (friendsCount >= 2 && friendsCount <= 4 ? t('site.cabinet.druga', 'друга') : t('profile.statFriends', 'друзей'));
+      const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
       const downloadHint = t('site.cabinet.android_iphone_1939fc', 'Android или iPhone');
       const avatarUrl = resolveProfileAvatarUrl(u);
       const statsHtml = totals ? (
@@ -12352,18 +12352,18 @@
         + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
         + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
         + '</div>'
-        + '<button type="button" class="profile-hub-edit" data-profile-sub="settings" aria-label=t('site.cabinet.nastroyki_profilya', 'Настройки профиля')>' + mpIcon('pencil', { size: 'sm' }) + '</button>'
+        + '<button type="button" class="profile-hub-edit" data-profile-sub="settings" aria-label="Настройки профиля">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
         + '</div>'
         + statsHtml
         + '<div class="mp-list">'
-        + profileListItemHtml(t('site.menu.friendsGroups', 'Друзья и группы'), t('site.cabinet.str_3bba9e', 'Друзья, активность, группы'), { icon: 'friends', section: 'groups' })
-        + profileListItemHtml(t('site.cabinet.oplata_i_podpiska', 'Оплата и подписка'), isPro ? t('profile.menuBillingHintPro', 'PRO — всё открыто') : (hasPaid ? 'Апгрейд до PRO' : t('site.cabinet.str_9bb532', 'Тарифы и оформление')), { icon: 'creditCard', sub: 'billing' })
-        + profileListItemHtml(t('site.menu.integrations', 'Интеграции'), t('site.cabinet.str_1a2834', 'Нейросети, расширение и телевизор'), { icon: 'integrations', section: 'integrations' })
-        + profileListItemHtml(t('site.cabinet.kollektsii', 'Коллекции'), t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
-        + profileListItemHtml(t('nav.settings', 'Настройки'), t('site.cabinet.str_c78762', 'Тема, импорт, уведомления'), { icon: 'gear', sub: 'settings' })
+        + profileListItemHtml('Друзья и группы', t('site.cabinet.str_3bba9e', 'Друзья, активность, группы'), { icon: 'friends', section: 'groups' })
+        + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : t('site.cabinet.str_9bb532', 'Тарифы и оформление')), { icon: 'creditCard', sub: 'billing' })
+        + profileListItemHtml('Интеграции', t('site.cabinet.str_1a2834', 'Нейросети, расширение и телевизор'), { icon: 'integrations', section: 'integrations' })
+        + profileListItemHtml('Коллекции', t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
+        + profileListItemHtml('Настройки', t('site.cabinet.str_c78762', 'Тема, импорт, уведомления'), { icon: 'gear', sub: 'settings' })
         + profileListItemHtml(t('site.landing.downloadApp', 'Скачать приложение'), downloadHint, { icon: 'phone', id: 'profile-hub-download' })
-        + profileListItemHtml('FAQ', t('site.cabinet.chastye_voprosy', 'Частые вопросы'), { icon: 'question', section: 'about' })
-        + profileListItemHtml(t('site.cabinet.o_servise', 'О сервисе'), t('site.cabinet.str_5f03cd', 'Автор, миссия и ссылки'), { icon: 'about', section: 'about' })
+        + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
+        + profileListItemHtml('О сервисе', t('site.cabinet.str_5f03cd', 'Автор, миссия и ссылки'), { icon: 'about', section: 'about' })
         + '</div>'
         + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
         + '</div>';
@@ -12413,7 +12413,7 @@
       + '<div class="settings-panels-grid settings-panels-grid--stack">'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">' + escapeHtml(t('settings.language', 'Язык')) + '</h3>'
       + '<p class="settings-panel-lead">' + escapeHtml(t('site.settings.languageHint', 'Синхронизируется с приложением и Mini App')) + '</p>'
-      + '<div class="settings-lang-row" role="group" aria-label=t('site.cabinet.escapehtml_t_settings_language', '\' + escapeHtml(t(\'settings.language\', \'Язык\')) + \'')>'
+      + '<div class="settings-lang-row" role="group" aria-label="' + escapeHtml(t('settings.language', 'Язык')) + '">'
       + '<button type="button" class="btn btn-secondary btn-small settings-lang-btn' + (uiLoc === 'ru' ? ' active' : '') + '" data-ui-locale="ru">' + escapeHtml(t('settings.languageRu', 'Русский')) + '</button>'
       + '<button type="button" class="btn btn-secondary btn-small settings-lang-btn' + (uiLoc === 'en' ? ' active' : '') + '" data-ui-locale="en">' + escapeHtml(t('settings.languageEn', 'English')) + '</button>'
       + '</div></section>'
@@ -12428,30 +12428,30 @@
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">' + escapeHtml(t('site.settings.name', 'Имя')) + '</h3>'
       + '<form class="settings-name-form" id="profile-settings-form">'
-      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder=t('site.cabinet.escapehtml_t_site_settings', '\' + escapeHtml(t(\'site.settings.namePlaceholder\', \'Имя в кабинете\')) + \'')>'
+      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="' + escapeHtml(t('site.settings.namePlaceholder', 'Имя в кабинете')) + '">'
       + '<button type="submit" class="btn btn-primary btn-full">' + escapeHtml(t('common.save', 'Сохранить')) + '</button>'
       + '</form></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: t('site.cabinet.str_7a55fd', 'Профиль в поиске по людям'), hint: t('site.cabinet.str_42e29e', 'Если выключить, вас не найдут по имени, почте или Telegram'), checked: u.profile_searchable !== false })
-      + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: t('site.cabinet.turnirnye_tablitsy', 'Турнирные таблицы'), hint: t('site.cabinet.str_9b1ca7', 'Участие в рейтинге оценок'), checked: u.tournament_participation === true })
+      + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: 'Турнирные таблицы', hint: t('site.cabinet.str_9b1ca7', 'Участие в рейтинге оценок'), checked: u.tournament_participation === true })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'settings-notify-tg', icon: 'telegram', title: t('site.cabinet.telegram_b15979', 'Сообщения в Telegram'), hint: t('site.cabinet.str_a018fd', 'Напоминания в личке с ботом'), checked: notifTg })
-      + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: t('site.cabinet.inboks_na_sayte', 'Инбокс на сайте'), hint: t('site.cabinet.str_2ad3a5', 'Приглашения и напоминания в кабинете'), checked: notifInapp })
+      + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: 'Инбокс на сайте', hint: t('site.cabinet.str_2ad3a5', 'Приглашения и напоминания в кабинете'), checked: notifInapp })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'settings-coll-home', icon: 'folder', title: t('site.cabinet.str_982c75', 'Коллекции на главной'), hint: t('site.cabinet.str_81bbb4', 'Блок «Мои коллекции» под превью'), checked: collOnHome })
-      + settingsToggleRow({ id: 'settings-emoji-random', icon: 'random', title: t('home.quick.random', 'Рандом'), hint: t('site.cabinet.knopka_na_glavnoy', 'Кнопка на главной'), checked: homeEmoji.random })
-      + settingsToggleRow({ id: 'settings-emoji-shazam', icon: 'shazam', title: t('site.menu.pickByDesc', 'Подбор по описанию'), hint: t('site.cabinet.knopka_na_glavnoy', 'Кнопка на главной'), checked: homeEmoji.shazam })
-      + settingsToggleRow({ id: 'settings-emoji-voice', icon: 'voice', title: t('site.header.voiceInput', 'Голосовой ввод'), hint: t('site.cabinet.knopka_na_glavnoy', 'Кнопка на главной'), checked: homeEmoji.voice })
+      + settingsToggleRow({ id: 'settings-emoji-random', icon: 'random', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
+      + settingsToggleRow({ id: 'settings-emoji-shazam', icon: 'shazam', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
+      + settingsToggleRow({ id: 'settings-emoji-voice', icon: 'voice', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
       + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
       + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
       + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact">'
-      + profileListItemHtml(t('site.cabinet.kollektsii', 'Коллекции'), t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
-      + profileListItemHtml(t('site.onboard.importTitle', 'Импорт оценок'), t('site.cabinet.myshows_imdb_57ebfc', 'Кинопоиск, MyShows, IMDb'), { icon: 'puzzle', sub: 'import' })
-      + profileListItemHtml(t('site.cabinet.akkaunty_i_vhod', 'Аккаунты и вход'), t('site.cabinet.google_244424', 'Google, Яндекс, почта'), { icon: 'key', sub: 'accounts' })
+      + profileListItemHtml('Коллекции', t('site.cabinet.str_b5382d', 'Подборки, теги и списки'), { icon: 'folder', section: 'collections' })
+      + profileListItemHtml('Импорт оценок', t('site.cabinet.myshows_imdb_57ebfc', 'Кинопоиск, MyShows, IMDb'), { icon: 'puzzle', sub: 'import' })
+      + profileListItemHtml('Аккаунты и вход', t('site.cabinet.google_244424', 'Google, Яндекс, почта'), { icon: 'key', sub: 'accounts' })
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
@@ -12476,11 +12476,11 @@
     const activeId = getActiveChatId();
     const sessionsHtml = sessions.length ? sessions.map((s) => {
       const isActive = String(s.chat_id) === String(activeId);
-      const typeLabel = s.is_personal ? t('site.cabinet.lichnyy', 'личный') : t('site.cabinet.gruppa', 'группа');
+      const typeLabel = s.is_personal ? 'личный' : 'группа';
       return '<div class="settings-account-row ' + (isActive ? 'is-active' : '') + '" data-settings-account="' + escapeHtml(String(s.chat_id)) + '">'
-        + '<div><b>' + escapeHtml(s.name || t('site.cabinet.kabinet', 'Кабинет')) + '</b>'
-        + '<span>' + escapeHtml(typeLabel) + (isActive ? t('site.cabinet.aktiven', ' · активен') : '') + '</span></div>'
-        + '<button type="button" class="settings-account-remove" data-settings-remove-account="' + escapeHtml(String(s.chat_id)) + '" aria-label=t('site.cabinet.ubrat_vhod', 'Убрать вход')>×</button>'
+        + '<div><b>' + escapeHtml(s.name || 'Кабинет') + '</b>'
+        + '<span>' + escapeHtml(typeLabel) + (isActive ? ' · активен' : '') + '</span></div>'
+        + '<button type="button" class="settings-account-remove" data-settings-remove-account="' + escapeHtml(String(s.chat_id)) + '" aria-label="Убрать вход">×</button>'
         + '</div>';
     }).join('') : '<p class="cabinet-hint">Активных входов нет.</p>';
 
@@ -12522,7 +12522,7 @@
       + '<input type="text" id="profile-import-kp" placeholder=t("site.cabinet.id_6d78de", "Ссылка на профиль или ID") autocomplete="off">'
       + '<div class="settings-import-counts" id="profile-import-counts">'
       + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
-        const label = n === 'all' ? t('site.cabinet.vsyo', 'Всё') : String(n);
+        const label = n === 'all' ? 'Всё' : String(n);
         const on = n === 1500 ? ' settings-import-count--on' : '';
         return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
       }).join('')
@@ -12612,7 +12612,7 @@
         return t('site.cabinet.str_ac67f0', 'Догружаем с сайта Кинопоиска') + (pg ? '… стр. ' + pg : '…') + (tail ? ' · +' + tail : '');
       }
       if (job.phase === 'loading' && processed === 0) return t('site.cabinet.str_c9aa87', 'Загружаем оценки с Кинопоиска…');
-      return t('site.cabinet.obrabotano', 'Обработано ') + processed + t('site.cabinet.iz', ' из ') + target + t('site.cabinet.dobavleno_2', ' · добавлено ') + imported + t('site.cabinet.propuscheno', ', пропущено ') + skipped;
+      return 'Обработано ' + processed + ' из ' + target + ' · добавлено ' + imported + ', пропущено ' + skipped;
     }
     if (job.status === 'done') {
       return t('site.cabinet.str_5e5de5', 'Готово: добавлено ') + imported + (skipped ? ', пропущено ' + skipped + ' (уже в профиле)' : '');
@@ -12629,7 +12629,7 @@
     const running = job && job.status === 'running';
     if (btn) {
       btn.disabled = !!running;
-      btn.textContent = running ? t('site.cabinet.import', 'Импорт…') : t('site.cabinet.importirovat', 'Импортировать');
+      btn.textContent = running ? 'Импорт…' : 'Импортировать';
     }
     if (input) input.disabled = !!running;
     if (!host) return;
@@ -12704,7 +12704,7 @@
               btn.disabled = false;
               return;
             }
-            setStatus(t('site.cabinet.foto_sohraneno', 'Фото сохранено'), true);
+            setStatus('Фото сохранено', true);
             loadMeAndShowCabinet();
           })
           .catch(() => {
@@ -12723,7 +12723,7 @@
     grid.innerHTML = items.map((a) => {
       const id = String(a.id || a);
       const src = a.url ? resolveMediaUrl(a.url) : (API_BASE + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
-      return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(id) + '" aria-label=t('site.cabinet.vybrat_avatar', 'Выбрать аватар')>'
+      return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(id) + '" aria-label="Выбрать аватар">'
         + '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">'
         + '</button>';
     }).join('');
@@ -12760,7 +12760,7 @@
         api('/api/miniapp/profile', { method: 'POST', body: JSON.stringify({ display_name: value }) })
           .then((r) => {
             if (!r || !r.success) { setStatus(t('site.cabinet.str_eaf1af', 'Не удалось сохранить имя'), false); return; }
-            setStatus(t('site.cabinet.imya_sohraneno', 'Имя сохранено'), true);
+            setStatus('Имя сохранено', true);
             loadMeAndShowCabinet();
           })
           .catch(() => setStatus(t('site.cabinet.networkError', 'Ошибка сети'), false));
@@ -12797,7 +12797,7 @@
           .then((r) => r.json().catch(() => ({})))
           .then((r) => {
             if (!r || !r.success) { setStatus(t('site.cabinet.str_e04036', 'Не удалось сохранить фото'), false); return; }
-            setStatus(t('site.cabinet.foto_sohraneno', 'Фото сохранено'), true);
+            setStatus('Фото сохранено', true);
             fileInput.value = '';
             loadMeAndShowCabinet();
           })
@@ -12986,7 +12986,7 @@
             return;
           }
           if (importStatus) {
-            importStatus.textContent = t('site.cabinet.import_zapuschen', 'Импорт запущен');
+            importStatus.textContent = 'Импорт запущен';
             importStatus.className = 'profile-settings-status success';
           }
           renderProfileImportProgress(root, {
@@ -13028,7 +13028,7 @@
     const doLeave = !doDelete
       && window.confirm(isVirt
         ? t('site.cabinet.str_e11655', 'Покинуть комнату? К базе вы потеряете доступ, пока вас снова не пригласят.')
-        : t('site.cabinet.pokinut_gruppu_v_kabinete', 'Покинуть группу в кабинете? (Telegram-чат не удалится.)'));
+        : 'Покинуть группу в кабинете? (Telegram-чат не удалится.)');
     if (!doDelete && !doLeave) return;
     if (doDelete) {
       api('/api/site/rooms/' + encodeURIComponent(id), { method: 'DELETE' }).then((r) => {
@@ -13052,7 +13052,7 @@
     document.body.style.overflow = 'hidden';
     api('/api/site/rooms/' + encodeURIComponent(chatId) + '/members').then((d) => {
       if (!d || !d.success) {
-        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || t('profile.noGalleryTitle', 'Нет доступа')) + '</p>';
+        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || 'Нет доступа') + '</p>';
         return;
       }
       if (!d.can_manage_members) {
@@ -13138,7 +13138,7 @@
       api('/api/site/rooms/' + mid + '/join-requests').catch(() => ({ success: false, items: [] })),
     ]).then(([d, jr]) => {
       if (!d || !d.success) {
-        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || t('profile.noGalleryTitle', 'Нет доступа')) + '</p>';
+        body.innerHTML = '<p class="cabinet-hint">' + escapeHtml((d && d.error) || 'Нет доступа') + '</p>';
         return;
       }
       const room = d.room || {};
@@ -13161,11 +13161,11 @@
 
       const members = d.members || [];
       const modes = [
-        ['any_admin', t('site.cabinet.lyuboy_admin', 'Любой админ')],
-        ['majority_admins', t('site.cabinet.bolshinstvo', 'Большинство')],
-        ['specific_admins', t('site.cabinet.konkretnye_adminy', 'Конкретные админы')],
-        ['creator_only', t('site.cabinet.sozdatel', 'Создатель')],
-        ['no_approval', t('site.cabinet.bez_soglasovaniya', 'Без согласования')],
+        ['any_admin', 'Любой админ'],
+        ['majority_admins', 'Большинство'],
+        ['specific_admins', 'Конкретные админы'],
+        ['creator_only', 'Создатель'],
+        ['no_approval', 'Без согласования'],
       ];
       const curMode = room.join_approval_mode || 'any_admin';
       const discover = !!room.is_discoverable;
@@ -13444,12 +13444,12 @@
             if (pendingInv && Number(pendingInv) === uid) {
               localStorage.removeItem('mp_pending_accept_friend_invite');
               await acceptFriendInviteFromLink(uid, btn, null);
-              btn.textContent = t('friends.badgeFriends', 'Друзья ✓');
+              btn.textContent = 'Друзья ✓';
               btn.disabled = true;
               return;
             }
             await api('/api/friends/request', { method: 'POST', body: JSON.stringify({ to_user_id: uid }) });
-            btn.textContent = t('friends.requestSent', 'Запрос отправлен');
+            btn.textContent = 'Запрос отправлен';
             btn.disabled = true;
           } catch (e) { showToast((e && e.message) || 'Ошибка', { type: 'error' }); }
         });
@@ -13531,10 +13531,10 @@
       return;
     }
     if (!data || data.success === false) {
-      showToast(data && data.error === 'not_friends' ? t('site.cabinet.str_ca3ebf', 'Сначала добавьте в друзья') : t('site.toast.picksLoadFailed', 'Не удалось загрузить подборку'), { type: 'error' });
+      showToast(data && data.error === 'not_friends' ? t('site.cabinet.str_ca3ebf', 'Сначала добавьте в друзья') : 'Не удалось загрузить подборку', { type: 'error' });
       return;
     }
-    const friendName = escapeHtml((data.friend_name || t('site.cabinet.druga', 'друга')).trim());
+    const friendName = escapeHtml((data.friend_name || 'друга').trim());
     const mutual = data.mutual_films || [];
     const fromFriend = data.from_friend_library || [];
     const fromMe = data.from_my_library || [];
@@ -13598,7 +13598,7 @@
   function _friendAchDisplayName(a) {
     const id = String((a && (a.id || a.achievement_id)) || '').trim();
     const raw = (a && a.name) || '';
-    return raw && raw !== id ? raw : t('site.cabinet.achivka', 'Ачивка');
+    return raw && raw !== id ? raw : 'Ачивка';
   }
   function _friendAchCircleHtml(a) {
     const name = _friendAchDisplayName(a);
@@ -13623,9 +13623,9 @@
           const ts = it.happened_at ? new Date(it.happened_at).toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '';
           const ach = it.achievement || {};
           const desc = it.event_type === 'rating'
-            ? `оценил${it.value != null ? ' ' + it.value + '/10' : ''} — ${escapeHtml(it.film_title || t('site.cabinet.film', 'фильм'))}`
+            ? `оценил${it.value != null ? ' ' + it.value + '/10' : ''} — ${escapeHtml(it.film_title || 'фильм')}`
             : it.event_type === 'achievement'
-            ? `получил достижение «${escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || t('site.cabinet.achivka', 'Ачивка')))}»`
+            ? `получил достижение «${escapeHtml((ach.icon || '🏅') + ' ' + (ach.name || it.extra || 'Ачивка'))}»`
             : escapeHtml(it.event_type || '');
           return `<div class="soc-activity-row">
             <div class="soc-friend-avatar" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${escapeHtml(letter)}</div>
@@ -13649,12 +13649,12 @@
     const data = await api('/api/friends/leaderboard');
     const items = (data && data.leaderboard) || [];
     const noms = (data && data.nominations && data.nominations.length) ? data.nominations : [
-      { id: 'ratings_week', label: t('site.cabinet.za_nedelyu', 'За неделю'), emoji: '⭐', field: 'ratings_week', unit: t('dashboard.tournamentRatingsUnit', 'оценок') },
-      { id: 'streak', label: t('site.cabinet.strik_2', 'Стрик'), emoji: '🔥', field: 'streak_days', unit: t('site.cabinet.dney', 'дней') },
-      { id: 'activity_week', label: t('site.cabinet.aktivnost', 'Активность'), emoji: '⚡', field: 'activity_week', unit: t('site.cabinet.sobytiy', 'событий') },
-      { id: 'coins', label: t('site.cabinet.monety', 'Монеты'), emoji: '🪙', field: 'coins', unit: t('site.cabinet.monet', 'монет') },
-      { id: 'ratings_all', label: t('site.cabinet.vse_otsenki', 'Все оценки'), emoji: '📊', field: 'ratings_count', unit: t('dashboard.tournamentRatingsUnit', 'оценок') },
-      { id: 'achievements', label: t('site.cabinet.achivki', 'Ачивки'), emoji: '🏅', field: 'achievements_count', unit: t('site.cabinet.achivok', 'ачивок') },
+      { id: 'ratings_week', label: 'За неделю', emoji: '⭐', field: 'ratings_week', unit: 'оценок' },
+      { id: 'streak', label: 'Стрик', emoji: '🔥', field: 'streak_days', unit: 'дней' },
+      { id: 'activity_week', label: 'Активность', emoji: '⚡', field: 'activity_week', unit: 'событий' },
+      { id: 'coins', label: 'Монеты', emoji: '🪙', field: 'coins', unit: 'монет' },
+      { id: 'ratings_all', label: 'Все оценки', emoji: '📊', field: 'ratings_count', unit: 'оценок' },
+      { id: 'achievements', label: 'Ачивки', emoji: '🏅', field: 'achievements_count', unit: 'ачивок' },
     ];
     let activeId = noms[0].id;
     const medals = ['🥇', '🥈', '🥉'];
@@ -13758,7 +13758,7 @@
         <div class="soc-search-user-row grp-discover-search-row">
           <span class="group-card-emoji" style="font-size:22px;flex-shrink:0">${escapeHtml(g.emoji || '🎬')}</span>
           <div class="soc-search-user-main">
-            <strong>${escapeHtml(g.name || t('film.shareSectionGroup', 'Группа'))}</strong> ${badge(g.group_kind)}
+            <strong>${escapeHtml(g.name || 'Группа')}</strong> ${badge(g.group_kind)}
             <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:2px">${escapeHtml(String(g.members_count || 0))} уч.</div>
           </div>
           <button type="button" class="soc-search-add-btn grp-discover-join-btn" data-chat-id="${Number(g.chat_id)}">Вступить</button>
@@ -13769,8 +13769,8 @@
           if (!chatId) return;
           try {
             const rr = await api('/api/site/rooms/' + chatId + '/join-request', { method: 'POST', body: '{}' });
-            showToast(rr && rr.status === 'approved' ? t('site.cabinet.str_cb1af4', 'Вы вступили в группу') : t('site.cabinet.zayavka_otpravlena', 'Заявка отправлена'));
-            btn.textContent = rr && rr.status === 'approved' ? t('site.cabinet.v_gruppe', 'В группе') : t('film.sentTitle', 'Отправлено');
+            showToast(rr && rr.status === 'approved' ? t('site.cabinet.str_cb1af4', 'Вы вступили в группу') : 'Заявка отправлена');
+            btn.textContent = rr && rr.status === 'approved' ? 'В группе' : 'Отправлено';
             btn.disabled = true;
             renderGroupsSection();
           } catch (e) {
@@ -13812,7 +13812,7 @@
           ? '<button type="button" data-action="share-profile" data-chat-id="' + escapeHtml(String(p.chat_id)) + '" data-is-virtual="' + (p.is_virtual ? 1 : 0) + '">🔗 Пригласить</button>'
           : '';
         return `<div class="group-card ${active ? 'active' : ''}${p.is_virtual ? ' group-card-virtual' : ''}">
-          ${showClose ? '<button type="button" class="group-card-close" data-action="group-exit" data-cid="' + escapeHtml(String(p.chat_id)) + '" title=t('site.cabinet.udalit_ili_vyyti', 'Удалить или выйти')>×</button>' : ''}
+          ${showClose ? '<button type="button" class="group-card-close" data-action="group-exit" data-cid="' + escapeHtml(String(p.chat_id)) + '" title="Удалить или выйти">×</button>' : ''}
           <div class="group-card-head">
             <span class="group-card-emoji">${escapeHtml(emoji)}</span>
             <span class="group-card-name">${escapeHtml(p.display_name || p.name || t('site.cabinet.profile', 'Профиль'))}</span>
@@ -13872,11 +13872,11 @@
       return;
     }
     const modes = [
-      ['any_admin', t('site.cabinet.lyuboy_admin', 'Любой админ')],
-      ['majority_admins', t('site.cabinet.bolshinstvo', 'Большинство')],
-      ['specific_admins', t('site.cabinet.konkretnye_adminy', 'Конкретные админы')],
-      ['creator_only', t('site.cabinet.sozdatel', 'Создатель')],
-      ['no_approval', t('site.cabinet.bez_soglasovaniya', 'Без согласования')],
+      ['any_admin', 'Любой админ'],
+      ['majority_admins', 'Большинство'],
+      ['specific_admins', 'Конкретные админы'],
+      ['creator_only', 'Создатель'],
+      ['no_approval', 'Без согласования'],
     ];
     box.innerHTML = `
       <label class="create-room-discover" style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;cursor:pointer;font-size:14px;color:var(--text-body,#eee)">
@@ -13994,9 +13994,9 @@
       body.is_discoverable = !!_createRoomDiscover;
       body.join_approval_mode = _createRoomApproval;
     }
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('site.cabinet.sozdayom', 'Создаём…'); }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = t('site.cabinet.sozdat_gruppu', 'Создать группу'); }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
       if (!data || !data.success) {
         if (statusEl) { statusEl.textContent = (data && data.error) || t('site.cabinet.str_6d9fc6', 'Не удалось создать группу'); statusEl.className = 'add-film-status error'; }
         return;
@@ -14008,13 +14008,13 @@
       showShareInvite({
         chat_id: data.chat_id,
         url: data.invite_url,
-        name: data.name || t('film.shareSectionGroup', 'Группа'),
+        name: data.name || 'Группа',
         is_virtual: true,
         inviter_name: getPersonalSessionName(),
       });
       // После закрытия share-modal — обновим кабинет
     }).catch(() => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = t('site.cabinet.sozdat_gruppu', 'Создать группу'); }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
       if (statusEl) { statusEl.textContent = t('site.cabinet.networkError', 'Ошибка сети'); statusEl.className = 'add-film-status error'; }
     });
   }
@@ -14053,12 +14053,12 @@
     const tgLink = document.getElementById('share-invite-telegram');
     const waLink = document.getElementById('share-invite-whatsapp');
     if (urlEl) urlEl.textContent = info.url || '';
-    const groupName = (info.name || t('site.cabinet.gruppu', 'группу')).trim();
+    const groupName = (info.name || 'группу').trim();
     const inviterName = (info.inviter_name || getPersonalSessionName()).trim();
     if (titleEl) titleEl.textContent = `Пригласить в «${groupName}»`;
     if (hintEl) hintEl.textContent = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner.`;
     if (metaEl) {
-      const parts = [t('site.cabinet.7_d0b7d4', 'Ссылка действует 7 дней'), t('site.cabinet.do_10_priglasheniy', 'до 10 приглашений')];
+      const parts = [t('site.cabinet.7_d0b7d4', 'Ссылка действует 7 дней'), 'до 10 приглашений'];
       metaEl.textContent = parts.join(' · ');
     }
     const text = `${inviterName} приглашает Вас в «${groupName}» в Movie Planner. Вступить?`;
@@ -14071,12 +14071,12 @@
         if (!url) return;
         copyToClipboard(url)
           .then(() => {
-            copyBtn.textContent = t('site.cabinet.skopirovano_2', '✅ Скопировано');
+            copyBtn.textContent = '✅ Скопировано';
             showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
             setTimeout(() => { copyBtn.textContent = '📋 Скопировать'; }, 1500);
           })
           .catch(() => {
-            copyBtn.textContent = t('site.cabinet.skopirovano_2', '✅ Скопировано');
+            copyBtn.textContent = '✅ Скопировано';
             showToast(t('site.toast.linkCopied', '📋 Ссылка скопирована'));
           });
       });
@@ -14212,7 +14212,7 @@
         renderPremieresList();
       }).catch(() => {
         if (loading) loading.classList.add('hidden');
-        if (errorEl) { errorEl.textContent = t('site.cabinet.oshibka_seti', 'Ошибка сети.'); errorEl.classList.remove('hidden'); }
+        if (errorEl) { errorEl.textContent = 'Ошибка сети.'; errorEl.classList.remove('hidden'); }
       });
     } else {
       renderPremieresList();
@@ -14279,9 +14279,9 @@
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         const kp = b.getAttribute('data-kp');
-        b.disabled = true; b.textContent = t('site.cabinet.dobavlyaem', 'Добавляем…');
+        b.disabled = true; b.textContent = 'Добавляем…';
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: kp }) }).then((data) => {
-          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; b.textContent = t('site.cabinet.v_bazu', '＋ В базу'); return; }
+          if (!data || !data.success) { alert((data && data.error) || 'Не удалось'); b.disabled = false; b.textContent = '＋ В базу'; return; }
           const it = _premieresData.find((x) => String(x.kp_id) === String(kp));
           if (it) it.already_in_base_film_id = data.film_id;
           if (typeof loadUnwatched === 'function') loadUnwatched();
@@ -14314,13 +14314,13 @@
       // YYYY-MM-DD или DD.MM.YYYY
       const m1 = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (m1) {
-        const months = [t('site.cabinet.yanv_2', 'янв'),t('site.cabinet.fev', 'фев'),t('site.cabinet.mar_2', 'мар'),t('site.cabinet.apr', 'апр'),t('site.cabinet.maya', 'мая'),t('site.cabinet.iyun_2', 'июн'),t('site.cabinet.iyul_3', 'июл'),t('site.cabinet.avg', 'авг'),t('site.cabinet.sen', 'сен'),t('site.cabinet.okt_2', 'окт'),t('site.cabinet.noya_2', 'ноя'),t('site.cabinet.dek', 'дек')];
+        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
         const d = parseInt(m1[3], 10), mo = parseInt(m1[2], 10) - 1;
         return d + ' ' + months[mo];
       }
       const m2 = String(s).match(/^(\d{2})\.(\d{2})\.(\d{4})/);
       if (m2) {
-        const months = [t('site.cabinet.yanv_2', 'янв'),t('site.cabinet.fev', 'фев'),t('site.cabinet.mar_2', 'мар'),t('site.cabinet.apr', 'апр'),t('site.cabinet.maya', 'мая'),t('site.cabinet.iyun_2', 'июн'),t('site.cabinet.iyul_3', 'июл'),t('site.cabinet.avg', 'авг'),t('site.cabinet.sen', 'сен'),t('site.cabinet.okt_2', 'окт'),t('site.cabinet.noya_2', 'ноя'),t('site.cabinet.dek', 'дек')];
+        const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
         return parseInt(m2[1], 10) + ' ' + months[parseInt(m2[2], 10) - 1];
       }
     } catch (_) {}
@@ -14357,7 +14357,7 @@
     if (hintEl) hintEl.textContent = '';
     if (metaEl) metaEl.textContent = '';
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('site.cabinet.prisoedinitsya', 'Присоединиться'); }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Присоединиться'; }
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -14394,13 +14394,13 @@
         if (emojiEl) emojiEl.textContent = info.emoji || '👥';
         if (titleEl) titleEl.textContent = t('site.cabinet.str_c58229', 'Присоединиться к «') + (info.name || 'Группа') + '»?';
         if (hintEl) {
-          const inviterName = info.inviter_name || t('site.cabinet.polzovatel', 'Пользователь');
+          const inviterName = info.inviter_name || 'Пользователь';
           hintEl.textContent = inviterName + t('site.cabinet.str_bfd277', ' приглашает Вас в «') + (info.name || 'Группа') + t('site.cabinet.movie_planner_859ff0', '» в Movie Planner.');
         }
         if (metaEl) {
           const parts = [];
-          if (info.members_count != null) parts.push(info.members_count + ' ' + pluralRu(info.members_count, [t('site.cabinet.uchastnik', 'участник'),t('site.cabinet.uchastnika', 'участника'),t('site.cabinet.uchastnikov', 'участников')]));
-          if (info.uses_left != null) parts.push(t('site.cabinet.eschyo', 'ещё ') + info.uses_left + ' ' + pluralRu(info.uses_left, [t('site.cabinet.priglashenie', 'приглашение'),t('site.cabinet.priglasheniya', 'приглашения'),t('site.cabinet.priglasheniy', 'приглашений')]));
+          if (info.members_count != null) parts.push(info.members_count + ' ' + pluralRu(info.members_count, ['участник','участника','участников']));
+          if (info.uses_left != null) parts.push('ещё ' + info.uses_left + ' ' + pluralRu(info.uses_left, ['приглашение','приглашения','приглашений']));
           metaEl.textContent = parts.join(' · ');
         }
         if (submitBtn) {
@@ -14451,7 +14451,7 @@
     }
     const submitBtn = document.getElementById('invite-confirm-submit');
     const statusEl = document.getElementById('invite-confirm-status');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('site.cabinet.prisoedinyaemsya', 'Присоединяемся…'); }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Присоединяемся…'; }
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
     acceptInviteToken(token, info);
   }
@@ -14462,7 +14462,7 @@
         const statusEl = document.getElementById('invite-confirm-status');
         const submitBtn = document.getElementById('invite-confirm-submit');
         if (statusEl) { statusEl.textContent = (data && data.error) || t('site.cabinet.str_31e639', 'Не удалось присоединиться'); statusEl.className = 'add-film-status error'; }
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = t('site.cabinet.prisoedinitsya', 'Присоединиться'); }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Присоединиться'; }
         return;
       }
       const sessions = getSessions();
@@ -14478,7 +14478,7 @@
       try { localStorage.removeItem('mp_pending_invite_token'); } catch (_) {}
       closeInviteConfirmModal();
       showInviteSuccessModal({
-        name: data.name || (previewInfo && previewInfo.name) || t('film.shareSectionGroup', 'Группа'),
+        name: data.name || (previewInfo && previewInfo.name) || 'Группа',
         emoji: (previewInfo && previewInfo.emoji) || '🎉',
         already_member: !!data.already_member,
       });
@@ -14498,8 +14498,8 @@
     const gotoBtn = document.getElementById('invite-success-goto');
     if (emojiEl) emojiEl.textContent = info.emoji || '🎉';
     if (titleEl) titleEl.textContent = info.already_member
-      ? t('site.cabinet.vy_uzhe_v', 'Вы уже в «') + info.name + '»'
-      : t('site.cabinet.gotovo_vy_v', 'Готово! Вы в «') + info.name + '»';
+      ? 'Вы уже в «' + info.name + '»'
+      : 'Готово! Вы в «' + info.name + '»';
     if (hintEl) hintEl.textContent = info.already_member
       ? t('site.cabinet.str_85a885', 'Продолжайте пользоваться общей базой фильмов и планов.')
       : t('site.cabinet.str_b16d79', 'Теперь вам доступны общие планы и фильмы этой группы. Переключайтесь между профилями через меню в правом верхнем углу.');
@@ -14534,7 +14534,7 @@
     const existing = document.getElementById('mp-add-friend-overlay');
     if (existing) existing.remove();
 
-    const name = (profile && profile.name) || t('site.cabinet.polzovatel', 'Пользователь');
+    const name = (profile && profile.name) || 'Пользователь';
     const initials = name[0].toUpperCase();
     const photoUrl = resolveMediaUrl(profile && profile.photo_url);
     const avatarHtml = photoUrl
@@ -14595,7 +14595,7 @@
   async function acceptFriendInviteFromLink(userId, buttonEl, overlayEl) {
     if (!userId) return;
     const btn = buttonEl || document.getElementById('mp-aff-accept-invite');
-    if (btn) { btn.disabled = true; btn.textContent = t('site.cabinet.prinimaem', 'Принимаем…'); }
+    if (btn) { btn.disabled = true; btn.textContent = 'Принимаем…'; }
     try {
       const r = await fetch(API_BASE + '/api/friends/invite/accept', {
         method: 'POST',
