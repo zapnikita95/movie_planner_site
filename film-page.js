@@ -802,8 +802,8 @@
                     '</div>' +
                   '</div>' +
                   '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
+                  '<div id="film-friends-social-block" class="hidden"></div>' +
                 '</div>' +
-                '<div id="film-friends-social-block" class="hidden"></div>' +
                 '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
