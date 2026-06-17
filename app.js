@@ -5,6 +5,8 @@
 (function () {
   'use strict';
 
+  const global = typeof window !== 'undefined' ? window : globalThis;
+
   const API_BASE = (function () {
     try {
       var loc = window.location;
