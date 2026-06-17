@@ -2272,8 +2272,6 @@
     const settingsBtn = document.getElementById('header-settings-btn');
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
     if (!dd) return;
-    const extUrl = typeof _chromeExtUrl !== 'undefined' && _chromeExtUrl ? _chromeExtUrl
-      : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     let topNav = '<div class="header-dropdown-title">Перейти</div>';
     const navItems = [
       { go: 'settings', icon: 'profile', label: 'Профиль' },
@@ -2287,8 +2285,6 @@
       topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="' + escapeHtml(item.go) + '">'
         + mpIcon(item.icon, { size: 'sm', className: 'header-nav-item-icon' }) + ' ' + escapeHtml(item.label) + '</button>';
     });
-    topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">'
-      + mpIcon('laptop', { size: 'sm', className: 'header-nav-item-icon' }) + ' Расширение для Chrome</a>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const personalCount = sessions.filter((s) => s.is_personal).length;
@@ -4820,7 +4816,7 @@
       const isOpera = /opr|opera/i.test(ua) || (navigator.browser && navigator.browser.opera);
       const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
       _chromeExtUrl = url;
-      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link, #header-settings-ext-link').forEach((a) => {
+      document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link').forEach((a) => {
         if (a) { a.href = url; a.classList.remove('hidden'); }
       });
     }).catch(() => {});

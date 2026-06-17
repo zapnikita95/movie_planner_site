@@ -516,14 +516,12 @@
     var settingsBtn = document.getElementById('header-settings-btn');
     if (!dd) return;
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
-    var extUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
     var html = '<div class="header-dropdown-title">Перейти</div>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="stats">📊 Статистика</button>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">🔌 Интеграции</button>'
-      + '<a class="header-settings-nav-item header-settings-nav-item--external" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">💻 Расширение для Chrome</a>'
       + '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>'
       + '<div class="header-dropdown-divider"></div>'
       + '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти</button>';
