@@ -25,7 +25,7 @@
     <link rel="canonical" href="https://movie-planner.ru/">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet5">
+    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet6">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet5";
+        var BUILD = "20260617cabinet6";
         try {
           var k = "mp_cabinet_build_v2";
           if (localStorage.getItem(k) !== BUILD) {
@@ -69,12 +69,6 @@
             params.delete('__spa');
             var rest = params.toString();
             if (/^\/f\/\d+\/?/.test(spa)) {
-              var filmKp = spa.match(/^\/f\/(\d+)/)[1];
-              if (mpSiteHasToken()) {
-                params.set('kp_open', filmKp);
-                window.location.replace('/?' + params.toString() + window.location.hash);
-                return;
-              }
               var filmUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
               window.location.replace(filmUrl + (rest ? '?' + rest : '') + window.location.hash);
               return;
@@ -1790,6 +1784,6 @@
     <script src="/mp-icons.js?v=20260617cabinet1"></script>
     <script src="/home-rails.js?v=20260529phosphor2"></script>
     <script src="/landing-premiere-carousel.js?v=20260617prem1"></script>
-    <script src="/cabinet-app.js?v=20260617cabinet5"></script>
+    <script src="/cabinet-app.js?v=20260617cabinet6"></script>
 </body>
 </html>

@@ -14855,14 +14855,11 @@
     if (!isPublicStats) {
     const pathKpBoot = kpIdFromPathname(window.location.pathname);
     if (pathKpBoot && document.getElementById('landing')) {
-      if (getToken()) {
-        const params = new URLSearchParams(window.location.search);
-        if (!params.get('kp_open')) params.set('kp_open', pathKpBoot);
-        window.location.replace('/?' + params.toString() + window.location.hash);
+      if (!getToken()) {
+        window.location.replace('/f/' + pathKpBoot);
         return;
       }
-      window.location.replace('/f/' + pathKpBoot);
-      return;
+      // logged-in: stay on /f/:kp — loadMeAndShowCabinet opens film via pathKp
     }
     try {
       const spaBoot = new URLSearchParams(window.location.search).get('__spa') || '';
