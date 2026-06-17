@@ -4,24 +4,6 @@
 (function (global) {
   'use strict';
 
-  function siteT(key, fallback) {
-    try {
-      if (global.siteT) return global.siteT(key, fallback);
-      if (global.SiteI18n && global.SiteI18n.t) return global.SiteI18n.t(key, fallback);
-      if (global.MP_I18N && global.MP_I18N.t) return global.MP_I18N.t(key, fallback);
-    } catch (_) {}
-    return fallback != null ? fallback : key;
-  }
-
-  function mergeLocaleHeaders(base) {
-    var h = Object.assign({}, base || {});
-    try {
-      if (global.SiteI18n && global.SiteI18n.localeHeaders) Object.assign(h, global.SiteI18n.localeHeaders());
-      else if (global.MP_I18N && global.MP_I18N.localeHttpHeaders) Object.assign(h, global.MP_I18N.localeHttpHeaders());
-    } catch (_) {}
-    return h;
-  }
-
   var API_BASE = (function () {
     try {
       var loc = global.location;
@@ -37,10 +19,10 @@
     }
     return (
       '<div id="app-open-banner" class="app-open-banner hidden">' +
-        '<span class="app-open-text">' + siteT('site.film.openInApp', 'Открыть в приложении Movie Planner?') + '</span>' +
+        '<span class="app-open-text">Открыть в приложении Movie Planner?</span>' +
         '<div class="app-open-actions">' +
-          '<button type="button" class="btn-app-open" id="app-open-btn">' + escapeHtml(siteT('site.film.openInAppBtn', 'Открыть')) + '</button>' +
-          '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">' + escapeHtml(siteT('site.film.openInAppLater', 'Позже')) + '</button>' +
+          '<button type="button" class="btn-app-open" id="app-open-btn">Открыть</button>' +
+          '<button type="button" class="btn-app-dismiss" id="app-dismiss-btn">Позже</button>' +
         '</div>' +
       '</div>'
     );
@@ -87,12 +69,12 @@
   }
 
   function filmMetaDescription(film, fallbackTitle) {
-    var title = fallbackTitle || siteT('site.film.fallbackTitle', 'Фильм');
+    var title = fallbackTitle || 'Фильм';
     var plot = pickFilmDescription(film);
     if (plot) return trimMetaText(title + '. ' + plot, 160);
     var genres = film && film.genres ? String(film.genres).trim() : '';
-    if (genres) return trimMetaText(title + ' — ' + genres + '. ' + siteT('site.film.cardOnMp', 'Карточка на Movie Planner.'), 160);
-    return title + ' — ' + siteT('site.film.cardPage', 'карточка фильма на Movie Planner.');
+    if (genres) return trimMetaText(title + ' — ' + genres + '. Карточка на Movie Planner.', 160);
+    return title + ' — карточка фильма на Movie Planner.';
   }
 
   function setFilmDescription(text) {
@@ -169,13 +151,13 @@
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
       : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>';
     var addIconBtn = !inBase
-      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="' + siteT('film.addToLibrary', 'Добавить в базу') + '" title="' + siteT('film.addToLibrary', 'Добавить в базу') + '"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
+      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', 'Отметить просмотренным')) + '" title="' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.markWatched', 'Отметить просмотренным')) + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? siteT('site.film.watched', 'Просмотрен') : siteT('site.film.watched', 'Просмотрен')) + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
       : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
-    var rateAria = myRating ? ('Оценка ' + myRating) : siteT('site.film.rate', 'Оценить');
+    var rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
     var rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
     var rateLabelHtml = myRating ? '' : '<span class="film-icon-label">Оценить</span>';
     var rateBtn = canRate && !ratingLocked
@@ -200,14 +182,17 @@
     } catch (_e) { return null; }
   }
   function mpAuthHeaders() {
-    return mergeLocaleHeaders({ 'Content-Type': 'application/json', Authorization: mpToken() ? 'Bearer ' + mpToken() : undefined });
+    var h = { 'Content-Type': 'application/json' };
+    var t = mpToken();
+    if (t) h.Authorization = 'Bearer ' + t;
+    return h;
   }
 
   function sessionNameFromStorage() {
     try {
       var active = localStorage.getItem('mp_site_active_chat_id');
       var row = mpSessions().find(function (x) { return String(x.chat_id) === String(active); });
-      return (row && row.name) || siteT('nav.profile', 'Профиль');
+      return (row && row.name) || 'Профиль';
     } catch (_e) { return 'Профиль'; }
   }
 
@@ -275,14 +260,14 @@
 
   function standaloneNavHtml() {
     var tabs = [
-      { href: '/home', label: siteT('nav.home', 'Главная'), icon: 'home' },
-      { href: '/plans', label: siteT('nav.plans', 'Планы'), icon: 'plans' },
-      { href: '/premieres', label: siteT('nav.premieres', 'Премьеры'), icon: 'premieres' },
-      { href: '/watchlist', label: siteT('nav.library', 'База'), icon: 'library' },
-      { href: '/whattowatch', label: siteT('nav.watch', 'Что посмотреть'), icon: 'watch' },
-      { href: '/tournament', label: siteT('nav.tournament', 'Турнир'), icon: 'tournament' },
+      { href: '/home', label: 'Главная', icon: 'home' },
+      { href: '/plans', label: 'Планы', icon: 'plans' },
+      { href: '/premieres', label: 'Премьеры', icon: 'premieres' },
+      { href: '/watchlist', label: 'База', icon: 'library' },
+      { href: '/whattowatch', label: 'Что посмотреть', icon: 'watch' },
+      { href: '/tournament', label: 'Турнир', icon: 'tournament' },
     ];
-    return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="' + siteT('site.film.navSections', 'Разделы') + '">' +
+    return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
       tabs.map(function (t) {
         var iconHtml = (window.MPIcons && MPIcons.html) ? MPIcons.html(t.icon, { size: 'md' }) : '';
         return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + iconHtml + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
@@ -339,12 +324,12 @@
     }
     function render(items) {
       if (!items || !items.length) {
-        dd.innerHTML = '<div class="search-result-meta">' + siteT('site.film.searchNothing', 'Ничего не нашлось') + '</div>';
+        dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
         dd.classList.remove('hidden');
         return;
       }
       dd.innerHTML = items.slice(0, 6).map(function (it) {
-        var typeLabel = it.type === 'series' ? siteT('site.film.typeSeries', 'Сериал') : siteT('site.film.typeFilm', 'Фильм');
+        var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
         var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
         var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
         return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
@@ -365,7 +350,7 @@
         var mySeq = ++seq;
         if (controller) controller.abort();
         controller = global.AbortController ? new AbortController() : null;
-        dd.innerHTML = '<div class="search-result-meta">' + siteT('site.film.searching', 'Ищем…') + '</div>';
+        dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
         dd.classList.remove('hidden');
         fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
           method: 'GET',
@@ -379,7 +364,7 @@
           })
           .catch(function (e) {
             if (e && e.name === 'AbortError') return;
-            if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">' + siteT('site.film.searchFailed', 'Не удалось найти') + '</div>';
+            if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">Не удалось найти</div>';
           });
       }, wait || 260);
     }
@@ -517,7 +502,7 @@
       if (e) { e.preventDefault(); e.stopPropagation(); }
       if (btn.disabled) return;
       btn.disabled = true;
-      btn.textContent = siteT('site.film.signingOut', 'Выход…');
+      btn.textContent = 'Выход…';
       setTimeout(function () { standaloneLogoutAll(kpId); }, 32);
     };
     btn.addEventListener('pointerdown', function (e) {
@@ -805,7 +790,7 @@
                 '<div class="film-page-toolbar">' +
                   '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
                   '<div class="film-toolbar-icons">' +
-                    '<button type="button" class="film-icon-btn" id="add-btn" aria-label="' + siteT('film.addToLibrary', 'Добавить в базу') + '" title="' + siteT('film.addToLibrary', 'Добавить в базу') + '"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
+                    '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
                     '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
                     '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
                     '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
@@ -1003,15 +988,17 @@
         } catch (_e) { return null; }
       }
       function authHeaders() {
-        var tok = token();
-        return mergeLocaleHeaders({ 'Content-Type': 'application/json', Authorization: tok ? 'Bearer ' + tok : undefined });
+        var h = { 'Content-Type': 'application/json' };
+        var t = token();
+        if (t) h.Authorization = 'Bearer ' + t;
+        return h;
       }
       function loginNow(action) {
         if (window.MpPublicFilmLogin) {
           MpPublicFilmLogin.open(action || '');
           return;
         }
-        if (hint) hint.textContent = siteT('site.film.openingLogin', 'Открываем вход…');
+        if (hint) hint.textContent = 'Открываем вход…';
         var suffix = action ? '&action=' + encodeURIComponent(action) : '';
         setTimeout(function () {
           window.location.href = '/?open_login=1&kp_open=' + encodeURIComponent(kpId) + suffix;
@@ -1021,7 +1008,7 @@
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
       }
       function apiGet(path) {
-        return fetch(apiBase + path, mergeLocaleHeaders({ method: 'GET', mode: 'cors' })).then(function (r) {
+        return fetch(apiBase + path, { method: 'GET', mode: 'cors' }).then(function (r) {
           if (!r.ok) throw new Error('api_' + r.status);
           return r.json();
         });
@@ -1206,7 +1193,7 @@
 
       function openStandalonePlanModal(filmLike, place) {
         if (!window.MpPlanModal || typeof MpPlanModal.open !== 'function') {
-          showPublicToast(siteT('plan.planUnavailable', 'Форма плана недоступна'));
+          showPublicToast('Форма плана недоступна');
           return;
         }
         var fl = filmLike || {};

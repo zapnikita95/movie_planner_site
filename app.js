@@ -5,28 +5,6 @@
 (function () {
   'use strict';
 
-  function siteLocaleHeaders() {
-    try {
-      if (window.SiteI18n && window.SiteI18n.localeHeaders) return window.SiteI18n.localeHeaders();
-      if (window.MP_I18N && window.MP_I18N.localeHttpHeaders) return window.MP_I18N.localeHttpHeaders();
-    } catch (_) {}
-    return { 'X-MP-Locale': 'ru', 'Accept-Language': 'ru-RU,ru;q=0.9' };
-  }
-
-  function siteFetch(url, options) {
-    const opts = options || {};
-    const headers = Object.assign({}, siteLocaleHeaders(), opts.headers || {});
-    return fetch(url, Object.assign({}, opts, { headers }));
-  }
-
-  function siteT(key, fallback) {
-    try {
-      if (window.SiteI18n && window.SiteI18n.t) return window.SiteI18n.t(key, fallback);
-      if (window.MP_I18N && window.MP_I18N.t) return window.MP_I18N.t(key, fallback);
-    } catch (_) {}
-    return fallback != null ? fallback : key;
-  }
-
   const API_BASE = (function () {
     try {
       var loc = window.location;
@@ -139,18 +117,6 @@
       if (window.MPIcons && typeof MPIcons.html === 'function') return MPIcons.html(key, opts || {});
     } catch (_) {}
     return '';
-  }
-
-  function t(key, fallback) {
-    if (window.siteT) return window.siteT(key, fallback);
-    if (window.MP_I18N && window.MP_I18N.t) return window.MP_I18N.t(key, fallback);
-    return fallback != null ? String(fallback) : String(key);
-  }
-
-  function localeHttpHeaders() {
-    if (window.SiteI18n && window.SiteI18n.localeHeaders) return window.SiteI18n.localeHeaders();
-    if (window.MP_I18N && window.MP_I18N.localeHttpHeaders) return window.MP_I18N.localeHttpHeaders();
-    return {};
   }
 
   function posterUrl(kpId) {
@@ -485,7 +451,7 @@
       if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
       else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
     } catch (_) {}
-    return siteFetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.film) {
@@ -947,15 +913,15 @@
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return;
     if (typeof window.MpPlanModal?.open !== 'function') {
-      showToast(t('plan.planUnavailable', 'Форма плана недоступна'), { type: 'error' });
+      showToast('Форма плана недоступна', { type: 'error' });
       return;
     }
     MpPlanModal.open({
       apiBase: API_BASE,
       getAuthHeaders() {
-        const h = { 'Content-Type': 'application/json', ...siteLocaleHeaders() };
-        const tok = getToken();
-        if (tok) h.Authorization = 'Bearer ' + tok;
+        const h = { 'Content-Type': 'application/json' };
+        const t = getToken();
+        if (t) h.Authorization = 'Bearer ' + t;
         const planH = getPlanLibraryHeaders();
         if (planH) Object.assign(h, planH);
         return h;
@@ -1438,7 +1404,7 @@
   }
 
   function authApiJson(path, options, timeoutMs) {
-    const opts = Object.assign({ headers: { 'Content-Type': 'application/json', ...siteLocaleHeaders() } }, options || {});
+    const opts = Object.assign({ headers: { 'Content-Type': 'application/json' } }, options || {});
     return fetchWithTimeout(API_BASE + path, opts, timeoutMs || 20000).then(async (r) => {
       const data = await r.json().catch(() => ({}));
       if (!r.ok && data && !data.error) data.error = 'http_' + r.status;
@@ -1448,8 +1414,8 @@
   }
 
   function authNetworkError(err) {
-    if (err && err.name === 'AbortError') return t('site.common.serverTimeout', 'Сервер не ответил. Попробуйте ещё раз.');
-    return t('site.common.networkError', 'Ошибка сети. Попробуйте ещё раз.');
+    if (err && err.name === 'AbortError') return 'Сервер не ответил. Попробуйте ещё раз.';
+    return 'Ошибка сети. Попробуйте ещё раз.';
   }
 
   function siteAuthReturnPath() {
@@ -1510,10 +1476,6 @@
     document.body.classList.remove('login-only-overlay');
     bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
-    if (window.SiteI18n && window.SiteI18n.syncFromSettings) {
-      window.SiteI18n.syncFromSettings(api);
-    }
-    try { window.dispatchEvent(new CustomEvent('mp:login')); } catch (_) {}
     try {
       const pendingInvite = localStorage.getItem('mp_pending_accept_friend_invite');
       if (pendingInvite && /^-?\d+$/.test(pendingInvite)) {
@@ -1748,7 +1710,7 @@
   }
 
   function apiOnce(url, options, token) {
-    const headers = { 'Content-Type': 'application/json', ...localeHttpHeaders(), ...options.headers };
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
     if (options.planLibrary) {
       const planH = getPlanLibraryHeaders();
@@ -1804,7 +1766,7 @@
 
   function apiText(url, options = {}) {
     const token = getToken();
-    const headers = { 'Content-Type': 'application/json', ...localeHttpHeaders(), ...options.headers };
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = 'Bearer ' + token;
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then(async (r) => {
       const text = await r.text().catch(() => '');
@@ -1821,17 +1783,17 @@
   }
 
   function apiPublic(url, options = {}) {
-    const headers = { 'Content-Type': 'application/json', ...siteLocaleHeaders(), ...options.headers };
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => r.json().catch(() => ({})));
   }
 
   function groupKindLabel(profile) {
-    if (!profile || profile.is_personal) return t('site.group.personal', 'Личный');
-    if (!profile.is_virtual) return t('site.group.telegram', 'Telegram-группа');
+    if (!profile || profile.is_personal) return 'Личный';
+    if (!profile.is_virtual) return 'Telegram-группа';
     const kind = String(profile.group_kind || 'friends');
-    if (kind === 'cinema_club') return t('site.group.cinemaClub', 'Киноклуб');
-    if (kind === 'blogger') return t('site.group.media', 'Медиа');
-    return t('site.group.friends', 'Группа друзей');
+    if (kind === 'cinema_club') return 'Киноклуб';
+    if (kind === 'blogger') return 'Медиа';
+    return 'Группа друзей';
   }
 
   const MODAL_SHEET_HANDLE_HTML =
@@ -2310,21 +2272,21 @@
     if (!dd) return;
     const extUrl = typeof _chromeExtUrl !== 'undefined' && _chromeExtUrl ? _chromeExtUrl
       : 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
-    let topNav = '<div class="header-dropdown-title">' + escapeHtml(t('site.menu.goTo', 'Перейти')) + '</div>';
+    let topNav = '<div class="header-dropdown-title">Перейти</div>';
     const navItems = [
-      { go: 'settings', icon: 'profile', label: t('site.menu.profile', 'Профиль') },
-      { go: 'groups', icon: 'friends', label: t('site.menu.friendsGroups', 'Друзья и группы') },
-      { go: 'stats', icon: 'stats', label: t('site.menu.stats', 'Статистика') },
-      { go: 'shazam', icon: 'shazam', label: t('site.menu.pickByDesc', 'Подбор по описанию') },
-      { go: 'integrations', icon: 'integrations', label: t('site.menu.integrations', 'Интеграции') },
-      { go: 'about', icon: 'about', label: t('site.menu.about', 'О проекте'), ext: false },
+      { go: 'settings', icon: 'profile', label: 'Профиль' },
+      { go: 'groups', icon: 'friends', label: 'Друзья и группы' },
+      { go: 'stats', icon: 'stats', label: 'Статистика' },
+      { go: 'shazam', icon: 'shazam', label: 'Подбор по описанию' },
+      { go: 'integrations', icon: 'integrations', label: 'Интеграции' },
+      { go: 'about', icon: 'about', label: 'О проекте', ext: false },
     ];
     navItems.forEach((item) => {
       topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="' + escapeHtml(item.go) + '">'
         + mpIcon(item.icon, { size: 'sm', className: 'header-nav-item-icon' }) + ' ' + escapeHtml(item.label) + '</button>';
     });
     topNav += '<a class="header-settings-nav-item header-settings-nav-item--external" id="header-settings-ext-link" href="' + escapeHtml(extUrl) + '" target="_blank" rel="noopener">'
-      + mpIcon('laptop', { size: 'sm', className: 'header-nav-item-icon' }) + ' ' + escapeHtml(t('site.menu.chromeExt', 'Расширение для Chrome')) + '</a>';
+      + mpIcon('laptop', { size: 'sm', className: 'header-nav-item-icon' }) + ' Расширение для Chrome</a>';
     topNav += '<div class="header-dropdown-divider"></div>';
     const sessions = getSessions();
     const personalCount = sessions.filter((s) => s.is_personal).length;
@@ -2334,10 +2296,10 @@
     const canAdd = sessions.length < MAX_PERSONAL + MAX_GROUP && (canAddPersonal || canAddGroup);
 
     let html = topNav;
-    html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>' + escapeHtml(t('site.menu.addLogin', '+ Добавить вход')) + '</button>';
+    html += '<button type="button" class="header-dropdown-add' + (canAdd ? '' : ' disabled') + '" data-action="add-account"' + (canAdd ? '' : ' disabled') + '>+ Добавить вход</button>';
     if (sessions.length) {
       html += '<div class="header-dropdown-divider"></div>';
-      html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">' + escapeHtml(t('site.menu.signOut', 'Выйти')) + '</button>';
+      html += '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти</button>';
     }
     dd.innerHTML = html;
 
@@ -3265,7 +3227,7 @@
     }
     const authed = !!getToken();
     function fetchPublicStaffDetail() {
-      return siteFetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+      return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
         .then(function (r) { return r.json().catch(function () { return {}; }); });
     }
     const detailPromise = authed
@@ -4742,7 +4704,6 @@
       _cabinetMeCache = me;
       try { window._mpApiAuthDegraded = false; } catch (_) {}
       renderHeader(me);
-      if (window.SiteI18n && window.SiteI18n.syncFromSettings) window.SiteI18n.syncFromSettings(api);
       void maybeShowAchievementCelebrations();
       updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
@@ -8577,7 +8538,7 @@
         factsLoaded = true;
         factsList.innerHTML = '<li>Загружаем…</li>';
         const kp = factsToggle.getAttribute('data-kp') || (film && film.kp_id);
-        siteFetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(kp)) + '/facts', { method: 'GET', mode: 'cors' })
+        fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(kp)) + '/facts', { method: 'GET', mode: 'cors' })
           .then((r) => r.json())
           .then((d) => {
             const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
@@ -8597,7 +8558,7 @@
             factsToggle.classList.remove('is-active');
           });
       });
-      siteFetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(factsToggle.getAttribute('data-kp') || (film && film.kp_id) || '')) + '/facts', { method: 'GET', mode: 'cors' })
+      fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(factsToggle.getAttribute('data-kp') || (film && film.kp_id) || '')) + '/facts', { method: 'GET', mode: 'cors' })
         .then((r) => r.json())
         .then((d) => {
           const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
@@ -9708,7 +9669,7 @@
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve(filmObj);
     if (pickFilmDescription(filmObj)) return Promise.resolve(filmObj);
-    return siteFetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
       .then((r) => r.json())
       .then((data) => {
         const pub = data && data.film;
@@ -9808,7 +9769,7 @@
       root.innerHTML = buildFilmCrewFallback(filmFallback);
       return;
     }
-    siteFetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/cast', { method: 'GET', mode: 'cors' })
+    fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/cast', { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (cast) {
         const director = cast && cast.director;
@@ -10595,7 +10556,7 @@
     }
     const searchPromise = getToken()
       ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
-      : siteFetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6', { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6', { method: 'GET', mode: 'cors' }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
@@ -10929,7 +10890,7 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    siteFetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
+    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
       .then((r) => r.json())
       .then((data) => {
         if (seq !== _siteSearchSeq) return;
@@ -12087,33 +12048,13 @@
   }
 
   function bindSettingsPageExtras(root, setStatus) {
-    root.querySelectorAll('[data-ui-locale]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const loc = btn.getAttribute('data-ui-locale');
-        if (!loc) return;
-        api('/api/miniapp/settings', { method: 'POST', body: JSON.stringify({ ui_locale: loc }) })
-          .then((r) => {
-            if (!r || !r.success) { setStatus(t('site.common.loadFailed', 'Не удалось сохранить'), false); return; }
-            if (window.SiteI18n && window.SiteI18n.persistLocale) {
-              window.SiteI18n.persistLocale(loc, null);
-            } else if (window.MP_I18N && window.MP_I18N.setLocale) {
-              window.MP_I18N.setLocale(loc);
-            }
-            setStatus(t('common.saved', 'Сохранено'), true);
-            root.querySelectorAll('[data-ui-locale]').forEach((b) => {
-              b.classList.toggle('active', b.getAttribute('data-ui-locale') === loc);
-            });
-          })
-          .catch(() => setStatus(t('site.common.networkError', 'Ошибка сети'), false));
-      });
-    });
     const saveNotif = (partial) => {
       api('/api/miniapp/settings', { method: 'POST', body: JSON.stringify({ notifications: partial }) })
         .then((r) => {
-          if (!r || !r.success) { setStatus(t('site.common.loadFailed', 'Не удалось сохранить уведомления'), false); return; }
-          setStatus(t('common.saved', 'Сохранено'), true);
+          if (!r || !r.success) { setStatus('Не удалось сохранить уведомления', false); return; }
+          setStatus('Сохранено', true);
         })
-        .catch(() => setStatus(t('site.common.networkError', 'Ошибка сети'), false));
+        .catch(() => setStatus('Ошибка сети', false));
     };
     const tgN = root.querySelector('#settings-notify-tg');
     if (tgN) tgN.addEventListener('change', () => saveNotif({ notify_telegram: !!tgN.checked }));
@@ -12397,39 +12338,32 @@
   function renderProfileSettingsDetailPage(root, d, settingsRes) {
     const u = d.user;
     const st = settingsRes || {};
-    const uiLoc = (st.ui_locale === 'en' ? 'en' : 'ru');
     const notifTg = !st.notifications || st.notifications.notify_telegram !== false;
     const notifInapp = !st.notifications || st.notifications.notify_inapp !== false;
     const collOnHome = !!(st.display && st.display.show_collections_on_home);
     const homeEmoji = loadHomeEmojiVis();
     const name = (u.first_name || u.username)
       ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
-      : t('site.menu.profile', 'Профиль');
+      : 'Профиль';
     const avatarUrl = resolveProfileAvatarUrl(u);
 
     root.innerHTML = '<div class="profile-sub-page settings-page">'
       + profileSubBackHtml()
-      + '<h3 class="profile-sub-title">' + escapeHtml(t('site.settings.title', 'Настройки')) + '</h3>'
+      + '<h3 class="profile-sub-title">Настройки</h3>'
       + '<div class="settings-panels-grid settings-panels-grid--stack">'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">' + escapeHtml(t('settings.language', 'Язык')) + '</h3>'
-      + '<p class="settings-panel-lead">' + escapeHtml(t('site.settings.languageHint', 'Синхронизируется с приложением и Mini App')) + '</p>'
-      + '<div class="settings-lang-row" role="group" aria-label="' + escapeHtml(t('settings.language', 'Язык')) + '">'
-      + '<button type="button" class="btn btn-secondary btn-small settings-lang-btn' + (uiLoc === 'ru' ? ' active' : '') + '" data-ui-locale="ru">' + escapeHtml(t('settings.languageRu', 'Русский')) + '</button>'
-      + '<button type="button" class="btn btn-secondary btn-small settings-lang-btn' + (uiLoc === 'en' ? ' active' : '') + '" data-ui-locale="en">' + escapeHtml(t('settings.languageEn', 'English')) + '</button>'
-      + '</div></section>'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">' + escapeHtml(t('site.settings.profilePhoto', 'Фото профиля')) + '</h3>'
-      + '<p class="settings-panel-lead">' + escapeHtml(t('site.settings.profilePhotoLead', 'Аватар в шапке и в профиле')) + '</p>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото профиля</h3>'
+      + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
       + '<div class="settings-hero-avatar settings-hero-avatar--inline" id="settings-profile-avatar"></div>'
-      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">' + escapeHtml(t('site.settings.changePhoto', 'Изменить фото')) + '</button>'
+      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
       + '<div class="settings-photo-editor hidden" id="profile-settings-photo-editor">'
       + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"></div>'
       + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
-      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">' + escapeHtml(t('site.settings.uploadPhoto', 'Загрузить с устройства')) + '</button>'
+      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
       + '</div></section>'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">' + escapeHtml(t('site.settings.name', 'Имя')) + '</h3>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Имя</h3>'
       + '<form class="settings-name-form" id="profile-settings-form">'
-      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="' + escapeHtml(t('site.settings.namePlaceholder', 'Имя в кабинете')) + '">'
-      + '<button type="submit" class="btn btn-primary btn-full">' + escapeHtml(t('common.save', 'Сохранить')) + '</button>'
+      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="Имя в кабинете">'
+      + '<button type="submit" class="btn btn-primary btn-full">Сохранить</button>'
       + '</form></section>'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
@@ -12556,7 +12490,7 @@
       return;
     }
 
-    root.innerHTML = '<div class="settings-loading">' + escapeHtml(t('common.loading', 'Загружаем…')) + '</div>';
+    root.innerHTML = '<div class="settings-loading">Загружаем…</div>';
     Promise.all([
       api('/api/miniapp/profile').catch(() => null),
       api('/api/miniapp/settings').catch(() => null),
@@ -12564,7 +12498,7 @@
     ]).then(([profileRes, settingsRes, tariffsRes]) => {
       const d = profileRes;
       if (!d || !d.user) {
-        root.innerHTML = '<p class="cabinet-hint">' + escapeHtml(t('site.common.loadFailed', 'Не удалось загрузить. Попробуйте обновить страницу.')) + '</p>';
+        root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить. Попробуйте обновить страницу.</p>';
         return;
       }
       if (_profileSubView === 'billing') {
@@ -14660,19 +14594,6 @@
   }
 
   function initAfterAuthEntry() {
-    if (window.SiteI18n && window.SiteI18n.bootstrap) {
-      window.SiteI18n.bootstrap(api);
-    }
-    try {
-      var langParam = new URLSearchParams(window.location.search).get('lang');
-      if (langParam === 'en' || langParam === 'ru') {
-        if (window.SiteI18n && window.SiteI18n.persistLocale) {
-          window.SiteI18n.persistLocale(langParam, getToken() ? api : null);
-        } else if (window.MP_I18N && window.MP_I18N.setLocale) {
-          window.MP_I18N.setLocale(langParam);
-        }
-      }
-    } catch (_) {}
     bindLogin();
     bindFaq();
     initCarousels();
@@ -14979,20 +14900,6 @@
 
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
-
-    if (window.SiteI18n && window.SiteI18n.bootstrap) {
-      window.SiteI18n.bootstrap(typeof api === 'function' ? api : null);
-    }
-    window.addEventListener('mp:locale-changed', function () {
-      try {
-        if (window.SiteI18n && window.SiteI18n.applyDom) window.SiteI18n.applyDom();
-        const me = _cabinetMeCache;
-        if (me) renderHeader(me);
-        const sec = document.querySelector('.cabinet-section:not(.hidden)');
-        const sectionId = sec && sec.id ? sec.id.replace('section-', '') : '';
-        if (sectionId === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
-      } catch (_) {}
-    });
 
     initCabinetMobileHeaderScroll();
 

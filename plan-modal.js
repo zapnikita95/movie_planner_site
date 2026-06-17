@@ -4,24 +4,6 @@
 (function (global) {
   'use strict';
 
-  function siteT(key, fallback) {
-    try {
-      if (global.siteT) return global.siteT(key, fallback);
-      if (global.SiteI18n && global.SiteI18n.t) return global.SiteI18n.t(key, fallback);
-      if (global.MP_I18N && global.MP_I18N.t) return global.MP_I18N.t(key, fallback);
-    } catch (_) {}
-    return fallback != null ? fallback : key;
-  }
-
-  function mergeLocaleHeaders(base) {
-    var h = Object.assign({}, base || {});
-    try {
-      if (global.SiteI18n && global.SiteI18n.localeHeaders) Object.assign(h, global.SiteI18n.localeHeaders());
-      else if (global.MP_I18N && global.MP_I18N.localeHttpHeaders) Object.assign(h, global.MP_I18N.localeHttpHeaders());
-    } catch (_) {}
-    return h;
-  }
-
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
@@ -35,11 +17,6 @@
       clearTimeout(t);
       t = setTimeout(function () { fn.apply(ctx, args); }, wait);
     };
-  }
-  function t(key, fallback) {
-    if (global.siteT) return global.siteT(key, fallback);
-    if (global.MP_I18N && global.MP_I18N.t) return global.MP_I18N.t(key, fallback);
-    return fallback != null ? String(fallback) : String(key);
   }
   function pickVoiceMime() {
     var c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -422,7 +399,7 @@
       }
       var today = new Date(now); today.setSeconds(0, 0);
       var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
-      chips.push(mk(t('plan.chipToday', 'Сегодня'), today), mk(t('plan.chipTomorrow', 'Завтра'), tomorrow));
+      chips.push(mk('Сегодня', today), mk('Завтра', tomorrow));
       var names = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
       for (var i = 2; i < 5; i++) {
         var dd = new Date(now); dd.setDate(dd.getDate() + i);
@@ -436,7 +413,7 @@
       var favs = loadFavCinemas();
       if (!favs.length) return '';
       return favs.slice(0, 6).map(function (c) {
-        var label = c.name || c.address || t('plan.cinemaFallback', 'Кинотеатр');
+        var label = c.name || c.address || 'Кинотеатр';
         return '<button type="button" class="chip chip-fav" data-fav-cinema="' + escapeHtml(cinemaKey(c)) + '">⭐ ' + escapeHtml(label) + '</button>';
       }).join('');
     }
@@ -450,27 +427,27 @@
         '<div class="selected-film">' +
         '<div class="selected-film-poster" style="background-image:url(\'' + escapeHtml(sel.poster || '') + '\')"></div>' +
         '<div class="selected-film-body">' +
-        '<div class="selected-film-title">' + escapeHtml(sel.title || t('site.film.fallbackTitle', 'Фильм')) + '</div>' +
+        '<div class="selected-film-title">' + escapeHtml(sel.title || 'Фильм') + '</div>' +
         '<div class="selected-film-meta">' + escapeHtml(sel.year || '') + '</div></div></div>'
       ) : '';
 
       card.innerHTML =
-        '<button type="button" class="mp-onboard-dismiss" data-plan-close data-i18n-aria="common.close" aria-label="' + escapeHtml(t('common.close', 'Закрыть')) + '">✕</button>' +
-        '<div class="mp-onboard-title">' + escapeHtml(t('plan.title', 'Запланировать')) + '</div>' +
+        '<button type="button" class="mp-onboard-dismiss" data-plan-close aria-label="Закрыть">✕</button>' +
+        '<div class="mp-onboard-title">Запланировать</div>' +
         '<div class="plan-page-wrap mp-plan-modal-body">' +
         '<div class="plan-mode-toggle">' +
-        '<button type="button" class="plan-mode' + (!isCinema ? ' active' : '') + '" data-mode="home"><span class="plan-mode-icon">🏠</span><span class="plan-mode-label">' + escapeHtml(t('plan.modeHome', 'Дома')) + '</span></button>' +
-        '<button type="button" class="plan-mode' + (isCinema ? ' active' : '') + '" data-mode="cinema"><span class="plan-mode-icon">🎟️</span><span class="plan-mode-label">' + escapeHtml(t('plan.modeCinema', 'В кино')) + '</span></button>' +
+        '<button type="button" class="plan-mode' + (!isCinema ? ' active' : '') + '" data-mode="home"><span class="plan-mode-icon">🏠</span><span class="plan-mode-label">Дома</span></button>' +
+        '<button type="button" class="plan-mode' + (isCinema ? ' active' : '') + '" data-mode="cinema"><span class="plan-mode-icon">🎟️</span><span class="plan-mode-label">В кино</span></button>' +
         '</div>' +
         '<div class="field plan-voice-field">' +
-        '<div class="field-label-row"><span class="field-label">' + escapeHtml(t('plan.voiceLabel', 'Голосом')) + '</span></div>' +
-        '<button type="button" id="mp-plan-voice-btn" class="btn btn-secondary btn-full">' + escapeHtml(t('plan.voiceRecord', '🎤 Надиктовать план')) + '</button>' +
+        '<div class="field-label-row"><span class="field-label">Голосом</span></div>' +
+        '<button type="button" id="mp-plan-voice-btn" class="btn btn-secondary btn-full">🎤 Надиктовать план</button>' +
         '<div id="mp-plan-voice-panel" class="plan-voice-active-panel hidden" role="status"><div class="plan-voice-active-head"><span class="plan-voice-active-pulse"></span><div id="mp-plan-voice-title" class="plan-voice-active-title"></div></div><p id="mp-plan-voice-sub" class="plan-voice-active-sub"></p></div>' +
         '<div id="mp-plan-voice-status" class="muted small plan-voice-status-line"></div></div>' +
         selHtml +
-        '<div class="field"><label class="field-label">' + escapeHtml(t('plan.whenLabel', 'Когда')) + '</label>' +
+        '<div class="field"><label class="field-label">Когда</label>' +
         '<div class="search-relative"><span class="search-icon">🗣️</span>' +
-        '<input id="mp-plan-natural" class="search-input plan-modal-input" placeholder="' + escapeHtml(t('plan.whenPlaceholder', 'Например: завтра вечером')) + '" autocomplete="off">' +
+        '<input id="mp-plan-natural" class="search-input plan-modal-input" placeholder="Например: завтра вечером" autocomplete="off">' +
         '<button type="button" id="mp-plan-natural-clear" class="search-clear hidden">✕</button></div>' +
         '<div id="mp-plan-natural-preview" class="muted small plan-natural-preview-line"></div>' +
         '<div class="dt-row plan-dt-row">' +
@@ -479,27 +456,27 @@
         '</div>' +
         '<div class="dt-quick" id="mp-plan-day-chips">' + buildDayChipsHtml() + '</div>' +
         '<div class="dt-quick" id="mp-plan-time-chips">' +
-        '<button type="button" class="chip" data-time="10:00">' + escapeHtml(t('plan.chipMorning', '🌅 Утро')) + '</button>' +
-        '<button type="button" class="chip" data-time="14:00">' + escapeHtml(t('plan.chipAfternoon', '☀️ День')) + '</button>' +
-        '<button type="button" class="chip" data-time="20:00">' + escapeHtml(t('plan.chipEvening', '🌙 Вечер')) + '</button></div></div>' +
+        '<button type="button" class="chip" data-time="10:00">🌅 Утро</button>' +
+        '<button type="button" class="chip" data-time="14:00">☀️ День</button>' +
+        '<button type="button" class="chip" data-time="20:00">🌙 Вечер</button></div></div>' +
         (isCinema ? (
-          '<div class="field plan-tickets-field"><label class="field-label">' + escapeHtml(t('plan.ticketsLabel', 'Билеты')) + '</label>' +
+          '<div class="field plan-tickets-field"><label class="field-label">Билеты</label>' +
           '<div id="mp-plan-tickets-list" class="plan-pending-tickets"></div>' +
           '<div class="ticket-upload-row">' +
-          '<button type="button" class="btn btn-secondary btn-full" id="mp-plan-file-btn">' + escapeHtml(t('plan.attachTicket', '＋ Прикрепить билет')) + '</button>' +
-          '<button type="button" class="btn btn-secondary ticket-upload-cam" id="mp-plan-cam-btn" aria-label="' + escapeHtml(t('plan.photoTicket', 'Сфотографировать билет')) + '">📷</button></div>' +
+          '<button type="button" class="btn btn-secondary btn-full" id="mp-plan-file-btn">＋ Прикрепить билет</button>' +
+          '<button type="button" class="btn btn-secondary ticket-upload-cam" id="mp-plan-cam-btn" aria-label="Сфотографировать билет">📷</button></div>' +
           '<input type="file" id="mp-plan-file-inp" class="hidden" accept="image/*,.pdf,application/pdf" multiple>' +
           '<input type="file" id="mp-plan-cam-inp" class="hidden" accept="image/*" capture="environment"></div>' +
-          '<div class="field"><label class="field-label">' + escapeHtml(t('plan.cinemaLabel', 'Кинотеатр')) + '</label>' +
+          '<div class="field"><label class="field-label">Кинотеатр</label>' +
           '<div class="search-relative"><span class="search-icon">📍</span>' +
-          '<input id="mp-cinema-input" class="search-input plan-modal-input" placeholder="' + escapeHtml(t('plan.cinemaPlaceholder', 'Например, «Каро 11 Октябрь»')) + '" autocomplete="off">' +
+          '<input id="mp-cinema-input" class="search-input plan-modal-input" placeholder="Например, «Каро 11 Октябрь»" autocomplete="off">' +
           '<button type="button" id="mp-cinema-clear" class="search-clear hidden">✕</button></div>' +
           '<div id="mp-cinema-fav-chips" class="dt-quick cinema-fav-chips-row">' + buildFavCinemaChipsHtml() + '</div>' +
           '<div id="mp-cinema-results" class="picker-results hidden"></div>' +
           '<input type="hidden" id="mp-cinema-name"><input type="hidden" id="mp-cinema-address">' +
           '<input type="hidden" id="mp-cinema-lat"><input type="hidden" id="mp-cinema-lon"></div>'
         ) : '') +
-        '<button type="button" id="mp-plan-submit" class="btn btn-primary btn-full plan-submit-btn">' + escapeHtml(t('common.save', 'Сохранить')) + '</button>' +
+        '<button type="button" id="mp-plan-submit" class="btn btn-primary btn-full plan-submit-btn">Сохранить</button>' +
         '<div id="mp-plan-status" class="muted small plan-status-line"></div></div>';
 
       bindForm();
@@ -852,7 +829,7 @@
             })
             .catch(function (e) {
               submit.disabled = false;
-              submit.textContent = t('common.save', 'Сохранить');
+              submit.textContent = 'Сохранить';
               onToast((e && e.message) || 'Не удалось сохранить план');
             });
         });
