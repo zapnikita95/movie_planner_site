@@ -5,5 +5,3 @@ Allow: /
 # https://movie-planner.ru/llms.txt
 
 Sitemap: https://movie-planner.ru/sitemap.xml
-Sitemap: https://movie-planner.ru/sitemap-films.xml
-Sitemap: https://movie-planner.ru/sitemap-persons.xml
