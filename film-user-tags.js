@@ -59,7 +59,78 @@
     var emoji = tag.emoji || "🏷️";
     btn.innerHTML = '<span class="film-tag-btn-emoji" data-tag-emoji>' + emoji + "</span>";
     btn.title = tag.name || "Тег";
-    btn.classList.add("film-icon-btn--tagged");
+    btn.classList.add("film-hero-tag-btn--tagged");
+  }
+
+  function setTagButtonState(btn, tags) {
+    if (!btn) return;
+    var list = (tags && tags.length) ? tags : [];
+    if (!list.length) {
+      btn.innerHTML = (global.MPIcons
+        ? global.MPIcons.html("tag", { className: "film-hero-tag-ico" })
+        : '<span class="film-hero-tag-ico" data-tag-emoji>🏷️</span>');
+      btn.title = "Тег";
+      btn.classList.remove("film-hero-tag-btn--tagged");
+      return;
+    }
+    if (list.length === 1) {
+      setTagButtonEmoji(btn, list[0]);
+      return;
+    }
+    var em = list[0].emoji || "🏷️";
+    btn.innerHTML =
+      '<span class="film-tag-btn-emoji" data-tag-emoji>' + em + "</span>" +
+      '<span class="film-tag-btn-count">+' + (list.length - 1) + "</span>";
+    btn.title = list.map(function (t) { return t.name || "Тег"; }).join(", ");
+    btn.classList.add("film-hero-tag-btn--tagged");
+  }
+
+  function assignedTagIds(tags) {
+    var set = {};
+    (tags || []).forEach(function (t) {
+      if (t && t.id != null) set[String(t.id)] = true;
+    });
+    return set;
+  }
+
+  function pickItemHtml(t, isAssigned, d) {
+    return (
+      '<button type="button" class="film-tag-pick-item' + (isAssigned ? " film-tag-pick-item--assigned" : "") + '" data-tag-id="' + t.id + '" data-assigned="' + (isAssigned ? "1" : "0") + '">' +
+        '<span class="film-tag-pick-emoji">' + d.escapeHtml(t.emoji || "🏷️") + "</span>" +
+        '<span class="film-tag-pick-text">' +
+          '<span class="film-tag-pick-title">' + d.escapeHtml(t.name) + "</span>" +
+          '<span class="film-tag-pick-hint">' + (t.films_count || 0) + " фильмов</span>" +
+        "</span>" +
+        '<span class="film-tag-pick-check" aria-hidden="true">✓</span>' +
+      "</button>"
+    );
+  }
+
+  function bindTagPickToggle(ov, filmId, d, onTagsChange) {
+    ov.querySelectorAll("[data-tag-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var tagId = parseInt(btn.getAttribute("data-tag-id"), 10);
+        if (!tagId) return;
+        var isAssigned = btn.getAttribute("data-assigned") === "1";
+        btn.disabled = true;
+        var path = isAssigned ? d.apiPrefix + "/unassign" : d.apiPrefix + "/assign";
+        d.apiPost(path, { tag_id: tagId, film_id: filmId }).then(function (res) {
+          btn.disabled = false;
+          if (!res || !res.success) {
+            d.toast(isAssigned ? "Не удалось убрать тег" : "Не удалось добавить тег");
+            return;
+          }
+          var nowAssigned = !isAssigned;
+          btn.setAttribute("data-assigned", nowAssigned ? "1" : "0");
+          btn.classList.toggle("film-tag-pick-item--assigned", nowAssigned);
+          var tags = res.tags || [];
+          if (onTagsChange) onTagsChange(tags);
+        }).catch(function (e) {
+          btn.disabled = false;
+          d.toast((e && e.message) || "Ошибка");
+        });
+      });
+    });
   }
 
   function bindEmojiPicker(ov, getSelected, setSelected) {
@@ -168,7 +239,7 @@
             return;
           }
           closeOverlay(ov);
-          if (onAssigned) onAssigned(assignRes.tag || res.tag);
+          if (onAssigned) onAssigned(assignRes.tags || (assignRes.tag ? [assignRes.tag] : []));
         });
       }).catch(function (e) {
         d.toast((e && e.message) || "Ошибка");
@@ -184,63 +255,55 @@
       if (d.onNeedAuth) d.onNeedAuth();
       return;
     }
-    d.apiGet(d.apiPrefix).then(function (data) {
+    Promise.all([
+      d.apiGet(d.apiPrefix),
+      d.apiGet(d.apiPrefix + "/for-film/" + filmId),
+    ]).then(function (results) {
+      var data = results[0] || {};
+      var filmData = results[1] || {};
       var tags = (data && data.success && data.tags) ? data.tags : [];
+      var assigned = (filmData && filmData.success && filmData.tags)
+        ? filmData.tags
+        : (filmData && filmData.tag ? [filmData.tag] : []);
+      var assignedSet = assignedTagIds(assigned);
+
       var ov = document.createElement("div");
       ov.className = "mp-dialog-overlay film-tag-dialog-overlay";
       var listHtml = tags.length
         ? tags.map(function (t) {
-            return (
-              '<button type="button" class="film-tag-pick-item" data-tag-id="' + t.id + '">' +
-                '<span class="film-tag-pick-emoji">' + d.escapeHtml(t.emoji || "🏷️") + "</span>" +
-                '<span class="film-tag-pick-text">' +
-                  '<span class="film-tag-pick-title">' + d.escapeHtml(t.name) + "</span>" +
-                  '<span class="film-tag-pick-hint">' + (t.films_count || 0) + " фильмов</span>" +
-                "</span>" +
-              "</button>"
-            );
+            return pickItemHtml(t, !!assignedSet[String(t.id)], d);
           }).join("")
         : '<div class="film-tag-pick-empty">Пока нет тегов</div>';
 
       ov.innerHTML =
         '<div class="mp-dialog-card film-tag-dialog-card">' +
           '<button type="button" class="mp-dialog-close" data-close="1" aria-label="Закрыть">×</button>' +
-          '<h3 class="mp-dialog-title">Тег для фильма</h3>' +
+          '<h3 class="mp-dialog-title">Теги фильма</h3>' +
+          '<p class="film-tag-pick-sub">Отметьте списки, в которых есть этот фильм</p>' +
           '<div class="film-tag-pick-list">' + listHtml + "</div>" +
-          '<div class="film-tag-dialog-actions">' +
+          '<div class="film-tag-dialog-actions film-tag-dialog-actions--split">' +
             '<button type="button" class="film-tag-btn-create film-tag-btn-create--ghost" id="film-tag-create-btn">Создать тег</button>' +
+            '<button type="button" class="film-tag-btn-create" id="film-tag-done-btn">Готово</button>' +
           "</div>" +
         "</div>";
 
       ov._unlock = d.lockViewportScroll();
       document.body.appendChild(ov);
+
+      function notifyTags(tags) {
+        if (opts && opts.onAssigned) opts.onAssigned(tags);
+      }
+
       ov.querySelector("[data-close]").addEventListener("click", function () { closeOverlay(ov); });
+      ov.querySelector("#film-tag-done-btn").addEventListener("click", function () { closeOverlay(ov); });
       ov.addEventListener("click", function (e) {
         if (e.target === ov) closeOverlay(ov);
       });
       ov.querySelector("#film-tag-create-btn").addEventListener("click", function () {
         closeOverlay(ov);
-        openCreateTagForm(d, filmId, opts && opts.onAssigned);
+        openCreateTagForm(d, filmId, notifyTags);
       });
-      ov.querySelectorAll("[data-tag-id]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var tagId = parseInt(btn.getAttribute("data-tag-id"), 10);
-          if (!tagId) return;
-          btn.disabled = true;
-          d.apiPost(d.apiPrefix + "/assign", { tag_id: tagId, film_id: filmId }).then(function (res) {
-            if (!res || !res.success) {
-              d.toast("Не удалось привязать тег");
-              btn.disabled = false;
-              return;
-            }
-            closeOverlay(ov);
-            if (opts && opts.onAssigned) opts.onAssigned(res.tag);
-          }).catch(function (e) {
-            d.toast((e && e.message) || "Ошибка");
-            btn.disabled = false;
-          });
-        });
-      });
+      bindTagPickToggle(ov, filmId, d, notifyTags);
     }).catch(function () {
       d.toast("Не удалось загрузить теги");
     });
@@ -251,7 +314,9 @@
     var d = Object.assign({}, defaultDeps(), opts || {});
     if (global.getToken && global.getToken()) {
       global.api(d.apiPrefix + "/for-film/" + filmId).then(function (res) {
-        if (res && res.success && res.tag) setTagButtonEmoji(btn, res.tag);
+        if (res && res.success) {
+          setTagButtonState(btn, res.tags || (res.tag ? [res.tag] : []));
+        }
       }).catch(function () {});
     }
     btn.addEventListener("click", function () {
@@ -260,10 +325,10 @@
         return;
       }
       openFilmTagPicker(filmId, {
-        onAssigned: function (tag) {
-          if (tag) setTagButtonEmoji(btn, tag);
+        onAssigned: function (tags) {
+          setTagButtonState(btn, tags);
           refreshBaseTagPills();
-          if (opts && opts.onAssigned) opts.onAssigned(tag);
+          if (opts && opts.onAssigned) opts.onAssigned(tags);
         },
       });
     });
