@@ -6765,7 +6765,7 @@
     const streamingUrl = (s.online_link || '').trim();
     const subActive = !!s.has_subscription;
     const subToggleBtn = s.film_id
-      ? `<button type="button" class="btn btn-small ${subActive ? 'btn-primary' : 'btn-secondary'} series-sub-toggle" data-series-sub-toggle="${escapeHtml(String(s.film_id))}" data-subscribed="${subActive ? '1' : '0'}" onclick="event.stopPropagation()">${subActive ? '🚫⏰' : '⏰'}</button>`
+      ? `<button type="button" class="btn btn-small ${subActive ? 'btn-primary' : 'btn-secondary'} series-sub-toggle" data-series-sub-toggle="${escapeHtml(String(s.film_id))}" data-subscribed="${subActive ? '1' : '0'}" onclick="event.stopPropagation()">${seriesAlarmIconHtml(subActive)}</button>`
       : '';
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
@@ -7055,6 +7055,13 @@
     const div = document.createElement('div');
     div.textContent = s;
     return div.innerHTML;
+  }
+
+  function seriesAlarmIconHtml(subscribed) {
+    if (subscribed) {
+      return '<span class="series-alarm-icon series-alarm-icon--off" aria-hidden="true">⏰</span>';
+    }
+    return '<span class="series-alarm-icon" aria-hidden="true">⏰</span>';
   }
 
   // ——— Статистика ———

@@ -881,6 +881,30 @@ body.in-cabinet #section-inbox {
 .film-description { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 .btn { padding: 10px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25; }
 .btn-small { padding: 10px 16px; font-size: 13px; }
+.series-alarm-icon {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  font-size: 17px;
+}
+.series-alarm-icon--off::after {
+  content: "";
+  position: absolute;
+  left: -0.05em;
+  right: -0.05em;
+  top: 50%;
+  height: 2.5px;
+  margin-top: -1.25px;
+  background: #ef5350;
+  transform: rotate(-45deg);
+  border-radius: 1px;
+  pointer-events: none;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35);
+}
+.series-sub-toggle {
+  min-width: 40px;
+  white-space: nowrap;
+}
 .cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); overflow-x: auto; padding-bottom: 4px; }
 .cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.78); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
