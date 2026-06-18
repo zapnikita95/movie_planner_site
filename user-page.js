@@ -98,6 +98,62 @@
     return raw && raw !== id ? raw : 'Ачивка';
   }
 
+  function mpIcon(key, opts) {
+    try {
+      if (global.MPIcons && typeof global.MPIcons.html === 'function') {
+        opts = opts || {};
+        return global.MPIcons.html(key, {
+          className: opts.className || 'mp-list-icon',
+          size: opts.size || 'md',
+        });
+      }
+    } catch (_e) {}
+    return '';
+  }
+
+  function setAvatarEl(el, photoUrl, initial) {
+    if (!el) return;
+    if (photoUrl) {
+      el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="" loading="eager" referrerpolicy="no-referrer">';
+      var img = el.querySelector('img');
+      if (img) {
+        img.addEventListener('error', function () {
+          el.textContent = initial;
+        }, { once: true });
+      }
+    } else {
+      el.textContent = initial;
+    }
+  }
+
+  function achCardHtml(a) {
+    var tip = achTip(a);
+    var name = achName(a);
+    var desc = (a && a.description) || '';
+    var icon = (a && a.icon) || '🏅';
+    return (
+      '<div class="ach-panel-card earned user-profile-ach-card" tabindex="0" role="button" aria-label="' + escapeHtml(tip) + '">' +
+        '<div class="ach-panel-icon">' + escapeHtml(icon) + '</div>' +
+        '<div class="ach-panel-info">' +
+          '<div class="ach-panel-name">' + escapeHtml(name) + '</div>' +
+          (desc ? '<div class="ach-panel-desc">' + escapeHtml(desc) + '</div>' : '') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function profileSectionHead(iconKey, title, actionHtml) {
+    return (
+      '<div class="user-profile-block-head">' +
+        '<div class="user-profile-section-title">' +
+          mpIcon(iconKey, { size: 'sm', className: 'user-profile-section-icon' }) +
+          '<h3 class="user-profile-block-title">' + escapeHtml(title) + '</h3>' +
+        '</div>' +
+        (actionHtml || '') +
+      '</div>'
+    );
+  }
+
   function achCircleHtml(a) {
     var id = String((a && (a.id || a.achievement_id)) || '').trim();
     var tip = achTip(a);
@@ -160,13 +216,13 @@
 
   function openAllAchievementsModal(achList, achTotal) {
     var items = achList || [];
-    var grid = items.map(achCircleHtml).join('');
+    var grid = items.map(achCardHtml).join('');
     var modal = simpleModal(
       '<h3 class="user-profile-block-title">Достижения</h3>' +
       '<p class="cabinet-hint user-profile-ach-sub-count">' +
         escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
       '</p>' +
-      '<div class="user-profile-ach-row user-profile-ach-row--full">' + grid + '</div>'
+      '<div class="ach-panel-category-grid user-profile-ach-grid">' + grid + '</div>'
     );
     bindAchievements(modal, items);
   }
@@ -183,50 +239,41 @@
     var watchedCount = user.watched_count != null ? Number(user.watched_count) : null;
 
     var statsHtml =
-      '<div class="user-profile-stats">' +
-        '<button type="button" class="user-profile-stat" data-action="ratings-scroll">' +
-          '<span class="user-profile-stat-val">' + escapeHtml(String(ratingsCount)) + '</span>' +
-          '<span class="user-profile-stat-label">оценок</span></button>' +
+      '<div class="profile-hub-stats">' +
+        '<button type="button" class="profile-hub-stat" data-action="ratings-scroll">' +
+          '<b>' + escapeHtml(String(ratingsCount)) + '</b><span>оценок</span></button>' +
         (watchedCount != null
-          ? '<button type="button" class="user-profile-stat" data-action="watched-scroll">' +
-              '<span class="user-profile-stat-val">' + escapeHtml(String(watchedCount)) + '</span>' +
-              '<span class="user-profile-stat-label">просмотр.</span></button>'
+          ? '<button type="button" class="profile-hub-stat" data-action="watched-scroll">' +
+              '<b>' + escapeHtml(String(watchedCount)) + '</b><span>просмотр.</span></button>'
           : '') +
-        '<button type="button" class="user-profile-stat" data-action="ach-all">' +
-          '<span class="user-profile-stat-val">' + escapeHtml(String(achTotal)) + '</span>' +
-          '<span class="user-profile-stat-label">ачивок</span></button>' +
+        '<button type="button" class="profile-hub-stat" data-action="ach-all">' +
+          '<b>' + escapeHtml(String(achTotal)) + '</b><span>ачивок</span></button>' +
       '</div>';
 
     var recentHtml = recent.length
       ? '<div class="user-profile-block" id="user-public-recent-block">' +
-          '<h3 class="user-profile-block-title">Последние оценки</h3>' +
+          profileSectionHead('ratings', 'Последние оценки') +
           '<div class="user-profile-rating-list">' + recent.map(ratingRowHtml).join('') + '</div>' +
         '</div>'
       : '';
 
+    var achAllBtn = achTotal > 0
+      ? '<button type="button" class="user-profile-ach-all" id="user-public-ach-all">Все достижения</button>'
+      : '';
     var achHtml = achList.length || achTotal
-      ? '<div class="user-profile-block" id="user-public-ach-block">' +
-          '<div class="user-profile-block-head">' +
-            '<h3 class="user-profile-block-title">Достижения</h3>' +
-            (achTotal > 0
-              ? '<button type="button" class="user-profile-ach-all" id="user-public-ach-all">Все достижения</button>'
-              : '') +
-          '</div>' +
-          '<div class="user-profile-ach-row-wrap">' +
-            '<div class="user-profile-ach-row">' + achList.map(achCircleHtml).join('') + '</div>' +
+      ? '<div class="user-profile-block">' +
+          profileSectionHead('medal', 'Достижения', achAllBtn) +
+          '<div class="ach-panel-category-grid user-profile-ach-grid">' +
+            achList.map(achCardHtml).join('') +
           '</div></div>'
       : '';
 
     root.innerHTML =
-      '<article class="user-public-page user-profile-page">' +
-        '<div class="user-profile-header">' +
-          '<div class="user-profile-avatar">' +
-            (photo
-              ? '<img src="' + escapeHtml(photo) + '" alt="" loading="eager" referrerpolicy="no-referrer">'
-              : escapeHtml(initial)) +
-          '</div>' +
-          '<div class="user-profile-head-text">' +
-            '<h1 class="user-profile-name">' + escapeHtml(name) + '</h1>' +
+      '<article class="profile-hub user-friend-profile user-public-page">' +
+        '<div class="profile-hub-header">' +
+          '<div class="profile-hub-avatar" id="user-public-avatar"></div>' +
+          '<div class="profile-hub-info">' +
+            '<div class="profile-hub-name">' + escapeHtml(name) + '</div>' +
           '</div>' +
         '</div>' +
         statsHtml +
@@ -237,15 +284,7 @@
         '</div>' +
       '</article>';
 
-    if (photo) {
-      var img = root.querySelector('.user-profile-avatar img');
-      if (img) {
-        img.addEventListener('error', function () {
-          var box = img.closest('.user-profile-avatar');
-          if (box) box.textContent = initial;
-        }, { once: true });
-      }
-    }
+    setAvatarEl(document.getElementById('user-public-avatar'), photo, initial);
 
     bindRatingRows(root);
     bindAchievements(root, achList);
@@ -297,6 +336,9 @@
         }
         try { document.title = (data.user.name || 'Профиль') + ' · Movie Planner'; } catch (_e) {}
         renderUserPublic(root, data.user, loginNow);
+        try {
+          if (global.MPIcons && typeof global.MPIcons.hydrate === 'function') global.MPIcons.hydrate(root);
+        } catch (_h) {}
       })
       .catch(function () {
         root.innerHTML = '<p class="film-page-error-hint film-page-error-hint--centered">Не удалось загрузить профиль</p>';

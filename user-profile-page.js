@@ -10,6 +10,19 @@
     });
   }
 
+  function mpIcon(key, opts) {
+    try {
+      if (global.MPIcons && typeof global.MPIcons.html === 'function') {
+        opts = opts || {};
+        return global.MPIcons.html(key, {
+          className: opts.className || 'mp-list-icon',
+          size: opts.size || 'md',
+        });
+      }
+    } catch (_e) {}
+    return '';
+  }
+
   function statusLabel(status) {
     return ({
       accepted: 'Друзья',
@@ -32,19 +45,46 @@
     return desc ? name + ' — ' + desc : name;
   }
 
-  function achCircleHtml(a) {
+  function setAvatarEl(el, photoUrl, initial) {
+    if (!el) return;
+    if (photoUrl) {
+      el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+      var img = el.querySelector('img');
+      if (img) {
+        img.addEventListener('error', function () {
+          el.textContent = initial;
+        }, { once: true });
+      }
+    } else {
+      el.textContent = initial;
+    }
+  }
+
+  function profileSectionHead(iconKey, title, actionHtml) {
+    return (
+      '<div class="user-profile-block-head">' +
+        '<div class="user-profile-section-title">' +
+          mpIcon(iconKey, { size: 'sm', className: 'user-profile-section-icon' }) +
+          '<h3 class="user-profile-block-title">' + escapeHtml(title) + '</h3>' +
+        '</div>' +
+        (actionHtml || '') +
+      '</div>'
+    );
+  }
+
+  function achCardHtml(a) {
     const tip = achTip(a);
     const name = achName(a);
     const desc = (a && a.description) || '';
     const icon = (a && a.icon) || '🏅';
     return (
-      '<button type="button" class="user-profile-ach" aria-label="' + escapeHtml(tip) + '">' +
-        '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
-        '<span class="user-profile-ach-tip" role="tooltip">' +
-          '<span class="user-profile-ach-tip-name">' + escapeHtml(name) + '</span>' +
-          (desc ? '<span class="user-profile-ach-tip-desc">' + escapeHtml(desc) + '</span>' : '') +
-        '</span>' +
-      '</button>'
+      '<div class="ach-panel-card earned user-profile-ach-card" tabindex="0" role="button" aria-label="' + escapeHtml(tip) + '">' +
+        '<div class="ach-panel-icon">' + escapeHtml(icon) + '</div>' +
+        '<div class="ach-panel-info">' +
+          '<div class="ach-panel-name">' + escapeHtml(name) + '</div>' +
+          (desc ? '<div class="ach-panel-desc">' + escapeHtml(desc) + '</div>' : '') +
+        '</div>' +
+      '</div>'
     );
   }
 
@@ -52,7 +92,7 @@
     const kp = r && r.kp_id;
     const title = escapeHtml(r.film_title || 'Фильм');
     const score = r.rating != null ? String(r.rating) : '—';
-  return (
+    return (
       '<button type="button" class="user-profile-rating-row" data-kp="' + escapeHtml(String(kp || '')) + '">' +
         '<span class="user-profile-rating-title">' + title + '</span>' +
         '<span class="user-profile-rating-score">' + escapeHtml(score) +
@@ -78,12 +118,22 @@
     const photo = hooks.resolvePhotoUrl ? hooks.resolvePhotoUrl(data.photo_url, data) : (data.photo_url || '');
     const initial = String(data.name || '?').trim().charAt(0).toUpperCase() || '?';
 
+    const metaParts = [];
+    if (statusLabel(st) && !isSelf) metaParts.push(statusLabel(st));
+    if (data.coins != null && (isFriend || isSelf)) metaParts.push('🪙 ' + String(data.coins));
+    if (data.streak_days > 0 && (isFriend || isSelf)) metaParts.push('🔥 ' + String(data.streak_days) + ' дн.');
+    const metaHtml = metaParts.length
+      ? '<div class="profile-hub-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>'
+      : '';
+
     const tasteHtml = data.taste_match != null && !isSelf
-      ? '<button type="button" class="user-profile-taste" data-action="taste">' +
-          '<span class="user-profile-taste-pct">' + escapeHtml(String(data.taste_match)) + '%</span>' +
-          '<span class="user-profile-taste-meta">совпадение вкусов' +
-          (data.taste_common ? ' · ' + escapeHtml(String(data.taste_common)) + ' общих оценок' : '') +
-          '</span><span class="list-arrow" aria-hidden="true">›</span></button>'
+      ? '<button type="button" class="mp-list-item user-profile-taste-row" data-action="taste">' +
+          mpIcon('stats', { className: 'mp-list-icon' }) +
+          '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(String(data.taste_match)) + '% совпадение вкусов</span>' +
+          (data.taste_common
+            ? '<span class="mp-list-hint">' + escapeHtml(String(data.taste_common)) + ' общих оценок</span>'
+            : '') +
+          '</span><span class="mp-list-arrow">›</span></button>'
       : '';
 
     let actionsHtml = '';
@@ -91,7 +141,8 @@
       if (isFriend) {
         actionsHtml =
           '<div class="user-profile-actions user-profile-actions--row">' +
-            '<button type="button" class="btn btn-secondary user-profile-action-main" data-action="mutual">🎬 Смотрим вместе</button>' +
+            '<button type="button" class="btn btn-secondary user-profile-action-main" data-action="mutual">' +
+              mpIcon('film', { className: 'mp-action-icon', size: 'sm' }) + '<span>Смотрим вместе</span></button>' +
             '<button type="button" class="btn btn-ghost user-profile-action-side" data-action="unfriend">Удалить</button>' +
           '</div>';
       } else if (st === 'pending_incoming') {
@@ -121,29 +172,25 @@
     const unwatched = data.unwatched_count != null ? data.unwatched_count : 0;
     const watched = data.watched_count != null ? data.watched_count : null;
     const statsHtml =
-      '<div class="user-profile-stats">' +
-        '<button type="button" class="user-profile-stat" data-action="ratings-all">' +
-          '<span class="user-profile-stat-val">' + escapeHtml(String(data.ratings_count || 0)) + '</span>' +
-          '<span class="user-profile-stat-label">оценок</span></button>' +
+      '<div class="profile-hub-stats">' +
+        '<button type="button" class="profile-hub-stat" data-action="ratings-all">' +
+          '<b>' + escapeHtml(String(data.ratings_count || 0)) + '</b><span>оценок</span></button>' +
         (isFriend || isSelf
-          ? '<button type="button" class="user-profile-stat" data-action="unwatched-all">' +
-              '<span class="user-profile-stat-val">' + escapeHtml(String(unwatched)) + '</span>' +
-              '<span class="user-profile-stat-label">непросмотр.</span></button>'
+          ? '<button type="button" class="profile-hub-stat" data-action="unwatched-all">' +
+              '<b>' + escapeHtml(String(unwatched)) + '</b><span>непросмотр.</span></button>'
           : '') +
         (watched != null && (isFriend || isSelf)
-          ? '<button type="button" class="user-profile-stat" data-action="watched-scroll">' +
-              '<span class="user-profile-stat-val">' + escapeHtml(String(watched)) + '</span>' +
-              '<span class="user-profile-stat-label">просмотр.</span></button>'
+          ? '<button type="button" class="profile-hub-stat" data-action="watched-scroll">' +
+              '<b>' + escapeHtml(String(watched)) + '</b><span>просмотр.</span></button>'
           : '') +
-        '<button type="button" class="user-profile-stat" data-action="ach-all">' +
-          '<span class="user-profile-stat-val">' + escapeHtml(String(data.achievements_count || (data.achievements || []).length || 0)) + '</span>' +
-          '<span class="user-profile-stat-label">ачивок</span></button>' +
+        '<button type="button" class="profile-hub-stat" data-action="ach-all">' +
+          '<b>' + escapeHtml(String(data.achievements_count || (data.achievements || []).length || 0)) + '</b><span>ачивок</span></button>' +
       '</div>';
 
     const recent = (data.recent_ratings || []).slice(0, 12);
     const recentHtml = recent.length
-      ? '<div class="user-profile-block" id="user-profile-recent-block">' +
-          '<h3 class="user-profile-block-title">Последние оценки</h3>' +
+      ? '<div class="user-profile-block">' +
+          profileSectionHead('ratings', 'Последние оценки') +
           '<div class="user-profile-rating-list">' + recent.map(function (r) { return ratingRowHtml(r, hooks); }).join('') + '</div>' +
           (Number(data.ratings_count) > recent.length
             ? '<button type="button" class="btn btn-secondary user-profile-more" data-action="ratings-all">Все оценки →</button>'
@@ -154,39 +201,24 @@
     const allAchievements = data.achievements || [];
     const achievements = allAchievements.slice(0, 12);
     const achTotal = Number(data.achievements_count || allAchievements.length || 0);
+    const achAllBtn = achTotal > 0
+      ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
+      : '';
     const achHtml = achievements.length || achTotal
-      ? '<div class="user-profile-block" id="user-profile-ach-block">' +
-          '<div class="user-profile-block-head">' +
-            '<h3 class="user-profile-block-title">Достижения</h3>' +
-            (achTotal > 0
-              ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
-              : '') +
-          '</div>' +
-          '<div class="user-profile-ach-row-wrap">' +
-            '<div class="user-profile-ach-row">' + achievements.map(achCircleHtml).join('') + '</div>' +
+      ? '<div class="user-profile-block">' +
+          profileSectionHead('medal', 'Достижения', achAllBtn) +
+          '<div class="ach-panel-category-grid user-profile-ach-grid">' +
+            achievements.map(achCardHtml).join('') +
           '</div></div>'
       : '';
 
-    const metaExtra = [];
-    if (data.coins != null && (isFriend || isSelf)) {
-      metaExtra.push('🪙 ' + escapeHtml(String(data.coins)));
-    }
-    if (data.streak_days > 0 && (isFriend || isSelf)) {
-      metaExtra.push('🔥 ' + escapeHtml(String(data.streak_days)) + ' дн.');
-    }
-
     root.innerHTML =
-      '<div class="user-profile-page">' +
-        '<div class="user-profile-header">' +
-          '<div class="user-profile-avatar">' +
-            (photo
-              ? '<img src="' + escapeHtml(photo) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
-              : escapeHtml(initial)) +
-          '</div>' +
-          '<div class="user-profile-head-text">' +
-            '<h2 class="user-profile-name">' + escapeHtml(data.name || '') + '</h2>' +
-            (statusLabel(st) && !isSelf ? '<div class="user-profile-status">' + escapeHtml(statusLabel(st)) + '</div>' : '') +
-            (metaExtra.length ? '<div class="user-profile-meta">' + metaExtra.join(' · ') + '</div>' : '') +
+      '<div class="profile-hub user-friend-profile">' +
+        '<div class="profile-hub-header">' +
+          '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
+          '<div class="profile-hub-info">' +
+            '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
+            metaHtml +
           '</div>' +
         '</div>' +
         statsHtml +
@@ -196,16 +228,7 @@
         achHtml +
       '</div>';
 
-    if (photo) {
-      var img = root.querySelector('.user-profile-avatar img');
-      if (img) {
-        img.addEventListener('error', function () {
-          var box = img.closest('.user-profile-avatar');
-          if (box) box.textContent = initial;
-        }, { once: true });
-      }
-    }
-
+    setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial);
     bindRatingRows(root, hooks);
 
     root.querySelector('[data-action="taste"]')?.addEventListener('click', function () {
@@ -274,7 +297,7 @@
     });
     root.querySelectorAll('[data-action="watched-scroll"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var el = root.querySelector('#user-profile-recent-block');
+        var el = root.querySelector('.user-profile-block');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         else if (hooks.toast) hooks.toast('Просмотрено: ' + String(watched != null ? watched : '—'));
       });
@@ -284,14 +307,14 @@
   function loadAchievementsList(root, uid, achievements, achTotal, hooks) {
     const items = achievements || [];
     root.innerHTML =
-      '<div class="user-profile-sub">' +
-        '<button type="button" class="user-profile-sub-back" data-action="back-main">← Профиль</button>' +
-        '<h3 class="user-profile-block-title">Достижения</h3>' +
+      '<div class="profile-hub user-friend-profile user-profile-sub">' +
+        '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
+        '<h3 class="profile-sub-title">Достижения</h3>' +
         '<p class="cabinet-hint user-profile-ach-sub-count">' +
           escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
         '</p>' +
         (items.length
-          ? '<div class="user-profile-ach-row user-profile-ach-row--full">' + items.map(achCircleHtml).join('') + '</div>'
+          ? '<div class="ach-panel-category-grid user-profile-ach-grid">' + items.map(achCardHtml).join('') + '</div>'
           : '<p class="cabinet-hint">Пока нет достижений</p>') +
       '</div>';
     root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () {
@@ -305,9 +328,9 @@
       .then(function (data) {
         var items = (data && data.ratings) || [];
         root.innerHTML =
-          '<div class="user-profile-sub">' +
-            '<button type="button" class="user-profile-sub-back" data-action="back-main">← Профиль</button>' +
-            '<h3 class="user-profile-block-title">Оценки</h3>' +
+          '<div class="profile-hub user-friend-profile user-profile-sub">' +
+            '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
+            '<h3 class="profile-sub-title">Оценки</h3>' +
             (items.length
               ? '<div class="user-profile-rating-list">' + items.map(function (r) { return ratingRowHtml(r, hooks); }).join('') + '</div>'
               : '<p class="cabinet-hint">Нет оценок</p>') +
@@ -328,9 +351,9 @@
       .then(function (data) {
         var films = (data && data.films) || [];
         root.innerHTML =
-          '<div class="user-profile-sub">' +
-            '<button type="button" class="user-profile-sub-back" data-action="back-main">← Профиль</button>' +
-            '<h3 class="user-profile-block-title">Непросмотренные</h3>' +
+          '<div class="profile-hub user-friend-profile user-profile-sub">' +
+            '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
+            '<h3 class="profile-sub-title">Непросмотренные</h3>' +
             (films.length
               ? '<div class="user-profile-rating-list">' + films.map(function (f) {
                   return (
@@ -381,8 +404,11 @@
         var enriched = Object.assign({}, hooks, { reload: reload });
         renderMainView(root, data, enriched);
         try {
-          if (hooks.onTitle) hooks.onTitle(data.name || 'Профиль');
+          if (global.MPIcons && typeof global.MPIcons.hydrate === 'function') global.MPIcons.hydrate(root);
         } catch (_e) {}
+        try {
+          if (hooks.onTitle) hooks.onTitle(data.name || 'Профиль');
+        } catch (_e2) {}
       })
       .catch(function () {
         root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить профиль</p>';

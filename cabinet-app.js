@@ -3029,6 +3029,8 @@
       showToast('Войдите в кабинет');
       return;
     }
+    syncSessionHtmlClass();
+    ensureLoggedInHeader();
     const o = opts || {};
     if (!o.skipReturnCapture) {
       if (o.returnSection) {
@@ -3533,6 +3535,10 @@
     }
     if (rendered) {
       try { document.body.setAttribute('data-cabinet-section', String(sectionId || '')); } catch (_) {}
+    }
+    if (rendered && getToken()) {
+      syncSessionHtmlClass();
+      ensureLoggedInHeader();
     }
     if (rendered && sectionId !== 'settings') _profileSubView = 'hub';
     if (rendered && sectionId === 'settings') {
@@ -12536,11 +12542,14 @@
       const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
       const downloadHint = 'Android или iPhone';
       const avatarUrl = resolveProfileAvatarUrl(u);
+      const filmsInBase = totals.total != null ? totals.total : totals.films_in_base;
+      const watchedTotal = totals.watched != null ? totals.watched : totals.watched_count;
+      const seriesTotal = totals.series != null ? totals.series : totals.series_count;
       const statsHtml = totals ? (
         '<div class="profile-hub-stats">'
-        + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(totals.films_in_base != null ? totals.films_in_base : '—')) + '</b><span>в базе</span></button>'
-        + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(totals.watched_count != null ? totals.watched_count : '—')) + '</b><span>смотрел</span></button>'
-        + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(totals.series_count != null ? totals.series_count : '—')) + '</b><span>сериалов</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(filmsInBase != null ? filmsInBase : '—')) + '</b><span>в базе</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(watchedTotal != null ? watchedTotal : '—')) + '</b><span>смотрел</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(seriesTotal != null ? seriesTotal : '—')) + '</b><span>сериалов</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="groups"><b>' + escapeHtml(String(friendsCount)) + '</b><span>' + escapeHtml(friendsLabel) + '</span></button>'
         + '</div>'
       ) : '';

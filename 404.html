@@ -184,7 +184,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260617settings1">
+  <link rel="stylesheet" href="/style-v2.css?v=20260618profile1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
   <style>:root { color-scheme: dark; } .hidden { display: none !important; }
@@ -223,6 +223,30 @@
       }
     })();
   </script>
+  <script>
+    (function () {
+      var m = location.pathname.match(/^\/u\/(-?\d+)\/?$/);
+      if (!m) return;
+      try {
+        var active = localStorage.getItem('mp_site_active_chat_id');
+        var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+        var token = null;
+        if (Array.isArray(sessions)) {
+          for (var i = 0; i < sessions.length; i++) {
+            if (String(sessions[i].chat_id) === String(active) && sessions[i].token) {
+              token = sessions[i].token;
+              break;
+            }
+          }
+        }
+        if (!token) token = localStorage.getItem('mp_site_token');
+        if (token) {
+          var qs = location.search || '';
+          window.location.replace('/?__spa=' + encodeURIComponent('/u/' + m[1]) + (qs ? qs.replace(/^\?/, '&') : ''));
+        }
+      } catch (_e) {}
+    })();
+  </script>
 </head>
 <body>
   <!--MP_ROUTE_SEO_BODY-->
@@ -237,8 +261,8 @@
     <script src="/film-user-tags.js?v=20260617tags3"></script>
     <script src="/film-page.js?v=20260602sitefix5"></script>
     <script src="/staff-page.js?v=20260602sitefix5"></script>
-    <script src="/user-profile-page.js?v=20260529statnav1"></script>
-    <script src="/user-page.js?v=20260529statnav1"></script>
+    <script src="/user-profile-page.js?v=20260618profile1"></script>
+    <script src="/user-page.js?v=20260618profile1"></script>
   <script>
     (function () {
       var m = location.pathname.match(/^\/f\/(\d+)\/?$/);
@@ -276,6 +300,21 @@
     (function () {
       var m = location.pathname.match(/^\/u\/(-?\d+)\/?$/);
       if (!m || !window.MpUserPage) return;
+      try {
+        var active = localStorage.getItem('mp_site_active_chat_id');
+        var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+        var token = null;
+        if (Array.isArray(sessions)) {
+          for (var i = 0; i < sessions.length; i++) {
+            if (String(sessions[i].chat_id) === String(active) && sessions[i].token) {
+              token = sessions[i].token;
+              break;
+            }
+          }
+        }
+        if (!token) token = localStorage.getItem('mp_site_token');
+        if (token) return;
+      } catch (_e) {}
       MpUserPage.bootstrap({ userId: m[1] });
     })();
   </script>

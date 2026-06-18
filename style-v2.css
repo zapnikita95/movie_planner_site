@@ -13115,6 +13115,47 @@ body.in-cabinet .inbox-fab { display: none !important; }
 .profile-hub-stat b { font-size: 17px; font-weight: 800; color: #ff5aa5; }
 .profile-hub-stat span { font-size: 10px; color: rgba(255, 255, 255, 0.55); text-transform: lowercase; }
 
+.user-friend-profile { max-width: 720px; margin: 0 auto; }
+.user-friend-profile .user-profile-block { margin-top: 4px; }
+.user-friend-profile .user-profile-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-friend-profile .user-profile-section-icon { color: rgba(255, 255, 255, 0.72); }
+.user-friend-profile .user-profile-taste-row { width: 100%; margin-top: 2px; }
+.user-friend-profile .user-profile-actions { margin-top: 2px; }
+.user-friend-profile .user-profile-action-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.user-profile-ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.user-profile-ach-card {
+  min-height: 72px;
+  cursor: default;
+}
+.user-profile-ach-card .ach-panel-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.user-profile-sub .profile-sub-title {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+.cabinet-user-profile .user-profile-shell .mp-sub-back.user-profile-back {
+  margin-bottom: 12px;
+}
+
 .profile-sub-page { display: flex; flex-direction: column; gap: 12px; }
 .profile-sub-title {
   margin: 0;

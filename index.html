@@ -26,8 +26,8 @@
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="preload" href="/style-v2.css?v=20260617cabinet20" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260617cabinet20">
+    <link rel="preload" href="/style-v2.css?v=20260618profile1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260618profile1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
     <noscript>
@@ -41,7 +41,7 @@
     <script>window.global = window;</script>
     <script>
       (function () {
-        var BUILD = "20260617cabinet20";
+        var BUILD = "20260618profile1";
         try { localStorage.setItem("mp_cabinet_build_v2", BUILD); } catch (_) {}
         try {
           if (location.search.indexOf("mpbuild=") !== -1) {
@@ -87,7 +87,12 @@
             if (/^\/u\/-?\d+\/?/.test(spa) || /^\/user\/-?\d+\/?/.test(spa)) {
               var userUrl = spa.split('?')[0].replace(/\/?$/, '') || spa;
               userUrl = userUrl.replace(/^\/user\//, '/u/');
-              window.location.replace(userUrl + (rest ? '?' + rest : '') + window.location.hash);
+              var userIdMatch = userUrl.match(/^\/u\/(-?\d+)$/);
+              window.history.replaceState(
+                { section: 'user', userId: userIdMatch ? Number(userIdMatch[1]) : null },
+                '',
+                userUrl + (rest ? '?' + rest : '') + window.location.hash
+              );
               return;
             }
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
@@ -1030,7 +1035,7 @@
                 </section>
                 <section id="section-user" class="cabinet-section hidden cabinet-user-profile" aria-label="Профиль пользователя">
                     <div class="user-profile-shell">
-                        <button type="button" class="user-profile-back" id="user-profile-back">← Назад</button>
+                        <button type="button" class="mp-sub-back user-profile-back" id="user-profile-back">← Назад</button>
                         <div id="user-profile-root" class="user-profile-root" aria-live="polite"></div>
                     </div>
                 </section>
@@ -1797,8 +1802,8 @@
           'mp-icons.js?v=20260617icons2'
         ];
         var cabinet = [
-          'user-profile-page.js?v=20260529searchcard1',
-          'user-page.js?v=20260529searchcard1',
+          'user-profile-page.js?v=20260618profile1',
+          'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260531platformicons1',
           'onboarding-flow.js?v=20260617i18nfix3',
@@ -1809,12 +1814,12 @@
         var list = core.concat(isRoute ? [] : cabinet);
         if (isFilm) {
           list.push('film-page.js?v=20260617filmroute1');
-          list.push('cabinet-film-route.js?v=20260617cabinet20');
+          list.push('cabinet-film-route.js?v=20260618profile1');
         } else if (isStaff) {
           list.push('staff-page.js?v=20260602sitefix5');
-          list.push('cabinet-app.js?v=20260617cabinet20');
+          list.push('cabinet-app.js?v=20260618profile1');
         } else {
-          list.push('cabinet-app.js?v=20260617cabinet20');
+          list.push('cabinet-app.js?v=20260618profile1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
