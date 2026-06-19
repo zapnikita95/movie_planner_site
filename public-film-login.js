@@ -234,10 +234,6 @@
           '<div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">' +
             '<div class="login-register-oauth-block">' +
               '<div class="login-oauth-caption">Зарегистрироваться с помощью</div>' +
-              '<label class="login-oauth-privacy login-register-privacy">' +
-                '<input type="checkbox" id="login-register-privacy"/>' +
-                '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-              '</label>' +
               '<div class="login-methods-grid" role="group" aria-label="Способы регистрации">' +
                 '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
                   '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
@@ -265,8 +261,12 @@
                 '<button type="submit" class="modal-button modal-button-primary">Завершить</button>' +
                 '<button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>' +
               '</form>' +
-              '<div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>' +
+              '<label class="login-oauth-privacy login-register-privacy">' +
+                '<input type="checkbox" id="login-register-privacy"/>' +
+                '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+              '</label>' +
             '</div>' +
+            '<div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>' +
           '</div>' +
         '</div>' +
       '</div>';

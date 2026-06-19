@@ -853,7 +853,10 @@ body.in-cabinet #section-inbox {
 .login-register-form > .login-register-input {
   margin-bottom: 10px;
 }
-.login-register-privacy { margin-top: 12px; }
+.login-register-privacy { margin-top: 14px; margin-bottom: 0; }
+.login-register-card .login-register-privacy {
+  margin-top: 14px;
+}
 .login-register-oauth-block {
   margin-bottom: 16px;
 }
@@ -869,7 +872,8 @@ body.in-cabinet #section-inbox {
   margin-top: 4px;
 }
 .login-register-switch {
-  margin-top: 14px;
+  margin-top: 16px;
+  padding-top: 4px;
   color: rgba(255,255,255,0.58);
   font-size: 13px;
   text-align: center;

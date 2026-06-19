@@ -26,8 +26,8 @@
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
-    <link rel="preload" href="/style-v2.css?v=20260619loginoauth1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260619loginoauth1">
+    <link rel="preload" href="/style-v2.css?v=20260619reglayout1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260619reglayout1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
     <noscript>
@@ -377,10 +377,6 @@
         <div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">
           <div class="login-register-oauth-block">
             <div class="login-oauth-caption">Зарегистрироваться с помощью</div>
-            <label class="login-oauth-privacy login-register-privacy">
-              <input type="checkbox" id="login-register-privacy"/>
-              <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
-            </label>
             <div class="login-methods-grid" role="group" aria-label="Способы регистрации">
               <button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Зарегистрироваться через Google">
                 <span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>
@@ -410,8 +406,12 @@
               <button type="submit" class="modal-button modal-button-primary">Завершить</button>
               <button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>
             </form>
-            <div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>
+            <label class="login-oauth-privacy login-register-privacy">
+              <input type="checkbox" id="login-register-privacy"/>
+              <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+            </label>
           </div>
+          <div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>
         </div>
       </div>
     </div>
@@ -1800,14 +1800,14 @@
         var core = [
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260619loginoauth1',
+          'public-film-login.js?v=20260619reglayout1',
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=20260617i18nfix3',
           'film-user-tags.js?v=20260617tags3',
           'mp-icons.js?v=20260617icons2'
         ];
         var cabinet = [
-          'user-profile-page.js?v=20260619loginoauth1',
+          'user-profile-page.js?v=20260619reglayout1',
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
@@ -1822,9 +1822,9 @@
           list.push('cabinet-film-route.js?v=20260618profile1');
         } else if (isStaff) {
           list.push('staff-page.js?v=20260602sitefix5');
-          list.push('cabinet-app.js?v=20260619loginoauth1');
+          list.push('cabinet-app.js?v=20260619reglayout1');
         } else {
-          list.push('cabinet-app.js?v=20260619loginoauth1');
+          list.push('cabinet-app.js?v=20260619reglayout1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
