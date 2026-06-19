@@ -2645,6 +2645,45 @@
     inbox: '/inbox',
     collections: '/features/collections',
   };
+  const PROFILE_SUB_TO_PATH = {
+    hub: '/settings',
+    profile: '/settings/profile',
+    preferences: '/settings/preferences',
+    settings: '/settings/preferences',
+    import: '/settings/import',
+    billing: '/settings/billing',
+    accounts: '/settings/accounts',
+  };
+
+  function profileSubFromPath(pathname) {
+    if (!pathname) return null;
+    const p = pathname.replace(/\/$/, '') || '/';
+    if (p === '/settings') return 'hub';
+    if (p === '/settings/profile') return 'profile';
+    if (p === '/settings/preferences' || p === '/settings/app') return 'preferences';
+    if (p === '/settings/import') return 'import';
+    if (p === '/settings/billing') return 'billing';
+    if (p === '/settings/accounts') return 'accounts';
+    return null;
+  }
+
+  function syncProfileSubFromLocation() {
+    const sub = profileSubFromPath(window.location.pathname);
+    if (sub) _profileSubView = sub;
+  }
+
+  function pushSettingsSubUrl(subView, replace) {
+    try {
+      const path = PROFILE_SUB_TO_PATH[subView] || '/settings';
+      const url = path + window.location.search + window.location.hash;
+      if (replace) {
+        window.history.replaceState({ section: 'settings', profileSub: subView }, '', url);
+      } else if (window.location.pathname !== path) {
+        window.history.pushState({ section: 'settings', profileSub: subView }, '', url);
+      }
+    } catch (_) {}
+  }
+
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
 
   function sectionFromPath(pathname) {
@@ -2652,6 +2691,7 @@
     let normalized = pathname.replace(/\/$/, '') || '/';
     if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return 'home';
+    if (normalized.startsWith('/settings')) return 'settings';
     return PATH_TO_SECTION[normalized] || null;
   }
 
@@ -3474,7 +3514,10 @@
 
   function pushSectionUrl(sectionId, replace) {
     try {
-      const path = SECTION_TO_PATH[sectionId] || '/';
+      let path = SECTION_TO_PATH[sectionId] || '/';
+      if (sectionId === 'settings') {
+        path = PROFILE_SUB_TO_PATH[_profileSubView] || '/settings';
+      }
       const url = path + window.location.search + window.location.hash;
       if (replace) {
         window.history.replaceState({ section: sectionId }, '', url);
@@ -3542,6 +3585,13 @@
     }
     if (rendered && sectionId !== 'settings') _profileSubView = 'hub';
     if (rendered && sectionId === 'settings') {
+      if (options.skipPush) {
+        syncProfileSubFromLocation();
+      } else if (!profileSubFromPath(window.location.pathname)) {
+        _profileSubView = 'hub';
+      } else {
+        syncProfileSubFromLocation();
+      }
       try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
       try {
         const stEl = document.getElementById('section-settings');
@@ -12252,6 +12302,15 @@
     if (tgN) tgN.addEventListener('change', () => saveNotif({ notify_telegram: !!tgN.checked }));
     const inappN = root.querySelector('#settings-notify-inapp');
     if (inappN) inappN.addEventListener('change', () => saveNotif({ notify_inapp: !!inappN.checked }));
+    const bindNotifToggle = (sel, key) => {
+      const el = root.querySelector(sel);
+      if (!el) return;
+      el.addEventListener('change', () => saveNotif({ [key]: !!el.checked }));
+    };
+    bindNotifToggle('#settings-notify-friends-inbox', 'notify_friends_inbox');
+    bindNotifToggle('#settings-notify-friends-tg', 'notify_friends_telegram');
+    bindNotifToggle('#settings-notify-friends-push', 'notify_friends_push');
+    bindNotifToggle('#settings-notify-friends-achievements', 'notify_friends_achievements');
 
     const collHomeEl = root.querySelector('#settings-coll-home');
     if (collHomeEl) {
@@ -12414,6 +12473,7 @@
     root.querySelectorAll('[data-profile-sub]').forEach((btn) => {
       btn.addEventListener('click', () => {
         _profileSubView = btn.getAttribute('data-profile-sub') || 'hub';
+        pushSettingsSubUrl(_profileSubView);
         renderSettingsSection();
       });
     });
@@ -12489,7 +12549,7 @@
         + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
         + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
         + '</div>'
-        + '<button type="button" class="profile-hub-edit" data-profile-sub="settings" aria-label="Настройки профиля">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
+        + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
         + '</div>'
         + statsHtml
         + '<div class="mp-list">'
@@ -12497,7 +12557,7 @@
         + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
         + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { icon: 'integrations', section: 'integrations' })
         + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
-        + profileListItemHtml('Настройки', 'Тема, импорт, уведомления', { icon: 'gear', sub: 'settings' })
+        + profileListItemHtml('Настройки', 'Импорт, уведомления, приватность', { icon: 'gear', sub: 'preferences' })
         + profileListItemHtml('Скачать приложение', downloadHint, { icon: 'phone', id: 'profile-hub-download' })
         + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
         + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
@@ -12531,23 +12591,50 @@
     });
   }
 
-  function renderProfileSettingsDetailPage(root, d, settingsRes) {
+  function profileImportBlockHtml() {
+    return '<section class="settings-panel settings-panel--wide settings-import-hero" id="settings-import-block">'
+      + '<h3 class="settings-panel-title">' + mpIcon('puzzle', { size: 'sm' }) + ' Импорт оценок</h3>'
+      + '<p class="settings-panel-lead settings-import-lead">Перенесите оценки с Кинопоиска, MyShows или IMDb — начислим <strong>2000 монеток</strong>.</p>'
+      + '<div class="settings-import-tabs" role="tablist">'
+      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
+      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
+      + '</div>'
+      + '<div id="settings-import-kp" class="settings-import-pane">'
+      + '<form class="settings-import-form" id="profile-import-form">'
+      + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль Кинопоиска или ID" autocomplete="off">'
+      + '<div class="settings-import-counts" id="profile-import-counts">'
+      + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
+        const label = n === 'all' ? 'Всё' : String(n);
+        const on = n === 1500 ? ' settings-import-count--on' : '';
+        return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
+      }).join('')
+      + '</div>'
+      + '<button type="submit" class="btn btn-primary btn-full">Импортировать</button>'
+      + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
+      + '</div>'
+      + '<div id="settings-import-ext" class="settings-import-pane hidden">'
+      + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
+      + '<form class="settings-import-form" id="profile-import-external-form">'
+      + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
+      + '<textarea id="profile-import-payload" placeholder="Вставьте CSV, ссылку или HTML..." rows="6"></textarea>'
+      + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
+      + '</form></div>'
+      + '<p class="profile-settings-status" id="profile-import-status"></p>'
+      + '</section>';
+  }
+
+  function renderProfileEditPage(root, d) {
     const u = d.user;
-    const st = settingsRes || {};
-    const notifTg = !st.notifications || st.notifications.notify_telegram !== false;
-    const notifInapp = !st.notifications || st.notifications.notify_inapp !== false;
-    const collOnHome = !!(st.display && st.display.show_collections_on_home);
-    const homeEmoji = loadHomeEmojiVis();
     const name = (u.first_name || u.username)
       ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
       : 'Профиль';
     const avatarUrl = resolveProfileAvatarUrl(u);
 
-    root.innerHTML = '<div class="profile-sub-page settings-page">'
+    root.innerHTML = '<div class="profile-sub-page settings-page settings-profile-page">'
       + profileSubBackHtml()
-      + '<h3 class="profile-sub-title">Настройки</h3>'
-      + '<div class="settings-panels-grid settings-panels-grid--stack">'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото профиля</h3>'
+      + '<h3 class="profile-sub-title">Профиль</h3>'
+      + '<div class="settings-panels-grid settings-panels-grid--profile">'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото</h3>'
       + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
       + '<div class="settings-hero-avatar settings-hero-avatar--inline" id="settings-profile-avatar"></div>'
       + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
@@ -12561,33 +12648,59 @@
       + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="Имя в кабинете">'
       + '<button type="submit" class="btn btn-primary btn-full">Сохранить</button>'
       + '</form></section>'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Приватность</h3><div class="settings-toggle-list">'
+      + '</div>'
+      + '<p class="profile-settings-status" id="profile-settings-status"></p>'
+      + '</div>';
+
+    setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
+    bindProfileSubNav(root);
+    bindProfileSettingsControls(root);
+    const statusEl = root.querySelector('#profile-settings-status');
+    const setStatus = (msg, ok) => {
+      if (!statusEl) return;
+      statusEl.textContent = msg || '';
+      statusEl.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    };
+    loadProfileSettingsAvatarGrid(root, setStatus);
+  }
+
+  function renderProfilePreferencesPage(root, d, settingsRes) {
+    const u = d.user;
+    const st = settingsRes || {};
+    const n = st.notifications || {};
+    const notifTg = n.notify_telegram !== false;
+    const notifInapp = n.notify_inapp !== false;
+    const notifFriendsInbox = n.notify_friends_inbox !== false;
+    const notifFriendsTg = n.notify_friends_telegram !== false;
+    const notifFriendsPush = n.notify_friends_push !== false;
+    const notifFriendsAchievements = n.notify_friends_achievements !== false;
+
+    root.innerHTML = '<div class="profile-sub-page settings-page settings-preferences-page">'
+      + profileSubBackHtml()
+      + '<h3 class="profile-sub-title">Настройки</h3>'
+      + profileImportBlockHtml()
+      + '<div class="settings-panels-grid settings-panels-grid--prefs">'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Профиль</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'profile-settings-searchable', icon: 'search', title: 'Профиль в поиске по людям', hint: 'Если выключить, вас не найдут по имени, почте или Telegram', checked: u.profile_searchable !== false })
       + settingsToggleRow({ id: 'profile-settings-tournament', icon: 'tournament', title: 'Турнирные таблицы', hint: 'Участие в рейтинге оценок', checked: u.tournament_participation === true })
       + '</div></section>'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления</h3><div class="settings-toggle-list">'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Сообщения</h3><div class="settings-toggle-list">'
       + settingsToggleRow({ id: 'settings-notify-tg', icon: 'telegram', title: 'Сообщения в Telegram', hint: 'Напоминания в личке с ботом', checked: notifTg })
       + settingsToggleRow({ id: 'settings-notify-inapp', icon: 'inbox', title: 'Инбокс на сайте', hint: 'Приглашения и напоминания в кабинете', checked: notifInapp })
       + '</div></section>'
-      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">Главная</h3><div class="settings-toggle-list">'
-      + settingsToggleRow({ id: 'settings-coll-home', icon: 'folder', title: 'Коллекции на главной', hint: 'Блок «Мои коллекции» под превью', checked: collOnHome })
-      + settingsToggleRow({ id: 'settings-emoji-random', icon: 'random', title: 'Рандом', hint: 'Кнопка на главной', checked: homeEmoji.random })
-      + settingsToggleRow({ id: 'settings-emoji-shazam', icon: 'shazam', title: 'Подбор по описанию', hint: 'Кнопка на главной', checked: homeEmoji.shazam })
-      + settingsToggleRow({ id: 'settings-emoji-voice', icon: 'voice', title: 'Голосовой ввод', hint: 'Кнопка на главной', checked: homeEmoji.voice })
-      + '</div><div class="settings-home-sections"><div class="settings-home-sections-label">Блоки превью</div>'
-      + '<div id="settings-home-sections-list">' + buildSettingsHomeSectionsListHtml() + '</div>'
-      + '<button type="button" class="btn btn-secondary btn-small settings-sec-reset" id="settings-sec-reset">Сбросить порядок</button>'
+      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Уведомления от друзей</h3><div class="settings-toggle-list">'
+      + settingsToggleRow({ id: 'settings-notify-friends-inbox', emoji: '📥', title: 'Входящие от друзей', hint: 'Предложения фильмов, заявки, оценки', checked: notifFriendsInbox })
+      + settingsToggleRow({ id: 'settings-notify-friends-tg', emoji: '✈️', title: 'Сообщения в Telegram', hint: 'Личка с ботом, когда друг пишет', checked: notifFriendsTg })
+      + settingsToggleRow({ id: 'settings-notify-friends-push', emoji: '🔔', title: 'Push в приложении', hint: 'На телефон, если установлено приложение', checked: notifFriendsPush })
+      + settingsToggleRow({ id: 'settings-notify-friends-achievements', emoji: '🏅', title: 'Достижения друзей', hint: 'Когда друг получает ачивку', checked: notifFriendsAchievements })
       + '</div></section>'
-      + '<section class="settings-panel settings-panel--compact">'
-      + profileListItemHtml('Коллекции', 'Подборки, теги и списки', { icon: 'folder', section: 'collections' })
-      + profileListItemHtml('Импорт оценок', 'Кинопоиск, MyShows, IMDb', { icon: 'puzzle', sub: 'import' })
+      + '<section class="settings-panel settings-panel--compact settings-panel--links">'
       + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { icon: 'key', sub: 'accounts' })
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
       + '</div>';
 
-    setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
     bindProfileSubNav(root);
     const statusEl = root.querySelector('#profile-settings-status');
     const setStatus = (msg, ok) => {
@@ -12597,8 +12710,7 @@
     };
     bindProfileSettingsControls(root);
     bindSettingsPageExtras(root, setStatus);
-    loadProfileSettingsAvatarGrid(root, setStatus);
-    try { applyHomeEmojiVisibility(); } catch (_) {}
+    resumeProfileImportPollIfNeeded(root);
   }
 
   function renderProfileAccountsPage(root, d) {
@@ -12701,8 +12813,12 @@
         renderProfileBillingPage(root, d, tariffsRes);
         return;
       }
-      if (_profileSubView === 'settings') {
-        renderProfileSettingsDetailPage(root, d, settingsRes);
+      if (_profileSubView === 'profile') {
+        renderProfileEditPage(root, d);
+        return;
+      }
+      if (_profileSubView === 'preferences' || _profileSubView === 'settings') {
+        renderProfilePreferencesPage(root, d, settingsRes);
         return;
       }
       if (_profileSubView === 'accounts') {
@@ -14749,24 +14865,26 @@
 
   async function handleAddFriendFromUrl() {
     const params = new URLSearchParams(window.location.search);
+    const hasInviteFlag = params.get('invite') === '1';
     let addUserId = params.get('add') || params.get('u');
     if (!addUserId) {
       const pathUid = userIdFromPathname(window.location.pathname);
-      if (pathUid) addUserId = String(pathUid);
+      if (pathUid && hasInviteFlag) addUserId = String(pathUid);
     }
     if (!addUserId) {
       const spa = params.get('__spa') || '';
       try {
         const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
         const m = spaUrl.pathname.match(/^\/u\/(-?\d+)\/?$/);
-        if (m) addUserId = m[1];
+        if (m && (hasInviteFlag || spaUrl.searchParams.get('invite') === '1')) addUserId = m[1];
       } catch (_) {
         const m = String(spa).match(/^\/u\/(-?\d+)\/?$/);
-        if (m) addUserId = m[1];
+        if (m && hasInviteFlag) addUserId = m[1];
       }
     }
     if (!addUserId || !/^-?\d+$/.test(addUserId)) return;
     const uid = Number(addUserId);
+    if (cabinetUserId != null && uid === Number(cabinetUserId)) return;
     const token = getToken();
     const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
     try {
@@ -14966,13 +15084,8 @@
       profilePill.addEventListener('click', (e) => {
         e.preventDefault();
         closeAccountDropdown();
-        const uid = cabinetUserId;
-        if (uid) {
-          window.location.href = '/u/' + encodeURIComponent(String(uid));
-          return;
-        }
+        markCabinetUserNav('settings');
         showSection('settings');
-        if (typeof renderSettingsSection === 'function') renderSettingsSection();
       });
     }
     window.addEventListener('mp:logout', () => {

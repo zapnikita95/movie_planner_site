@@ -13193,6 +13193,112 @@ body.in-cabinet .inbox-fab { display: none !important; }
   font-weight: 700;
 }
 .settings-panels-grid--stack { grid-template-columns: 1fr !important; }
+.settings-panels-grid--profile {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.settings-panels-grid--prefs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.settings-import-hero {
+  padding: 24px 28px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 45, 123, 0.22);
+  background: linear-gradient(135deg, rgba(255, 45, 123, 0.12), rgba(124, 60, 255, 0.08));
+}
+.settings-import-hero .settings-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.settings-import-lead {
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 16px;
+}
+.settings-import-lead strong {
+  color: #ff5aa5;
+}
+.settings-panel--links {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.settings-panel--links .mp-list-item {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.settings-preferences-page .settings-panels-grid--prefs .settings-panel--wide,
+.settings-preferences-page .settings-import-hero {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .profile-hub {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    gap: 20px 24px;
+    align-items: start;
+  }
+  .profile-hub-header {
+    grid-column: 1;
+    padding: 20px;
+  }
+  .profile-hub-stats {
+    grid-column: 1;
+  }
+  .profile-hub > .mp-list {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+  .profile-hub > .btn-logout {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    justify-self: center;
+  }
+  .profile-hub-avatar,
+  .profile-hub-avatar img {
+    width: 72px;
+    height: 72px;
+    font-size: 28px;
+  }
+  .profile-hub-name {
+    font-size: 22px;
+  }
+  .settings-preferences-page {
+    gap: 24px;
+  }
+  .settings-panels-grid--prefs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .settings-panels-grid--profile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 720px;
+  }
+  .settings-import-hero {
+    padding: 28px 32px;
+  }
+  .settings-import-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+  .settings-import-form .btn-full {
+    grid-column: 1 / -1;
+  }
+  .settings-import-counts {
+    grid-column: 1 / -1;
+  }
+  #settings-import-ext .settings-import-form {
+    grid-template-columns: 1fr;
+  }
+}
 .settings-hero-avatar--inline { margin: 0 auto 12px; }
 
 .footer-apps-cabinet {

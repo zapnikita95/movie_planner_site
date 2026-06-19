@@ -155,7 +155,7 @@
             '</div></div>';
       } else if (st === 'pending_outgoing') {
         actionsHtml = '<p class="cabinet-hint user-profile-hint">Запрос отправлен — ждём ответа</p>';
-      } else if (hooks.isInviteLanding) {
+      } else if (hooks.isInviteLanding && !isSelf) {
         actionsHtml =
           '<div class="user-profile-actions">' +
             '<p class="cabinet-hint user-profile-hint">Приглашает вас в друзья</p>' +
