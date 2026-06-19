@@ -853,9 +853,22 @@ body.in-cabinet #section-inbox {
 .login-register-form > .login-register-input {
   margin-bottom: 10px;
 }
-.login-register-privacy { margin-top: 14px; margin-bottom: 0; }
+.login-register-form .login-register-privacy {
+  margin: 0;
+  padding: 0;
+}
+.login-register-form .login-status {
+  margin-top: 0;
+}
+.login-register-form .login-status:not(:empty) {
+  margin-top: 8px;
+}
+.login-register-form .login-status:empty {
+  display: none;
+}
+.login-register-privacy { margin-top: 0; margin-bottom: 0; }
 .login-register-card .login-register-privacy {
-  margin-top: 14px;
+  margin-top: 0;
 }
 .login-register-oauth-block {
   margin-bottom: 16px;

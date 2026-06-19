@@ -254,6 +254,10 @@
                   '<input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
                   '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>' +
                 '</div>' +
+                '<label class="login-oauth-privacy login-register-privacy">' +
+                  '<input type="checkbox" id="login-register-privacy"/>' +
+                  '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+                '</label>' +
                 '<p class="login-status" id="login-register-status"></p>' +
               '</form>' +
               '<form id="login-register-code-form" class="login-email-code-row hidden">' +
@@ -261,10 +265,6 @@
                 '<button type="submit" class="modal-button modal-button-primary">Завершить</button>' +
                 '<button type="button" class="modal-button login-email-back-btn" id="login-register-back-btn">Назад</button>' +
               '</form>' +
-              '<label class="login-oauth-privacy login-register-privacy">' +
-                '<input type="checkbox" id="login-register-privacy"/>' +
-                '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-              '</label>' +
             '</div>' +
             '<div class="login-register-switch">Уже есть аккаунт? <button type="button" data-login-tab-jump="login">Войти</button></div>' +
           '</div>' +
