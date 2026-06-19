@@ -12610,11 +12610,14 @@
       }).join('')
       + '</div>'
       + '<button type="submit" class="btn btn-primary btn-full">Импортировать</button>'
-      + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
+      + '</form>'
+      + '<div id="profile-import-friend-host"></div>'
+      + '<div id="profile-import-progress" class="profile-import-progress hidden"></div>'
       + '</div>'
       + '<div id="settings-import-ext" class="settings-import-pane hidden">'
-      + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
-      + '<form class="settings-import-form" id="profile-import-external-form">'
+      + '<p class="settings-panel-lead settings-import-ext-help" data-ext-help="imdb">IMDb: в десктоп-версии откройте Your Ratings → Export, затем вставьте CSV.</p>'
+      + '<p class="settings-panel-lead settings-import-ext-help hidden" data-ext-help="myshows">MyShows: ссылка myshows.me/логин или …/wasted/, либо HTML страницы.</p>'
+      + '<form class="settings-import-form settings-import-form--ext" id="profile-import-external-form">'
       + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
       + '<textarea id="profile-import-payload" placeholder="Вставьте CSV, ссылку или HTML..." rows="6"></textarea>'
       + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
@@ -12750,42 +12753,13 @@
   }
 
   function renderProfileImportPage(root) {
-    root.innerHTML = '<div class="profile-sub-page settings-page">'
+    root.innerHTML = '<div class="profile-sub-page settings-page settings-import-page">'
       + profileSubBackHtml()
-      + '<h3 class="profile-sub-title">Импорт оценок</h3>'
-      + '<section class="settings-panel settings-panel--wide"><h3 class="settings-panel-title">' + mpIcon('puzzle', { size: 'sm' }) + ' Импорт</h3>'
-      + '<div class="settings-import-tabs" role="tablist">'
-      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab settings-import-tab--on" data-import-tab="kp">Кинопоиск</button>'
-      + '<button type="button" class="btn btn-secondary btn-small settings-import-tab" data-import-tab="ext">MyShows / IMDb</button>'
-      + '</div>'
-      + '<div id="settings-import-kp" class="settings-import-pane">'
-      + '<p class="settings-panel-lead">За перенос оценок начислим 2000 монеток.</p>'
-      + '<form class="settings-import-form" id="profile-import-form">'
-      + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль или ID" autocomplete="off">'
-      + '<div class="settings-import-counts" id="profile-import-counts">'
-      + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
-        const label = n === 'all' ? 'Всё' : String(n);
-        const on = n === 1500 ? ' settings-import-count--on' : '';
-        return '<button type="button" class="btn btn-secondary btn-small settings-import-count' + on + '" data-kp-cnt="' + n + '">' + label + '</button>';
-      }).join('')
-      + '</div>'
-      + '<button type="submit" class="btn btn-primary btn-full">Импортировать</button>'
-      + '</form><div id="profile-import-progress" class="profile-import-progress hidden"></div>'
-      + '</div>'
-      + '<div id="settings-import-ext" class="settings-import-pane hidden">'
-      + '<p class="settings-panel-lead">IMDb: CSV. MyShows: myshows.me/логин или /wasted/</p>'
-      + '<form class="settings-import-form" id="profile-import-external-form">'
-      + '<select id="profile-import-source"><option value="imdb">IMDb</option><option value="myshows">MyShows</option></select>'
-      + '<textarea id="profile-import-payload" placeholder="Вставьте CSV/ссылку/HTML..." rows="6"></textarea>'
-      + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
-      + '</form></div>'
-      + '<p class="profile-settings-status" id="profile-import-status"></p>'
-      + '</section>'
+      + profileImportBlockHtml()
       + '</div>';
 
     bindProfileSubNav(root);
     bindProfileSettingsControls(root);
-    resumeProfileImportPollIfNeeded(root);
   }
 
   function renderSettingsSection() {
@@ -12852,6 +12826,9 @@
     const processed = Number(job.processed || 0);
     const target = Number(job.target || 0);
     if (job.status === 'running') {
+      if (job.phase === 'waiting_local' && processed === 0) {
+        return (job.user_hint || 'Импорт в очереди — можно закрыть страницу, пришлём уведомление').trim();
+      }
       if (job.phase === 'scraping') {
         const pg = Number(job.page || 0);
         const tail = Number(job.tail_imported || 0);
@@ -12890,12 +12867,33 @@
     const pct = job.status === 'running' ? Math.min(100, Math.round((processed / target) * 100)) : 100;
     const indeterminate = job.status === 'running' && processed === 0;
     const label = kpImportProgressLabel(job);
+    const hint = (job.user_hint || '').trim();
+    const showHint = hint && hint !== label && job.status === 'running';
     host.classList.remove('hidden');
-    host.innerHTML =
-      '<div class="profile-import-progress-track">' +
-      '<div class="profile-import-progress-fill' + (indeterminate ? ' indeterminate' : '') + '" style="width:' + (indeterminate ? '35' : pct) + '%"></div>' +
-      '</div>' +
-      (label ? '<p class="profile-import-progress-label' + (job.status === 'error' ? ' error' : job.status === 'done' ? ' success' : '') + '">' + escapeHtml(label) + '</p>' : '');
+    if (job.status === 'done') {
+      const title = (job.completion_title || 'Готово!').trim() || 'Готово!';
+      const detail = (job.completion_text || '').trim();
+      host.innerHTML =
+        '<div class="profile-import-done success">'
+        + '<div class="profile-import-done-title">' + escapeHtml(title) + '</div>'
+        + (detail ? '<div class="profile-import-done-detail">' + escapeHtml(detail).replace(/\n/g, '<br>') + '</div>' : '')
+        + '</div>';
+    } else if (job.status === 'error') {
+      host.innerHTML =
+        '<div class="profile-import-done error">'
+        + '<div class="profile-import-done-title">Не получилось</div>'
+        + '<div class="profile-import-done-detail">' + escapeHtml(job.error || 'Попробуйте позже или импортируйте меньший объём.') + '</div>'
+        + '</div>';
+    } else {
+      host.innerHTML =
+        '<div class="profile-import-progress-track">'
+        + '<div class="profile-import-progress-fill' + (indeterminate ? ' indeterminate' : '') + '" style="width:' + (indeterminate ? '35' : pct) + '%"></div>'
+        + '</div>'
+        + (label ? '<p class="profile-import-progress-label">' + escapeHtml(label) + '</p>' : '')
+        + (showHint ? '<p class="profile-import-progress-hint">' + escapeHtml(hint) + '</p>' : '')
+        + (running ? '<button type="button" class="btn btn-ghost btn-full profile-import-cancel" id="profile-import-cancel">Отменить импорт</button>' : '');
+      wireProfileImportCancel(root);
+    }
     if (importStatus) {
       importStatus.textContent = '';
       importStatus.className = 'profile-settings-status';
@@ -12909,10 +12907,13 @@
       renderProfileImportProgress(root, job);
       if (job && job.status === 'running') return;
       stopProfileImportPoll();
-      if (job && job.status === 'done' && root && !root._onboardImportNotified) {
-        root._onboardImportNotified = true;
-        if (typeof window.__mpOnboardingImportFinished === 'function') {
-          void window.__mpOnboardingImportFinished(_siteOnboardingDeps(), Number(job.imported || 0) > 0);
+      if (job && job.status === 'done') {
+        showImportCompletionNotice(root, job);
+        if (root && !root._onboardImportNotified) {
+          root._onboardImportNotified = true;
+          if (typeof window.__mpOnboardingImportFinished === 'function') {
+            void window.__mpOnboardingImportFinished(_siteOnboardingDeps(), Number(job.imported || 0) > 0);
+          }
         }
       }
     }).catch(() => {});
@@ -12924,12 +12925,316 @@
     _profileImportPoll = setInterval(() => pollProfileImportProgress(root), 1200);
   }
 
+  function getKpImportUiState(root) {
+    if (!root._kpImportUi) {
+      root._kpImportUi = { kpProbe: null, friendRetries: 0, friendExhausted: false };
+    }
+    return root._kpImportUi;
+  }
+
+  function kpImportRatingCountLabel(probe) {
+    const n = Number((probe && probe.api_rated_sample) || 0);
+    return n ? ' (' + n + ' оценок)' : '';
+  }
+
+  function renderKpImportFriendPanel(root) {
+    const host = root.querySelector('#profile-import-friend-host');
+    if (!host) return;
+    const ui = getKpImportUiState(root);
+    const probe = ui.kpProbe;
+    if (!probe || probe.status !== 'api_only') {
+      host.innerHTML = '';
+      host.classList.add('hidden');
+      return;
+    }
+    const helper = (probe.helper && typeof probe.helper === 'object') ? probe.helper : {};
+    const helperUrl = (helper.profile_url || '').trim();
+    const helperLabel = (helper.label || 'Movie Planner').trim();
+    const countLbl = kpImportRatingCountLabel(probe);
+    const agreeOnly = ui.friendExhausted || ui.friendRetries >= 3;
+    host.classList.remove('hidden');
+    host.innerHTML =
+      '<div class="settings-import-friend-panel">'
+      + '<p class="settings-import-friend-title">Профиль закрыт для гостей</p>'
+      + '<p class="settings-panel-lead">Добавьте наш аккаунт в друзья на Кинопоиске — тогда подтянем полный список с сайта.</p>'
+      + (helperUrl
+        ? '<button type="button" class="btn btn-secondary btn-full" id="profile-import-helper-link">'
+          + escapeHtml(helperLabel) + ' на Кинопоиске</button>'
+        : '')
+      + (agreeOnly ? ''
+        : '<button type="button" class="btn btn-primary btn-full" id="profile-import-friend-verify">'
+          + (ui.friendRetries > 0 ? 'Проверить ещё раз' : 'Я добавил в друзья') + '</button>')
+      + '<button type="button" class="btn btn-ghost btn-full" id="profile-import-agree-api">Согласиться' + countLbl + '</button>'
+      + (agreeOnly && ui.friendRetries >= 3
+        ? '<p class="settings-panel-lead settings-import-friend-foot">Полный список с сайта недоступен — можно импортировать только то, что отдаёт API.</p>'
+        : '')
+      + '</div>';
+  }
+
+  function syncExtImportHelp(root) {
+    const sourceEl = root.querySelector('#profile-import-source');
+    const source = sourceEl ? String(sourceEl.value || 'imdb') : 'imdb';
+    root.querySelectorAll('[data-ext-help]').forEach((el) => {
+      el.classList.toggle('hidden', el.getAttribute('data-ext-help') !== source);
+    });
+  }
+
+  function showImportCompletionNotice(root, job) {
+    if (!job || job.status !== 'done') return;
+    const finishedAt = Number(job.finished_at || 0);
+    if (!finishedAt) return;
+    if (!root._importCompletionShown) root._importCompletionShown = 0;
+    if (root._importCompletionShown === finishedAt) return;
+    root._importCompletionShown = finishedAt;
+    const title = (job.completion_title || 'Готово!').trim() || 'Готово!';
+    const text = (job.completion_text || '').trim();
+    const imported = Number(job.imported || 0);
+    const msg = text || (imported > 0
+      ? 'Добавлено ' + imported + ' оценок'
+      : 'Новых оценок не найдено');
+    showToast(title + (msg ? ': ' + msg.split('\n')[0] : ''), { duration: 5200 });
+    try { loadMeAndShowCabinet(); } catch (_) {}
+  }
+
   function resumeProfileImportPollIfNeeded(root) {
     api('/api/miniapp/ratings/import-status').then((s) => {
       if (!s || !s.success || !s.job || s.job.status !== 'running') return;
       renderProfileImportProgress(root, s.job);
       startProfileImportPoll(root);
     }).catch(() => {});
+  }
+
+  function wireProfileImportCancel(root) {
+    const cancelBtn = root.querySelector('#profile-import-cancel');
+    if (!cancelBtn || cancelBtn._wired) return;
+    cancelBtn._wired = true;
+    cancelBtn.addEventListener('click', () => {
+      cancelBtn.disabled = true;
+      api('/api/miniapp/ratings/import-cancel', { method: 'POST', timeoutMs: 30000 })
+        .then(() => {
+          stopProfileImportPoll();
+          renderProfileImportProgress(root, null);
+          const importStatus = root.querySelector('#profile-import-status');
+          if (importStatus) {
+            importStatus.textContent = 'Импорт отменён';
+            importStatus.className = 'profile-settings-status';
+          }
+        })
+        .catch(() => {
+          cancelBtn.disabled = false;
+          showToast('Не удалось отменить импорт', { type: 'error' });
+        });
+    });
+  }
+
+  function startKpImportFromWeb(root, setStatus, extraBody, profileKpMaxCount, profileKpImportAll) {
+    const input = root.querySelector('#profile-import-kp');
+    const raw = input ? input.value.trim() : '';
+    if (!raw) {
+      if (setStatus) setStatus('Вставьте ссылку или ID профиля.', false);
+      return Promise.resolve(null);
+    }
+    const ui = getKpImportUiState(root);
+    renderProfileImportProgress(root, {
+      status: 'running',
+      target: profileKpImportAll ? 1500 : profileKpMaxCount,
+      processed: 0,
+      imported: 0,
+      skipped: 0,
+      phase: 'starting',
+      import_all: profileKpImportAll,
+    });
+    const body = Object.assign({
+      kp_input: raw,
+      max_count: profileKpImportAll ? 1500 : profileKpMaxCount,
+      import_all: profileKpImportAll,
+    }, extraBody || {});
+    return api('/api/miniapp/ratings/import-kinopoisk', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 120000,
+    }).then((r) => {
+      if (r && r.success) {
+        ui.kpProbe = null;
+        renderKpImportFriendPanel(root);
+        if (r.user_hint) {
+          renderProfileImportProgress(root, {
+            status: 'running',
+            target: profileKpImportAll ? 1500 : profileKpMaxCount,
+            processed: 0,
+            imported: 0,
+            skipped: 0,
+            phase: r.mode === 'local' || r.already_running ? 'waiting_local' : 'starting',
+            user_hint: r.user_hint,
+          });
+        }
+        startProfileImportPoll(root);
+        if (setStatus) setStatus('', true);
+        return r;
+      }
+      renderProfileImportProgress(root, null);
+      if (r && r.error === 'profile_not_open' && r.probe) {
+        ui.kpProbe = r.probe;
+        renderKpImportFriendPanel(root);
+        wireKpImportFriendPanel(root, setStatus, profileKpMaxCount, profileKpImportAll);
+        if (setStatus) setStatus(r.message || 'Профиль закрыт — добавьте нас в друзья на Кинопоиске', false);
+        return r;
+      }
+      if (r && r.error === 'import_running') {
+        renderProfileImportProgress(root, {
+          status: 'running',
+          phase: 'waiting_local',
+          target: profileKpImportAll ? 1500 : profileKpMaxCount,
+          processed: 0,
+          imported: 0,
+          skipped: 0,
+          user_hint: r.user_hint || 'Импорт уже идёт — пришлём уведомление.',
+        });
+        startProfileImportPoll(root);
+        return r;
+      }
+      if (setStatus) setStatus((r && (r.message || r.error)) || 'Не удалось запустить импорт', false);
+      return r;
+    }).catch(() => {
+      renderProfileImportProgress(root, null);
+      if (setStatus) setStatus('Ошибка сети', false);
+      return null;
+    });
+  }
+
+  function wireKpImportFriendPanel(root, setStatus, profileKpMaxCount, profileKpImportAll) {
+    const helperBtn = root.querySelector('#profile-import-helper-link');
+    if (helperBtn && !helperBtn._wired) {
+      helperBtn._wired = true;
+      helperBtn.addEventListener('click', () => {
+        const ui = getKpImportUiState(root);
+        const url = (ui.kpProbe && ui.kpProbe.helper && ui.kpProbe.helper.profile_url) || '';
+        if (url) window.open(url, '_blank', 'noopener');
+      });
+    }
+    const verifyBtn = root.querySelector('#profile-import-friend-verify');
+    if (verifyBtn && !verifyBtn._wired) {
+      verifyBtn._wired = true;
+      verifyBtn.addEventListener('click', () => {
+        const input = root.querySelector('#profile-import-kp');
+        const raw = input ? input.value.trim() : '';
+        if (!raw) return;
+        verifyBtn.disabled = true;
+        api('/api/miniapp/ratings/kp-profile-check', {
+          method: 'POST',
+          body: JSON.stringify({ kp_input: raw }),
+          timeoutMs: 90000,
+        }).then((chk) => {
+          const ui = getKpImportUiState(root);
+          const probe = (chk && chk.probe) || null;
+          ui.kpProbe = probe;
+          if (probe && probe.status === 'open') {
+            return startKpImportFromWeb(root, setStatus, {
+              friend_confirmed: true,
+              skip_probe: true,
+              probe: probe,
+            }, profileKpMaxCount, profileKpImportAll);
+          }
+          ui.friendRetries += 1;
+          if (ui.friendRetries >= 3) ui.friendExhausted = true;
+          renderKpImportFriendPanel(root);
+          wireKpImportFriendPanel(root, setStatus, profileKpMaxCount, profileKpImportAll);
+          if (setStatus) {
+            setStatus(
+              probe && probe.status === 'api_only'
+                ? 'Список на сайте всё ещё недоступен. Проверьте дружбу или нажмите «Согласиться».'
+                : ((probe && probe.hint) || 'Профиль пока недоступен'),
+              false,
+            );
+          }
+        }).catch(() => {
+          if (setStatus) setStatus('Не удалось проверить профиль', false);
+        }).finally(() => {
+          verifyBtn.disabled = false;
+        });
+      });
+    }
+    const agreeBtn = root.querySelector('#profile-import-agree-api');
+    if (agreeBtn && !agreeBtn._wired) {
+      agreeBtn._wired = true;
+      agreeBtn.addEventListener('click', () => {
+        agreeBtn.disabled = true;
+        startKpImportFromWeb(root, setStatus, { api_only: true, import_all: true }, 1500, true)
+          .finally(() => { agreeBtn.disabled = false; });
+      });
+    }
+  }
+
+  function bindProfileImportControls(root, setStatus) {
+    let profileKpMaxCount = 1500;
+    let profileKpImportAll = false;
+    root.querySelectorAll('[data-kp-cnt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-kp-cnt') || '1500';
+        profileKpImportAll = v === 'all';
+        profileKpMaxCount = profileKpImportAll ? 1500 : (Number(v) || 1500);
+        root.querySelectorAll('[data-kp-cnt]').forEach((b) => {
+          b.classList.toggle('settings-import-count--on', b === btn);
+        });
+      });
+    });
+    const sourceEl = root.querySelector('#profile-import-source');
+    if (sourceEl) {
+      sourceEl.addEventListener('change', () => syncExtImportHelp(root));
+      syncExtImportHelp(root);
+    }
+    resumeProfileImportPollIfNeeded(root);
+    const importForm = root.querySelector('#profile-import-form');
+    const externalImportForm = root.querySelector('#profile-import-external-form');
+    if (importForm) {
+      importForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        getKpImportUiState(root).kpProbe = null;
+        renderKpImportFriendPanel(root);
+        void startKpImportFromWeb(root, setStatus, {}, profileKpMaxCount, profileKpImportAll);
+      });
+    }
+    if (externalImportForm) {
+      externalImportForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const payloadEl = root.querySelector('#profile-import-payload');
+        const importStatus = root.querySelector('#profile-import-status');
+        const source = sourceEl ? String(sourceEl.value || 'imdb') : 'imdb';
+        const payload = payloadEl ? String(payloadEl.value || '').trim() : '';
+        if (!payload) {
+          if (setStatus) setStatus('Вставьте экспорт перед импортом', false);
+          return;
+        }
+        const submitBtn = externalImportForm.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Импорт…'; }
+        api('/api/miniapp/ratings/import-external', {
+          method: 'POST',
+          body: JSON.stringify({ source, payload, max_count: 1500 }),
+          timeoutMs: 120000,
+        }).then((r) => {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Импортировать'; }
+          if (!r || !r.success) {
+            if (setStatus) setStatus((r && (r.message || r.error)) || 'Не удалось запустить импорт', false);
+            return;
+          }
+          if (setStatus) setStatus(r.user_hint || 'Импорт запущен', true);
+          renderProfileImportProgress(root, {
+            status: 'running',
+            target: 1500,
+            processed: 0,
+            imported: 0,
+            skipped: 0,
+            phase: 'starting',
+            user_hint: r.user_hint,
+          });
+          startProfileImportPoll(root);
+        }).catch(() => {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Импортировать'; }
+          if (setStatus) setStatus('Ошибка сети', false);
+        });
+      });
+    }
+    wireKpImportFriendPanel(root, setStatus, profileKpMaxCount, profileKpImportAll);
   }
 
   const FALLBACK_AVATAR_PRESETS = ['01', '02', '03', '04', '05', '06', '07'];
@@ -13138,119 +13443,14 @@
         if (tbtn) tbtn.click();
       }
     } catch (_) {}
-    const importForm = root.querySelector('#profile-import-form');
-    const externalImportForm = root.querySelector('#profile-import-external-form');
-    let profileKpMaxCount = 1500;
-    let profileKpImportAll = false;
-    root.querySelectorAll('[data-kp-cnt]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const v = btn.getAttribute('data-kp-cnt') || '1500';
-        profileKpImportAll = v === 'all';
-        profileKpMaxCount = profileKpImportAll ? 1500 : (Number(v) || 1500);
-        root.querySelectorAll('[data-kp-cnt]').forEach((b) => {
-          b.classList.toggle('settings-import-count--on', b === btn);
-        });
-      });
-    });
-    resumeProfileImportPollIfNeeded(root);
-    if (importForm) {
-      importForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = root.querySelector('#profile-import-kp');
-        const importStatus = root.querySelector('#profile-import-status');
-        const raw = input ? input.value.trim() : '';
-        if (!raw) {
-          if (importStatus) {
-            importStatus.textContent = 'Вставьте ссылку или ID профиля.';
-            importStatus.className = 'profile-settings-status error';
-          }
-          return;
-        }
-        renderProfileImportProgress(root, {
-          status: 'running',
-          target: profileKpMaxCount,
-          processed: 0,
-          imported: 0,
-          skipped: 0,
-          phase: 'starting',
-          import_all: profileKpImportAll,
-        });
-        api('/api/miniapp/ratings/import-kinopoisk', {
-          method: 'POST',
-          body: JSON.stringify({
-            kp_input: raw,
-            max_count: profileKpMaxCount,
-            import_all: profileKpImportAll,
-          }),
-        }).then((r) => {
-          if (!r || !r.success) {
-            renderProfileImportProgress(root, null);
-            const btn = importForm.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
-            if (importStatus) {
-              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
-              importStatus.className = 'profile-settings-status error';
-            }
-            return;
-          }
-          startProfileImportPoll(root);
-        }).catch(() => {
-          renderProfileImportProgress(root, null);
-          const btn = importForm.querySelector('button[type="submit"]');
-          if (btn) { btn.disabled = false; btn.textContent = 'Импортировать оценки'; }
-          if (importStatus) {
-            importStatus.textContent = 'Ошибка сети';
-            importStatus.className = 'profile-settings-status error';
-          }
-        });
-      });
-    }
-    if (externalImportForm) {
-      externalImportForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const sourceEl = root.querySelector('#profile-import-source');
-        const payloadEl = root.querySelector('#profile-import-payload');
-        const importStatus = root.querySelector('#profile-import-status');
-        const source = sourceEl ? String(sourceEl.value || 'imdb') : 'imdb';
-        const payload = payloadEl ? String(payloadEl.value || '').trim() : '';
-        if (!payload) {
-          if (importStatus) {
-            importStatus.textContent = 'Вставьте экспорт перед импортом';
-            importStatus.className = 'profile-settings-status error';
-          }
-          return;
-        }
-        api('/api/miniapp/ratings/import-external', {
-          method: 'POST',
-          body: JSON.stringify({ source, payload, max_count: 1500 }),
-        }).then((r) => {
-          if (!r || !r.success) {
-            if (importStatus) {
-              importStatus.textContent = (r && (r.message || r.error)) || 'Не удалось запустить импорт';
-              importStatus.className = 'profile-settings-status error';
-            }
-            return;
-          }
-          if (importStatus) {
-            importStatus.textContent = 'Импорт запущен';
-            importStatus.className = 'profile-settings-status success';
-          }
-          renderProfileImportProgress(root, {
-            status: 'running',
-            target: 1500,
-            processed: 0,
-            imported: 0,
-            skipped: 0,
-            phase: 'starting',
-          });
-          startProfileImportPoll(root);
-        }).catch(() => {
-          if (importStatus) {
-            importStatus.textContent = 'Ошибка сети';
-            importStatus.className = 'profile-settings-status error';
-          }
-        });
-      });
+    if (root.querySelector('#profile-import-form') || root.querySelector('#profile-import-external-form')) {
+      const setImportStatus = (msg, ok) => {
+        const el = root.querySelector('#profile-import-status') || status;
+        if (!el) return;
+        el.textContent = msg || '';
+        el.className = 'profile-settings-status' + (msg ? (ok ? ' success' : ' error') : '');
+      };
+      bindProfileImportControls(root, setImportStatus);
     }
   }
 
