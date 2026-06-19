@@ -4416,6 +4416,9 @@
     const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
     const tgWrap = document.getElementById('login-tg-widget-wrap');
+    const oauthGIn = document.getElementById('login-oauth-google-in');
+    const oauthYIn = document.getElementById('login-oauth-yandex-in');
+    const tgWrapIn = document.getElementById('login-tg-widget-wrap-in');
     function nudgeRegPrivacy() {
       if (regPrivacy) {
         regPrivacy.closest('.login-oauth-privacy')?.classList.add('needs-attention');
@@ -4437,20 +4440,37 @@
       if (regPrivacy.checked) scheduleSiteBotAuthPrefetch();
     });
     syncRegOauthButtons();
-    if (oauthG) {
-      oauthG.addEventListener('click', () => {
-        if (!regPrivacy || !regPrivacy.checked) { nudgeRegPrivacy(); return; }
+    function wireOAuthBtn(btn, startFn, requirePrivacy) {
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        if (requirePrivacy && (!regPrivacy || !regPrivacy.checked)) {
+          nudgeRegPrivacy();
+          return;
+        }
         rememberAuthReturnPath();
-        window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+        startFn();
       });
     }
-    if (oauthY) {
-      oauthY.addEventListener('click', () => {
-        if (!regPrivacy || !regPrivacy.checked) { nudgeRegPrivacy(); return; }
+    wireOAuthBtn(oauthGIn, () => {
+      window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+    }, false);
+    wireOAuthBtn(oauthYIn, () => {
+      window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+    }, false);
+    if (tgWrapIn) {
+      tgWrapIn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         rememberAuthReturnPath();
-        window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+        startSiteBotAuth(modal, null, null, null);
       });
     }
+    wireOAuthBtn(oauthG, () => {
+      window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+    }, true);
+    wireOAuthBtn(oauthY, () => {
+      window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+    }, true);
     if (tgWrap) {
       tgWrap.addEventListener('click', (e) => {
         e.preventDefault();

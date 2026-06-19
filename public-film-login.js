@@ -203,6 +203,20 @@
             '<button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false">Регистрация</button>' +
           '</div>' +
           '<div class="login-auth-pane" id="login-pane-login" data-login-pane="login">' +
+            '<div class="login-register-oauth-block login-oauth-block--login">' +
+              '<div class="login-oauth-caption">Войти с помощью</div>' +
+              '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
+                '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google-in" title="Google" aria-label="Google">' +
+                  '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
+                '</button>' +
+                '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex-in" title="Яндекс" aria-label="Яндекс">' +
+                  '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
+                '</button>' +
+                '<button type="button" id="login-tg-widget-wrap-in" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap" title="Telegram" aria-label="Telegram">' +
+                  '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
+                '</button>' +
+              '</div>' +
+            '</div>' +
             '<div class="login-email-section">' +
               '<div class="login-email-caption">Войти по почте</div>' +
               '<form id="login-email-form" class="login-email-request-row">' +
@@ -380,6 +394,29 @@
     });
     syncPrivacyLock();
 
+    var gIn = $('login-oauth-google-in');
+    if (gIn) {
+      gIn.addEventListener('click', function () {
+        rememberOAuthReturn();
+        global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
+      });
+    }
+    var yIn = $('login-oauth-yandex-in');
+    if (yIn) {
+      yIn.addEventListener('click', function () {
+        rememberOAuthReturn();
+        global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
+      });
+    }
+    var tgIn = $('login-tg-widget-wrap-in');
+    if (tgIn) {
+      tgIn.addEventListener('click', function (e) {
+        e.preventDefault();
+        rememberOAuthReturn();
+        startPfBotAuth(null, null, null);
+      });
+    }
+
     var g = $('login-oauth-google');
     if (g) {
       g.addEventListener('click', function () {
@@ -396,6 +433,7 @@
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });
     }
+    var tg = $('login-tg-widget-wrap');
     if (tg) {
       tg.addEventListener('click', function (e) {
         e.preventDefault();

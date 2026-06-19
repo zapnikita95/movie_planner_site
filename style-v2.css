@@ -857,6 +857,11 @@ body.in-cabinet #section-inbox {
 .login-register-oauth-block {
   margin-bottom: 16px;
 }
+.login-oauth-block--login {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
 .login-register-oauth-block .login-methods-grid {
   margin-top: 10px;
 }
