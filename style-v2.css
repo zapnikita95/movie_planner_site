@@ -854,6 +854,15 @@ body.in-cabinet #section-inbox {
   margin-bottom: 10px;
 }
 .login-register-privacy { margin-top: 12px; }
+.login-register-oauth-block {
+  margin-bottom: 16px;
+}
+.login-register-oauth-block .login-methods-grid {
+  margin-top: 10px;
+}
+.login-register-card {
+  margin-top: 4px;
+}
 .login-register-switch {
   margin-top: 14px;
   color: rgba(255,255,255,0.58);

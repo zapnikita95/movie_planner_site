@@ -246,29 +246,6 @@
             '<button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false">Регистрация</button>' +
           '</div>' +
           '<div class="login-auth-pane" id="login-pane-login" data-login-pane="login">' +
-            '<div class="login-oauth-caption">Войти с помощью</div>' +
-            '<label class="login-oauth-privacy">' +
-              '<input type="checkbox" id="login-oauth-privacy"/>' +
-              '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-            '</label>' +
-            '<div class="login-privacy-hint" id="login-privacy-hint" hidden></div>' +
-            '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
-              '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
-                '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
-              '</button>' +
-              '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
-                '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
-              '</button>' +
-              '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
-                '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
-              '</button>' +
-            '</div>' +
-            '<div id="login-bot-panel" class="login-bot-panel hidden">' +
-              '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>' +
-              '<p class="login-status" id="login-status"></p>' +
-              '<p class="login-bot-fallback hidden" id="login-bot-fallback"></p>' +
-              '<a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>' +
-            '</div>' +
             '<div class="login-email-section">' +
               '<div class="login-email-caption">Войти по почте</div>' +
               '<form id="login-email-form" class="login-email-request-row">' +
@@ -284,14 +261,34 @@
             '</div>' +
           '</div>' +
           '<div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">' +
+            '<div class="login-register-oauth-block">' +
+              '<div class="login-oauth-caption">Зарегистрироваться с помощью</div>' +
+              '<label class="login-oauth-privacy login-register-privacy">' +
+                '<input type="checkbox" id="login-register-privacy"/>' +
+                '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+              '</label>' +
+              '<div class="login-methods-grid" role="group" aria-label="Способы регистрации">' +
+                '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
+                  '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
+                '</button>' +
+                '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
+                  '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
+                '</button>' +
+                '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
+                  '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
+                '</button>' +
+              '</div>' +
+              '<div id="login-bot-panel" class="login-bot-panel hidden">' +
+                '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>' +
+                '<p class="login-status" id="login-status"></p>' +
+                '<p class="login-bot-fallback hidden" id="login-bot-fallback"></p>' +
+                '<a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>' +
+              '</div>' +
+            '</div>' +
             '<div class="login-register-card">' +
               '<div class="login-register-title">Создать аккаунт</div>' +
               '<form id="login-register-form" class="login-register-form">' +
                 '<input type="text" id="login-register-name" name="display_name" placeholder="Имя профиля" autocomplete="name" class="modal-input login-register-input">' +
-                '<label class="login-oauth-privacy login-register-privacy">' +
-                  '<input type="checkbox" id="login-register-privacy"/>' +
-                  '<span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
-                '</label>' +
                 '<div class="login-email-request-row">' +
                   '<input type="email" id="login-register-email" name="email" placeholder="Email" autocomplete="email" class="modal-input login-email-input">' +
                   '<button type="submit" class="modal-button modal-button-primary login-email-send-btn" id="login-register-request-btn">Код</button>' +
@@ -366,12 +363,12 @@
   }
 
   function privacyOk() {
-    var cb = $('login-oauth-privacy');
+    var cb = $('login-register-privacy');
     return !!(cb && cb.checked);
   }
 
   function nudgePrivacy(statusEl) {
-    var cb = $('login-oauth-privacy');
+    var cb = $('login-register-privacy');
     if (cb && cb.closest('.login-oauth-privacy')) {
       cb.closest('.login-oauth-privacy').classList.add('needs-attention');
       cb.focus({ preventScroll: true });
@@ -379,8 +376,6 @@
         cb.closest('.login-oauth-privacy').classList.remove('needs-attention');
       }, 1600);
     }
-    var hint = $('login-privacy-hint');
-    if (hint) hint.classList.remove('is-visible');
     if (statusEl) setStatus(statusEl, 'Отметьте согласие с политикой конфиденциальности', 'error');
   }
 
@@ -392,8 +387,6 @@
       btn.classList.toggle('is-locked', !ok);
       btn.classList.toggle('login-tg-widget-wrap--locked', !ok);
     });
-    var reqBtn = $('login-email-request-btn');
-    if (reqBtn) reqBtn.disabled = !ok;
   }
 
   function finishLogin(data) {
@@ -429,7 +422,7 @@
       btn.addEventListener('click', function () { setLoginTab(btn.getAttribute('data-login-tab-jump')); });
     });
 
-    var priv = $('login-oauth-privacy');
+    var priv = $('login-register-privacy');
     if (priv) priv.addEventListener('change', function () {
       syncPrivacyLock();
       if (priv.checked) schedulePfBotPrefetch();
@@ -484,10 +477,6 @@
         var email = ((emailInput && emailInput.value) || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
           setStatus($('login-email-status'), 'Укажите корректный email', 'error');
-          return;
-        }
-        if (!privacyOk()) {
-          nudgePrivacy($('login-email-status'));
           return;
         }
         setStatus($('login-email-status'), 'Отправляем…');
