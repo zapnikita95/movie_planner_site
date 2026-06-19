@@ -79,6 +79,17 @@
     return MP_PLAY_STORE_FALLBACK;
   }
 
+  function isPublicStoreUrl(url) {
+    var u = String(url || '').toLowerCase();
+    return (
+      u.indexOf('play.google.com') >= 0 ||
+      u.indexOf('rustore.ru') >= 0 ||
+      u.indexOf('apps.apple.com') >= 0 ||
+      u.indexOf('itunes.apple.com') >= 0 ||
+      u.indexOf('testflight.apple.com') >= 0
+    );
+  }
+
   function ensureAppReleaseUrlsLoaded() {
     if (_releaseLoadPromise) return _releaseLoadPromise;
     _releaseLoadPromise = fetch(API_BASE + '/api/app/release', { cache: 'no-store' })
@@ -86,9 +97,9 @@
       .then(function (rel) {
         if (!rel) return;
         var android = String(rel.url || '').trim();
-        if (android) MP_APP_STORE_URL_ANDROID = android;
+        if (android && isPublicStoreUrl(android)) MP_APP_STORE_URL_ANDROID = android;
         var ios = rel.ios && rel.ios.url ? String(rel.ios.url).trim() : '';
-        if (ios) MP_APP_STORE_URL_IOS = ios;
+        if (ios && isPublicStoreUrl(ios)) MP_APP_STORE_URL_IOS = ios;
       })
       .catch(function () {})
       .then(function () { return { android: MP_APP_STORE_URL_ANDROID, ios: MP_APP_STORE_URL_IOS }; });

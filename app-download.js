@@ -1,11 +1,12 @@
 /**
- * Ссылки на установку Movie Planner: iOS → App Store, Android → APK.
- * На лендинге iPhone сразу уходит в App Store; в профиле — выбор платформы.
+ * Ссылки на установку Movie Planner: iOS → App Store, Android → Google Play.
+ * На лендинге — по устройству; в профиле — выбор платформы.
  */
 (function (global) {
   'use strict';
 
   var MP_IOS_APP_STORE = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+  var MP_ANDROID_PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.movie_planner&hl=ru';
   var _release = null;
   var _releasePromise = null;
 
@@ -22,9 +23,29 @@
     return /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
   }
 
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent || '');
+  }
+
+  function isPublicStoreUrl(url) {
+    var u = String(url || '').toLowerCase();
+    return (
+      u.indexOf('play.google.com') >= 0 ||
+      u.indexOf('rustore.ru') >= 0 ||
+      u.indexOf('apps.apple.com') >= 0 ||
+      u.indexOf('itunes.apple.com') >= 0 ||
+      u.indexOf('testflight.apple.com') >= 0
+    );
+  }
+
   function isPublicIosUrl(url) {
     var u = String(url || '').toLowerCase();
     return u.indexOf('apps.apple.com') >= 0 || u.indexOf('itunes.apple.com') >= 0 || u.indexOf('testflight.apple.com') >= 0;
+  }
+
+  function isPublicAndroidUrl(url) {
+    var u = String(url || '').toLowerCase();
+    return u.indexOf('play.google.com') >= 0 || u.indexOf('rustore.ru') >= 0;
   }
 
   function iosUrl() {
@@ -34,12 +55,9 @@
   }
 
   function androidUrl() {
-    if (_release && _release.url) return _release.url;
-    try {
-      var h = global.location.hostname || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return global.location.protocol + '//' + h + '/download';
-    } catch (_e) {}
-    return 'https://movie-planner.ru/download';
+    var rel = _release && _release.url;
+    if (rel && isPublicAndroidUrl(rel)) return rel;
+    return MP_ANDROID_PLAY_STORE;
   }
 
   function loadRelease() {
@@ -95,7 +113,7 @@
 
   function showPlatformPicker() {
     return loadRelease().then(function () {
-      var androidVer = versionLabel(_release && _release.version_semver, versionLabel(_release && _release.version, 'APK'));
+      var androidVer = versionLabel(_release && _release.version_semver, versionLabel(_release && _release.version, 'Google Play'));
       var iosRaw = _release && _release.ios && (_release.ios.version_semver || _release.ios.version);
       var iosVer = versionLabel(iosRaw, 'App Store');
       var backdrop = document.createElement('div');
@@ -125,11 +143,22 @@
     });
   }
 
+  function bindLandingDownloadLink(a) {
+    if (!a || a.getAttribute('data-mp-dl-bound') === '1') return;
+    a.setAttribute('data-mp-dl-bound', '1');
+    a.addEventListener('click', function (e) {
+      if (isIOS() || isAndroid()) return;
+      e.preventDefault();
+      showPlatformPicker();
+    });
+  }
+
   function wireInstallLinks() {
     loadRelease().then(function () {
       var ios = isIOS();
+      var android = isAndroid();
       var store = iosUrl();
-      var apk = androidUrl();
+      var play = androidUrl();
       document.querySelectorAll('a[href="/download"], a.mp-app-download').forEach(function (a) {
         if (ios) {
           a.setAttribute('href', store);
@@ -138,8 +167,18 @@
           if (/скачать\s+для\s+android/i.test(a.textContent || '')) {
             a.textContent = 'Скачать для iPhone';
           }
-        } else if (!a.getAttribute('href') || a.getAttribute('href') === '/download') {
-          a.setAttribute('href', apk);
+        } else if (android) {
+          a.setAttribute('href', play);
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener');
+          if (/скачать\s+для\s+iphone/i.test(a.textContent || '')) {
+            a.textContent = 'Скачать для Android';
+          }
+        } else {
+          a.setAttribute('href', play);
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener');
+          bindLandingDownloadLink(a);
         }
       });
       var footerIos = document.getElementById('cabinet-footer-ios');
@@ -162,6 +201,7 @@
 
   global.MpAppDownload = {
     isIOS: isIOS,
+    isAndroid: isAndroid,
     iosUrl: iosUrl,
     androidUrl: androidUrl,
     loadRelease: loadRelease,
