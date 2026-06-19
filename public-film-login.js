@@ -64,19 +64,8 @@
     opts = opts || {};
     stopPfBotPoll();
     pfBotDeepLink = deepLink || null;
-    updatePfBotReopenLink(pfBotDeepLink);
-    updatePfBotLoginHint(code);
-    if (botPanel) botPanel.classList.remove('hidden');
     if (opts.openTelegram && deepLink) {
-      var opened = openPfTelegramLink(deepLink, opts.preOpenedWindow || null);
-      if (!opened && global.MpIsIos && global.MpIsIos()) {
-        setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»');
-      } else if (!opened) {
-        setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»', 'error');
-      }
-    }
-    if (statusEl && (!statusEl.textContent || statusEl.textContent === 'Открываем Telegram…')) {
-      setStatus(statusEl, opts.openTelegram ? 'Нажмите Start на ссылке бота' : 'Открываем Telegram…');
+      openPfTelegramLink(deepLink, opts.preOpenedWindow || null);
     }
     pfBotPoll = setInterval(function () {
       pollPfBotOnce(code, statusEl).catch(function () {});
@@ -120,7 +109,6 @@
         if (!checkData.success || !checkData.access) {
           if (checkData.error === 'expired') {
             stopPfBotPoll();
-            setStatus(statusEl, 'Время истекло — нажмите Telegram ещё раз', 'error');
           }
           return false;
         }
@@ -132,26 +120,16 @@
           .then(function (exchangeData) {
             if (exchangeData.success && exchangeData.token) {
               finishLogin(exchangeData);
-              setStatus(statusEl, 'Готово', 'success');
               return true;
             }
-            setStatus(statusEl, exchangeData.error || 'Не удалось создать сессию', 'error');
             return true;
           });
       });
   }
 
-  function updatePfBotReopenLink(url) {
-    var el = $('login-bot-reopen');
-    if (!el) return;
-    if (url) {
-      el.href = url;
-      el.setAttribute('aria-disabled', 'false');
-    } else {
-      el.href = '#';
-      el.setAttribute('aria-disabled', 'true');
-    }
-  }
+  function updatePfBotReopenLink(_url) {}
+
+  function updatePfBotLoginHint(_code) {}
 
   function openPfTelegramLink(url, preOpenedWindow) {
     if (typeof global.MpOpenTelegramLink === 'function') {
@@ -173,25 +151,9 @@
     }
   }
 
-  function updatePfBotLoginHint(code) {
-    var el = $('login-bot-fallback');
-    if (!el) return;
-    if (!code) {
-      el.textContent = '';
-      el.classList.add('hidden');
-      return;
-    }
-    el.textContent = 'Если Start не сработал — отправьте боту: /login ' + code;
-    el.classList.remove('hidden');
-  }
-
   function startPfBotAuth(statusEl, botPanel, preOpenedWindow) {
     stopPfBotPoll();
     pfBotDeepLink = null;
-    updatePfBotReopenLink(null);
-    updatePfBotLoginHint(null);
-    if (botPanel) botPanel.classList.remove('hidden');
-    setStatus(statusEl, 'Открываем Telegram…');
 
     var pref = consumePfBotPrefetch();
     if (pref && pref.code && pref.deep_link) {
@@ -208,7 +170,6 @@
           if (preOpenedWindow && !preOpenedWindow.closed) {
             try { preOpenedWindow.close(); } catch (_e) {}
           }
-          setStatus(statusEl, 'Не удалось начать вход через бота', 'error');
           schedulePfBotPrefetch();
           return;
         }
@@ -219,15 +180,11 @@
           openTelegram: !isIos,
           preOpenedWindow: preOpenedWindow,
         });
-        if (isIos && deepLink) {
-          setStatus(statusEl, 'Нажмите «Открыть бота ещё раз»');
-        }
       })
-      .catch(function (err) {
+      .catch(function () {
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_e) {}
         }
-        setStatus(statusEl, pfNetworkError(err), 'error');
         schedulePfBotPrefetch();
       });
   }
@@ -277,12 +234,6 @@
                 '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
                   '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
                 '</button>' +
-              '</div>' +
-              '<div id="login-bot-panel" class="login-bot-panel hidden">' +
-                '<p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>' +
-                '<p class="login-status" id="login-status"></p>' +
-                '<p class="login-bot-fallback hidden" id="login-bot-fallback"></p>' +
-                '<a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>' +
               '</div>' +
             '</div>' +
             '<div class="login-register-card">' +
@@ -445,25 +396,11 @@
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });
     }
-    var tg = $('login-tg-widget-wrap');
-    var botPanel = $('login-bot-panel');
     if (tg) {
       tg.addEventListener('click', function (e) {
         e.preventDefault();
         if (!privacyOk()) { nudgePrivacy(); return; }
-        startPfBotAuth($('login-status'), botPanel, null);
-      });
-    }
-
-    var botReopen = $('login-bot-reopen');
-    if (botReopen) {
-      botReopen.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (pfBotDeepLink) {
-          openPfTelegramLink(pfBotDeepLink, null);
-          return;
-        }
-        startPfBotAuth($('login-status'), botPanel, null);
+        startPfBotAuth(null, null, null);
       });
     }
 
@@ -659,8 +596,6 @@
       modal.classList.add('hidden');
       modal.setAttribute('aria-hidden', 'true');
     }
-    var botPanel = $('login-bot-panel');
-    if (botPanel) botPanel.classList.add('hidden');
     document.body.style.overflow = '';
   }
 

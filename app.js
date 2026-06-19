@@ -4256,23 +4256,8 @@
     const o = opts || {};
     stopSiteBotAuthPoll();
     _siteBotAuthDeepLink = deepLink || null;
-    updateSiteBotReopenLink(_siteBotAuthDeepLink);
-    updateSiteBotLoginHint(code);
-    if (botPanel) botPanel.classList.remove('hidden');
     if (o.openTelegram && deepLink) {
-      const opened = openTelegramAuthLink(deepLink, o.preOpenedWindow || null);
-      if (!opened && typeof window.MpIsIos === 'function' && window.MpIsIos()) {
-        if (statusEl) {
-          statusEl.textContent = 'Нажмите «Открыть бота ещё раз»';
-          statusEl.className = 'login-status';
-        }
-      } else if (!opened) {
-        try { showToast('Нажмите «Открыть бота ещё раз»', { type: 'error', duration: 4200 }); } catch (_) {}
-      }
-    }
-    if (statusEl && (!statusEl.textContent || statusEl.textContent === 'Открываем Telegram…')) {
-      statusEl.textContent = o.openTelegram ? 'Нажмите Start на ссылке бота' : 'Открываем Telegram…';
-      statusEl.className = 'login-status';
+      openTelegramAuthLink(deepLink, o.preOpenedWindow || null);
     }
     _siteBotAuthPoll = setInterval(function () {
       pollSiteBotAuthOnce(code, modalEl, statusEl).catch(function () {});
@@ -4309,28 +4294,12 @@
     return 'Не удалось начать вход через бота';
   }
 
-  function updateSiteBotReopenLink(url) {
-    const el = document.getElementById('login-bot-reopen');
-    if (!el) return;
-    if (url) {
-      el.href = url;
-      el.setAttribute('aria-disabled', 'false');
-    } else {
-      el.href = '#';
-      el.setAttribute('aria-disabled', 'true');
-    }
-  }
+  function updateSiteBotReopenLink(_url) {}
 
-  function updateSiteBotLoginHint(code) {
-    const el = document.getElementById('login-bot-fallback');
-    if (!el) return;
-    if (!code) {
-      el.textContent = '';
-      el.classList.add('hidden');
-      return;
-    }
-    el.textContent = 'Если Start не сработал — отправьте боту: /login ' + code;
-    el.classList.remove('hidden');
+  function updateSiteBotLoginHint(_code) {}
+
+  function siteBotAuthToast(msg, type) {
+    try { showToast(msg, { type: type || 'error', duration: 3200 }); } catch (_) {}
   }
 
   function stopSiteBotAuthPoll() {
@@ -4349,7 +4318,7 @@
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
         stopSiteBotAuthPoll();
-        if (statusEl) { statusEl.textContent = 'Время истекло — нажмите Telegram ещё раз'; statusEl.className = 'login-status error'; }
+        siteBotAuthToast('Время истекло — нажмите Telegram ещё раз');
       }
       return false;
     }
@@ -4359,7 +4328,7 @@
       body: JSON.stringify({ access: checkData.access }),
     });
     if (!exchangeData.success || !exchangeData.token) {
-      if (statusEl) { statusEl.textContent = exchangeData.error || 'Не удалось создать сессию'; statusEl.className = 'login-status error'; }
+      siteBotAuthToast(exchangeData.error || 'Не удалось создать сессию');
       return true;
     }
     applySiteSessionLogin(
@@ -4373,17 +4342,12 @@
       modalEl,
       statusEl,
     );
-    if (statusEl) { statusEl.textContent = 'Готово'; statusEl.className = 'login-status success'; }
     return true;
   }
 
   async function startSiteBotAuth(modalEl, statusEl, botPanel, preOpenedWindow) {
     stopSiteBotAuthPoll();
     _siteBotAuthDeepLink = null;
-    updateSiteBotReopenLink(null);
-    updateSiteBotLoginHint(null);
-    if (botPanel) botPanel.classList.remove('hidden');
-    if (statusEl) { statusEl.textContent = 'Открываем Telegram…'; statusEl.className = 'login-status'; }
 
     const pref = consumeSiteBotPrefetch();
     if (pref && pref.code && pref.deep_link) {
@@ -4403,10 +4367,7 @@
         if (preOpenedWindow && !preOpenedWindow.closed) {
           try { preOpenedWindow.close(); } catch (_) {}
         }
-        if (statusEl) {
-          statusEl.textContent = siteBotAuthStartErrorMessage(startData);
-          statusEl.className = 'login-status error';
-        }
+        siteBotAuthToast(siteBotAuthStartErrorMessage(startData));
         scheduleSiteBotAuthPrefetch();
         return;
       }
@@ -4417,17 +4378,11 @@
         openTelegram: !isIos,
         preOpenedWindow,
       });
-      if (isIos && deepLink) {
-        if (statusEl) {
-          statusEl.textContent = 'Нажмите «Открыть бота ещё раз»';
-          statusEl.className = 'login-status';
-        }
-      }
     } catch (_) {
       if (preOpenedWindow && !preOpenedWindow.closed) {
         try { preOpenedWindow.close(); } catch (_) {}
       }
-      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'login-status error'; }
+      siteBotAuthToast('Ошибка сети');
       scheduleSiteBotAuthPrefetch();
     }
   }
@@ -4437,7 +4392,6 @@
     const modal = document.getElementById('login-modal');
     const openBtn = document.querySelector('[data-action="login"]');
     const closeElements = document.querySelectorAll('[data-action="close-login"]');
-    const status = document.getElementById('login-status');
 
     function setLoginTab(tabName) {
       const tab = tabName === 'register' ? 'register' : 'login';
@@ -4497,7 +4451,6 @@
         window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
       });
     }
-    const botPanel = document.getElementById('login-bot-panel');
     if (tgWrap) {
       tgWrap.addEventListener('click', (e) => {
         e.preventDefault();
@@ -4507,7 +4460,7 @@
           return;
         }
         rememberAuthReturnPath();
-        startSiteBotAuth(modal, status, botPanel, null);
+        startSiteBotAuth(modal, null, null, null);
       });
     }
 
@@ -4525,22 +4478,7 @@
       if (tryReturnToPublicFilmOnLoginDismiss()) return;
       const landing = document.getElementById('landing');
       if (landing && !getToken()) landing.classList.remove('hidden');
-      const bp = document.getElementById('login-bot-panel');
-      if (bp) bp.classList.add('hidden');
     }));
-
-    const botReopen = document.getElementById('login-bot-reopen');
-    if (botReopen) {
-      botReopen.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (_siteBotAuthDeepLink) {
-          openTelegramAuthLink(_siteBotAuthDeepLink, null);
-          return;
-        }
-        rememberAuthReturnPath();
-        startSiteBotAuth(modal, status, botPanel, null);
-      });
-    }
 
     bindEmailLogin();
   }

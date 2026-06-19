@@ -378,12 +378,6 @@
                 <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
               </button>
             </div>
-            <div id="login-bot-panel" class="login-bot-panel hidden">
-              <p class="login-bot-wait-lead">Откроется Telegram-бот. Нажмите «Start» на ссылке — не пишите /start вручную.</p>
-              <p class="login-status" id="login-status"></p>
-              <p class="login-bot-fallback hidden" id="login-bot-fallback"></p>
-              <a href="#" id="login-bot-reopen" target="_blank" rel="noopener noreferrer" class="modal-button modal-button-secondary login-bot-reopen">Открыть бота ещё раз</a>
-            </div>
           </div>
           <div class="login-register-card">
             <div class="login-register-title">Создать аккаунт</div>
@@ -1812,9 +1806,9 @@
           list.push('cabinet-film-route.js?v=20260618profile1');
         } else if (isStaff) {
           list.push('staff-page.js?v=20260602sitefix5');
-          list.push('cabinet-app.js?v=20260619loginreg1');
+          list.push('cabinet-app.js?v=20260619tgquiet1');
         } else {
-          list.push('cabinet-app.js?v=20260619loginreg1');
+          list.push('cabinet-app.js?v=20260619tgquiet1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
