@@ -4618,7 +4618,7 @@
         try {
           const data = await authApiJson('/api/auth/email/request-code', {
             method: 'POST',
-            body: JSON.stringify({ email, accept_privacy: true, acceptPrivacy: true }),
+            body: JSON.stringify({ email, intent: 'register', accept_privacy: true, acceptPrivacy: true }),
           });
           if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
           if (!data.success) {

@@ -546,7 +546,7 @@
         setStatus($('login-register-status'), '');
         pfFetchJson('/api/auth/email/request-code', {
           method: 'POST',
-          body: JSON.stringify({ email: email, accept_privacy: true, acceptPrivacy: true }),
+          body: JSON.stringify({ email: email, intent: 'register', accept_privacy: true, acceptPrivacy: true }),
         })
           .then(function (d) {
             if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
