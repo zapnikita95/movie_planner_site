@@ -10571,8 +10571,9 @@ body.header-search-dropdown-open #public-stats {
 .staff-film-media { position: relative; }
 .staff-film-poster {
   width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 12px;
-  background: rgba(255,255,255,.08); display: block; transition: transform .12s ease;
+  background: #120818; display: block; transition: transform .12s ease;
 }
+.staff-film-poster.mp-poster-placeholder { object-fit: cover; }
 .staff-film-ph { display: flex; align-items: center; justify-content: center; font-size: 28px; }
 .staff-film-rating {
   position: absolute; right: 6px; top: 6px; z-index: 2;

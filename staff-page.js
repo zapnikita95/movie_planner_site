@@ -14,6 +14,7 @@
   })();
 
   var PERSON_FILMS_PREVIEW = 20;
+  var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
   var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
@@ -131,6 +132,22 @@
     );
   }
 
+  function cleanStaffPoster(src) {
+    var s = String(src || '').trim();
+    if (!s || /no-poster|kinopoiskapiunofficial|film-poster-placeholder/i.test(s)) return '';
+    return s;
+  }
+
+  function staffFilmPosterHtml(poster) {
+    var p = cleanStaffPoster(poster);
+    var src = p || MP_POSTER_PLACEHOLDER;
+    var phCls = p ? '' : ' mp-poster-placeholder';
+    return (
+      '<img class="staff-film-poster' + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+      'onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+    );
+  }
+
   function filmGridHtml(films, roleKey) {
     var all = films || [];
     if (!all.length) return '';
@@ -139,9 +156,7 @@
     var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       if (!kp) return '';
-      var poster = f.poster
-        ? '<img class="staff-film-poster" src="' + escapeHtml(f.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
-        : '<div class="staff-film-poster staff-film-ph">🎬</div>';
+      var poster = staffFilmPosterHtml(f.poster);
       var rating = f.rating != null && !isNaN(Number(f.rating))
         ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
         : '';

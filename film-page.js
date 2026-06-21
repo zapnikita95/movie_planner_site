@@ -48,6 +48,50 @@
     return s;
   }
 
+  var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
+
+  function resolveFilmPosterDisplay(posterUrl) {
+    return cleanPosterUrl(posterUrl) || MP_POSTER_PLACEHOLDER;
+  }
+
+  function setFilmHeroBackdrop(posterUrl) {
+    var display = resolveFilmPosterDisplay(posterUrl);
+    try {
+      document.documentElement.style.setProperty('--film-backdrop', 'url("' + display.replace(/"/g, '\\"') + '")');
+    } catch (_e) {}
+  }
+
+  function applyFilmPosterEl(posterUrl) {
+    var display = resolveFilmPosterDisplay(posterUrl);
+    var pEl = document.getElementById('poster');
+    if (pEl) {
+      pEl.src = display;
+      pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
+      pEl.onerror = function () {
+        if (global.mpPosterOnError) global.mpPosterOnError(this);
+        else { this.onerror = null; this.src = MP_POSTER_PLACEHOLDER; this.classList.add('mp-poster-placeholder'); }
+      };
+      var wrap = pEl.closest('.poster-wrap');
+      if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display.indexOf('film-poster-placeholder') >= 0);
+    }
+    setFilmHeroBackdrop(posterUrl);
+  }
+
+  try {
+    if (!global.mpPosterOnError) {
+      global.mpPosterOnError = function (img) {
+        if (!img || img.dataset.mpPosterFailed === '1') return;
+        img.onerror = null;
+        img.dataset.mpPosterFailed = '1';
+        img.src = MP_POSTER_PLACEHOLDER;
+        img.classList.add('mp-poster-placeholder');
+        var wrap = img.closest('.poster-wrap');
+        if (wrap) wrap.classList.add('film-poster-has-placeholder');
+        setFilmHeroBackdrop('');
+      };
+    }
+  } catch (_mpPh) {}
+
   function isFilmDescPlaceholder(text) {
     var s = String(text || '').trim().toLowerCase();
     if (!s) return true;
@@ -771,12 +815,14 @@
   }
 
   function buildFilmMainInnerHtml(kpId, poster) {
+    var posterSrc = resolveFilmPosterDisplay(poster);
+    var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
     return (
       '<section class="hero film-hero-with-tag">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
-        '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
+        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="eyebrow" id="chips"></div>' +
@@ -826,6 +872,7 @@
     var year = boot.year ? ' (' + boot.year + ')' : '';
     pageRoot.className = 'movie-page';
     pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, bootPoster);
+    setFilmHeroBackdrop(bootPoster);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
@@ -875,7 +922,7 @@
           localStorage.removeItem('mp_site_token');
         }
       } catch (_e) {}
-      var poster = 'https://st.kp.yandex.net/images/film_big/' + kpId + '.jpg';
+      var poster = MP_POSTER_PLACEHOLDER;
       var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent('film_' + kpId);
       var apiBase = opts.apiBase || API_BASE;
       var pageUrl = (opts.pageUrl || (window.location.origin + '/f/' + kpId));
@@ -886,7 +933,7 @@
       ];
 
       document.title = 'Фильм · Movie Planner';
-      document.documentElement.style.setProperty('--film-backdrop', 'url("' + poster + '")');
+      setFilmHeroBackdrop('');
       try {
         document.documentElement.classList.remove('mp-route-pending');
         document.documentElement.classList.add('mp-route-ready');
@@ -925,7 +972,7 @@
               '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
                 (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
               '</button>' +
-              '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
+              '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
@@ -1430,12 +1477,7 @@
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series);
-          var apiPoster = cleanPosterUrl(f.poster_url);
-          if (apiPoster) {
-            var pEl = document.getElementById('poster');
-            if (pEl) pEl.src = apiPoster;
-            document.documentElement.style.setProperty('--film-backdrop', 'url("' + apiPoster.replace(/"/g, '\\"') + '")');
-          }
+          applyFilmPosterEl(f.poster_url);
           setOgFromFilm(f, title);
           setFilmJsonLd(f);
           if (f.seo_body_html) {
