@@ -158,17 +158,18 @@
           } catch (_) {}
         } catch (_) {}
       })();
-      // /home и /premieres — гостевой кабинет без мелькания лендинга
+      // /, /home и /premieres — гостевой кабинет без мелькания лендинга
       (function () {
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/home' && path !== '/premieres') return;
+          if (path !== '/' && path !== '/index.html' && path !== '/home' && path !== '/premieres') return;
           function paintGuestCabinetDeep() {
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
             var cabinet = document.getElementById('cabinet-readonly');
             if (cabinet) cabinet.classList.remove('hidden');
             document.body.classList.add('in-cabinet');
+            document.body.classList.add('guest-cabinet-preview');
             var sectionId = path === '/premieres' ? 'premieres' : 'home';
             document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (el) {
               el.classList.add('hidden');
@@ -181,9 +182,14 @@
             });
             if (sectionId === 'home') {
               var topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
-              if (topbar) topbar.classList.remove('hidden');
+              if (topbar) topbar.classList.add('hidden');
               var ro = document.getElementById('cabinet-readonly');
               if (ro) ro.classList.add('cabinet-home-root');
+            }
+            if (path === '/' || path === '/index.html') {
+              try {
+                history.replaceState({ section: 'home' }, '', '/home' + (window.location.search || '') + (window.location.hash || ''));
+              } catch (_) {}
             }
           }
           if (document.readyState === 'loading') {
@@ -631,17 +637,7 @@
           <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
           <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
         </div>
-        <nav class="mp-guest-cabinet-nav mp-landing-guest-nav" aria-label="Разделы кабинета">
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="home">Главная</button>
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="plans">Планы</button>
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="unwatched">База</button>
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="whattowatch">Смотреть</button>
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="premieres">Премьеры</button>
-          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="tournament">Турнир</button>
-        </nav>
       </section>
-
-      <!-- LP_PREMIERES_INJECT -->
 
       <section>
         <div class="what-is-v2">
@@ -2026,12 +2022,11 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260617i18nfix3',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260617seriesfix1',
-          'landing-premiere-carousel.js?v=20260617prem1'
+          'home-rails.js?v=20260617seriesfix1'
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621regoauth1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621homeguest1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2041,9 +2036,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260621perf1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621regoauth1');
+          list.push('cabinet-app.js?v=20260621homeguest1');
         } else {
-          list.push('cabinet-app.js?v=20260621regoauth1');
+          list.push('cabinet-app.js?v=20260621homeguest1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

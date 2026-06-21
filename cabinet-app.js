@@ -234,28 +234,68 @@
     } catch (_) {}
   }
 
-  function bindLandingGuestNav() {
-    if (window._mpLandingGuestNavBound) return;
-    window._mpLandingGuestNavBound = true;
-    document.querySelectorAll('.mp-landing-guest-nav .mp-guest-cabinet-nav-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var sec = btn.getAttribute('data-guest-section') || 'home';
-        if (getToken()) {
-          var paths = { home: '/home', plans: '/plans', unwatched: '/base', whattowatch: '/watch', premieres: '/premieres', tournament: '/tournament' };
-          window.location.href = paths[sec] || '/home';
-          return;
+  function showGuestHomeScreen() {
+    try {
+      const qs = window.location.search || '';
+      const hash = window.location.hash || '';
+      history.replaceState({ section: 'home' }, '', '/home' + qs + hash);
+    } catch (_) {}
+    if (bootGuestCabinetPreview('home')) {
+      renderHeader(null);
+      handleAuthEntryDeepLinks();
+      try {
+        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+          window.MpCollectionsPage.showGuestPromo();
         }
-        if (sec === 'home') {
-          window.location.href = '/home';
-          return;
-        }
-        if (sec === 'premieres') {
-          window.location.href = '/premieres';
-          return;
-        }
-        requireAuthForAction();
-      });
-    });
+      } catch (_) {}
+      return true;
+    }
+    showScreen('landing');
+    renderHeader(null);
+    handleAuthEntryDeepLinks();
+    try {
+      if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
+        window.MpCollectionsPage.showGuestPromo();
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /** Гость: /, /home и /premieres — кабинет с cabinet-nav, без topbar «Профиль». */
+  function bootGuestCabinetPreview(sectionId) {
+    try {
+      if (getToken() || !document.getElementById('landing')) return false;
+      if (isSearchLocation()) return false;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && /^\d+$/.test(pathKp)) return false;
+      if (staffIdFromPathname(window.location.pathname)) return false;
+
+      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      let sec = sectionId || sectionFromPath(bootPath) || 'home';
+      if (sec !== 'home' && sec !== 'premieres') return false;
+      const isRoot = bootPath === '/' || bootPath === '/index.html';
+      if (isRoot) {
+        try {
+          history.replaceState({ section: 'home' }, '', '/home' + (window.location.search || '') + (window.location.hash || ''));
+        } catch (_) {}
+        sec = 'home';
+      } else if (bootPath !== '/home' && bootPath !== '/premieres') {
+        return false;
+      }
+
+      document.body.classList.add('guest-cabinet-preview');
+      document.body.classList.remove('login-only-overlay');
+      showScreen('cabinet-readonly');
+      renderHeader(null);
+      const topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
+      if (topbar) topbar.classList.add('hidden');
+      _cabinetNavBootstrapped = true;
+      showSection(sec, { skipPush: true, replace: true });
+      afterCabinetSectionShown(sec);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   function tryOpenLoginOnlyOverlay() {
@@ -550,35 +590,6 @@
         try { loadUnwatched(); } catch (_) {}
         scheduleSiteOnboardingAfterCabinet();
       }
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /** Гость: /home и /premieres — кабинет с навигацией и публичными каруселями, без topbar «Профиль». */
-  function bootGuestCabinetPreview(sectionId) {
-    try {
-      if (getToken() || !document.getElementById('landing')) return false;
-      if (isSearchLocation()) return false;
-      const pathKp = kpIdFromPathname(window.location.pathname);
-      if (pathKp && /^\d+$/.test(pathKp)) return false;
-      if (staffIdFromPathname(window.location.pathname)) return false;
-
-      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      let sec = sectionId || sectionFromPath(bootPath) || 'home';
-      if (sec !== 'home' && sec !== 'premieres') return false;
-      if (bootPath !== '/home' && bootPath !== '/premieres') return false;
-
-      document.body.classList.add('guest-cabinet-preview');
-      document.body.classList.remove('login-only-overlay');
-      showScreen('cabinet-readonly');
-      renderHeader(null);
-      const topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
-      if (topbar) topbar.classList.add('hidden');
-      _cabinetNavBootstrapped = true;
-      showSection(sec, { skipPush: true, replace: true });
-      afterCabinetSectionShown(sec);
       return true;
     } catch (_) {
       return false;
@@ -5162,9 +5173,7 @@
           redirectToPublicStaffPage(failStaff);
           return;
         }
-        showScreen('landing');
-        renderHeader(null);
-        handleAuthEntryDeepLinks();
+        showGuestHomeScreen();
         try {
           if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
             window.MpCollectionsPage.showGuestPromo();
@@ -5240,14 +5249,7 @@
         redirectToPublicStaffPage(failStaff);
         return;
       }
-      showScreen('landing');
-      renderHeader(null);
-      handleAuthEntryDeepLinks();
-      try {
-        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-          window.MpCollectionsPage.showGuestPromo();
-        }
-      } catch (_) {}
+      showGuestHomeScreen();
     });
   }
 
@@ -15685,7 +15687,7 @@
           bootAuthenticatedCabinetShell();
           loadMeAndShowCabinet();
         } else {
-          showScreen('landing');
+          showGuestHomeScreen();
         }
       }
     });
@@ -15699,7 +15701,6 @@
     bindHeaderSearch();
     bindPlansGotoOnce();
     bindHomeSectionNavOnce();
-    bindLandingGuestNav();
     bindHomeDashboardFilmNavOnce();
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
@@ -15877,7 +15878,7 @@
         redirectToPublicStaffPage(pathStaffLogout);
         return;
       }
-      showScreen('landing');
+      showGuestHomeScreen();
     });
 
     if (!isPublicStats) {
@@ -15918,26 +15919,12 @@
             loadMeAndShowCabinet();
           } else {
             localStorage.removeItem('mp_site_token');
-            showScreen('landing');
-            renderHeader(null);
-            handleAuthEntryDeepLinks();
-            try {
-              if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-                window.MpCollectionsPage.showGuestPromo();
-              }
-            } catch (_) {}
+            showGuestHomeScreen();
           }
         })
         .catch(() => {
           localStorage.removeItem('mp_site_token');
-          showScreen('landing');
-          renderHeader(null);
-          handleAuthEntryDeepLinks();
-          try {
-            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-              window.MpCollectionsPage.showGuestPromo();
-            }
-          } catch (_) {}
+          showGuestHomeScreen();
         });
       return;
     }
@@ -15999,14 +15986,7 @@
         handleAuthEntryDeepLinks();
         return;
       }
-      showScreen('landing');
-      renderHeader(null);
-      handleAuthEntryDeepLinks();
-      try {
-        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-          window.MpCollectionsPage.showGuestPromo();
-        }
-      } catch (_) {}
+      showGuestHomeScreen();
     }
     }
 
