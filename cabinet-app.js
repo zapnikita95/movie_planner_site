@@ -82,6 +82,7 @@
   })();
 
   const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.svg';
+  const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.svg';
 
   function mpPosterOnErrorAttr() {
     return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';
@@ -136,6 +137,25 @@
     return s;
   }
 
+  function isGuestCabinetPreview() {
+    return cabinetReadonlyActive() && !getToken();
+  }
+
+  const GUEST_CABINET_SECTIONS = { home: true, premieres: true };
+
+  function guestMayOpenCabinetSection(sectionId) {
+    if (!isGuestCabinetPreview()) return true;
+    if (sectionId === 'tournament') return false;
+    return !!GUEST_CABINET_SECTIONS[sectionId];
+  }
+
+  function requireAuthForAction(hint) {
+    if (getToken()) return true;
+    if (hint) try { showToast(hint); } catch (_) {}
+    showLoginModalOverlay();
+    return false;
+  }
+
   function showLoginModalOverlay() {
     try {
       document.body.classList.add('login-only-overlay');
@@ -147,6 +167,13 @@
         modal.setAttribute('aria-hidden', 'false');
       }
       scheduleSiteBotAuthPrefetch();
+    } catch (_) {}
+  }
+
+  function dismissStaffHoverPreview() {
+    try {
+      const hoverEl = document.getElementById('staff-hover-preview');
+      if (hoverEl) hoverEl.classList.add('hidden');
     } catch (_) {}
   }
 
@@ -561,11 +588,18 @@
     if (!pageRoot) return Promise.resolve();
     _filmModalCurrentId = null;
     _staffPageKpId = null;
+    dismissStaffHoverPreview();
     try {
       const path = '/f/' + kp;
       if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
       else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
     } catch (_) {}
+    const bootFilm = filmFromRouteBoot(kp);
+    const hasHero = !!(pageRoot.querySelector('.film-hero-with-tag') && bootFilm && !isGenericFilmTitle(bootFilm.title));
+    if (!hasHero) {
+      pageRoot.className = 'movie-page loading';
+      pageRoot.innerHTML = pageLoadingHtml();
+    }
     return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -574,6 +608,18 @@
           return;
         }
         const film = mapPublicFilmForHero(data.film, kp);
+        const desc = pickFilmDescription(film);
+        if (desc) {
+          try {
+            document.title = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '') + ' · Movie Planner';
+          } catch (_) {}
+          renderFilmDetailHero(film, [], [], { user_id: cabinetUserId }, pageRoot, {
+            inBase: false,
+            pendingAction: o.action || '',
+          });
+          try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) {}
+          return;
+        }
         return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
           try {
             document.title = (enriched.title || 'Фильм') + (enriched.year ? ' (' + enriched.year + ')' : '') + ' · Movie Planner';
@@ -3176,22 +3222,42 @@
       document.body.appendChild(hoverEl);
     }
     let hoverTimer = null;
-    let hoverKp = null;
+    let activeLink = null;
 
     function hidePreview() {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+      activeLink = null;
       hoverEl.classList.add('hidden');
-      hoverKp = null;
     }
 
-    function showPreviewPhoto(kp, img) {
-      if (!kp) return;
-      img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+    function showPreviewPhoto(link, img) {
+      const custom = (link.getAttribute('data-staff-photo') || '').trim();
+      img.onerror = function () {
+        img.src = MP_PERSON_PLACEHOLDER;
+        img.onerror = null;
+      };
+      if (custom) {
+        img.src = custom;
+        img.style.display = 'block';
+        return;
+      }
+      img.src = MP_PERSON_PLACEHOLDER;
       img.style.display = 'block';
-      img.onerror = function () { img.style.display = 'none'; };
+    }
+
+    if (!window._mpStaffHoverGlobalBound) {
+      window._mpStaffHoverGlobalBound = true;
+      document.addEventListener('scroll', hidePreview, { passive: true, capture: true });
+      window.addEventListener('popstate', hidePreview);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') hidePreview();
+      });
     }
 
     root.querySelectorAll('.staff-cast-link').forEach(function (link) {
       link.addEventListener('click', function (e) {
+        hidePreview();
         if (opts.allowNativeNav) return;
         e.preventDefault();
         const kp = link.getAttribute('data-staff-kp');
@@ -3203,20 +3269,21 @@
         const nm = link.getAttribute('data-staff-name') || link.textContent || '';
         clearTimeout(hoverTimer);
         hoverTimer = setTimeout(function () {
-          hoverKp = kp;
+          activeLink = link;
           hoverEl.querySelector('.staff-hover-name').textContent = nm;
           const img = hoverEl.querySelector('.staff-hover-photo');
-          img.style.display = 'none';
           img.removeAttribute('src');
           hoverEl.classList.remove('hidden');
           hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
           hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
-          showPreviewPhoto(kp, img);
+          showPreviewPhoto(link, img);
         }, 180);
       });
       link.addEventListener('mouseleave', function () {
         clearTimeout(hoverTimer);
-        hidePreview();
+        hoverTimer = setTimeout(function () {
+          if (activeLink === link) hidePreview();
+        }, 120);
       });
     });
   }
@@ -3225,7 +3292,8 @@
     if (!entry || entry.kp_person_id == null) return '';
     const nm = escapeHtml(entry.name_ru || entry.name_en || '');
     const kp = String(entry.kp_person_id);
-    return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '">' + nm + '</a>';
+    const photo = entry.photo ? (' data-staff-photo="' + escapeHtml(String(entry.photo)) + '"') : '';
+    return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '"' + photo + '>' + nm + '</a>';
   }
 
   function buildFilmCastHtml(director, actors, country) {
@@ -3244,14 +3312,15 @@
     const actorLinks = (actors || []).map(staffCastLink).filter(Boolean);
     if (actorLinks.length) {
       const collapsed = actorLinks.slice(0, FILM_CAST_ACTORS_COLLAPSED);
-      const hasMore = actorLinks.length > FILM_CAST_ACTORS_COLLAPSED;
+      const hiddenActors = actorLinks.slice(FILM_CAST_ACTORS_COLLAPSED);
+      const hasMore = hiddenActors.length > 0;
       let row =
         '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
       if (hasMore) {
         row +=
           '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>' +
           '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
-          actorLinks.slice(FILM_CAST_ACTORS_COLLAPSED).join('<span class="film-cast-sep">, </span>') + '</span>' +
+          hiddenActors.join('<span class="film-cast-sep">, </span>') + '</span>' +
           ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
       } else {
         row += actorLinks.join('<span class="film-cast-sep">, </span>');
@@ -3427,6 +3496,7 @@
 
   function openStaffPage(kpId, opts) {
     const o = opts || {};
+    dismissStaffHoverPreview();
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
     const pageRoot = document.getElementById('film-page-content');
@@ -3565,6 +3635,7 @@
 
   function showSection(sectionId, opts) {
     const options = opts || {};
+    dismissStaffHoverPreview();
     try { closeAccountDropdown(); } catch (_) {}
     try { closeHeaderInboxDropdown(); } catch (_) {}
     const prevSection = visibleCabinetSectionId();
@@ -5463,6 +5534,7 @@
   const _homeRailMounted = new WeakSet();
 
   function mountHomeDashboardRails() {
+    if (isGuestCabinetPreview()) return;
     if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
@@ -5811,9 +5883,10 @@
     const order = loadHomeSectionsOrder();
     const hidden = loadHomeSectionsHidden();
     let html = '';
-    order.forEach((bid) => {
+    const blockOrder = isGuestCabinetPreview() ? ['premieres'] : order;
+    blockOrder.forEach((bid) => {
       if (bid === 'tournament') return;
-      if (hidden.indexOf(bid) >= 0) return;
+      if (hidden.indexOf(bid) >= 0 && !isGuestCabinetPreview()) return;
       html += renderHomeBlockHtml(bid);
     });
     if (!html.trim()) {
@@ -5837,7 +5910,22 @@
     });
   }
 
+  function fetchPublicPremieresForDisplay(period) {
+    const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : period;
+    return fetch(getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36', { method: 'GET', mode: 'cors' })
+      .then((r) => r.json())
+      .then((data) => {
+        let items = (data && data.success && data.items) ? data.items.slice() : [];
+        items = filterPremieresUpcomingMsk(items);
+        items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
+        return { items: items, rollover: false };
+      });
+  }
+
   function fetchPremieresForDisplay(period) {
+    if (!getToken()) {
+      return fetchPublicPremieresForDisplay(period);
+    }
     if (period === 'next_month') {
       const apiPeriod = _premieresRolloverActive ? 'after_next_month' : 'next_month';
       return api('/api/site/premieres?period=' + encodeURIComponent(apiPeriod)).then((data) => {
@@ -5880,13 +5968,17 @@
     if (!hadBlocks) root.innerHTML = pageLoadingHtml();
     applyHomeEmojiVisibility();
 
-    Promise.all([
-      fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
-      api('/api/miniapp/dashboard', { timeoutMs: 25000 }).catch(() => null),
-    ])
+    Promise.all(
+      isGuestCabinetPreview()
+        ? [fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false }))]
+        : [
+            fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
+            api('/api/miniapp/dashboard', { timeoutMs: 25000 }).catch(() => null),
+          ]
+    )
       .then((pair) => {
         const prem = pair[0];
-        const dashData = pair[1];
+        const dashData = isGuestCabinetPreview() ? null : pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         _homeDashboardCache = dashData && dashData.success ? dashData : null;
@@ -6107,6 +6199,13 @@
   function renderTournamentSection() {
     const root = document.getElementById('tournament-page-root');
     if (!root) return;
+    if (isGuestCabinetPreview()) {
+      root.innerHTML = '<div class="cabinet-hint">Войдите, чтобы участвовать в турнире и смотреть таблицу.</div>'
+        + '<button type="button" class="btn btn-primary" style="margin-top:12px" id="guest-tournament-login">Войти</button>';
+      const btn = document.getElementById('guest-tournament-login');
+      if (btn) btn.addEventListener('click', function () { requireAuthForAction(); });
+      return;
+    }
     const periodKind = _siteTournamentPeriodKind || tournamentDefaultPeriodKindSite();
 
     function showError(hint) {
@@ -6217,6 +6316,14 @@
       e.preventDefault();
       const sec = t.getAttribute('data-home-show-section');
       if (!sec) return;
+      if (isGuestCabinetPreview() && sec === 'tournament') {
+        requireAuthForAction('Войдите, чтобы участвовать в турнире');
+        return;
+      }
+      if (!guestMayOpenCabinetSection(sec)) {
+        requireAuthForAction('Войдите, чтобы открыть этот раздел');
+        return;
+      }
       markCabinetUserNav(sec);
       showSection(sec);
       afterCabinetSectionShown(sec);
@@ -6574,6 +6681,7 @@
         e.preventDefault();
         const action = act.getAttribute('data-plans-action');
         if (action === 'open-add-film') {
+          if (!requireAuthForAction('Войдите, чтобы добавить фильм в базу')) return;
           openAddFilmModal();
           return;
         }
@@ -9954,7 +10062,7 @@
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
-    const poster = cleanPosterUrl(film.poster_url) || posterUrl(film.kp_id);
+    const poster = cleanPosterUrl(film.poster_url) || posterUrl(film.kp_id) || MP_POSTER_PLACEHOLDER;
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
@@ -9984,9 +10092,7 @@
           (window.MPIcons ? window.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
-          (poster
-            ? '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" onerror="this.style.opacity=.22">'
-            : '<div class="poster poster-empty">🎬</div>') +
+          '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>' +
         '</div>' +
         '<div class="hero-content">' +
           '<h1>' + escapeHtml(titleText) + '</h1>' +
@@ -10897,7 +11003,7 @@
     );
     const showSecondary = secondary && secondary !== primary;
     const prof = escapeHtml(String(p.professions || '').slice(0, 80));
-    const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg');
+    const photo = cleanPosterUrl(p.photo) || MP_PERSON_PLACEHOLDER;
     return '<a class="site-search-person-card" href="/s/' + pid + '">'
       + siteSearchPosterHtml(photo, 'site-search-person-photo')
       + '<span class="site-search-person-copy"><span class="site-search-person-name">' + primary + '</span>'
@@ -10916,9 +11022,34 @@
     return '<div class="site-search-results-loading">' + siteSearchLoadingHtml() + '</div>';
   }
 
+  const SITE_SEARCH_PERSONS_VISIBLE = 4;
+
   function siteSearchPersonsBlockHtml(persons) {
     if (!persons || !persons.length) return '';
-    return persons.map(siteSearchPersonCardHtml).join('');
+    const cards = persons.map(siteSearchPersonCardHtml);
+    const hasMore = cards.length > SITE_SEARCH_PERSONS_VISIBLE;
+    let html = '<div class="site-search-persons-grid">';
+    html += cards.slice(0, SITE_SEARCH_PERSONS_VISIBLE).join('');
+    if (hasMore) {
+      html += '<div class="site-search-persons-more hidden">' + cards.slice(SITE_SEARCH_PERSONS_VISIBLE).join('') + '</div>';
+      html += '<button type="button" class="site-search-persons-expand-btn" aria-expanded="false">Развернуть</button>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function bindSiteSearchPersonsExpand(root) {
+    if (!root) return;
+    const btn = root.querySelector('.site-search-persons-expand-btn');
+    const more = root.querySelector('.site-search-persons-more');
+    if (!btn || !more || btn._mpBound) return;
+    btn._mpBound = true;
+    btn.addEventListener('click', () => {
+      const open = more.classList.contains('hidden');
+      more.classList.toggle('hidden', !open);
+      btn.textContent = open ? 'Свернуть' : 'Развернуть';
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
   }
 
   function siteSearchResultCardHtml(it) {
@@ -10926,9 +11057,8 @@
     const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
     const year = it.year && String(it.year) !== 'null' ? String(it.year) : '—';
     const kpAttr = escapeHtml(String(it.kp_id || ''));
-    const img = poster
-      ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
-      : '';
+    const imgSrc = poster || MP_POSTER_PLACEHOLDER;
+    const img = '<img src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
     const body = '<div class="home-poster-tile-img">' + img + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
@@ -11267,7 +11397,7 @@
     if (personsEl) personsEl.innerHTML = '';
     if (personsSection) personsSection.classList.add('hidden');
     if (filmsLabel) filmsLabel.classList.add('hidden');
-    results.innerHTML = siteSearchResultsLoadingHtml();
+    results.innerHTML = '';
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
     } catch (_) {}
@@ -11298,7 +11428,10 @@
         const items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
         const total = persons.length + items.length;
         if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
-        if (personsEl) personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
+        if (personsEl) {
+          personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
+          bindSiteSearchPersonsExpand(personsEl);
+        }
         if (personsSection) personsSection.classList.toggle('hidden', !persons.length);
         if (filmsLabel) filmsLabel.classList.toggle('hidden', !items.length);
         results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
@@ -15371,6 +15504,14 @@
     document.querySelectorAll('.cabinet-nav [data-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sectionId = btn.getAttribute('data-section');
+        if (isGuestCabinetPreview() && sectionId === 'tournament') {
+          requireAuthForAction('Войдите, чтобы участвовать в турнире');
+          return;
+        }
+        if (!guestMayOpenCabinetSection(sectionId)) {
+          requireAuthForAction('Войдите, чтобы открыть этот раздел');
+          return;
+        }
         markCabinetUserNav(sectionId);
         showSection(sectionId);
         if (sectionId === 'tv') {

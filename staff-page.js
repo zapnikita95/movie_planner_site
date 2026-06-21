@@ -296,6 +296,45 @@
     );
   }
 
+  function guestCabinetNavHtml() {
+    var items = [
+      ['home', 'Главная'],
+      ['plans', 'Планы'],
+      ['unwatched', 'База'],
+      ['whattowatch', 'Смотреть'],
+      ['premieres', 'Премьеры'],
+      ['tournament', 'Турнир'],
+    ];
+    return '<nav class="mp-guest-cabinet-nav" aria-label="Разделы кабинета">'
+      + items.map(function (pair) {
+        return '<button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="' + pair[0] + '">' + pair[1] + '</button>';
+      }).join('')
+      + '</nav>';
+  }
+
+  function bindGuestCabinetNav() {
+    document.querySelectorAll('.mp-guest-cabinet-nav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = btn.getAttribute('data-guest-section') || 'home';
+        if (mpToken()) {
+          var paths = { home: '/', plans: '/plans', unwatched: '/base', whattowatch: '/watch', premieres: '/premieres', tournament: '/tournament' };
+          global.location.href = paths[sec] || '/';
+          return;
+        }
+        if (sec === 'premieres') {
+          global.location.href = '/premieres';
+          return;
+        }
+        if (sec === 'home') {
+          global.location.href = '/';
+          return;
+        }
+        if (_staffLoginNow) _staffLoginNow(sec);
+        else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + _staffPersonId);
+      });
+    });
+  }
+
   function renderStaffShell(personId) {
     _staffPersonId = personId;
     document.title = 'Персона · Movie Planner';
@@ -316,6 +355,7 @@
             '</div>' +
           '</div>' +
         '</header>' +
+        guestCabinetNavHtml() +
         (global.MpFilmPage && MpFilmPage.appOpenBannerHtml ? MpFilmPage.appOpenBannerHtml() : '') +
         '<main class="movie-page staff-standalone-main">' +
           '<div class="staff-page-content" id="staff-root">' + staffBootHeroHtml() + '</div>' +
@@ -352,6 +392,7 @@
     } else if (global.MpFilmPage && MpFilmPage.setupAppOpenBanner) {
       MpFilmPage.setupAppOpenBanner({ id: personId, kind: 'person' });
     }
+    bindGuestCabinetNav();
   }
 
   function applyStaffSeoFromApi(staffPayload) {

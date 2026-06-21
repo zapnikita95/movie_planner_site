@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360" role="img" aria-label="Movie Planner">
+  <defs>
+    <linearGradient id="mp-person-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#120818"/>
+      <stop offset="100%" stop-color="#1a0f24"/>
+    </linearGradient>
+    <linearGradient id="mp-person-neon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2d7b"/>
+      <stop offset="55%" stop-color="#9b4dff"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+    <radialGradient id="mp-person-glow" cx="50%" cy="42%" r="46%">
+      <stop offset="0%" stop-color="#9b4dff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="360" height="360" rx="180" fill="url(#mp-person-bg)"/>
+  <rect width="360" height="360" rx="180" fill="url(#mp-person-glow)"/>
+  <circle cx="180" cy="132" r="52" fill="none" stroke="url(#mp-person-neon)" stroke-width="5"/>
+  <path d="M92 286c16-54 56-82 88-82s72 28 88 82" fill="none" stroke="url(#mp-person-neon)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="180" cy="132" r="28" fill="rgba(255,255,255,0.05)"/>
+</svg>

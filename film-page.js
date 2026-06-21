@@ -1172,7 +1172,8 @@
         });
         if (!nm) return '';
         var kp = String(entry.kp_person_id);
-        return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + kp + '" data-staff-name="' + nm + '">' + nm + '</a>';
+        var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
+        return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + kp + '" data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
@@ -1188,11 +1189,12 @@
         var links = (actors || []).map(castPersonLink).filter(Boolean);
         if (!links.length) return parts.join('');
         var collapsed = links.slice(0, CAST_VISIBLE);
+        var hiddenLinks = links.slice(CAST_VISIBLE);
         var row = '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
-        if (links.length > CAST_VISIBLE) {
+        if (hiddenLinks.length) {
           row += '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>';
           row += '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
-            links.slice(CAST_VISIBLE).join('<span class="film-cast-sep">, </span>') + '</span>';
+            hiddenLinks.join('<span class="film-cast-sep">, </span>') + '</span>';
           row += ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
         } else {
           row += links.join('<span class="film-cast-sep">, </span>');
@@ -1212,36 +1214,43 @@
           document.body.appendChild(hoverEl);
         }
         var hoverTimer = null;
-        var hoverKp = null;
+        var activeLink = null;
+        var PERSON_PH = '/images/person-avatar-placeholder.svg';
         function hidePreview() {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+          activeLink = null;
           hoverEl.classList.add('hidden');
-          hoverKp = null;
+        }
+        if (!window._mpStaffHoverGlobalBound) {
+          window._mpStaffHoverGlobalBound = true;
+          document.addEventListener('scroll', hidePreview, { passive: true, capture: true });
+          window.addEventListener('popstate', hidePreview);
         }
         root.querySelectorAll('.staff-cast-link').forEach(function (link) {
           link.addEventListener('mouseenter', function (e) {
             if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
-            var kp = link.getAttribute('data-staff-kp');
             var nm = link.getAttribute('data-staff-name') || link.textContent || '';
             clearTimeout(hoverTimer);
             hoverTimer = setTimeout(function () {
-              hoverKp = kp;
+              activeLink = link;
               hoverEl.querySelector('.staff-hover-name').textContent = nm;
               var img = hoverEl.querySelector('.staff-hover-photo');
-              img.style.display = 'none';
               img.removeAttribute('src');
               hoverEl.classList.remove('hidden');
               hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
               hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
-              if (kp) {
-                img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
-                img.style.display = 'block';
-                img.onerror = function () { img.style.display = 'none'; };
-              }
+              var custom = (link.getAttribute('data-staff-photo') || '').trim();
+              img.onerror = function () { img.src = PERSON_PH; img.onerror = null; };
+              img.src = custom || PERSON_PH;
+              img.style.display = 'block';
             }, 180);
           });
           link.addEventListener('mouseleave', function () {
             clearTimeout(hoverTimer);
-            hidePreview();
+            hoverTimer = setTimeout(function () {
+              if (activeLink === link) hidePreview();
+            }, 120);
           });
         });
         var moreBtn = root.querySelector('.film-actors-more-btn');

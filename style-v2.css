@@ -10123,10 +10123,67 @@ body.site-search-sheet-open { overflow: hidden; }
   margin: 0 0 10px;
 }
 .site-search-persons-row {
+  display: block;
+  max-width: none;
+}
+.site-search-persons-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  max-width: 560px;
+}
+.site-search-persons-more {
+  display: contents;
+}
+.site-search-persons-more.hidden {
+  display: none;
+}
+.site-search-persons-expand-btn {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 4px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  background: rgba(8, 6, 24, 0.55);
+  color: rgba(244, 246, 255, 0.88);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.site-search-persons-expand-btn:hover {
+  border-color: rgba(255, 45, 123, 0.55);
+  background: rgba(168, 85, 247, 0.16);
+}
+@media (max-width: 640px) {
+  .site-search-persons-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mp-guest-cabinet-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 16px 14px;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.22);
+  background: rgba(8, 6, 24, 0.72);
+}
+.mp-guest-cabinet-nav-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 246, 255, 0.86);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mp-guest-cabinet-nav-btn:hover {
+  border-color: rgba(255, 45, 123, 0.45);
+  background: rgba(168, 85, 247, 0.14);
 }
 .site-search-person-card {
   display: flex;
