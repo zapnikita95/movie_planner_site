@@ -2356,9 +2356,15 @@
     return 'Доброй ночи';
   }
 
-  function pageLoadingHtml() {
-    return '<div class="mp-page-loading" role="status" aria-live="polite" aria-busy="true">'
-      + '<div class="mp-page-loading-spinner" aria-hidden="true"></div></div>';
+  function pageLoadingHtml(label) {
+    var text = String(label || '').trim();
+    var textHtml = text
+      ? '<p class="mp-page-loading-text">' + escapeHtml(text) + '</p>'
+      : '';
+    return '<div class="mp-page-loading mp-route-boot-loading" role="status" aria-live="polite" aria-busy="true">'
+      + '<div class="mp-page-loading-spinner" aria-hidden="true"></div>'
+      + textHtml
+      + '</div>';
   }
 
   // ——— UI: шапка, выпадающее меню аккаунтов ———
@@ -3433,7 +3439,17 @@
     showScreen('cabinet-readonly');
     showFilmPageLayout();
     pageRoot.className = 'container film-page-container staff-page-content loading';
-    pageRoot.innerHTML = pageLoadingHtml();
+    pageRoot.innerHTML = pageLoadingHtml((function () {
+      try {
+        var el = document.getElementById('mp-route-boot');
+        if (!el) return 'Загрузка…';
+        var boot = JSON.parse(el.textContent || '');
+        if (boot && boot.type === 'staff') {
+          return boot.display_name || boot.name_ru || 'Загрузка…';
+        }
+      } catch (_) {}
+      return 'Загрузка…';
+    })());
     if (!o.skipHistory) {
       try {
         const path = '/s/' + kp;

@@ -251,6 +251,51 @@
     bindStaffFilters(root);
   }
 
+  function readMpRouteBoot() {
+    try {
+      var el = document.getElementById('mp-route-boot');
+      if (!el) return null;
+      return JSON.parse(el.textContent || '');
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  function staffLoadingHtml(label) {
+    var boot = readMpRouteBoot();
+    var text = String(label || '').trim()
+      || (boot && (boot.display_name || boot.name_ru))
+      || 'Загрузка…';
+    return (
+      '<div class="mp-page-loading mp-route-boot-loading" role="status" aria-live="polite" aria-busy="true">' +
+        '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
+        '<p class="mp-page-loading-text">' + escapeHtml(text) + '</p>' +
+      '</div>'
+    );
+  }
+
+  function staffBootHeroHtml() {
+    var boot = readMpRouteBoot();
+    if (!boot || boot.type !== 'staff') return staffLoadingHtml();
+    var title = boot.display_name || boot.name_ru || 'Персона';
+    var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
+    var photo = String(boot.photo_url || '').trim();
+    var photoHtml = photo
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(photo) + '" alt="" referrerpolicy="no-referrer">'
+      : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+    return (
+      '<article class="staff-page staff-page--boot">' +
+        '<header class="staff-hero">' + photoHtml +
+          '<div class="staff-hero-text">' +
+            '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
+            (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
+          '</div>' +
+        '</header>' +
+        staffLoadingHtml('Фильмография…') +
+      '</article>'
+    );
+  }
+
   function renderStaffShell(personId) {
     _staffPersonId = personId;
     document.title = 'Персона · Movie Planner';
@@ -273,7 +318,7 @@
         '</header>' +
         (global.MpFilmPage && MpFilmPage.appOpenBannerHtml ? MpFilmPage.appOpenBannerHtml() : '') +
         '<main class="movie-page staff-standalone-main">' +
-          '<div class="staff-page-content" id="staff-root"><p class="staff-loading">Загрузка…</p></div>' +
+          '<div class="staff-page-content" id="staff-root">' + staffBootHeroHtml() + '</div>' +
         '</main>' +
         '<aside id="staff-seo-root" class="film-seo-root visually-hidden" aria-label="Об актёре"></aside>' +
         '<footer class="footer staff-standalone-footer">' +
