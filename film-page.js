@@ -48,22 +48,53 @@
     return s;
   }
 
+  function isGoodFilmPosterUrl(src) {
+    var s = cleanPosterUrl(src);
+    if (!s) return false;
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/images\/posters\//i.test(s);
+  }
+
+  function currentFilmPosterFromDom() {
+    var img = document.getElementById('poster') || document.querySelector('#film-page-content .poster, #section-film .poster');
+    if (!img) return '';
+    return cleanPosterUrl(img.currentSrc || img.src || '');
+  }
+
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
 
   function resolveFilmPosterDisplay(posterUrl) {
-    return cleanPosterUrl(posterUrl) || MP_POSTER_PLACEHOLDER;
+    var next = cleanPosterUrl(posterUrl);
+    if (next) return next;
+    var cur = currentFilmPosterFromDom();
+    if (cur) return cur;
+    return MP_POSTER_PLACEHOLDER;
   }
 
   function setFilmHeroBackdrop(posterUrl) {
     var display = resolveFilmPosterDisplay(posterUrl);
+    if (display === MP_POSTER_PLACEHOLDER && isGoodFilmPosterUrl(currentFilmPosterFromDom())) {
+      display = currentFilmPosterFromDom();
+    }
     try {
       document.documentElement.style.setProperty('--film-backdrop', 'url("' + display.replace(/"/g, '\\"') + '")');
     } catch (_e) {}
   }
 
   function applyFilmPosterEl(posterUrl) {
-    var display = resolveFilmPosterDisplay(posterUrl);
+    var next = cleanPosterUrl(posterUrl);
+    var cur = currentFilmPosterFromDom();
+    if (!next) {
+      if (isGoodFilmPosterUrl(cur)) {
+        setFilmHeroBackdrop(cur);
+        return;
+      }
+    }
+    var display = next || MP_POSTER_PLACEHOLDER;
     var pEl = document.getElementById('poster');
+    if (pEl && isGoodFilmPosterUrl(cur) && display === MP_POSTER_PLACEHOLDER) {
+      setFilmHeroBackdrop(cur);
+      return;
+    }
     if (pEl) {
       pEl.src = display;
       pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
@@ -74,13 +105,19 @@
       var wrap = pEl.closest('.poster-wrap');
       if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display.indexOf('film-poster-placeholder') >= 0);
     }
-    setFilmHeroBackdrop(posterUrl);
+    setFilmHeroBackdrop(display === MP_POSTER_PLACEHOLDER ? (cur || '') : posterUrl);
   }
 
   try {
     if (!global.mpPosterOnError) {
       global.mpPosterOnError = function (img) {
         if (!img || img.dataset.mpPosterFailed === '1') return;
+        var src = String(img.currentSrc || img.src || '');
+        if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
+          img.dataset.mpPosterFailed = '1';
+          img.onerror = null;
+          return;
+        }
         img.onerror = null;
         img.dataset.mpPosterFailed = '1';
         img.src = MP_POSTER_PLACEHOLDER;
@@ -1480,7 +1517,12 @@
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series);
-          applyFilmPosterEl(f.poster_url);
+          var boot = readMpRouteBoot();
+          var posterToApply = f.poster_url;
+          if (boot && boot.poster_url && (!cleanPosterUrl(posterToApply) || !isGoodFilmPosterUrl(posterToApply))) {
+            posterToApply = boot.poster_url;
+          }
+          applyFilmPosterEl(posterToApply);
           setOgFromFilm(f, title);
           setFilmJsonLd(f);
           if (f.seo_body_html) {

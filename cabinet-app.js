@@ -164,12 +164,55 @@
     return s;
   }
 
-  function pickFilmPosterUrl(film) {
+  function isGoodFilmPosterUrl(src) {
+    const s = cleanPosterUrl(src);
+    if (!s) return false;
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/images\/posters\//i.test(s);
+  }
+
+  function currentFilmPosterFromDom(root) {
+    const scope = root || document;
+    const img = scope.querySelector('#film-page-content .poster, #section-film .poster, .poster-wrap .poster');
+    if (!img) return '';
+    return cleanPosterUrl(img.currentSrc || img.src || '');
+  }
+
+  function pickFilmPosterUrl(film, root) {
     const fromFilm = cleanPosterUrl(film && (film.poster_url || film.poster));
     if (fromFilm) return fromFilm;
+    const cur = currentFilmPosterFromDom(root);
+    if (cur) return cur;
     const kp = film && String(film.kp_id || '').replace(/\D/g, '');
-    if (kp) return posterUrl(kp);
+    if (kp) {
+      const proxy = posterUrl(kp);
+      if (proxy) return proxy;
+    }
     return MP_POSTER_PLACEHOLDER;
+  }
+
+  function applyFilmPosterToHero(root, posterUrl) {
+    if (!root) return;
+    const next = cleanPosterUrl(posterUrl);
+    const cur = currentFilmPosterFromDom(root);
+    if (!next) {
+      if (isGoodFilmPosterUrl(cur)) return;
+    } else if (isGoodFilmPosterUrl(cur) && !isGoodFilmPosterUrl(next)) {
+      return;
+    }
+    const display = next || (isGoodFilmPosterUrl(cur) ? cur : MP_POSTER_PLACEHOLDER);
+    const img = root.querySelector('.poster-wrap .poster, .poster-wrap img');
+    const hero = root.querySelector('.film-hero-with-tag, .hero');
+    if (img) {
+      if (display !== MP_POSTER_PLACEHOLDER || !isGoodFilmPosterUrl(cur)) {
+        img.src = display;
+        img.classList.toggle('mp-poster-placeholder', display === MP_POSTER_PLACEHOLDER);
+        const wrap = img.closest('.poster-wrap');
+        if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display === MP_POSTER_PLACEHOLDER);
+      }
+    }
+    if (hero && display !== MP_POSTER_PLACEHOLDER) {
+      hero.style.setProperty('--film-backdrop', 'url(\'' + display.replace(/'/g, '\\\'') + '\')');
+    }
   }
 
   function mergeBootPoster(film, kp) {
@@ -10268,6 +10311,8 @@
           } catch (_) {}
         }
         if (shouldPatchFilmHeroInPlace(pageRoot, cached.film)) {
+          mergeBootPoster(cached.film, cached.film.kp_id);
+          applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(cached.film, pageRoot));
           replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me));
           bindFilmModalInteractions(cached.film, pageRoot);
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
@@ -10318,6 +10363,8 @@
           } catch (_) {}
         }
         if (shouldPatchFilmHeroInPlace(pageRoot, data.film)) {
+          mergeBootPoster(data.film, data.film.kp_id);
+          applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
           replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me));
           bindFilmModalInteractions(data.film, pageRoot);
           try { loadFilmFriendsSocial(data.film); } catch (_) {}
@@ -10439,7 +10486,7 @@
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
-    const poster = pickFilmPosterUrl(film);
+    const poster = pickFilmPosterUrl(film, content);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
@@ -10469,7 +10516,7 @@
           (window.MPIcons ? window.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
-          '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>' +
+          '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>' +
         '</div>' +
         '<div class="hero-content">' +
           '<h1>' + escapeHtml(titleText) + '</h1>' +
