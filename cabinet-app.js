@@ -81,8 +81,8 @@
     return { register: register, getFilmId: getFilmId, waitFor: waitFor };
   })();
 
-  const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.svg';
-  const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.svg';
+  const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
+  const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
 
   function mpPosterOnErrorAttr() {
     return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';

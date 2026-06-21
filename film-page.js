@@ -333,7 +333,7 @@
         var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
         var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
         return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
-          (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">' : '<img class="search-result-poster mp-poster-placeholder" src="/images/film-poster-placeholder.svg" alt="" loading="lazy">') +
+          (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">' : '<img class="search-result-poster mp-poster-placeholder" src="/images/film-poster-placeholder.png" alt="" loading="lazy">') +
           '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
           '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
       }).join('');
@@ -1215,7 +1215,7 @@
         }
         var hoverTimer = null;
         var activeLink = null;
-        var PERSON_PH = '/images/person-avatar-placeholder.svg';
+        var PERSON_PH = '/images/person-avatar-placeholder.png';
         function hidePreview() {
           clearTimeout(hoverTimer);
           hoverTimer = null;

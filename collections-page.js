@@ -68,7 +68,7 @@
   }
 
   function posterUrl(kpId) {
-    if (!kpId) return "/images/film-poster-placeholder.svg";
+    if (!kpId) return "/images/film-poster-placeholder.png";
     return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kpId + ".jpg";
   }
 
@@ -193,7 +193,7 @@
         var poster = f.poster || posterUrl(kp);
         return (
           '<button type="button" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '">'
-          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.svg\'"></div>'
+          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
           + "</button>"
@@ -261,6 +261,12 @@
         renderCollectionsSection();
         return;
       }
+      if (action === "user-public" && id) {
+        _view = "user-public";
+        _viewId = parseInt(id, 10);
+        renderCollectionsSection();
+        return;
+      }
       if (action === "tag" && id) {
         var tagId = parseInt(id, 10);
         if (typeof global.__mpOpenFilmTagFromCollections === "function") {
@@ -287,14 +293,39 @@
       '<div class="mp-dialog-card collections-dialog-card">'
       + '<button type="button" class="mp-dialog-close" data-close="1" aria-label="Закрыть">×</button>'
       + '<h3 class="mp-dialog-title">Новая коллекция</h3>'
+      + '<div id="coll-new-author-wrap"></div>'
       + '<input type="text" id="coll-new-name" class="input-primary" placeholder="Название" maxlength="80" style="width:100%;margin-top:12px" />'
       + '<input type="text" id="coll-new-emoji" class="input-primary" placeholder="📁" maxlength="8" style="width:100%;margin-top:10px" />'
+      + '<label class="settings-row" style="margin-top:12px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" id="coll-new-public" />'
+      + '<span>Публичная — видна в каталоге (до 5 в месяц)</span></label>'
+      + '<p class="cabinet-hint" style="margin-top:8px">Без галочки — только по прямой ссылке.</p>'
       + '<button type="button" class="btn-primary btn-full" id="coll-new-save" style="margin-top:14px">Создать</button>'
       + "</div>";
     function close() {
       unlock();
       ov.remove();
     }
+    apiGet("/api/site/profiles?lite=1").then(function (pdata) {
+      var wrap = ov.querySelector("#coll-new-author-wrap");
+      var profiles = (pdata && pdata.profiles) || [];
+      var adminGroups = profiles.filter(function (p) {
+        return p && !p.is_personal && (p.is_group || (p.is_virtual && p.can_share_to_group !== false));
+      });
+      if (wrap && adminGroups.length) {
+        wrap.innerHTML =
+          '<label class="cabinet-hint">От лица</label>'
+          + '<select id="coll-new-author" class="input-primary" style="width:100%;margin-top:6px">'
+          + '<option value="personal">👤 Личное</option>'
+          + adminGroups.map(function (p) {
+            var prefix = p.is_group ? "💬 " : (p.group_emoji ? String(p.group_emoji).trim() + " " : "👥 ");
+            return '<option value="' + esc(String(p.chat_id)) + '">' + esc(prefix + (p.display_name || p.name || "Группа")) + "</option>";
+          }).join("")
+          + "</select>";
+      } else if (wrap) {
+        wrap.innerHTML = '<div class="collections-personal-pill" style="margin-top:8px">👤 Личное</div>';
+      }
+    }).catch(function () {});
     ov.querySelector("[data-close]").addEventListener("click", close);
     ov.addEventListener("click", function (ev) {
       if (ev.target === ov) close();
@@ -302,19 +333,26 @@
     ov.querySelector("#coll-new-save").addEventListener("click", function () {
       var nameEl = ov.querySelector("#coll-new-name");
       var emojiEl = ov.querySelector("#coll-new-emoji");
+      var pubEl = ov.querySelector("#coll-new-public");
+      var authorEl = ov.querySelector("#coll-new-author");
       var name = (nameEl && nameEl.value && nameEl.value.trim()) || "";
       if (!name) {
         toast("Введите название", { type: "error" });
         return;
       }
-      var saveBtn = ov.querySelector("#coll-new-save");
-      saveBtn.disabled = true;
-      apiPost("/api/miniapp/collections", {
+      var body = {
         name: name,
         emoji: (emojiEl && emojiEl.value && emojiEl.value.trim()) || undefined,
-      }).then(function (res) {
+        is_public: !!(pubEl && pubEl.checked),
+      };
+      if (authorEl && authorEl.value && authorEl.value !== "personal") {
+        body.author_chat_id = Number(authorEl.value);
+      }
+      var saveBtn = ov.querySelector("#coll-new-save");
+      saveBtn.disabled = true;
+      apiPost("/api/miniapp/collections", body).then(function (res) {
         if (!res || !res.success || !res.collection) {
-          toast("Не удалось создать", { type: "error" });
+          toast((res && res.message) || "Не удалось создать", { type: "error" });
           saveBtn.disabled = false;
           return;
         }
@@ -415,13 +453,17 @@
       }
       if (pubEl) {
         fillListEl(pubEl, pub, function (c) {
+          var isUser = c.source === "user";
           return listItemHtml({
-            action: "public",
+            action: isUser ? "user-public" : "public",
             id: c.id,
-            icon: "globe",
-            iconClass: " mp-list-icon--public",
+            icon: isUser ? null : "globe",
+            emoji: isUser ? (c.author_emoji || c.emoji || "📁") : null,
+            iconClass: isUser ? "" : " mp-list-icon--public",
             title: c.name,
-            hint: (c.films_count || 0) + " в подборке · у вас " + (c.in_user_library_count || 0),
+            hint: (c.films_count || 0) + " в подборке"
+              + (c.in_user_library_count != null ? " · у вас " + (c.in_user_library_count || 0) : "")
+              + (c.author_name ? " · " + c.author_name : ""),
           });
         }, '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
       }
@@ -480,6 +522,30 @@
     });
   }
 
+  function renderUserPublicDetail(root, cid) {
+    root.innerHTML = detailSkeleton("Коллекция", "📁", "");
+    bindRoot(root);
+    apiGet("/api/miniapp/collections/user-public/" + cid).then(function (data) {
+      if (!data || !data.success || !data.collection) {
+        root.innerHTML = '<p class="cabinet-hint">Коллекция не найдена</p>';
+        return;
+      }
+      var c = data.collection;
+      var films = data.films || [];
+      var titleEl = root.querySelector(".collections-detail-title");
+      var hintEl = root.querySelector(".collections-detail-hint");
+      if (titleEl) titleEl.textContent = (c.emoji || "📁") + " " + stripHtml(c.name || "");
+      if (hintEl) {
+        hintEl.textContent = (c.films_count || films.length || 0) + " фильмов"
+          + (c.author_name ? " · " + c.author_name : "");
+      }
+      var body = root.querySelector("#collections-detail-body");
+      if (body) body.innerHTML = filmsGridHtml(films);
+    }).catch(function () {
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
+    });
+  }
+
   function hasSiteAuth() {
     if (typeof global.getToken === "function" && global.getToken()) return true;
     try {
@@ -524,6 +590,7 @@
     }
     if (_view === "mine" && _viewId) renderMineDetail(root, _viewId);
     else if (_view === "public" && _viewId) renderPublicDetail(root, _viewId);
+    else if (_view === "user-public" && _viewId) renderUserPublicDetail(root, _viewId);
     else renderHub(root);
   }
 

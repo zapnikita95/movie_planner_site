@@ -155,7 +155,7 @@
     return attrs;
   }
 
-  var PLACEHOLDER = "/images/film-poster-placeholder.svg";
+  var PLACEHOLDER = "/images/film-poster-placeholder.png";
 
   function posterTileHtml(m, opts, tileIndex) {
     opts = opts || {};
