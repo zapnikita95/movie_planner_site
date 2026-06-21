@@ -234,13 +234,12 @@
     } catch (_) {}
   }
 
+  function isMarketingRootPath(pathname) {
+    const path = (pathname || window.location.pathname || '/').replace(/\/$/, '') || '/';
+    return path === '/' || path === '/index.html';
+  }
+
   function showGuestLandingScreen() {
-    try {
-      const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (path === '/home' || path === '/premieres') {
-        try { history.replaceState({}, '', '/' + (window.location.search || '') + (window.location.hash || '')); } catch (_) {}
-      }
-    } catch (_) {}
     document.body.classList.remove('in-cabinet', 'guest-cabinet-preview', 'login-only-overlay');
     showScreen('landing');
     renderHeader(null);
@@ -545,9 +544,7 @@
       if (staffIdFromPathname(window.location.pathname)) return false;
 
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (bootPath === '/' || bootPath === '/index.html') {
-        try { history.replaceState({ section: 'home' }, '', '/home' + window.location.search); } catch (_) {}
-      }
+      if (isMarketingRootPath(bootPath)) return false;
 
       document.body.classList.remove('login-only-overlay');
       syncSessionHtmlClass();
@@ -1569,6 +1566,13 @@
   }
 
   function showCabinetAfterLogin(me) {
+    if (isMarketingRootPath(window.location.pathname)) {
+      document.body.classList.remove('login-only-overlay', 'in-cabinet', 'guest-cabinet-preview');
+      showScreen('landing');
+      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      handleAuthEntryDeepLinks();
+      return Promise.resolve();
+    }
     document.body.classList.remove('login-only-overlay');
     showScreen('cabinet-readonly');
     let pathFid = null;
@@ -15920,10 +15924,15 @@
     }
 
     if (getToken()) {
-      bootAuthenticatedFilmShell();
-      if (!bootAuthenticatedFilmDeepLink()) {
-        bootAuthenticatedCabinetShell();
+      if (isMarketingRootPath(window.location.pathname)) {
+        showScreen('landing');
         loadMeAndShowCabinet();
+      } else {
+        bootAuthenticatedFilmShell();
+        if (!bootAuthenticatedFilmDeepLink()) {
+          bootAuthenticatedCabinetShell();
+          loadMeAndShowCabinet();
+        }
       }
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
