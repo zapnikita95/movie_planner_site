@@ -16,6 +16,22 @@ html.mp-session #landing { display: none !important; }
 html.mp-search-boot #landing { display: none !important; }
 html.mp-search-boot #site-search-root { display: block !important; }
 html.mp-search-boot body.in-search-page #site-header { display: block !important; }
+html.mp-film-boot #landing,
+html.mp-staff-boot #landing { display: none !important; }
+html.mp-film-boot #cabinet-readonly,
+html.mp-staff-boot #cabinet-readonly,
+html.mp-film-boot #cabinet-readonly.hidden,
+html.mp-staff-boot #cabinet-readonly.hidden { display: block !important; }
+html.mp-film-boot #section-film,
+html.mp-staff-boot #section-film,
+html.mp-film-boot #section-film.hidden,
+html.mp-staff-boot #section-film.hidden { display: block !important; }
+html.mp-film-boot #cabinet-readonly .cabinet-section:not(#section-film),
+html.mp-staff-boot #cabinet-readonly .cabinet-section:not(#section-film) { display: none !important; }
+html.mp-film-boot #cabinet-home-stats,
+html.mp-staff-boot #cabinet-home-stats { display: none !important; }
+html.mp-film-boot body,
+html.mp-staff-boot body { visibility: visible; }
 
 #login-modal { display: none; }
 #login-modal:not(.hidden) { display: flex !important; }

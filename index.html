@@ -28,14 +28,25 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621searchfix4" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621searchfix4">
+    <link rel="preload" href="/style-v2.css?v=20260621routefix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621routefix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
-        if (path !== '/search') return;
-        document.documentElement.classList.add('mp-search-boot');
-        try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
+        if (path === '/search') {
+          document.documentElement.classList.add('mp-search-boot');
+          try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
+          return;
+        }
+        if (/^\/f\/\d+$/.test(path)) {
+          document.documentElement.classList.add('mp-film-boot');
+          try { document.title = 'Фильм · Movie Planner'; } catch (_) {}
+          return;
+        }
+        if (/^\/s\/\d+$/.test(path)) {
+          document.documentElement.classList.add('mp-staff-boot');
+          try { document.title = 'Персона · Movie Planner'; } catch (_) {}
+        }
       })();
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
@@ -197,6 +208,57 @@
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintSearchBoot);
           else paintSearchBoot();
+        } catch (_) {}
+      })();
+      // /f/:kp и /s/:id — сразу скрыть лендинг/главную, показать shell карточки
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          var filmMatch = path.match(/^\/f\/(\d+)$/);
+          var staffMatch = path.match(/^\/s\/(\d+)$/);
+          if (!filmMatch && !staffMatch) return;
+          function esc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          }
+          function readBootTitle() {
+            try {
+              var el = document.getElementById('mp-route-boot');
+              if (!el) return '';
+              var boot = JSON.parse(el.textContent || '');
+              var t = String(boot.title || boot.display_name || boot.name_ru || '').trim();
+              if (!t || t === 'Фильм' || t === 'Film') return '';
+              return t;
+            } catch (_) { return ''; }
+          }
+          function loadingShell(label) {
+            return '<div class="mp-page-loading mp-route-boot-loading" role="status" aria-live="polite" aria-busy="true">' +
+              '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
+              '<p class="mp-page-loading-text">' + esc(label) + '</p></div>';
+          }
+          function paintRouteBoot() {
+            document.body.classList.add('in-cabinet');
+            var landing = document.getElementById('landing');
+            if (landing) landing.classList.add('hidden');
+            var cabinet = document.getElementById('cabinet-readonly');
+            if (cabinet) {
+              cabinet.classList.remove('hidden');
+              cabinet.classList.add('film-page-mode');
+            }
+            document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (sec) {
+              if (!sec) return;
+              sec.classList.toggle('hidden', sec.id !== 'section-film');
+            });
+            var homeStats = document.getElementById('cabinet-home-stats');
+            if (homeStats) homeStats.classList.add('hidden');
+            var pageRoot = document.getElementById('film-page-content');
+            if (!pageRoot) return;
+            var bootTitle = readBootTitle();
+            var headline = bootTitle || (filmMatch ? 'Загрузка фильма…' : 'Загрузка…');
+            pageRoot.className = 'movie-page loading';
+            pageRoot.innerHTML = loadingShell(headline);
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintRouteBoot);
+          else paintRouteBoot();
         } catch (_) {}
       })();
       // SEO для /features/collections (краулеры и первый paint)
@@ -1870,18 +1932,18 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621searchfix4'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621routefix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260617filmroute1');
-          list.push('cabinet-film-route.js?v=20260618profile1');
+          list.push('film-page.js?v=20260621routefix1');
+          list.push('cabinet-film-route.js?v=20260621routefix1');
         } else if (isStaff) {
-          list.push('staff-page.js?v=20260602sitefix5');
-          list.push('cabinet-app.js?v=20260621searchfix4');
+          list.push('staff-page.js?v=20260621routefix1');
+          list.push('cabinet-app.js?v=20260621routefix1');
         } else {
-          list.push('cabinet-app.js?v=20260621searchfix4');
+          list.push('cabinet-app.js?v=20260621routefix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

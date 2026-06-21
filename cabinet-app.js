@@ -513,9 +513,15 @@
       country: f.country,
       genres: f.genres,
       description: f.description || f.plot || f.shortDescription,
+      poster_url: f.poster_url || f.poster || '',
       is_series: !!f.is_series,
       watched: false,
     };
+  }
+
+  function isGenericFilmTitle(title) {
+    const t = String(title || '').trim();
+    return !t || t === 'Фильм' || t === 'Film';
   }
 
   function readMpRouteBoot() {
@@ -538,7 +544,7 @@
   function paintFilmRouteBoot(kp, opts) {
     const film = filmFromRouteBoot(kp);
     const pageRoot = document.getElementById('film-page-content');
-    if (!film || !pageRoot) return false;
+    if (!film || !pageRoot || isGenericFilmTitle(film.title)) return false;
     try {
       document.title = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '') + ' · Movie Planner';
     } catch (_) {}
@@ -1414,6 +1420,16 @@
 
     if (filmKp && window.__MP_FILM_RENDERED) {
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      showFilmPageLayout();
+      deferCabinetLists();
+      scheduleOnboarding = false;
+      return Promise.resolve();
+    }
+
+    if (filmKp && window.__MP_FILM_ROUTE_LITE_READY) {
+      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      showScreen('cabinet-readonly');
+      showFilmPageLayout();
       deferCabinetLists();
       scheduleOnboarding = false;
       return Promise.resolve();
@@ -9918,7 +9934,7 @@
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
-    const poster = posterUrl(film.kp_id);
+    const poster = cleanPosterUrl(film.poster_url) || posterUrl(film.kp_id);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
@@ -15498,7 +15514,10 @@
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
-        redirectToPublicStaffPage(pathStaffGuest);
+        showScreen('cabinet-readonly');
+        renderHeader(null);
+        openStaffPage(pathStaffGuest, { replace: true, skipHistory: true });
+        handleAuthEntryDeepLinks();
         return;
       }
       const pathKpGuest = kpIdFromPathname(window.location.pathname);

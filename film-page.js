@@ -771,14 +771,21 @@
     );
   }
 
+  function isGenericFilmTitle(title) {
+    var t = String(title || '').trim();
+    return !t || t === 'Фильм' || t === 'Film';
+  }
+
   function paintCabinetRouteBoot(kpId, pageRoot, poster) {
     var boot = readMpRouteBoot();
     if (!boot || boot.type !== 'film') return false;
     if (String(boot.kp_id || '').replace(/\D/g, '') !== String(kpId || '').replace(/\D/g, '')) return false;
+    if (isGenericFilmTitle(boot.title)) return false;
     var title = boot.title || 'Фильм';
+    var bootPoster = boot.poster_url || poster;
     var year = boot.year ? ' (' + boot.year + ')' : '';
     pageRoot.className = 'movie-page';
-    pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, boot.poster_url || poster);
+    pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, bootPoster);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
@@ -1030,7 +1037,11 @@
         canon.href = (film && film.canonical) || pageUrl;
       }
       setPageFavicon(poster);
-      setOgFromFilm(null, 'Фильм');
+      (function () {
+        var boot = readMpRouteBoot();
+        var bootTitle = (boot && boot.type === 'film' && !isGenericFilmTitle(boot.title)) ? boot.title : '';
+        setOgFromFilm(null, bootTitle || 'Загрузка…');
+      })();
 
       function setFilmJsonLd(film) {
         try {
