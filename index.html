@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621perf1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621perf1">
+    <link rel="preload" href="/style-v2.css?v=20260621fix2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621fix2">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -291,6 +291,7 @@
             if (cabinet) {
               cabinet.classList.remove('hidden');
               cabinet.classList.add('film-page-mode');
+              cabinet.classList.remove('cabinet-home-root');
             }
             document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (sec) {
               if (!sec) return;
@@ -2030,7 +2031,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621premieresfix1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621fix2'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2040,9 +2041,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260621perf1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621premieresfix1');
+          list.push('cabinet-app.js?v=20260621fix2');
         } else {
-          list.push('cabinet-app.js?v=20260621premieresfix1');
+          list.push('cabinet-app.js?v=20260621fix2');
         }
         function loadAt(i) {
           if (i >= list.length) return;

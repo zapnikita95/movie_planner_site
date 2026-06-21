@@ -30,6 +30,8 @@ html.mp-film-boot #cabinet-readonly .cabinet-section:not(#section-film),
 html.mp-staff-boot #cabinet-readonly .cabinet-section:not(#section-film) { display: none !important; }
 html.mp-film-boot #cabinet-home-stats,
 html.mp-staff-boot #cabinet-home-stats { display: none !important; }
+html.mp-film-boot #cabinet-readonly .cabinet-topbar,
+html.mp-staff-boot #cabinet-readonly .cabinet-topbar { display: none !important; }
 html.mp-film-boot body,
 html.mp-staff-boot body { visibility: visible; }
 
