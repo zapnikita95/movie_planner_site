@@ -9373,6 +9373,28 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
+  overflow: visible;
+}
+.film-toolbar-rate-anchor {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.film-toolbar-rate-anchor > #rating-expand-panel,
+.film-toolbar-rate-anchor > .film-toolbar-expand#rating-expand-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 10px 12px 12px;
+  z-index: 80;
+  background: rgba(12, 12, 22, 0.96);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(0,0,0,.45);
 }
 .film-icon-btn {
   width: 58px;
@@ -9519,6 +9541,14 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   max-width: min(100%, 500px);
   margin: 0 auto;
   flex-wrap: nowrap;
+}
+.film-toolbar-rating-grid .rating-stars {
+  display: contents;
+}
+.film-toolbar-rating-grid .rating-current {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  text-align: center;
 }
 .film-toolbar-rating-grid .rate-btn,
 .film-toolbar-rating-grid .rating-stars button {

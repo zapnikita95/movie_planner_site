@@ -8619,8 +8619,14 @@
     const rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
     const rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
     const rateLabelHtml = myRating ? '' : '<span class="film-icon-label">Оценить</span>';
+    const ratePanelHtml = (canRate && !ratingLocked)
+      ? '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>'
+      : '';
     const rateBtn = canRate && !ratingLocked
-      ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
+      ? '<div class="film-toolbar-rate-anchor">' +
+        '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>' +
+        ratePanelHtml +
+        '</div>'
       : '';
     return (
       '<div class="film-page-toolbar">' +
@@ -8633,9 +8639,6 @@
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         friendsBlockHtml +
-        '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
-          '<div class="public-rating-title">Ваша оценка</div>' + ratingInner +
-        '</div>' +
         '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
       '</div>'
     );
