@@ -10855,14 +10855,27 @@
 
   function siteSearchPersonCardHtml(p) {
     const pid = escapeHtml(String(p.kp_person_id || ''));
-    const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
+    const nameRu = escapeHtml(p.name_ru || p.name_en || 'Персона');
+    const nameEn = escapeHtml(p.name_en || '');
+    const showEn = nameEn && nameEn !== (p.name_ru || '');
     const prof = escapeHtml(String(p.professions || '').slice(0, 80));
     const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg');
     return '<a class="site-search-person-card" href="/s/' + pid + '">'
       + siteSearchPosterHtml(photo, 'site-search-person-photo')
-      + '<span><span class="site-search-person-name">' + name + '</span>'
+      + '<span class="site-search-person-copy"><span class="site-search-person-name">' + nameRu + '</span>'
+      + (showEn ? '<span class="site-search-person-en">' + nameEn + '</span>' : '')
       + (prof ? '<span class="site-search-person-prof">' + prof + '</span>' : '')
       + '</span></a>';
+  }
+
+  function siteSearchLoadingHtml() {
+    return '<div class="mp-search-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Ищем">'
+      + '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>'
+      + '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
+  }
+
+  function siteSearchResultsLoadingHtml() {
+    return '<div class="site-search-results-loading">' + siteSearchLoadingHtml() + '</div>';
   }
 
   function siteSearchPersonsBlockHtml(persons) {
@@ -11212,7 +11225,11 @@
     siteSearchRefreshFilterChipLabels();
     const st = _siteSearchFilterState;
     const seq = ++_siteSearchSeq;
-    if (status) status.textContent = 'Ищем…';
+    if (status) status.innerHTML = siteSearchLoadingHtml();
+    if (personsEl) personsEl.innerHTML = '';
+    if (personsSection) personsSection.classList.add('hidden');
+    if (filmsLabel) filmsLabel.classList.add('hidden');
+    results.innerHTML = siteSearchResultsLoadingHtml();
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
     } catch (_) {}

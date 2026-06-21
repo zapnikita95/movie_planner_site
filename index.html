@@ -28,8 +28,16 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621searchfix3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621searchfix3">
+    <link rel="preload" href="/style-v2.css?v=20260621searchfix4" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621searchfix4">
+    <script>
+      (function () {
+        var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+        if (path !== '/search') return;
+        document.documentElement.classList.add('mp-search-boot');
+        try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
+      })();
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
     <noscript>
@@ -150,6 +158,45 @@
           } else {
             paintCollectionsDeep();
           }
+        } catch (_) {}
+      })();
+      // /search — сразу скрыть лендинг и показать shell поиска до cabinet-app.js
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path !== '/search') return;
+          function esc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          }
+          function loadingHtml() {
+            return '<div class="mp-search-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Ищем">' +
+              '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>' +
+              '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
+          }
+          function paintSearchBoot() {
+            document.body.classList.add('in-search-page');
+            var landing = document.getElementById('landing');
+            if (landing) landing.classList.add('hidden');
+            var root = document.getElementById('site-search-root');
+            if (!root) return;
+            root.classList.remove('hidden');
+            var q = '';
+            try { q = new URLSearchParams(location.search).get('q') || ''; } catch (_) {}
+            root.innerHTML =
+              '<section class="site-search-page" id="site-search-page">' +
+                '<div class="site-search-hero">' +
+                  '<h1 class="site-search-title">Поиск</h1>' +
+                  '<div class="site-search-controls site-search-controls--boot">' +
+                    '<div class="site-search-field">' +
+                      '<input class="site-search-input" type="search" value="' + esc(q) + '" readonly disabled aria-busy="true">' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="site-search-status">' + loadingHtml() + '</div>' +
+                '</div>' +
+              '</section>';
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintSearchBoot);
+          else paintSearchBoot();
         } catch (_) {}
       })();
       // SEO для /features/collections (краулеры и первый paint)
@@ -660,6 +707,8 @@
         </div>
       </section>
     </main>
+
+    <main id="site-search-root" class="hidden" aria-live="polite"></main>
 
     <!-- Public group stats (share link: only stats, no other sections) -->
     <main id="public-stats" class="hidden">
@@ -1798,6 +1847,7 @@
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
         var isFilm = /^\/f\/\d+$/.test(path);
         var isStaff = /^\/s\/\d+$/.test(path);
+        var isSearch = path === '/search';
         var isRoute = isFilm || isStaff;
         var core = [
           'telegram-open.js?v=20260602tgsafari1',
@@ -1818,15 +1868,20 @@
           'home-rails.js?v=20260617seriesfix1',
           'landing-premiere-carousel.js?v=20260617prem1'
         ];
-        var list = core.concat(isRoute ? [] : cabinet);
+        var list;
+        if (isSearch) {
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621searchfix4'];
+        } else {
+          list = core.concat(isRoute ? [] : cabinet);
+        }
         if (isFilm) {
           list.push('film-page.js?v=20260617filmroute1');
           list.push('cabinet-film-route.js?v=20260618profile1');
         } else if (isStaff) {
           list.push('staff-page.js?v=20260602sitefix5');
-          list.push('cabinet-app.js?v=20260621searchfix3');
+          list.push('cabinet-app.js?v=20260621searchfix4');
         } else {
-          list.push('cabinet-app.js?v=20260621searchfix3');
+          list.push('cabinet-app.js?v=20260621searchfix4');
         }
         function loadAt(i) {
           if (i >= list.length) return;
