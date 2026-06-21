@@ -1390,10 +1390,16 @@
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series);
-          if (f.poster_url) {
+          var apiPoster = String(f.poster_url || '').trim();
+          var keepPoster = apiPoster && !/film-poster-placeholder/i.test(apiPoster);
+          if (!keepPoster) {
+            var pEl0 = document.getElementById('poster');
+            if (pEl0 && pEl0.src && !/film-poster-placeholder/i.test(pEl0.src)) keepPoster = true;
+          }
+          if (keepPoster && apiPoster && !/film-poster-placeholder/i.test(apiPoster)) {
             var pEl = document.getElementById('poster');
-            if (pEl) pEl.src = f.poster_url;
-            document.documentElement.style.setProperty('--film-backdrop', 'url("' + f.poster_url + '")');
+            if (pEl) pEl.src = apiPoster;
+            document.documentElement.style.setProperty('--film-backdrop', 'url("' + apiPoster + '")');
           }
           setOgFromFilm(f, title);
           setFilmJsonLd(f);

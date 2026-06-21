@@ -89,11 +89,18 @@
   }
 
   function mpPosterOnError(img) {
-    if (!img) return;
+    if (!img || img.dataset.mpPosterFailed === '1') return;
+    var src = String(img.src || '');
+    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
+      img.dataset.mpPosterFailed = '1';
+      img.onerror = null;
+      return;
+    }
     img.onerror = null;
+    img.dataset.mpPosterFailed = '1';
     img.src = MP_POSTER_PLACEHOLDER;
     img.classList.add('mp-poster-placeholder');
-    var wrap = img.closest('.home-poster-tile-img, .home-pre-card-poster, .film-card-v2-poster, .home-dash-row-poster, .home-poster-preview-pop-poster, .home-film-preview-poster, .site-inbox-thumb--poster');
+    var wrap = img.closest('.home-poster-tile-img, .home-pre-card-poster, .film-card-v2-poster, .home-dash-row-poster, .home-poster-preview-pop-poster, .home-film-preview-poster, .site-inbox-thumb--poster, .poster-wrap');
     if (wrap) wrap.classList.add('film-poster-has-placeholder');
   }
   try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
@@ -134,7 +141,26 @@
   function cleanPosterUrl(src) {
     const s = String(src || '');
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
+    if (/film-poster-placeholder/i.test(s)) return '';
     return s;
+  }
+
+  function pickFilmPosterUrl(film) {
+    const fromFilm = cleanPosterUrl(film && (film.poster_url || film.poster));
+    if (fromFilm) return fromFilm;
+    const kp = film && String(film.kp_id || '').replace(/\D/g, '');
+    if (kp) return posterUrl(kp);
+    return MP_POSTER_PLACEHOLDER;
+  }
+
+  function mergeBootPoster(film, kp) {
+    const boot = filmFromRouteBoot(kp);
+    const bootPoster = boot && cleanPosterUrl(boot.poster_url);
+    const apiPoster = cleanPosterUrl(film && film.poster_url);
+    if (bootPoster && (!apiPoster || /film-poster-placeholder/i.test(String(film.poster_url || '')))) {
+      film.poster_url = bootPoster;
+    }
+    return film;
   }
 
   function isGuestCabinetPreview() {
@@ -634,7 +660,7 @@
           showToast('Не удалось загрузить фильм', { type: 'error' });
           return;
         }
-        const film = mapPublicFilmForHero(data.film, kp);
+        const film = mergeBootPoster(mapPublicFilmForHero(data.film, kp), kp);
         const desc = pickFilmDescription(film);
         if (desc) {
           try {
@@ -10089,7 +10115,7 @@
     const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
-    const poster = cleanPosterUrl(film.poster_url) || posterUrl(film.kp_id) || MP_POSTER_PLACEHOLDER;
+    const poster = pickFilmPosterUrl(film);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
