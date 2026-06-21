@@ -1355,19 +1355,23 @@
         }
       }
       var publicFilmCountry = '';
+      function applyPublicCastPayload(d) {
+        var root = document.getElementById('film-cast-root');
+        if (!root || !d) return;
+        var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
+        root.innerHTML = html || '';
+        if (html) bindPublicCastLinks(root);
+      }
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root');
         if (!root) return;
         apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/cast')
           .then(function (d) {
-            if (!d || !d.success) { root.innerHTML = buildPublicCastHtml(null, [], publicFilmCountry); return; }
-            var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
-            root.innerHTML = html || '';
-            if (html) bindPublicCastLinks(root);
+            if (!d || !d.success) { applyPublicCastPayload(null); return; }
+            applyPublicCastPayload(d);
           })
           .catch(function () {
-            var html = buildPublicCastHtml(null, [], publicFilmCountry);
-            root.innerHTML = html || '';
+            applyPublicCastPayload(null);
           });
       }
       function showPublicToast(message) {
@@ -1462,15 +1466,27 @@
           .catch(function () { renderFacts([]); return []; });
       }
 
-      loadFacts();
+      function scheduleLoadFacts() {
+        var run = function () { loadFacts(); };
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(run, { timeout: 3500 });
+        } else {
+          setTimeout(run, 1500);
+        }
+      }
+
+      loadPublicCast();
+      scheduleLoadFacts();
       apiGet('/api/public/film/' + encodeURIComponent(kpId))
         .then(function (data) {
           if (!data || !data.success || !data.film) {
-            loadPublicCast();
             return;
           }
           var f = data.film;
           publicFilmCountry = f.country || '';
+          if (data.cast && (data.cast.director || (data.cast.actors && data.cast.actors.length))) {
+            applyPublicCastPayload(data.cast);
+          }
           var title = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
@@ -1485,11 +1501,9 @@
             if (seoRoot) seoRoot.innerHTML = f.seo_body_html;
           }
           if (hint) hint.textContent = '';
-          loadPublicCast();
         })
         .catch(function () {
           setFilmDescription('');
-          loadPublicCast();
         });
 
       function ensureFilm() {

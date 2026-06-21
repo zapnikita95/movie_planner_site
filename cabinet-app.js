@@ -2728,7 +2728,7 @@
       try { document.body.removeAttribute('data-cabinet-section'); } catch (_) {}
     }
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
-    document.body.classList.toggle('in-search-page', isSearchLocation());
+    document.body.classList.toggle('in-search-page', !inCabinet && isSearchLocation());
     const hs = document.getElementById('header-search');
     if (hs) {
       hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding' || screenId === 'public-stats'));
@@ -2768,6 +2768,25 @@
     } catch (_) {
       return false;
     }
+  }
+
+  function isDedicatedSearchScreen() {
+    const root = document.getElementById('site-search-root');
+    const cabinet = document.getElementById('cabinet-readonly');
+    return !!(root && !root.classList.contains('hidden') && cabinet && cabinet.classList.contains('hidden'));
+  }
+
+  function hideSiteSearchScreen() {
+    const root = document.getElementById('site-search-root');
+    if (root) root.classList.add('hidden');
+    document.body.classList.remove('in-search-page');
+    updateSearchPageChrome();
+  }
+
+  function exitSearchToCabinet() {
+    if (!isDedicatedSearchScreen()) return false;
+    showScreen('cabinet-readonly');
+    return true;
   }
 
   function updateSearchPageChrome() {
@@ -3758,6 +3777,7 @@
     dismissStaffHoverPreview();
     try { closeAccountDropdown(); } catch (_) {}
     try { closeHeaderInboxDropdown(); } catch (_) {}
+    exitSearchToCabinet();
     const prevSection = visibleCabinetSectionId();
     if (prevSection === 'settings' && sectionId !== 'settings') {
       _siteOnboardingResumeAfterImportLeave();
@@ -11532,7 +11552,7 @@
     const filmsLabel = document.getElementById('site-search-films-label');
     const status = document.getElementById('site-search-status');
     if (!input || !results) return;
-    if (isMobileSearchLayout() && headerInput && document.body.classList.contains('in-search-page')) {
+    if (isMobileSearchLayout() && headerInput && isDedicatedSearchScreen()) {
       input.value = headerInput.value;
     }
     const q = input.value.trim();
@@ -11554,9 +11574,11 @@
     if (personsSection) personsSection.classList.add('hidden');
     if (filmsLabel) filmsLabel.classList.add('hidden');
     results.innerHTML = '';
-    try {
-      history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
-    } catch (_) {}
+    if (isDedicatedSearchScreen()) {
+      try {
+        history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
+      } catch (_) {}
+    }
     const params = new URLSearchParams({ q: q.slice(0, 80), limit: '12' });
     if (st.type && st.type !== 'any') params.set('type', st.type);
     const genreTrim = (st.genre || '').trim();
@@ -11655,7 +11677,7 @@
               if (d && d.success && d.text) {
                 input.value = d.text;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
-                if (document.body.classList.contains('in-search-page') && isMobileSearchLayout()) {
+                if (isDedicatedSearchScreen() && isMobileSearchLayout()) {
                   syncSiteSearchFromHeader();
                 } else if (input.id === 'site-search-input') {
                   runSiteSearchPage();
@@ -11682,7 +11704,7 @@
     input.addEventListener('input', () => {
       const v = input.value.trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !v);
-      if (document.body.classList.contains('in-search-page') && isMobileSearchLayout()) {
+      if (isDedicatedSearchScreen() && isMobileSearchLayout()) {
         syncSiteSearchFromHeader();
         return;
       }
@@ -11707,7 +11729,7 @@
         const v = input.value.trim();
         if (v.length >= 2) {
           hideHeaderSearchDropdown();
-          if (document.body.classList.contains('in-search-page')) {
+          if (isDedicatedSearchScreen()) {
             syncSiteSearchFromHeader();
             runSiteSearchPage();
           } else {
@@ -11742,7 +11764,7 @@
           const q = (recQbtn.getAttribute('data-hs-recent-q') || recQbtn.textContent || '').trim();
           if (!q || !input) return;
           hideHeaderSearchDropdown();
-          if (document.body.classList.contains('in-search-page')) {
+          if (isDedicatedSearchScreen()) {
             input.value = q;
             syncSiteSearchFromHeader();
             runSiteSearchPage();
@@ -15651,11 +15673,9 @@
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
         if (getToken()) {
-          const ro = document.getElementById('cabinet-readonly');
-          const ob = document.getElementById('cabinet-onboarding');
-          if ((ro && ro.classList.contains('hidden')) && (ob && ob.classList.contains('hidden'))) {
-            bootAuthenticatedCabinetShell();
-          }
+          showScreen(cabinetScreenIdForSession());
+        } else if (isGuestCabinetPreview()) {
+          showScreen('cabinet-readonly');
         }
         showSection(sec, { skipPush: true });
         if (sec === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
