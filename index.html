@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621hoverfix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621hoverfix1">
+    <link rel="preload" href="/style-v2.css?v=20260621fix502" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621fix502">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -541,6 +541,14 @@
           <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
           <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
         </div>
+        <nav class="mp-guest-cabinet-nav mp-landing-guest-nav" aria-label="Разделы кабинета">
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="home">Главная</button>
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="plans">Планы</button>
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="unwatched">База</button>
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="whattowatch">Смотреть</button>
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="premieres">Премьеры</button>
+          <button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="tournament">Турнир</button>
+        </nav>
       </section>
 
       <!-- LP_PREMIERES_INJECT -->
@@ -1933,7 +1941,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621hoverfix1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621fix502'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -1941,10 +1949,10 @@
           list.push('film-page.js?v=20260621routefix1');
           list.push('cabinet-film-route.js?v=20260621routefix1');
         } else if (isStaff) {
-          list.push('staff-page.js?v=20260621hoverfix1');
-          list.push('cabinet-app.js?v=20260621hoverfix1');
+          list.push('staff-page.js?v=20260621fix502');
+          list.push('cabinet-app.js?v=20260621fix502');
         } else {
-          list.push('cabinet-app.js?v=20260621hoverfix1');
+          list.push('cabinet-app.js?v=20260621fix502');
         }
         function loadAt(i) {
           if (i >= list.length) return;

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="360" height="540" viewBox="0 0 360 540" role="img" aria-label="Movie Planner">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="360" height="540" viewBox="0 0 360 540" role="img" aria-label="Movie Planner">
   <defs>
     <linearGradient id="mp-bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#120818"/>
@@ -10,28 +10,16 @@
       <stop offset="52%" stop-color="#9b4dff"/>
       <stop offset="100%" stop-color="#00d4ff"/>
     </linearGradient>
-    <radialGradient id="mp-glow" cx="50%" cy="38%" r="42%">
-      <stop offset="0%" stop-color="#ff2d7b" stop-opacity="0.28"/>
-      <stop offset="55%" stop-color="#9b4dff" stop-opacity="0.12"/>
+    <radialGradient id="mp-glow" cx="50%" cy="36%" r="46%">
+      <stop offset="0%" stop-color="#ff2d7b" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#9b4dff" stop-opacity="0.10"/>
       <stop offset="100%" stop-color="#000" stop-opacity="0"/>
     </radialGradient>
-    <filter id="mp-blur" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="18"/>
-    </filter>
   </defs>
   <rect width="360" height="540" fill="url(#mp-bg)"/>
   <rect width="360" height="540" fill="url(#mp-glow)"/>
-  <ellipse cx="180" cy="210" rx="110" ry="90" fill="url(#mp-neon)" opacity="0.18" filter="url(#mp-blur)"/>
-  <g transform="translate(180 205)">
-    <rect x="-72" y="-52" width="144" height="104" rx="14" fill="none" stroke="url(#mp-neon)" stroke-width="4"/>
-    <rect x="-56" y="-36" width="112" height="72" rx="8" fill="rgba(255,255,255,0.04)"/>
-    <path d="M-28-8 L-8 8 L-28 24 Z" fill="url(#mp-neon)"/>
-    <path d="M8-8 L28 8 L8 24 Z" fill="url(#mp-neon)" opacity="0.72"/>
-    <rect x="-72" y="-52" width="144" height="18" rx="14" fill="url(#mp-neon)" opacity="0.85"/>
-    <circle cx="-48" cy="-43" r="3.5" fill="#120818"/>
-    <circle cx="-34" cy="-43" r="3.5" fill="#120818"/>
-    <circle cx="-20" cy="-43" r="3.5" fill="#120818"/>
-  </g>
-  <text x="180" y="360" text-anchor="middle" fill="url(#mp-neon)" font-family="Unbounded, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="0.08em">MOVIE</text>
-  <text x="180" y="392" text-anchor="middle" fill="#fff" font-family="Unbounded, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="0.14em">PLANNER</text>
+  <circle cx="180" cy="210" r="92" fill="url(#mp-neon)" opacity="0.12"/>
+  <image href="/images/icon48.png" x="118" y="148" width="124" height="124" preserveAspectRatio="xMidYMid meet"/>
+  <text x="180" y="360" text-anchor="middle" fill="url(#mp-neon)" font-family="'Unbounded', system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="0.06em">Movie</text>
+  <text x="180" y="392" text-anchor="middle" fill="#ffffff" font-family="'Unbounded', system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="0.10em">Planner</text>
 </svg>

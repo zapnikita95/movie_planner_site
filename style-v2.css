@@ -10185,6 +10185,21 @@ body.site-search-sheet-open { overflow: hidden; }
   border-color: rgba(255, 45, 123, 0.45);
   background: rgba(168, 85, 247, 0.14);
 }
+.mp-landing-guest-nav {
+  margin: 28px auto 0;
+  max-width: 720px;
+  border-radius: 16px;
+}
+.film-hero-bookmark-btn {
+  width: 54px;
+  height: 68px;
+  border-radius: 0 0 16px 16px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  padding-bottom: 6px;
+}
+.film-hero-bookmark-btn .film-hero-tag-ico {
+  margin-top: -4px;
+}
 .site-search-person-card {
   display: flex;
   align-items: center;

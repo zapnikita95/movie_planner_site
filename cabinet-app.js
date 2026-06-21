@@ -151,8 +151,11 @@
 
   function requireAuthForAction(hint) {
     if (getToken()) return true;
-    if (hint) try { showToast(hint); } catch (_) {}
     showLoginModalOverlay();
+    try {
+      const modal = document.getElementById('login-modal');
+      if (modal) modal.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } catch (_) {}
     return false;
   }
 
@@ -175,6 +178,30 @@
       const hoverEl = document.getElementById('staff-hover-preview');
       if (hoverEl) hoverEl.classList.add('hidden');
     } catch (_) {}
+  }
+
+  function bindLandingGuestNav() {
+    if (window._mpLandingGuestNavBound) return;
+    window._mpLandingGuestNavBound = true;
+    document.querySelectorAll('.mp-landing-guest-nav .mp-guest-cabinet-nav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = btn.getAttribute('data-guest-section') || 'home';
+        if (getToken()) {
+          var paths = { home: '/home', plans: '/plans', unwatched: '/base', whattowatch: '/watch', premieres: '/premieres', tournament: '/tournament' };
+          window.location.href = paths[sec] || '/home';
+          return;
+        }
+        if (sec === 'home') {
+          window.location.href = '/home';
+          return;
+        }
+        if (sec === 'premieres') {
+          window.location.href = '/premieres';
+          return;
+        }
+        requireAuthForAction();
+      });
+    });
   }
 
   function tryOpenLoginOnlyOverlay() {
@@ -10088,8 +10115,8 @@
     content.className = 'movie-page';
     content.innerHTML =
       '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
-        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="Тег" title="Тег">' +
-          (window.MPIcons ? window.MPIcons.html('tag', { className: 'film-hero-tag-ico' }) : '<span data-tag-emoji>🏷️</span>') +
+        '<button type="button" class="film-hero-tag-btn film-hero-bookmark-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
+          (window.MPIcons ? window.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
           '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>' +
@@ -15423,6 +15450,7 @@
     bindHeaderSearch();
     bindPlansGotoOnce();
     bindHomeSectionNavOnce();
+    bindLandingGuestNav();
     bindHomeDashboardFilmNavOnce();
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();

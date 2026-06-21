@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="360" height="540" viewBox="0 0 360 540" role="img" aria-label="Movie Planner">
+  <defs>
+    <linearGradient id="mp-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#120818"/>
+      <stop offset="50%" stop-color="#1a0f24"/>
+      <stop offset="100%" stop-color="#081018"/>
+    </linearGradient>
+    <radialGradient id="mp-glow" cx="50%" cy="42%" r="38%">
+      <stop offset="0%" stop-color="#9b4dff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="360" height="540" fill="url(#mp-bg)"/>
+  <rect width="360" height="540" fill="url(#mp-glow)"/>
+  <image href="/images/icon48.png" x="130" y="198" width="100" height="100" preserveAspectRatio="xMidYMid meet" opacity="0.92"/>
+</svg>

@@ -44,6 +44,7 @@
     film: { name: 'film-slate', weight: 'regular' },
     search: { name: 'magnifying-glass', weight: 'regular' },
     watchlist: { name: 'bookmark-simple', weight: 'regular' },
+    bookmark: { name: 'bookmark-simple', weight: 'fill' },
     tag: { name: 'tag', weight: 'regular' },
     calendar: { name: 'calendar', weight: 'regular' },
     robot: { name: 'robot', weight: 'regular' },
