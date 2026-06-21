@@ -458,7 +458,10 @@
     var person = data.person || {};
     _staffLastData = data;
     _staffGlobalFilters = data.filters || { years: [], genres: [] };
-    var titleName = person.name_ru || person.name_en || 'Персона';
+    var titleName = person.display_name || person.name_ru || person.name_en || 'Персона';
+    var secondaryName = person.secondary_name || (
+      person.name_en && person.name_en !== person.name_ru ? person.name_en : ''
+    );
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
 
@@ -471,8 +474,8 @@
         '<header class="staff-hero">' + photo +
           '<div class="staff-hero-text">' +
             '<h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
-            (person.name_en && person.name_en !== person.name_ru
-              ? '<p class="staff-hero-sub">' + escapeHtml(person.name_en) + '</p>' : '') +
+            (secondaryName
+              ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
             staffMetaLine(person) +
           '</div>' +
         '</header>' +

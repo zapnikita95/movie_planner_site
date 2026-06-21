@@ -3331,14 +3331,18 @@
       if (!parts.length) return '';
       return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
     }
+    const titleName = person.display_name || person.name_ru || person.name_en || '—';
+    const secondaryName = person.secondary_name || (
+      person.name_en && person.name_ru && person.name_en !== person.name_ru ? person.name_en : ''
+    );
     const photo = person.photo
       ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
     root.innerHTML =
       '<article class="staff-page"><header class="staff-hero">' + photo +
-        '<div class="staff-hero-text"><h1 class="staff-hero-name">' + escapeHtml(person.name_ru || person.name_en || '—') + '</h1>' +
-        (person.name_en && person.name_ru && person.name_en !== person.name_ru
-          ? '<p class="staff-hero-sub">' + escapeHtml(person.name_en) + '</p>' : '') +
+        '<div class="staff-hero-text"><h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
+        (secondaryName
+          ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
         staffMetaHtml(person) +
         '</div></header>' +
       '<div class="staff-filters">' +
@@ -10871,15 +10875,17 @@
 
   function siteSearchPersonCardHtml(p) {
     const pid = escapeHtml(String(p.kp_person_id || ''));
-    const nameRu = escapeHtml(p.name_ru || p.name_en || 'Персона');
-    const nameEn = escapeHtml(p.name_en || '');
-    const showEn = nameEn && nameEn !== (p.name_ru || '');
+    const primary = escapeHtml(p.display_name || p.name_ru || p.name_en || 'Персона');
+    const secondary = escapeHtml(
+      p.secondary_name || ((p.name_en && p.name_en !== (p.name_ru || '')) ? p.name_en : '')
+    );
+    const showSecondary = secondary && secondary !== primary;
     const prof = escapeHtml(String(p.professions || '').slice(0, 80));
     const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg');
     return '<a class="site-search-person-card" href="/s/' + pid + '">'
       + siteSearchPosterHtml(photo, 'site-search-person-photo')
-      + '<span class="site-search-person-copy"><span class="site-search-person-name">' + nameRu + '</span>'
-      + (showEn ? '<span class="site-search-person-en">' + nameEn + '</span>' : '')
+      + '<span class="site-search-person-copy"><span class="site-search-person-name">' + primary + '</span>'
+      + (showSecondary ? '<span class="site-search-person-en">' + secondary + '</span>' : '')
       + (prof ? '<span class="site-search-person-prof">' + prof + '</span>' : '')
       + '</span></a>';
   }
