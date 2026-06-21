@@ -342,16 +342,27 @@
     } catch (_) {}
   }
 
+  function isFilmLiteRouteActive() {
+    if (!window.__MP_FILM_ROUTE_LITE_READY) return false;
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) return true;
+    return !!(pageRoot.querySelector('.film-hero-with-tag') || pageRoot.querySelector('.mp-page-loading'));
+  }
+
   function consumeFilmPathDeepLink() {
     try {
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (!pathKp || !/^\d+$/.test(pathKp)) return false;
       if (getToken()) return false;
+      if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive()) return false;
+      const pageRoot = document.getElementById('film-page-content');
+      if (pageRoot && pageRoot.querySelector('.film-hero-with-tag') && !pageRoot.classList.contains('loading')) {
+        return false;
+      }
       if (!document.getElementById('landing')) return false;
       showScreen('cabinet-readonly');
       renderHeader(null);
       showFilmPageLayout();
-      const pageRoot = document.getElementById('film-page-content');
       if (pageRoot) {
         pageRoot.className = 'movie-page loading';
         pageRoot.innerHTML = pageLoadingHtml();
@@ -639,6 +650,13 @@
   function openFilmHeroByKpPublic(kp, o) {
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return Promise.resolve();
+    if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive()) return Promise.resolve();
+    const existingHero = pageRoot.querySelector('.film-hero-with-tag');
+    const existingTitle = pageRoot.querySelector('#film-title');
+    if (existingHero && existingTitle && !pageRoot.classList.contains('loading')) {
+      const t = String(existingTitle.textContent || '').trim();
+      if (t && t !== 'Загрузка…' && !isGenericFilmTitle(t)) return Promise.resolve();
+    }
     _filmModalCurrentId = null;
     _staffPageKpId = null;
     dismissStaffHoverPreview();
@@ -648,7 +666,7 @@
       else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
     } catch (_) {}
     const bootFilm = filmFromRouteBoot(kp);
-    const hasHero = !!(pageRoot.querySelector('.film-hero-with-tag') && bootFilm && !isGenericFilmTitle(bootFilm.title));
+    const hasHero = !!(existingHero && bootFilm && !isGenericFilmTitle(bootFilm.title));
     if (!hasHero) {
       pageRoot.className = 'movie-page loading';
       pageRoot.innerHTML = pageLoadingHtml();
@@ -15713,7 +15731,7 @@
     if (window.__MP_FILM_ROUTE_LITE_READY) {
       if (getToken()) {
         loadMeAndShowCabinet();
-      } else {
+      } else if (!window.__MP_FILM_RENDERED && !isFilmLiteRouteActive()) {
         handleAuthEntryDeepLinks();
       }
       const footerYearElLite = document.getElementById('footer-year');

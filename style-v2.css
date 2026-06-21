@@ -9187,7 +9187,7 @@ main.film-page .poster-wrap {
 #section-film .poster {
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 24px;
+  border-radius: 30px;
   object-fit: cover;
   object-position: center center;
   background: #151528;
