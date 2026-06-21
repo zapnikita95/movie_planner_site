@@ -8628,6 +8628,11 @@
         ratePanelHtml +
         '</div>'
       : '';
+    const factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
+    const factsBtn = '<div class="film-toolbar-facts-anchor">' +
+      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+      factsPanelHtml +
+      '</div>';
     return (
       '<div class="film-page-toolbar">' +
         planBlock +
@@ -8635,11 +8640,10 @@
           addIconBtn +
           watchIconBtn +
           rateBtn +
-          '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
+          factsBtn +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         friendsBlockHtml +
-        '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>' +
       '</div>'
     );
   }
@@ -8668,11 +8672,17 @@
       btn.classList.add('is-active');
     }
     if (rateToggle) {
-      rateToggle.addEventListener('click', () => togglePanel(rateToggle, ratingPanel));
+      rateToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePanel(rateToggle, ratingPanel);
+      });
     }
     if (factsToggle) {
       let factsLoaded = false;
-      factsToggle.addEventListener('click', () => {
+      factsToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const willOpen = factsPanel && factsPanel.classList.contains('hidden');
         togglePanel(factsToggle, factsPanel);
         if (!willOpen || factsLoaded || !factsList) return;
@@ -8682,7 +8692,8 @@
         fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(kp)) + '/facts', { method: 'GET', mode: 'cors' })
           .then((r) => r.json())
           .then((d) => {
-            const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
+            let arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
+            if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
             factsList.innerHTML = arr.length
               ? arr.map((x) => '<li>' + escapeHtml(String(x)) + '</li>').join('')
               : '';
@@ -8702,8 +8713,13 @@
       fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(String(factsToggle.getAttribute('data-kp') || (film && film.kp_id) || '')) + '/facts', { method: 'GET', mode: 'cors' })
         .then((r) => r.json())
         .then((d) => {
-          const arr = (d && d.facts && d.facts.length) ? d.facts.slice(0, 6) : ((d && d.bloopers) || []).slice(0, 6);
+          let arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
+          if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
           factsToggle.classList.toggle('hidden', !arr.length);
+          if (arr.length && factsList) {
+            factsList.innerHTML = arr.map((x) => '<li>' + escapeHtml(String(x)) + '</li>').join('');
+            factsLoaded = true;
+          }
         })
         .catch(() => { factsToggle.classList.add('hidden'); });
     }
