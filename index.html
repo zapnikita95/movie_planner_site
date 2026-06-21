@@ -158,11 +158,11 @@
           } catch (_) {}
         } catch (_) {}
       })();
-      // /, /home и /premieres — гостевой кабинет без мелькания лендинга
+      // /home и /premieres — гостевой кабинет без мелькания лендинга (не на /)
       (function () {
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/' && path !== '/index.html' && path !== '/home' && path !== '/premieres') return;
+          if (path !== '/home' && path !== '/premieres') return;
           function paintGuestCabinetDeep() {
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
@@ -185,11 +185,6 @@
               if (topbar) topbar.classList.add('hidden');
               var ro = document.getElementById('cabinet-readonly');
               if (ro) ro.classList.add('cabinet-home-root');
-            }
-            if (path === '/' || path === '/index.html') {
-              try {
-                history.replaceState({ section: 'home' }, '', '/home' + (window.location.search || '') + (window.location.hash || ''));
-              } catch (_) {}
             }
           }
           if (document.readyState === 'loading') {
@@ -2026,7 +2021,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621prodforce1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621landingroot1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2036,9 +2031,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260621perf1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621prodforce1');
+          list.push('cabinet-app.js?v=20260621landingroot1');
         } else {
-          list.push('cabinet-app.js?v=20260621prodforce1');
+          list.push('cabinet-app.js?v=20260621landingroot1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

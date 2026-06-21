@@ -234,22 +234,14 @@
     } catch (_) {}
   }
 
-  function showGuestHomeScreen() {
+  function showGuestLandingScreen() {
     try {
-      const qs = window.location.search || '';
-      const hash = window.location.hash || '';
-      history.replaceState({ section: 'home' }, '', '/home' + qs + hash);
+      const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (path === '/home' || path === '/premieres') {
+        try { history.replaceState({}, '', '/' + (window.location.search || '') + (window.location.hash || '')); } catch (_) {}
+      }
     } catch (_) {}
-    if (bootGuestCabinetPreview('home')) {
-      renderHeader(null);
-      handleAuthEntryDeepLinks();
-      try {
-        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-          window.MpCollectionsPage.showGuestPromo();
-        }
-      } catch (_) {}
-      return true;
-    }
+    document.body.classList.remove('in-cabinet', 'guest-cabinet-preview', 'login-only-overlay');
     showScreen('landing');
     renderHeader(null);
     handleAuthEntryDeepLinks();
@@ -258,10 +250,9 @@
         window.MpCollectionsPage.showGuestPromo();
       }
     } catch (_) {}
-    return false;
   }
 
-  /** Гость: /, /home и /premieres — кабинет с cabinet-nav, без topbar «Профиль». */
+  /** Гость: только /home и /premieres — кабинет с cabinet-nav, без topbar «Профиль». */
   function bootGuestCabinetPreview(sectionId) {
     try {
       if (getToken() || !document.getElementById('landing')) return false;
@@ -273,15 +264,7 @@
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       let sec = sectionId || sectionFromPath(bootPath) || 'home';
       if (sec !== 'home' && sec !== 'premieres') return false;
-      const isRoot = bootPath === '/' || bootPath === '/index.html';
-      if (isRoot) {
-        try {
-          history.replaceState({ section: 'home' }, '', '/home' + (window.location.search || '') + (window.location.hash || ''));
-        } catch (_) {}
-        sec = 'home';
-      } else if (bootPath !== '/home' && bootPath !== '/premieres') {
-        return false;
-      }
+      if (bootPath !== '/home' && bootPath !== '/premieres') return false;
 
       document.body.classList.add('guest-cabinet-preview');
       document.body.classList.remove('login-only-overlay');
@@ -5173,12 +5156,7 @@
           redirectToPublicStaffPage(failStaff);
           return;
         }
-        showGuestHomeScreen();
-        try {
-          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.showGuestPromo === 'function') {
-            window.MpCollectionsPage.showGuestPromo();
-          }
-        } catch (_) {}
+        showGuestLandingScreen();
         return;
       }
       try {
@@ -5249,7 +5227,7 @@
         redirectToPublicStaffPage(failStaff);
         return;
       }
-      showGuestHomeScreen();
+      showGuestLandingScreen();
     });
   }
 
@@ -15687,7 +15665,7 @@
           bootAuthenticatedCabinetShell();
           loadMeAndShowCabinet();
         } else {
-          showGuestHomeScreen();
+          showGuestLandingScreen();
         }
       }
     });
@@ -15878,7 +15856,7 @@
         redirectToPublicStaffPage(pathStaffLogout);
         return;
       }
-      showGuestHomeScreen();
+      showGuestLandingScreen();
     });
 
     if (!isPublicStats) {
@@ -15919,12 +15897,12 @@
             loadMeAndShowCabinet();
           } else {
             localStorage.removeItem('mp_site_token');
-            showGuestHomeScreen();
+            showGuestLandingScreen();
           }
         })
         .catch(() => {
           localStorage.removeItem('mp_site_token');
-          showGuestHomeScreen();
+          showGuestLandingScreen();
         });
       return;
     }
@@ -15986,7 +15964,7 @@
         handleAuthEntryDeepLinks();
         return;
       }
-      showGuestHomeScreen();
+      showGuestLandingScreen();
     }
     }
 
