@@ -10721,17 +10721,33 @@
     openFilmPageByKp(k);
   }
 
-  function renderHeaderSearchDropdown(items, query) {
+  function renderHeaderSearchDropdown(items, query, persons) {
     const dd = document.getElementById('header-search-dropdown');
     if (!dd) return;
-    if (!items || !items.length) {
+    persons = persons || [];
+    if ((!items || !items.length) && (!persons || !persons.length)) {
       dd.innerHTML = `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
       dd.classList.remove('hidden');
       setHeaderSearchDropdownOpen(true);
       return;
     }
-    const top = items.slice(0, 6);
-    dd.innerHTML = top.map((it) => {
+    let html = '';
+    if (persons.length) {
+      html += persons.slice(0, 4).map((p) => {
+        const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + p.kp_person_id + '.jpg');
+        const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
+        const prof = escapeHtml(String(p.professions || '').slice(0, 60));
+        return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
+        ${siteSearchPosterHtml(photo, 'hs-result-poster')}
+        <div class="hs-result-info">
+          <div class="hs-result-title">${name}</div>
+          <div class="hs-result-meta"><span>Актёр / режиссёр</span>${prof ? '<span>·</span><span>' + prof + '</span>' : ''}</div>
+        </div>
+      </a>`;
+      }).join('');
+    }
+    const top = (items || []).slice(0, 6);
+    html += top.map((it) => {
       const poster = cleanPosterUrl(it.poster);
       const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
       const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
@@ -10750,9 +10766,10 @@
         </div>
         ${actionBtn}
       </div>`;
-    }).join('') + (items.length > 6
-      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${items.length})</button></div>`
+    }).join('') + ((items || []).length > 6
+      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${(items || []).length})</button></div>`
       : '');
+    dd.innerHTML = html;
     dd.classList.remove('hidden');
     setHeaderSearchDropdownOpen(true);
   }
@@ -10785,8 +10802,8 @@
           if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка поиска</div>';
           return;
         }
-        if ((data.items || []).length) pushHeaderSearchQuery(query);
-        renderHeaderSearchDropdown(data.items || [], query);
+        if ((data.items || []).length || (data.persons || []).length) pushHeaderSearchQuery(query);
+        renderHeaderSearchDropdown(data.items || [], query, data.persons || []);
       })
       .catch(() => {
         if (seq !== _headerSearchSeq) return;
@@ -10822,6 +10839,24 @@
       list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
     }
     return list;
+  }
+
+  function siteSearchPersonCardHtml(p) {
+    const pid = escapeHtml(String(p.kp_person_id || ''));
+    const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
+    const prof = escapeHtml(String(p.professions || '').slice(0, 80));
+    const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + pid + '.jpg');
+    return '<a class="site-search-person-card" href="/s/' + pid + '">'
+      + siteSearchPosterHtml(photo, 'site-search-person-photo')
+      + '<span><span class="site-search-person-name">' + name + '</span>'
+      + (prof ? '<span class="site-search-person-prof">' + prof + '</span>' : '')
+      + '</span></a>';
+  }
+
+  function siteSearchPersonsBlockHtml(persons) {
+    if (!persons || !persons.length) return '';
+    return '<div class="site-search-persons"><div class="site-search-persons-label">Актёры и режиссёры</div><div class="site-search-persons-row">'
+      + persons.map(siteSearchPersonCardHtml).join('') + '</div></div>';
   }
 
   function siteSearchResultCardHtml(it) {
@@ -11177,9 +11212,11 @@
           results.innerHTML = '';
           return;
         }
+        const persons = (data && data.persons) || [];
         const items = siteSearchSortItems((data && data.items) || []);
-        if (status) status.textContent = items.length ? 'Найдено: ' + items.length : 'Ничего не нашлось';
-        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
+        const total = persons.length + items.length;
+        if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
+        results.innerHTML = siteSearchPersonsBlockHtml(persons) + items.map((it) => siteSearchResultCardHtml(it)).join('');
         results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
             const kp = btn.getAttribute('data-site-search-kp');

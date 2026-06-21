@@ -187,7 +187,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=20260618profile1">
+  <link rel="stylesheet" href="/style-v2.css?v=20260621searchpersons1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
   <style>:root { color-scheme: dark; } .hidden { display: none !important; }
@@ -201,6 +201,78 @@
   body.user-standalone-page .mp-seo-article {
     display: none !important;
   }
+  .mp-not-found-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px 48px;
+    background:
+      radial-gradient(900px 520px at 50% -10%, rgba(168,85,247,.24), transparent 58%),
+      radial-gradient(700px 420px at 100% 100%, rgba(236,72,153,.12), transparent 55%),
+      #0b0b13;
+    color: #f4f6ff;
+    text-align: center;
+  }
+  .mp-not-found-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 28px 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  }
+  .mp-not-found-code {
+    font-family: Unbounded, system-ui, sans-serif;
+    font-size: clamp(56px, 16vw, 88px);
+    line-height: 1;
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .mp-not-found-title {
+    font-family: Unbounded, system-ui, sans-serif;
+    font-size: clamp(20px, 4vw, 28px);
+    margin: 0 0 10px;
+  }
+  .mp-not-found-text {
+    margin: 0 0 20px;
+    color: rgba(244,246,255,.72);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .mp-not-found-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .mp-not-found-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .mp-not-found-btn-main {
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    color: #fff;
+  }
+  .mp-not-found-btn-secondary {
+    background: rgba(255,255,255,.08);
+    color: #f4f6ff;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  html.mp-http-not-found body > script,
+  html.mp-http-not-found noscript { display: none !important; }
   .mp-seo-article {
     max-width: 920px;
     margin: 16px auto 0;
@@ -220,10 +292,14 @@
   <script>
     (function () {
       var loc = window.location;
-      if (!loc.pathname.match(/^\/f\/(\d+)\/?$/) && !loc.pathname.match(/^\/s\/(\d+)\/?$/) && !loc.pathname.match(/^\/u\/(-?\d+)\/?$/)) {
-        var target = loc.pathname + loc.search + loc.hash;
-        loc.replace(loc.origin + '/?__spa=' + encodeURIComponent(target));
-      }
+      var path = loc.pathname || '';
+      var isFilm = /^\/f\/(\d+)\/?$/.test(path);
+      var isStaff = /^\/s\/(\d+)\/?$/.test(path);
+      var isUser = /^\/u\/(-?\d+)\/?$/.test(path);
+      if (isFilm || isStaff || isUser) return;
+      document.documentElement.classList.add('mp-http-not-found');
+      var page = document.getElementById('mp-not-found-page');
+      if (page) page.classList.remove('hidden');
     })();
   </script>
   <script>
@@ -252,6 +328,17 @@
   </script>
 </head>
 <body>
+  <main id="mp-not-found-page" class="mp-not-found-page hidden" aria-labelledby="mp-not-found-title">
+    <div class="mp-not-found-card">
+      <p class="mp-not-found-code">404</p>
+      <h1 class="mp-not-found-title" id="mp-not-found-title">Страница не найдена</h1>
+      <p class="mp-not-found-text">Такого адреса нет на Movie Planner. Проверьте ссылку или воспользуйтесь поиском.</p>
+      <div class="mp-not-found-actions">
+        <a class="mp-not-found-btn mp-not-found-btn-main" href="/">На главную</a>
+        <a class="mp-not-found-btn mp-not-found-btn-secondary" href="/search">Поиск</a>
+      </div>
+    </div>
+  </main>
   <!--MP_ROUTE_SEO_BODY-->
   <noscript><p style="color:#fff;background:#111;padding:20px;font-family:sans-serif">Откройте Movie Planner с включённым JavaScript.</p></noscript>
     <script src="/telegram-open.js?v=20260602tgsafari1"></script>
