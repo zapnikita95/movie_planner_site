@@ -1660,7 +1660,7 @@
       } else {
         loadPlans();
         loadUnwatched();
-        setTimeout(function () { loadSeries(); loadSeriesMixForHome(); }, 120);
+        setTimeout(function () { loadSeries(); }, 120);
         setTimeout(function () { loadRatings(); }, 240);
         handleAuthEntryDeepLinks();
         pathUserBoot = userIdFromLocation();
@@ -6010,7 +6010,7 @@
           + '<div class="home-dash-row-meta">' + metaLine + '</div>'
           + '</div></div>' + preview + '</div>';
       }).join('');
-      return '<section class="home-dash-block">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block" data-home-block="plans">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
     }
 
     if (blockId === 'unwatched') {
@@ -6043,17 +6043,21 @@
       }
       items = items.slice(0, 12);
       if (!items.length) {
-        return '<section class="home-dash-block">' + head
+        return '<section class="home-dash-block" data-home-block="premieres">' + head
           + renderHomeBlockCtaHtml(
             '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Смотреть премьеры</button> '
             + '<button type="button" class="btn btn-small btn-secondary" data-plans-action="open-add-film">Добавить фильм</button>'
           ) + '</section>';
       }
-      return '<section class="home-dash-block">' + head
+      return '<section class="home-dash-block" data-home-block="premieres">' + head
         + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
     }
     if (blockId === 'recent_ratings') {
-      if (_homeDashboardCache && Array.isArray(_homeDashboardCache.recent_rated) && !_homeDashboardCache.recent_rated.length) {
+      const ratedCount = _homeDashboardCache && _homeDashboardCache.rated_films_count != null
+        ? Number(_homeDashboardCache.rated_films_count)
+        : null;
+      if (ratedCount === 0) return '';
+      if (_homeDashboardCache && Array.isArray(_homeDashboardCache.recent_rated) && !_homeDashboardCache.recent_rated.length && ratedCount === 0) {
         return '';
       }
       return '<section class="home-dash-block" data-home-block="recent_ratings">' + head
@@ -6084,7 +6088,7 @@
       const hint = tp && tp.participating === false && !meInTop
         ? '<p class="cabinet-hint">Оцените фильм, добавьте билет к сеансу или зайдите два дня подряд — и вы попадёте в таблицу.</p>'
         : '';
-      return '<section class="home-dash-block home-tourn-block">'
+      return '<section class="home-dash-block home-tourn-block" data-home-block="tournament">'
         + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
         + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
         + '<div class="home-tourn-rows">' + rows + hint + '</div></section>';
@@ -6207,8 +6211,10 @@
     const secHome = document.getElementById('section-home');
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
 
-    const hadBlocks = root.querySelector('.home-dash-block');
-    if (!hadBlocks) root.innerHTML = pageLoadingHtml();
+    const hadBlocks = !!root.querySelector('.home-dash-block');
+    if (!hadBlocks) {
+      _paintHomeDashboardBlocks();
+    }
     applyHomeEmojiVisibility();
 
     Promise.all(
@@ -6219,7 +6225,7 @@
           ]
         : [
             fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
-            api('/api/miniapp/dashboard', { timeoutMs: 25000 }).catch(() => null),
+            api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null),
           ]
     )
       .then((pair) => {
@@ -6241,8 +6247,32 @@
       .catch(() => {})
       .finally(() => {
         applyHomeEmojiVisibility();
-        _paintHomeDashboardBlocks();
+        if (hadBlocks) {
+          _paintHomeDashboardBlocks();
+        } else {
+          _patchHomeDashboardStaticBlocks();
+        }
       });
+  }
+
+  function _patchHomeDashboardStaticBlocks() {
+    const root = document.getElementById('home-dashboard-root');
+    if (!root) return;
+    ['plans', 'premieres', 'tournament'].forEach((bid) => {
+      const html = renderHomeBlockHtml(bid);
+      const existing = root.querySelector('[data-home-block="' + bid + '"]');
+      if (!html) {
+        if (existing) existing.remove();
+        return;
+      }
+      if (existing) {
+        existing.outerHTML = html;
+      } else {
+        root.insertAdjacentHTML('beforeend', html);
+      }
+    });
+    renderHomeMoreLinks(loadHomeSectionsHidden());
+    try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
   }
 
   function renderHomeMoreLinks(hidden) {
@@ -7267,10 +7297,7 @@
   }
 
   function loadSeriesMixForHome() {
-    api('/api/home/rails/series-mix?limit=16').then((data) => {
-      seriesMixItems = (data && data.items) || [];
-      scheduleHomeDashboardRefresh();
-    }).catch(() => {});
+    /* series-mix rail on /home loads via MPHomeRails — avoid duplicate API storm */
   }
 
   function renderSeriesList() {

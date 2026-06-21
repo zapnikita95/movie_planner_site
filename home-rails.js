@@ -4,12 +4,13 @@
 (function (global) {
   "use strict";
 
-  var PAGE = 40;
-  var RAIL_PREFETCH_ITEMS_AHEAD = 24;
-  var RAIL_PREFETCH_COOLDOWN_MS = 500;
-  var RAIL_IMAGE_EAGER_COUNT = 20;
-  var RAIL_IMAGE_WARM_MARGIN_PX = 520;
-  var RAIL_CACHE_VERSION = 5;
+  var PAGE = 12;
+  var PAGE_MORE = 24;
+  var RAIL_PREFETCH_ITEMS_AHEAD = 4;
+  var RAIL_PREFETCH_COOLDOWN_MS = 700;
+  var RAIL_IMAGE_EAGER_COUNT = 6;
+  var RAIL_IMAGE_WARM_MARGIN_PX = 280;
+  var RAIL_CACHE_VERSION = 6;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -27,6 +28,10 @@
     var q = "offset=" + offset + "&limit=" + limit;
     if (railId === "premieres" && period) q += "&period=" + encodeURIComponent(period);
     return apiGet("/api/home/rails/" + railId + "?" + q);
+  }
+
+  function pageSizeForOffset(offset) {
+    return offset > 0 ? PAGE_MORE : PAGE;
   }
 
   function railCacheKey(railId, period) {
@@ -283,7 +288,8 @@
       if (isRefresh && container.scrollLeft > scrollLeftAtMount + 8) return Promise.resolve();
       loading = true;
       var fetchOffset = isRefresh ? 0 : offset;
-      return fetchHomeRail(config.apiGet, railId, fetchOffset, PAGE, period)
+      var fetchLimit = isRefresh ? PAGE : pageSizeForOffset(fetchOffset);
+      return fetchHomeRail(config.apiGet, railId, fetchOffset, fetchLimit, period)
         .then(function (page) {
           var batch = (page && page.items) || [];
           if (isRefresh) {
@@ -339,7 +345,6 @@
     var cached = readRailCache(railId, period);
     if (applyCache(cached)) {
       if (cached && cached.stale) void loadMore(true);
-      else if (hasMore) void loadMore(false);
     } else {
       void loadMore(false);
     }
