@@ -9235,6 +9235,17 @@ main.film-page .poster-wrap {
   font-size: 13px;
   font-weight: 800;
 }
+#section-film .chip.chip-link {
+  cursor: pointer;
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+#section-film .chip.chip-link:hover,
+#section-film .chip.chip-link:focus-visible {
+  border-color: rgba(255,45,123,.45);
+  color: #f9a8d4;
+}
 .film-hero h2,
 #section-film .hero h1 {
   margin: 0;

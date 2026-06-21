@@ -3525,9 +3525,14 @@
       link.addEventListener('click', function (e) {
         hidePreview();
         if (opts.allowNativeNav) return;
-        e.preventDefault();
         const kp = link.getAttribute('data-staff-kp');
-        if (kp) openStaffPage(kp, { replace: false });
+        if (!kp) return;
+        e.preventDefault();
+        if (typeof openStaffPage === 'function') {
+          openStaffPage(kp, { replace: false });
+        } else {
+          window.location.href = '/s/' + encodeURIComponent(kp);
+        }
       });
       link.addEventListener('mouseenter', function (e) {
         if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
@@ -16282,6 +16287,28 @@
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
     window.openFilmTagView = openFilmTagView;
+    window.openStaffPage = openStaffPage;
+    window.MpCabinetNav = {
+      openStaffPage: openStaffPage,
+      openSearch: function (opts) {
+        opts = opts || {};
+        var params = [];
+        if (opts.q) params.push('q=' + encodeURIComponent(String(opts.q)));
+        if (opts.genre) params.push('genre=' + encodeURIComponent(String(opts.genre)));
+        var url = '/search' + (params.length ? '?' + params.join('&') : '');
+        try {
+          if (getToken() && typeof showSection === 'function') {
+            showSection('search', { skipPush: true });
+            if (typeof renderSiteSearchPage === 'function') {
+              renderSiteSearchPage({ q: opts.q || '', genre: opts.genre || '' });
+            }
+            history.pushState({ section: 'search' }, '', url);
+            return;
+          }
+        } catch (_nav) {}
+        window.location.href = url;
+      },
+    };
     window.__mpOpenFilmTagFromCollections = function (tagId) {
       openFilmTagView(tagId, { returnSection: 'collections' });
     };

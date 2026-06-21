@@ -1261,9 +1261,18 @@
           .filter(Boolean);
         if (!parts.length) parts = [isSeries ? 'сериал' : 'фильм'];
         parts.slice(0, 8).forEach(function (label) {
-          var chip = document.createElement('span');
-          chip.className = 'chip';
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'chip chip-link';
           chip.textContent = label;
+          chip.addEventListener('click', function () {
+            var q = encodeURIComponent(label);
+            if (global.MpCabinetNav && typeof global.MpCabinetNav.openSearch === 'function') {
+              global.MpCabinetNav.openSearch({ genre: label });
+              return;
+            }
+            global.location.href = '/search?genre=' + q;
+          });
           container.appendChild(chip);
         });
       }
@@ -1352,6 +1361,16 @@
           window.addEventListener('popstate', hidePreview);
         }
         root.querySelectorAll('.staff-cast-link').forEach(function (link) {
+          link.addEventListener('click', function (e) {
+            hidePreview();
+            var kp = link.getAttribute('data-staff-kp');
+            if (!kp) return;
+            if (global.MpCabinetNav && typeof global.MpCabinetNav.openStaffPage === 'function') {
+              e.preventDefault();
+              global.MpCabinetNav.openStaffPage(kp, { replace: false });
+              return;
+            }
+          });
           link.addEventListener('mouseenter', function (e) {
             if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
             var nm = link.getAttribute('data-staff-name') || link.textContent || '';
