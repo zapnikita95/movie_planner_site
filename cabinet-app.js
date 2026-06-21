@@ -516,6 +516,39 @@
     }
   }
 
+  /** Гость: /home и /premieres — кабинет с навигацией и публичными каруселями, без topbar «Профиль». */
+  function bootGuestCabinetPreview(sectionId) {
+    try {
+      if (getToken() || !document.getElementById('landing')) return false;
+      if (isSearchLocation()) return false;
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && /^\d+$/.test(pathKp)) return false;
+      if (staffIdFromPathname(window.location.pathname)) return false;
+
+      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      let sec = sectionId || sectionFromPath(bootPath) || 'home';
+      if (sec !== 'home' && sec !== 'premieres') return false;
+
+      const targetPath = sec === 'premieres' ? '/premieres' : '/home';
+      if (bootPath === '/' || bootPath === '/index.html' || bootPath !== targetPath) {
+        try { history.replaceState({ section: sec }, '', targetPath + window.location.search); } catch (_) {}
+      }
+
+      document.body.classList.add('guest-cabinet-preview');
+      document.body.classList.remove('login-only-overlay');
+      showScreen('cabinet-readonly');
+      renderHeader(null);
+      const topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
+      if (topbar) topbar.classList.add('hidden');
+      _cabinetNavBootstrapped = true;
+      showSection(sec, { skipPush: true, replace: true });
+      afterCabinetSectionShown(sec);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /** /f/:kp + токен — сразу кабинет и спиннер фильма, без редиректа на /?kp_open=. */
   function bootAuthenticatedFilmShell() {
     try {
@@ -2675,6 +2708,7 @@
     const target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
     document.body.classList.toggle('in-cabinet', inCabinet);
+    document.body.classList.toggle('guest-cabinet-preview', inCabinet && !getToken());
     if (!inCabinet) {
       try { document.body.removeAttribute('data-cabinet-section'); } catch (_) {}
     }
@@ -3720,7 +3754,7 @@
     if (cabinetReadonlyActive()) {
       readonly.classList.toggle('cabinet-home-root', sectionId === 'home');
       const topbar = readonly.querySelector('.cabinet-topbar');
-      if (topbar) topbar.classList.toggle('hidden', sectionId !== 'home');
+      if (topbar) topbar.classList.toggle('hidden', isGuestCabinetPreview() || sectionId !== 'home');
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
@@ -10159,7 +10193,7 @@
     content.className = 'movie-page';
     content.innerHTML =
       '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
-        '<button type="button" class="film-hero-tag-btn film-hero-bookmark-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
+        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (window.MPIcons ? window.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
         '<div class="poster-wrap">' +
@@ -15614,6 +15648,7 @@
         if (sectionId === 'home') {
           try { scheduleHomeDashboardRefresh(); } catch (_) {}
         }
+        afterCabinetSectionShown(sectionId);
       });
     });
 
@@ -15762,6 +15797,11 @@
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
+      if (guestDeep === 'home' || guestDeep === 'premieres') {
+        bootGuestCabinetPreview(guestDeep);
+        handleAuthEntryDeepLinks();
+        return;
+      }
       if (guestDeep === 'collections') {
         showScreen('cabinet-readonly');
         renderHeader(null);

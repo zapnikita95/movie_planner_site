@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621reloadfix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621reloadfix1">
+    <link rel="preload" href="/style-v2.css?v=20260621uifix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621uifix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -259,6 +259,47 @@
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintRouteBoot);
           else paintRouteBoot();
+        } catch (_) {}
+      })();
+      // Гость: /, /home, /premieres — сразу shell кабинета с nav (без topbar «Профиль»)
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          var secMap = { '/': 'home', '/home': 'home', '/premieres': 'premieres' };
+          var sec = secMap[path];
+          if (!sec) return;
+          function hasGuestToken() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+                }
+              }
+              return !!localStorage.getItem('mp_site_token');
+            } catch (_) { return false; }
+          }
+          if (hasGuestToken()) return;
+          function paintGuestCabinetBoot() {
+            document.body.classList.add('in-cabinet', 'guest-cabinet-preview');
+            var landing = document.getElementById('landing');
+            if (landing) landing.classList.add('hidden');
+            var cabinet = document.getElementById('cabinet-readonly');
+            if (!cabinet) return;
+            cabinet.classList.remove('hidden');
+            var topbar = cabinet.querySelector('.cabinet-topbar');
+            if (topbar) topbar.classList.add('hidden');
+            cabinet.querySelectorAll('.cabinet-section').forEach(function (el) {
+              if (!el || !el.id) return;
+              el.classList.toggle('hidden', el.id !== 'section-' + sec);
+            });
+            cabinet.querySelectorAll('.cabinet-nav-btn[data-section]').forEach(function (b) {
+              b.classList.toggle('active', b.getAttribute('data-section') === sec);
+            });
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintGuestCabinetBoot);
+          else paintGuestCabinetBoot();
         } catch (_) {}
       })();
       // SEO для /features/collections (краулеры и первый paint)
@@ -1941,18 +1982,18 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621reloadfix1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621uifix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260621reloadfix1');
-          list.push('cabinet-film-route.js?v=20260621reloadfix1');
+          list.push('film-page.js?v=20260621uifix1');
+          list.push('cabinet-film-route.js?v=20260621uifix1');
         } else if (isStaff) {
-          list.push('staff-page.js?v=20260621reloadfix1');
-          list.push('cabinet-app.js?v=20260621reloadfix1');
+          list.push('staff-page.js?v=20260621uifix1');
+          list.push('cabinet-app.js?v=20260621uifix1');
         } else {
-          list.push('cabinet-app.js?v=20260621reloadfix1');
+          list.push('cabinet-app.js?v=20260621uifix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

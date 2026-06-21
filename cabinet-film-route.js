@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260621reloadfix1';
+  var BUILD = '20260621uifix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -125,7 +125,29 @@
     return false;
   }
 
+  function bindGuestCabinetNavLite() {
+    document.addEventListener('click', function (e) {
+      if (getToken()) return;
+      var btn = e.target.closest('#cabinet-readonly .cabinet-nav-btn[data-section]');
+      if (!btn) return;
+      var sec = btn.getAttribute('data-section') || '';
+      if (sec === 'home' || sec === 'premieres') {
+        e.preventDefault();
+        global.location.href = sec === 'premieres' ? '/premieres' : '/home';
+        return;
+      }
+      if (!sec || sec === 'film') return;
+      e.preventDefault();
+      if (global.MpPublicFilmLogin) {
+        global.MpPublicFilmLogin.open('');
+      } else {
+        ensureFullCabinet();
+      }
+    }, true);
+  }
+
   function bindNavPrefetch() {
+    bindGuestCabinetNavLite();
     document.addEventListener('click', function (e) {
       if (_fullReady) return;
       var el = e.target.closest('.cabinet-nav-btn, [data-section], #header-settings-btn, #header-inbox-btn, [data-action="login"]');

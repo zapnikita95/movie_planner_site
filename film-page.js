@@ -733,7 +733,7 @@
   function buildFilmMainInnerHtml(kpId, poster) {
     return (
       '<section class="hero film-hero-with-tag">' +
-        '<button type="button" class="film-hero-tag-btn film-hero-bookmark-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
+        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
         '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +
@@ -882,7 +882,7 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<button type="button" class="film-hero-tag-btn film-hero-bookmark-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
+              '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
                 (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
               '</button>' +
               '<div class="poster-wrap"><img class="poster" id="poster" src="' + poster + '" alt="Постер" onerror="this.style.opacity=.22"></div>' +

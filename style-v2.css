@@ -9056,6 +9056,9 @@ a.header-settings-nav-item {
 #cabinet-readonly:not(.cabinet-home-root) .cabinet-topbar {
   display: none !important;
 }
+body.guest-cabinet-preview #cabinet-readonly .cabinet-topbar {
+  display: none !important;
+}
 /* Standalone /f/: gap between header, nav and hero */
 body.film-standalone-page .page-shell > #site-header {
   margin-bottom: clamp(18px, 2.5vw, 28px);
@@ -10190,15 +10193,8 @@ body.site-search-sheet-open { overflow: hidden; }
   max-width: 720px;
   border-radius: 16px;
 }
-.film-hero-bookmark-btn {
-  width: 54px;
-  height: 68px;
-  border-radius: 0 0 16px 16px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
-  padding-bottom: 6px;
-}
-.film-hero-bookmark-btn .film-hero-tag-ico {
-  margin-top: -4px;
+.film-hero-tag-btn .film-hero-tag-ico {
+  font-size: 22px;
 }
 .site-search-person-card {
   display: flex;
