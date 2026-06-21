@@ -356,6 +356,11 @@
 
   function finishLogin(data) {
     if (!data || !data.token) return;
+    if (typeof global._mpApplySiteSessionLogin === 'function') {
+      global._mpApplySiteSessionLogin(data, $('login-modal'), null);
+      close();
+      return;
+    }
     saveSession(data);
     close();
     try { cfg.onSuccess(data); } catch (_e) {}
@@ -438,6 +443,7 @@
       tg.addEventListener('click', function (e) {
         e.preventDefault();
         if (!privacyOk()) { nudgePrivacy(); return; }
+        rememberOAuthReturn();
         startPfBotAuth(null, null, null);
       });
     }
@@ -613,12 +619,12 @@
     }
   }
 
-  function open(action) {
+  function open(action, tabName) {
     injectModal();
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }
-    setLoginTab('login');
+    setLoginTab(tabName === 'register' ? 'register' : 'login');
     var modal = $('login-modal');
     if (!modal) return;
     modal.classList.remove('hidden');

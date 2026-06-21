@@ -213,6 +213,7 @@
       if (modal) {
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
+        setLoginAuthTab(loginTabFromQuery());
       }
       if (!getToken()) {
         const ro = document.getElementById('cabinet-readonly');
@@ -260,8 +261,17 @@
   function tryOpenLoginOnlyOverlay() {
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('open_login') !== '1' || getToken()) return;
-      showLoginModalOverlay();
+      const openLogin = (params.get('open_login') || '').toLowerCase();
+      if (!openLogin || openLogin === '0' || getToken()) return;
+      if (openLogin === '1' || openLogin === 'register') {
+        showLoginModalOverlay();
+        if (openLogin === 'register') {
+          params.delete('open_login');
+          params.delete('register');
+          const rest = params.toString();
+          history.replaceState({}, '', window.location.pathname + (rest ? '?' + rest : '') + window.location.hash);
+        }
+      }
     } catch (_) {}
   }
 
@@ -269,7 +279,7 @@
     try {
       const params = new URLSearchParams(window.location.search);
       const kp = params.get('kp_open');
-      if (params.get('open_login') === '1' || !!(kp && /^\d+$/.test(kp))) return true;
+      if (params.get('open_login') === '1' || params.get('open_login') === 'register' || !!(kp && /^\d+$/.test(kp))) return true;
       const pathKp = kpIdFromPathname(window.location.pathname);
       const pathStaff = staffIdFromPathname(window.location.pathname);
       return !!(pathKp && /^\d+$/.test(pathKp)) || !!(pathStaff && /^\d+$/.test(pathStaff));
@@ -1009,9 +1019,13 @@
   }
 
   function uiTourIsDone(key) {
+    const scope = uiTourScope();
     const scoped = uiTourScopedKey(key);
     try {
       if (localStorage.getItem(scoped) === '1') return true;
+      // Для авторизованного пользователя — только scoped-ключ, иначе новый аккаунт
+      // на том же браузере пропускает онбординг после другого профиля.
+      if (scope) return !!(_uiTourServerDone && _uiTourServerDone[key]);
       if (localStorage.getItem(key) === '1') return true;
     } catch (_) {}
     return !!(_uiTourServerDone && _uiTourServerDone[key]);
@@ -1021,7 +1035,7 @@
     const scoped = uiTourScopedKey(key);
     try {
       localStorage.setItem(scoped, '1');
-      localStorage.setItem(key, '1');
+      if (!uiTourScope()) localStorage.setItem(key, '1');
     } catch (_) {}
     if (_uiTourServerDone) _uiTourServerDone[key] = true;
   }
@@ -1032,7 +1046,7 @@
       if (done && done[k]) {
         try {
           localStorage.setItem(uiTourScopedKey(k), '1');
-          localStorage.setItem(k, '1');
+          if (!uiTourScope()) localStorage.setItem(k, '1');
         } catch (_) {}
       }
     });
@@ -1664,6 +1678,7 @@
       }
       if (pathStaff || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
       if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
+      else if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
     });
   }
 
@@ -4755,29 +4770,40 @@
     }
   }
 
+  function loginTabFromQuery() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const openLogin = (params.get('open_login') || '').toLowerCase();
+      if (openLogin === 'register' || params.get('register') === '1') return 'register';
+    } catch (_) {}
+    return 'login';
+  }
+
+  function setLoginAuthTab(tabName) {
+    const tab = tabName === 'register' ? 'register' : 'login';
+    document.querySelectorAll('[data-login-tab]').forEach((btn) => {
+      const active = btn.getAttribute('data-login-tab') === tab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-login-pane]').forEach((pane) => {
+      pane.classList.toggle('hidden', pane.getAttribute('data-login-pane') !== tab);
+    });
+  }
+
   // ——— Вход по коду ———
   function bindLogin() {
+    if (window._mpCabinetLoginBound) return;
+    window._mpCabinetLoginBound = true;
     const modal = document.getElementById('login-modal');
     const openBtn = document.querySelector('[data-action="login"]');
     const closeElements = document.querySelectorAll('[data-action="close-login"]');
 
-    function setLoginTab(tabName) {
-      const tab = tabName === 'register' ? 'register' : 'login';
-      document.querySelectorAll('[data-login-tab]').forEach((btn) => {
-        const active = btn.getAttribute('data-login-tab') === tab;
-        btn.classList.toggle('active', active);
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-login-pane]').forEach((pane) => {
-        pane.classList.toggle('hidden', pane.getAttribute('data-login-pane') !== tab);
-      });
-    }
-
     document.querySelectorAll('[data-login-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab')));
+      btn.addEventListener('click', () => setLoginAuthTab(btn.getAttribute('data-login-tab')));
     });
     document.querySelectorAll('[data-login-tab-jump]').forEach((btn) => {
-      btn.addEventListener('click', () => setLoginTab(btn.getAttribute('data-login-tab-jump')));
+      btn.addEventListener('click', () => setLoginAuthTab(btn.getAttribute('data-login-tab-jump')));
     });
 
     const regPrivacy = document.getElementById('login-register-privacy');
@@ -4854,7 +4880,7 @@
 
     if (openBtn) {
       openBtn.addEventListener('click', () => {
-        setLoginTab('login');
+        setLoginAuthTab('login');
         if (modal) modal.classList.remove('hidden');
         scheduleSiteBotAuthPrefetch();
       });
@@ -16066,6 +16092,7 @@
     window.posterUrl = posterUrl;
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
+    window._mpApplySiteSessionLogin = applySiteSessionLogin;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
