@@ -1,6 +1,13 @@
 (function (global) {
   'use strict';
 
+  if (!global.__mpMetrikaSite) {
+    var ms = document.createElement('script');
+    ms.src = '/yandex-metrika.js?v=20260621';
+    ms.async = true;
+    (document.head || document.documentElement).appendChild(ms);
+  }
+
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
