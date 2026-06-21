@@ -11030,7 +11030,7 @@
       return;
     }
     if (dd) {
-      dd.innerHTML = '<div class="header-search-loading">Ищем…</div>';
+      dd.innerHTML = siteSearchLoadingHtml();
       dd.classList.remove('hidden');
       setHeaderSearchDropdownOpen(true);
     }

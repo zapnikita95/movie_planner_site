@@ -42,6 +42,12 @@
     });
   }
 
+  function cleanPosterUrl(src) {
+    var s = String(src || '').trim();
+    if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters|film-poster-placeholder/i.test(s)) return '';
+    return s;
+  }
+
   function isFilmDescPlaceholder(text) {
     var s = String(text || '').trim().toLowerCase();
     if (!s) return true;
@@ -308,9 +314,9 @@
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
     var timer = null;
-    var lastAt = 0;
     var controller = null;
     var seq = 0;
+    var SEARCH_DEBOUNCE_MS = 260;
     if (!input || !dd) return;
     function escapeText(v) {
       return String(v || '').replace(/[&<>"']/g, function (c) {
@@ -318,17 +324,35 @@
       });
     }
     function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
-    function cleanPoster(src) {
-      var s = String(src || '');
-      return s && s.indexOf('/no-poster') === -1 ? s : '';
+    function cleanPoster(src) { return cleanPosterUrl(src); }
+    function searchLoadingHtml() {
+      if (global.__MP_SEARCH_LOADING_HTML) return global.__MP_SEARCH_LOADING_HTML();
+      return '<div class="mp-search-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Ищем">'
+        + '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>'
+        + '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
     }
-    function render(items) {
-      if (!items || !items.length) {
-        dd.innerHTML = '<div class="search-result-meta">Ничего не нашлось</div>';
+    function render(items, persons) {
+      items = items || [];
+      persons = persons || [];
+      if (!items.length && !persons.length) {
+        dd.innerHTML = '<div class="header-search-empty">Ничего не нашлось</div>';
         dd.classList.remove('hidden');
         return;
       }
-      dd.innerHTML = items.slice(0, 6).map(function (it) {
+      var html = '';
+      if (persons.length) {
+        html += persons.slice(0, 3).map(function (p) {
+          var photo = cleanPoster(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + p.kp_person_id + '.jpg');
+          var name = escapeText(p.name_ru || p.name_en || 'Персона');
+          var prof = escapeText(String(p.professions || '').slice(0, 60));
+          return '<a class="hs-result hs-result-person search-result" href="/s/' + encodeURIComponent(String(p.kp_person_id)) + '">'
+            + '<img class="hs-result-poster search-result-poster" src="' + photo.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+            + '<span><span class="search-result-title">' + name + '</span>'
+            + '<span class="search-result-meta"><span>Актёр / режиссёр</span>'
+            + (prof ? '<span>·</span><span>' + prof + '</span>' : '') + '</span></span></a>';
+        }).join('');
+      }
+      html += items.slice(0, 6).map(function (it) {
         var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
         var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
         var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
@@ -337,20 +361,19 @@
           '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
           '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
       }).join('');
+      dd.innerHTML = html;
       dd.classList.remove('hidden');
     }
     function run(q) {
       q = String(q || '').trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !q);
       if (q.length < 2) { hide(); return; }
-      var wait = Math.max(0, 1000 - (Date.now() - lastAt));
       clearTimeout(timer);
       timer = setTimeout(function () {
-        lastAt = Date.now();
         var mySeq = ++seq;
         if (controller) controller.abort();
         controller = global.AbortController ? new AbortController() : null;
-        dd.innerHTML = '<div class="search-result-meta">Ищем…</div>';
+        dd.innerHTML = searchLoadingHtml();
         dd.classList.remove('hidden');
         fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
           method: 'GET',
@@ -360,13 +383,13 @@
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (mySeq !== seq) return;
-            render((data && data.items) || []);
+            render((data && data.items) || [], (data && data.persons) || []);
           })
           .catch(function (e) {
             if (e && e.name === 'AbortError') return;
-            if (mySeq === seq) dd.innerHTML = '<div class="search-result-meta">Не удалось найти</div>';
+            if (mySeq === seq) dd.innerHTML = '<div class="header-search-empty">Не удалось найти</div>';
           });
-      }, wait || 260);
+      }, SEARCH_DEBOUNCE_MS);
     }
     input.addEventListener('input', function () { run(input.value); });
     input.addEventListener('keydown', function (e) {
@@ -1390,16 +1413,11 @@
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series);
-          var apiPoster = String(f.poster_url || '').trim();
-          var keepPoster = apiPoster && !/film-poster-placeholder/i.test(apiPoster);
-          if (!keepPoster) {
-            var pEl0 = document.getElementById('poster');
-            if (pEl0 && pEl0.src && !/film-poster-placeholder/i.test(pEl0.src)) keepPoster = true;
-          }
-          if (keepPoster && apiPoster && !/film-poster-placeholder/i.test(apiPoster)) {
+          var apiPoster = cleanPosterUrl(f.poster_url);
+          if (apiPoster) {
             var pEl = document.getElementById('poster');
             if (pEl) pEl.src = apiPoster;
-            document.documentElement.style.setProperty('--film-backdrop', 'url("' + apiPoster + '")');
+            document.documentElement.style.setProperty('--film-backdrop', 'url("' + apiPoster.replace(/"/g, '\\"') + '")');
           }
           setOgFromFilm(f, title);
           setFilmJsonLd(f);

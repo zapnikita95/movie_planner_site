@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621uifix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621uifix1">
+    <link rel="preload" href="/style-v2.css?v=20260621searchfix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621searchfix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -50,9 +50,11 @@
       })();
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
     <noscript>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
     </noscript>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,6 +62,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!--MP_ROUTE_BOOT-->
     <script>window.global = window;</script>
+    <script>
+      window.__MP_SEARCH_LOADING_HTML = function () {
+        return '<div class="mp-search-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Ищем">'
+          + '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>'
+          + '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
+      };
+    </script>
     <script>
       (function () {
         var BUILD = "20260618profile1";
@@ -1982,18 +1991,18 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621uifix1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621searchfix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260621uifix1');
-          list.push('cabinet-film-route.js?v=20260621uifix1');
+          list.push('film-page.js?v=20260621searchfix1');
+          list.push('cabinet-film-route.js?v=20260621searchfix1');
         } else if (isStaff) {
-          list.push('staff-page.js?v=20260621uifix1');
-          list.push('cabinet-app.js?v=20260621uifix1');
+          list.push('staff-page.js?v=20260621searchfix1');
+          list.push('cabinet-app.js?v=20260621searchfix1');
         } else {
-          list.push('cabinet-app.js?v=20260621uifix1');
+          list.push('cabinet-app.js?v=20260621searchfix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
