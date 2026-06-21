@@ -3508,6 +3508,12 @@
         img.style.display = 'block';
         return;
       }
+      const kp = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
+      if (kp) {
+        img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+        img.style.display = 'block';
+        return;
+      }
       img.src = MP_PERSON_PLACEHOLDER;
       img.style.display = 'block';
     }
@@ -3802,12 +3808,26 @@
       return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
         .then(function (r) { return r.json().catch(function () { return {}; }); });
     }
-    const detailPromise = authed
-      ? api('/api/site/persons/' + kp).then(function (detail) {
-          if (detail && detail.success) return detail;
-          return fetchPublicStaffDetail();
-        })
-      : fetchPublicStaffDetail();
+    function fetchSiteStaffDetail() {
+      return api('/api/site/persons/' + kp, { timeoutMs: 20000 });
+    }
+    const detailPromise = fetchPublicStaffDetail().then(function (pub) {
+      if (pub && pub.success) {
+        if (_staffPageKpId === kp) {
+          pageRoot.className = 'container film-page-container staff-page-content';
+          try {
+            document.title = ((pub.person && pub.person.name_ru) || 'Персона') + ' · Movie Planner';
+          } catch (_) {}
+          renderStaffPageContent(pub, pageRoot);
+        }
+        if (!authed) return pub;
+        return fetchSiteStaffDetail().then(function (site) {
+          return (site && site.success) ? site : pub;
+        }).catch(function () { return pub; });
+      }
+      if (authed) return fetchSiteStaffDetail();
+      return pub;
+    });
     return detailPromise.then(function (detail) {
       if (_staffPageKpId !== kp) return;
       if (!detail || !detail.success) {

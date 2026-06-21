@@ -1385,7 +1385,8 @@
               hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
               var custom = (link.getAttribute('data-staff-photo') || '').trim();
               img.onerror = function () { img.src = PERSON_PH; img.onerror = null; };
-              img.src = custom || PERSON_PH;
+              var kpHover = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
+              img.src = custom || (kpHover ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kpHover + '.jpg') : PERSON_PH);
               img.style.display = 'block';
             }, 180);
           });
