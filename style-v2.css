@@ -10048,6 +10048,22 @@ body.site-search-sheet-open { overflow: hidden; }
   color: rgba(244,246,255,.62);
   font-size: 14px;
 }
+.site-search-section {
+  margin-top: 18px;
+}
+.site-search-section.hidden {
+  display: none;
+}
+.site-search-section-label {
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(244,246,255,.55);
+  margin: 0 0 10px;
+}
+.site-search-section-label.hidden {
+  display: none;
+}
 .site-search-persons {
   margin-top: 18px;
   margin-bottom: 4px;

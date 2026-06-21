@@ -10827,6 +10827,18 @@
   let _siteSearchSortMode = 'relevance';
   let _siteSearchExpandKey = '';
 
+  function siteSearchDedupeItems(items) {
+    const out = [];
+    const seen = new Set();
+    (items || []).forEach((it) => {
+      const kp = String((it && it.kp_id) || '').trim();
+      if (!kp || seen.has(kp)) return;
+      seen.add(kp);
+      out.push(it);
+    });
+    return out;
+  }
+
   function siteSearchSortItems(items) {
     const list = (items || []).slice();
     if (_siteSearchSortMode === 'year_desc') {
@@ -10855,8 +10867,7 @@
 
   function siteSearchPersonsBlockHtml(persons) {
     if (!persons || !persons.length) return '';
-    return '<div class="site-search-persons"><div class="site-search-persons-label">Актёры и режиссёры</div><div class="site-search-persons-row">'
-      + persons.map(siteSearchPersonCardHtml).join('') + '</div></div>';
+    return persons.map(siteSearchPersonCardHtml).join('');
   }
 
   function siteSearchResultCardHtml(it) {
@@ -11127,7 +11138,14 @@
           ${siteSearchFilterToolbarHtml()}
           <div class="site-search-status" id="site-search-status"></div>
         </div>
-        <div class="site-search-results" id="site-search-results"></div>
+        <div class="site-search-section hidden" id="site-search-persons-section">
+          <div class="site-search-section-label">Люди</div>
+          <div class="site-search-persons-row" id="site-search-persons"></div>
+        </div>
+        <div class="site-search-section" id="site-search-films-section">
+          <div class="site-search-section-label hidden" id="site-search-films-label">Фильмы</div>
+          <div class="site-search-results" id="site-search-results"></div>
+        </div>
       </section>`;
     bindSiteSearchPage();
     const headerInput = document.getElementById('header-search-input');
@@ -11172,6 +11190,9 @@
     const input = document.getElementById('site-search-input');
     const headerInput = document.getElementById('header-search-input');
     const results = document.getElementById('site-search-results');
+    const personsEl = document.getElementById('site-search-persons');
+    const personsSection = document.getElementById('site-search-persons-section');
+    const filmsLabel = document.getElementById('site-search-films-label');
     const status = document.getElementById('site-search-status');
     if (!input || !results) return;
     if (isMobileSearchLayout() && headerInput && document.body.classList.contains('in-search-page')) {
@@ -11180,6 +11201,9 @@
     const q = input.value.trim();
     if (q.length < 2) {
       results.innerHTML = '';
+      if (personsEl) personsEl.innerHTML = '';
+      if (personsSection) personsSection.classList.add('hidden');
+      if (filmsLabel) filmsLabel.classList.add('hidden');
       siteSearchSetFilterToolbarVisible(false);
       if (status) status.textContent = 'Введите не менее 2 символов';
       return;
@@ -11210,13 +11234,19 @@
         if (data && data.success === false && data.error === 'rate_limited') {
           if (status) status.textContent = 'Слишком много запросов, подождите';
           results.innerHTML = '';
+          if (personsEl) personsEl.innerHTML = '';
+          if (personsSection) personsSection.classList.add('hidden');
+          if (filmsLabel) filmsLabel.classList.add('hidden');
           return;
         }
         const persons = (data && data.persons) || [];
-        const items = siteSearchSortItems((data && data.items) || []);
+        const items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
         const total = persons.length + items.length;
         if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
-        results.innerHTML = siteSearchPersonsBlockHtml(persons) + items.map((it) => siteSearchResultCardHtml(it)).join('');
+        if (personsEl) personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
+        if (personsSection) personsSection.classList.toggle('hidden', !persons.length);
+        if (filmsLabel) filmsLabel.classList.toggle('hidden', !items.length);
+        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
         results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
             const kp = btn.getAttribute('data-site-search-kp');
