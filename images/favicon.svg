@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Movie Planner">
+  <defs>
+    <linearGradient id="mp-bg" x1="18" y1="8" x2="102" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#mp-bg)"/>
+  <g fill="#fff">
+    <path d="M34 38h52c2.2 0 4 1.8 4 4v8H30v-8c0-2.2 1.8-4 4-4z"/>
+    <path d="M30 50h60v34c0 2.2-1.8 4-4 4H34c-2.2 0-4-1.8-4-4V50z"/>
+    <path fill="#f3e8ff" d="M38 54h8v8h-8zm12 0h8v8h-8zm12 0h8v8h-8zm12 0h8v8h-8z"/>
+    <path fill="#f3e8ff" d="M38 66h8v8h-8zm12 0h8v8h-8zm12 0h8v8h-8z"/>
+  </g>
+</svg>
