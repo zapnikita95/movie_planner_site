@@ -158,6 +158,41 @@
           } catch (_) {}
         } catch (_) {}
       })();
+      // /home и /premieres — гостевой кабинет без мелькания лендинга
+      (function () {
+        try {
+          var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
+          if (path !== '/home' && path !== '/premieres') return;
+          function paintGuestCabinetDeep() {
+            var landing = document.getElementById('landing');
+            if (landing) landing.classList.add('hidden');
+            var cabinet = document.getElementById('cabinet-readonly');
+            if (cabinet) cabinet.classList.remove('hidden');
+            document.body.classList.add('in-cabinet');
+            var sectionId = path === '/premieres' ? 'premieres' : 'home';
+            document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (el) {
+              el.classList.add('hidden');
+            });
+            var sec = document.getElementById('section-' + sectionId);
+            if (sec) sec.classList.remove('hidden');
+            document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn').forEach(function (b) {
+              b.classList.remove('active');
+              if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
+            });
+            if (sectionId === 'home') {
+              var topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
+              if (topbar) topbar.classList.remove('hidden');
+              var ro = document.getElementById('cabinet-readonly');
+              if (ro) ro.classList.add('cabinet-home-root');
+            }
+          }
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', paintGuestCabinetDeep);
+          } else {
+            paintGuestCabinetDeep();
+          }
+        } catch (_) {}
+      })();
       // /features/collections — первый paint: База + секция коллекций (не мелькание «Главная»)
       (function () {
         try {
@@ -1995,7 +2030,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621perf1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621premieresfix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2005,9 +2040,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260621perf1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621perf1');
+          list.push('cabinet-app.js?v=20260621premieresfix1');
         } else {
-          list.push('cabinet-app.js?v=20260621perf1');
+          list.push('cabinet-app.js?v=20260621premieresfix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

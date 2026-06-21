@@ -15673,9 +15673,19 @@
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
         if (getToken()) {
-          showScreen(cabinetScreenIdForSession());
-        } else if (isGuestCabinetPreview()) {
-          showScreen('cabinet-readonly');
+          const ro = document.getElementById('cabinet-readonly');
+          const ob = document.getElementById('cabinet-onboarding');
+          if ((ro && ro.classList.contains('hidden')) && (ob && ob.classList.contains('hidden'))) {
+            bootAuthenticatedCabinetShell();
+          } else {
+            showScreen(cabinetScreenIdForSession());
+          }
+        } else if (guestMayOpenCabinetSection(sec)) {
+          const roGuest = document.getElementById('cabinet-readonly');
+          if (roGuest && roGuest.classList.contains('hidden')) {
+            showScreen('cabinet-readonly');
+            renderHeader(null);
+          }
         }
         showSection(sec, { skipPush: true });
         if (sec === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
@@ -15899,6 +15909,16 @@
         renderHeader(null);
         showSection('collections', { skipPush: true });
         afterCabinetSectionShown('collections');
+        handleAuthEntryDeepLinks();
+        return;
+      }
+      if (guestDeep && guestMayOpenCabinetSection(guestDeep)) {
+        showScreen('cabinet-readonly');
+        renderHeader(null);
+        showSection(guestDeep, { skipPush: true });
+        afterCabinetSectionShown(guestDeep);
+        if (guestDeep === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
+        if (guestDeep === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
         handleAuthEntryDeepLinks();
         return;
       }
