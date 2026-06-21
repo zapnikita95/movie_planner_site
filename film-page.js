@@ -297,6 +297,23 @@
     }
   }
 
+  function mountStandaloneCabinetNav(mainSelector) {
+    var shell = document.querySelector('.page-shell');
+    var main = shell && shell.querySelector(mainSelector || 'main');
+    var old = document.getElementById('film-standalone-nav');
+    if (old) old.remove();
+    if (!shell || !main) return;
+    var navWrap = document.createElement('div');
+    navWrap.innerHTML = standaloneNavHtml();
+    var navEl = navWrap.firstElementChild;
+    if (navEl) {
+      shell.insertBefore(navEl, main);
+      try {
+        if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
+      } catch (_e) {}
+    }
+  }
+
   function bindStandaloneLogoHome() {
     document.querySelectorAll('a.logo[href="/"], a.logo[href="/index.html"]').forEach(function (a) {
       if (a.dataset.mpLogoHomeBound) return;
@@ -346,7 +363,7 @@
           var name = escapeText(p.name_ru || p.name_en || 'Персона');
           var prof = escapeText(String(p.professions || '').slice(0, 60));
           return '<a class="hs-result hs-result-person search-result" href="/s/' + encodeURIComponent(String(p.kp_person_id)) + '">'
-            + '<img class="hs-result-poster search-result-poster" src="' + photo.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+            + '<img class="hs-result-poster hs-result-person-photo search-result-poster" src="' + photo.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
             + '<span><span class="search-result-title">' + name + '</span>'
             + '<span class="search-result-meta"><span>Актёр / режиссёр</span>'
             + (prof ? '<span>·</span><span>' + prof + '</span>' : '') + '</span></span></a>';
@@ -696,9 +713,9 @@
   function refreshStandaloneAuthChrome(opts) {
     opts = opts || {};
     var apiBase = opts.apiBase || API_BASE;
+    var mainSelector = opts.mainSelector || 'main.film-page';
     if (!mpToken() || opts.forcePublic) {
-      var nav = document.getElementById('film-standalone-nav');
-      if (nav) nav.remove();
+      mountStandaloneCabinetNav(mainSelector);
       return;
     }
     fetch(apiBase + '/api/site/me', { headers: mpAuthHeaders() })
@@ -1737,6 +1754,8 @@
     renderFilmPage: renderFilmPage,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
+    standaloneNavHtml: standaloneNavHtml,
+    mountStandaloneCabinetNav: mountStandaloneCabinetNav,
     refreshStandaloneAuthChrome: refreshStandaloneAuthChrome,
     applyStandaloneAuthChrome: applyStandaloneAuthChrome,
     setupAppOpenBanner: setupAppOpenBanner,

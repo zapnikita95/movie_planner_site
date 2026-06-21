@@ -83,6 +83,25 @@
 
   const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
+  const MP_BROWSER_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+  function readBrowserCache(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || typeof o.t !== 'number' || Date.now() - o.t > MP_BROWSER_CACHE_TTL_MS) return null;
+      return o.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeBrowserCache(key, data) {
+    try {
+      localStorage.setItem(key, JSON.stringify({ t: Date.now(), data: data }));
+    } catch (_) {}
+  }
 
   function mpPosterOnErrorAttr() {
     return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';
@@ -528,11 +547,7 @@
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       let sec = sectionId || sectionFromPath(bootPath) || 'home';
       if (sec !== 'home' && sec !== 'premieres') return false;
-
-      const targetPath = sec === 'premieres' ? '/premieres' : '/home';
-      if (bootPath === '/' || bootPath === '/index.html' || bootPath !== targetPath) {
-        try { history.replaceState({ section: sec }, '', targetPath + window.location.search); } catch (_) {}
-      }
+      if (bootPath !== '/home' && bootPath !== '/premieres') return false;
 
       document.body.classList.add('guest-cabinet-preview');
       document.body.classList.remove('login-only-overlay');
@@ -2863,7 +2878,7 @@
     if (!pathname) return null;
     let normalized = pathname.replace(/\/$/, '') || '/';
     if (normalized === '/index.html') normalized = '/';
-    if (normalized === '/') return 'home';
+    if (normalized === '/') return null;
     if (normalized.startsWith('/settings')) return 'settings';
     return PATH_TO_SECTION[normalized] || null;
   }
@@ -5914,6 +5929,12 @@
     }
 
     if (blockId === 'series') {
+      if (isGuestCabinetPreview()) {
+        const guestSeries = (_homeSeriesPreview || []).slice(0, 12);
+        if (!guestSeries.length) return '';
+        return '<section class="home-dash-block">' + head
+          + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries) + '</div></section>';
+      }
       return '<section class="home-dash-block" data-home-block="series">' + head
         + '<div class="home-section-body">'
         + '<div class="home-poster-rail home-rail--draggable" data-home-rail="series-mix" role="list"></div>'
@@ -5979,6 +6000,7 @@
   }
 
   let _homePremierePreview = [];
+  let _homeSeriesPreview = [];
   let _homePremiereRollover = false;
   let _premieresRolloverActive = false;
 
@@ -5988,7 +6010,7 @@
     const order = loadHomeSectionsOrder();
     const hidden = loadHomeSectionsHidden();
     let html = '';
-    const blockOrder = isGuestCabinetPreview() ? ['premieres'] : order;
+    const blockOrder = isGuestCabinetPreview() ? ['premieres', 'series'] : order;
     blockOrder.forEach((bid) => {
       if (bid === 'tournament') return;
       if (hidden.indexOf(bid) >= 0 && !isGuestCabinetPreview()) return;
@@ -6016,14 +6038,37 @@
   }
 
   function fetchPublicPremieresForDisplay(period) {
+    const cacheKey = 'mp_guest_premieres_v2_' + String(period || 'current_month');
+    const cached = readBrowserCache(cacheKey);
+    if (cached && Array.isArray(cached.items)) {
+      return Promise.resolve(cached);
+    }
     const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : period;
     return fetch(getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36', { method: 'GET', mode: 'cors' })
       .then((r) => r.json())
       .then((data) => {
         let items = (data && data.success && data.items) ? data.items.slice() : [];
-        items = filterPremieresUpcomingMsk(items);
+        items = filterPremieresUpcomingMsk(items, { keepUndated: true, guestFallback: true });
         items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
-        return { items: items, rollover: false };
+        const out = { items: items, rollover: false };
+        writeBrowserCache(cacheKey, out);
+        return out;
+      });
+  }
+
+  function fetchPublicSeriesForDisplay() {
+    const cacheKey = 'mp_guest_series_v2';
+    const cached = readBrowserCache(cacheKey);
+    if (cached && Array.isArray(cached.items)) {
+      return Promise.resolve(cached);
+    }
+    return fetch(getPublicApiBase() + '/api/public/series/upcoming?limit=24', { method: 'GET', mode: 'cors' })
+      .then((r) => r.json())
+      .then((data) => {
+        const items = (data && data.success && data.items) ? data.items.slice() : [];
+        const out = { items: items };
+        writeBrowserCache(cacheKey, out);
+        return out;
       });
   }
 
@@ -6075,7 +6120,10 @@
 
     Promise.all(
       isGuestCabinetPreview()
-        ? [fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false }))]
+        ? [
+            fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
+            fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
+          ]
         : [
             fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
             api('/api/miniapp/dashboard', { timeoutMs: 25000 }).catch(() => null),
@@ -6086,6 +6134,9 @@
         const dashData = isGuestCabinetPreview() ? null : pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
+        if (isGuestCabinetPreview()) {
+          _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
+        }
         _homeDashboardCache = dashData && dashData.success ? dashData : null;
         _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
         if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
@@ -10985,7 +11036,7 @@
         const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
         const prof = escapeHtml(String(p.professions || '').slice(0, 60));
         return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
-        ${siteSearchPosterHtml(photo, 'hs-result-poster')}
+        ${siteSearchPosterHtml(photo, 'hs-result-poster hs-result-person-photo')}
         <div class="hs-result-info">
           <div class="hs-result-title">${name}</div>
           <div class="hs-result-meta"><span>Актёр / режиссёр</span>${prof ? '<span>·</span><span>' + prof + '</span>' : ''}</div>
@@ -11506,7 +11557,7 @@
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
     } catch (_) {}
-    const params = new URLSearchParams({ q: q.slice(0, 80), limit: '36' });
+    const params = new URLSearchParams({ q: q.slice(0, 80), limit: '12' });
     if (st.type && st.type !== 'any') params.set('type', st.type);
     const genreTrim = (st.genre || '').trim();
     if (genreTrim) params.set('genre', genreTrim);
@@ -11514,7 +11565,8 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
+    const baseUrl = getPublicApiBase() + '/api/public/search?' + params.toString();
+    fetch(baseUrl, { method: 'GET', mode: 'cors' })
       .then((r) => {
         if (!r.ok) throw new Error('search http ' + r.status);
         return r.json();
@@ -11530,22 +11582,36 @@
           return;
         }
         const persons = (data && data.persons) || [];
-        const items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
-        const total = persons.length + items.length;
-        if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
-        if (personsEl) {
-          personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
-          bindSiteSearchPersonsExpand(personsEl);
-        }
-        if (personsSection) personsSection.classList.toggle('hidden', !persons.length);
-        if (filmsLabel) filmsLabel.classList.toggle('hidden', !items.length);
-        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
-        results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const kp = btn.getAttribute('data-site-search-kp');
-            if (kp) openFilmPageByKp(kp);
+        let items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
+        const paint = (personsList, itemsList) => {
+          if (seq !== _siteSearchSeq) return;
+          const total = personsList.length + itemsList.length;
+          if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
+          if (personsEl) {
+            personsEl.innerHTML = siteSearchPersonsBlockHtml(personsList);
+            bindSiteSearchPersonsExpand(personsEl);
+          }
+          if (personsSection) personsSection.classList.toggle('hidden', !personsList.length);
+          if (filmsLabel) filmsLabel.classList.toggle('hidden', !itemsList.length);
+          results.innerHTML = itemsList.map((it) => siteSearchResultCardHtml(it)).join('');
+          results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const kp = btn.getAttribute('data-site-search-kp');
+              if (kp) openFilmPageByKp(kp);
+            });
           });
-        });
+        };
+        paint(persons, items);
+        if (items.length >= 12) return;
+        params.set('limit', '36');
+        fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
+          .then((r) => r.ok ? r.json() : null)
+          .then((data2) => {
+            if (!data2 || seq !== _siteSearchSeq) return;
+            items = siteSearchDedupeItems(siteSearchSortItems((data2.items) || []));
+            paint((data2.persons) || persons, items);
+          })
+          .catch(() => {});
       })
       .catch(() => {
         if (seq !== _siteSearchSeq) return;
@@ -14950,12 +15016,18 @@
     return null;
   }
   /** Текущий / следующий месяц: только даты строго после сегодня (МСК), как «Скоро» в миниаппе. */
-  function filterPremieresUpcomingMsk(items) {
+  function filterPremieresUpcomingMsk(items, opts) {
+    opts = opts || {};
     const today = premiereTodayYmdMsk();
-    return (items || []).filter((p) => {
+    const filtered = (items || []).filter((p) => {
       const ymd = premiereExtractYmd(p.premiere_date);
-      return ymd && ymd > today;
+      if (!ymd) return !!opts.keepUndated;
+      return ymd >= today;
     });
+    if (opts.guestFallback && !filtered.length && items && items.length) {
+      return items.slice(0, 12);
+    }
+    return filtered;
   }
 
   let _premieresData = [];

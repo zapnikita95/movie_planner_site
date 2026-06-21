@@ -10303,6 +10303,18 @@ body.site-search-sheet-open { overflow: hidden; }
   text-decoration: none;
   color: inherit;
 }
+.hs-result-person-photo,
+.hs-result-person .hs-result-poster {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.site-search-person-photo {
+  border-radius: 50%;
+  object-fit: cover;
+}
 .site-search-results {
   margin-top: 18px;
   display: grid;

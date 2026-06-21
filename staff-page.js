@@ -297,39 +297,21 @@
   }
 
   function guestCabinetNavHtml() {
-    var items = [
-      ['home', 'Главная'],
-      ['plans', 'Планы'],
-      ['unwatched', 'База'],
-      ['whattowatch', 'Смотреть'],
-      ['premieres', 'Премьеры'],
-      ['tournament', 'Турнир'],
-    ];
-    return '<nav class="mp-guest-cabinet-nav" aria-label="Разделы кабинета">'
-      + items.map(function (pair) {
-        return '<button type="button" class="mp-guest-cabinet-nav-btn" data-guest-section="' + pair[0] + '">' + pair[1] + '</button>';
-      }).join('')
-      + '</nav>';
+    if (global.MpFilmPage && typeof MpFilmPage.standaloneNavHtml === 'function') {
+      return MpFilmPage.standaloneNavHtml();
+    }
+    return '';
   }
 
   function bindGuestCabinetNav() {
-    document.querySelectorAll('.mp-guest-cabinet-nav-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var sec = btn.getAttribute('data-guest-section') || 'home';
-        if (mpToken()) {
-          var paths = { home: '/', plans: '/plans', unwatched: '/base', whattowatch: '/watch', premieres: '/premieres', tournament: '/tournament' };
-          global.location.href = paths[sec] || '/';
-          return;
-        }
-        if (sec === 'premieres') {
-          global.location.href = '/premieres';
-          return;
-        }
-        if (sec === 'home') {
-          global.location.href = '/';
-          return;
-        }
-        if (_staffLoginNow) _staffLoginNow(sec);
+    document.querySelectorAll('#film-standalone-nav .cabinet-nav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        var href = btn.getAttribute('href') || '/';
+        if (mpToken()) return;
+        var path = href.replace(/\/$/, '') || '/';
+        if (path === '/home' || path === '/premieres' || path === '/') return;
+        e.preventDefault();
+        if (_staffLoginNow) _staffLoginNow('nav');
         else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + _staffPersonId);
       });
     });
@@ -355,8 +337,7 @@
             '</div>' +
           '</div>' +
         '</header>' +
-        guestCabinetNavHtml() +
-        (global.MpFilmPage && MpFilmPage.appOpenBannerHtml ? MpFilmPage.appOpenBannerHtml() : '') +
+        (global.MpAppOpenBanner && MpAppOpenBanner.appOpenBannerHtml ? MpAppOpenBanner.appOpenBannerHtml() : '') +
         '<main class="movie-page staff-standalone-main">' +
           '<div class="staff-page-content" id="staff-root">' + staffBootHeroHtml() + '</div>' +
         '</main>' +
@@ -393,6 +374,9 @@
       MpFilmPage.setupAppOpenBanner({ id: personId, kind: 'person' });
     }
     bindGuestCabinetNav();
+    if (global.MpFilmPage && typeof MpFilmPage.mountStandaloneCabinetNav === 'function') {
+      MpFilmPage.mountStandaloneCabinetNav('main.staff-standalone-main');
+    }
   }
 
   function applyStaffSeoFromApi(staffPayload) {
