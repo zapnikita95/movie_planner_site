@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621filmposter1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621filmposter1">
+    <link rel="preload" href="/style-v2.css?v=20260621filmfix2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621filmfix2">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -273,6 +273,35 @@
           var filmMatch = path.match(/^\/f\/(\d+)$/);
           var staffMatch = path.match(/^\/s\/(\d+)$/);
           if (!filmMatch && !staffMatch) return;
+          function hasRouteToken() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+                }
+              }
+              return !!localStorage.getItem('mp_site_token');
+            } catch (_e) { return false; }
+          }
+          if (hasRouteToken()) {
+            document.documentElement.classList.add('mp-session');
+            document.documentElement.classList.add('mp-auth-boot');
+            try {
+              var profileName = document.getElementById('header-profile-name');
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (profileName && Array.isArray(sessions)) {
+                for (var j = 0; j < sessions.length; j++) {
+                  if (String(sessions[j].chat_id) === String(active) && sessions[j].name) {
+                    profileName.textContent = sessions[j].name;
+                    break;
+                  }
+                }
+              }
+            } catch (_e2) {}
+          }
           function esc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           }
@@ -2037,19 +2066,19 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621filmposter1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621filmfix2'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260621filmposter1');
-          list.push('cabinet-film-route.js?v=20260621filmposter1');
+          list.push('film-page.js?v=20260621filmfix2');
+          list.push('cabinet-film-route.js?v=20260621filmfix2');
         } else if (isStaff) {
-          list.push('film-page.js?v=20260621filmposter1');
+          list.push('film-page.js?v=20260621filmfix2');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621filmposter1');
+          list.push('cabinet-app.js?v=20260621filmfix2');
         } else {
-          list.push('cabinet-app.js?v=20260621filmposter1');
+          list.push('cabinet-app.js?v=20260621filmfix2');
         }
         function loadAt(i) {
           if (i >= list.length) return;

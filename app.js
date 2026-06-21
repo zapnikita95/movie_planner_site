@@ -8589,13 +8589,13 @@
     const canRate = opts.canRate !== false;
     const ratingLocked = !!opts.ratingLocked;
     const authenticated = !!opts.authenticated;
-    const usePublicRatingGrid = !inBase || !authenticated;
+    const usePublicRatingGrid = !ratingLocked;
     let ratingInner = '';
     if (ratingLocked) {
       ratingInner = '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p>';
     } else if (usePublicRatingGrid) {
       ratingInner = '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
-        [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn" data-rate="${n}">${n}</button>`).join('') +
+        [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn${myRating === n ? ' is-selected' : ''}" data-rate="${n}">${n}</button>`).join('') +
         '</div>';
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
@@ -8622,28 +8622,24 @@
     const ratePanelHtml = (canRate && !ratingLocked)
       ? '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>'
       : '';
-    const rateBtn = canRate && !ratingLocked
-      ? '<div class="film-toolbar-rate-anchor">' +
-        '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>' +
-        ratePanelHtml +
-        '</div>'
+    const rateBtnOnly = canRate && !ratingLocked
+      ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
     const factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
-    const factsBtn = '<div class="film-toolbar-facts-anchor">' +
-      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-      factsPanelHtml +
-      '</div>';
+    const factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
+    const panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + '</div>';
     return (
       '<div class="film-page-toolbar">' +
         planBlock +
         '<div class="film-toolbar-icons">' +
           addIconBtn +
           watchIconBtn +
-          rateBtn +
-          factsBtn +
+          rateBtnOnly +
+          factsBtnOnly +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         friendsBlockHtml +
+        panelsHtml +
       '</div>'
     );
   }

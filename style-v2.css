@@ -9377,52 +9377,44 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   gap: 10px;
   overflow: visible;
 }
-.film-toolbar-rate-anchor {
-  position: relative;
+.film-toolbar-panels {
+  width: 100%;
+  max-width: 720px;
+  display: grid;
+  gap: 10px;
+}
+.film-toolbar-panels > .film-toolbar-expand {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 100%;
+  max-width: 100%;
+  z-index: auto;
+  box-shadow: none;
+  background: rgba(8, 8, 18, 0.55);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.film-toolbar-rate-anchor,
+.film-toolbar-facts-anchor {
+  position: static;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
 }
 .film-toolbar-rate-anchor > #rating-expand-panel,
-.film-toolbar-rate-anchor > .film-toolbar-expand#rating-expand-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: min(520px, calc(100vw - 24px));
-  padding: 10px 12px 12px;
-  z-index: 120;
-  background: rgba(12, 12, 22, 0.98);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 16px;
-  box-shadow: 0 18px 48px rgba(0,0,0,.45);
-}
-.film-toolbar-facts-anchor {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-}
+.film-toolbar-rate-anchor > .film-toolbar-expand#rating-expand-panel,
 .film-toolbar-facts-anchor > #facts-expand-panel,
 .film-toolbar-facts-anchor > .film-toolbar-expand#facts-expand-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(520px, calc(100vw - 24px));
-  max-width: calc(100vw - 24px);
-  padding: 12px 14px;
-  z-index: 120;
-  background: rgba(12, 12, 22, 0.98);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 16px;
-  box-shadow: 0 18px 48px rgba(0,0,0,.45);
-  text-align: left;
-}
-.film-toolbar-facts-anchor #facts-expand-panel .film-toolbar-facts-list {
-  margin: 0;
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 100%;
   max-width: 100%;
+  z-index: auto;
 }
 .film-icon-btn {
   width: 58px;
@@ -9601,6 +9593,12 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
 .film-toolbar-rating-grid .rate-btn:active,
 .film-toolbar-rating-grid .rating-stars button:active {
   transform: scale(0.96);
+}
+.film-toolbar-rating-grid .rate-btn.is-selected,
+.film-toolbar-rating-grid .rating-stars button.is-selected {
+  background: rgba(236, 72, 153, 0.35);
+  border-color: rgba(236, 72, 153, 0.65);
+  color: #fff;
 }
 .film-toolbar-expand.hidden {
   display: none !important;

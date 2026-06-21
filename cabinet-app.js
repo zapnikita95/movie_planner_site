@@ -110,7 +110,7 @@
   function mpPosterOnError(img) {
     if (!img || img.dataset.mpPosterFailed === '1') return;
     var src = String(img.src || '');
-    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
+    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(src)) {
       img.dataset.mpPosterFailed = '1';
       img.onerror = null;
       return;
@@ -167,7 +167,7 @@
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function currentFilmPosterFromDom(root) {
@@ -182,6 +182,9 @@
     if (fromFilm) return fromFilm;
     const cur = currentFilmPosterFromDom(root);
     if (cur) return cur;
+    const boot = filmFromRouteBoot(film && film.kp_id);
+    const bootPoster = boot && cleanPosterUrl(boot.poster_url);
+    if (bootPoster) return bootPoster;
     const kp = film && String(film.kp_id || '').replace(/\D/g, '');
     if (kp) {
       const proxy = posterUrl(kp);
@@ -1674,8 +1677,13 @@
 
     if (filmKp && window.__MP_FILM_ROUTE_LITE_READY) {
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      syncSessionHtmlClass();
       showScreen('cabinet-readonly');
       showFilmPageLayout();
+      if (getToken()) {
+        void refreshFilmPageAuthFromLiteRoute(filmKp);
+        try { document.dispatchEvent(new CustomEvent('mp:film-refresh-auth')); } catch (_) {}
+      }
       deferCabinetLists();
       scheduleOnboarding = false;
       return Promise.resolve();
@@ -9134,13 +9142,13 @@
     const canRate = opts.canRate !== false;
     const ratingLocked = !!opts.ratingLocked;
     const authenticated = !!opts.authenticated;
-    const usePublicRatingGrid = !inBase || !authenticated;
+    const usePublicRatingGrid = !ratingLocked;
     let ratingInner = '';
     if (ratingLocked) {
       ratingInner = '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p>';
     } else if (usePublicRatingGrid) {
       ratingInner = '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
-        [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn" data-rate="${n}">${n}</button>`).join('') +
+        [1,2,3,4,5,6,7,8,9,10].map((n) => `<button type="button" class="rate-btn${myRating === n ? ' is-selected' : ''}" data-rate="${n}">${n}</button>`).join('') +
         '</div>';
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' +
@@ -9167,28 +9175,24 @@
     const ratePanelHtml = (canRate && !ratingLocked)
       ? '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>'
       : '';
-    const rateBtn = canRate && !ratingLocked
-      ? '<div class="film-toolbar-rate-anchor">' +
-        '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>' +
-        ratePanelHtml +
-        '</div>'
+    const rateBtnOnly = canRate && !ratingLocked
+      ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
     const factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
-    const factsBtn = '<div class="film-toolbar-facts-anchor">' +
-      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-      factsPanelHtml +
-      '</div>';
+    const factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
+    const panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + '</div>';
     return (
       '<div class="film-page-toolbar">' +
         planBlock +
         '<div class="film-toolbar-icons">' +
           addIconBtn +
           watchIconBtn +
-          rateBtn +
-          factsBtn +
+          rateBtnOnly +
+          factsBtnOnly +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
         friendsBlockHtml +
+        panelsHtml +
       '</div>'
     );
   }
@@ -9220,6 +9224,33 @@
       isVirtualRoom,
       kpId: film.kp_id,
     };
+  }
+
+  function refreshFilmPageAuthFromLiteRoute(kp) {
+    const kpNorm = String(kp || '').replace(/\D/g, '');
+    if (!kpNorm || !getToken()) return Promise.resolve();
+    return api('/api/site/film-by-kp/' + kpNorm).then(function (lookup) {
+      if (!lookup || !lookup.in_library || !lookup.film_id) return null;
+      return api('/api/site/film/' + lookup.film_id).then(function (detail) {
+        if (!detail || !detail.success || !detail.film) return null;
+        const pageRoot = document.getElementById('film-page-content');
+        if (!pageRoot) return null;
+        mergeBootPoster(detail.film, kpNorm);
+        applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(detail.film, pageRoot));
+        if (shouldPatchFilmHeroInPlace(pageRoot, detail.film)) {
+          replaceFilmPageToolbarInHero(
+            pageRoot,
+            detail.film,
+            detail.ratings || [],
+            detail.me,
+            filmToolbarOptsFromDetail(detail.film, detail.ratings || [], detail.me)
+          );
+          bindFilmModalInteractions(detail.film, pageRoot);
+          try { loadFilmFriendsSocial(detail.film); } catch (_) {}
+        }
+        return detail;
+      });
+    }).catch(function () { return null; });
   }
 
   function shouldPatchFilmHeroInPlace(root, film) {

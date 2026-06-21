@@ -51,7 +51,7 @@
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(s);
   }
 
   function currentFilmPosterFromDom() {
@@ -62,16 +62,29 @@
 
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
 
-  function resolveFilmPosterDisplay(posterUrl) {
+  function defaultPosterForKp(kpId) {
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return '';
+    var boot = readMpRouteBoot();
+    if (boot && boot.poster_url) {
+      var bootPoster = cleanPosterUrl(boot.poster_url);
+      if (bootPoster) return bootPoster;
+    }
+    return 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+  }
+
+  function resolveFilmPosterDisplay(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
     if (next) return next;
     var cur = currentFilmPosterFromDom();
     if (cur) return cur;
+    var fallback = defaultPosterForKp(kpId);
+    if (fallback) return fallback;
     return MP_POSTER_PLACEHOLDER;
   }
 
-  function setFilmHeroBackdrop(posterUrl) {
-    var display = resolveFilmPosterDisplay(posterUrl);
+  function setFilmHeroBackdrop(posterUrl, kpId) {
+    var display = resolveFilmPosterDisplay(posterUrl, kpId);
     if (display === MP_POSTER_PLACEHOLDER && isGoodFilmPosterUrl(currentFilmPosterFromDom())) {
       display = currentFilmPosterFromDom();
     }
@@ -80,23 +93,24 @@
     } catch (_e) {}
   }
 
-  function applyFilmPosterEl(posterUrl) {
+  function applyFilmPosterEl(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
     var cur = currentFilmPosterFromDom();
     if (!next) {
       if (isGoodFilmPosterUrl(cur)) {
-        setFilmHeroBackdrop(cur);
+        setFilmHeroBackdrop(cur, kpId);
         return;
       }
     }
-    var display = next || MP_POSTER_PLACEHOLDER;
+    var display = next || defaultPosterForKp(kpId) || MP_POSTER_PLACEHOLDER;
     var pEl = document.getElementById('poster');
     if (pEl && isGoodFilmPosterUrl(cur) && display === MP_POSTER_PLACEHOLDER) {
-      setFilmHeroBackdrop(cur);
+      setFilmHeroBackdrop(cur, kpId);
       return;
     }
     if (pEl) {
       pEl.src = display;
+      pEl.setAttribute('referrerpolicy', 'no-referrer');
       pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
       pEl.onerror = function () {
         if (global.mpPosterOnError) global.mpPosterOnError(this);
@@ -105,7 +119,7 @@
       var wrap = pEl.closest('.poster-wrap');
       if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display.indexOf('film-poster-placeholder') >= 0);
     }
-    setFilmHeroBackdrop(display === MP_POSTER_PLACEHOLDER ? (cur || '') : posterUrl);
+    setFilmHeroBackdrop(display === MP_POSTER_PLACEHOLDER ? (cur || '') : display, kpId);
   }
 
   try {
@@ -113,7 +127,7 @@
       global.mpPosterOnError = function (img) {
         if (!img || img.dataset.mpPosterFailed === '1') return;
         var src = String(img.currentSrc || img.src || '');
-        if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
+        if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(src)) {
           img.dataset.mpPosterFailed = '1';
           img.onerror = null;
           return;
@@ -222,13 +236,16 @@
     var canRate = opts.canRate !== false;
     var ratingLocked = !!opts.ratingLocked;
     var authenticated = !!opts.authenticated;
-    var usePublicRatingGrid = !inBase || !authenticated;
+    var usePublicRatingGrid = !ratingLocked;
     var ratingInner = '';
     if (ratingLocked) {
       ratingInner = '<p class="film-rating-locked-hint">В группе оценку ставят только администраторы и создатель.</p>';
     } else if (usePublicRatingGrid) {
       ratingInner = '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
-        [1,2,3,4,5,6,7,8,9,10].map(function (n) { return '<button type="button" class="rate-btn" data-rate="' + n + '">' + n + '</button>'; }).join('') +
+        [1,2,3,4,5,6,7,8,9,10].map(function (n) {
+          var sel = (myRating === n) ? ' is-selected' : '';
+          return '<button type="button" class="rate-btn' + sel + '" data-rate="' + n + '">' + n + '</button>';
+        }).join('') +
         '</div>';
     } else {
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' + buildRatingStars(myRating) + '</div></div>' +
@@ -250,20 +267,16 @@
     var ratePanelHtml = (canRate && !ratingLocked)
       ? '<div class="film-toolbar-expand hidden" id="rating-expand-panel"><div class="public-rating-title">Ваша оценка</div>' + ratingInner + '</div>'
       : '';
-    var rateBtn = canRate && !ratingLocked
-      ? '<div class="film-toolbar-rate-anchor">' +
-        '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>' +
-        ratePanelHtml +
-        '</div>'
+    var rateBtnOnly = canRate && !ratingLocked
+      ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
     var factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
-    var factsBtn = '<div class="film-toolbar-facts-anchor">' +
-      '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>' +
-      factsPanelHtml +
-      '</div>';
+    var factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
+    var panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + '</div>';
     return '<div class="film-page-toolbar">' + planBlock +
-      '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtn + factsBtn +
-      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div></div>';
+      '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtnOnly + factsBtnOnly +
+      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
+      panelsHtml + '</div>';
   }
 
   function mpSessions() {
@@ -860,15 +873,15 @@
   }
 
   function buildFilmMainInnerHtml(kpId, poster) {
-    var posterSrc = resolveFilmPosterDisplay(poster);
+    var posterSrc = resolveFilmPosterDisplay(poster, kpId);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
-    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpId }, { inBase: false, authenticated: false, canRate: true });
+    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpId }, { inBase: false, authenticated: !!mpToken(), canRate: true });
     return (
       '<section class="hero film-hero-with-tag">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
-        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="eyebrow" id="chips"></div>' +
@@ -896,7 +909,7 @@
     var year = boot.year ? ' (' + boot.year + ')' : '';
     pageRoot.className = 'movie-page';
     pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, bootPoster);
-    setFilmHeroBackdrop(bootPoster);
+    setFilmHeroBackdrop(bootPoster, kpId);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
@@ -1522,7 +1535,7 @@
           if (boot && boot.poster_url && (!cleanPosterUrl(posterToApply) || !isGoodFilmPosterUrl(posterToApply))) {
             posterToApply = boot.poster_url;
           }
-          applyFilmPosterEl(posterToApply);
+          applyFilmPosterEl(posterToApply, kpId);
           setOgFromFilm(f, title);
           setFilmJsonLd(f);
           if (f.seo_body_html) {
@@ -1859,6 +1872,10 @@
       loadAuthFilmState();
       loadFilmFriendsSocialBlock();
       consumePendingAction();
+      document.addEventListener('mp:film-refresh-auth', function () {
+        loadAuthFilmState();
+        loadFilmFriendsSocialBlock();
+      });
       if (opts.onReady) {
         try { opts.onReady(); } catch (_ready) {}
       }
