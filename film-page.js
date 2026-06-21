@@ -312,9 +312,9 @@
     var tabs = [
       { href: '/home', label: 'Главная', icon: 'home' },
       { href: '/plans', label: 'Планы', icon: 'plans' },
-      { href: '/premieres', label: 'Премьеры', icon: 'premieres' },
       { href: '/watchlist', label: 'База', icon: 'library' },
-      { href: '/whattowatch', label: 'Что посмотреть', icon: 'watch' },
+      { href: '/whattowatch', label: 'Смотреть', icon: 'watch' },
+      { href: '/premieres', label: 'Премьеры', icon: 'premieres' },
       { href: '/tournament', label: 'Турнир', icon: 'tournament' },
     ];
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +

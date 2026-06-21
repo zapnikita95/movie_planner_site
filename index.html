@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621fix2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621fix2">
+    <link rel="preload" href="/style-v2.css?v=20260621landingnav1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260621landingnav1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -128,6 +128,18 @@
             var newUrl = spa + (rest ? (spa.indexOf('?') >= 0 ? '&' : '?') + rest : '') + window.location.hash;
             window.history.replaceState(null, '', newUrl);
           }
+        } catch (_) {}
+      })();
+      // Маркетинговая / — сразу меню разделов и поиск, как на странице фильма
+      (function () {
+        try {
+          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path !== '/' && path !== '/index.html') return;
+          document.body.classList.add('landing-root-page', 'film-standalone-page');
+          var nav = document.getElementById('landing-root-nav');
+          if (nav) nav.classList.remove('hidden');
+          var hs = document.getElementById('header-search');
+          if (hs) hs.classList.remove('hidden');
         } catch (_) {}
       })();
       // Залогинен на / — только имя в шапке до cabinet-app.js (лендинг не скрываем)
@@ -527,6 +539,15 @@
         </div>
       </div>
     </header>
+
+    <nav class="cabinet-nav film-standalone-nav hidden" id="landing-root-nav" aria-label="Разделы">
+      <a class="cabinet-nav-btn" href="/home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></a>
+      <a class="cabinet-nav-btn" href="/plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></a>
+      <a class="cabinet-nav-btn" href="/watchlist"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></a>
+      <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
+      <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
+      <a class="cabinet-nav-btn" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
+    </nav>
 
     <!-- Login Modal -->
     <div class="modal hidden" id="login-modal">
@@ -2016,7 +2037,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621landingroot2'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260621landingroot3'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2026,9 +2047,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260621perf1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260621landingroot2');
+          list.push('cabinet-app.js?v=20260621landingroot3');
         } else {
-          list.push('cabinet-app.js?v=20260621landingroot2');
+          list.push('cabinet-app.js?v=20260621landingroot3');
         }
         function loadAt(i) {
           if (i >= list.length) return;

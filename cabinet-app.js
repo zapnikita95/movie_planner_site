@@ -239,7 +239,20 @@
     return path === '/' || path === '/index.html';
   }
 
+  function setLandingRootNavVisible(visible) {
+    try {
+      const nav = document.getElementById('landing-root-nav');
+      if (nav) nav.classList.toggle('hidden', !visible);
+      document.body.classList.toggle('landing-root-page', visible);
+      document.body.classList.toggle('film-standalone-page', visible);
+      const hs = document.getElementById('header-search');
+      if (hs && visible) hs.classList.remove('hidden');
+    } catch (_) {}
+  }
+
   function showGuestLandingScreen() {
+    const onRoot = isMarketingRootPath(window.location.pathname);
+    setLandingRootNavVisible(onRoot);
     document.body.classList.remove('in-cabinet', 'guest-cabinet-preview', 'login-only-overlay');
     showScreen('landing');
     renderHeader(null);
@@ -1568,6 +1581,7 @@
   function showCabinetAfterLogin(me) {
     if (isMarketingRootPath(window.location.pathname)) {
       document.body.classList.remove('login-only-overlay', 'in-cabinet', 'guest-cabinet-preview');
+      setLandingRootNavVisible(true);
       showScreen('landing');
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       handleAuthEntryDeepLinks();
@@ -2788,6 +2802,8 @@
     }
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     document.body.classList.toggle('in-search-page', !inCabinet && isSearchLocation());
+    const onMarketingRoot = screenId === 'landing' && isMarketingRootPath(window.location.pathname);
+    setLandingRootNavVisible(onMarketingRoot);
     const hs = document.getElementById('header-search');
     if (hs) {
       hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding' || screenId === 'public-stats'));
