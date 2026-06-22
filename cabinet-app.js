@@ -113,8 +113,14 @@
     var src = String(img.src || img.currentSrc || '');
     var kp = String(img.dataset.kp || '').replace(/\D/g, '');
     if (!kp) {
-      var m = src.match(/(?:iphone360_|film_big\/)(\d+)\.jpg/i);
+      var m = src.match(/(?:iphone360_|film_big\/|kp_small\/)(\d+)\.jpg/i);
       if (m) kp = m[1];
+    }
+    if (/kinopoiskapiunofficial\.tech/i.test(src) && kp && img.dataset.mpPosterFb !== 'iphone') {
+      img.dataset.mpPosterFb = 'iphone';
+      img.onerror = function () { mpPosterOnError(img); };
+      img.src = 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
+      return;
     }
     if (/st\.kp\.yandex\.net/i.test(src) && img.dataset.mpPosterFb !== 'big' && kp) {
       img.dataset.mpPosterFb = 'big';
@@ -6348,7 +6354,7 @@
   }
 
   function fetchPublicPremieresForDisplay(period) {
-    const cacheKey = 'mp_guest_premieres_v3_' + String(period || 'current_month');
+    const cacheKey = 'mp_guest_premieres_v4_' + String(period || 'current_month');
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
@@ -11455,6 +11461,20 @@
     return out;
   }
 
+  function hubPosterImgHtml(kpId, posterOverride, imgClass) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    let src = cleanPosterUrl(posterOverride) || '';
+    if (!src && /kinopoiskapiunofficial\.tech/i.test(String(posterOverride || '')) && kp) {
+      src = '';
+    }
+    if (!src && kp) src = posterUrl(kp);
+    if (!src) src = MP_POSTER_PLACEHOLDER;
+    const cls = imgClass || 'hs-hub-prem-img';
+    const phCls = src === MP_POSTER_PLACEHOLDER ? ' mp-poster-placeholder' : '';
+    return '<img class="' + cls + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"'
+      + (kp ? (' data-kp="' + escapeHtml(kp) + '"') : '') + mpPosterOnErrorAttr() + '>';
+  }
+
   function fetchHeaderSearchHubData() {
     if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
       return Promise.resolve(_headerSearchHubCache);
@@ -11517,9 +11537,8 @@
     if (bag.premieres.length) {
       h += '<div class="hs-hub-prem-scroll">';
       bag.premieres.forEach((p) => {
-        const poster = cleanPosterUrl(p.poster) || posterUrl(p.kp_id) || MP_POSTER_PLACEHOLDER;
         h += '<button type="button" class="hs-hub-prem-card" data-hs-premiere-kp="' + escapeHtml(String(p.kp_id || '')) + '">'
-          + '<img class="hs-hub-prem-img" src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+          + hubPosterImgHtml(p.kp_id, p.poster, 'hs-hub-prem-img')
           + '<span class="hs-hub-prem-title">' + escapeHtml(p.title || '—') + '</span></button>';
       });
       h += '</div>';
@@ -11537,12 +11556,14 @@
 
     if (recF.length) {
       h += '<div class="header-search-recent-title">Недавно открывали</div>';
-      recF.forEach((f) => {
-        h += '<button type="button" class="hs-result hs-result--recent" data-hs-row-kp="' + escapeHtml(String(f.kp_id || '')) + '">'
-          + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>') : '<div class="hs-result-poster"></div>')
-          + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div>'
-          + '<div class="hs-result-meta"><span>Недавно открывали</span></div></div></button>';
+      h += '<div class="hs-hub-recent-scroll">';
+      recF.slice(0, 8).forEach((f) => {
+        const kp = String(f.kp_id || '').replace(/\D/g, '');
+        h += '<button type="button" class="hs-hub-prem-card hs-hub-recent-card" data-hs-row-kp="' + escapeHtml(kp) + '">'
+          + hubPosterImgHtml(kp, f.poster, 'hs-hub-prem-img')
+          + '<span class="hs-hub-prem-title">' + escapeHtml(f.title || 'Фильм') + '</span></button>';
       });
+      h += '</div>';
     }
 
     if (!opts.embedded) {

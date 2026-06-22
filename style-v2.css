@@ -5559,6 +5559,78 @@ body.in-public-stats .header-search {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.5em;
+}
+.hs-hub-recent-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 0 10px 12px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.site-search-status .hs-hub {
+  text-align: left;
+  max-width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 8px 0 24px;
+}
+.site-search-status .hs-hub-tabs {
+  padding-left: 0;
+  padding-right: 0;
+}
+.site-search-status .header-search-recent-title {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 255, 0.55);
+  margin-top: 18px;
+}
+.site-search-status .header-search-recent-row {
+  padding-left: 0;
+  padding-right: 0;
+}
+.site-search-status .hs-hub-prem-scroll,
+.site-search-status .hs-hub-recent-scroll {
+  padding-left: 0;
+  padding-right: 0;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.site-search-status .hs-hub-prem-card {
+  flex: 0 0 clamp(96px, 11vw, 128px);
+  scroll-snap-align: start;
+}
+.site-search-status .hs-hub-prem-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  min-height: 132px;
+  max-height: 192px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.site-search-status .hs-hub-prem-title {
+  font-size: 12px;
+  min-height: 2.4em;
+}
+@media (max-width: 640px) {
+  .site-search-status .hs-hub-prem-card {
+    flex-basis: 92px;
+  }
+  .site-search-status .hs-hub-prem-img {
+    min-height: 124px;
+    max-height: 138px;
+    border-radius: 10px;
+  }
+  .site-search-status .hs-hub-prem-scroll,
+  .site-search-status .hs-hub-recent-scroll {
+    gap: 10px;
+    padding-bottom: 8px;
+  }
 }
 .hs-hub-foot {
   padding: 8px 10px 4px;
@@ -5579,9 +5651,6 @@ body.in-public-stats .header-search {
 .hs-hub-more:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 .hs-hub-empty { text-align: left; padding: 4px 12px 10px; font-size: 12px; }
 .header-search-chip--genre { border-color: rgba(168, 85, 247, 0.22); }
-.site-search-status .hs-hub { text-align: left; max-width: 720px; margin: 0 auto; }
-.site-search-status .header-search-recent-title:first-child { padding-top: 0; }
-.header-search-loading,
 .header-search-empty { padding: 8px 6px; font-size: 14px; color: var(--text-muted, #aaa); text-align: center; }
 .header-search-dropdown .mp-search-loading {
   min-height: 96px;

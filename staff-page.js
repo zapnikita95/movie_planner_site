@@ -675,9 +675,13 @@
           .then(function (seo) { applyStaffSeoFromApi(seo); })
           .catch(function () {});
       })
-      .catch(function () {
+      .catch(function (err) {
         var root = document.getElementById('staff-root');
-        if (root) root.innerHTML = '<p class="film-page-error-hint">Ошибка сети</p>';
+        if (!root) return;
+        var msg = (err && String(err.message || err).indexOf('http_404') >= 0)
+          ? 'Страница недоступна — у этой персоны нет фильмографии в базе.'
+          : 'Ошибка сети';
+        root.innerHTML = '<p class="film-page-error-hint">' + msg + '</p>';
       });
   }
 
