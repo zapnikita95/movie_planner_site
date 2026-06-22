@@ -5568,6 +5568,7 @@
   }
 
   let _homeDashTimer = null;
+  let _homeDashInflight = null;
   function scheduleHomeDashboardRefresh() {
     clearTimeout(_homeDashTimer);
     _homeDashTimer = setTimeout(() => {
@@ -6316,6 +6317,7 @@
     const root = document.getElementById('home-dashboard-root');
     const secHome = document.getElementById('section-home');
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
+    if (_homeDashInflight) return _homeDashInflight;
 
     const hadBlocks = !!root.querySelector('.home-dash-block');
     if (!hadBlocks) {
@@ -6323,7 +6325,7 @@
     }
     applyHomeEmojiVisibility();
 
-    Promise.all(
+    _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
             fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
@@ -6352,9 +6354,12 @@
       })
       .catch(() => {})
       .finally(() => {
+        _homeDashInflight = null;
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
+        try { mountHomeDashboardRails(); } catch (_) {}
       });
+    return _homeDashInflight;
   }
 
   function _patchHomeDashboardStaticBlocks() {
