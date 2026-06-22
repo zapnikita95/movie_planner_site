@@ -143,8 +143,6 @@
     var kp = String(kpId || '').replace(/\D/g, '');
     var p = cleanStaffPoster(poster);
     var src = p;
-    if (!src && kp && typeof posterUrl === 'function') src = posterUrl(kp);
-    if (!src && kp) src = 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
     if (!src) src = MP_POSTER_PLACEHOLDER;
     var phCls = src === MP_POSTER_PLACEHOLDER ? ' mp-poster-placeholder' : '';
     return (

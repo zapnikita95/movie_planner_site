@@ -2066,6 +2066,10 @@
     }
     const pathStaff = staffIdFromPathname(path);
     if (pathStaff) {
+      if (!getToken() && window.MpStaffPage && document.getElementById('staff-root')) {
+        MpStaffPage.bootstrap({ personId: pathStaff });
+        return true;
+      }
       showScreen('cabinet-readonly');
       renderHeader(null);
       openStaffPage(pathStaff, { replace: true, skipHistory: true });
@@ -3777,11 +3781,10 @@
           ? 'data-film-id="' + fid + '"'
           : 'data-similar-kp="' + escapeHtml(String(f.kp_id)) + '"';
         const kpClean = String(f.kp_id || '').replace(/\D/g, '');
-        const poster = f.poster
-          ? '<img class="staff-film-poster" src="' + escapeHtml(cleanPosterUrl(f.poster) || f.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + mpPosterOnErrorAttr() + '>'
-          : (kpClean
-            ? '<img class="staff-film-poster" src="' + escapeHtml(posterUrl(kpClean)) + '" alt="" loading="lazy" referrerpolicy="no-referrer" data-kp="' + escapeHtml(kpClean) + '"' + mpPosterOnErrorAttr() + '>'
-            : '<div class="staff-film-poster staff-film-ph">🎬</div>');
+        const posterSrc = cleanPosterUrl(f.poster) || '';
+        const poster = posterSrc
+          ? '<img class="staff-film-poster" src="' + escapeHtml(posterSrc) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + mpPosterOnErrorAttr() + '>'
+          : '<img class="staff-film-poster mp-poster-placeholder" src="' + escapeHtml(MP_POSTER_PLACEHOLDER) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + '>';
         const rating = f.rating != null && !isNaN(Number(f.rating))
           ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
           : '';
@@ -16592,6 +16595,11 @@
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
+        if (window.MpStaffPage && document.getElementById('staff-root')) {
+          MpStaffPage.bootstrap({ personId: pathStaffGuest });
+          handleAuthEntryDeepLinks();
+          return;
+        }
         showScreen('cabinet-readonly');
         renderHeader(null);
         openStaffPage(pathStaffGuest, { replace: true, skipHistory: true });
