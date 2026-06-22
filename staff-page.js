@@ -296,7 +296,7 @@
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
     var photo = String(boot.photo_url || '').trim();
     var photoHtml = photo
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(photo) + '" alt="" referrerpolicy="no-referrer">'
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(photo) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
     return (
       '<article class="staff-page staff-page--boot">' +
@@ -551,7 +551,7 @@
     setStaffOg(person, personId);
 
     var photo = person.photo
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer">'
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
 
     root.innerHTML =

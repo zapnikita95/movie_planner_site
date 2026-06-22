@@ -124,6 +124,27 @@
   }
   try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
 
+  function mpPersonOnError(img) {
+    if (!img || img.dataset.mpPersonFailed === '1') return;
+    img.onerror = null;
+    img.dataset.mpPersonFailed = '1';
+    img.src = MP_PERSON_PLACEHOLDER;
+    img.classList.add('mp-person-placeholder');
+  }
+  try { window.mpPersonOnError = mpPersonOnError; } catch (_) {}
+
+  function mpPersonOnErrorAttr() {
+    return ' onerror="if(window.mpPersonOnError)window.mpPersonOnError(this)"';
+  }
+
+  function siteSearchPersonPhotoHtml(photo, kpPersonId, className) {
+    const p = cleanPosterUrl(photo) || '';
+    const src = p || MP_PERSON_PLACEHOLDER;
+    const phCls = p ? '' : ' mp-person-placeholder';
+    const cls = className || 'site-search-poster';
+    return '<img class="' + cls + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPersonOnErrorAttr() + '>';
+  }
+
   function filmCardPosterHtml(kpId, posterOverride) {
     const poster = cleanPosterUrl(posterOverride) || posterUrl(kpId);
     const src = poster || MP_POSTER_PLACEHOLDER;
@@ -355,6 +376,11 @@
       document.body.classList.remove('login-only-overlay');
       showScreen('cabinet-readonly');
       renderHeader(null);
+      try {
+        document.querySelectorAll('.cabinet-nav-btn[data-section="tournament"], #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
+          el.classList.add('hidden');
+        });
+      } catch (_) {}
       const topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
       if (topbar) topbar.classList.add('hidden');
       _cabinetNavBootstrapped = true;
@@ -2851,6 +2877,16 @@
     closeAccountDropdown();
   }
 
+  function setHeaderSearchVisible(screenId) {
+    const hs = document.getElementById('header-search');
+    if (!hs) return;
+    const show = screenId === 'landing'
+      || screenId === 'cabinet-readonly'
+      || screenId === 'cabinet-onboarding'
+      || screenId === 'public-stats';
+    hs.classList.toggle('hidden', !show);
+  }
+
   function showScreen(screenId) {
     const inCabinet = (screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding');
     if (inCabinet && getToken()) {
@@ -2859,6 +2895,7 @@
       if (screenId === 'cabinet-readonly') {
         const roEarly = document.getElementById('cabinet-readonly');
         if (document.body.classList.contains('in-cabinet') && roEarly && !roEarly.classList.contains('hidden')) {
+          setHeaderSearchVisible(screenId);
           return;
         }
       }
@@ -2885,10 +2922,7 @@
     document.body.classList.toggle('in-search-page', !inCabinet && isSearchLocation());
     const onMarketingRoot = screenId === 'landing' && isMarketingRootPath(window.location.pathname);
     setLandingRootNavVisible(onMarketingRoot);
-    const hs = document.getElementById('header-search');
-    if (hs) {
-      hs.classList.toggle('hidden', !(screenId === 'landing' || screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding' || screenId === 'public-stats'));
-    }
+    setHeaderSearchVisible(screenId);
     if (screenId === 'public-stats') {
       if (getToken()) {
         ensureLoggedInHeader();
@@ -3717,7 +3751,7 @@
       person.name_en && person.name_ru && person.name_en !== person.name_ru ? person.name_en : ''
     );
     const photo = person.photo
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer">'
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer"' + mpPersonOnErrorAttr() + '>'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
     root.innerHTML =
       '<article class="staff-page"><header class="staff-hero">' + photo +
@@ -5984,8 +6018,11 @@
       const poster = it.poster || posterUrl(it.kp_id);
       const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
       const attrs = homeDashNavAttrs(it);
+      const imgSrc = cleanPosterUrl(poster) || MP_POSTER_PLACEHOLDER;
       return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
-        + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
+        + '<div class="home-pre-card-poster">'
+        + '<img class="home-pre-card-poster-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+        + '</div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
         + '<div class="home-pre-card-meta">' + (dateLabel ? (mpIcon('calendar', { size: 'sm' }) + ' ' + escapeHtml(String(dateLabel))) : '') + '</div>'
@@ -6132,7 +6169,7 @@
       if (isGuestCabinetPreview()) {
         const guestSeries = (_homeSeriesPreview || []).slice(0, 12);
         if (!guestSeries.length) return '';
-        return '<section class="home-dash-block">' + head
+        return '<section class="home-dash-block" data-home-block="series">' + head
           + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries) + '</div></section>';
       }
       return '<section class="home-dash-block" data-home-block="series">' + head
@@ -6174,6 +6211,7 @@
         + '</div></section>';
     }
     if (blockId === 'tournament') {
+      if (isGuestCabinetPreview()) return '';
       if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
       const tp = _homeTournamentPreview;
       const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: 'оценок', label: 'Оценки' };
@@ -6263,7 +6301,7 @@
   function fetchPublicSeriesForDisplay() {
     const cacheKey = 'mp_guest_series_v2';
     const cached = readBrowserCache(cacheKey);
-    if (cached && Array.isArray(cached.items)) {
+    if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
     }
     return fetch(getPublicApiBase() + '/api/public/series/upcoming?limit=24', { method: 'GET', mode: 'cors' })
@@ -6271,7 +6309,7 @@
       .then((data) => {
         const items = (data && data.success && data.items) ? data.items.slice() : [];
         const out = { items: items };
-        writeBrowserCache(cacheKey, out);
+        if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
       });
   }
@@ -6387,7 +6425,7 @@
     if (!moreRoot) return;
     const isGroup = _cabinetMeCache && _cabinetMeCache.is_group_profile;
     const links = [];
-    if (!isGroup && hidden.indexOf('tournament') >= 0) {
+    if (!isGroup && !isGuestCabinetPreview() && hidden.indexOf('tournament') >= 0) {
       links.push('<button type="button" class="home-more-row" data-home-show-section="tournament"><span class="home-more-row-icon">' + mpIcon('tournament', { size: 'sm' }) + '</span><span>Турнирная таблица</span><span class="list-arrow">›</span></button>');
     }
     if (!links.length) {
@@ -11385,11 +11423,10 @@
     let html = '';
     if (persons.length) {
       html += persons.slice(0, 4).map((p) => {
-        const photo = cleanPosterUrl(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + p.kp_person_id + '.jpg');
         const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
         const prof = escapeHtml(String(p.professions || '').slice(0, 60));
         return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
-        ${siteSearchPosterHtml(photo, 'hs-result-poster hs-result-person-photo')}
+        ${siteSearchPersonPhotoHtml(p.photo, p.kp_person_id, 'hs-result-poster hs-result-person-photo')}
         <div class="hs-result-info">
           <div class="hs-result-title">${name}</div>
           <div class="hs-result-meta"><span>Актёр / режиссёр</span>${prof ? '<span>·</span><span>' + prof + '</span>' : ''}</div>
@@ -11512,9 +11549,8 @@
     );
     const showSecondary = secondary && secondary !== primary;
     const prof = escapeHtml(String(p.professions || '').slice(0, 80));
-    const photo = cleanPosterUrl(p.photo) || MP_PERSON_PLACEHOLDER;
     return '<a class="site-search-person-card" href="/s/' + pid + '">'
-      + siteSearchPosterHtml(photo, 'site-search-person-photo')
+      + siteSearchPersonPhotoHtml(p.photo, p.kp_person_id, 'site-search-person-photo')
       + '<span class="site-search-person-copy"><span class="site-search-person-name">' + primary + '</span>'
       + (showSecondary ? '<span class="site-search-person-en">' + secondary + '</span>' : '')
       + (prof ? '<span class="site-search-person-prof">' + prof + '</span>' : '')

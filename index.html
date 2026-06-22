@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260621castfix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260621castfix1">
+    <link rel="preload" href="/style-v2.css?v=20260622searchguest1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260622searchguest1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -218,6 +218,11 @@
               var ro = document.getElementById('cabinet-readonly');
               if (ro) ro.classList.add('cabinet-home-root');
             }
+            var hs = document.getElementById('header-search');
+            if (hs) hs.classList.remove('hidden');
+            document.querySelectorAll('.cabinet-nav-btn[data-section="tournament"], #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
+              el.classList.add('hidden');
+            });
           }
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', paintGuestCabinetDeep);
@@ -2091,7 +2096,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622seriesfast2'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622searchguest1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2100,10 +2105,10 @@
           list.push('cabinet-film-route.js?v=20260621castfix1');
         } else if (isStaff) {
           list.push('film-page.js?v=20260622personfix1');
-          list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260622seriesfast2');
+          list.push('staff-page.js?v=20260622searchguest1');
+          list.push('cabinet-app.js?v=20260622searchguest1');
         } else {
-          list.push('cabinet-app.js?v=20260622seriesfast2');
+          list.push('cabinet-app.js?v=20260622searchguest1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
