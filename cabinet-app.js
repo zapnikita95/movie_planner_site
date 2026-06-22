@@ -11344,6 +11344,13 @@
 
   let _headerSearchSeq = 0;
   let _headerSearchDebounce = null;
+  let _headerSearchHubType = 'any';
+  let _headerSearchHubCache = null;
+  const HEADER_SEARCH_HUB_TTL_MS = 5 * 60 * 1000;
+  const HEADER_SEARCH_QUICK_QUERIES = [
+    'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
+  ];
+  const HEADER_SEARCH_GENRE_HINTS = ['драма', 'комедия', 'триллер', 'фантастика', 'боевик', 'ужасы'];
 
   function _readJsonLs(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function _writeJsonLs(k, o) { try { localStorage.setItem(k, JSON.stringify(o)); } catch (e) {} }
@@ -11363,35 +11370,234 @@
     const next = [row].concat(a.filter((x) => String(x.film_id) !== String(row.film_id))).slice(0, 8);
     _writeJsonLs(LS_FILM_RECENT, next);
   }
-  function showHeaderSearchRecents(dd) {
-    if (!dd) return;
+  function mergeHeaderSearchPopularChips(popData) {
+    const real = (popData && popData.queries) || [];
+    const out = [];
+    const seen = new Set();
+    const add = (q) => {
+      const t = String(q || '').trim();
+      if (t.length < 2) return;
+      const k = t.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(t);
+    };
+    for (let i = 0; i < real.length && out.length < 4; i++) add(real[i]);
+    for (let i = 0; i < HEADER_SEARCH_QUICK_QUERIES.length && out.length < 8; i++) add(HEADER_SEARCH_QUICK_QUERIES[i]);
+    return out;
+  }
+
+  function fetchHeaderSearchHubData() {
+    if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
+      return Promise.resolve(_headerSearchHubCache);
+    }
+    const premPromise = getToken()
+      ? fetchPremieresForDisplay('current_month').catch(() => ({ items: [] }))
+      : fetchPublicPremieresForDisplay('upcoming').catch(() => ({ items: [] }));
+    const popPromise = getToken()
+      ? api('/api/site/search/popular').catch(() => null)
+      : Promise.resolve(null);
+    return Promise.all([popPromise, premPromise]).then(([pop, prem]) => {
+      let items = (prem && prem.items) ? prem.items.slice() : [];
+      if (typeof filterPremieresUpcomingMsk === 'function') {
+        items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
+      }
+      const bag = {
+        ts: Date.now(),
+        popular: mergeHeaderSearchPopularChips(pop),
+        premieres: items.slice(0, 10),
+      };
+      _headerSearchHubCache = bag;
+      return bag;
+    });
+  }
+
+  function renderHeaderSearchHubHtml(bag, opts) {
+    opts = opts || {};
+    bag = bag || { popular: mergeHeaderSearchPopularChips(null), premieres: [] };
     const recQ = _readJsonLs(LS_SEARCH_RECENT, []);
     const recF = _readJsonLs(LS_FILM_RECENT, []);
-    if (!recQ.length && !recF.length) {
-      dd.innerHTML = '<div class="header-search-empty">Введите запрос не менее 2 символов</div>';
-      dd.classList.remove('hidden');
-      setHeaderSearchDropdownOpen(true);
-      return;
+    const tabs = [
+      { id: 'any', label: 'Все' },
+      { id: 'film', label: 'Фильмы' },
+      { id: 'series', label: 'Сериалы' },
+    ];
+    let h = '<div class="hs-hub">';
+    h += '<div class="hs-hub-tabs" role="tablist" aria-label="Тип поиска">';
+    tabs.forEach((t) => {
+      h += '<button type="button" class="hs-hub-tab' + (_headerSearchHubType === t.id ? ' active' : '') +
+        '" data-hs-hub-tab="' + t.id + '" role="tab" aria-selected="' + (_headerSearchHubType === t.id ? 'true' : 'false') + '">' +
+        escapeHtml(t.label) + '</button>';
+    });
+    h += '</div>';
+
+    if (bag.popular.length) {
+      h += '<div class="header-search-recent-title">Популярные запросы</div><div class="header-search-recent-row">';
+      bag.popular.forEach((q) => {
+        h += '<button type="button" class="header-search-chip" data-hs-popular-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
+      });
+      h += '</div>';
     }
-    let h = '';
+
+    h += '<div class="header-search-recent-title">Жанры</div><div class="header-search-recent-row">';
+    HEADER_SEARCH_GENRE_HINTS.forEach((g) => {
+      h += '<button type="button" class="header-search-chip header-search-chip--genre" data-hs-genre-q="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
+    });
+    h += '</div>';
+
+    h += '<div class="header-search-recent-title">Сейчас в прокате</div>';
+    if (bag.premieres.length) {
+      h += '<div class="hs-hub-prem-scroll">';
+      bag.premieres.forEach((p) => {
+        const poster = cleanPosterUrl(p.poster) || posterUrl(p.kp_id) || MP_POSTER_PLACEHOLDER;
+        h += '<button type="button" class="hs-hub-prem-card" data-hs-premiere-kp="' + escapeHtml(String(p.kp_id || '')) + '">'
+          + '<img class="hs-hub-prem-img" src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+          + '<span class="hs-hub-prem-title">' + escapeHtml(p.title || '—') + '</span></button>';
+      });
+      h += '</div>';
+    } else {
+      h += '<div class="header-search-empty hs-hub-empty">Список проката временно пуст</div>';
+    }
+
     if (recQ.length) {
       h += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row">';
-      recQ.forEach((q) => {
+      recQ.slice(0, 8).forEach((q) => {
         h += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
       });
       h += '</div>';
     }
+
     if (recF.length) {
-      h += '<div class="header-search-recent-title">Недавние карточки</div>';
+      h += '<div class="header-search-recent-title">Недавно открывали</div>';
       recF.forEach((f) => {
         h += '<button type="button" class="hs-result hs-result--recent" data-hs-row-kp="' + escapeHtml(String(f.kp_id || '')) + '">'
-        + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="">' ) : '<div class="hs-result-poster"></div>')
-        + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div></div></button>';
+          + (f.kp_id ? ('<img class="hs-result-poster" src="' + escapeHtml(posterUrl(f.kp_id)) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>') : '<div class="hs-result-poster"></div>')
+          + '<div class="hs-result-info"><div class="hs-result-title">' + escapeHtml(f.title) + '</div>'
+          + '<div class="hs-result-meta"><span>Недавно открывали</span></div></div></button>';
       });
     }
-    dd.innerHTML = h;
+
+    if (!opts.embedded) {
+      h += '<div class="hs-hub-foot"><button type="button" class="hs-hub-more" data-hs-open-search-page>Расширенный поиск →</button></div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function showHeaderSearchHub(dd) {
+    if (!dd) return;
+    if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
+      dd.innerHTML = renderHeaderSearchHubHtml(_headerSearchHubCache, dd.id === 'site-search-status' ? { embedded: true } : {});
+      dd.classList.remove('hidden');
+      if (dd.id === 'header-search-dropdown') setHeaderSearchDropdownOpen(true);
+      if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
+      return;
+    }
+    dd.innerHTML = siteSearchLoadingHtml();
     dd.classList.remove('hidden');
-    setHeaderSearchDropdownOpen(true);
+    if (dd.id === 'header-search-dropdown') setHeaderSearchDropdownOpen(true);
+    fetchHeaderSearchHubData()
+      .then((bag) => {
+        if (!dd) return;
+        dd.innerHTML = renderHeaderSearchHubHtml(bag, dd.id === 'site-search-status' ? { embedded: true } : {});
+        if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
+      })
+      .catch(() => {
+        if (!dd) return;
+        dd.innerHTML = renderHeaderSearchHubHtml({ popular: mergeHeaderSearchPopularChips(null), premieres: [] }, dd.id === 'site-search-status' ? { embedded: true } : {});
+        if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
+      });
+  }
+
+  function showHeaderSearchRecents(dd) {
+    showHeaderSearchHub(dd);
+  }
+
+  function applyHeaderSearchQuery(q, opts) {
+    const input = document.getElementById('header-search-input');
+    const clearBtn = document.getElementById('header-search-clear');
+    const query = String(q || '').trim();
+    if (!query) return;
+    opts = opts || {};
+    if (opts.type) _headerSearchHubType = opts.type;
+    if (opts.genre) {
+      _siteSearchFilterState.genre = opts.genre;
+      _siteSearchFilterState.type = _headerSearchHubType || 'any';
+    }
+    if (input) input.value = query;
+    if (clearBtn) clearBtn.classList.remove('hidden');
+    hideHeaderSearchDropdown();
+    if (isDedicatedSearchScreen()) {
+      syncSiteSearchFromHeader();
+      runSiteSearchPage();
+      return;
+    }
+    runHeaderSearch(query);
+  }
+
+  function openSiteSearchHubFull() {
+    hideHeaderSearchDropdown();
+    try { history.pushState({ view: 'search' }, '', '/search'); } catch (_) {}
+    renderSiteSearchPage({ q: '' });
+  }
+
+  function bindHeaderSearchHubClicks(root) {
+    if (!root || root.dataset.hsHubBound === '1') return;
+    root.dataset.hsHubBound = '1';
+    root.addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('[data-hs-hub-tab]');
+      if (tabBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        _headerSearchHubType = tabBtn.getAttribute('data-hs-hub-tab') || 'any';
+        _siteSearchFilterState.type = _headerSearchHubType;
+        const dd = document.getElementById('header-search-dropdown');
+        if (dd && !dd.classList.contains('hidden')) showHeaderSearchHub(dd);
+        else if (root.id === 'site-search-status') {
+          fetchHeaderSearchHubData().then((bag) => {
+            root.innerHTML = renderHeaderSearchHubHtml(bag, { embedded: true });
+            bindHeaderSearchHubClicks(root);
+          });
+        }
+        return;
+      }
+      const popBtn = e.target.closest('[data-hs-popular-q], [data-hs-recent-q]');
+      if (popBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        applyHeaderSearchQuery(popBtn.getAttribute('data-hs-popular-q') || popBtn.getAttribute('data-hs-recent-q') || popBtn.textContent);
+        return;
+      }
+      const genreBtn = e.target.closest('[data-hs-genre-q]');
+      if (genreBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const g = genreBtn.getAttribute('data-hs-genre-q') || '';
+        _siteSearchFilterState.genre = g;
+        applyHeaderSearchQuery(g, { genre: g });
+        return;
+      }
+      const premBtn = e.target.closest('[data-hs-premiere-kp]');
+      if (premBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openHeaderSearchResult(premBtn.getAttribute('data-hs-premiere-kp'));
+        return;
+      }
+      const row = e.target.closest('.hs-result[data-hs-row-kp]');
+      if (row) {
+        e.preventDefault();
+        e.stopPropagation();
+        openHeaderSearchResult(row.getAttribute('data-hs-row-kp'));
+        return;
+      }
+      const moreBtn = e.target.closest('[data-hs-open-search-page]');
+      if (moreBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openSiteSearchHubFull();
+      }
+    });
   }
 
   function openHeaderSearchResult(kp) {
@@ -11466,8 +11672,7 @@
     const seq = ++_headerSearchSeq;
     const dd = document.getElementById('header-search-dropdown');
     if (!query || query.length < 2) {
-      hideHeaderSearchDropdown();
-      if (dd) dd.innerHTML = '';
+      showHeaderSearchHub(dd);
       return;
     }
     if (dd) {
@@ -11480,9 +11685,10 @@
       if (dd) dd.innerHTML = '<div class="header-search-empty">Распознали ссылку — откройте полную форму для добавления.</div>';
       return;
     }
+    const typeParam = _headerSearchHubType || 'any';
     const searchPromise = getToken()
-      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
-      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6', { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(typeParam))
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&type=' + encodeURIComponent(typeParam), { method: 'GET', mode: 'cors' }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
@@ -11881,6 +12087,10 @@
       if (headerClear) headerClear.classList.toggle('hidden', !q);
     }
     if (q.length >= 2) runSiteSearchPage();
+    else {
+      const status = document.getElementById('site-search-status');
+      if (status) showHeaderSearchHub(status);
+    }
     const input = document.getElementById('site-search-input');
     if (input && !isMobileSearchLayout()) setTimeout(() => input.focus(), 50);
     updateSearchPageChrome();
@@ -11931,7 +12141,7 @@
       if (personsSection) personsSection.classList.add('hidden');
       if (filmsLabel) filmsLabel.classList.add('hidden');
       siteSearchSetFilterToolbarVisible(false);
-      if (status) status.textContent = 'Введите не менее 2 символов';
+      if (status) showHeaderSearchHub(status);
       return;
     }
     siteSearchSetFilterToolbarVisible(true);
@@ -12070,6 +12280,13 @@
     const clearBtn = document.getElementById('header-search-clear');
     if (!wrap || !input) return;
 
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('#header-search-dropdown')) return;
+      if (e.target.closest('#header-search-clear')) return;
+      if (document.activeElement !== input) input.focus();
+      else if (input.value.trim().length < 2 && dd) showHeaderSearchHub(dd);
+    });
+
     input.addEventListener('input', () => {
       const v = input.value.trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !v);
@@ -12082,7 +12299,7 @@
     });
     input.addEventListener('focus', () => {
       const v = input.value.trim();
-      if (v.length < 2 && dd) showHeaderSearchRecents(dd);
+      if (v.length < 2 && dd) showHeaderSearchHub(dd);
       else if (v.length >= 2 && dd && dd.innerHTML) {
         dd.classList.remove('hidden');
         setHeaderSearchDropdownOpen(true);
@@ -12122,26 +12339,11 @@
       if (!wrap.contains(e.target)) hideHeaderSearchDropdown();
     });
     if (dd) {
+      bindHeaderSearchHubClicks(dd);
       dd.addEventListener('touchstart', (e) => {
         e.stopPropagation();
       }, { passive: true });
       dd.addEventListener('click', (e) => {
-        const recQbtn = e.target.closest('[data-hs-recent-q]');
-        if (recQbtn) {
-          e.preventDefault();
-          e.stopPropagation();
-          const q = (recQbtn.getAttribute('data-hs-recent-q') || recQbtn.textContent || '').trim();
-          if (!q || !input) return;
-          hideHeaderSearchDropdown();
-          if (isDedicatedSearchScreen()) {
-            input.value = q;
-            syncSiteSearchFromHeader();
-            runSiteSearchPage();
-          } else {
-            openSiteSearchPage(q);
-          }
-          return;
-        }
         const addBtn = e.target.closest('[data-hs-add-kp]');
         if (addBtn) {
           e.preventDefault();
