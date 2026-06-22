@@ -28,8 +28,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260622searchhub1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260622searchhub1">
+    <link rel="preload" href="/style-v2.css?v=20260622headercls1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260622headercls1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -130,17 +130,24 @@
           }
         } catch (_) {}
       })();
-      // Маркетинговая / — сразу меню разделов и поиск, как на странице фильма
+      // Маркетинговая / — сразу меню разделов и поиск (после DOM, иначе CLS шапки)
       (function () {
-        try {
-          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-          if (path !== '/' && path !== '/index.html') return;
-          document.body.classList.add('landing-root-page', 'film-standalone-page');
-          var nav = document.getElementById('landing-root-nav');
-          if (nav) nav.classList.remove('hidden');
-          var hs = document.getElementById('header-search');
-          if (hs) hs.classList.remove('hidden');
-        } catch (_) {}
+        function bootLandingRootHeader() {
+          try {
+            var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+            if (path !== '/' && path !== '/index.html') return;
+            document.body.classList.add('landing-root-page', 'film-standalone-page');
+            var nav = document.getElementById('landing-root-nav');
+            if (nav) nav.classList.remove('hidden');
+            var hs = document.getElementById('header-search');
+            if (hs) hs.classList.remove('hidden');
+          } catch (_) {}
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', bootLandingRootHeader);
+        } else {
+          bootLandingRootHeader();
+        }
       })();
       // Залогинен на / — редирект в кабинет /home (гость остаётся на лендинге)
       (function () {
@@ -557,7 +564,7 @@
     <header id="site-header">
       <div class="header-content">
         <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
-        <div class="header-search hidden" id="header-search" role="search">
+        <div class="header-search hidden" id="header-search" role="search" aria-hidden="true">
           <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
           <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>

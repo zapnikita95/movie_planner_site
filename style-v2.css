@@ -10422,6 +10422,21 @@ body.site-search-sheet-open { overflow: hidden; }
 body.landing-root-page .page-shell > #site-header {
   margin-bottom: clamp(18px, 2.5vw, 28px);
 }
+body.landing-root-page #header-search:not(.hidden) {
+  visibility: visible;
+}
+body.landing-root-page #site-header .header-content {
+  min-height: 52px;
+}
+body.landing-root-page .header-search.hidden {
+  display: block !important;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  flex: 1 1 420px;
+  max-width: 560px;
+  min-width: 220px;
+}
 body.landing-root-page #landing-root-nav {
   display: flex;
   max-width: 1280px;
