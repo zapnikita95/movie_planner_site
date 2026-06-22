@@ -26,6 +26,7 @@
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
+  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 700;
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
@@ -2603,7 +2604,7 @@
     const headerInput = document.getElementById('header-search-input');
     if (pageInput && headerInput) pageInput.value = headerInput.value;
     if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
-    _headerSearchDebounce = setTimeout(() => runSiteSearchPage(), 280);
+    _headerSearchDebounce = setTimeout(() => runSiteSearchPage(), SITE_SEARCH_INPUT_DEBOUNCE_MS);
   }
 
   function showSiteSearchScreen() {
@@ -10740,6 +10741,7 @@
   }
 
   let _siteSearchSeq = 0;
+  let _siteSearchAbort = null;
   const SITE_SEARCH_YEAR_MIN = 1900;
   const SITE_SEARCH_YEAR_MAX = new Date().getFullYear() + 2;
   const SITE_SEARCH_GENRE_QUICK = [
@@ -11058,7 +11060,7 @@
     let timer = null;
     function schedule() {
       clearTimeout(timer);
-      timer = setTimeout(runSiteSearchPage, 260);
+      timer = setTimeout(runSiteSearchPage, SITE_SEARCH_INPUT_DEBOUNCE_MS);
     }
     if (form) {
       form.addEventListener('submit', (e) => {
@@ -11098,6 +11100,11 @@
     siteSearchRefreshFilterChipLabels();
     const st = _siteSearchFilterState;
     const seq = ++_siteSearchSeq;
+    if (_siteSearchAbort) {
+      try { _siteSearchAbort.abort(); } catch (_) {}
+    }
+    _siteSearchAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const fetchSignal = _siteSearchAbort ? _siteSearchAbort.signal : undefined;
     if (status) status.textContent = 'Ищем…';
     try {
       history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
@@ -11110,7 +11117,7 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors' })
+    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors', signal: fetchSignal })
       .then((r) => {
         if (!r.ok) throw new Error('search http ' + r.status);
         return r.json();
@@ -11132,8 +11139,9 @@
           });
         });
       })
-      .catch(() => {
+      .catch((err) => {
         if (seq !== _siteSearchSeq) return;
+        if (err && err.name === 'AbortError') return;
         if (status) status.textContent = 'Ошибка поиска';
       });
   }
@@ -11206,7 +11214,7 @@
         return;
       }
       if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
-      _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), 280);
+      _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), SITE_SEARCH_INPUT_DEBOUNCE_MS);
     });
     input.addEventListener('focus', () => {
       const v = input.value.trim();
