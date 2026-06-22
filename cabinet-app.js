@@ -110,8 +110,19 @@
 
   function mpPosterOnError(img) {
     if (!img || img.dataset.mpPosterFailed === '1') return;
-    var src = String(img.src || '');
-    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(src)) {
+    var src = String(img.src || img.currentSrc || '');
+    var kp = String(img.dataset.kp || '').replace(/\D/g, '');
+    if (!kp) {
+      var m = src.match(/(?:iphone360_|film_big\/)(\d+)\.jpg/i);
+      if (m) kp = m[1];
+    }
+    if (/st\.kp\.yandex\.net/i.test(src) && img.dataset.mpPosterFb !== 'big' && kp) {
+      img.dataset.mpPosterFb = 'big';
+      img.onerror = function () { mpPosterOnError(img); };
+      img.src = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+      return;
+    }
+    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
       img.dataset.mpPosterFailed = '1';
       img.onerror = null;
       return;
@@ -120,7 +131,7 @@
     img.dataset.mpPosterFailed = '1';
     img.src = MP_POSTER_PLACEHOLDER;
     img.classList.add('mp-poster-placeholder');
-    var wrap = img.closest('.home-poster-tile-img, .home-pre-card-poster, .film-card-v2-poster, .home-dash-row-poster, .home-poster-preview-pop-poster, .home-film-preview-poster, .site-inbox-thumb--poster, .poster-wrap');
+    var wrap = img.closest('.home-poster-tile-img, .home-pre-card-poster, .film-card-v2-poster, .home-dash-row-poster, .home-poster-preview-pop-poster, .home-film-preview-poster, .site-inbox-thumb--poster, .poster-wrap, .staff-film-media');
     if (wrap) wrap.classList.add('film-poster-has-placeholder');
   }
   try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
@@ -3751,9 +3762,12 @@
         const clickAttr = fid
           ? 'data-film-id="' + fid + '"'
           : 'data-similar-kp="' + escapeHtml(String(f.kp_id)) + '"';
+        const kpClean = String(f.kp_id || '').replace(/\D/g, '');
         const poster = f.poster
-          ? '<img class="staff-film-poster" src="' + escapeHtml(f.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
-          : '<div class="staff-film-poster staff-film-ph">🎬</div>';
+          ? '<img class="staff-film-poster" src="' + escapeHtml(cleanPosterUrl(f.poster) || f.poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + mpPosterOnErrorAttr() + '>'
+          : (kpClean
+            ? '<img class="staff-film-poster" src="' + escapeHtml(posterUrl(kpClean)) + '" alt="" loading="lazy" referrerpolicy="no-referrer" data-kp="' + escapeHtml(kpClean) + '"' + mpPosterOnErrorAttr() + '>'
+            : '<div class="staff-film-poster staff-film-ph">🎬</div>');
         const rating = f.rating != null && !isNaN(Number(f.rating))
           ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
           : '';

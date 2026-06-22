@@ -14,6 +14,7 @@
   })();
 
   var PERSON_FILMS_PREVIEW = 20;
+  var PERSON_FILM_BATCH = 24;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
@@ -138,12 +139,14 @@
     return s;
   }
 
-  function staffFilmPosterHtml(poster) {
+  function staffFilmPosterHtml(poster, kpId) {
+    var kp = String(kpId || '').replace(/\D/g, '');
     var p = cleanStaffPoster(poster);
-    var src = p || MP_POSTER_PLACEHOLDER;
+    var src = p || (kp ? ('https://st.kp.yandex.net/images/film_big/' + kp + '.jpg') : MP_POSTER_PLACEHOLDER);
     var phCls = p ? '' : ' mp-poster-placeholder';
     return (
       '<img class="staff-film-poster' + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+      (kp ? ('data-kp="' + escapeHtml(kp) + '" ') : '') +
       'onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
     );
   }
@@ -156,7 +159,7 @@
     var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       if (!kp) return '';
-      var poster = staffFilmPosterHtml(f.poster);
+      var poster = staffFilmPosterHtml(f.poster, kp);
       var rating = f.rating != null && !isNaN(Number(f.rating))
         ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
         : '';
@@ -571,8 +574,71 @@
     bindStaffFilters(root);
   }
 
-  function loadStaff(personId) {
-    var authed = !!mpToken();
+  function mergeStaffFilmsBatch(roleKey, batchFilms, append) {
+    if (!_staffLastData || !Array.isArray(_staffLastData.films_by_role)) return;
+    var rk = String(roleKey || '').toUpperCase();
+    var block = (_staffLastData.films_by_role || []).find(function (b) {
+      return String(b.role_key || '').toUpperCase() === rk;
+    });
+    if (!block) {
+      block = { role_key: rk, role_name: rk, films: [] };
+      _staffLastData.films_by_role.push(block);
+    }
+    var incoming = batchFilms || [];
+    if (append) block.films = (block.films || []).concat(incoming);
+    else block.films = incoming.slice();
+  }
+
+  function loadStaffRoleFilms(personId, roleKey, offset) {
+    var off = Math.max(0, parseInt(offset, 10) || 0);
+    var url = API_BASE + '/api/public/person/' + encodeURIComponent(personId) +
+      '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + PERSON_FILM_BATCH;
+    return fetch(url, { method: 'GET', mode: 'cors' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http_' + r.status);
+        return r.json();
+      })
+      .then(function (batch) {
+        if (!batch || !batch.success) return;
+        mergeStaffFilmsBatch(roleKey, batch.films || [], off > 0);
+        paintStaffRoles();
+        if (batch.has_more) {
+          return loadStaffRoleFilms(personId, roleKey, off + (batch.films || []).length);
+        }
+      });
+  }
+
+  function loadStaffProgressive(personId) {
+    return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/head', { method: 'GET', mode: 'cors' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http_' + r.status);
+        return r.json();
+      })
+      .then(function (head) {
+        if (!head || !head.success) throw new Error('head');
+        var rolesMeta = head.roles || [];
+        var filmsByRole = rolesMeta.map(function (rm) {
+          return {
+            role_key: rm.role_key,
+            role_name: rm.role_name || rm.role_key,
+            films: [],
+            total: rm.total || 0,
+          };
+        });
+        renderStaffData({
+          success: true,
+          person: head.person || {},
+          filters: head.filters || { years: [], genres: [] },
+          films_by_role: filmsByRole,
+        }, personId);
+        return Promise.all(rolesMeta.map(function (rm) {
+          if (!rm || !rm.role_key || !(rm.total > 0)) return Promise.resolve();
+          return loadStaffRoleFilms(personId, rm.role_key, 0).catch(function () {});
+        }));
+      });
+  }
+
+  function loadStaffLegacy(personId, authed) {
     var url = authed
       ? API_BASE + '/api/site/persons/' + encodeURIComponent(personId)
       : API_BASE + '/api/public/person/' + encodeURIComponent(personId);
@@ -591,13 +657,23 @@
       })
       .then(function (d) {
         renderStaffData(d, personId);
+        if (_staffFilterState.friendsRatedOnly && mpToken()) {
+          paintStaffRoles();
+        }
+      });
+  }
+
+  function loadStaff(personId) {
+    var authed = !!mpToken();
+    var loadPromise = authed
+      ? loadStaffLegacy(personId, true)
+      : loadStaffProgressive(personId);
+    return loadPromise
+      .then(function () {
         fetch(API_BASE + '/api/public/staff/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (seo) { applyStaffSeoFromApi(seo); })
           .catch(function () {});
-        if (_staffFilterState.friendsRatedOnly && mpToken()) {
-          paintStaffRoles();
-        }
       })
       .catch(function () {
         var root = document.getElementById('staff-root');
