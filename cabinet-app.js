@@ -4868,7 +4868,7 @@
     }
     _siteBotAuthPoll = setInterval(function () {
       pollSiteBotAuthOnce(code, modalEl, statusEl).catch(function () {});
-    }, 2500);
+    }, 4500);
     void pollSiteBotAuthOnce(code, modalEl, statusEl);
     scheduleSiteBotAuthPrefetch();
   }
@@ -4920,12 +4920,18 @@
     const checkData = await authApiJson('/api/auth/telegram-mobile/check', {
       method: 'POST',
       body: JSON.stringify({ code }),
-    });
+    }, 15000);
     if (checkData.success && checkData.verified === false) return false;
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
         stopSiteBotAuthPoll();
         siteBotAuthToast('Время истекло — нажмите Telegram ещё раз');
+      } else if (checkData.error === 'rate_limit' || checkData.error === 'http_429') {
+        return false;
+      } else if (checkData.error === 'server_busy' || checkData.error === 'http_503') {
+        return false;
+      } else if (checkData.error === 'server error' || checkData.error === 'http_500') {
+        return false;
       }
       return false;
     }
@@ -12226,7 +12232,7 @@
         history.replaceState({ view: 'search', q }, '', '/search?q=' + encodeURIComponent(q));
       } catch (_) {}
     }
-    const params = new URLSearchParams({ q: q.slice(0, 80), limit: '12' });
+    const params = new URLSearchParams({ q: q.slice(0, 80), limit: '24' });
     if (st.type && st.type !== 'any') params.set('type', st.type);
     const genreTrim = (st.genre || '').trim();
     if (genreTrim) params.set('genre', genreTrim);
@@ -12234,13 +12240,19 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    const baseUrl = getPublicApiBase() + '/api/public/search?' + params.toString();
-    fetch(baseUrl, { method: 'GET', mode: 'cors', signal: fetchSignal })
+    const searchTimeoutMs = 28000;
+    const searchTimer = setTimeout(function () {
+      if (_siteSearchAbort) {
+        try { _siteSearchAbort.abort(); } catch (_) {}
+      }
+    }, searchTimeoutMs);
+    fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors', signal: fetchSignal })
       .then((r) => {
         if (!r.ok) throw new Error('search http ' + r.status);
         return r.json();
       })
       .then((data) => {
+        clearTimeout(searchTimer);
         if (seq !== _siteSearchSeq) return;
         if (data && data.success === false && data.error === 'rate_limited') {
           if (status) status.textContent = 'Слишком много запросов, подождите';
@@ -12251,40 +12263,30 @@
           return;
         }
         const persons = (data && data.persons) || [];
-        let items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
-        const paint = (personsList, itemsList) => {
-          if (seq !== _siteSearchSeq) return;
-          const total = personsList.length + itemsList.length;
-          if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
-          if (personsEl) {
-            personsEl.innerHTML = siteSearchPersonsBlockHtml(personsList);
-            bindSiteSearchPersonsExpand(personsEl);
-          }
-          if (personsSection) personsSection.classList.toggle('hidden', !personsList.length);
-          if (filmsLabel) filmsLabel.classList.toggle('hidden', !itemsList.length);
-          results.innerHTML = itemsList.map((it) => siteSearchResultCardHtml(it)).join('');
-          results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-              const kp = btn.getAttribute('data-site-search-kp');
-              if (kp) openFilmPageByKp(kp);
-            });
+        const items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
+        const total = persons.length + items.length;
+        if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
+        if (personsEl) {
+          personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
+          bindSiteSearchPersonsExpand(personsEl);
+        }
+        if (personsSection) personsSection.classList.toggle('hidden', !persons.length);
+        if (filmsLabel) filmsLabel.classList.toggle('hidden', !items.length);
+        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
+        results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const kp = btn.getAttribute('data-site-search-kp');
+            if (kp) openFilmPageByKp(kp);
           });
-        };
-        paint(persons, items);
-        if (items.length >= 12) return;
-        params.set('limit', '36');
-        fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors', signal: fetchSignal })
-          .then((r) => r.ok ? r.json() : null)
-          .then((data2) => {
-            if (!data2 || seq !== _siteSearchSeq) return;
-            items = siteSearchDedupeItems(siteSearchSortItems((data2.items) || []));
-            paint((data2.persons) || persons, items);
-          })
-          .catch(() => {});
+        });
       })
       .catch((err) => {
+        clearTimeout(searchTimer);
         if (seq !== _siteSearchSeq) return;
-        if (err && err.name === 'AbortError') return;
+        if (err && err.name === 'AbortError') {
+          if (status) status.textContent = 'Поиск занял слишком много времени — попробуйте ещё раз';
+          return;
+        }
         if (status) status.textContent = 'Ошибка поиска';
       });
   }
