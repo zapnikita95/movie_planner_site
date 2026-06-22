@@ -1648,8 +1648,20 @@
       sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_) {}
     const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+    const pathKp = kpIdFromPathname(path);
+    if (pathKp && (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp))) {
+      return;
+    }
+    const pathStaff = path.match(/^\/s\/(\d+)$/);
+    if (pathStaff) {
+      if (document.getElementById('staff-root')?.querySelector('.staff-page')) return;
+      if (document.getElementById('film-page-content')?.querySelector('.staff-page')) return;
+    }
+    if (document.body.classList.contains('in-search-page') && document.getElementById('site-search-page')) {
+      return;
+    }
     const landing = document.getElementById('landing');
-    if (landing && !getToken() && (path === '/' || path === '/index.html')) {
+    if (landing && !getToken() && isMarketingRootPath(path)) {
       landing.classList.remove('hidden');
     }
   }

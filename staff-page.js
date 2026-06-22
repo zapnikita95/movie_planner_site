@@ -142,13 +142,55 @@
   function staffFilmPosterHtml(poster, kpId) {
     var kp = String(kpId || '').replace(/\D/g, '');
     var p = cleanStaffPoster(poster);
-    var src = p || (kp ? ('https://st.kp.yandex.net/images/film_big/' + kp + '.jpg') : MP_POSTER_PLACEHOLDER);
-    var phCls = p ? '' : ' mp-poster-placeholder';
+    var src = p;
+    if (!src && kp && typeof posterUrl === 'function') src = posterUrl(kp);
+    if (!src && kp) src = 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
+    if (!src) src = MP_POSTER_PLACEHOLDER;
+    var phCls = src === MP_POSTER_PLACEHOLDER ? ' mp-poster-placeholder' : '';
     return (
       '<img class="staff-film-poster' + phCls + '" src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
       (kp ? ('data-kp="' + escapeHtml(kp) + '" ') : '') +
       'onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
     );
+  }
+
+  function bindStaffImportButtons(root, personId) {
+    if (!root) return;
+    root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
+      if (btn._staffImportBound) return;
+      btn._staffImportBound = true;
+      btn.addEventListener('click', function () {
+        var rk = btn.getAttribute('data-role-key') || '';
+        var ids = btn._importIds || [];
+        if (!mpToken()) {
+          if (_staffLoginNow) _staffLoginNow('staff_import');
+          else if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('staff_import');
+          return;
+        }
+        if (!rk || !ids.length) {
+          if (global.showToast) global.showToast('Все фильмы уже в базе');
+          return;
+        }
+        if (!window.confirm('Добавить ' + ids.length + ' фильмов в базу?')) return;
+        btn.disabled = true;
+        var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mpToken() };
+        fetch(API_BASE + '/api/site/persons/' + encodeURIComponent(personId) + '/import', {
+          method: 'POST',
+          mode: 'cors',
+          headers: headers,
+          body: JSON.stringify({ role_key: rk, film_kp_ids: ids }),
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res && res.success) {
+            if (global.showToast) global.showToast('Добавлено: ' + (res.added || 0));
+            loadStaff(personId);
+          } else if (global.showToast) {
+            global.showToast((res && res.error) || 'Импорт не удался');
+          }
+        }).catch(function () {
+          if (global.showToast) global.showToast('Ошибка сети');
+        }).finally(function () { btn.disabled = false; });
+      });
+    });
   }
 
   function filmGridHtml(films, roleKey) {
@@ -187,10 +229,12 @@
       var roleKey = block.role_key || roleTitle;
       var filtered = filterPersonFilmsClient(block.films || [], _staffFilterState);
       if (!filtered.length) return '';
+      var importable = filtered.filter(function (f) { return f.importable !== false; }).map(function (f) { return String(f.kp_id || ''); });
       return (
         '<section class="staff-role-block">' +
           '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
-          '<span class="staff-role-count">' + filtered.length + '</span></div>' +
+          '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(roleKey) + '">В базу →' +
+          (importable.length ? (' (' + importable.length + ')') : '') + '</button></div>' +
           filmGridHtml(filtered, roleKey) +
         '</section>'
       );
@@ -267,6 +311,7 @@
       }
     }
     bindStaffFilters(root);
+    if (_staffPersonId) bindStaffImportButtons(root, _staffPersonId);
   }
 
   function readMpRouteBoot() {
@@ -572,6 +617,15 @@
       '</article>';
 
     bindStaffFilters(root);
+    bindStaffImportButtons(root, personId);
+    root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
+      var rk = btn.getAttribute('data-role-key') || '';
+      var block = (_staffLastData.films_by_role || []).find(function (b) {
+        return String(b.role_key || '') === rk;
+      });
+      var filtered = block ? filterPersonFilmsClient(block.films || [], _staffFilterState) : [];
+      btn._importIds = filtered.map(function (f) { return String(f.kp_id || ''); }).filter(Boolean);
+    });
   }
 
   function mergeStaffFilmsBatch(roleKey, batchFilms, append) {

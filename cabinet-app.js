@@ -581,6 +581,14 @@
     if (pathKp && (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp))) {
       return;
     }
+    const pathStaff = path.match(/^\/s\/(\d+)$/);
+    if (pathStaff) {
+      if (document.getElementById('staff-root')?.querySelector('.staff-page')) return;
+      if (document.getElementById('film-page-content')?.querySelector('.staff-page')) return;
+    }
+    if (document.body.classList.contains('in-search-page') && document.getElementById('site-search-page')) {
+      return;
+    }
     const landing = document.getElementById('landing');
     if (landing && !getToken() && isMarketingRootPath(path)) {
       landing.classList.remove('hidden');
@@ -3801,7 +3809,7 @@
         }
         const btn = sec.querySelector('.staff-import-btn');
         if (btn) {
-          btn.disabled = !importable.length;
+          btn.disabled = false;
           btn.textContent = importable.length ? 'В базу → (' + importable.length + ')' : 'В базу →';
           btn.setAttribute('data-role-key', block.role_key || '');
           btn._importIds = importable;
@@ -3850,8 +3858,7 @@
           '<section class="staff-role-block" data-idx="' + idx + '">' +
             '<div class="staff-role-head">' +
               '<h2>' + escapeHtml(block.role_name || block.role_key || '') + '</h2>' +
-              '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '"' +
-                (importable.length ? '' : ' disabled') + '>В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
+              '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '">В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
             '</div>' +
             gridHtml(filtered) +
           '</section>'
@@ -3880,8 +3887,17 @@
       btn.addEventListener('click', function () {
         const rk = btn.getAttribute('data-role-key') || '';
         const ids = btn._importIds || [];
+        if (!getToken()) {
+          if (window.MpPublicFilmLogin) {
+            try { sessionStorage.setItem('mp_public_film_action', 'staff_import:' + person.kp_person_id); } catch (_) {}
+            window.MpPublicFilmLogin.open('staff_import');
+          } else {
+            showLoginModalOverlay();
+          }
+          return;
+        }
         if (!rk || !ids.length) {
-          showToast('Нет фильмов для добавления');
+          showToast('Все фильмы уже в базе');
           return;
         }
         if (!window.confirm('Добавить ' + ids.length + ' фильмов в базу?')) return;
@@ -12140,6 +12156,37 @@
     renderSiteSearchPage({ q });
   }
 
+  function mountSiteSearchNav() {
+    const wrap = document.getElementById('site-search-nav-wrap');
+    if (!wrap) return;
+    if (global.MpFilmPage && typeof MpFilmPage.standaloneNavHtml === 'function') {
+      wrap.innerHTML = MpFilmPage.standaloneNavHtml();
+    } else {
+      const srcNav = document.querySelector('#cabinet-readonly .cabinet-nav');
+      if (srcNav) wrap.innerHTML = srcNav.outerHTML;
+    }
+    wrap.querySelectorAll('.cabinet-nav-btn[data-section]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        const sec = btn.getAttribute('data-section');
+        if (!sec || !getToken()) return;
+        e.preventDefault();
+        hideSiteSearchScreen();
+        showSection(sec);
+      });
+    });
+    wrap.querySelectorAll('a.cabinet-nav-btn[href]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        if (getToken()) return;
+        const path = (a.getAttribute('href') || '').replace(/\/$/, '') || '/';
+        if (path === '/home' || path === '/' || path === '/premieres') return;
+        e.preventDefault();
+        if (window.MpPublicFilmLogin) window.MpPublicFilmLogin.open('nav');
+        else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/search');
+      });
+    });
+    try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(wrap); } catch (_) {}
+  }
+
   function renderSiteSearchPage(initial) {
     const root = getSiteSearchRoot();
     if (!root) return;
@@ -12147,6 +12194,7 @@
     try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
     const q = String((initial && initial.q) || '').trim();
     root.innerHTML = `
+      <div id="site-search-nav-wrap" class="site-search-nav-wrap"></div>
       <section class="site-search-page" id="site-search-page">
         <div class="site-search-hero">
           <h1 class="site-search-title">Поиск</h1>
@@ -12169,6 +12217,7 @@
           <div class="site-search-results" id="site-search-results"></div>
         </div>
       </section>`;
+    mountSiteSearchNav();
     bindSiteSearchPage();
     const headerInput = document.getElementById('header-search-input');
     const headerClear = document.getElementById('header-search-clear');
@@ -12261,7 +12310,7 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    const searchTimeoutMs = 28000;
+    const searchTimeoutMs = 35000;
     const searchTimer = setTimeout(function () {
       if (_siteSearchAbort) {
         try { _siteSearchAbort.abort(); } catch (_) {}
