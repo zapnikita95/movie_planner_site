@@ -1947,6 +1947,40 @@
     });
   }
 
+  function authUserMessage(data, fallback) {
+    if (data && data.message) return data.message;
+    const err = data && data.error;
+    if (err === 'try_again' || err === 'server_busy' || err === 'http_503') {
+      return 'Не удалось завершить вход. Подождите пару секунд и нажмите ещё раз.';
+    }
+    if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
+    return fallback || 'Не удалось войти';
+  }
+
+  function siteSessionFromAuthPayload(data) {
+    if (!data || !data.token) return null;
+    return {
+      token: data.token,
+      chat_id: data.chat_id,
+      name: data.name,
+      has_data: data.has_data,
+      is_personal: data.is_personal !== undefined ? !!data.is_personal : true,
+    };
+  }
+
+  async function exchangeSiteSessionFromAccess(access, fallbackAccess) {
+    const payload = access || fallbackAccess;
+    if (!payload) return null;
+    const direct = siteSessionFromAuthPayload(payload);
+    if (direct) return direct;
+    const exchangeData = await authApiJson('/api/site/session/from-jwt', {
+      method: 'POST',
+      body: JSON.stringify({ access: payload.access || payload }),
+    });
+    if (!exchangeData.success || !exchangeData.token) return null;
+    return exchangeData;
+  }
+
   function authNetworkError(err) {
     if (err && err.name === 'AbortError') return 'Сервер не ответил. Попробуйте ещё раз.';
     return 'Ошибка сети. Попробуйте ещё раз.';
@@ -2143,27 +2177,24 @@
       const modal = document.getElementById('login-modal');
       const checkData = await authApiJson('/api/auth/telegram-mobile/check', {
         method: 'POST',
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, for_site: true }),
       });
       if (!checkData.success || !checkData.access) {
-        try { showToast('Ссылка для входа устарела — войдите через Telegram ещё раз', { type: 'error' }); } catch (_) {}
+        try { showToast(authUserMessage(checkData, 'Ссылка для входа устарела — войдите через Telegram ещё раз'), { type: 'error' }); } catch (_) {}
         return false;
       }
-      const exchangeData = await authApiJson('/api/site/session/from-jwt', {
-        method: 'POST',
-        body: JSON.stringify({ access: checkData.access }),
-      });
-      if (!exchangeData.success || !exchangeData.token) {
-        try { showToast(exchangeData.error || 'Не удалось создать сессию', { type: 'error' }); } catch (_) {}
+      const sessionData = siteSessionFromAuthPayload(checkData) || await exchangeSiteSessionFromAccess(checkData.access);
+      if (!sessionData || !sessionData.token) {
+        try { showToast(authUserMessage(checkData, 'Не удалось создать сессию'), { type: 'error' }); } catch (_) {}
         return false;
       }
       const r = applySiteSessionLogin(
         {
-          token: exchangeData.token,
-          chat_id: exchangeData.chat_id,
-          name: exchangeData.name,
-          has_data: exchangeData.has_data,
-          is_personal: exchangeData.is_personal !== undefined ? !!exchangeData.is_personal : true,
+          token: sessionData.token,
+          chat_id: sessionData.chat_id,
+          name: sessionData.name,
+          has_data: sessionData.has_data,
+          is_personal: sessionData.is_personal !== undefined ? !!sessionData.is_personal : true,
         },
         modal,
         null,
@@ -4920,10 +4951,7 @@
   }
 
   function siteBotAuthStartErrorMessage(startData) {
-    const err = startData && startData.error;
-    if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
-    if (err === 'http_503' || err === 'http_502') return 'Сервер временно недоступен — попробуйте позже';
-    return 'Не удалось начать вход через бота';
+    return authUserMessage(startData, 'Не удалось начать вход через бота');
   }
 
   function updateSiteBotReopenLink(_url) {}
@@ -4944,29 +4972,29 @@
   async function pollSiteBotAuthOnce(code, modalEl, statusEl) {
     const checkData = await authApiJson('/api/auth/telegram-mobile/check', {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, for_site: true }),
     }, 15000);
     if (checkData.success && checkData.verified === false) return false;
     if (!checkData.success || !checkData.access) {
       if (checkData.error === 'expired') {
         stopSiteBotAuthPoll();
         siteBotAuthToast('Время истекло — нажмите Telegram ещё раз');
-      } else if (checkData.error === 'rate_limit' || checkData.error === 'http_429') {
-        return false;
-      } else if (checkData.error === 'server_busy' || checkData.error === 'http_503') {
-        return false;
-      } else if (checkData.error === 'server error' || checkData.error === 'http_500') {
+      } else if (checkData.error === 'try_again' || checkData.error === 'server_busy' || checkData.error === 'http_503') {
         return false;
       }
       return false;
     }
     stopSiteBotAuthPoll();
-    const exchangeData = await authApiJson('/api/site/session/from-jwt', {
-      method: 'POST',
-      body: JSON.stringify({ access: checkData.access }),
-    });
-    if (!exchangeData.success || !exchangeData.token) {
-      siteBotAuthToast(exchangeData.error || 'Не удалось создать сессию');
+    const sessionData = siteSessionFromAuthPayload(checkData);
+    let exchangeData = sessionData;
+    if (!exchangeData) {
+      exchangeData = await authApiJson('/api/site/session/from-jwt', {
+        method: 'POST',
+        body: JSON.stringify({ access: checkData.access }),
+      });
+    }
+    if (!exchangeData || !exchangeData.token) {
+      siteBotAuthToast(authUserMessage(checkData, 'Не удалось создать сессию'));
       return true;
     }
     applySiteSessionLogin(
@@ -5220,9 +5248,7 @@
           if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
           if (!data.success) {
             setStatus(
-              data.error === 'rate_limit'
-                ? 'Слишком часто. Попробуйте через минуту.'
-                : (data.message || 'Не удалось отправить код. Проверьте email и повторите.'),
+              authUserMessage(data, 'Не удалось отправить код. Проверьте email и повторите.'),
               'error',
             );
             return;
@@ -5305,22 +5331,19 @@
         try {
           const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
-            body: JSON.stringify({ email, code }),
+            body: JSON.stringify({ email, code, for_site: true }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setRegStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
+            setStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
             return;
           }
-          const exchangeData = await authApiJson('/api/site/session/from-jwt', {
-            method: 'POST',
-            body: JSON.stringify({ access: verifyData.access }),
-          });
-          if (!exchangeData.success || !exchangeData.token) {
-            setRegStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
+          const sessionData = siteSessionFromAuthPayload(verifyData) || await exchangeSiteSessionFromAccess(verifyData);
+          if (!sessionData || !sessionData.token) {
+            setStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
             return;
           }
-          await applyDisplayNameIfNeeded(exchangeData.token, registrationName());
-          applySiteSessionLogin({ ...exchangeData, name: registrationName() || exchangeData.name, is_personal: true }, modal, regStatus);
+          await applyDisplayNameIfNeeded(sessionData.token, registrationName());
+          applySiteSessionLogin({ ...sessionData, name: registrationName() || sessionData.name, is_personal: true }, modal, regStatus);
           setRegStatus('Готово', 'success');
         } catch (err) {
           setRegStatus(authNetworkError(err), 'error');
@@ -5349,32 +5372,29 @@
         try {
           const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
-            body: JSON.stringify({ email, code }),
+            body: JSON.stringify({ email, code, for_site: true }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
+            setStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
             return;
           }
-          const exchangeData = await authApiJson('/api/site/session/from-jwt', {
-            method: 'POST',
-            body: JSON.stringify({ access: verifyData.access }),
-          });
-          if (!exchangeData.success || !exchangeData.token) {
-            setStatus(exchangeData.error || 'Не удалось создать сессию', 'error');
+          const sessionData = siteSessionFromAuthPayload(verifyData) || await exchangeSiteSessionFromAccess(verifyData);
+          if (!sessionData || !sessionData.token) {
+            setStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
             return;
           }
           const sessions = getSessions();
-          const chatId = String(exchangeData.chat_id);
+          const chatId = String(sessionData.chat_id);
           const existing = sessions.find((s) => String(s.chat_id) === chatId);
           if (existing) {
-            existing.token = exchangeData.token;
-            existing.name = exchangeData.name;
+            existing.token = sessionData.token;
+            existing.name = sessionData.name;
             existing.is_personal = true;
           } else {
             sessions.push({
               chat_id: chatId,
-              token: exchangeData.token,
-              name: exchangeData.name,
+              token: sessionData.token,
+              name: sessionData.name,
               has_data: false,
               is_personal: true,
               email: exchangeData.email || email,
