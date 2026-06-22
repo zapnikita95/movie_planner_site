@@ -6,11 +6,12 @@
 
   var PAGE = 12;
   var PAGE_MORE = 24;
+  var FIRST_PAGE_BY_RAIL = { "series-mix": 8 };
   var RAIL_PREFETCH_ITEMS_AHEAD = 4;
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 6;
+  var RAIL_CACHE_VERSION = 7;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -30,7 +31,8 @@
     return apiGet("/api/home/rails/" + railId + "?" + q);
   }
 
-  function pageSizeForOffset(offset) {
+  function pageSizeForOffset(railId, offset) {
+    if (offset === 0 && FIRST_PAGE_BY_RAIL[railId]) return FIRST_PAGE_BY_RAIL[railId];
     return offset > 0 ? PAGE_MORE : PAGE;
   }
 
@@ -288,7 +290,7 @@
       if (isRefresh && container.scrollLeft > scrollLeftAtMount + 8) return Promise.resolve();
       loading = true;
       var fetchOffset = isRefresh ? 0 : offset;
-      var fetchLimit = isRefresh ? PAGE : pageSizeForOffset(fetchOffset);
+      var fetchLimit = isRefresh ? PAGE : pageSizeForOffset(railId, fetchOffset);
       return fetchHomeRail(config.apiGet, railId, fetchOffset, fetchLimit, period)
         .then(function (page) {
           var batch = (page && page.items) || [];

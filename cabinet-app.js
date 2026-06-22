@@ -1741,7 +1741,7 @@
       } else {
         loadPlans();
         loadUnwatched();
-        setTimeout(function () { loadSeries(); }, 120);
+        setTimeout(function () { loadSeries(); }, 2500);
         setTimeout(function () { loadRatings(); }, 240);
         handleAuthEntryDeepLinks();
         pathUserBoot = userIdFromLocation();
@@ -6353,11 +6353,7 @@
       .catch(() => {})
       .finally(() => {
         applyHomeEmojiVisibility();
-        if (hadBlocks) {
-          _paintHomeDashboardBlocks();
-        } else {
-          _patchHomeDashboardStaticBlocks();
-        }
+        _patchHomeDashboardStaticBlocks();
       });
   }
 
@@ -7464,7 +7460,6 @@
         }
       });
       renderSeriesList();
-      try { scheduleHomeDashboardRefresh(); } catch (_) {}
     });
   }
 
