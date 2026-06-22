@@ -6372,15 +6372,40 @@
     });
   }
 
+  function fetchPublicJson(url, timeoutMs) {
+    const ms = Math.max(2000, Number(timeoutMs) || 8000);
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timer = null;
+    const p = fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      signal: ctrl ? ctrl.signal : undefined,
+    }).then((r) => r.json());
+    if (!ctrl) return p;
+    return new Promise((resolve, reject) => {
+      timer = setTimeout(() => {
+        try { ctrl.abort(); } catch (_) {}
+        reject(new Error('timeout'));
+      }, ms);
+      p.then((data) => {
+        clearTimeout(timer);
+        resolve(data);
+      }).catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
   function fetchPublicPremieresForDisplay(period) {
-    const cacheKey = 'mp_guest_premieres_v4_' + String(period || 'current_month');
+    const cacheKey = 'mp_guest_premieres_v5_' + String(period || 'current_month');
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
     }
     const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : period;
-    return fetch(getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36', { method: 'GET', mode: 'cors' })
-      .then((r) => r.json())
+    const url = getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36';
+    return fetchPublicJson(url, 8000)
       .then((data) => {
         let items = (data && data.success && data.items) ? data.items.slice() : [];
         items = filterPremieresUpcomingMsk(items, { keepUndated: true, guestFallback: true });
@@ -6388,23 +6413,25 @@
         const out = { items: items, rollover: false };
         if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
-      });
+      })
+      .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [], rollover: false }));
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v3';
+    const cacheKey = 'mp_guest_series_v4';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
     }
-    return fetch(getPublicApiBase() + '/api/public/series/upcoming?limit=24', { method: 'GET', mode: 'cors' })
-      .then((r) => r.json())
+    const url = getPublicApiBase() + '/api/public/series/upcoming?limit=24';
+    return fetchPublicJson(url, 8000)
       .then((data) => {
         const items = (data && data.success && data.items) ? data.items.slice() : [];
         const out = { items: items };
         if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
-      });
+      })
+      .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [] }));
   }
 
   function fetchPremieresForDisplay(period) {
@@ -6496,7 +6523,7 @@
   function _patchHomeDashboardStaticBlocks() {
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
-    ['plans', 'premieres', 'tournament'].forEach((bid) => {
+    ['plans', 'premieres', 'series', 'tournament'].forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
