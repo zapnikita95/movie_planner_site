@@ -634,6 +634,10 @@
   }
 
   function close() {
+    if (typeof global._mpDismissLoginModal === 'function') {
+      global._mpDismissLoginModal();
+      return;
+    }
     stopPfBotPoll();
     var modal = $('login-modal');
     if (modal) {
@@ -641,6 +645,10 @@
       modal.setAttribute('aria-hidden', 'true');
     }
     document.body.style.overflow = '';
+    try {
+      sessionStorage.removeItem('mp_pending_kp_open');
+      sessionStorage.removeItem('mp_pending_kp_action');
+    } catch (_e) {}
   }
 
   function consumeOAuthHash() {

@@ -466,6 +466,10 @@
     if (ro) ro.classList.remove('cabinet-home-root');
     renderHeader(null);
     showFilmPageLayout();
+    if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(id)) {
+      try { document.documentElement.classList.add('mp-route-ready'); } catch (_) {}
+      return Promise.resolve();
+    }
     const pageRoot = document.getElementById('film-page-content');
     if (pageRoot) {
       pageRoot.className = 'movie-page loading';
@@ -521,6 +525,48 @@
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return true;
     return !!(pageRoot.querySelector('.film-hero-with-tag') || pageRoot.querySelector('.mp-page-loading'));
+  }
+
+  function isFilmPageContentReady(kpId) {
+    const pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot || pageRoot.classList.contains('loading')) return false;
+    if (pageRoot.querySelector('.mp-page-loading')) return false;
+    const hero = pageRoot.querySelector('.film-hero-with-tag');
+    const titleEl = pageRoot.querySelector('#film-title');
+    if (!hero || !titleEl) return false;
+    const t = String(titleEl.textContent || '').trim();
+    if (!t || t === 'Загрузка…' || isGenericFilmTitle(t)) return false;
+    if (kpId) {
+      const id = String(kpId).replace(/\D/g, '');
+      const pathKp = kpIdFromPathname(window.location.pathname);
+      if (pathKp && pathKp !== id) return false;
+    }
+    return true;
+  }
+
+  /** Закрыть модалку входа без перезагрузки страницы под ней. */
+  function dismissLoginModal() {
+    stopSiteBotAuthPoll();
+    const modal = document.getElementById('login-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('login-only-overlay');
+    document.body.style.overflow = '';
+    try {
+      sessionStorage.removeItem('mp_pending_kp_open');
+      sessionStorage.removeItem('mp_pending_kp_action');
+    } catch (_) {}
+    const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+    const pathKp = kpIdFromPathname(path);
+    if (pathKp && (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp))) {
+      return;
+    }
+    const landing = document.getElementById('landing');
+    if (landing && !getToken() && isMarketingRootPath(path)) {
+      landing.classList.remove('hidden');
+    }
   }
 
   function consumeFilmPathDeepLink() {
@@ -1972,11 +2018,8 @@
 
   function tryReturnToPublicFilmOnLoginDismiss() {
     try {
-      const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
-      if (pendingKp && /^\d+$/.test(pendingKp) && !getToken()) {
-        window.location.href = '/f/' + pendingKp;
-        return true;
-      }
+      sessionStorage.removeItem('mp_pending_kp_open');
+      sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_) {}
     return false;
   }
@@ -1986,6 +2029,12 @@
     const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
     const pathKp = kpIdFromPathname(path);
     if (pathKp && /^\d+$/.test(pathKp)) {
+      if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp)) {
+        document.body.classList.remove('login-only-overlay');
+        showScreen('cabinet-readonly');
+        showFilmPageLayout();
+        return true;
+      }
       bootGuestFilmPage(pathKp);
       return true;
     }
@@ -5039,15 +5088,7 @@
         scheduleSiteBotAuthPrefetch();
       });
     }
-    closeElements.forEach((el) => el.addEventListener('click', () => {
-      stopSiteBotAuthPoll();
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('login-only-overlay');
-      if (tryReturnToPublicFilmOnLoginDismiss()) return;
-      if (restoreGuestViewAfterLoginDismiss()) return;
-      const landing = document.getElementById('landing');
-      if (landing && !getToken()) landing.classList.remove('hidden');
-    }));
+    closeElements.forEach((el) => el.addEventListener('click', dismissLoginModal));
 
     bindEmailLogin();
   }
@@ -16573,6 +16614,7 @@
     window.posterUrl = posterUrl;
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
+    window._mpDismissLoginModal = dismissLoginModal;
     window._mpApplySiteSessionLogin = applySiteSessionLogin;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;

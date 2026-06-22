@@ -1627,13 +1627,30 @@
 
   function tryReturnToPublicFilmOnLoginDismiss() {
     try {
-      const pendingKp = sessionStorage.getItem('mp_pending_kp_open');
-      if (pendingKp && /^\d+$/.test(pendingKp) && !getToken()) {
-        window.location.href = '/f/' + pendingKp;
-        return true;
-      }
+      sessionStorage.removeItem('mp_pending_kp_open');
+      sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_) {}
     return false;
+  }
+
+  function dismissLoginModal() {
+    stopSiteBotAuthPoll();
+    const modal = document.getElementById('login-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('login-only-overlay');
+    document.body.style.overflow = '';
+    try {
+      sessionStorage.removeItem('mp_pending_kp_open');
+      sessionStorage.removeItem('mp_pending_kp_action');
+    } catch (_) {}
+    const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+    const landing = document.getElementById('landing');
+    if (landing && !getToken() && (path === '/' || path === '/index.html')) {
+      landing.classList.remove('hidden');
+    }
   }
 
   /** Редирект после Google/Яндекс OAuth: /#token=…&chat_id=…&name=… */
@@ -4491,14 +4508,7 @@
         scheduleSiteBotAuthPrefetch();
       });
     }
-    closeElements.forEach((el) => el.addEventListener('click', () => {
-      stopSiteBotAuthPoll();
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('login-only-overlay');
-      if (tryReturnToPublicFilmOnLoginDismiss()) return;
-      const landing = document.getElementById('landing');
-      if (landing && !getToken()) landing.classList.remove('hidden');
-    }));
+    closeElements.forEach((el) => el.addEventListener('click', dismissLoginModal));
 
     bindEmailLogin();
   }
@@ -15179,6 +15189,7 @@
     window.posterUrl = posterUrl;
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
+    window._mpDismissLoginModal = dismissLoginModal;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;

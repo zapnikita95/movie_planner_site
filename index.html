@@ -2079,7 +2079,7 @@
         var core = [
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260621prodforce1',
+          'public-film-login.js?v=20260622logindismiss1',
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=20260617i18nfix3',
           'film-user-tags.js?v=20260617tags3',
@@ -2096,7 +2096,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622searchhub1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622logindismiss1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2106,9 +2106,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260622personfix1');
           list.push('staff-page.js?v=20260622searchguest1');
-          list.push('cabinet-app.js?v=20260622searchhub1');
+          list.push('cabinet-app.js?v=20260622logindismiss1');
         } else {
-          list.push('cabinet-app.js?v=20260622searchhub1');
+          list.push('cabinet-app.js?v=20260622logindismiss1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
