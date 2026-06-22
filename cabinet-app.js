@@ -6392,7 +6392,7 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v2';
+    const cacheKey = 'mp_guest_series_v3';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
