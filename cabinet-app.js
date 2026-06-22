@@ -2066,7 +2066,7 @@
     }
     const pathStaff = staffIdFromPathname(path);
     if (pathStaff) {
-      if (!getToken() && window.MpStaffPage && document.getElementById('staff-root')) {
+      if (!getToken() && window.MpStaffPage) {
         MpStaffPage.bootstrap({ personId: pathStaff });
         return true;
       }
@@ -16595,7 +16595,7 @@
     } else {
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
-        if (window.MpStaffPage && document.getElementById('staff-root')) {
+        if (window.MpStaffPage) {
           MpStaffPage.bootstrap({ personId: pathStaffGuest });
           handleAuthEntryDeepLinks();
           return;
