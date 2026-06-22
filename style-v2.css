@@ -10116,6 +10116,12 @@ body.login-only-overlay .parallax-bg {
   position: relative;
 }
 .search-sort-icon-btn .mp-icon { font-size: 20px; line-height: 1; }
+.search-sort-icon-btn .search-sort-glyph {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  opacity: 0.92;
+}
 .search-sort-icon-btn.active {
   border-color: rgba(236,72,153,.42);
   background: rgba(236,72,153,.16);

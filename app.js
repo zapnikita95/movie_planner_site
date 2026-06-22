@@ -10999,7 +10999,7 @@
             '</button>' +
           '</div>' +
           '<button type="button" class="search-sort-icon-btn" id="site-search-sort-btn" data-sf-expand="sort" aria-label="Сортировка" aria-expanded="false">' +
-            '<span class="mp-icon" data-mp-icon="sort"></span>' +
+            '<span class="search-sort-glyph" aria-hidden="true">⇅</span>' +
           '</button>' +
         '</div>' +
         '<div id="site-search-filter-panel" class="search-filter-panel hidden" aria-hidden="true"></div>' +
