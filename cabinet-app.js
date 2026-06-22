@@ -285,6 +285,33 @@
     return path === '/' || path === '/index.html';
   }
 
+  /** На / с kp_open / __spa — не редиректить на /home (открытие фильма и т.п.). */
+  function marketingRootHasAuthedDeepLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const kpOpen = params.get('kp_open');
+      if (kpOpen && /^\d+$/.test(kpOpen)) return true;
+      if (params.get('__spa')) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  /** Залогинен на маркетинговой / → кабинет /home; гость остаётся на лендинге. */
+  function redirectAuthedFromMarketingRoot() {
+    if (!getToken() || !isMarketingRootPath(window.location.pathname)) return false;
+    if (marketingRootHasAuthedDeepLink()) return false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('open_login');
+      params.delete('register');
+      const rest = params.toString();
+      window.location.replace('/home' + (rest ? '?' + rest : ''));
+    } catch (_) {
+      window.location.replace('/home');
+    }
+    return true;
+  }
+
   function setLandingRootNavVisible(visible) {
     try {
       const nav = document.getElementById('landing-root-nav');
@@ -603,7 +630,7 @@
       if (staffIdFromPathname(window.location.pathname)) return false;
 
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (isMarketingRootPath(bootPath)) return false;
+      if (isMarketingRootPath(bootPath) && !marketingRootHasAuthedDeepLink()) return false;
 
       document.body.classList.remove('login-only-overlay');
       syncSessionHtmlClass();
@@ -1627,12 +1654,14 @@
 
   function showCabinetAfterLogin(me) {
     if (isMarketingRootPath(window.location.pathname)) {
+      if (!marketingRootHasAuthedDeepLink()) {
+        redirectAuthedFromMarketingRoot();
+        return Promise.resolve();
+      }
       document.body.classList.remove('login-only-overlay', 'in-cabinet', 'guest-cabinet-preview');
-      setLandingRootNavVisible(true);
-      showScreen('landing');
+      setLandingRootNavVisible(false);
+      showScreen('cabinet-readonly');
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
-      handleAuthEntryDeepLinks();
-      return Promise.resolve();
     }
     document.body.classList.remove('login-only-overlay');
     showScreen('cabinet-readonly');
@@ -16168,7 +16197,11 @@
 
     if (getToken()) {
       if (isMarketingRootPath(window.location.pathname)) {
-        showScreen('landing');
+        if (!marketingRootHasAuthedDeepLink()) {
+          redirectAuthedFromMarketingRoot();
+          return;
+        }
+        bootAuthenticatedCabinetShell();
         loadMeAndShowCabinet();
       } else {
         bootAuthenticatedFilmShell();

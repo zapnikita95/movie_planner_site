@@ -142,7 +142,32 @@
           if (hs) hs.classList.remove('hidden');
         } catch (_) {}
       })();
-      // Залогинен на / — только имя в шапке до cabinet-app.js (лендинг не скрываем)
+      // Залогинен на / — редирект в кабинет /home (гость остаётся на лендинге)
+      (function () {
+        try {
+          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path !== '/' && path !== '/index.html') return;
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('kp_open')) return;
+          if (params.get('__spa')) return;
+          var raw = localStorage.getItem('mp_site_sessions');
+          if (!raw) return;
+          var sessions = JSON.parse(raw);
+          if (!Array.isArray(sessions) || !sessions.length) return;
+          var active = localStorage.getItem('mp_site_active_chat_id');
+          var session = null;
+          for (var i = 0; i < sessions.length; i++) {
+            if (String(sessions[i].chat_id) === String(active)) { session = sessions[i]; break; }
+          }
+          if (!session) session = sessions[0];
+          if (!session || !session.token) return;
+          params.delete('open_login');
+          params.delete('register');
+          var rest = params.toString();
+          window.location.replace('/home' + (rest ? '?' + rest : ''));
+        } catch (_) {}
+      })();
+      // Залогинен на / — имя в шапке до cabinet-app.js (если редирект не сработал)
       (function () {
         try {
           var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2066,7 +2091,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622personfix1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260622homeredirect1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2076,9 +2101,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260622personfix1');
           list.push('staff-page.js?v=20260621perf1');
-          list.push('cabinet-app.js?v=20260622personfix1');
+          list.push('cabinet-app.js?v=20260622homeredirect1');
         } else {
-          list.push('cabinet-app.js?v=20260622personfix1');
+          list.push('cabinet-app.js?v=20260622homeredirect1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
