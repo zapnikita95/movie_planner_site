@@ -303,7 +303,7 @@
   }
 
   function paintStaffRoles() {
-    var root = document.getElementById('staff-root');
+    var root = staffContentRoot();
     if (!root || !_staffLastData) return;
     var rolesRoot = root.querySelector('#staff-roles-root');
     if (rolesRoot) rolesRoot.innerHTML = rolesHtml(_staffLastData.films_by_role || []);
@@ -380,6 +380,75 @@
         staffLoadingHtml('Фильмография…') +
       '</article>'
     );
+  }
+
+  function staffContentRoot() {
+    return document.getElementById('staff-root') || document.getElementById('film-page-content');
+  }
+
+  function canUseInlineCabinetShell() {
+    return !!(
+      document.getElementById('film-page-content') &&
+      document.getElementById('site-header') &&
+      document.getElementById('cabinet-readonly')
+    );
+  }
+
+  function bootstrapInlineCabinetShell(personId) {
+    _staffPersonId = personId;
+    try {
+      document.body.classList.add('in-cabinet', 'staff-standalone-page');
+      document.documentElement.classList.add('mp-staff-boot');
+      var landing = document.getElementById('landing');
+      if (landing) landing.classList.add('hidden');
+      var cabinet = document.getElementById('cabinet-readonly');
+      if (cabinet) {
+        cabinet.classList.remove('hidden');
+        cabinet.classList.add('film-page-mode');
+      }
+      document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (sec) {
+        if (sec) sec.classList.toggle('hidden', sec.id !== 'section-film');
+      });
+      var hs = document.getElementById('header-search');
+      if (hs) hs.classList.remove('hidden');
+      var homeStats = document.getElementById('cabinet-home-stats');
+      if (homeStats) homeStats.classList.add('hidden');
+    } catch (_e) {}
+
+    var pageRoot = document.getElementById('film-page-content');
+    if (pageRoot) {
+      pageRoot.className = 'container film-page-container staff-page-content';
+      pageRoot.innerHTML = '<div id="staff-root" class="staff-page-content-inner">' + staffBootHeroHtml() + '</div>';
+    }
+
+    if (global.MpPublicFilmLogin) {
+      global.MpPublicFilmLogin.init({
+        kpId: personId,
+        onSuccess: function () {
+          if (_staffPendingFriendsFilter) {
+            _staffPendingFriendsFilter = false;
+            _staffFilterState.friendsRatedOnly = true;
+          }
+          loadStaff(personId);
+        },
+      });
+      _staffLoginNow = function (action) {
+        global.MpPublicFilmLogin.open(action || '');
+      };
+    } else {
+      _staffLoginNow = function (action) {
+        global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + personId);
+      };
+    }
+    document.querySelectorAll('[data-action="login"], #login-btn').forEach(function (btn) {
+      if (btn._staffInlineLoginBound) return;
+      btn._staffInlineLoginBound = true;
+      btn.addEventListener('click', function (e) {
+        if (mpToken()) return;
+        e.preventDefault();
+        if (_staffLoginNow) _staffLoginNow('');
+      });
+    });
   }
 
   function guestCabinetNavHtml() {
@@ -605,7 +674,7 @@
   }
 
   function renderStaffData(data, personId) {
-    var root = document.getElementById('staff-root');
+    var root = staffContentRoot();
     if (!root) return;
     if (!data || !data.success) {
       root.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
@@ -766,10 +835,10 @@
           .catch(function () {});
       })
       .catch(function (err) {
-        var root = document.getElementById('staff-root');
+        var root = staffContentRoot();
         if (!root) return;
         var msg = (err && String(err.message || err).indexOf('http_404') >= 0)
-          ? 'Страница недоступна — у этой персоны нет фильмографии в базе.'
+          ? 'Не удалось загрузить фильмографию. Попробуйте обновить страницу.'
           : 'Ошибка сети';
         root.innerHTML = '<p class="film-page-error-hint">' + msg + '</p>';
       });
@@ -791,7 +860,11 @@
     }
     markRouteReady();
     try { document.body.classList.add('film-standalone-page', 'staff-standalone-page'); } catch (_e) {}
-    renderStaffShell(personId);
+    if (canUseInlineCabinetShell()) {
+      bootstrapInlineCabinetShell(personId);
+    } else {
+      renderStaffShell(personId);
+    }
     loadStaff(personId);
   }
 
