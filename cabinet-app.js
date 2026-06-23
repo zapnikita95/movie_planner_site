@@ -5465,7 +5465,18 @@
   function loadMeAndShowCabinet() {
     api('/api/site/me').then((me) => {
       if (!me.success) {
-        if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
+        const transient = me && (me.error === 'timeout' || me.error === 'network' || me.error === 'server_busy' || me.error === 'server error');
+        if (transient && getToken()) {
+          try { window._mpApiAuthDegraded = true; } catch (_) {}
+          if (_cabinetMeCache) {
+            renderHeader(_cabinetMeCache);
+            showCabinetAfterLogin(_cabinetMeCache);
+            return;
+          }
+        }
+        if (getToken() || hasAuthEntryDeepLink()) {
+          if (!transient) clearStaleSiteSession();
+        }
         const failKp = filmKpFromLocation();
         if (failKp) {
           clearStaleSiteSession();
@@ -5537,6 +5548,12 @@
         }
       } catch (_) {}
     }).catch(function () {
+      if (getToken() && _cabinetMeCache) {
+        try { window._mpApiAuthDegraded = true; } catch (_) {}
+        renderHeader(_cabinetMeCache);
+        showCabinetAfterLogin(_cabinetMeCache);
+        return;
+      }
       if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
       const failKp = filmKpFromLocation();
       if (failKp) {
