@@ -718,7 +718,11 @@
   /** Сразу кабинет при валидной сессии — не ждать /api/site/me (иначе виден landing). */
   function bootAuthenticatedCabinetShell() {
     try {
-      if (!getToken() || !document.getElementById('landing')) return false;
+      if (!getToken()) return false;
+      document.body.classList.remove('login-only-overlay');
+      syncSessionHtmlClass();
+      ensureLoggedInHeader();
+      if (!document.getElementById('landing')) return false;
       if (isSearchLocation()) return false;
       const pathKp = kpIdFromPathname(window.location.pathname);
       if (pathKp && /^\d+$/.test(pathKp)) return false;
@@ -730,8 +734,6 @@
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       if (isMarketingRootPath(bootPath) && !marketingRootHasAuthedDeepLink()) return false;
 
-      document.body.classList.remove('login-only-overlay');
-      syncSessionHtmlClass();
       const session = getActiveSession();
       const screenId = cabinetScreenIdForSession(session);
       showScreen(screenId);
@@ -1751,6 +1753,13 @@
   }
 
   function showCabinetAfterLogin(me) {
+    const pathStaffEarly = staffIdFromPathname(window.location.pathname);
+    if (pathStaffEarly && me) {
+      document.body.classList.remove('login-only-overlay');
+      syncSessionHtmlClass();
+      renderHeader(me);
+      return Promise.resolve();
+    }
     if (isMarketingRootPath(window.location.pathname)) {
       if (!marketingRootHasAuthedDeepLink()) {
         redirectAuthedFromMarketingRoot();
@@ -5384,30 +5393,16 @@
             setStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
             return;
           }
-          const sessions = getSessions();
-          const chatId = String(sessionData.chat_id);
-          const existing = sessions.find((s) => String(s.chat_id) === chatId);
-          if (existing) {
-            existing.token = sessionData.token;
-            existing.name = sessionData.name;
-            existing.is_personal = true;
-          } else {
-            sessions.push({
-              chat_id: chatId,
-              token: sessionData.token,
-              name: sessionData.name,
-              has_data: false,
-              is_personal: true,
-              email: sessionData.email || email,
-            });
+          const loginResult = applySiteSessionLogin(
+            { ...sessionData, email: sessionData.email || email, is_personal: true, has_data: !!sessionData.has_data },
+            modal,
+            null,
+          );
+          if (loginResult && loginResult.ok === false) {
+            setStatus('Не удалось войти', 'error');
+            return;
           }
-          setSessions(sessions);
-          setActiveChatId(chatId);
           setStatus('Добро пожаловать!', 'success');
-          setTimeout(() => {
-            if (modal) modal.classList.add('hidden');
-            loadMeAndShowCabinet();
-          }, 400);
         } catch (err) {
           setStatus(authNetworkError(err), 'error');
         }
