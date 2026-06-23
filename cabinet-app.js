@@ -4014,8 +4014,48 @@
     }
     const authed = !!getToken();
     function fetchPublicStaffDetail() {
-      return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
-        .then(function (r) { return r.json().catch(function () { return {}; }); });
+      return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp) + '/head', { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (head) {
+          if (!head || !head.success) return head;
+          var rolesMeta = head.roles || [];
+          return {
+            success: true,
+            person: head.person || {},
+            filters: head.filters || { years: [], genres: [] },
+            films_by_role: rolesMeta.map(function (rm) {
+              return {
+                role_key: rm.role_key,
+                role_name: rm.role_name || rm.role_key,
+                films: [],
+                total: rm.total || 0,
+              };
+            }),
+          };
+        });
+    }
+    function loadPublicStaffRoleFilms(roleKey, offset) {
+      var url = getPublicApiBase() + '/api/public/person/' + encodeURIComponent(kp) +
+        '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + (offset || 0) + '&limit=21';
+      return fetch(url, { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+    function paintStaffFilmsProgressive(detail) {
+      if (!detail || !detail.films_by_role || _staffPageKpId !== kp) return;
+      var roles = (detail.films_by_role || []).filter(function (b) { return b && b.role_key && (b.total > 0); });
+      roles.forEach(function (block, idx) {
+        setTimeout(function () {
+          if (_staffPageKpId !== kp) return;
+          loadPublicStaffRoleFilms(block.role_key, 0).then(function (batch) {
+            if (!batch || !batch.success || _staffPageKpId !== kp) return;
+            block.films = batch.films || [];
+            block.has_more = !!batch.has_more;
+            if (batch.total != null) block.total = batch.total;
+            renderStaffPageContent(detail, pageRoot);
+          });
+        }, idx * 120);
+      });
     }
     function fetchSiteStaffDetail() {
       return api('/api/site/persons/' + kp, { timeoutMs: 20000 });
@@ -4028,6 +4068,7 @@
             document.title = ((pub.person && pub.person.name_ru) || 'Персона') + ' · Movie Planner';
           } catch (_) {}
           renderStaffPageContent(pub, pageRoot);
+          paintStaffFilmsProgressive(pub);
         }
         if (!authed) return pub;
         return fetchSiteStaffDetail().then(function (site) {
@@ -4053,6 +4094,7 @@
         document.title = ((detail.person && detail.person.name_ru) || 'Персона') + ' · Movie Planner';
       } catch (_) {}
       renderStaffPageContent(detail, pageRoot);
+      paintStaffFilmsProgressive(detail);
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
     }).catch(function () {
       showToast('Ошибка сети', { type: 'error' });
@@ -12358,7 +12400,7 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
-    const searchTimeoutMs = 35000;
+    const searchTimeoutMs = 15000;
     const searchTimer = setTimeout(function () {
       if (_siteSearchAbort) {
         try { _siteSearchAbort.abort(); } catch (_) {}

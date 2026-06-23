@@ -11129,12 +11129,17 @@
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
     }
+    const searchTimeoutMs = 15000;
+    const searchTimer = setTimeout(function () {
+      try { if (_siteSearchAbort) _siteSearchAbort.abort(); } catch (_) {}
+    }, searchTimeoutMs);
     fetch(getPublicApiBase() + '/api/public/search?' + params.toString(), { method: 'GET', mode: 'cors', signal: fetchSignal })
       .then((r) => {
         if (!r.ok) throw new Error('search http ' + r.status);
         return r.json();
       })
       .then((data) => {
+        clearTimeout(searchTimer);
         if (seq !== _siteSearchSeq) return;
         if (data && data.success === false && data.error === 'rate_limited') {
           if (status) status.textContent = 'Слишком много запросов, подождите';
@@ -11152,8 +11157,12 @@
         });
       })
       .catch((err) => {
+        clearTimeout(searchTimer);
         if (seq !== _siteSearchSeq) return;
-        if (err && err.name === 'AbortError') return;
+        if (err && err.name === 'AbortError') {
+          if (status) status.textContent = 'Поиск занял слишком много времени — попробуйте ещё раз';
+          return;
+        }
         if (status) status.textContent = 'Ошибка поиска';
       });
   }
