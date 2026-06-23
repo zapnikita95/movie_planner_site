@@ -3665,6 +3665,40 @@
 
   const FILM_CAST_ACTORS_COLLAPSED = 5;
 
+  function bindFilmActorsExpand(root) {
+    if (!root) return;
+    const moreBtn = root.querySelector('.film-actors-more-btn');
+    if (!moreBtn || moreBtn._mpActorsExpandBound) return;
+    moreBtn._mpActorsExpandBound = true;
+    moreBtn.addEventListener('click', () => {
+      const castRoot = moreBtn.closest('.film-hero-crew, .film-modal-crew, #film-hero-cast-root, #film-cast-root') || root;
+      const shortEl = castRoot.querySelector('.film-actors-short');
+      const fullEl = castRoot.querySelector('.film-actors-full');
+      if (!shortEl || !fullEl) return;
+      const collapsed = fullEl.classList.contains('hidden');
+      fullEl.classList.toggle('hidden', !collapsed);
+      shortEl.classList.toggle('hidden', collapsed);
+      moreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
+      moreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
+    });
+  }
+
+  function staffLoadingLabelForKp(kp) {
+    try {
+      const el = document.getElementById('mp-route-boot');
+      if (!el) return 'Загрузка…';
+      const boot = JSON.parse(el.textContent || '');
+      if (boot && boot.type === 'staff') {
+        const bootKp = String(boot.kp_person_id || boot.kp_id || '').replace(/\D/g, '');
+        const want = String(kp || '').replace(/\D/g, '');
+        if (bootKp && want && bootKp === want) {
+          return boot.display_name || boot.name_ru || 'Загрузка…';
+        }
+      }
+    } catch (_) {}
+    return 'Загрузка…';
+  }
+
   function bindStaffCastLinks(root, opts) {
     if (!root) return;
     opts = opts || {};
@@ -3985,17 +4019,7 @@
     showScreen('cabinet-readonly');
     showFilmPageLayout();
     pageRoot.className = 'container film-page-container staff-page-content loading';
-    pageRoot.innerHTML = pageLoadingHtml((function () {
-      try {
-        var el = document.getElementById('mp-route-boot');
-        if (!el) return 'Загрузка…';
-        var boot = JSON.parse(el.textContent || '');
-        if (boot && boot.type === 'staff') {
-          return boot.display_name || boot.name_ru || 'Загрузка…';
-        }
-      } catch (_) {}
-      return 'Загрузка…';
-    })());
+    pageRoot.innerHTML = pageLoadingHtml(staffLoadingLabelForKp(kp));
     if (!o.skipHistory) {
       try {
         const path = '/s/' + kp;
@@ -10827,8 +10851,10 @@
         }
         root.innerHTML = html;
         bindStaffCastLinks(root, { guestPreview: true });
+        bindFilmActorsExpand(root);
       }).catch(function () {
         root.innerHTML = buildFilmCrewFallback(filmFallback);
+        bindFilmActorsExpand(root);
       });
   }
 
@@ -11023,19 +11049,7 @@
     const content = rootEl || getFilmRenderRoot();
     if (!content) return;
     const actorsMoreBtn = content.querySelector('.film-actors-more-btn');
-    if (actorsMoreBtn) {
-      actorsMoreBtn.addEventListener('click', () => {
-        const castRoot = actorsMoreBtn.closest('.film-hero-crew, .film-modal-crew');
-        const shortEl = castRoot ? castRoot.querySelector('.film-actors-short') : content.querySelector('.film-actors-short');
-        const fullEl = castRoot ? castRoot.querySelector('.film-actors-full') : content.querySelector('.film-actors-full');
-        if (!shortEl || !fullEl) return;
-        const collapsed = fullEl.classList.contains('hidden');
-        fullEl.classList.toggle('hidden', !collapsed);
-        shortEl.classList.toggle('hidden', collapsed);
-        actorsMoreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
-        actorsMoreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
-      });
-    }
+    if (actorsMoreBtn) bindFilmActorsExpand(content);
 
     // Rating stars: click/hover (нет блока — только read-only для участника в группе)
     const starsWrap = content.querySelector('[data-rating-stars="1"]');

@@ -322,11 +322,20 @@
     }
   }
 
+  function bootMatchesPerson(boot, personId) {
+    if (!boot || boot.type !== 'staff') return false;
+    var bootKp = String(boot.kp_person_id || boot.kp_id || '').replace(/\D/g, '');
+    var want = String(personId || _staffPersonId || '').replace(/\D/g, '');
+    return !!(bootKp && want && bootKp === want);
+  }
+
   function staffLoadingHtml(label) {
     var boot = readMpRouteBoot();
-    var text = String(label || '').trim()
-      || (boot && (boot.display_name || boot.name_ru))
-      || 'Загрузка…';
+    var text = String(label || '').trim();
+    if (!text && bootMatchesPerson(boot)) {
+      text = boot.display_name || boot.name_ru || 'Загрузка…';
+    }
+    if (!text) text = 'Загрузка…';
     return (
       '<div class="mp-page-loading mp-route-boot-loading" role="status" aria-live="polite" aria-busy="true">' +
         '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
@@ -337,7 +346,7 @@
 
   function staffBootHeroHtml() {
     var boot = readMpRouteBoot();
-    if (!boot || boot.type !== 'staff') return staffLoadingHtml();
+    if (!bootMatchesPerson(boot)) return staffLoadingHtml();
     var title = boot.display_name || boot.name_ru || 'Персона';
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
     var photo = String(boot.photo_url || '').trim();
