@@ -14,11 +14,12 @@
   })();
 
   var PERSON_FILMS_PREVIEW = 20;
-  var PERSON_FILM_BATCH = 24;
+  var PERSON_FILM_BATCH = 20;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
+  var _staffRoleHasMore = {};
   var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
   var _staffPersonId = '';
   var _staffLoginNow = null;
@@ -198,7 +199,7 @@
     });
   }
 
-  function filmGridHtml(films, roleKey) {
+  function filmGridHtml(films, roleKey, roleTotal) {
     var all = films || [];
     if (!all.length) return '';
     var expanded = !!_staffExpandedRoles[roleKey];
@@ -218,10 +219,11 @@
         '</a>'
       );
     }).join('') + '</div>';
-    if (!expanded && all.length > PERSON_FILMS_PREVIEW) {
+    var totalHint = Math.max(all.length, parseInt(roleTotal, 10) || 0);
+    if (!expanded && totalHint > PERSON_FILMS_PREVIEW) {
       grid += (
         '<button type="button" class="staff-role-expand" data-role-expand="' + escapeHtml(roleKey || '') + '">' +
-          'Развернуть · ' + (all.length - PERSON_FILMS_PREVIEW) +
+          'Развернуть · ' + (totalHint - PERSON_FILMS_PREVIEW) +
         '</button>'
       );
     }
@@ -240,7 +242,7 @@
           '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
           '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(roleKey) + '">В базу →' +
           (importable.length ? (' (' + importable.length + ')') : '') + '</button></div>' +
-          filmGridHtml(filtered, roleKey) +
+          filmGridHtml(filtered, roleKey, block.total || filtered.length) +
         '</section>'
       );
     }).join('');
@@ -289,6 +291,13 @@
         if (!rk) return;
         _staffExpandedRoles[rk] = true;
         paintStaffRoles();
+        if (_staffRoleHasMore[rk] && _staffPersonId) {
+          var block = (_staffLastData.films_by_role || []).find(function (b) {
+            return String(b.role_key || '') === rk;
+          });
+          var loaded = block && block.films ? block.films.length : 0;
+          loadStaffRoleFilmsBackground(_staffPersonId, rk, loaded).catch(function () {});
+        }
       });
     });
   }
@@ -604,6 +613,7 @@
     }
     var person = data.person || {};
     _staffLastData = data;
+    _staffRoleHasMore = {};
     _staffGlobalFilters = data.filters || { years: [], genres: [] };
     var titleName = person.display_name || person.name_ru || person.name_en || 'Персона';
     var secondaryName = person.secondary_name || (
@@ -668,13 +678,27 @@
         return r.json();
       })
       .then(function (batch) {
-        if (!batch || !batch.success) return;
+        if (!batch || !batch.success) return batch;
         mergeStaffFilmsBatch(roleKey, batch.films || [], off > 0);
+        _staffRoleHasMore[roleKey] = !!batch.has_more;
+        var block = (_staffLastData.films_by_role || []).find(function (b) {
+          return String(b.role_key || '') === String(roleKey || '');
+        });
+        if (block && batch.total != null) block.total = batch.total;
         paintStaffRoles();
-        if (batch.has_more) {
-          return loadStaffRoleFilms(personId, roleKey, off + (batch.films || []).length);
-        }
+        return batch;
       });
+  }
+
+  function loadStaffRoleFilmsBackground(personId, roleKey, offset) {
+    return loadStaffRoleFilms(personId, roleKey, offset).then(function (batch) {
+      if (!batch || !batch.has_more || !_staffExpandedRoles[roleKey]) return;
+      var block = (_staffLastData.films_by_role || []).find(function (b) {
+        return String(b.role_key || '') === String(roleKey || '');
+      });
+      var nextOff = block && block.films ? block.films.length : offset;
+      return loadStaffRoleFilmsBackground(personId, roleKey, nextOff);
+    });
   }
 
   function loadStaffProgressive(personId) {
@@ -733,10 +757,7 @@
   }
 
   function loadStaff(personId) {
-    var authed = !!mpToken();
-    var loadPromise = authed
-      ? loadStaffLegacy(personId, true)
-      : loadStaffProgressive(personId);
+    var loadPromise = loadStaffProgressive(personId);
     return loadPromise
       .then(function () {
         fetch(API_BASE + '/api/public/staff/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })

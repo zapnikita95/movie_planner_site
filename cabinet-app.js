@@ -3635,7 +3635,7 @@
     });
   }
 
-  const FILM_CAST_ACTORS_COLLAPSED = 5;
+  const FILM_CAST_ACTORS_COLLAPSED = 4;
 
   function bindFilmActorsExpand(root) {
     if (!root) return;

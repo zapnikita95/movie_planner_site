@@ -1291,7 +1291,7 @@
         });
         setFactsToggleVisible(arr.length > 0);
       }
-      var CAST_VISIBLE = 5;
+      var CAST_VISIBLE = 4;
       function castPersonLink(entry) {
         if (!entry || entry.kp_person_id == null) return '';
         var nm = String(entry.name_ru || entry.name_en || '').replace(/[&<>"']/g, function (c) {
