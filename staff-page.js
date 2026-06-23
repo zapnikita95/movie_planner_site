@@ -136,16 +136,13 @@
 
   function cleanStaffPoster(src) {
     var s = String(src || '').trim();
-    if (!s || /no-poster|kinopoiskapiunofficial|st\.kp\.yandex\.net/i.test(s)) return '';
-    if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
+    if (!s || /no-poster|kinopoiskapiunofficial/i.test(s)) return '';
     return s;
   }
 
   function cleanStaffPersonPhoto(src) {
     var s = String(src || '').trim();
-    if (!s || /no-poster|st\.kp\.yandex\.net|actor_iphone/i.test(s)) return '';
-    if (/person-avatar-placeholder/i.test(s)) return s;
-    if (/image\.tmdb\.org/i.test(s)) return s;
+    if (!s || /no-poster/i.test(s)) return '';
     return s;
   }
 

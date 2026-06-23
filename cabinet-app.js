@@ -177,14 +177,13 @@
     const s = String(src || '').trim();
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
     if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
-    if (/st\.kp\.yandex\.net/i.test(s)) return '';
     return s;
   }
 
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function currentFilmPosterFromDom(root) {
@@ -3696,18 +3695,32 @@
     function showPreviewPhoto(link, img) {
       const custom = (link.getAttribute('data-staff-photo') || '').trim();
       img.onerror = function () {
-        img.src = MP_PERSON_PLACEHOLDER;
-        img.onerror = null;
+        if (window.mpPersonOnError) window.mpPersonOnError(img);
+        else { img.src = MP_PERSON_PLACEHOLDER; img.onerror = null; }
       };
-      if (custom) {
+      if (custom && !/no-poster/i.test(custom)) {
         img.src = custom;
         img.style.display = 'block';
         return;
       }
       const kp = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
       if (kp) {
-        img.src = MP_PERSON_PLACEHOLDER;
-        img.style.display = 'block';
+        fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/public/person/' + encodeURIComponent(kp) + '/head', { credentials: 'omit' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var ph = d && d.person && d.person.photo ? String(d.person.photo) : '';
+            if (ph && !/no-poster/i.test(ph) && activeLink === link) {
+              img.src = ph;
+              img.style.display = 'block';
+            } else {
+              img.src = MP_PERSON_PLACEHOLDER;
+              img.style.display = 'block';
+            }
+          })
+          .catch(function () {
+            img.src = MP_PERSON_PLACEHOLDER;
+            img.style.display = 'block';
+          });
         return;
       }
       img.src = MP_PERSON_PLACEHOLDER;

@@ -45,15 +45,13 @@
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
     if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters/i.test(s)) return '';
-    if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
-    if (/st\.kp\.yandex\.net/i.test(s)) return '';
     return s;
   }
 
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder/i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
   function currentFilmPosterFromDom() {
@@ -1380,9 +1378,24 @@
               hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
               hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
               var custom = (link.getAttribute('data-staff-photo') || '').trim();
-              img.onerror = function () { img.src = PERSON_PH; img.onerror = null; };
+              img.onerror = function () {
+                if (global.mpPersonOnError) global.mpPersonOnError(img);
+                else { img.src = PERSON_PH; img.onerror = null; }
+              };
               var kpHover = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
-              img.src = custom || PERSON_PH;
+              if (custom && !/no-poster/i.test(custom)) {
+                img.src = custom;
+              } else if (kpHover) {
+                fetch(API_BASE + '/api/public/person/' + encodeURIComponent(kpHover) + '/head', { credentials: 'omit' })
+                  .then(function (r) { return r.json(); })
+                  .then(function (payload) {
+                    var ph = payload && payload.person && payload.person.photo ? String(payload.person.photo) : '';
+                    if (activeLink === link) img.src = (ph && !/no-poster/i.test(ph)) ? ph : PERSON_PH;
+                  })
+                  .catch(function () { if (activeLink === link) img.src = PERSON_PH; });
+              } else {
+                img.src = PERSON_PH;
+              }
               img.style.display = 'block';
             }, 180);
           });
