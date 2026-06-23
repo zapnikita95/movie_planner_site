@@ -2103,7 +2103,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260623authfix3'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260623searchpreview1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2113,9 +2113,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260622personfix1');
           list.push('staff-page.js?v=20260622stafffast2');
-          list.push('cabinet-app.js?v=20260623authfix3');
+          list.push('cabinet-app.js?v=20260623searchpreview1');
         } else {
-          list.push('cabinet-app.js?v=20260623authfix3');
+          list.push('cabinet-app.js?v=20260623searchpreview1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

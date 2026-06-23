@@ -11767,6 +11767,8 @@
     openFilmPageByKp(k);
   }
 
+  const HEADER_SEARCH_PREVIEW_PERSONS = 1;
+
   function renderHeaderSearchDropdown(items, query, persons) {
     const dd = document.getElementById('header-search-dropdown');
     if (!dd) return;
@@ -11779,7 +11781,7 @@
     }
     let html = '';
     if (persons.length) {
-      html += persons.slice(0, 4).map((p) => {
+      html += persons.slice(0, HEADER_SEARCH_PREVIEW_PERSONS).map((p) => {
         const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
         const prof = escapeHtml(String(p.professions || '').slice(0, 60));
         return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
