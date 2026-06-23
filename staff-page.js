@@ -21,6 +21,7 @@
   var _staffExpandedRoles = {};
   var _staffRoleHasMore = {};
   var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+  var _staffSortMode = 'default';
   var _staffPersonId = '';
   var _staffLoginNow = null;
   var _staffPendingFriendsFilter = false;
@@ -75,10 +76,55 @@
     });
   }
 
-  function sortRolesByFilmCount(roles) {
+  function sortRolesForDisplay(roles) {
+    var primary = ['ACTOR', 'DIRECTOR', 'WRITER', 'PRODUCER'];
+    function key(block) {
+      var rk = String(block.role_key || block.role_name || '').toUpperCase();
+      var total = parseInt(block.total, 10);
+      if (isNaN(total)) total = (block.films || []).length;
+      if (rk === 'UNCREDITED') return [3, 0, rk];
+      if (rk === 'CAMEO') return [2, 0, rk];
+      var pri = primary.indexOf(rk);
+      if (pri >= 0) return [0, -total, pri];
+      return [1, -total, rk];
+    }
     return (roles || []).slice().sort(function (a, b) {
-      return (b.films || []).length - (a.films || []).length;
+      var ka = key(a);
+      var kb = key(b);
+      for (var i = 0; i < 3; i++) {
+        if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1;
+      }
+      return 0;
     });
+  }
+
+  function sortFilmsForDisplay(films) {
+    var list = (films || []).slice();
+    if (_staffSortMode === 'rating_desc') {
+      return list.sort(function (a, b) {
+        var ra = parseFloat(a.rating);
+        var rb = parseFloat(b.rating);
+        if (isNaN(ra)) ra = 0;
+        if (isNaN(rb)) rb = 0;
+        if (rb !== ra) return rb - ra;
+        return (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0);
+      });
+    }
+    if (_staffSortMode === 'year_asc') {
+      return list.sort(function (a, b) {
+        return (parseInt(a.year, 10) || 9999) - (parseInt(b.year, 10) || 9999);
+      });
+    }
+    if (_staffSortMode === 'year_desc') {
+      return list.sort(function (a, b) {
+        return (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0);
+      });
+    }
+    return list;
+  }
+
+  function sortRolesByFilmCount(roles) {
+    return sortRolesForDisplay(roles);
   }
 
   function staffMetaLine(person) {
@@ -130,6 +176,12 @@
         '<div class="person-filters-toggles">' +
           '<button type="button" class="chip' + (_staffFilterState.mainRolesOnly ? ' chip-on' : '') + '" id="staff-toggle-main" aria-pressed="' + (_staffFilterState.mainRolesOnly ? 'true' : 'false') + '">Главные роли</button>' +
           '<button type="button" class="chip' + (_staffFilterState.friendsRatedOnly ? ' chip-on' : '') + '" id="staff-toggle-friends" aria-pressed="' + (_staffFilterState.friendsRatedOnly ? 'true' : 'false') + '">Друзья хорошо оценили</button>' +
+        '</div>' +
+        '<div class="person-filters-sort">' +
+          '<span class="person-filter-k">Сортировка</span>' +
+          '<button type="button" class="chip' + (_staffSortMode === 'rating_desc' ? ' chip-on' : '') + '" id="staff-sort-rating" aria-pressed="' + (_staffSortMode === 'rating_desc' ? 'true' : 'false') + '">По оценке</button>' +
+          '<button type="button" class="chip' + (_staffSortMode === 'year_desc' ? ' chip-on' : '') + '" id="staff-sort-year-desc" aria-pressed="' + (_staffSortMode === 'year_desc' ? 'true' : 'false') + '">Сначала новые</button>' +
+          '<button type="button" class="chip' + (_staffSortMode === 'year_asc' ? ' chip-on' : '') + '" id="staff-sort-year-asc" aria-pressed="' + (_staffSortMode === 'year_asc' ? 'true' : 'false') + '">Сначала старые</button>' +
         '</div>' +
       '</div>'
     );
@@ -200,7 +252,7 @@
   }
 
   function filmGridHtml(films, roleKey, roleTotal) {
-    var all = films || [];
+    var all = sortFilmsForDisplay(films || []);
     if (!all.length) return '';
     var expanded = !!_staffExpandedRoles[roleKey];
     var chunk = expanded ? all : all.slice(0, PERSON_FILMS_PREVIEW);
@@ -285,6 +337,17 @@
         paintStaffRoles();
       });
     }
+    function bindSortChip(id, mode) {
+      var el = root.querySelector(id);
+      if (!el) return;
+      el.addEventListener('click', function () {
+        _staffSortMode = _staffSortMode === mode ? 'default' : mode;
+        paintStaffRoles();
+      });
+    }
+    bindSortChip('#staff-sort-rating', 'rating_desc');
+    bindSortChip('#staff-sort-year-desc', 'year_desc');
+    bindSortChip('#staff-sort-year-asc', 'year_asc');
     root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var rk = btn.getAttribute('data-role-expand') || '';
@@ -322,6 +385,22 @@
       if (friendsBtn) {
         friendsBtn.classList.toggle('chip-on', !!_staffFilterState.friendsRatedOnly);
         friendsBtn.setAttribute('aria-pressed', _staffFilterState.friendsRatedOnly ? 'true' : 'false');
+      }
+      var sortRating = filtersRoot.querySelector('#staff-sort-rating');
+      var sortYearDesc = filtersRoot.querySelector('#staff-sort-year-desc');
+      var sortYearAsc = filtersRoot.querySelector('#staff-sort-year-asc');
+      if (sortRating) sortRating.classList.toggle('chip-on', _staffSortMode === 'rating_desc');
+      if (sortYearDesc) sortYearDesc.classList.toggle('chip-on', _staffSortMode === 'year_desc');
+      if (sortYearAsc) sortYearAsc.classList.toggle('chip-on', _staffSortMode === 'year_asc');
+      if (yearEl && _staffGlobalFilters.years && _staffGlobalFilters.years.length) {
+        var cur = yearEl.innerHTML;
+        var next = yearOptionsHtml();
+        if (cur !== next) yearEl.innerHTML = next;
+      }
+      if (genreEl && _staffGlobalFilters.genres && _staffGlobalFilters.genres.length) {
+        var curG = genreEl.innerHTML;
+        var nextG = genreOptionsHtml();
+        if (curG !== nextG) genreEl.innerHTML = nextG;
       }
     }
     bindStaffFilters(root);

@@ -10843,6 +10843,42 @@ body.header-search-dropdown-open #public-stats {
 .staff-role-block { margin-bottom: 28px; }
 .staff-role-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
 .staff-role-head h2, .staff-role-head h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: rgba(244,246,255,.55); font-weight: 800; }
+.staff-role-head .staff-import-btn,
+.staff-import-btn.link-inline,
+button.staff-import-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.92;
+}
+.staff-role-head .staff-import-btn:hover,
+.staff-import-btn.link-inline:hover,
+button.staff-import-btn:hover {
+  color: #fff !important;
+  opacity: 1;
+  text-decoration: underline;
+}
+.person-filters-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.person-filters-sort .person-filter-k {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(244,246,255,.45);
+  font-weight: 800;
+  margin-right: 4px;
+}
 .staff-role-count { font-size: 12px; color: rgba(244,246,255,.4); font-weight: 700; }
 .staff-film-grid {
   display: grid;
