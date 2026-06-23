@@ -110,29 +110,6 @@
 
   function mpPosterOnError(img) {
     if (!img || img.dataset.mpPosterFailed === '1') return;
-    var src = String(img.src || img.currentSrc || '');
-    var kp = String(img.dataset.kp || '').replace(/\D/g, '');
-    if (!kp) {
-      var m = src.match(/(?:iphone360_|film_big\/|kp_small\/)(\d+)\.jpg/i);
-      if (m) kp = m[1];
-    }
-    if (/kinopoiskapiunofficial\.tech/i.test(src) && kp && img.dataset.mpPosterFb !== 'iphone') {
-      img.dataset.mpPosterFb = 'iphone';
-      img.onerror = function () { mpPosterOnError(img); };
-      img.src = 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
-      return;
-    }
-    if (/st\.kp\.yandex\.net/i.test(src) && img.dataset.mpPosterFb !== 'big' && kp) {
-      img.dataset.mpPosterFb = 'big';
-      img.onerror = function () { mpPosterOnError(img); };
-      img.src = 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
-      return;
-    }
-    if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org/i.test(src)) {
-      img.dataset.mpPosterFailed = '1';
-      img.onerror = null;
-      return;
-    }
     img.onerror = null;
     img.dataset.mpPosterFailed = '1';
     img.src = MP_POSTER_PLACEHOLDER;
@@ -186,8 +163,8 @@
   }
 
   function posterUrl(kpId) {
-    if (!kpId) return '';
-    return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
+    if (!kpId) return MP_POSTER_PLACEHOLDER;
+    return MP_POSTER_PLACEHOLDER;
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
@@ -197,16 +174,17 @@
   }
 
   function cleanPosterUrl(src) {
-    const s = String(src || '');
+    const s = String(src || '').trim();
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
-    if (/film-poster-placeholder/i.test(s)) return '';
+    if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
+    if (/st\.kp\.yandex\.net/i.test(s)) return '';
     return s;
   }
 
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder|\/images\/posters\//i.test(s);
   }
 
   function currentFilmPosterFromDom(root) {
@@ -224,11 +202,6 @@
     const boot = filmFromRouteBoot(film && film.kp_id);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
     if (bootPoster) return bootPoster;
-    const kp = film && String(film.kp_id || '').replace(/\D/g, '');
-    if (kp) {
-      const proxy = posterUrl(kp);
-      if (proxy) return proxy;
-    }
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -3733,7 +3706,7 @@
       }
       const kp = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
       if (kp) {
-        img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+        img.src = MP_PERSON_PLACEHOLDER;
         img.style.display = 'block';
         return;
       }
@@ -15174,7 +15147,7 @@
   }
 
   function _wtPosterUrl(kp) {
-    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + encodeURIComponent(String(kp)) + '.jpg';
+    return MP_POSTER_PLACEHOLDER;
   }
 
   function _wtFilmTileHtml(f, mode) {

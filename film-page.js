@@ -44,14 +44,16 @@
 
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
-    if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters|film-poster-placeholder/i.test(s)) return '';
+    if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters/i.test(s)) return '';
+    if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
+    if (/st\.kp\.yandex\.net/i.test(s)) return '';
     return s;
   }
 
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
   function currentFilmPosterFromDom() {
@@ -64,13 +66,13 @@
 
   function defaultPosterForKp(kpId) {
     var kp = String(kpId || '').replace(/\D/g, '');
-    if (!kp) return '';
+    if (!kp) return MP_POSTER_PLACEHOLDER;
     var boot = readMpRouteBoot();
     if (boot && boot.poster_url) {
       var bootPoster = cleanPosterUrl(boot.poster_url);
       if (bootPoster) return bootPoster;
     }
-    return 'https://st.kp.yandex.net/images/film_big/' + kp + '.jpg';
+    return MP_POSTER_PLACEHOLDER;
   }
 
   function resolveFilmPosterDisplay(posterUrl, kpId) {
@@ -126,12 +128,6 @@
     if (!global.mpPosterOnError) {
       global.mpPosterOnError = function (img) {
         if (!img || img.dataset.mpPosterFailed === '1') return;
-        var src = String(img.currentSrc || img.src || '');
-        if (/avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net/i.test(src)) {
-          img.dataset.mpPosterFailed = '1';
-          img.onerror = null;
-          return;
-        }
         img.onerror = null;
         img.dataset.mpPosterFailed = '1';
         img.src = MP_POSTER_PLACEHOLDER;
@@ -461,7 +457,7 @@
       var html = '';
       if (persons.length) {
         html += persons.slice(0, 3).map(function (p) {
-          var photo = cleanPoster(p.photo) || ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + p.kp_person_id + '.jpg');
+          var photo = cleanPoster(p.photo) || '/images/person-avatar-placeholder.png';
           var name = escapeText(p.name_ru || p.name_en || 'Персона');
           var prof = escapeText(String(p.professions || '').slice(0, 60));
           return '<a class="hs-result hs-result-person search-result" href="/s/' + encodeURIComponent(String(p.kp_person_id)) + '">'
@@ -1386,7 +1382,7 @@
               var custom = (link.getAttribute('data-staff-photo') || '').trim();
               img.onerror = function () { img.src = PERSON_PH; img.onerror = null; };
               var kpHover = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
-              img.src = custom || (kpHover ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kpHover + '.jpg') : PERSON_PH);
+              img.src = custom || PERSON_PH;
               img.style.display = 'block';
             }, 180);
           });

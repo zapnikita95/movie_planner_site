@@ -16,6 +16,7 @@
   var PERSON_FILMS_PREVIEW = 20;
   var PERSON_FILM_BATCH = 24;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
+  var MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
   var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
@@ -135,7 +136,16 @@
 
   function cleanStaffPoster(src) {
     var s = String(src || '').trim();
-    if (!s || /no-poster|kinopoiskapiunofficial|film-poster-placeholder/i.test(s)) return '';
+    if (!s || /no-poster|kinopoiskapiunofficial|st\.kp\.yandex\.net/i.test(s)) return '';
+    if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
+    return s;
+  }
+
+  function cleanStaffPersonPhoto(src) {
+    var s = String(src || '').trim();
+    if (!s || /no-poster|st\.kp\.yandex\.net|actor_iphone/i.test(s)) return '';
+    if (/person-avatar-placeholder/i.test(s)) return s;
+    if (/image\.tmdb\.org/i.test(s)) return s;
     return s;
   }
 
@@ -349,7 +359,7 @@
     if (!bootMatchesPerson(boot)) return staffLoadingHtml();
     var title = boot.display_name || boot.name_ru || 'Персона';
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
-    var photo = String(boot.photo_url || '').trim();
+    var photo = cleanStaffPersonPhoto(String(boot.photo_url || '').trim()) || MP_PERSON_PLACEHOLDER;
     var photoHtml = photo
       ? '<img class="staff-hero-photo" src="' + escapeHtml(photo) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
@@ -605,8 +615,9 @@
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
 
-    var photo = person.photo
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(person.photo) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
+    var personPhoto = cleanStaffPersonPhoto(person.photo) || MP_PERSON_PLACEHOLDER;
+    var photo = personPhoto
+      ? '<img class="staff-hero-photo" src="' + escapeHtml(personPhoto) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
 
     root.innerHTML =
