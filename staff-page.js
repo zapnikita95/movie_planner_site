@@ -13,13 +13,16 @@
     return 'https://movie-planner.ru';
   })();
 
-  var PERSON_FILMS_PREVIEW = 20;
-  var PERSON_FILM_BATCH = 20;
+  var PERSON_FILMS_PREVIEW_PRIMARY = 21;
+  var PERSON_FILMS_PREVIEW_OTHER = 14;
+  var PERSON_FILM_BATCH_PRIMARY = 21;
+  var PERSON_FILM_BATCH_OTHER = 14;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
   var _staffRoleHasMore = {};
+  var _staffPrimaryRoleKey = '';
   var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
   var _staffSortMode = 'default';
   var _staffPersonId = '';
@@ -121,6 +124,28 @@
       });
     }
     return list;
+  }
+
+  function resolvePrimaryRoleKey(roles) {
+    var sorted = sortRolesForDisplay(roles || []);
+    if (!sorted.length) return '';
+    return String(sorted[0].role_key || '').toUpperCase();
+  }
+
+  function personFilmPreviewLimit(roleKey) {
+    var rk = String(roleKey || '').toUpperCase();
+    var primary = _staffPrimaryRoleKey || resolvePrimaryRoleKey(
+      (_staffLastData && _staffLastData.films_by_role) || []
+    );
+    return primary && rk === primary ? PERSON_FILMS_PREVIEW_PRIMARY : PERSON_FILMS_PREVIEW_OTHER;
+  }
+
+  function personFilmBatchLimit(roleKey) {
+    var rk = String(roleKey || '').toUpperCase();
+    var primary = _staffPrimaryRoleKey || resolvePrimaryRoleKey(
+      (_staffLastData && _staffLastData.films_by_role) || []
+    );
+    return primary && rk === primary ? PERSON_FILM_BATCH_PRIMARY : PERSON_FILM_BATCH_OTHER;
   }
 
   function sortRolesByFilmCount(roles) {
@@ -254,8 +279,9 @@
   function filmGridHtml(films, roleKey, roleTotal) {
     var all = sortFilmsForDisplay(films || []);
     if (!all.length) return '';
+    var previewLimit = personFilmPreviewLimit(roleKey);
     var expanded = !!_staffExpandedRoles[roleKey];
-    var chunk = expanded ? all : all.slice(0, PERSON_FILMS_PREVIEW);
+    var chunk = expanded ? all : all.slice(0, previewLimit);
     var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       if (!kp) return '';
@@ -272,10 +298,10 @@
       );
     }).join('') + '</div>';
     var totalHint = Math.max(all.length, parseInt(roleTotal, 10) || 0);
-    if (!expanded && totalHint > PERSON_FILMS_PREVIEW) {
+    if (!expanded && totalHint > previewLimit) {
       grid += (
         '<button type="button" class="staff-role-expand" data-role-expand="' + escapeHtml(roleKey || '') + '">' +
-          'Развернуть · ' + (totalHint - PERSON_FILMS_PREVIEW) +
+          'Развернуть · ' + (totalHint - previewLimit) +
         '</button>'
       );
     }
@@ -762,6 +788,7 @@
     var person = data.person || {};
     _staffLastData = data;
     _staffRoleHasMore = {};
+    _staffPrimaryRoleKey = resolvePrimaryRoleKey(data.films_by_role || []);
     _staffGlobalFilters = data.filters || { years: [], genres: [] };
     var titleName = person.display_name || person.name_ru || person.name_en || 'Персона';
     var secondaryName = person.secondary_name || (
@@ -816,10 +843,12 @@
     else block.films = incoming.slice();
   }
 
-  function loadStaffRoleFilms(personId, roleKey, offset) {
+  function loadStaffRoleFilms(personId, roleKey, offset, limitOverride) {
     var off = Math.max(0, parseInt(offset, 10) || 0);
+    var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
+    if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
     var url = API_BASE + '/api/public/person/' + encodeURIComponent(personId) +
-      '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + PERSON_FILM_BATCH;
+      '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + lim;
     return fetch(url, { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
@@ -858,6 +887,9 @@
       .then(function (head) {
         if (!head || !head.success) throw new Error('head');
         var rolesMeta = head.roles || [];
+        _staffPrimaryRoleKey = rolesMeta.length
+          ? String(rolesMeta[0].role_key || '').toUpperCase()
+          : '';
         var filmsByRole = rolesMeta.map(function (rm) {
           return {
             role_key: rm.role_key,
@@ -872,9 +904,10 @@
           filters: head.filters || { years: [], genres: [] },
           films_by_role: filmsByRole,
         }, personId);
-        return Promise.all(rolesMeta.map(function (rm) {
+        return Promise.all(rolesMeta.map(function (rm, idx) {
           if (!rm || !rm.role_key || !(rm.total > 0)) return Promise.resolve();
-          return loadStaffRoleFilms(personId, rm.role_key, 0).catch(function () {});
+          var batchLim = idx === 0 ? PERSON_FILM_BATCH_PRIMARY : PERSON_FILM_BATCH_OTHER;
+          return loadStaffRoleFilms(personId, rm.role_key, 0, batchLim).catch(function () {});
         }));
       });
   }
