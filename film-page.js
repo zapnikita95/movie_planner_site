@@ -1421,6 +1421,12 @@
         }
       }
       var publicFilmCountry = '';
+      function buildPublicCastSkeletonHtml() {
+        return '<div class="film-cast-skeleton">' +
+          '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
+          '<div class="film-cast-row film-cast-actors" style="margin-top:6px"><span class="film-cast-label">Актёры:</span> <span class="film-cast-skel-line film-cast-skel-line-wide"></span></div>' +
+        '</div>';
+      }
       function applyPublicCastPayload(d) {
         var root = document.getElementById('film-cast-root');
         if (!root || !d) return;
@@ -1431,13 +1437,16 @@
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root');
         if (!root) return;
+        if (!root.innerHTML.trim()) root.innerHTML = buildPublicCastSkeletonHtml();
         apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/cast')
           .then(function (d) {
-            if (!d || !d.success) { applyPublicCastPayload(null); return; }
-            applyPublicCastPayload(d);
+            if (!d || !d.success) { return; }
+            if (d.director || (d.actors && d.actors.length)) applyPublicCastPayload(d);
+            else root.innerHTML = '';
           })
           .catch(function () {
-            applyPublicCastPayload(null);
+            var root2 = document.getElementById('film-cast-root');
+            if (root2) root2.innerHTML = '';
           });
       }
       function showPublicToast(message) {

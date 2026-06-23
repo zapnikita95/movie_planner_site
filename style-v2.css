@@ -9432,7 +9432,21 @@ main.film-page .film-hero-crew {
   font-weight: 400;
   line-height: 1.55;
   color: rgba(244,246,255,.78);
-  letter-spacing: 0;
+}
+.film-cast-skel-line {
+  display: inline-block;
+  height: 12px;
+  min-width: 72px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.08) 100%);
+  background-size: 200% 100%;
+  animation: film-cast-skel-pulse 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+.film-cast-skel-line-wide { min-width: 220px; width: 55%; max-width: 420px; }
+@keyframes film-cast-skel-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 .film-cast-row { margin-top: 4px; }
 .film-cast-row:first-child { margin-top: 0; }
@@ -10885,6 +10899,7 @@ button.staff-import-btn:hover {
   gap: 12px 14px;
   width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
 }
 @media (min-width: 640px) {
   .staff-film-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -10897,10 +10912,10 @@ button.staff-import-btn:hover {
 }
 .staff-film-card {
   border: none; background: transparent; padding: 0; text-align: left; cursor: pointer; color: inherit;
-  text-decoration: none; display: block; min-width: 0; width: 100%;
+  text-decoration: none; display: flex; flex-direction: column; height: 100%; min-width: 0; width: 100%;
 }
 .staff-film-card:hover .staff-film-poster { transform: scale(0.98); }
-.staff-film-media { position: relative; }
+.staff-film-media { position: relative; flex: 0 0 auto; width: 100%; }
 .staff-film-poster {
   width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 12px;
   background: #120818; display: block; transition: transform .12s ease;
@@ -10912,8 +10927,25 @@ button.staff-import-btn:hover {
   padding: 2px 7px; border-radius: 8px; font-size: 11px; font-weight: 800;
   background: rgba(0,0,0,.72); color: #fff;
 }
-.staff-film-title { margin-top: 8px; font-size: 13px; font-weight: 700; line-height: 1.25; }
-.staff-film-year { font-size: 11px; color: rgba(244,246,255,.55); margin-top: 2px; }
+.staff-film-title {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.25em);
+  flex: 0 0 auto;
+}
+.staff-film-year {
+  font-size: 11px;
+  color: rgba(244,246,255,.55);
+  margin-top: 2px;
+  min-height: 1.1em;
+  flex: 0 0 auto;
+}
 .staff-empty-role { margin: 0; }
 .staff-role-expand {
   display: block;
