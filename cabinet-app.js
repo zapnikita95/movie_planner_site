@@ -1954,6 +1954,7 @@
       return 'Не удалось завершить вход. Подождите пару секунд и нажмите ещё раз.';
     }
     if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
+    if (err === 'already_used') return 'Код уже использован — нажмите «Войти» ещё раз или запросите новый код.';
     return fallback || 'Не удалось войти';
   }
 
@@ -5397,7 +5398,7 @@
               name: sessionData.name,
               has_data: false,
               is_personal: true,
-              email: exchangeData.email || email,
+              email: sessionData.email || email,
             });
           }
           setSessions(sessions);
