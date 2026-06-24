@@ -5582,10 +5582,19 @@
     let lastY = window.scrollY || 0;
     let ticking = false;
 
+    function bodyUsesMobileRetractHeader() {
+      if (!window.matchMedia('(max-width: 768px)').matches) return false;
+      const b = document.body;
+      return b.classList.contains('in-cabinet')
+        || b.classList.contains('landing-root-page')
+        || b.classList.contains('film-standalone-page')
+        || b.classList.contains('user-standalone-page')
+        || b.classList.contains('staff-standalone-page');
+    }
+
     function updateHeaderVisibility() {
       ticking = false;
-      const mobile = window.matchMedia('(max-width: 768px)').matches;
-      if (!document.body.classList.contains('in-cabinet') || !mobile) {
+      if (!bodyUsesMobileRetractHeader()) {
         header.classList.remove('site-header--retracted');
         return;
       }

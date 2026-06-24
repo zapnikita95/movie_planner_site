@@ -222,6 +222,83 @@
       '<div class="action-dropdown-menu">' + menuItems + '</div></div>';
   }
 
+  function mpToolbarIcon(name, opts) {
+    if (global.MPIcons && global.MPIcons.html) return global.MPIcons.html(name, opts || { size: 'sm' });
+    return name === 'bellOff' ? '🔕' : '🔔';
+  }
+
+  function renderFilmToolbarPremiereBtn(item) {
+    if (!item || !item.is_upcoming_premiere) return '';
+    var kp = escapeHtml(String(item.kp_id || ''));
+    var date = escapeHtml(String(item.premiere_date || ''));
+    var active = !!(item.premiere_reminder_set || item.reminder_set);
+    var action = active ? 'premiere-notify-off' : 'premiere-notify-on';
+    var label = active ? 'Напоминание включено' : 'Напоминание о премьере';
+    var cls = 'film-icon-btn film-icon-btn--premiere' + (active ? ' on' : '');
+    var icon = active ? mpToolbarIcon('bellOff') : mpToolbarIcon('inbox');
+    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
+  }
+
+  function syncFilmToolbarPremiereButton(btn, item) {
+    if (!btn || !item) return;
+    var active = !!(item.premiere_reminder_set || item.reminder_set);
+    var kp = String(item.kp_id || btn.getAttribute('data-kp') || '');
+    var date = String(item.premiere_date || btn.getAttribute('data-date') || '');
+    var action = active ? 'premiere-notify-off' : 'premiere-notify-on';
+    var label = active ? 'Напоминание включено' : 'Напоминание о премьере';
+    btn.className = 'film-icon-btn film-icon-btn--premiere' + (active ? ' on' : '');
+    btn.setAttribute('data-action', action);
+    btn.setAttribute('data-kp', kp);
+    btn.setAttribute('data-date', date);
+    btn.setAttribute('title', label);
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = active ? mpToolbarIcon('bellOff') : mpToolbarIcon('inbox');
+    btn.disabled = false;
+  }
+
+  function handleFilmPremiereNotify(button, loginNow) {
+    if (!button || button.disabled) return;
+    if (!mpToken()) {
+      if (loginNow) loginNow();
+      else if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('');
+      return;
+    }
+    var action = button.getAttribute('data-action');
+    var kp = button.getAttribute('data-kp');
+    var date = button.getAttribute('data-date');
+    if (!kp || !action) return;
+    var isOn = action === 'premiere-notify-on';
+    var oldHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '…';
+    var req = {
+      method: isOn ? 'POST' : 'DELETE',
+      headers: mpAuthHeaders(),
+    };
+    if (isOn) req.body = JSON.stringify({ premiere_date: date });
+    fetch(API_BASE + '/api/site/premieres/' + encodeURIComponent(kp) + '/notify', req)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.success) {
+          showPublicToast((data && (data.message || data.error)) || 'Не удалось изменить напоминание');
+          button.disabled = false;
+          button.innerHTML = oldHtml;
+          return;
+        }
+        syncFilmToolbarPremiereButton(button, {
+          kp_id: kp,
+          premiere_date: date,
+          premiere_reminder_set: isOn,
+        });
+        showPublicToast(isOn ? 'Премьера отслеживается' : 'Напоминание отключено');
+      })
+      .catch(function () {
+        showPublicToast('Ошибка сети');
+        button.disabled = false;
+        button.innerHTML = oldHtml;
+      });
+  }
+
   function buildFilmPageToolbar(item, opts) {
     opts = opts || {};
     var inBase = !!opts.inBase;
@@ -266,9 +343,10 @@
       : '';
     var factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
     var factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
+    var premiereBtn = renderFilmToolbarPremiereBtn(item);
     var panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + '</div>';
     return '<div class="film-page-toolbar">' + planBlock +
-      '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtnOnly + factsBtnOnly +
+      '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + rateBtnOnly + factsBtnOnly + premiereBtn +
       '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
       panelsHtml + '</div>';
   }
@@ -1580,6 +1658,27 @@
             var seoRoot = document.getElementById('film-seo-root');
             if (seoRoot) seoRoot.innerHTML = f.seo_body_html;
           }
+          if (f.is_upcoming_premiere) {
+            var heroToolbar = document.querySelector('.film-page-toolbar');
+            var iconsRow = heroToolbar && heroToolbar.querySelector('.film-toolbar-icons');
+            var shareBtnEl = iconsRow && iconsRow.querySelector('#share-film-btn');
+            var existingPrem = iconsRow && iconsRow.querySelector('.film-icon-btn--premiere');
+            if (iconsRow && !existingPrem) {
+              var premHtml = renderFilmToolbarPremiereBtn(f);
+              if (premHtml && shareBtnEl) shareBtnEl.insertAdjacentHTML('beforebegin', premHtml);
+              else if (premHtml) iconsRow.insertAdjacentHTML('beforeend', premHtml);
+              var newPrem = iconsRow.querySelector('.film-icon-btn--premiere');
+              if (newPrem) {
+                newPrem.addEventListener('click', function (e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleFilmPremiereNotify(newPrem, loginNow);
+                });
+              }
+            } else if (existingPrem) {
+              syncFilmToolbarPremiereButton(existingPrem, f);
+            }
+          }
           if (hint) hint.textContent = '';
         })
         .catch(function () {
@@ -1758,6 +1857,15 @@
             } else {
               showPublicToast(url);
             }
+          });
+        }
+        var premiereBtn = root.querySelector('.film-icon-btn--premiere[data-action="premiere-notify-on"], .film-icon-btn--premiere[data-action="premiere-notify-off"]');
+        if (premiereBtn && !premiereBtn.getAttribute('data-mp-premiere-bound')) {
+          premiereBtn.setAttribute('data-mp-premiere-bound', '1');
+          premiereBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFilmPremiereNotify(premiereBtn, loginNow);
           });
         }
       }

@@ -1520,7 +1520,33 @@ section {
     transition: transform 0.28s ease, opacity 0.28s ease;
     will-change: transform;
   }
-  body.in-cabinet #site-header.site-header--retracted {
+  body.landing-root-page #site-header,
+  body.film-standalone-page #site-header,
+  body.user-standalone-page #site-header,
+  body.staff-standalone-page #site-header {
+    position: sticky;
+    top: 0;
+    z-index: 220;
+    background: rgba(12, 12, 18, 0.96) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+    will-change: transform;
+  }
+  body.landing-root-page .header-content,
+  body.film-standalone-page .header-content,
+  body.user-standalone-page .header-content,
+  body.staff-standalone-page .header-content {
+    background: rgba(12, 12, 18, 0.96) !important;
+    border-radius: 0 !important;
+  }
+  body.in-cabinet #site-header.site-header--retracted,
+  body.landing-root-page #site-header.site-header--retracted,
+  body.film-standalone-page #site-header.site-header--retracted,
+  body.user-standalone-page #site-header.site-header--retracted,
+  body.staff-standalone-page #site-header.site-header--retracted {
     transform: translateY(calc(-100% - 2px));
     pointer-events: none;
     opacity: 0;
@@ -1917,7 +1943,8 @@ section {
   }
   body.film-standalone-page .film-standalone-nav,
   body.staff-standalone-page .film-standalone-nav,
-  body.user-standalone-page .film-standalone-nav {
+  body.user-standalone-page .film-standalone-nav,
+  body.landing-root-page #landing-root-nav {
     position: fixed;
     left: 0;
     right: 0;
@@ -1927,7 +1954,7 @@ section {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     max-width: none;
-    margin: 0;
+    margin: 0 !important;
     padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
     border: 0;
     border-top: 1px solid rgba(255,255,255,0.1);
@@ -1938,6 +1965,8 @@ section {
   }
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(6),
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn:nth-child(3),
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn:nth-child(6),
   body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
   body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(6),
   body.user-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
@@ -1946,7 +1975,8 @@ section {
   }
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn,
   body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn,
-  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn {
+  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn,
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -1966,7 +1996,8 @@ section {
   }
   body.film-standalone-page .page-shell,
   body.staff-standalone-page .page-shell,
-  body.user-standalone-page .page-shell {
+  body.user-standalone-page .page-shell,
+  body.landing-root-page .page-shell {
     padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
   body.in-cabinet .user-profile-rating-row {
@@ -9247,7 +9278,7 @@ body.staff-standalone-page .film-standalone-nav {
   }
 }
 body.film-standalone-page main.film-page .hero {
-  overflow: visible;
+  overflow: hidden;
 }
 body.film-standalone-page main.film-page .hero-content {
   min-height: 280px;
@@ -9294,7 +9325,8 @@ body.film-standalone-page .page-shell > main.film-page > section.hero {
 #section-film .film-hero,
 main.film-page .hero {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(230px, 330px) minmax(0, 1fr);
   gap: clamp(22px, 4vw, 46px);
@@ -9307,10 +9339,12 @@ main.film-page .hero {
   box-shadow: 0 28px 90px rgba(0,0,0,.42);
 }
 .film-hero::before,
-#section-film .hero::before {
+#section-film .hero::before,
+main.film-page .hero::before {
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background:
     linear-gradient(90deg, rgba(7,7,17,.96) 0%, rgba(7,7,17,.84) 44%, rgba(7,7,17,.42) 100%),
     var(--film-backdrop, none);
@@ -9320,11 +9354,13 @@ main.film-page .hero {
   opacity: .92;
 }
 .film-hero::after,
-#section-film .hero::after {
+#section-film .hero::after,
+main.film-page .hero::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
   height: 46%;
+  border-radius: inherit;
   background: linear-gradient(180deg, transparent, rgba(7,7,17,.9));
   pointer-events: none;
 }
@@ -9684,6 +9720,16 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   font-size: 18px;
   font-weight: 900;
   font-family: Unbounded, Inter, sans-serif;
+}
+.film-icon-btn--premiere.on {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #86efac;
+}
+.film-icon-btn--premiere.on:hover,
+.film-icon-btn--premiere.on:focus-visible {
+  background: rgba(34, 197, 94, 0.32);
+  border-color: rgba(34, 197, 94, 0.58);
 }
 .film-icon-btn:hover,
 .film-icon-btn:focus-visible {
@@ -11827,8 +11873,11 @@ body.film-standalone-page {
       body.film-standalone-page #site-header {
         margin-bottom: 12px;
       }
-      body.film-standalone-page .film-standalone-nav {
-        margin-bottom: 12px;
+      body.film-standalone-page .film-standalone-nav,
+      body.staff-standalone-page .film-standalone-nav,
+      body.user-standalone-page .film-standalone-nav,
+      body.landing-root-page #landing-root-nav {
+        margin-bottom: 0 !important;
       }
     }
     @media (max-width: 860px) {
@@ -15776,9 +15825,10 @@ img.mp-poster-placeholder,
   }
   body.film-standalone-page .film-standalone-nav,
   body.staff-standalone-page .film-standalone-nav,
-  body.user-standalone-page .film-standalone-nav {
-    margin-bottom: 8px;
-    padding-bottom: 2px;
+  body.user-standalone-page .film-standalone-nav,
+  body.landing-root-page #landing-root-nav {
+    margin-bottom: 0 !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   }
 }
 
