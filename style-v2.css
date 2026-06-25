@@ -3801,12 +3801,26 @@ body.in-public-stats .footer-extension-cabinet {
   padding: 16px 24px;
 }
 .subpage-main { padding: 40px 24px 60px; max-width: 800px; margin: 0 auto; }
-.article-content { padding: 0; }
-.article-content h1 { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 700; margin-bottom: 12px; }
-.article-content .date { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
-.article-content h2 { font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin: 28px 0 12px; }
-.article-content p, .article-content li { margin-bottom: 12px; line-height: 1.7; color: var(--text-muted); }
-.article-content ul, .article-content ol { margin-bottom: 20px; padding-left: 24px; }
+.article-content {
+  padding: 0;
+  max-width: none;
+  text-align: left;
+}
+.article-content h1 { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 700; margin-bottom: 12px; text-align: left; }
+.article-content .date { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; text-align: left; }
+.article-content h2,
+.article-content h3 { font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin: 28px 0 12px; text-align: left; }
+.article-content h3 { font-size: 17px; margin: 22px 0 10px; }
+.article-content p,
+.article-content li { margin-bottom: 12px; line-height: 1.7; color: var(--text-muted); text-align: left; }
+.article-content ul,
+.article-content ol {
+  margin-bottom: 20px;
+  padding-left: 1.45em;
+  list-style-position: outside;
+  text-align: left;
+}
+.article-content li::marker { color: rgba(255, 255, 255, 0.45); }
 .article-content a { color: var(--text-primary); }
 .article-content a:hover { color: #ff2d7b; }
 .article-content code { background: rgba(255, 45, 123, 0.15); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
@@ -12163,8 +12177,7 @@ body.film-standalone-page {
   }
 
   #landing,
-  #landing > section,
-  body:not(.in-cabinet) main > section {
+  #landing > section {
     width: 100%;
     max-width: 100%;
     margin-left: auto;
@@ -12173,12 +12186,17 @@ body.film-standalone-page {
     text-align: center;
   }
 
+  body.article-standalone-page main.subpage-main > .article-content,
+  body.article-standalone-page .article-content {
+    text-align: left;
+  }
+
   #landing {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  body:not(.in-cabinet) section {
+  body:not(.in-cabinet):not(.article-standalone-page) section {
     padding-left: 16px;
     padding-right: 16px;
   }
