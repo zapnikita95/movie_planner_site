@@ -149,6 +149,14 @@
       .catch(function () {});
   }
 
+  function bumpArticleStylesheet() {
+    document.querySelectorAll('link[rel="stylesheet"][href*="style-v2"]').forEach(function (link) {
+      var href = link.getAttribute('href') || '';
+      if (!href || href.indexOf('?v=') !== -1) return;
+      link.href = href + (href.indexOf('?') === -1 ? '?' : '&') + 'v=20260625articletypo1';
+    });
+  }
+
   function initArticleChrome() {
     try {
       document.body.classList.add('film-standalone-page');
@@ -156,6 +164,8 @@
       var wrap = document.querySelector('.content-wrapper.subpage-wrapper');
       if (wrap) wrap.classList.add('page-shell');
     } catch (_e) {}
+
+    bumpArticleStylesheet();
 
     upgradeHeader();
     upgradeStoreBadges();
