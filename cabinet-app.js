@@ -164,7 +164,9 @@
 
   function posterUrl(kpId) {
     if (!kpId) return MP_POSTER_PLACEHOLDER;
-    return MP_POSTER_PLACEHOLDER;
+    const kp = String(kpId).replace(/\D/g, '');
+    if (!kp) return MP_POSTER_PLACEHOLDER;
+    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
@@ -11615,7 +11617,12 @@
     if (!f) return;
     const fid = f.film_id != null ? f.film_id : f.id;
     if (!fid) return;
-    const row = { film_id: Number(fid), title: f.title || 'Фильм', kp_id: f.kp_id };
+    const row = {
+      film_id: Number(fid),
+      title: f.title || 'Фильм',
+      kp_id: f.kp_id,
+      poster: cleanPosterUrl(f.poster || f.poster_url || pickFilmPosterUrl(f)) || '',
+    };
     const a = _readJsonLs(LS_FILM_RECENT, []);
     const next = [row].concat(a.filter((x) => String(x.film_id) !== String(row.film_id))).slice(0, 8);
     _writeJsonLs(LS_FILM_RECENT, next);
