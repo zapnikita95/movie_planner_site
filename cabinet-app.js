@@ -12721,6 +12721,75 @@
   // Phase 3: Profile switcher (cabinet-topbar)
   // ————————————————————————————————————————————————————
 
+  let _profileSwitcherFetchToken = 0;
+
+  function getProfileMenuEl() {
+    return document.getElementById('cabinet-topbar-profile-menu') || document.getElementById('cabinet-profile-menu');
+  }
+
+  function setProfileSwitcherVisible(visible) {
+    const sw = document.getElementById('cabinet-profile-switcher');
+    const btn = document.getElementById('cabinet-profile-btn');
+    if (!sw || !btn) return;
+    sw.classList.toggle('hidden', !visible);
+    sw.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    btn.setAttribute('tabindex', visible ? '0' : '-1');
+    btn.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
+
+  function openCreateGroupFromProfileMenu() {
+    closeProfileMenu();
+    showSection('groups');
+    if (typeof renderGroupsSection === 'function') renderGroupsSection();
+    const tabRow = document.getElementById('soc-tab-row');
+    const groupsTab = tabRow && tabRow.querySelector('[data-soc-tab="groups"]');
+    if (groupsTab) groupsTab.click();
+    if (typeof openCreateRoomModal === 'function') openCreateRoomModal();
+  }
+
+  function renderProfileMenuItems(profiles, activeChatId) {
+    const menu = getProfileMenuEl();
+    if (!menu) return;
+    if (!profiles.length) {
+      menu.innerHTML = '<div class="profile-menu-hint">Пока только личный профиль.</div>'
+        + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
+      menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
+      return;
+    }
+    menu.innerHTML = profiles.map((p) => {
+      const emoji = p.is_personal
+        ? '👤'
+        : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
+      const typeLabel = groupKindLabel(p).toLowerCase();
+      const active = p.is_active || String(p.chat_id) === String(activeChatId);
+      const disp = escapeHtml(p.display_name || p.name || 'Профиль');
+      const nameHtml = active
+        ? `<div class="profile-menu-item-name profile-menu-item-name-active">${disp}</div>`
+        : `<div class="profile-menu-item-name">${disp}</div>`;
+      return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
+          <div class="profile-menu-item-main">
+            <span class="profile-menu-item-emoji">${escapeHtml(emoji)}</span>
+            <div class="profile-menu-item-info">
+              ${nameHtml}
+              <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
+            </div>
+          </div>
+          ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
+        </div>`;
+    }).join('')
+      + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
+
+    menu.querySelectorAll('.profile-menu-item').forEach((el) => {
+      el.addEventListener('click', () => {
+        const chatId = el.getAttribute('data-chat-id');
+        if (!chatId) return;
+        if (el.classList.contains('active')) { closeProfileMenu(); return; }
+        switchProfileTo(chatId);
+      });
+    });
+    menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
+  }
+
   function updateProfileSwitcherUI(me) {
     const nameEl = document.getElementById('cabinet-profile-name');
     const kickerEl = document.querySelector('.cabinet-user-kicker');
@@ -12728,7 +12797,8 @@
     const heroName = document.getElementById('cabinet-user-name');
     const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
-    nameEl.textContent = me.name || 'Профиль';
+    const profileLabel = me.is_group_profile ? (me.name || 'Группа') : 'Личный профиль';
+    nameEl.textContent = profileLabel;
     if (kickerEl) kickerEl.textContent = greetingByHour() + ',';
     if (heroName) heroName.textContent = (me.name || 'Профиль') + '!';
     let heroAvatarUrl = me.photo_url || me.avatar_url || '';
@@ -12746,17 +12816,23 @@
     _cabinetMeCache = me;
     refreshGroupSuggestions(me);
     updateGroupContextFab();
+    setProfileSwitcherVisible(true);
+    const token = ++_profileSwitcherFetchToken;
+    api('/api/site/profiles').then((data) => {
+      if (token !== _profileSwitcherFetchToken || !data || !data.success) return;
+      renderProfileMenuItems(data.profiles || [], data.active_chat_id);
+    }).catch(() => {});
   }
 
   function closeProfileMenu() {
-    const menu = document.getElementById('cabinet-profile-menu');
+    const menu = getProfileMenuEl();
     const btn = document.getElementById('cabinet-profile-btn');
     if (menu) menu.classList.add('hidden');
     if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
   function openProfileMenu() {
-    const menu = document.getElementById('cabinet-profile-menu');
+    const menu = getProfileMenuEl();
     const btn = document.getElementById('cabinet-profile-btn');
     if (!menu) return;
     menu.classList.remove('hidden');
@@ -12767,42 +12843,7 @@
         menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
         return;
       }
-      const profiles = data.profiles || [];
-      const activeChatId = data.active_chat_id;
-      if (!profiles.length) {
-        menu.innerHTML = '<div class="profile-menu-hint">Пока только этот профиль. Добавьте бота в группу и получите /invite, чтобы появился второй.</div>';
-        return;
-      }
-      menu.innerHTML = profiles.map((p) => {
-        const emoji = p.is_personal
-          ? ''
-          : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
-        const typeLabel = groupKindLabel(p).toLowerCase();
-        const active = p.is_active || String(p.chat_id) === String(activeChatId);
-        const disp = escapeHtml(p.display_name || p.name || 'Профиль');
-        const nameHtml = active
-          ? `<div class="profile-menu-item-name profile-menu-item-name-active">${disp}</div>`
-          : `<div class="profile-menu-item-name">${disp}</div>`;
-        return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
-          <div class="profile-menu-item-main">
-            <span class="profile-menu-item-emoji">${escapeHtml(emoji)}</span>
-            <div class="profile-menu-item-info">
-              ${nameHtml}
-              <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
-            </div>
-          </div>
-          ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
-        </div>`;
-      }).join('');
-
-      menu.querySelectorAll('.profile-menu-item').forEach((el) => {
-        el.addEventListener('click', () => {
-          const chatId = el.getAttribute('data-chat-id');
-          if (!chatId) return;
-          if (el.classList.contains('active')) { closeProfileMenu(); return; }
-          switchProfileTo(chatId);
-        });
-      });
+      renderProfileMenuItems(data.profiles || [], data.active_chat_id);
     }).catch(() => {
       menu.innerHTML = '<div class="profile-menu-hint">Сервер не отвечает.</div>';
     });
@@ -12840,14 +12881,15 @@
           openAccountDropdown();
           return;
         }
-        const menu = document.getElementById('cabinet-profile-menu');
+        const menu = getProfileMenuEl();
         if (menu && menu.classList.contains('hidden')) openProfileMenu();
         else closeProfileMenu();
       });
     }
     document.addEventListener('click', (e) => {
       const sw = document.getElementById('cabinet-profile-switcher');
-      if (sw && !sw.contains(e.target)) closeProfileMenu();
+      const menu = getProfileMenuEl();
+      if (sw && menu && !sw.contains(e.target) && !menu.contains(e.target)) closeProfileMenu();
     });
   }
 

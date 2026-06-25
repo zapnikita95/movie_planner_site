@@ -6,8 +6,32 @@
     <base href="/">
     <!--MP_ROUTE_META-->
     <title>Movie Planner — планер фильмов и сериалов: приложение, watchlist, кабинет</title>
-    <meta name="description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
-    <meta name="keywords" content="movie planner, movie-planner.ru, муви планер, планер фильмов, планер для просмотра фильмов, планер просмотра кино, кинопланера, кино планировщик, планировщик фильмов, планировщик сериалов, приложение для фильмов, приложение для сериалов, приложение отмечать просмотренные фильмы, приложение для списка фильмов, приложение для оценки фильмов с друзьями, список фильмов и сериалов, watchlist, watchlist кино, уведомления о новых сериях, трекер сериалов, отметить просмотренные серии, папки по рубрикам, коллекции фильмов, сортировка фильмов и сериалов, мои фильмы и сериалы расширение, расширение Chrome для кино, скачать movie planner">
+    <meta name="description" content="Movie Planner — сайт и приложение, где отмечать какие фильмы посмотрел, вести личную базу и совместный список фильмов с партнёром или друзьями. Watchlist, планы, оценки, уведомления о сериях. Android, iOS, веб-кабинет.">
+    <meta name="keywords" content="сайт где отмечать какие фильмы посмотрел, где можно вести совместный список фильмов, совместный список фильмов, отметить просмотренные фильмы, movie planner, movie-planner.ru, планер фильмов, watchlist кино, общий список фильмов с друзьями, трекер сериалов, коллекции фильмов, приложение для списка фильмов">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Где отмечать, какие фильмы посмотрел?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "В Movie Planner — приложении и веб-кабинете movie-planner.ru. Добавьте фильм в базу, после просмотра отметьте «Просмотрено» и поставьте оценку. История и статистика сохраняются в личном профиле."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Где можно вести совместный список фильмов?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Создайте группу в Movie Planner — для пары, друзей, киноклуба или подписчиков блогера. Общая база непросмотренных, предложения фильмов и совместные планы просмотра."
+          }
+        }
+      ]
+    }
+    </script>
     <meta property="og:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
     <meta property="og:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
     <meta property="og:type" content="website">
@@ -28,8 +52,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260625searchhub1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260625searchhub1">
+    <link rel="preload" href="/style-v2.css?v=20260625profileswitch1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260625profileswitch1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -706,7 +730,7 @@
       <section>
         <div class="hero-label">ПЛАНИРОВЩИК ФИЛЬМОВ И СЕРИАЛОВ</div>
         <h1 class="hero-title">Ваш кинотеатр<br>Ваши <span class="gradient">правила</span></h1>
-        <p class="hero-subtitle">Личная база фильмов и сериалов, планы просмотра, билеты, напоминания и общий watchlist с друзьями</p>
+        <p class="hero-subtitle">Отмечайте просмотренное, ведите личную базу и совместный список фильмов — с партнёром, друзьями или киноклубом</p>
         <p hidden id="hero-product-matrix">Movie Planner: планер фильмов и сериалов, watchlist, отметка просмотренных, уведомления о новых сериях, коллекции и папки по рубрикам, оценки с друзьями. Android, iOS, веб-кабинет movie-planner.ru, Telegram Mini App, расширение Chrome.</p>
         <div class="hero-buttons">
           <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
@@ -724,7 +748,7 @@
             с <span class="gradient-text">планированием<wbr> просмотров</span>
           </div>
           <div class="what-is-v2-text">
-            Собирайте личную базу или общий watchlist с друзьями, планируйте дома и в кино, прикрепляйте билеты — сервис напомнит вовремя. Оценивайте, сравнивайте вкусы и не теряйте фильмы в длинном списке «когда-нибудь».
+            Собирайте личную базу, отмечайте что уже посмотрели, ведите совместный список с друзьями или партнёром. Планируйте дома и в кино, прикрепляйте билеты — сервис напомнит вовремя. Оценивайте, сравнивайте вкусы и не теряйте фильмы в длинном списке «когда-нибудь».
           </div>
           <div class="what-is-v2-features">
             <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="watchlist"></span> Watchlist</div>
@@ -733,6 +757,23 @@
             <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="ticket"></span> Билеты в кино</div>
             <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="friends"></span> Группы</div>
             <div class="what-is-v2-feature"><span class="feat-icon mp-icon" data-mp-icon="stats"></span> Статистика</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mp-seo-intents">
+        <div class="what-is-v2 mp-seo-intents-inner">
+          <div class="what-is-v2-label">Зачем Movie Planner</div>
+          <div class="what-is-v2-title">
+            Сайт, где отмечать просмотренное<br>
+            и вести <span class="gradient-text">совместный список</span>
+          </div>
+          <div class="what-is-v2-text">
+            Не только планировать походы в кино — хранить свою базу фильмов и сериалов, отмечать просмотренное с оценкой и вести общий watchlist вдвоём или с друзьями. Группы для пары, киноклуба или подписчиков блогера — с рекомендациями по общим оценкам.
+          </div>
+          <div class="mp-seo-intents-links">
+            <a href="/articles/kak-vesti-watchlist.html" class="btn-secondary">Как отмечать просмотренное</a>
+            <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="btn-primary">Совместный список фильмов</a>
           </div>
         </div>
       </section>
@@ -807,6 +848,14 @@
         <h2 class="section-title">Частые вопросы</h2>
         <div class="faq-list">
                 <div class="faq-item">
+                    <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
+                    <div class="faq-body">В Movie Planner — приложении и на <a href="/?open_login=1">movie-planner.ru</a>. Добавьте фильм в базу, после просмотра нажмите «Просмотрено» и поставьте оценку. История и статистика сохраняются в личном профиле. Подробнее — в <a href="/articles/kak-vesti-watchlist.html">гайде по watchlist</a>.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">Где можно вести совместный список фильмов?</div>
+                    <div class="faq-body">Создайте группу в кабинете («Друзья и группы») — для пары, друзей, киноклуба или подписчиков. Общая база непросмотренных, предложения фильмов и планы «смотрим вместе». <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Подробный гайд по группам</a>.</div>
+                </div>
+                <div class="faq-item">
                     <div class="faq-head">Как настроить уведомления о новых сериях в Telegram?</div>
                     <div class="faq-body">Добавьте сериал в Movie Planner (ссылкой с Кинопоиска или поиском), откройте карточку и нажмите «Подписаться на новые серии». Бот будет присылать уведомления о выходе эпизодов на Okko, Kinopoisk, ivi и других стримингах.</div>
                 </div>
@@ -848,6 +897,11 @@
       <section>
         <h2 class="section-title">Статьи и гайды</h2>
         <div class="articles-grid">
+                <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
+                    <span class="article-card-title">Совместный список фильмов</span>
+                    <span class="article-card-desc">Группы для пары, друзей и киноклуба</span>
+                </a>
                 <a href="/articles/treker-serialov-telegram.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                     <span class="article-card-title">Трекер сериалов в Telegram</span>
@@ -1007,18 +1061,22 @@
         <div class="container">
             <!-- Top bar: профиль + добавить фильм (Phase 3) -->
             <div class="cabinet-topbar">
-                <div class="cabinet-user-hero" id="cabinet-user-hero">
-                    <div class="cabinet-user-avatar" id="cabinet-user-avatar"></div>
-                    <div class="cabinet-user-copy">
-                        <div class="cabinet-user-kicker">Профиль</div>
-                        <div class="cabinet-user-name" id="cabinet-user-name">Профиль</div>
+                <div class="cabinet-user-hero-block">
+                    <div class="cabinet-user-hero" id="cabinet-user-hero">
+                        <div class="cabinet-user-avatar" id="cabinet-user-avatar"></div>
+                        <div class="cabinet-user-copy">
+                            <div class="cabinet-user-kicker">Профиль</div>
+                            <div class="cabinet-user-name" id="cabinet-user-name">Профиль</div>
+                        </div>
                     </div>
-                </div>
-                <div class="cabinet-profile-switcher hidden" id="cabinet-profile-switcher" aria-hidden="true">
-                    <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" tabindex="-1" aria-hidden="true">
-                        <span class="cabinet-profile-emoji" id="cabinet-profile-emoji"></span>
-                        <span class="cabinet-profile-name" id="cabinet-profile-name">Личный</span>
-                    </button>
+                    <div class="cabinet-profile-switcher hidden" id="cabinet-profile-switcher" aria-hidden="true">
+                        <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" tabindex="-1" aria-hidden="true" aria-haspopup="menu" aria-expanded="false" aria-controls="cabinet-topbar-profile-menu">
+                            <span class="cabinet-profile-emoji" id="cabinet-profile-emoji"></span>
+                            <span class="cabinet-profile-name" id="cabinet-profile-name">Личный профиль</span>
+                            <span class="cabinet-profile-caret" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="cabinet-profile-menu hidden" id="cabinet-topbar-profile-menu" role="menu" aria-label="Переключение профиля"></div>
+                    </div>
                 </div>
             </div>
             <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
@@ -1471,18 +1529,28 @@
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">
-                            <p>Привет!</p>
-                            <p>Меня зовут Никита, и я создал этот сервис. Это частный проект от человека, который любит кино, и хочет, чтобы другие люди тоже могли комфортно смотреть фильмы и сериалы, ходить в кинотеатры, объединяться вместе и делиться своими увлечениями. Вы можете связаться со мной, если у вас есть вопросы или пожелания: <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
+                            <p>Привет! Меня зовут Никита — я создал Movie Planner.</p>
+                            <p>Мы с женой любим кино и часто ходим в кинотеатр. Со временем список «хотим посмотреть» расползся: ссылки в переписке, закладки в сервисах просмотра, заметки на телефоне. Однажды поняли — нужно одно место для двоих.</p>
+                            <p>Сначала завели группу в Telegram и скидывали туда фильмы, которые хотели посмотреть вместе. Потом я собрал Movie Planner — приложение и веб-кабинет, где можно вести личную базу или <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">совместный список фильмов</a>, отмечать просмотренное, ставить оценки и планировать вечер дома или в кино.</p>
+                            <p>Это частный проект от человека, который любит кино и хочет, чтобы другим тоже было удобно смотреть фильмы и сериалы, объединяться вместе и делиться увлечениями. Вопросы и пожелания — <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
                             <p>
                                 <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" target="_blank" rel="noopener">Официальное расширение в Chrome</a><br>
                                 <a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener">Статья на vc</a><br>
-                                <a href="https://pikabu.ru/story/..." target="_blank" rel="noopener">Посты-история на Пикабу</a>
+                                <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Гайд: совместный список фильмов</a>
                             </p>
                             <p>Буду рад любой обратной связи!</p>
                         </div>
                     </div>
                     <div class="faq-block">
                         <h3>Частые вопросы</h3>
+                        <div class="faq-item">
+                            <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
+                            <div class="faq-body">В Movie Planner — приложении и веб-кабинете. Добавьте фильм в базу, после просмотра отметьте «Просмотрено» и поставьте оценку. <a href="/articles/kak-vesti-watchlist.html">Гайд по watchlist</a>.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-head">Где можно вести совместный список фильмов?</div>
+                            <div class="faq-body">Создайте группу в разделе «Друзья и группы» — для пары, друзей, киноклуба или подписчиков. <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Подробный гайд</a>.</div>
+                        </div>
                         <div class="faq-item">
                             <div class="faq-head">Как начать пользоваться сервисом?</div>
                             <div class="faq-body">Откройте Telegram-бота Movie Planner или установите расширение для Chrome. В боте нажмите /start — бот подскажет дальнейшие шаги. Для входа на сайт получите код командой /code в боте и введите его в форме «Войти».</div>
@@ -1523,6 +1591,11 @@
                     <div class="cabinet-articles">
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
+                            <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
+                                <span class="article-card-title">Совместный список фильмов</span>
+                                <span class="article-card-desc">Группы для пары, друзей и киноклуба</span>
+                            </a>
                             <a href="/articles/treker-serialov-telegram.html" class="article-card">
                                 <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                                 <span class="article-card-title">Трекер сериалов в Telegram</span>
@@ -1837,14 +1910,24 @@
                     <div class="about-project-block">
                         <div class="about-photo-wrap"><img src="images/author.png" alt="Никита" class="about-photo" onerror="this.style.display='none'"></div>
                         <div class="about-project-text">
-                            <p>Привет!</p>
-                            <p>Меня зовут Никита, и я создал этот сервис. Это частный проект от человека, который любит кино, и хочет, чтобы другие люди тоже могли комфортно смотреть фильмы и сериалы, ходить в кинотеатры, объединяться вместе и делиться своими увлечениями. Вы можете связаться со мной: <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
-                            <p><a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" target="_blank" rel="noopener">Официальное расширение в Chrome</a><br><a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener">Статья на vc</a><br><a href="https://pikabu.ru/story/..." target="_blank" rel="noopener">Посты-история на Пикабу</a></p>
+                            <p>Привет! Меня зовут Никита — я создал Movie Planner.</p>
+                            <p>Мы с женой любим кино и часто ходим в кинотеатр. Со временем список «хотим посмотреть» расползся: ссылки в переписке, закладки в сервисах просмотра, заметки на телефоне. Однажды поняли — нужно одно место для двоих.</p>
+                            <p>Сначала завели группу в Telegram и скидывали туда фильмы, которые хотели посмотреть вместе. Потом я собрал Movie Planner — приложение и веб-кабинет, где можно вести личную базу или <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">совместный список фильмов</a>, отмечать просмотренное, ставить оценки и планировать вечер дома или в кино.</p>
+                            <p>Это частный проект от человека, который любит кино и хочет, чтобы другим тоже было удобно смотреть фильмы и сериалы, объединяться вместе и делиться увлечениями. Вопросы и пожелания — <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
+                            <p><a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" target="_blank" rel="noopener">Официальное расширение в Chrome</a><br><a href="https://vc.ru/telegram/2707791-movie-planner-bot-telegram-servis-dlya-planirovaniya-filmov-i-serialov" target="_blank" rel="noopener">Статья на vc</a><br><a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Гайд: совместный список фильмов</a></p>
                             <p>Буду рад любой обратной связи!</p>
                         </div>
                     </div>
                     <div class="faq-block">
                         <h3>Частые вопросы</h3>
+                        <div class="faq-item">
+                            <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
+                            <div class="faq-body">В Movie Planner — приложении и веб-кабинете. Добавьте фильм в базу, после просмотра отметьте «Просмотрено» и поставьте оценку. <a href="/articles/kak-vesti-watchlist.html">Гайд по watchlist</a>.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-head">Где можно вести совместный список фильмов?</div>
+                            <div class="faq-body">Создайте группу в разделе «Друзья и группы» — для пары, друзей, киноклуба или подписчиков. <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Подробный гайд</a>.</div>
+                        </div>
                         <div class="faq-item">
                             <div class="faq-head">Как начать пользоваться сервисом?</div>
                             <div class="faq-body">Откройте Telegram-бота Movie Planner или установите расширение для Chrome. В боте нажмите /start — бот подскажет дальнейшие шаги. Для входа на сайт получите код командой /code в боте и введите его в форме «Войти».</div>
@@ -1885,6 +1968,11 @@
                     <div class="cabinet-articles">
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
+                            <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
+                                <span class="article-card-title">Совместный список фильмов</span>
+                                <span class="article-card-desc">Группы для пары, друзей и киноклуба</span>
+                            </a>
                             <a href="/articles/treker-serialov-telegram.html" class="article-card">
                                 <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                                 <span class="article-card-title">Трекер сериалов в Telegram</span>
@@ -2103,7 +2191,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260625searchhub1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260625profileswitch1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2113,9 +2201,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260623stafffix1');
           list.push('staff-page.js?v=20260623staffgrid21');
-          list.push('cabinet-app.js?v=20260625searchhub1');
+          list.push('cabinet-app.js?v=20260625profileswitch1');
         } else {
-          list.push('cabinet-app.js?v=20260625searchhub1');
+          list.push('cabinet-app.js?v=20260625profileswitch1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
