@@ -11703,18 +11703,26 @@
     h += '</div>';
 
     if (bag.popular.length) {
-      h += '<div class="header-search-recent-title">Популярные запросы</div><div class="header-search-recent-row">';
+      h += '<div class="header-search-recent-title">Популярные запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
       bag.popular.forEach((q) => {
         h += '<button type="button" class="header-search-chip" data-hs-popular-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
       });
       h += '</div>';
     }
 
-    h += '<div class="header-search-recent-title">Жанры</div><div class="header-search-recent-row">';
+    h += '<div class="header-search-recent-title">Жанры</div><div class="header-search-recent-row hs-hub-chips-row">';
     HEADER_SEARCH_GENRE_HINTS.forEach((g) => {
       h += '<button type="button" class="header-search-chip header-search-chip--genre" data-hs-genre-q="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
     });
     h += '</div>';
+
+    if (recQ.length) {
+      h += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
+      recQ.slice(0, 8).forEach((q) => {
+        h += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
+      });
+      h += '</div>';
+    }
 
     h += '<div class="header-search-recent-title">Сейчас в прокате</div>';
     if (bag.premieres.length) {
@@ -11727,14 +11735,6 @@
       h += '</div>';
     } else {
       h += '<div class="header-search-empty hs-hub-empty">Список проката временно пуст</div>';
-    }
-
-    if (recQ.length) {
-      h += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row">';
-      recQ.slice(0, 8).forEach((q) => {
-        h += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
-      });
-      h += '</div>';
     }
 
     if (recF.length) {
