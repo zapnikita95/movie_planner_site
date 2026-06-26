@@ -3084,8 +3084,34 @@
     }
   }
 
+  let _headerSearchScrollLockY = 0;
+
+  function isMobileHeaderSearchDropdownLayout() {
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
+  function lockHeaderSearchBodyScroll() {
+    if (!isMobileHeaderSearchDropdownLayout()) return;
+    if (document.body.classList.contains('header-search-body-locked')) return;
+    _headerSearchScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.classList.add('header-search-body-locked');
+    document.body.style.top = '-' + _headerSearchScrollLockY + 'px';
+    const header = document.getElementById('site-header');
+    if (header) header.classList.remove('site-header--retracted');
+  }
+
+  function unlockHeaderSearchBodyScroll() {
+    if (!document.body.classList.contains('header-search-body-locked')) return;
+    document.body.classList.remove('header-search-body-locked');
+    const y = _headerSearchScrollLockY;
+    document.body.style.top = '';
+    window.scrollTo(0, y);
+  }
+
   function setHeaderSearchDropdownOpen(open) {
     document.body.classList.toggle('header-search-dropdown-open', !!open);
+    if (open) lockHeaderSearchBodyScroll();
+    else unlockHeaderSearchBodyScroll();
   }
 
   function hideHeaderSearchDropdown() {
@@ -6320,6 +6346,17 @@
       ticking = false;
       if (!bodyUsesMobileRetractHeader()) {
         header.classList.remove('site-header--retracted');
+        return;
+      }
+      if (document.body.classList.contains('header-search-dropdown-open')) {
+        header.classList.remove('site-header--retracted');
+        lastY = _headerSearchScrollLockY || 0;
+        return;
+      }
+      const searchInput = document.getElementById('header-search-input');
+      if (searchInput && document.activeElement === searchInput) {
+        header.classList.remove('site-header--retracted');
+        lastY = window.scrollY || _headerSearchScrollLockY || 0;
         return;
       }
       const y = window.scrollY || 0;
@@ -12719,6 +12756,9 @@
     if (dd) {
       bindHeaderSearchHubClicks(dd);
       dd.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+      dd.addEventListener('touchmove', (e) => {
         e.stopPropagation();
       }, { passive: true });
       dd.addEventListener('click', (e) => {

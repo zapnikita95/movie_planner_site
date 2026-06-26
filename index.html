@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260625searchpreviewfoot1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260625searchpreviewfoot1">
+    <link rel="preload" href="/style-v2.css?v=20260625searchscrolllock1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260625searchscrolllock1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2262,7 +2262,7 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260625searchpreviewfoot1'];
+          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260625searchscrolllock1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2272,9 +2272,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260623stafffix1');
           list.push('staff-page.js?v=20260623staffgrid21');
-          list.push('cabinet-app.js?v=20260625searchpreviewfoot1');
+          list.push('cabinet-app.js?v=20260625searchscrolllock1');
         } else {
-          list.push('cabinet-app.js?v=20260625searchpreviewfoot1');
+          list.push('cabinet-app.js?v=20260625searchscrolllock1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
