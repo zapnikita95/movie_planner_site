@@ -5755,6 +5755,16 @@ body.in-public-stats .header-search {
   min-width: 0;
   box-sizing: border-box;
 }
+.hs-preview-body {
+  min-width: 0;
+}
+.hs-preview-foot {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2px;
+  padding: 8px 4px 4px;
+  background: linear-gradient(to bottom, rgba(18, 18, 26, 0) 0%, rgba(18, 18, 26, 0.96) 28%, rgba(18, 18, 26, 0.98) 100%);
+}
 .hs-hub-more {
   display: block;
   width: 100%;

@@ -11598,6 +11598,8 @@
   let _headerSearchDebounce = null;
   let _headerSearchHubType = 'any';
   let _headerSearchHubCache = null;
+  /** Последняя выдача header-search — для «К результатам» без повторного API. */
+  let _headerSearchPreviewCache = null;
   const HEADER_SEARCH_HUB_TTL_MS = 5 * 60 * 1000;
   const HEADER_SEARCH_QUICK_QUERIES = [
     'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
@@ -11907,6 +11909,23 @@
 
   const HEADER_SEARCH_PREVIEW_PERSONS = 1;
 
+  function headerSearchPreviewResultsFootHtml() {
+    return (
+      '<div class="hs-hub-foot hs-preview-foot">' +
+        '<button type="button" class="hs-hub-more" data-hs-open-search-results>К результатам →</button>' +
+      '</div>'
+    );
+  }
+
+  function openSiteSearchFromPreviewCache() {
+    const input = document.getElementById('header-search-input');
+    const cache = _headerSearchPreviewCache;
+    const q = String((cache && cache.q) || (input && input.value) || '').trim();
+    if (!q || q.length < 2) return;
+    hideHeaderSearchDropdown();
+    openSiteSearchPage(q, { fromPreviewCache: true });
+  }
+
   function renderHeaderSearchDropdown(items, query, persons) {
     const dd = document.getElementById('header-search-dropdown');
     if (!dd) return;
@@ -11951,9 +11970,8 @@
         </div>
         ${actionBtn}
       </div>`;
-    }).join('') + ((items || []).length > 6
-      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${(items || []).length})</button></div>`
-      : '');
+    }).join('');
+    html = '<div class="hs-preview-body">' + html + '</div>' + headerSearchPreviewResultsFootHtml();
     dd.innerHTML = html;
     dd.classList.remove('hidden');
     setHeaderSearchDropdownOpen(true);
@@ -11988,6 +12006,12 @@
           return;
         }
         if ((data.items || []).length || (data.persons || []).length) pushHeaderSearchQuery(query);
+        _headerSearchPreviewCache = {
+          q: String(query).trim(),
+          items: (data.items || []).slice(),
+          persons: (data.persons || []).slice(),
+          type: typeParam,
+        };
         renderHeaderSearchDropdown(data.items || [], query, data.persons || []);
       })
       .catch(() => {
@@ -12339,7 +12363,39 @@
       const url = '/search?q=' + encodeURIComponent(q);
       if (!(opts && opts.skipHistory)) history.pushState({ view: 'search', q }, '', url);
     } catch (_) {}
-    renderSiteSearchPage({ q });
+    renderSiteSearchPage({ q, fromPreviewCache: !!(opts && opts.fromPreviewCache) });
+  }
+
+  function paintSiteSearchPageResults(persons, items, q) {
+    const results = document.getElementById('site-search-results');
+    const personsEl = document.getElementById('site-search-persons');
+    const personsSection = document.getElementById('site-search-persons-section');
+    const filmsLabel = document.getElementById('site-search-films-label');
+    const status = document.getElementById('site-search-status');
+    if (!results) return;
+    const personsList = persons || [];
+    const itemsList = siteSearchDedupeItems(siteSearchSortItems(items || []));
+    const total = personsList.length + itemsList.length;
+    siteSearchSetFilterToolbarVisible(String(q || '').trim().length >= 2);
+    siteSearchRefreshFilterChipLabels();
+    if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
+    if (personsEl) {
+      personsEl.innerHTML = siteSearchPersonsBlockHtml(personsList);
+      bindSiteSearchPersonsExpand(personsEl);
+    }
+    if (personsSection) personsSection.classList.toggle('hidden', !personsList.length);
+    if (filmsLabel) filmsLabel.classList.toggle('hidden', !itemsList.length);
+    results.innerHTML = itemsList.map((it) => siteSearchResultCardHtml(it)).join('');
+    results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
+      if (btn.dataset.mpSearchFilmBound === '1') return;
+      btn.dataset.mpSearchFilmBound = '1';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const kp = btn.getAttribute('data-site-search-kp');
+        if (kp) openFilmPageByKp(kp);
+      });
+    });
   }
 
   function mountSiteSearchNav() {
@@ -12411,8 +12467,17 @@
       headerInput.value = q;
       if (headerClear) headerClear.classList.toggle('hidden', !q);
     }
-    if (q.length >= 2) runSiteSearchPage();
-    else {
+    const cache = _headerSearchPreviewCache;
+    const usePreviewCache = !!(initial && initial.fromPreviewCache && cache && cache.q === q);
+    if (usePreviewCache) {
+      if (cache.type) {
+        _headerSearchHubType = cache.type;
+        _siteSearchFilterState.type = cache.type;
+      }
+      paintSiteSearchPageResults(cache.persons, cache.items, q);
+    } else if (q.length >= 2) {
+      runSiteSearchPage();
+    } else {
       const status = document.getElementById('site-search-status');
       if (status) showHeaderSearchHub(status);
     }
@@ -12519,22 +12584,8 @@
           return;
         }
         const persons = (data && data.persons) || [];
-        const items = siteSearchDedupeItems(siteSearchSortItems((data && data.items) || []));
-        const total = persons.length + items.length;
-        if (status) status.textContent = total ? ('Найдено: ' + total) : 'Ничего не нашлось';
-        if (personsEl) {
-          personsEl.innerHTML = siteSearchPersonsBlockHtml(persons);
-          bindSiteSearchPersonsExpand(personsEl);
-        }
-        if (personsSection) personsSection.classList.toggle('hidden', !persons.length);
-        if (filmsLabel) filmsLabel.classList.toggle('hidden', !items.length);
-        results.innerHTML = items.map((it) => siteSearchResultCardHtml(it)).join('');
-        results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const kp = btn.getAttribute('data-site-search-kp');
-            if (kp) openFilmPageByKp(kp);
-          });
-        });
+        const items = (data && data.items) || [];
+        paintSiteSearchPageResults(persons, items, q);
       })
       .catch((err) => {
         clearTimeout(searchTimer);
@@ -12716,12 +12767,12 @@
           }
           return;
         }
-        const showAll = e.target.closest('[data-hs-show-all]');
-        if (showAll) {
+        const toResultsBtn = e.target.closest('[data-hs-open-search-results]');
+        if (toResultsBtn) {
           e.preventDefault();
-          const v = input.value.trim();
-          hideHeaderSearchDropdown();
-          openSiteSearchPage(v);
+          e.stopPropagation();
+          openSiteSearchFromPreviewCache();
+          return;
         }
       });
     }
