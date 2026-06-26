@@ -26,7 +26,7 @@
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
-  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 700;
+  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 250;
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.

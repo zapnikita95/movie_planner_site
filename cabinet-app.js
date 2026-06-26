@@ -26,7 +26,7 @@
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
-  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 700;
+  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 250;
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
@@ -11725,7 +11725,13 @@
     }
 
     h += '<div class="header-search-recent-title">Сейчас в прокате</div>';
-    if (bag.premieres.length) {
+    if (bag.premieresLoading) {
+      h += '<div class="hs-hub-prem-scroll hs-hub-prem-skeleton">';
+      for (let sk = 0; sk < 4; sk++) {
+        h += '<div class="hs-hub-prem-card hs-hub-prem-card--skel"><span class="hs-hub-prem-title">…</span></div>';
+      }
+      h += '</div>';
+    } else if (bag.premieres.length) {
       h += '<div class="hs-hub-prem-scroll">';
       bag.premieres.forEach((p) => {
         h += '<button type="button" class="hs-hub-prem-card" data-hs-premiere-kp="' + escapeHtml(String(p.kp_id || '')) + '">'
@@ -11758,27 +11764,38 @@
 
   function showHeaderSearchHub(dd) {
     if (!dd) return;
-    if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
-      dd.innerHTML = renderHeaderSearchHubHtml(_headerSearchHubCache, dd.id === 'site-search-status' ? { embedded: true } : {});
-      dd.classList.remove('hidden');
-      if (dd.id === 'header-search-dropdown') setHeaderSearchDropdownOpen(true);
-      if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
-      return;
-    }
-    dd.innerHTML = siteSearchLoadingHtml();
+    const embedded = dd.id === 'site-search-status';
+    const shellBag = _headerSearchHubCache || {
+      popular: mergeHeaderSearchPopularChips(null),
+      premieres: [],
+      premieresLoading: true,
+    };
+    dd.innerHTML = renderHeaderSearchHubHtml(shellBag, embedded ? { embedded: true } : {});
     dd.classList.remove('hidden');
     if (dd.id === 'header-search-dropdown') setHeaderSearchDropdownOpen(true);
+    if (embedded) bindHeaderSearchHubClicks(dd);
+    if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
+      return;
+    }
     fetchHeaderSearchHubData()
       .then((bag) => {
         if (!dd) return;
-        dd.innerHTML = renderHeaderSearchHubHtml(bag, dd.id === 'site-search-status' ? { embedded: true } : {});
-        if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
+        dd.innerHTML = renderHeaderSearchHubHtml(bag, embedded ? { embedded: true } : {});
+        if (embedded) bindHeaderSearchHubClicks(dd);
       })
       .catch(() => {
         if (!dd) return;
-        dd.innerHTML = renderHeaderSearchHubHtml({ popular: mergeHeaderSearchPopularChips(null), premieres: [] }, dd.id === 'site-search-status' ? { embedded: true } : {});
-        if (dd.id === 'site-search-status') bindHeaderSearchHubClicks(dd);
+        dd.innerHTML = renderHeaderSearchHubHtml(
+          { popular: mergeHeaderSearchPopularChips(null), premieres: [], premieresLoading: false },
+          embedded ? { embedded: true } : {},
+        );
+        if (embedded) bindHeaderSearchHubClicks(dd);
       });
+  }
+
+  function prefetchHeaderSearchHub() {
+    if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) return;
+    fetchHeaderSearchHubData().catch(function () {});
   }
 
   function showHeaderSearchRecents(dd) {
@@ -16549,6 +16566,13 @@
     bindProfileSwitcher();
     bindCreateRoomModal();
     bindHeaderSearch();
+    try {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(function () { prefetchHeaderSearchHub(); }, { timeout: 2500 });
+      } else {
+        setTimeout(prefetchHeaderSearchHub, 2000);
+      }
+    } catch (_) {}
     bindPlansGotoOnce();
     bindHomeSectionNavOnce();
     bindHomeDashboardFilmNavOnce();
