@@ -11424,7 +11424,7 @@
       const profiles = data.profiles || [];
       const activeChatId = data.active_chat_id;
       if (!profiles.length) {
-        menu.innerHTML = '<div class="profile-menu-hint">Пока только этот профиль. Добавьте бота в группу и получите /invite, чтобы появился второй.</div>';
+        menu.innerHTML = '<div class="profile-menu-hint">Пока только этот профиль. Создайте группу в кабинете или добавьте бота в Telegram и отправьте /join.</div>';
         return;
       }
       menu.innerHTML = profiles.map((p) => {
