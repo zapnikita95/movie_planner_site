@@ -3142,6 +3142,8 @@
     if (header) header.classList.remove('hidden');
     document.body.classList.remove('in-cabinet', 'in-public-stats');
     document.body.classList.add('in-search-page');
+    setLandingRootNavVisible(false);
+    hideHeaderSearchDropdown();
     updateSearchPageChrome();
   }
 

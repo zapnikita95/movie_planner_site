@@ -10519,6 +10519,10 @@ body.site-search-sheet-open { overflow: hidden; }
   border: 1px solid rgba(168, 85, 247, 0.38);
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.14), rgba(255, 45, 123, 0.08));
   box-shadow: 0 12px 40px rgba(8, 6, 24, 0.35);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .site-search-section-label {
   font-family: 'Unbounded', sans-serif;
@@ -10545,12 +10549,16 @@ body.site-search-sheet-open { overflow: hidden; }
 }
 .site-search-persons-row {
   display: block;
-  max-width: none;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 .site-search-persons-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 .site-search-persons-more {
   display: contents;
@@ -10580,6 +10588,20 @@ body.site-search-sheet-open { overflow: hidden; }
 @media (max-width: 640px) {
   .site-search-persons-grid {
     grid-template-columns: 1fr;
+  }
+  .site-search-person-photo {
+    width: 64px;
+    height: 64px;
+  }
+  .site-search-person-name {
+    font-size: 16px;
+  }
+  .site-search-person-card {
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  #site-search-persons-section {
+    padding: 14px 12px 16px;
   }
 }
 
@@ -10674,6 +10696,10 @@ body.landing-root-page #landing-root-nav.hidden {
   color: inherit;
   text-decoration: none;
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .site-search-person-card:hover {
   border-color: rgba(255, 45, 123, 0.55);
@@ -10690,6 +10716,11 @@ body.landing-root-page #landing-root-nav.hidden {
   border: 2px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
+.site-search-person-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
 .site-search-person-name {
   display: block;
   font-family: 'Unbounded', sans-serif;
@@ -10697,18 +10728,26 @@ body.landing-root-page #landing-root-nav.hidden {
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .site-search-person-en {
   display: block;
   margin-top: 6px;
   font-size: 14px;
   color: rgba(244, 246, 255, 0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .site-search-person-prof {
   display: block;
   margin-top: 4px;
   font-size: 13px;
   color: rgba(244,246,255,.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mp-search-loading {
   display: flex;
@@ -10870,9 +10909,81 @@ body.landing-root-page #landing-root-nav.hidden {
   }
   body.in-search-page .site-search-page {
     padding-top: 0;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   body.in-search-page .search-filter-toolbar {
     margin-top: 0;
+  }
+  body.in-search-page #landing-root-nav {
+    display: none !important;
+  }
+  body.in-search-page .site-search-nav-wrap {
+    display: block;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    overflow: visible;
+    border: 0;
+  }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav,
+  body.in-search-page .site-search-nav-wrap .film-standalone-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 180;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    max-width: none;
+    margin: 0 !important;
+    padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(12, 12, 18, 0.97);
+    backdrop-filter: blur(14px);
+    overflow: visible;
+    justify-content: stretch;
+    flex-wrap: nowrap;
+  }
+  body.in-search-page .site-search-nav-wrap .film-standalone-nav .cabinet-nav-btn:nth-child(3),
+  body.in-search-page .site-search-nav-wrap .film-standalone-nav .cabinet-nav-btn:nth-child(6),
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="premieres"],
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="tournament"] {
+    display: none !important;
+  }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 8px;
+    border-bottom: none !important;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="home"] { order: 1; }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="plans"] { order: 2; }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="unwatched"] { order: 3; }
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="whattowatch"] { order: 4; }
+  body.in-search-page .page-shell {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
 }
 @media (min-width: 769px) {
