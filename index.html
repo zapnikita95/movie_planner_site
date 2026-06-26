@@ -5,14 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/">
     <!--MP_ROUTE_META-->
-    <title>Movie Planner — планер фильмов и сериалов: приложение, watchlist, кабинет</title>
-    <meta name="description" content="Movie Planner — сайт и приложение, где отмечать какие фильмы посмотрел, вести личную базу и совместный список фильмов с партнёром или друзьями. Watchlist, планы, оценки, уведомления о сериях. Android, iOS, веб-кабинет.">
-    <meta name="keywords" content="сайт где отмечать какие фильмы посмотрел, где можно вести совместный список фильмов, совместный список фильмов, отметить просмотренные фильмы, movie planner, movie-planner.ru, планер фильмов, watchlist кино, общий список фильмов с друзьями, трекер сериалов, коллекции фильмов, приложение для списка фильмов">
+    <title>Movie Planner — приложение-трекер для фильмов и сериалов, список кино</title>
+    <meta name="description" content="Movie Planner — приложение, где можно составить список кино и отслеживать просмотренное: трекер фильмов и сериалов, watchlist, оценки, планы. iOS, Android, веб-кабинет movie-planner.ru.">
+    <meta name="keywords" content="приложение трекер для фильмов, приложение где можно составить список кино, трекер фильмов и сериалов, приложение для списка фильмов, watchlist кино, составить список кино, movie planner, movie-planner.ru, планер фильмов, отметить просмотренные фильмы, общий список фильмов с друзьями, трекер сериалов">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Какое приложение-трекер для фильмов?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Movie Planner — приложение-трекер для фильмов и сериалов: личная база, отметка просмотренного, прогресс по эпизодам, оценки и общий watchlist. Доступно на iOS, Android и movie-planner.ru."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Где можно составить список кино?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "В Movie Planner — приложении и веб-кабинете. Добавляйте фильмы с Кинопоиска, через поиск или расширение Chrome; группируйте по коллекциям и ведите общий список с друзьями."
+          }
+        },
         {
           "@type": "Question",
           "name": "Где отмечать, какие фильмы посмотрел?",
@@ -32,8 +48,8 @@
       ]
     }
     </script>
-    <meta property="og:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
-    <meta property="og:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
+    <meta property="og:title" content="Movie Planner — приложение-трекер для фильмов и список кино">
+    <meta property="og:description" content="Movie Planner — приложение-трекер для фильмов и сериалов: составьте список кино, отмечайте просмотренное, ведите watchlist с друзьями. iOS, Android, веб-кабинет.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://movie-planner.ru/">
     <meta property="og:image" content="https://api.movie-planner.ru/api/og/home.jpg">
@@ -41,8 +57,8 @@
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ru_RU">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Movie Planner — приложение, Mini App и веб-кабинет">
-    <meta name="twitter:description" content="Movie Planner — приложение и кабинет для списков фильмов и сериалов: watchlist, планер просмотра, отметка просмотренных, уведомления о новых сериях, оценки с друзьями, коллекции по рубрикам. Android, iOS, веб и Telegram Mini App.">
+    <meta name="twitter:title" content="Movie Planner — приложение-трекер для фильмов и список кино">
+    <meta name="twitter:description" content="Movie Planner — приложение-трекер для фильмов и сериалов: составьте список кино, отмечайте просмотренное, ведите watchlist с друзьями. iOS, Android, веб-кабинет.">
     <meta name="twitter:image" content="https://api.movie-planner.ru/api/og/home.jpg">
     <link rel="canonical" href="https://movie-planner.ru/">
     <!--/MP_ROUTE_META-->
@@ -57,6 +73,20 @@
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+        var routeTitles = {
+          '/watchlist': 'Приложение-трекер для фильмов — список кино · Movie Planner',
+          '/series': 'Трекер сериалов — прогресс по эпизодам · Movie Planner',
+          '/plans': 'Планы просмотра · Movie Planner',
+          '/premieres': 'Премьеры фильмов и сериалов · Movie Planner',
+          '/whattowatch': 'Что посмотреть · Movie Planner',
+          '/ratings': 'Оценки и история просмотров · Movie Planner',
+          '/stats': 'Статистика просмотров · Movie Planner',
+          '/groups': 'Общий список фильмов с друзьями · Movie Planner'
+        };
+        if (routeTitles[path]) {
+          try { document.title = routeTitles[path]; } catch (_) {}
+          return;
+        }
         if (path === '/search') {
           document.documentElement.classList.add('mp-search-boot');
           try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
@@ -773,6 +803,8 @@
           </div>
           <div class="mp-seo-intents-links">
             <a href="/articles/kak-vesti-watchlist.html" class="btn-secondary">Как отмечать просмотренное</a>
+            <a href="/articles/prilozhenie-treker-dlya-filmov.html" class="btn-secondary">Трекер для фильмов</a>
+            <a href="/articles/prilozhenie-sostavit-spisok-kino.html" class="btn-secondary">Составить список кино</a>
             <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="btn-primary">Совместный список фильмов</a>
           </div>
         </div>
@@ -848,6 +880,14 @@
         <h2 class="section-title">Частые вопросы</h2>
         <div class="faq-list">
                 <div class="faq-item">
+                    <div class="faq-head">Какое приложение-трекер для фильмов?</div>
+                    <div class="faq-body">Movie Planner — <a href="/articles/prilozhenie-treker-dlya-filmov.html">приложение-трекер для фильмов и сериалов</a>: база, отметка просмотренного, прогресс по эпизодам, оценки и общий watchlist. iOS, Android и <a href="/?open_login=1">веб-кабинет</a>.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">Где можно составить список кино?</div>
+                    <div class="faq-body">В Movie Planner — <a href="/articles/prilozhenie-sostavit-spisok-kino.html">приложение, где можно составить список кино</a>: добавление с Кинопоиска, коллекции, общий список с друзьями. Откройте <a href="/watchlist">базу в кабинете</a> или скачайте приложение.</div>
+                </div>
+                <div class="faq-item">
                     <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
                     <div class="faq-body">В Movie Planner — приложении и на <a href="/?open_login=1">movie-planner.ru</a>. Добавьте фильм в базу, после просмотра нажмите «Просмотрено» и поставьте оценку. История и статистика сохраняются в личном профиле. Подробнее — в <a href="/articles/kak-vesti-watchlist.html">гайде по watchlist</a>.</div>
                 </div>
@@ -897,6 +937,16 @@
       <section>
         <h2 class="section-title">Статьи и гайды</h2>
         <div class="articles-grid">
+                <a href="/articles/prilozhenie-treker-dlya-filmov.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
+                    <span class="article-card-title">Приложение-трекер для фильмов</span>
+                    <span class="article-card-desc">Отметки, серии, оценки и общий watchlist</span>
+                </a>
+                <a href="/articles/prilozhenie-sostavit-spisok-kino.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
+                    <span class="article-card-title">Составить список кино</span>
+                    <span class="article-card-desc">Личный и общий watchlist в приложении</span>
+                </a>
                 <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                     <span class="article-card-title">Совместный список фильмов</span>
@@ -1141,6 +1191,7 @@
                 </section>
                 <section id="section-unwatched" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
+                    <p hidden id="watchlist-seo-blurb">Приложение-трекер для фильмов и сериалов Movie Planner — составьте список кино, отмечайте просмотренное и ведите общий watchlist. <a href="/articles/prilozhenie-treker-dlya-filmov.html">Подробнее о трекере</a> · <a href="/articles/prilozhenie-sostavit-spisok-kino.html">Как составить список кино</a>.</p>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
                             <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
@@ -1591,6 +1642,16 @@
                     <div class="cabinet-articles">
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
+                            <a href="/articles/prilozhenie-treker-dlya-filmov.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
+                                <span class="article-card-title">Приложение-трекер для фильмов</span>
+                                <span class="article-card-desc">Отметки, серии, оценки и общий watchlist</span>
+                            </a>
+                            <a href="/articles/prilozhenie-sostavit-spisok-kino.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
+                                <span class="article-card-title">Составить список кино</span>
+                                <span class="article-card-desc">Личный и общий watchlist в приложении</span>
+                            </a>
                             <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
                                 <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                                 <span class="article-card-title">Совместный список фильмов</span>
@@ -1968,6 +2029,16 @@
                     <div class="cabinet-articles">
                         <h3>Полезные статьи</h3>
                         <div class="articles-grid">
+                            <a href="/articles/prilozhenie-treker-dlya-filmov.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
+                                <span class="article-card-title">Приложение-трекер для фильмов</span>
+                                <span class="article-card-desc">Отметки, серии, оценки и общий watchlist</span>
+                            </a>
+                            <a href="/articles/prilozhenie-sostavit-spisok-kino.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
+                                <span class="article-card-title">Составить список кино</span>
+                                <span class="article-card-desc">Личный и общий watchlist в приложении</span>
+                            </a>
                             <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html" class="article-card">
                                 <span class="article-card-icon mp-icon" data-mp-icon="friends"></span>
                                 <span class="article-card-title">Совместный список фильмов</span>
