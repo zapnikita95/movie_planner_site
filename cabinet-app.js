@@ -2370,7 +2370,7 @@
   function initHeaderPlanTarget() {
     const sel = document.getElementById('header-plan-target');
     if (!sel) return Promise.resolve();
-    return api('/api/site/profiles?lite=1')
+    return fetchSiteProfiles({ lite: true })
       .then((data) => {
         const profiles = (data && data.profiles) || [];
         const adminGroups = filterAdminPlanProfiles(profiles);
@@ -2431,20 +2431,32 @@
     }
     return fetchWithTimeout(API_BASE + url, { ...options, headers }, options.timeoutMs).then((r) => {
       if (r.status === 401 && token) {
-        return r.json().catch(() => ({})).then((body) => ({ _http401: true, body: body }));
+        return r.json().catch(() => ({})).then((body) => ({ _http401: true, _httpStatus: r.status, body: body }));
       }
-      return r.json().catch(() => ({})).then((body) => ({ _http401: false, body: body }));
+      return r.json().catch(() => ({})).then((body) => ({ _http401: false, _httpStatus: r.status, body: body }));
     }).catch((err) => {
       if (err && (err.code === 'TIMEOUT' || err.name === 'TimeoutError')) {
-        return { _http401: false, body: { success: false, error: 'timeout' } };
+        return { _http401: false, _httpStatus: 408, body: { success: false, error: 'timeout' } };
       }
       throw err;
     });
   }
 
+  function apiShouldRetry503(res) {
+    if (!res || res._http401) return false;
+    if (res._httpStatus !== 503) return false;
+    const body = res.body || {};
+    return body.error === 'try_again' || body.error === 'server_busy' || body.error === 'timeout';
+  }
+
   function api(url, options = {}) {
     const token = getToken();
-    const attempt = (retried) => apiOnce(url, options, token).then((res) => {
+    const max503Retries = 3;
+    const attempt = (retried, retry503) => apiOnce(url, options, token).then((res) => {
+      if (apiShouldRetry503(res) && retry503 < max503Retries) {
+        const delayMs = 320 * Math.pow(2, retry503);
+        return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(retried, retry503 + 1));
+      }
       if (!res._http401) return res.body;
       const body = res.body || {};
       if (url !== '/api/site/me') {
@@ -2452,6 +2464,10 @@
           return new Promise((resolve) => {
             setTimeout(() => resolve(apiOnce(url, options, token)), 450);
           }).then((retryRes) => {
+            if (apiShouldRetry503(retryRes) && retry503 < max503Retries) {
+              const delayMs = 320 * Math.pow(2, retry503);
+              return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(true, retry503 + 1));
+            }
             if (!retryRes._http401) return retryRes.body;
             try { window._mpApiAuthDegraded = true; } catch (_) {}
             return retryRes.body;
@@ -2474,7 +2490,21 @@
       if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       return body;
     });
-    return attempt(false).catch(() => ({ success: false, error: 'network' }));
+    return attempt(false, 0).catch(() => ({ success: false, error: 'network' }));
+  }
+
+  let _profilesApiInflight = null;
+  function fetchSiteProfiles(opts) {
+    const lite = !!(opts && opts.lite);
+    const url = lite ? '/api/site/profiles?lite=1' : '/api/site/profiles';
+    if (_profilesApiInflight && _profilesApiInflight.url === url) return _profilesApiInflight.promise;
+    const promise = api(url).finally(() => {
+      setTimeout(() => {
+        if (_profilesApiInflight && _profilesApiInflight.promise === promise) _profilesApiInflight = null;
+      }, 400);
+    });
+    _profilesApiInflight = { url: url, promise: promise };
+    return promise;
   }
 
   function apiText(url, options = {}) {
@@ -2606,7 +2636,7 @@
       const frData = await api('/api/friends').catch(function () {
         return { friends: [] };
       });
-      const grData = await api('/api/site/profiles?lite=1');
+      const grData = await fetchSiteProfiles({ lite: true });
       friends = ((frData && frData.friends) || []).filter(function (f) {
         return f && f.user_id;
       });
@@ -6076,7 +6106,7 @@
       fab.classList.add('hidden');
       return;
     }
-    api('/api/site/profiles').then((data) => {
+    fetchSiteProfiles().then((data) => {
       if (!data || !data.success) {
         fab.classList.add('hidden');
         return;
@@ -6275,34 +6305,39 @@
     if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
-    root.querySelectorAll('[data-home-rail]').forEach((container) => {
-      if (container.getAttribute('data-rail-mounted') === '1') return;
-      container.setAttribute('data-rail-mounted', '1');
-      const railId = container.getAttribute('data-home-rail');
-      const blockEl = container.closest('[data-home-block]');
-      const blockId = blockEl ? blockEl.getAttribute('data-home-block') : railId;
-      const metaEl = blockEl ? blockEl.querySelector('[data-home-rail-meta]') : null;
-      MPHomeRails.mountPaginatedHomeRail(container, {
-        railId: railId,
-        period: railId === 'premieres' ? 'upcoming' : undefined,
-        apiGet: homeRailApiGet,
-        posterUrl: (kp) => posterUrl(kp),
-        emptyHtml: homeRailEmptyHtml(blockId),
-        onBatch: () => { decorateHomePosterPreviews(container); },
-        onMeta: (meta) => {
-          if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
-            blockEl.classList.add('hidden');
-          } else if (blockEl) {
-            blockEl.classList.remove('hidden');
-          }
-          if (!metaEl || !meta || !meta.total) {
-            if (metaEl) metaEl.textContent = '';
-            return;
-          }
-          const tail = meta.hasMore ? ' · листайте вправо' : '';
-          metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
-        },
-      });
+    const containers = Array.from(root.querySelectorAll('[data-home-rail]')).filter((container) => {
+      return container.getAttribute('data-rail-mounted') !== '1';
+    });
+    containers.forEach((container, idx) => {
+      setTimeout(() => {
+        if (container.getAttribute('data-rail-mounted') === '1') return;
+        container.setAttribute('data-rail-mounted', '1');
+        const railId = container.getAttribute('data-home-rail');
+        const blockEl = container.closest('[data-home-block]');
+        const blockId = blockEl ? blockEl.getAttribute('data-home-block') : railId;
+        const metaEl = blockEl ? blockEl.querySelector('[data-home-rail-meta]') : null;
+        MPHomeRails.mountPaginatedHomeRail(container, {
+          railId: railId,
+          period: railId === 'premieres' ? 'upcoming' : undefined,
+          apiGet: homeRailApiGet,
+          posterUrl: (kp) => posterUrl(kp),
+          emptyHtml: homeRailEmptyHtml(blockId),
+          onBatch: () => { decorateHomePosterPreviews(container); },
+          onMeta: (meta) => {
+            if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
+              blockEl.classList.add('hidden');
+            } else if (blockEl) {
+              blockEl.classList.remove('hidden');
+            }
+            if (!metaEl || !meta || !meta.total) {
+              if (metaEl) metaEl.textContent = '';
+              return;
+            }
+            const tail = meta.hasMore ? ' · листайте вправо' : '';
+            metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
+          },
+        });
+      }, idx * 220);
     });
     decorateHomePosterPreviews(root);
   }
@@ -6776,6 +6811,10 @@
       .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [] }));
   }
 
+  function fetchHomePremierePreview() {
+    return fetchPublicPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false }));
+  }
+
   function fetchPremieresForDisplay(period) {
     if (!getToken()) {
       return fetchPublicPremieresForDisplay(period);
@@ -6828,17 +6867,17 @@
     _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
-            fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
+            fetchHomePremierePreview(),
             fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
           ]
         : [
-            fetchPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false })),
             api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null),
+            fetchHomePremierePreview(),
           ]
     )
       .then((pair) => {
-        const prem = pair[0];
-        const dashData = isGuestCabinetPreview() ? null : pair[1];
+        const prem = isGuestCabinetPreview() ? pair[0] : pair[1];
+        const dashData = isGuestCabinetPreview() ? null : pair[0];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         if (isGuestCabinetPreview()) {
@@ -6873,7 +6912,9 @@
         _homeDashInflight = null;
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
-        try { mountHomeDashboardRails(); } catch (_) {}
+        setTimeout(function () {
+          try { mountHomeDashboardRails(); } catch (_) {}
+        }, 140);
       });
     return _homeDashInflight;
   }
@@ -13419,7 +13460,7 @@
     updateGroupContextFab();
     setProfileSwitcherVisible(true);
     const token = ++_profileSwitcherFetchToken;
-    api('/api/site/profiles').then((data) => {
+    fetchSiteProfiles().then((data) => {
       if (token !== _profileSwitcherFetchToken || !data || !data.success) return;
       renderProfileMenuItems(data.profiles || [], data.active_chat_id);
     }).catch(() => {});
@@ -13439,7 +13480,7 @@
     menu.classList.remove('hidden');
     if (btn) btn.setAttribute('aria-expanded', 'true');
     menu.innerHTML = '<div class="profile-menu-hint">Загружаем профили…</div>';
-    api('/api/site/profiles').then((data) => {
+    fetchSiteProfiles().then((data) => {
       if (!data || !data.success) {
         menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
         return;
@@ -16297,7 +16338,7 @@
     // Init social tab row
     _initSocTabRow();
     list.innerHTML = pageLoadingHtml();
-    api('/api/site/profiles').then((data) => {
+    fetchSiteProfiles().then((data) => {
       if (!data || !data.success) {
         list.innerHTML = '<div class="cabinet-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
         return;
