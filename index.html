@@ -2243,6 +2243,7 @@
         var isSearch = path === '/search';
         var isRoute = isFilm || isStaff;
         var core = [
+          'mp-api-config.js?v=20260627apiams1',
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
           'public-film-login.js?v=20260622logindismiss1',
@@ -2262,19 +2263,19 @@
         ];
         var list;
         if (isSearch) {
-          list = ['page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260625searchpersonnames1'];
+          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260627apiams1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260623stafffix1');
+          list.push('film-page.js?v=20260627apiams1');
           list.push('cabinet-film-route.js?v=20260621castfix1');
         } else if (isStaff) {
-          list.push('film-page.js?v=20260623stafffix1');
-          list.push('staff-page.js?v=20260623staffgrid21');
-          list.push('cabinet-app.js?v=20260625searchpersonnames1');
+          list.push('film-page.js?v=20260627apiams1');
+          list.push('staff-page.js?v=20260627apiams1');
+          list.push('cabinet-app.js?v=20260627apiams1');
         } else {
-          list.push('cabinet-app.js?v=20260625searchpersonnames1');
+          list.push('cabinet-app.js?v=20260627apiams1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

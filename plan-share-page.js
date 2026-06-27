@@ -4,15 +4,8 @@
 (function (global) {
   'use strict';
 
-  var SITE_BASE = 'https://movie-planner.ru';
-  var API_BASE = (function () {
-    try {
-      var loc = global.location;
-      var h = loc.hostname || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
-    } catch (_e) {}
-    return SITE_BASE;
-  })();
+  var SITE_BASE = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
+  var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_BASE;
 
   function parseTokenFromPath() {
     var m = (global.location.pathname || '').match(/^\/p\/([^/?#]+)/);

@@ -4,14 +4,8 @@
 (function (global) {
   'use strict';
 
-  var API_BASE = (function () {
-    try {
-      var loc = global.location;
-      var h = loc.hostname || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
-    } catch (_e) {}
-    return 'https://movie-planner.ru';
-  })();
+  var SITE_ORIGIN = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
+  var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
 
   var PERSON_FILMS_PREVIEW_PRIMARY = 21;
   var PERSON_FILMS_PREVIEW_OTHER = 14;
@@ -878,6 +872,30 @@
     });
   }
 
+  function loadStaffRolesProgressive(personId, rolesMeta) {
+    var pending = (rolesMeta || []).filter(function (rm) {
+      return rm && rm.role_key && (rm.total > 0);
+    });
+    if (!pending.length) return Promise.resolve();
+
+    var primary = pending[0];
+    var rest = pending.slice(1);
+    var primaryLim = PERSON_FILM_BATCH_PRIMARY;
+    return loadStaffRoleFilms(personId, primary.role_key, 0, primaryLim).then(function () {
+      var idx = 0;
+      function loadNextPair() {
+        if (idx >= rest.length) return Promise.resolve();
+        var pair = rest.slice(idx, idx + 2);
+        idx += 2;
+        return Promise.all(pair.map(function (rm) {
+          var batchLim = PERSON_FILM_BATCH_OTHER;
+          return loadStaffRoleFilms(personId, rm.role_key, 0, batchLim).catch(function () {});
+        })).then(loadNextPair);
+      }
+      return loadNextPair();
+    });
+  }
+
   function loadStaffProgressive(personId) {
     return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/head', { method: 'GET', mode: 'cors' })
       .then(function (r) {
@@ -904,11 +922,7 @@
           filters: head.filters || { years: [], genres: [] },
           films_by_role: filmsByRole,
         }, personId);
-        return Promise.all(rolesMeta.map(function (rm, idx) {
-          if (!rm || !rm.role_key || !(rm.total > 0)) return Promise.resolve();
-          var batchLim = idx === 0 ? PERSON_FILM_BATCH_PRIMARY : PERSON_FILM_BATCH_OTHER;
-          return loadStaffRoleFilms(personId, rm.role_key, 0, batchLim).catch(function () {});
-        }));
+        return loadStaffRolesProgressive(personId, rolesMeta);
       });
   }
 

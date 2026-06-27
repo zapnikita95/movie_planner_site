@@ -1,11 +1,12 @@
 /**
  * Movie Planner — личный кабинет на сайте
- * Прод: API на том же origin (movie-planner.ru), без api.* в UI.
+ * Страницы: movie-planner.ru. API fetch: api.movie-planner.ru (AMS edge).
  */
 (function () {
   'use strict';
 
-  const API_BASE = (function () {
+  const SITE_ORIGIN = (function () {
+    if (window.MpApiConfig && MpApiConfig.SITE_ORIGIN) return MpApiConfig.SITE_ORIGIN;
     try {
       var loc = window.location;
       var h = loc.hostname || '';
@@ -14,6 +15,10 @@
       }
     } catch (e) {}
     return 'https://movie-planner.ru';
+  })();
+  const API_BASE = (function () {
+    if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
+    return SITE_ORIGIN;
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
@@ -1107,14 +1112,8 @@
 
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
-  /** Публичный base URL для Bearer/curl (совпадает с API_BASE на проде). */
+  /** Публичный base URL для Bearer/curl — api.movie-planner.ru на проде. */
   function getPublicApiBase() {
-    try {
-      const h = window.location.hostname;
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return window.location.origin;
-      }
-    } catch (_) {}
     return API_BASE;
   }
 
@@ -5221,10 +5220,10 @@
       });
     }
     wireOAuthBtn(oauthGIn, () => {
-      window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+      window.location.href = SITE_ORIGIN + '/api/site/oauth/google/start?accept=1';
     }, false);
     wireOAuthBtn(oauthYIn, () => {
-      window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+      window.location.href = SITE_ORIGIN + '/api/site/oauth/yandex/start?accept=1';
     }, false);
     if (tgWrapIn) {
       tgWrapIn.addEventListener('click', (e) => {
@@ -5235,10 +5234,10 @@
       });
     }
     wireOAuthBtn(oauthG, () => {
-      window.location.href = API_BASE + '/api/site/oauth/google/start?accept=1';
+      window.location.href = SITE_ORIGIN + '/api/site/oauth/google/start?accept=1';
     }, true);
     wireOAuthBtn(oauthY, () => {
-      window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
+      window.location.href = SITE_ORIGIN + '/api/site/oauth/yandex/start?accept=1';
     }, true);
     if (tgWrap) {
       tgWrap.addEventListener('click', (e) => {
@@ -10345,7 +10344,7 @@
       'git clone https://github.com/Movie-Planner/moviebot-tv-agent.git\n' +
       'cd moviebot-tv-agent\n' +
       'pip install -r requirements.txt\n' +
-      'MP_AGENT_TOKEN=' + token + ' MP_API_BASE=https://movie-planner.ru TV_IP=192.168.1.X python agent.py';
+      'MP_AGENT_TOKEN=' + token + ' MP_API_BASE=https://api.movie-planner.ru TV_IP=192.168.1.X python agent.py';
     wrap.classList.remove('hidden');
   }
 
@@ -13681,8 +13680,8 @@
         <p class="muted small" style="margin-bottom:8px">Базовый URL API: <code id="developer-api-base" style="font-size:12px"></code></p>
         <div class="settings-block settings-list" style="margin-top:0;padding-top:0;border:none">
           <button type="button" class="settings-row" id="developer-copy-api-token" data-mp-icon="key" data-mp-icon-inline="1">Скопировать API-ключ</button>
-          <a href="${API_BASE}/developer" class="settings-row" rel="noopener">Документация, OpenAPI и OAuth</a>
-          <a href="${API_BASE}/integration" class="settings-row" rel="noopener">Запасная страница токена</a>
+          <a href="${SITE_ORIGIN}/developer" class="settings-row" rel="noopener">Документация, OpenAPI и OAuth</a>
+          <a href="${SITE_ORIGIN}/integration" class="settings-row" rel="noopener">Запасная страница токена</a>
         </div>
         <p class="muted small" id="developer-api-token-hint" style="margin-top:8px"></p>
       </div>
@@ -14894,7 +14893,7 @@
         const provider = btn.getAttribute('data-profile-link');
         const t = getToken();
         if (!t || !provider) return;
-        window.location.href = API_BASE + '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
+        window.location.href = SITE_ORIGIN + '/api/site/oauth/' + provider + '/start?accept=1&link_token=' + encodeURIComponent(t);
       });
     });
     const addLogin = root.querySelector('#profile-settings-add-login');

@@ -4,14 +4,8 @@
 (function (global) {
   'use strict';
 
-  var API_BASE = (function () {
-    try {
-      var loc = global.location;
-      var h = loc.hostname || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return loc.protocol + '//' + h;
-    } catch (_e) {}
-    return 'https://movie-planner.ru';
-  })();
+  var SITE_ORIGIN = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
+  var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
 
   var MP_APP_STORE_URL_IOS = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var MP_APP_STORE_URL_ANDROID = '';
