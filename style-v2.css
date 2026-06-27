@@ -3954,6 +3954,7 @@ body.in-public-stats .footer-extension-cabinet {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+  text-align: center;
 }
 .article-cta .footer-store-row {
   justify-content: center;
