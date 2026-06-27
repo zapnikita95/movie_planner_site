@@ -6384,7 +6384,7 @@
   }
 
   function homeRailApiGet(path) {
-    return api(path).then(function (data) {
+    return api(path, { timeoutMs: 32000 }).then(function (data) {
       if (!data || data.success === false || data.error === "network") {
         var err = new Error("rail_fetch_failed");
         err.code = "RAIL_FAILED";
