@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628landingpills1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628landingpills1">
+    <link rel="preload" href="/style-v2.css?v=20260628headercls1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628headercls1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -100,9 +100,26 @@
         if (/^\/s\/\d+$/.test(path)) {
           document.documentElement.classList.add('mp-staff-boot');
           try { document.title = 'Персона · Movie Planner'; } catch (_) {}
+          return;
+        }
+        if (path === '/' || path === '/index.html') {
+          document.documentElement.classList.add('mp-landing-boot');
         }
       })();
     </script>
+    <style id="mp-landing-critical">
+      html.mp-landing-boot #header-search.hidden{display:block!important;visibility:hidden;opacity:0;pointer-events:none;flex:1 1 100%!important;max-width:100%!important;min-width:0!important;margin:0!important;order:3}
+      html.mp-landing-boot .header-content{display:flex!important;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:96px;box-sizing:border-box}
+      html.mp-landing-boot .logo{flex:0 1 auto;min-width:0}
+      html.mp-landing-boot .header-buttons{flex:1 1 auto;display:flex;justify-content:flex-end;min-width:0}
+      @media(min-width:861px){
+        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,560px) minmax(0,1fr);align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
+        html.mp-landing-boot .logo{grid-column:1;justify-self:start}
+        html.mp-landing-boot .header-buttons{grid-column:3;justify-self:end;display:flex}
+        html.mp-landing-boot #header-search{grid-column:2;order:unset!important;flex:unset!important;max-width:none!important;margin:0!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+        html.mp-landing-boot #header-search.hidden{visibility:visible!important;opacity:1!important}
+      }
+    </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css" media="print" onload="this.media='all'">
@@ -184,7 +201,7 @@
           }
         } catch (_) {}
       })();
-      // Маркетинговая / — сразу меню разделов и поиск (после DOM, иначе CLS шапки)
+      // Маркетинговая / — классы body до первого кадра (см. inline script сразу после <body>)
       (function () {
         function bootLandingRootHeader() {
           try {
@@ -194,14 +211,13 @@
             var nav = document.getElementById('landing-root-nav');
             if (nav) nav.classList.remove('hidden');
             var hs = document.getElementById('header-search');
-            if (hs) hs.classList.remove('hidden');
+            if (hs) {
+              hs.classList.remove('hidden');
+              hs.setAttribute('aria-hidden', 'false');
+            }
           } catch (_) {}
         }
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', bootLandingRootHeader);
-        } else {
-          bootLandingRootHeader();
-        }
+        bootLandingRootHeader();
       })();
       // Залогинен на / — редирект в кабинет /home (гость остаётся на лендинге)
       (function () {
@@ -612,6 +628,14 @@
     <script src="/yandex-metrika.js?v=20260621"></script>
 </head>
 <body>
+  <script>
+    (function () {
+      var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+      if (path !== '/' && path !== '/index.html') return;
+      document.body.classList.add('landing-root-page', 'film-standalone-page');
+      document.documentElement.classList.add('mp-landing-boot');
+    })();
+  </script>
   <!--MP_ROUTE_SEO_BODY-->
   <div class="parallax-bg" id="parallaxBg"></div>
   <div class="content-wrapper">
@@ -626,7 +650,7 @@
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
         <div class="header-buttons">
-          <button type="button" class="btn-primary" data-action="login">Войти</button>
+          <button type="button" class="header-login-btn" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
             <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>

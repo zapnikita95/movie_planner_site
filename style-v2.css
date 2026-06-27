@@ -1158,6 +1158,54 @@ header {
   align-items: center;
 }
 
+.header-login-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  min-height: 40px;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-family: 'Unbounded', 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.header-login-btn:hover,
+.header-login-btn:focus-visible {
+  background: #fff;
+  color: #09090b;
+  border-color: #fff;
+  transform: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.header-login-btn:active {
+  background: rgba(255, 255, 255, 0.88);
+  transform: none;
+}
+
+@media (min-width: 861px) {
+  .header-login-btn {
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 13px;
+  }
+}
+
 .mp-lang-toggle {
   display: inline-flex;
   align-items: center;
@@ -3723,6 +3771,12 @@ body.in-public-stats .footer-extension-cabinet {
     padding: 10px 20px;
     font-size: 14px;
     height: auto;
+  }
+
+  .header-login-btn {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 11px;
   }
 
   .plan-card {
@@ -11064,14 +11118,33 @@ body.landing-root-page #header-search:not(.hidden) {
 body.landing-root-page #site-header .header-content {
   min-height: 52px;
 }
+@media (max-width: 860px) {
+  body.landing-root-page #site-header .header-content {
+    min-height: 96px;
+  }
+}
 body.landing-root-page .header-search.hidden {
   display: block !important;
   visibility: hidden;
   pointer-events: none;
   opacity: 0;
-  flex: 1 1 420px;
-  max-width: 560px;
-  min-width: 220px;
+  order: 3;
+  flex: 1 1 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+@media (min-width: 861px) {
+  body.landing-root-page .header-search.hidden {
+    order: unset;
+    visibility: visible;
+    opacity: 1;
+    flex: unset !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
 }
 body.landing-root-page #landing-root-nav {
   display: flex;
