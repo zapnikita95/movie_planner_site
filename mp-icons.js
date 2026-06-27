@@ -84,6 +84,7 @@
     check: { name: 'check', weight: 'bold' },
     basket: { name: 'basket', weight: 'regular' },
     sparkle: { name: 'sparkle', weight: 'regular' },
+    history: { name: 'clock-counter-clockwise', weight: 'regular' },
   };
 
   function iconClass(key, opts) {

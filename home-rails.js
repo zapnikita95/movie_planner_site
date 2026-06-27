@@ -11,7 +11,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 7;
+  var RAIL_CACHE_VERSION = 8;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -284,6 +284,8 @@
       return true;
     }
 
+    var failRetries = 0;
+
     function loadMore(isRefresh) {
       if (loading) return Promise.resolve();
       if (!isRefresh && !hasMore) return Promise.resolve();
@@ -325,6 +327,11 @@
           }
         })
         .catch(function () {
+          if (failRetries < 2) {
+            failRetries += 1;
+            loading = false;
+            return loadMore(isRefresh);
+          }
           if (!items.length) {
             hasMore = false;
             if (config.emptyHtml) container.outerHTML = config.emptyHtml;

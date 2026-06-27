@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260625searchpersonnames1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260625searchpersonnames1">
+    <link rel="preload" href="/style-v2.css?v=20260627shazamfix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260627shazamfix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1172,15 +1172,30 @@
                 </section>
                 <section id="section-shazam" class="cabinet-section hidden" aria-label="Подбор по описанию">
                     <p class="cabinet-hint shazam-page-back-wrap"><button type="button" class="link-inline" data-home-show-section="home">← Главная</button></p>
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="shazam"></span><span class="section-title-text">Подбор по описанию</span></h2>
-                    <p class="cabinet-hint home-shazam-hint">Опишите фильм своими словами — те же лимиты, что в мини-приложении.</p>
-                    <div id="home-shazam-block" class="home-shazam-block">
-                        <div class="home-shazam-row">
-                            <textarea id="home-shazam-query" class="home-shazam-textarea" rows="3" maxlength="2000" placeholder="Например: фильм про космос, где герой застрял на Марсе…" aria-label="Описание для поиска по смыслу"></textarea>
-                            <button type="button" class="btn btn-primary" id="home-shazam-submit">Найти</button>
+                    <div class="shazam-page site-shazam-page">
+                        <div class="shazam-top-bar">
+                            <span class="poster-reco-coin-pill shazam-coin-pill" aria-label="Стоимость поиска 100 монеток"><span class="poster-reco-coin-pill-val">-100</span><span class="global-coins-sprite poster-reco-coin-pill-sprite" aria-hidden="true"></span></span>
+                            <button type="button" class="shazam-history-ic" id="site-sh-history-open" aria-label="История шазамов"><span class="mp-icon mp-icon--sm" data-mp-icon="history"></span></button>
                         </div>
-                        <div id="home-shazam-status" class="home-shazam-status hidden"></div>
+                        <div class="shazam-hero">
+                            <div class="shazam-hero-emoji">🔮</div>
+                            <div class="shazam-hero-title">Не помните название?</div>
+                            <div class="shazam-hero-hint">Опишите фильм — актёры, сюжет, атмосфера. Подберём варианты.</div>
+                        </div>
+                        <div class="shazam-search-card">
+                            <textarea id="home-shazam-query" class="shazam-native-input" rows="3" maxlength="2000" placeholder="Например: триллер про наёмника с амнезией в Европе" aria-label="Описание для поиска по смыслу"></textarea>
+                            <button type="button" id="site-sh-voice-btn" class="shazam-voice-btn"><span id="site-sh-voice-text" class="shazam-voice-btn-text">🎤 Записать голосом</span></button>
+                            <button type="button" class="shazam-run-btn" id="home-shazam-submit" aria-busy="false"><span id="site-sh-find-spinner" class="shazam-run-btn-spinner hidden" aria-hidden="true"></span><span id="site-sh-find-text" class="shazam-run-btn-text">Найти</span></button>
+                        </div>
+                        <div class="shazam-examples">
+                            <div class="shazam-examples-label muted small">Примеры:</div>
+                            <div class="chips chips-wrap shazam-example-chips" id="site-sh-examples"></div>
+                        </div>
+                        <div id="home-shazam-status" class="shazam-status" aria-live="polite"></div>
                         <div id="home-shazam-results" class="home-shazam-results"></div>
+                        <div id="site-sh-find-more-wrap" class="shazam-find-more-wrap hidden">
+                            <button type="button" class="btn btn-secondary btn-full" id="site-sh-find-more">Найти ещё фильм</button>
+                        </div>
                     </div>
                 </section>
                 <section id="section-plans" class="cabinet-section hidden">
@@ -2256,7 +2271,7 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=20260617i18nfix3',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260617icons2'
+          'mp-icons.js?v=20260627history1'
         ];
         var cabinet = [
           'user-profile-page.js?v=20260619reglayout1',
@@ -2265,12 +2280,12 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260617i18nfix3',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260622seriesfast1',
+          'home-rails.js?v=20260627railsretry1',
           'landing-articles.js?v=20260627articles1'
         ];
         var list;
         if (isSearch) {
-          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260627apiams1'];
+          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260627shazamfix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2280,9 +2295,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260627apiams1');
-          list.push('cabinet-app.js?v=20260627apiams1');
+          list.push('cabinet-app.js?v=20260627shazamfix1');
         } else {
-          list.push('cabinet-app.js?v=20260627apiams1');
+          list.push('cabinet-app.js?v=20260627shazamfix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

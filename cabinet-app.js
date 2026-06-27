@@ -6472,14 +6472,17 @@
       const tp = _homeTournamentPreview;
       const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: 'оценок', label: 'Оценки' };
       const top = (tp && tp.top) || [];
-      const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.');
+      const medal = (i, item) => {
+        const idx = item && item.rank != null ? Number(item.rank) - 1 : i;
+        return idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
+      };
       const headExtra = tp && tp.period_label ? ('<div class="cabinet-hint">' + escapeHtml(tp.period_label) + ' · ' + escapeHtml(nom.label) + '</div>') : '';
       const rows = top.length
         ? top.map((item, i) => {
             const score = Number(item[nom.field] || 0);
             const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
             return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
-              + '<span class="home-tourn-rank">' + medal(i) + '</span>'
+              + '<span class="home-tourn-rank">' + medal(i, item) + '</span>'
               + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
               + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
               + '</button>';
@@ -6666,11 +6669,27 @@
           _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
         }
         _homeDashboardCache = dashData && dashData.success ? dashData : null;
-        _homeTournamentPreview = dashData && dashData.success ? dashData.tournament_preview : null;
-        if (dashData && dashData.success) updateInboxFabBadge(dashData.inbox_unread || 0);
-        try { updateCabinetHomeStats(dashData); } catch (_) {}
-        if (dashData && dashData.show_tournament_intro) {
-          setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+        if (_homeDashboardCache && !_homeDashboardCache.tournament_preview) {
+          return api('/api/tournament/preview', { timeoutMs: 12000 })
+            .then((tp) => {
+              if (tp && tp.success && tp.tournament_preview) {
+                _homeDashboardCache.tournament_preview = tp.tournament_preview;
+              }
+              return _homeDashboardCache;
+            })
+            .catch(() => _homeDashboardCache);
+        }
+        return _homeDashboardCache;
+      })
+      .then((dashResolved) => {
+        if (dashResolved && !isGuestCabinetPreview()) {
+          _homeDashboardCache = dashResolved;
+          _homeTournamentPreview = dashResolved.tournament_preview || null;
+          updateInboxFabBadge(dashResolved.inbox_unread || 0);
+          try { updateCabinetHomeStats(dashResolved); } catch (_) {}
+          if (dashResolved.show_tournament_intro) {
+            setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+          }
         }
       })
       .catch(() => {})
@@ -6814,7 +6833,8 @@
   }
 
   function tournamentLbRowSiteHtml(item, index, nom) {
-    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1 + '.');
+    const rankIdx = item && item.rank != null ? Number(item.rank) - 1 : index;
+    const medal = rankIdx === 0 ? '🥇' : rankIdx === 1 ? '🥈' : rankIdx === 2 ? '🥉' : (rankIdx + 1 + '.');
     const score = tournamentNomScoreSite(item, nom);
     const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
     return '<button type="button" class="tourn-lb-row tourn-podium-row' + (item.is_me ? ' tourn-podium-row-me' : '') + '"' + uidAttr + '>'
@@ -7140,58 +7160,351 @@
     const ta = document.getElementById('home-shazam-query');
     const status = document.getElementById('home-shazam-status');
     const results = document.getElementById('home-shazam-results');
+    const findText = document.getElementById('site-sh-find-text');
+    const findSpinner = document.getElementById('site-sh-find-spinner');
+    const voiceBtn = document.getElementById('site-sh-voice-btn');
+    const voiceText = document.getElementById('site-sh-voice-text');
+    const examplesEl = document.getElementById('site-sh-examples');
+    const findMoreWrap = document.getElementById('site-sh-find-more-wrap');
+    const findMoreBtn = document.getElementById('site-sh-find-more');
+    const histBtn = document.getElementById('site-sh-history-open');
     if (!btn || btn._mpBound) return;
     btn._mpBound = true;
-    btn.addEventListener('click', () => {
-      const q = (ta && ta.value || '').trim();
-      if (q.length < 3) {
-        if (status) {
-          status.textContent = 'Введите хотя бы 3 символа';
-          status.classList.remove('hidden');
-        }
+
+    const SHAZAM_HISTORY_KEY = 'mp_shazam_history_v1';
+    const SHAZAM_HISTORY_MAX = 40;
+    const SHAZAM_EXAMPLES = [
+      'ограбление казино с Клуни',
+      'корейский триллер про месть',
+      'близнецы в школе',
+      'пианист во Второй мировой',
+      'путешествия во времени',
+      'загородный дом и призраки',
+      'наёмник с собакой',
+    ];
+    let loading = false;
+    let shVoiceSess = null;
+    let shMicStream = null;
+    let shVoiceUploading = false;
+
+    if (examplesEl) {
+      examplesEl.innerHTML = SHAZAM_EXAMPLES.map((e) =>
+        '<button class="chip" type="button" data-sh-example="' + escapeHtml(e) + '">' + escapeHtml(e) + '</button>',
+      ).join('');
+    }
+    if (typeof MPIcons !== 'undefined' && MPIcons.hydrate) {
+      MPIcons.hydrate(document.getElementById('section-shazam'));
+    }
+
+    function loadShazamHistory() {
+      try {
+        const raw = localStorage.getItem(SHAZAM_HISTORY_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (_e) {
+        return [];
+      }
+    }
+    function saveShazamHistory(list) {
+      try { localStorage.setItem(SHAZAM_HISTORY_KEY, JSON.stringify(list.slice(0, SHAZAM_HISTORY_MAX))); } catch (_e) {}
+    }
+    function appendShazamHistory(query, items, source) {
+      const q = (query || '').trim();
+      if (!q || !items || !items.length) return;
+      const entry = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
+        at: Date.now(),
+        query: q,
+        source: source === 'voice' ? 'voice' : 'text',
+        items: (items || []).slice(0, 24),
+      };
+      const list = loadShazamHistory().filter((x) => x && x.id);
+      list.unshift(entry);
+      saveShazamHistory(list);
+    }
+    function pickPlanVoiceMime() {
+      if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      for (let i = 0; i < types.length; i++) {
+        if (MediaRecorder.isTypeSupported(types[i])) return types[i];
+      }
+      return '';
+    }
+    function blobVoiceFilename(blob, recMime) {
+      const mt = (recMime || (blob && blob.type) || '').toLowerCase();
+      if (mt.indexOf('mp4') >= 0 || mt.indexOf('aac') >= 0) return 'voice.m4a';
+      if (mt.indexOf('ogg') >= 0) return 'voice.ogg';
+      return 'voice.webm';
+    }
+    function apiFormData(path, formData, timeoutMs) {
+      const headers = {};
+      const token = getToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetchWithTimeout(API_BASE + path, { method: 'POST', body: formData, headers }, timeoutMs || 120000)
+        .then(async (r) => {
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok && data && !data.error) data.error = 'http_' + r.status;
+          if (!r.ok && data && data.success === undefined) data.success = false;
+          return data;
+        });
+    }
+    function releaseShMic() {
+      if (!shMicStream) return;
+      try { shMicStream.getTracks().forEach((t) => t.stop()); } catch (_e) {}
+      shMicStream = null;
+    }
+    function syncFindButton() {
+      const busy = !!(loading || shVoiceUploading);
+      if (btn) {
+        btn.disabled = busy;
+        btn.classList.toggle('is-loading', busy);
+        btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+      }
+      if (findSpinner) findSpinner.classList.toggle('hidden', !busy);
+      if (findText) findText.classList.toggle('hidden', busy);
+    }
+    function syncVoiceLabel() {
+      if (!voiceText || !voiceBtn) return;
+      if (shVoiceUploading) {
+        voiceText.textContent = 'Обрабатываем…';
+        voiceBtn.classList.remove('recording');
+        voiceBtn.disabled = true;
         return;
       }
-      if (status) {
-        status.textContent = 'Ищем…';
-        status.classList.remove('hidden');
+      if (shVoiceSess) {
+        const s = Math.floor((Date.now() - shVoiceSess.t0) / 1000);
+        voiceText.textContent = '● Остановить (' + s + 'с)';
+        voiceBtn.classList.add('recording');
+        voiceBtn.disabled = !!loading;
+        return;
       }
+      voiceBtn.classList.remove('recording');
+      voiceText.textContent = '🎤 Записать голосом';
+      voiceBtn.disabled = !!loading;
+    }
+    function setLoading(on) {
+      loading = !!on;
+      syncFindButton();
+      syncVoiceLabel();
+    }
+    function clearShazamResults() {
       if (results) results.innerHTML = '';
-      api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: q }) })
+      if (status) status.textContent = '';
+      if (findMoreWrap) findMoreWrap.classList.add('hidden');
+      if (ta) ta.value = '';
+    }
+    function renderShazamGrid(items) {
+      if (!results) return;
+      if (!items || !items.length) {
+        results.innerHTML = '<p class="cabinet-hint">Ничего не нашли — уточните описание.</p>';
+        if (findMoreWrap) findMoreWrap.classList.add('hidden');
+        return;
+      }
+      results.innerHTML = '<div class="home-shazam-grid">' + items.map((it) => {
+        const kp = it.kp_id != null ? String(it.kp_id) : '';
+        const poster = it.poster
+          ? '<img src="' + escapeHtml(it.poster) + '" alt="" class="home-shazam-poster" loading="lazy" referrerpolicy="no-referrer">'
+          : '<div class="home-shazam-poster home-shazam-poster--empty"></div>';
+        const rating = it.rating != null && it.rating !== ''
+          ? ' · ★ ' + Number(it.rating).toFixed(1) : '';
+        const btnAdd = kp
+          ? '<div class="home-shazam-card-actions"><button type="button" class="btn btn-small btn-primary btn-full" data-action="add-film-pick" data-kp="' + escapeHtml(kp) + '">В базу</button></div>'
+          : '';
+        return '<div class="home-shazam-card">' + poster
+          + '<div class="home-shazam-card-body">'
+          + '<button type="button" class="home-shazam-card-open" data-kp-open="' + escapeHtml(kp) + '">'
+          + '<div class="home-shazam-card-title">' + escapeHtml(it.title || '') + '</div>'
+          + '<div class="home-shazam-card-meta">' + (it.year ? escapeHtml(String(it.year)) : '—') + escapeHtml(rating) + '</div>'
+          + '</button>' + btnAdd + '</div></div>';
+      }).join('') + '</div>';
+      if (findMoreWrap) findMoreWrap.classList.remove('hidden');
+      results.querySelectorAll('[data-kp-open]').forEach((el) => {
+        el.addEventListener('click', () => {
+          const kp = el.getAttribute('data-kp-open');
+          if (kp) openFilmPageByKp(kp);
+        });
+      });
+    }
+    function openShazamHistoryModal() {
+      const hist = loadShazamHistory();
+      if (!hist.length) {
+        showToast('Пока нет сохранённых шазамов — выполните поиск по описанию.');
+        return;
+      }
+      const body = hist.map((entry) => {
+        let ds = '—';
+        try {
+          ds = new Date(entry.at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        } catch (_e) {}
+        const cards = (entry.items || []).map((it) => {
+          const kp = it.kp_id != null ? String(it.kp_id) : '';
+          return '<button type="button" class="shazam-hist-result" data-kp-open="' + escapeHtml(kp) + '">' + escapeHtml(it.title || '—') + '</button>';
+        }).join('');
+        const srcIc = entry.source === 'voice' ? ' 🎤' : '';
+        return '<section class="shazam-hist-section"><div class="shazam-hist-meta"><span>' + escapeHtml(ds) + srcIc + '</span></div>'
+          + '<div class="shazam-hist-query">«' + escapeHtml(entry.query) + '»</div><div class="shazam-hist-results">' + cards + '</div></section>';
+      }).join('');
+      const backdrop = document.createElement('div');
+      backdrop.className = 'sheet-backdrop';
+      backdrop.innerHTML = '<div class="sheet shazam-history-sheet"><div class="sheet-title">История шазамов</div><div class="sheet-body shazam-hist-sheet-body">' + body + '</div>'
+        + '<button type="button" class="btn-ghost btn-full" id="site-sh-hist-close">Закрыть</button></div>';
+      document.body.style.overflow = 'hidden';
+      document.body.appendChild(backdrop);
+      const close = () => {
+        document.body.style.overflow = '';
+        try { document.body.removeChild(backdrop); } catch (_e) {}
+      };
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) close();
+        const kpEl = e.target.closest('[data-kp-open]');
+        if (kpEl) {
+          const kp = kpEl.getAttribute('data-kp-open');
+          if (kp) { close(); openFilmPageByKp(kp); }
+        }
+      });
+      backdrop.querySelector('#site-sh-hist-close').addEventListener('click', close);
+    }
+    function runSearch(q, source) {
+      const query = (q || '').trim();
+      if (query.length < 3) {
+        if (status) status.textContent = query ? 'Минимум 3 символа' : '';
+        if (results) results.innerHTML = '';
+        if (findMoreWrap) findMoreWrap.classList.add('hidden');
+        return;
+      }
+      setLoading(true);
+      if (status) status.textContent = 'Думаем над запросом… (3–10 сек)';
+      if (results) results.innerHTML = '<div class="shazam-loading-row"><span class="shazam-run-btn-spinner" aria-hidden="true"></span><span>Ищем фильмы по описанию…</span></div>';
+      if (findMoreWrap) findMoreWrap.classList.add('hidden');
+      api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: query }), timeoutMs: 90000 })
         .then((data) => {
           if (!data || !data.success) {
             const err = (data && data.message) || (data && data.error) || 'Не удалось выполнить поиск';
             if (status) status.textContent = typeof err === 'string' ? err : 'Ошибка';
+            if (results) results.innerHTML = '';
             return;
           }
-          if (status) status.classList.add('hidden');
           const items = data.items || [];
-          if (!items.length) {
-            if (results) results.innerHTML = '<p class="cabinet-hint">Ничего не нашли — уточните описание.</p>';
-            return;
-          }
-          if (results) {
-            results.innerHTML = '<div class="home-shazam-grid">' + items.map((it) => {
-              const kp = it.kp_id != null ? String(it.kp_id) : '';
-              const poster = it.poster
-                ? '<img src="' + escapeHtml(it.poster) + '" alt="" class="home-shazam-poster" loading="lazy" referrerpolicy="no-referrer">'
-                : '<div class="home-shazam-poster home-shazam-poster--empty"></div>';
-              const btnAdd = kp
-                ? '<button type="button" class="btn btn-small btn-primary" data-action="add-film-pick" data-kp="' + escapeHtml(kp) + '">В базу</button>'
-                : '';
-              return '<div class="home-shazam-card">' + poster + '<div class="home-shazam-card-body">'
-                + '<div class="home-shazam-card-title">' + escapeHtml(it.title || '') + '</div>'
-                + '<div class="home-shazam-card-meta">' + (it.year ? escapeHtml(String(it.year)) : '') + '</div>'
-                + btnAdd + '</div></div>';
-            }).join('') + '</div>';
-          }
+          if (status) status.textContent = items.length ? ('Найдено ' + items.length + ' вариантов:') : 'Ничего не нашли — уточните описание.';
+          renderShazamGrid(items);
+          appendShazamHistory(query, items, source || 'text');
         })
         .catch(() => {
-          if (status) {
-            status.textContent = 'Ошибка сети';
-            status.classList.remove('hidden');
+          if (status) status.textContent = 'Ошибка сети — попробуйте ещё раз';
+          if (results) results.innerHTML = '';
+        })
+        .finally(() => setLoading(false));
+    }
+    async function toggleShazamVoice() {
+      if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Запись голоса не поддерживается в этом браузере');
+        return;
+      }
+      if (shVoiceSess) {
+        const sess = shVoiceSess;
+        shVoiceUploading = true;
+        syncFindButton();
+        if (sess.shInterval) clearInterval(sess.shInterval);
+        if (sess.maxT) clearTimeout(sess.maxT);
+        try { if (sess.rec.state === 'recording') sess.rec.stop(); } catch (_e) {
+          shVoiceSess = null;
+          releaseShMic();
+          shVoiceUploading = false;
+          syncFindButton();
+          syncVoiceLabel();
+        }
+        return;
+      }
+      if (results) results.innerHTML = '';
+      if (status) status.textContent = '';
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (_e) {
+        showToast('Нет доступа к микрофону');
+        return;
+      }
+      shMicStream = stream;
+      const mime = pickPlanVoiceMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      const sess = { aborted: false, rec, chunks, t0: Date.now(), shInterval: null, maxT: null };
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        shVoiceSess = null;
+        if (sess.shInterval) clearInterval(sess.shInterval);
+        if (sess.maxT) clearTimeout(sess.maxT);
+        if (sess.aborted) {
+          releaseShMic();
+          shVoiceUploading = false;
+          syncFindButton();
+          syncVoiceLabel();
+          return;
+        }
+        shVoiceUploading = true;
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+        const dur = Date.now() - sess.t0;
+        releaseShMic();
+        if (!blob.size || dur < 800) {
+          if (status) status.textContent = 'Слишком короткая запись — попробуйте ещё раз';
+          shVoiceUploading = false;
+          syncFindButton();
+          syncVoiceLabel();
+          return;
+        }
+        if (status) status.textContent = 'Распознаём голос…';
+        if (results) results.innerHTML = '<div class="shazam-loading-row"><span class="shazam-run-btn-spinner" aria-hidden="true"></span><span>Распознаём и ищем…</span></div>';
+        syncFindButton();
+        syncVoiceLabel();
+        try {
+          const fd = new FormData();
+          fd.append('audio', blob, blobVoiceFilename(blob, rec.mimeType));
+          const data = await apiFormData('/api/miniapp/shazam/voice', fd, 120000);
+          if (!data || !data.success) throw new Error((data && data.message) || (data && data.error) || 'error');
+          const items = data.items || [];
+          if (ta) ta.value = data.query || '';
+          if (items.length) {
+            if (status) status.textContent = '«' + (data.query || '') + '» → ' + items.length + ' вариантов:';
+            renderShazamGrid(items);
+            appendShazamHistory(data.query || '', items, 'voice');
+          } else if (status) {
+            status.textContent = '«' + (data.query || '') + '» — ничего не нашли, попробуй переформулировать.';
+            if (results) results.innerHTML = '';
           }
-        });
-    });
+        } catch (err) {
+          if (status) status.textContent = 'Ошибка: ' + ((err && err.message) || 'не удалось распознать');
+          if (results) results.innerHTML = '';
+        } finally {
+          shVoiceUploading = false;
+          syncFindButton();
+          syncVoiceLabel();
+        }
+      };
+      shVoiceSess = sess;
+      rec.start(250);
+      sess.shInterval = setInterval(syncVoiceLabel, 500);
+      sess.maxT = setTimeout(() => { try { if (rec.state === 'recording') rec.stop(); } catch (_e) {} }, 45000);
+      syncVoiceLabel();
+    }
+
+    btn.addEventListener('click', () => runSearch(ta && ta.value));
+    if (ta) {
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runSearch(ta.value); }
+      });
+    }
+    if (voiceBtn) voiceBtn.addEventListener('click', () => { void toggleShazamVoice(); });
+    if (histBtn) histBtn.addEventListener('click', openShazamHistoryModal);
+    if (findMoreBtn) findMoreBtn.addEventListener('click', clearShazamResults);
+    if (examplesEl) {
+      examplesEl.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-sh-example]');
+        if (!chip) return;
+        const v = chip.getAttribute('data-sh-example') || '';
+        if (ta) ta.value = v;
+        runSearch(v);
+      });
+    }
   }
 
   function bindHomeQuickActionsOnce() {
