@@ -11,7 +11,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 8;
+  var RAIL_CACHE_VERSION = 9;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -296,6 +296,11 @@
       var fetchLimit = isRefresh ? PAGE : pageSizeForOffset(railId, fetchOffset);
       return fetchHomeRail(config.apiGet, railId, fetchOffset, fetchLimit, period)
         .then(function (page) {
+          if (!page || page.success === false) {
+            var bad = new Error("rail_page_failed");
+            bad.code = "RAIL_FAILED";
+            throw bad;
+          }
           var batch = (page && page.items) || [];
           if (isRefresh) {
             if (!batch.length && !items.length && config.emptyHtml) {

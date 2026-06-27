@@ -292,19 +292,19 @@
           }
         } catch (_) {}
       })();
-      // /features/collections — первый paint: База + секция коллекций (не мелькание «Главная»)
+      // /features/collections — открыть «Смотреть» → вкладка «Коллекции»
       (function () {
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/features/collections') return;
+          if (path !== '/features/collections' && !path.match(/^\/features\/collections\/[A-Za-z0-9_-]+$/)) return;
           function paintCollectionsDeep() {
             var home = document.getElementById('section-home');
-            var coll = document.getElementById('section-collections');
+            var wtw = document.getElementById('section-whattowatch');
             if (home) home.classList.add('hidden');
-            if (coll) coll.classList.remove('hidden');
+            if (wtw) wtw.classList.remove('hidden');
             document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn').forEach(function (b) {
               b.classList.remove('active');
-              if (b.getAttribute('data-section') === 'unwatched') b.classList.add('active');
+              if (b.getAttribute('data-section') === 'whattowatch') b.classList.add('active');
             });
           }
           if (document.readyState === 'loading') {
@@ -1218,7 +1218,6 @@
                             <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
-                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack base-section-tools-row--search-only">
@@ -1270,7 +1269,6 @@
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab active" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
-                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
@@ -1344,7 +1342,6 @@
                             <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab active" data-base-section="ratings">Оценки</button>
-                            <button type="button" class="base-tab base-tab--collections" data-go-collections="1">Коллекции</button>
                         </div>
                         <div class="base-user-tags-row" data-base-tags aria-label="Теги"></div>
                         <div class="base-section-tools-row base-section-tools-row--stack">
@@ -1371,16 +1368,8 @@
                     <div id="film-tag-view-meta" class="film-tag-view-meta"></div>
                     <div id="film-tag-view-grid" class="movies-grid film-tag-view-grid"></div>
                 </section>
-                <section id="section-collections" class="cabinet-section hidden" aria-label="Коллекции">
-                    <h1 class="section-title collections-seo-title"><span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h1>
-                    <div class="base-section-toolbar">
-                        <div class="base-tabs" role="tablist" aria-label="База">
-                            <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
-                            <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
-                            <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
-                            <button type="button" class="base-tab base-tab--collections active" data-go-collections="1">Коллекции</button>
-                        </div>
-                    </div>
+                <section id="section-collections" class="cabinet-section hidden" aria-label="Мои коллекции">
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="folder"></span><span class="section-title-text">Мои коллекции</span></h2>
                     <div id="collections-content" class="collections-content"></div>
                 </section>
                 <section id="section-stats" class="cabinet-section hidden">
@@ -2280,12 +2269,12 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260627onboard1',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260627shell2',
+          'home-rails.js?v=20260628railsfix1',
           'landing-articles.js?v=20260627articles1'
         ];
         var list;
         if (isSearch) {
-          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260627onboard1'];
+          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260628railsfix1'];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2295,9 +2284,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260627apiams1');
-          list.push('cabinet-app.js?v=20260627onboard1');
+          list.push('cabinet-app.js?v=20260628railsfix1');
         } else {
-          list.push('cabinet-app.js?v=20260627onboard1');
+          list.push('cabinet-app.js?v=20260628railsfix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

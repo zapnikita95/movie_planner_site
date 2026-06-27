@@ -3289,7 +3289,7 @@
     settings: '/settings',
     developer: '/my-api',
     inbox: '/inbox',
-    collections: '/features/collections',
+    collections: '/whattowatch',
   };
   const PROFILE_SUB_TO_PATH = {
     hub: '/settings',
@@ -3338,6 +3338,8 @@
     if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return null;
     if (normalized.startsWith('/settings')) return 'settings';
+    if (normalized.startsWith('/features/collections/')) return 'whattowatch';
+    if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
   }
 
@@ -3412,15 +3414,13 @@
       series: 'series',
       ratings: 'ratings',
       'film-tag': 'unwatched',
-      collections: 'collections',
     };
     const active = map[sectionId];
     if (!active) return;
     readonly.querySelectorAll('.base-tabs').forEach((tabs) => {
       tabs.querySelectorAll('.base-tab').forEach((tab) => {
         const bs = tab.getAttribute('data-base-section');
-        const isCollTab = tab.hasAttribute('data-go-collections');
-        tab.classList.toggle('active', active === 'collections' && isCollTab || bs === active);
+        tab.classList.toggle('active', bs === active);
       });
     });
   }
@@ -6211,10 +6211,16 @@
   }
 
   function homeRailApiGet(path) {
-    return api(path).catch(() => ({ success: false, items: [], has_more: false, total: 0 }));
+    return api(path).then(function (data) {
+      if (!data || data.success === false || data.error === "network") {
+        var err = new Error("rail_fetch_failed");
+        err.code = "RAIL_FAILED";
+        throw err;
+      }
+      if (!Array.isArray(data.items)) data.items = [];
+      return data;
+    });
   }
-
-  const _homeRailMounted = new WeakSet();
 
   function mountHomeDashboardRails() {
     if (isGuestCabinetPreview()) return;
@@ -6222,8 +6228,8 @@
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
     root.querySelectorAll('[data-home-rail]').forEach((container) => {
-      if (_homeRailMounted.has(container)) return;
-      _homeRailMounted.add(container);
+      if (container.getAttribute('data-rail-mounted') === '1') return;
+      container.setAttribute('data-rail-mounted', '1');
       const railId = container.getAttribute('data-home-rail');
       const blockEl = container.closest('[data-home-block]');
       const blockId = blockEl ? blockEl.getAttribute('data-home-block') : railId;
@@ -6236,7 +6242,7 @@
         emptyHtml: homeRailEmptyHtml(blockId),
         onBatch: () => { decorateHomePosterPreviews(container); },
         onMeta: (meta) => {
-          if (blockEl && meta && meta.total === 0 && meta.loaded === 0) {
+          if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
             blockEl.classList.add('hidden');
           } else if (blockEl) {
             blockEl.classList.remove('hidden');
@@ -6645,7 +6651,6 @@
     }
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
-    try { mountHomeDashboardRails(); } catch (_) {}
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
   }
 
@@ -6828,7 +6833,7 @@
   function _patchHomeDashboardStaticBlocks() {
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
-    ['plans', 'premieres', 'series', 'tournament'].forEach((bid) => {
+    ['plans', 'premieres', 'tournament'].forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
@@ -7135,17 +7140,15 @@
       const collEntry = e.target.closest('[data-go-collections]');
       if (collEntry) {
         e.preventDefault();
-        markCabinetUserNav('collections');
-        try {
-          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.resetView === 'function') {
-            window.MpCollectionsPage.resetView();
-          }
-        } catch (_) {}
-        showSection('collections');
-        afterCabinetSectionShown('collections');
+        markCabinetUserNav('whattowatch');
+        siteWtwScope = 'collections';
+        siteWtwCollectionCode = null;
+        try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+        showSection('whattowatch');
+        afterCabinetSectionShown('whattowatch');
         return;
       }
-      const collFilm = e.target.closest('#collections-content .collections-film-card');
+      const collFilm = e.target.closest('#collections-content .collections-film-card, #site-wtw-collections-panel .collections-film-card');
       if (collFilm) {
         e.preventDefault();
         openFilmFromCard(collFilm);
@@ -13485,8 +13488,15 @@
         { id: 'premieres_reco', kind: 'premieres_reco', icon: 'ticket', title: 'Рекомендации премьер', hint: 'Новинки в прокате по вашему вкусу' },
       ],
     },
+    collections: {
+      key: 'collections',
+      icon: 'folder',
+      label: 'Коллекции',
+      modes: [],
+    },
   };
   let siteWtwScope = 'library';
+  let siteWtwCollectionCode = null;
 
   function siteWtwScopeLabelHtml(label) {
     return '<span class="plan-mode-label wtw-scope-label">' + escapeHtml(label) + '</span>';
@@ -13690,40 +13700,100 @@
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
     try {
-      const saved = sessionStorage.getItem('mp_wtw_scope');
-      if (saved === 'world' || saved === 'library') siteWtwScope = saved;
+      const pathCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
+        ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
+        : null;
+      if (pathCode) {
+        siteWtwScope = 'collections';
+        siteWtwCollectionCode = pathCode;
+      } else {
+        const saved = sessionStorage.getItem('mp_wtw_scope');
+        if (saved === 'world' || saved === 'library' || saved === 'collections') siteWtwScope = saved;
+      }
     } catch (_) {}
 
     const lib = SITE_WTW_SCOPES.library;
     const world = SITE_WTW_SCOPES.world;
+    const collScope = SITE_WTW_SCOPES.collections;
     root.innerHTML =
       '<div class="plan-mode-toggle wtw-scope-toggle">'
       + '<button type="button" class="plan-mode' + (siteWtwScope === 'library' ? ' active' : '') + '" data-site-wtw-scope="library">'
       + '<span class="plan-mode-icon">' + mpIcon(lib.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(lib.label) + '</button>'
       + '<button type="button" class="plan-mode' + (siteWtwScope === 'world' ? ' active' : '') + '" data-site-wtw-scope="world">'
       + '<span class="plan-mode-icon">' + mpIcon(world.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(world.label) + '</button>'
+      + '<button type="button" class="plan-mode' + (siteWtwScope === 'collections' ? ' active' : '') + '" data-site-wtw-scope="collections">'
+      + '<span class="plan-mode-icon">' + mpIcon(collScope.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(collScope.label) + '</button>'
       + '</div>'
-      + '<div class="site-wtw-modes" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
-      + '<div id="whattowatch-result" class="whattowatch-result"></div>';
+      + '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel' + (siteWtwScope === 'collections' ? '' : ' hidden') + '"></div>'
+      + '<div class="site-wtw-modes' + (siteWtwScope === 'collections' ? ' hidden' : '') + '" id="site-wtw-modes">' + (siteWtwScope === 'collections' ? '' : renderSiteWtwModesList(siteWtwScope)) + '</div>'
+      + '<div id="whattowatch-result" class="whattowatch-result' + (siteWtwScope === 'collections' ? ' hidden' : '') + '"></div>';
+
+    function paintWtwCollectionsPanel() {
+      const panel = root.querySelector('#site-wtw-collections-panel');
+      if (!panel || siteWtwScope !== 'collections') return;
+      try {
+        if (siteWtwCollectionCode && window.MpCollectionsPage && typeof window.MpCollectionsPage.renderPublicByCode === 'function') {
+          window.MpCollectionsPage.renderPublicByCode(panel, siteWtwCollectionCode);
+        } else if (window.MpCollectionsPage && typeof window.MpCollectionsPage.renderDiscoveryHub === 'function') {
+          window.MpCollectionsPage.renderDiscoveryHub(panel);
+        }
+      } catch (_) {}
+    }
 
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sc = btn.getAttribute('data-site-wtw-scope');
-        if (sc !== 'library' && sc !== 'world') return;
+        if (sc !== 'library' && sc !== 'world' && sc !== 'collections') return;
         siteWtwScope = sc;
+        if (sc !== 'collections') siteWtwCollectionCode = null;
         try { sessionStorage.setItem('mp_wtw_scope', sc); } catch (_) {}
         root.querySelectorAll('[data-site-wtw-scope]').forEach((b) => {
           b.classList.toggle('active', b.getAttribute('data-site-wtw-scope') === sc);
         });
         const modesEl = root.querySelector('#site-wtw-modes');
+        const resultEl = root.querySelector('#whattowatch-result');
+        const collPanel = root.querySelector('#site-wtw-collections-panel');
+        const isColl = sc === 'collections';
         if (modesEl) {
-          modesEl.innerHTML = renderSiteWtwModesList(sc);
-          bindSiteWtwModeRows(modesEl);
+          modesEl.classList.toggle('hidden', isColl);
+          if (!isColl) modesEl.innerHTML = renderSiteWtwModesList(sc);
+          if (!isColl) bindSiteWtwModeRows(modesEl);
+        }
+        if (resultEl) resultEl.classList.toggle('hidden', isColl);
+        if (collPanel) {
+          collPanel.classList.toggle('hidden', !isColl);
+          if (isColl) paintWtwCollectionsPanel();
         }
       });
     });
-    bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
+    if (siteWtwScope === 'collections') paintWtwCollectionsPanel();
+    else bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
   }
+
+  window.__mpWtwCollectionsBack = function () {
+    siteWtwCollectionCode = null;
+    try {
+      const url = '/whattowatch' + window.location.search + window.location.hash;
+      window.history.replaceState({ section: 'whattowatch' }, '', url);
+    } catch (_) {}
+    renderWhattowatchSection();
+  };
+
+  window.__mpWtwOpenCollectionCode = function (code) {
+    if (!code) return;
+    siteWtwScope = 'collections';
+    siteWtwCollectionCode = String(code);
+    try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+    try {
+      const url = '/features/collections/' + encodeURIComponent(code) + window.location.search + window.location.hash;
+      window.history.pushState({ section: 'whattowatch', collectionCode: code }, '', url);
+    } catch (_) {}
+    const cur = visibleCabinetSectionId();
+    if (cur !== 'whattowatch') {
+      showSection('whattowatch', { skipPush: true });
+    }
+    renderWhattowatchSection();
+  };
 
   function ensureSiteWtwWizardOverlay() {
     let el = document.getElementById('wtw-wizard-overlay');
@@ -17399,11 +17469,23 @@
         handleAuthEntryDeepLinks();
         return;
       }
-      if (guestDeep === 'collections') {
+      if (guestDeep === 'collections' || guestDeep === 'whattowatch') {
+        const collCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
+          ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
+          : null;
         showScreen('cabinet-readonly');
         renderHeader(null);
-        showSection('collections', { skipPush: true });
-        afterCabinetSectionShown('collections');
+        if (collCode) {
+          siteWtwScope = 'collections';
+          siteWtwCollectionCode = collCode;
+          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+        } else if (guestDeep === 'collections' || window.location.pathname.indexOf('/features/collections') === 0) {
+          siteWtwScope = 'collections';
+          siteWtwCollectionCode = null;
+          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+        }
+        showSection('whattowatch', { skipPush: true });
+        afterCabinetSectionShown('whattowatch');
         handleAuthEntryDeepLinks();
         return;
       }
