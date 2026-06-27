@@ -820,6 +820,19 @@
     }
   }
 
+  function fetchFilmSimilarPaginated(film, filmId, myRating) {
+    if (myRating == null || myRating < HIGH_RATING_SIMILAR_MIN) {
+      return Promise.resolve({ success: true, items: [] });
+    }
+    const kp = String((film && film.kp_id) || '').replace(/\D/g, '');
+    if (kp) {
+      return api('/api/miniapp/film/' + encodeURIComponent(kp) + '/similar?offset=0&limit=24').catch(function () {
+        return api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; });
+      });
+    }
+    return api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; });
+  }
+
   function mapLiteFilmForHero(lite, kp) {
     const d = lite || {};
     return {
@@ -10934,9 +10947,7 @@
         return null;
       }
       const myRating = filmMyRating(detail.ratings || [], detail.me);
-      const simPromise = myRating >= HIGH_RATING_SIMILAR_MIN
-        ? api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; })
-        : Promise.resolve({ success: true, items: [] });
+      const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         const data = {
           film: detail.film,
@@ -11141,9 +11152,7 @@
       }
       if (_filmModalCurrentId !== filmId) return;
       const myRating = filmMyRating(detail.ratings || [], detail.me);
-      const simPromise = myRating >= HIGH_RATING_SIMILAR_MIN
-        ? api('/api/site/film/' + filmId + '/similar').catch(function () { return { success: true, items: [] }; })
-        : Promise.resolve({ success: true, items: [] });
+      const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         if (_filmModalCurrentId !== filmId) return;
         const data = {
@@ -11223,7 +11232,7 @@
         }
       };
       if (myRating >= HIGH_RATING_SIMILAR_MIN) {
-        return api('/api/site/film/' + filmId + '/similar').then(function (sim) {
+        return fetchFilmSimilarPaginated(cache.film, filmId, filmMyRating(cache.ratings || [], cache.me)).then(function (sim) {
           cache.similar = (sim && sim.items) || [];
           finish();
         }).catch(function () {
