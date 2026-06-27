@@ -10929,7 +10929,7 @@ body.site-search-sheet-open { overflow: hidden; }
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 .site-search-section-label {
   font-family: 'Unbounded', sans-serif;
@@ -10958,7 +10958,7 @@ body.site-search-sheet-open { overflow: hidden; }
   display: block;
   max-width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 .site-search-persons-grid {
   display: grid;
@@ -10966,6 +10966,7 @@ body.site-search-sheet-open { overflow: hidden; }
   gap: 12px;
   min-width: 0;
   max-width: 100%;
+  padding: 2px 0;
 }
 .site-search-persons-more {
   display: contents;
@@ -11111,8 +11112,15 @@ body.landing-root-page #landing-root-nav.hidden {
 .site-search-person-card:hover {
   border-color: rgba(255, 45, 123, 0.55);
   background: rgba(168, 85, 247, 0.12);
-  transform: translateY(-1px);
   box-shadow: 0 10px 28px rgba(168, 85, 247, 0.18);
+}
+.site-search-person-card:active,
+.site-search-person-card:focus-visible {
+  border-color: rgba(255, 45, 123, 0.72);
+  background: rgba(168, 85, 247, 0.14);
+  transform: none;
+  box-shadow: 0 0 0 1px rgba(255, 45, 123, 0.45), 0 10px 28px rgba(168, 85, 247, 0.18);
+  outline: none;
 }
 .site-search-person-photo {
   width: 104px;
@@ -11478,16 +11486,16 @@ body.header-search-dropdown-open #public-stats {
 }
 .staff-page { display: flex; flex-direction: column; gap: 8px; }
 .staff-hero {
-  display: flex; gap: 18px; align-items: flex-start; margin-bottom: 20px;
+  display: flex; gap: 18px; align-items: center; margin-bottom: 20px;
   padding: 18px 20px; border-radius: 18px;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
 }
 .staff-hero-photo { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
 .staff-hero-ph { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.08); font-size: 44px; }
-.staff-hero-text { min-width: 0; flex: 1; }
+.staff-hero-text { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .staff-hero-name { margin: 0; font-family: Unbounded, Inter, sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 800; line-height: 1.15; }
-.staff-hero-sub { color: rgba(244,246,255,.62); margin: 6px 0 0; font-size: 15px; }
-.staff-hero-meta { color: rgba(244,246,255,.5); margin: 8px 0 0; font-size: 13px; font-weight: 600; }
+.staff-hero-sub { color: rgba(244,246,255,.62); margin: 4px 0 0; font-size: 15px; }
+.staff-hero-meta { color: rgba(244,246,255,.5); margin: 4px 0 0; font-size: 13px; font-weight: 600; }
 .staff-loading { padding: 24px 0; color: rgba(244,246,255,.55); }
 /* Person filters — как в Mini App */
 .person-filters { margin: 12px 0 18px; }
@@ -11522,6 +11530,15 @@ body.header-search-dropdown-open #public-stats {
   background: rgba(255,45,123,.12);
   color: #fff;
   font-weight: 600;
+}
+.staff-page .chip.chip-disabled,
+.staff-standalone-page .chip.chip-disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: rgba(244,246,255,.38);
 }
 .staff-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; align-items: flex-end; }
 .staff-filter { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }

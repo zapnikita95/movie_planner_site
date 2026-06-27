@@ -2449,13 +2449,47 @@
     return body.error === 'try_again' || body.error === 'server_busy' || body.error === 'timeout';
   }
 
+  function isTransientBootError(me) {
+    const e = String((me && me.error) || '').toLowerCase();
+    return e === 'timeout' || e === 'network' || e === 'server_busy' || e === 'server error'
+      || e === 'try_again' || e === 'http_503' || e === 'http_502' || e === 'http_504';
+  }
+
+  function isSessionInvalidError(me) {
+    const e = String((me && me.error) || '').toLowerCase();
+    return e === 'unauthorized' || e === 'invalid_token' || e === 'token_expired'
+      || e === 'http_401' || e === 'session_expired';
+  }
+
+  function cabinetMeFromStoredSession() {
+    const sess = getActiveSession();
+    if (!sess || !sess.token) return null;
+    return {
+      success: true,
+      name: sess.name || getPersonalSessionName(),
+      has_data: !!sess.has_data,
+      user_id: sess.user_id || null,
+      photo_url: sess.photo_url || null,
+    };
+  }
+
+  function showCabinetWithStoredSessionFallback() {
+    if (!getToken()) return false;
+    try { window._mpApiAuthDegraded = true; } catch (_) {}
+    const me = _cabinetMeCache || cabinetMeFromStoredSession();
+    if (!me) return false;
+    renderHeader(me);
+    showCabinetAfterLogin(me);
+    return true;
+  }
+
   function api(url, options = {}) {
     const token = getToken();
     const max503Retries = 3;
-    const attempt = (retried, retry503) => apiOnce(url, options, token).then((res) => {
+    const attempt = (retried, retry503, me401Retries) => apiOnce(url, options, token).then((res) => {
       if (apiShouldRetry503(res) && retry503 < max503Retries) {
         const delayMs = 320 * Math.pow(2, retry503);
-        return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(retried, retry503 + 1));
+        return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(retried, retry503 + 1, me401Retries));
       }
       if (!res._http401) return res.body;
       const body = res.body || {};
@@ -2466,7 +2500,7 @@
           }).then((retryRes) => {
             if (apiShouldRetry503(retryRes) && retry503 < max503Retries) {
               const delayMs = 320 * Math.pow(2, retry503);
-              return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(true, retry503 + 1));
+              return new Promise((resolve) => { setTimeout(resolve, delayMs); }).then(() => attempt(true, retry503 + 1, me401Retries));
             }
             if (!retryRes._http401) return retryRes.body;
             try { window._mpApiAuthDegraded = true; } catch (_) {}
@@ -2475,6 +2509,11 @@
         }
         try { window._mpApiAuthDegraded = true; } catch (_) {}
         return body;
+      }
+      if (me401Retries < 2) {
+        const delayMs = me401Retries === 0 ? 650 : 1500;
+        return new Promise((resolve) => { setTimeout(resolve, delayMs); })
+          .then(() => attempt(true, retry503, me401Retries + 1));
       }
       removeSessionByToken(token);
       const failKp = filmKpFromLocation();
@@ -2490,7 +2529,7 @@
       if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       return body;
     });
-    return attempt(false, 0).catch(() => ({ success: false, error: 'network' }));
+    return attempt(false, 0, 0).catch(() => ({ success: false, error: 'network' }));
   }
 
   let _profilesApiInflight = null;
@@ -3864,6 +3903,47 @@
     });
   }
 
+  function countStaffFilmsSite(roles, state) {
+    let total = 0;
+    (roles || []).forEach(function (block) {
+      total += filterPersonFilmsSite(block.films || [], state).length;
+    });
+    return total;
+  }
+
+  function staffToggleAvailabilitySite(roles, state) {
+    const base = {
+      year: state.year || '',
+      genre: state.genre || '',
+      mainRolesOnly: !!state.mainRolesOnly,
+      friendsRatedOnly: !!state.friendsRatedOnly,
+    };
+    return {
+      mainDisabled: !base.mainRolesOnly && countStaffFilmsSite(roles, Object.assign({}, base, { mainRolesOnly: true })) === 0,
+      friendsDisabled: !base.friendsRatedOnly && countStaffFilmsSite(roles, Object.assign({}, base, { friendsRatedOnly: true })) === 0,
+    };
+  }
+
+  function updateStaffToggleChipsSite(root, roles, filterState) {
+    const avail = staffToggleAvailabilitySite(roles, filterState);
+    const mainBtn = root.querySelector('#staff-toggle-main');
+    const friendsBtn = root.querySelector('#staff-toggle-friends');
+    if (mainBtn) {
+      mainBtn.classList.toggle('chip-on', !!filterState.mainRolesOnly);
+      mainBtn.classList.toggle('chip-disabled', !!avail.mainDisabled);
+      mainBtn.disabled = !!avail.mainDisabled;
+      mainBtn.setAttribute('aria-pressed', filterState.mainRolesOnly ? 'true' : 'false');
+      mainBtn.setAttribute('aria-disabled', avail.mainDisabled ? 'true' : 'false');
+    }
+    if (friendsBtn) {
+      friendsBtn.classList.toggle('chip-on', !!filterState.friendsRatedOnly);
+      friendsBtn.classList.toggle('chip-disabled', !!avail.friendsDisabled);
+      friendsBtn.disabled = !!avail.friendsDisabled;
+      friendsBtn.setAttribute('aria-pressed', filterState.friendsRatedOnly ? 'true' : 'false');
+      friendsBtn.setAttribute('aria-disabled', avail.friendsDisabled ? 'true' : 'false');
+    }
+  }
+
   const FILM_CAST_ACTORS_COLLAPSED = 4;
 
   function bindFilmActorsExpand(root) {
@@ -4094,11 +4174,17 @@
         const filtered = filterPersonFilmsSite(block.films || [], filterState);
         const importable = filtered.filter(function (f) { return f.importable; }).map(function (f) { return String(f.kp_id); });
         const grid = sec.querySelector('.staff-film-grid');
+        const empty = sec.querySelector('.staff-empty-role');
         if (grid) {
           const wrap = document.createElement('div');
           wrap.innerHTML = gridHtml(filtered);
           const next = wrap.firstElementChild;
           if (next) grid.replaceWith(next);
+        } else if (empty) {
+          const wrap = document.createElement('div');
+          wrap.innerHTML = gridHtml(filtered);
+          const next = wrap.firstElementChild;
+          if (next) empty.replaceWith(next);
         }
         const btn = sec.querySelector('.staff-import-btn');
         if (btn) {
@@ -4108,8 +4194,7 @@
           btn._importIds = importable;
         }
       });
-      root.querySelector('#staff-toggle-main')?.classList.toggle('chip-on', !!filterState.mainRolesOnly);
-      root.querySelector('#staff-toggle-friends')?.classList.toggle('chip-on', !!filterState.friendsRatedOnly);
+      updateStaffToggleChipsSite(root, roles, filterState);
     }
 
     function staffMetaHtml(p) {
@@ -4120,9 +4205,11 @@
         parts.push(y);
       }
       if (p.country) parts.push(String(p.country));
+      if (!parts.length && p.professions) parts.push(String(p.professions).slice(0, 96));
       if (!parts.length) return '';
       return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
     }
+    const toggleAvail = staffToggleAvailabilitySite(roles, filterState);
     const titleName = person.display_name || person.name_ru || person.name_en || '—';
     const secondaryName = person.secondary_name || (
       person.name_en && person.name_ru && person.name_en !== person.name_ru ? person.name_en : ''
@@ -4141,8 +4228,12 @@
         '<label class="staff-filter"><span>Год</span><select id="staff-filter-year">' + yearOpts() + '</select></label>' +
         '<label class="staff-filter"><span>Жанр</span><select id="staff-filter-genre">' + genreOpts() + '</select></label>' +
         '<div class="staff-filter-toggles">' +
-          '<button type="button" class="chip" id="staff-toggle-main">Главные роли</button>' +
-          '<button type="button" class="chip" id="staff-toggle-friends">Друзья хорошо оценили</button>' +
+          '<button type="button" class="chip' + (filterState.mainRolesOnly ? ' chip-on' : '') + (toggleAvail.mainDisabled ? ' chip-disabled' : '') + '" id="staff-toggle-main"' +
+            (toggleAvail.mainDisabled ? ' disabled aria-disabled="true"' : ' aria-disabled="false"') +
+            ' aria-pressed="' + (filterState.mainRolesOnly ? 'true' : 'false') + '">Главные роли</button>' +
+          '<button type="button" class="chip' + (filterState.friendsRatedOnly ? ' chip-on' : '') + (toggleAvail.friendsDisabled ? ' chip-disabled' : '') + '" id="staff-toggle-friends"' +
+            (toggleAvail.friendsDisabled ? ' disabled aria-disabled="true"' : ' aria-disabled="false"') +
+            ' aria-pressed="' + (filterState.friendsRatedOnly ? 'true' : 'false') + '">Друзья хорошо оценили</button>' +
         '</div></div>' +
       roles.map(function (block, idx) {
         const filtered = filterPersonFilmsSite(block.films || [], filterState);
@@ -4167,13 +4258,24 @@
       paintRoles();
     });
     root.querySelector('#staff-toggle-main')?.addEventListener('click', function (e) {
+      const btn = e.currentTarget;
+      if (btn.disabled || btn.classList.contains('chip-disabled')) return;
       filterState.mainRolesOnly = !filterState.mainRolesOnly;
-      e.currentTarget.classList.toggle('chip-on', filterState.mainRolesOnly);
       paintRoles();
     });
     root.querySelector('#staff-toggle-friends')?.addEventListener('click', function (e) {
+      const btn = e.currentTarget;
+      if (btn.disabled || btn.classList.contains('chip-disabled')) return;
+      if (!getToken()) {
+        if (window.MpPublicFilmLogin) {
+          try { sessionStorage.setItem('mp_public_film_action', 'person_friends:' + (person.kp_person_id || '')); } catch (_) {}
+          window.MpPublicFilmLogin.open('person_friends');
+        } else {
+          showLoginModalOverlay();
+        }
+        return;
+      }
       filterState.friendsRatedOnly = !filterState.friendsRatedOnly;
-      e.currentTarget.classList.toggle('chip-on', filterState.friendsRatedOnly);
       paintRoles();
     });
     root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
@@ -5694,30 +5796,29 @@
   function loadMeAndShowCabinet() {
     api('/api/site/me').then((me) => {
       if (!me.success) {
-        const transient = me && (me.error === 'timeout' || me.error === 'network' || me.error === 'server_busy' || me.error === 'server error');
-        if (transient && getToken()) {
-          try { window._mpApiAuthDegraded = true; } catch (_) {}
-          if (_cabinetMeCache) {
-            renderHeader(_cabinetMeCache);
-            showCabinetAfterLogin(_cabinetMeCache);
-            return;
+        const transient = isTransientBootError(me);
+        const invalid = isSessionInvalidError(me);
+        if (getToken()) {
+          if (transient || !invalid) {
+            if (showCabinetWithStoredSessionFallback()) return;
+          } else if (invalid) {
+            clearStaleSiteSession();
           }
-        }
-        if (getToken() || hasAuthEntryDeepLink()) {
-          if (!transient) clearStaleSiteSession();
+        } else if (hasAuthEntryDeepLink() && invalid) {
+          clearStaleSiteSession();
         }
         const failKp = filmKpFromLocation();
         if (failKp) {
-          clearStaleSiteSession();
-          bootGuestFilmPage(failKp);
+          if (!getToken()) bootGuestFilmPage(failKp);
+          else if (invalid) bootGuestFilmPage(failKp);
           return;
         }
         const failStaff = staffKpFromLocation();
         if (failStaff) {
-          redirectToPublicStaffPage(failStaff);
+          if (!getToken()) redirectToPublicStaffPage(failStaff);
           return;
         }
-        showGuestLandingScreen();
+        if (!getToken()) showGuestLandingScreen();
         return;
       }
       try {
@@ -5777,13 +5878,7 @@
         }
       } catch (_) {}
     }).catch(function () {
-      if (getToken() && _cabinetMeCache) {
-        try { window._mpApiAuthDegraded = true; } catch (_) {}
-        renderHeader(_cabinetMeCache);
-        showCabinetAfterLogin(_cabinetMeCache);
-        return;
-      }
-      if (getToken() || hasAuthEntryDeepLink()) clearStaleSiteSession();
+      if (showCabinetWithStoredSessionFallback()) return;
       const failKp = filmKpFromLocation();
       if (failKp) {
         bootGuestFilmPage(failKp);
@@ -5794,7 +5889,7 @@
         redirectToPublicStaffPage(failStaff);
         return;
       }
-      showGuestLandingScreen();
+      if (!getToken()) showGuestLandingScreen();
     });
   }
 

@@ -155,8 +155,40 @@
       parts.push(y);
     }
     if (person.country) parts.push(String(person.country));
+    if (!parts.length && person.professions) {
+      parts.push(String(person.professions).slice(0, 96));
+    }
     if (!parts.length) return '';
     return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
+  }
+
+  function countStaffFilmsWithState(state) {
+    var total = 0;
+    ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (block) {
+      total += filterPersonFilmsClient(block.films || [], state).length;
+    });
+    return total;
+  }
+
+  function staffToggleChipAvailability() {
+    var base = {
+      year: _staffFilterState.year || '',
+      genre: _staffFilterState.genre || '',
+      mainRolesOnly: !!_staffFilterState.mainRolesOnly,
+      friendsRatedOnly: !!_staffFilterState.friendsRatedOnly,
+    };
+    return {
+      mainDisabled: !base.mainRolesOnly && countStaffFilmsWithState(Object.assign({}, base, { mainRolesOnly: true })) === 0,
+      friendsDisabled: !base.friendsRatedOnly && countStaffFilmsWithState(Object.assign({}, base, { friendsRatedOnly: true })) === 0,
+    };
+  }
+
+  function staffToggleChipAttrs(kind, avail) {
+    var disabled = kind === 'main' ? avail.mainDisabled : avail.friendsDisabled;
+    var on = kind === 'main' ? !!_staffFilterState.mainRolesOnly : !!_staffFilterState.friendsRatedOnly;
+    return ' class="chip' + (on ? ' chip-on' : '') + (disabled ? ' chip-disabled' : '') + '"'
+      + (disabled ? ' disabled aria-disabled="true"' : ' aria-disabled="false"')
+      + ' aria-pressed="' + (on ? 'true' : 'false') + '"';
   }
 
   function yearOptionsHtml() {
@@ -180,6 +212,7 @@
   }
 
   function filtersBarHtml() {
+    var avail = staffToggleChipAvailability();
     return (
       '<div class="person-filters" id="staff-person-filters">' +
         '<div class="person-filters-row">' +
@@ -193,8 +226,8 @@
           '</label>' +
         '</div>' +
         '<div class="person-filters-toggles">' +
-          '<button type="button" class="chip' + (_staffFilterState.mainRolesOnly ? ' chip-on' : '') + '" id="staff-toggle-main" aria-pressed="' + (_staffFilterState.mainRolesOnly ? 'true' : 'false') + '">Главные роли</button>' +
-          '<button type="button" class="chip' + (_staffFilterState.friendsRatedOnly ? ' chip-on' : '') + '" id="staff-toggle-friends" aria-pressed="' + (_staffFilterState.friendsRatedOnly ? 'true' : 'false') + '">Друзья хорошо оценили</button>' +
+          '<button type="button"' + staffToggleChipAttrs('main', avail) + ' id="staff-toggle-main">Главные роли</button>' +
+          '<button type="button"' + staffToggleChipAttrs('friends', avail) + ' id="staff-toggle-friends">Друзья хорошо оценили</button>' +
         '</div>' +
         '<div class="person-filters-sort">' +
           '<span class="person-filter-k">Сортировка</span>' +
@@ -341,16 +374,19 @@
     }
     if (mainBtn) {
       mainBtn.addEventListener('click', function () {
+        if (mainBtn.disabled || mainBtn.classList.contains('chip-disabled')) return;
         _staffFilterState.mainRolesOnly = !_staffFilterState.mainRolesOnly;
         paintStaffRoles();
       });
     }
     if (friendsBtn) {
       friendsBtn.addEventListener('click', function () {
+        if (friendsBtn.disabled || friendsBtn.classList.contains('chip-disabled')) return;
         if (!mpToken()) {
           _staffPendingFriendsFilter = true;
           if (_staffLoginNow) _staffLoginNow('person_friends');
           else if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('person_friends');
+          else showStaffLoginModal();
           return;
         }
         _staffFilterState.friendsRatedOnly = !_staffFilterState.friendsRatedOnly;
@@ -385,6 +421,40 @@
     });
   }
 
+  function showStaffLoginModal() {
+    if (typeof global.showLoginModalOverlay === 'function') {
+      global.showLoginModalOverlay();
+      return;
+    }
+    var modal = document.getElementById('login-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('login-only-overlay');
+    }
+  }
+
+  function updateStaffToggleChips(filtersRoot) {
+    if (!filtersRoot) return;
+    var avail = staffToggleChipAvailability();
+    var mainBtn = filtersRoot.querySelector('#staff-toggle-main');
+    var friendsBtn = filtersRoot.querySelector('#staff-toggle-friends');
+    if (mainBtn) {
+      mainBtn.classList.toggle('chip-on', !!_staffFilterState.mainRolesOnly);
+      mainBtn.classList.toggle('chip-disabled', !!avail.mainDisabled);
+      mainBtn.disabled = !!avail.mainDisabled;
+      mainBtn.setAttribute('aria-pressed', _staffFilterState.mainRolesOnly ? 'true' : 'false');
+      mainBtn.setAttribute('aria-disabled', avail.mainDisabled ? 'true' : 'false');
+    }
+    if (friendsBtn) {
+      friendsBtn.classList.toggle('chip-on', !!_staffFilterState.friendsRatedOnly);
+      friendsBtn.classList.toggle('chip-disabled', !!avail.friendsDisabled);
+      friendsBtn.disabled = !!avail.friendsDisabled;
+      friendsBtn.setAttribute('aria-pressed', _staffFilterState.friendsRatedOnly ? 'true' : 'false');
+      friendsBtn.setAttribute('aria-disabled', avail.friendsDisabled ? 'true' : 'false');
+    }
+  }
+
   function paintStaffRoles() {
     var root = staffContentRoot();
     if (!root || !_staffLastData) return;
@@ -394,18 +464,9 @@
     if (filtersRoot) {
       var yearEl = filtersRoot.querySelector('#staff-filter-year');
       var genreEl = filtersRoot.querySelector('#staff-filter-genre');
-      var mainBtn = filtersRoot.querySelector('#staff-toggle-main');
-      var friendsBtn = filtersRoot.querySelector('#staff-toggle-friends');
       if (yearEl) yearEl.value = _staffFilterState.year || '';
       if (genreEl) genreEl.value = _staffFilterState.genre || '';
-      if (mainBtn) {
-        mainBtn.classList.toggle('chip-on', !!_staffFilterState.mainRolesOnly);
-        mainBtn.setAttribute('aria-pressed', _staffFilterState.mainRolesOnly ? 'true' : 'false');
-      }
-      if (friendsBtn) {
-        friendsBtn.classList.toggle('chip-on', !!_staffFilterState.friendsRatedOnly);
-        friendsBtn.setAttribute('aria-pressed', _staffFilterState.friendsRatedOnly ? 'true' : 'false');
-      }
+      updateStaffToggleChips(filtersRoot);
       var sortRating = filtersRoot.querySelector('#staff-sort-rating');
       var sortYearDesc = filtersRoot.querySelector('#staff-sort-year-desc');
       var sortYearAsc = filtersRoot.querySelector('#staff-sort-year-asc');
