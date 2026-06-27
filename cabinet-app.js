@@ -11712,7 +11712,10 @@
     return Promise.all([popPromise, premPromise]).then(([pop, prem]) => {
       let items = (prem && prem.items) ? prem.items.slice() : [];
       if (typeof filterPremieresUpcomingMsk === 'function') {
-        items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
+        items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: false } : {});
+      }
+      if (typeof filterPremieresHubNowPlaying === 'function') {
+        items = filterPremieresHubNowPlaying(items);
       }
       const bag = {
         ts: Date.now(),
@@ -11978,7 +11981,7 @@
     let html = '';
     if (persons.length) {
       html += persons.slice(0, HEADER_SEARCH_PREVIEW_PERSONS).map((p) => {
-        const name = escapeHtml(p.name_ru || p.name_en || 'Персона');
+        const name = escapeHtml(p.display_name || p.name_ru || p.name_en || 'Персона');
         const prof = escapeHtml(String(p.professions || '').slice(0, 60));
         return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
         ${siteSearchPersonPhotoHtml(p.photo, p.kp_person_id, 'hs-result-poster hs-result-person-photo')}
@@ -16070,6 +16073,22 @@
     }
     return null;
   }
+  /** «Сейчас в прокате» в поиске: только с датой, недавно вышли или скоро (МСК). */
+  function filterPremieresHubNowPlaying(items) {
+    const today = premiereTodayYmdMsk();
+    if (!today) return (items || []).slice();
+    const tParts = today.split('-').map(Number);
+    const tUtc = Date.UTC(tParts[0], tParts[1] - 1, tParts[2]);
+    return (items || []).filter((p) => {
+      const ymd = premiereExtractYmd(p.premiere_date);
+      if (!ymd) return false;
+      const pParts = ymd.split('-').map(Number);
+      const pUtc = Date.UTC(pParts[0], pParts[1] - 1, pParts[2]);
+      const delta = Math.round((pUtc - tUtc) / 86400000);
+      return delta >= -21 && delta <= 120;
+    });
+  }
+
   /** Текущий / следующий месяц: только даты строго после сегодня (МСК), как «Скоро» в миниаппе. */
   function filterPremieresUpcomingMsk(items, opts) {
     opts = opts || {};
