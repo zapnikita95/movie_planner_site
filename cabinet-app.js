@@ -820,6 +820,48 @@
     }
   }
 
+  function mapLiteFilmForHero(lite, kp) {
+    const d = lite || {};
+    return {
+      kp_id: String(kp || d.kp_id || '').replace(/\D/g, ''),
+      title: d.title || 'Фильм',
+      year: d.year,
+      country: d.country,
+      genres: Array.isArray(d.genres) ? d.genres.join(', ') : (d.genres || ''),
+      description: d.description || '',
+      poster_url: d.poster || d.poster_url || '',
+      is_series: !!d.is_series,
+      watched: !!d.watched,
+      in_library: !!d.in_library,
+    };
+  }
+
+  function stashFilmShellFromCard(card) {
+    if (!card) return;
+    const kp = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').replace(/\D/g, '');
+    const title = card.getAttribute('data-title');
+    if (!kp || !title) return;
+    try {
+      sessionStorage.setItem('mp_film_shell_kp_' + kp, JSON.stringify({
+        kp_id: kp,
+        title: title,
+        poster: card.getAttribute('data-poster') || '',
+        year: card.getAttribute('data-year') || '',
+        is_series: card.getAttribute('data-is-series') === '1',
+      }));
+    } catch (_) {}
+  }
+
+  function popFilmShellSeed(kp) {
+    try {
+      const raw = sessionStorage.getItem('mp_film_shell_kp_' + kp);
+      sessionStorage.removeItem('mp_film_shell_kp_' + kp);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function mapPublicFilmForHero(pub, kp) {
     const f = pub || {};
     return {
@@ -969,18 +1011,40 @@
         pageRootEarly.innerHTML = pageLoadingHtml();
       }
     }
-    return api('/api/site/film-by-kp/' + kp).then(function (res) {
-      if (res && res.success && res.film_id) {
-        return openFilmPage(Number(res.film_id), {
-          skipHistory: o.skipHistory,
-          replace: o.replace,
-          kpId: kp,
-          action: o.action || '',
+    const shellSeed = popFilmShellSeed(kp);
+    if (shellSeed && shellSeed.title && pageRootEarly && !paintFilmRouteBoot(kp, o)) {
+      pageRootEarly.className = 'movie-page';
+      renderFilmDetailHero(mapLiteFilmForHero(shellSeed, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
+        inBase: false,
+        pendingAction: o.action || '',
+      });
+    }
+    const litePaint = api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite')
+      .then(function (lite) {
+        if (!lite || !lite.title || !pageRootEarly) return;
+        if (shellSeed && shellSeed.title) return;
+        if (paintFilmRouteBoot(kp, o)) return;
+        pageRootEarly.className = 'movie-page';
+        renderFilmDetailHero(mapLiteFilmForHero(lite, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
+          inBase: !!lite.in_library,
+          pendingAction: o.action || '',
         });
-      }
-      return openFilmHeroByKpPublic(kp, o);
-    }).catch(function () {
-      return openFilmHeroByKpPublic(kp, o);
+      })
+      .catch(function () {});
+    return litePaint.then(function () {
+      return api('/api/site/film-by-kp/' + kp).then(function (res) {
+        if (res && res.success && res.film_id) {
+          return openFilmPage(Number(res.film_id), {
+            skipHistory: o.skipHistory,
+            replace: o.replace,
+            kpId: kp,
+            action: o.action || '',
+          });
+        }
+        return openFilmHeroByKpPublic(kp, o);
+      }).catch(function () {
+        return openFilmHeroByKpPublic(kp, o);
+      });
     });
   }
 
@@ -6133,6 +6197,7 @@
 
   function openFilmFromCard(card) {
     if (!card) return;
+    stashFilmShellFromCard(card);
     const kpId = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').trim();
     const filmId = String(card.getAttribute('data-film-id') || '').trim();
     if (isCabinetActive()) {
