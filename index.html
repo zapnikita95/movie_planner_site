@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628stafffix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628stafffix1">
+    <link rel="preload" href="/style-v2.css?v=20260628voiceicon1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628voiceicon1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -621,7 +621,7 @@
         <div class="header-search hidden" id="header-search" role="search" aria-hidden="true">
           <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
-          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="regular" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
           <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
@@ -2274,7 +2274,12 @@
         ];
         var list;
         if (isSearch) {
-          list = ['mp-api-config.js?v=20260627apiams1', 'page-loading.js?v=20260529mobileparity1', 'cabinet-app.js?v=20260628stafffix1'];
+          list = [
+            'mp-api-config.js?v=20260627apiams1',
+            'mp-icons.js?v=20260627history1',
+            'page-loading.js?v=20260529mobileparity1',
+            'cabinet-app.js?v=20260628voiceicon1'
+          ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2284,9 +2289,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628stafffix1');
+          list.push('cabinet-app.js?v=20260628voiceicon1');
         } else {
-          list.push('cabinet-app.js?v=20260628stafffix1');
+          list.push('cabinet-app.js?v=20260628voiceicon1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

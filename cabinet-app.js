@@ -13322,6 +13322,11 @@
     const clearBtn = document.getElementById('header-search-clear');
     if (!wrap || !input) return;
     bindHeaderSearchViewportSync();
+    try {
+      if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') {
+        window.MPIcons.hydrate(wrap);
+      }
+    } catch (_) {}
 
     wrap.addEventListener('click', (e) => {
       if (e.target.closest('#header-search-dropdown')) return;

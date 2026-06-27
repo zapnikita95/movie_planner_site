@@ -10575,7 +10575,12 @@ body.login-only-overlay .parallax-bg {
   line-height: 1;
   background: rgba(255,255,255,.08);
 }
-.header-search .header-search-mic { right: 14px; }
+.header-search .header-search-mic { right: 14px; color: rgba(255, 255, 255, 0.88); }
+.header-search .header-search-mic > i[class^="ph"] {
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+}
 .header-search .header-search-clear { right: 14px; }
 .header-search .header-search-mic:not(.hidden) + .header-search-clear:not(.hidden) {
   right: 54px;
