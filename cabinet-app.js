@@ -1355,6 +1355,47 @@
     document.body.style.overflow = '';
   }
 
+  function siteOnboardingApiPost(url, body, libOpts, timeoutMs) {
+    const opts = {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+      planLibrary: !!(libOpts && libOpts.planLibrary),
+    };
+    if (timeoutMs != null) opts.timeoutMs = timeoutMs;
+    return api(url, opts).then(function (data) {
+      if (data && data.success === false) {
+        const err = new Error((data && data.message) || data.error || 'request_failed');
+        err.data = data;
+        throw err;
+      }
+      return data;
+    });
+  }
+
+  function siteOnboardingNavigate(path, opts) {
+    const p = String(path || '');
+    const replace = !!(opts && opts.replace);
+    if (p.indexOf('/plan/home') === 0 || p.indexOf('/plan/cinema') === 0) {
+      const qs = p.split('?')[1] || '';
+      const params = new URLSearchParams(qs);
+      const kp = params.get('kp');
+      const title = params.get('title') || '';
+      const cinema = p.indexOf('/plan/cinema') === 0;
+      if (params.get('onboard') === '1') {
+        try { sessionStorage.setItem('mp_site_plan_onboard', '1'); } catch (_) {}
+      }
+      if (kp) {
+        openSiteOnboardPlanModal(kp, title, cinema ? 'cinema' : 'home');
+      } else {
+        showSection('plans', { replace: replace });
+      }
+      return;
+    }
+    if (p === '/' || p === '') {
+      showSection('home', { replace: replace });
+    }
+  }
+
   function _siteOnboardingDeps() {
     return {
       isDesktop: typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 900px)').matches,
@@ -1366,15 +1407,19 @@
         }
         return api(u);
       },
-      apiPost: function (url, body) {
-        return api(url, { method: 'POST', body: JSON.stringify(body || {}) });
-      },
+      apiPost: siteOnboardingApiPost,
       escapeHtml: escapeHtml,
       lockViewportScroll: siteLockViewportScroll,
       unlockViewportScroll: siteUnlockViewportScroll,
+      hideLoader: function () {
+        try {
+          document.querySelectorAll('.mp-route-boot-loading').forEach(function (el) { el.remove(); });
+        } catch (_) {}
+      },
       markFirstOnboardingDoneAsync: function () {
         return uiTourMarkDone(UI_TOUR_KEYS.onboarding);
       },
+      markOnboardingSessionComplete: function () {},
       posterUrl: function (kp) { return posterUrl(kp); },
       hapticImpact: function () {},
       toast: showToast,
@@ -1385,36 +1430,15 @@
           if (val) val.textContent = data.is_infinite ? '∞' : String(data.balance != null ? data.balance : '—');
         }).catch(function () {});
       },
-      WTW_GENRES_FALLBACK: SITE_WTW_GENRES_FALLBACK,
-      navigate: function (path) {
-        const p = String(path || '');
-        if (p.indexOf('/import-kinopoisk') === 0) {
-          try { sessionStorage.setItem('mp_onboard_import_tab', 'kp'); } catch (_) {}
-          showSection('settings', { replace: true });
-          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
-          return;
-        }
-        if (p.indexOf('/import-external') === 0) {
-          try { sessionStorage.setItem('mp_onboard_import_tab', 'ext'); } catch (_) {}
-          showSection('settings', { replace: true });
-          try { renderSettingsSection && renderSettingsSection(); } catch (_) {}
-          return;
-        }
-        if (p.indexOf('/plan/home') === 0) {
-          const qs = p.split('?')[1] || '';
-          const params = new URLSearchParams(qs);
-          const kp = params.get('kp');
-          const title = params.get('title') || '';
-          if (params.get('onboard') === '1') {
-            try { sessionStorage.setItem('mp_site_plan_onboard', '1'); } catch (_) {}
-          }
-          if (kp) {
-            openSiteOnboardPlanModal(kp, title);
-          } else {
-            showSection('plans', { replace: true });
-          }
-        }
+      invalidateCache: function () {},
+      obClientLog: function (event, details) {
+        siteOnboardingApiPost('/api/miniapp/onboarding/client-log', {
+          event: String(event || ''),
+          details: Object.assign({ v: 'site', ts: Date.now() }, details || {}),
+        }).catch(function () {});
       },
+      WTW_GENRES_FALLBACK: SITE_WTW_GENRES_FALLBACK,
+      navigate: siteOnboardingNavigate,
     };
   }
 
@@ -1448,13 +1472,14 @@
     }
   }
 
-  function openSiteFilmPlanModal(kpId, title, place) {
+  function openSiteFilmPlanModal(kpId, title, place, opts) {
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return;
     if (typeof window.MpPlanModal?.open !== 'function') {
       showToast('Форма плана недоступна', { type: 'error' });
       return;
     }
+    const o = opts || {};
     MpPlanModal.open({
       apiBase: API_BASE,
       getAuthHeaders() {
@@ -1472,15 +1497,26 @@
       kpId: kp,
       title: title || 'Фильм',
       mode: place === 'cinema' ? 'cinema' : 'home',
-      onSuccess() {
-        showSection('plans', { replace: true });
-        try { renderPlansList && renderPlansList(); } catch (_) {}
+      onSuccess(res) {
+        const finish = function () {
+          showSection('plans', { replace: true });
+          try { renderPlansList && renderPlansList(); } catch (_) {}
+        };
+        if (o.onboardPlan) {
+          try { sessionStorage.removeItem('mp_site_plan_onboard'); } catch (_) {}
+          const coins = Number(res && res.coins_awarded) || 0;
+          if (coins > 0 && typeof window.__mpShowOnboardingCoinsAfterPlan === 'function') {
+            window.__mpShowOnboardingCoinsAfterPlan(_siteOnboardingDeps(), coins, finish);
+            return;
+          }
+        }
+        finish();
       },
     });
   }
 
-  function openSiteOnboardPlanModal(kpId, title) {
-    openSiteFilmPlanModal(kpId, title, 'home');
+  function openSiteOnboardPlanModal(kpId, title, place) {
+    openSiteFilmPlanModal(kpId, title, place || 'home', { onboardPlan: true });
   }
 
   function mountSiteFirstOnboardingWizard(onComplete) {
