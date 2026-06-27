@@ -159,6 +159,7 @@
     if (m.title) attrs += ' data-title="' + esc(String(m.title)) + '"';
     if (m.year) attrs += ' data-year="' + esc(String(m.year)) + '"';
     if (m.poster) attrs += ' data-poster="' + esc(String(m.poster)) + '"';
+    if (m.is_series) attrs += ' data-is-series="1"';
     return attrs;
   }
 
