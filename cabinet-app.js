@@ -3211,6 +3211,49 @@
     return window.matchMedia('(max-width: 768px)').matches;
   }
 
+  let _headerSearchViewportBound = false;
+
+  function syncHeaderSearchDropdownLayout() {
+    if (!isMobileHeaderSearchDropdownLayout()) return;
+    const dd = document.getElementById('header-search-dropdown');
+    if (!dd || dd.classList.contains('hidden') || !document.body.classList.contains('header-search-dropdown-open')) return;
+    const anchor = document.getElementById('header-search') || document.getElementById('header-search-input');
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const top = Math.max(0, Math.round(rect.bottom + 8));
+    dd.style.top = top + 'px';
+    const vv = window.visualViewport;
+    const viewportBottom = vv ? vv.height + vv.offsetTop : window.innerHeight;
+    const maxH = Math.max(140, Math.floor(viewportBottom - top - 12));
+    dd.style.maxHeight = maxH + 'px';
+  }
+
+  function scheduleHeaderSearchDropdownLayout() {
+    if (!isMobileHeaderSearchDropdownLayout()) return;
+    requestAnimationFrame(() => {
+      syncHeaderSearchDropdownLayout();
+      requestAnimationFrame(syncHeaderSearchDropdownLayout);
+    });
+  }
+
+  function bindHeaderSearchViewportSync() {
+    if (_headerSearchViewportBound) return;
+    _headerSearchViewportBound = true;
+    const onSync = () => scheduleHeaderSearchDropdownLayout();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onSync);
+      window.visualViewport.addEventListener('scroll', onSync);
+    }
+    window.addEventListener('resize', onSync);
+  }
+
+  function clearHeaderSearchDropdownLayout() {
+    const dd = document.getElementById('header-search-dropdown');
+    if (!dd) return;
+    dd.style.top = '';
+    dd.style.maxHeight = '';
+  }
+
   function lockHeaderSearchBodyScroll() {
     if (!isMobileHeaderSearchDropdownLayout()) return;
     if (document.body.classList.contains('header-search-body-locked')) return;
@@ -3231,8 +3274,13 @@
 
   function setHeaderSearchDropdownOpen(open) {
     document.body.classList.toggle('header-search-dropdown-open', !!open);
-    if (open) lockHeaderSearchBodyScroll();
-    else unlockHeaderSearchBodyScroll();
+    if (open) {
+      lockHeaderSearchBodyScroll();
+      scheduleHeaderSearchDropdownLayout();
+    } else {
+      unlockHeaderSearchBodyScroll();
+      clearHeaderSearchDropdownLayout();
+    }
   }
 
   function hideHeaderSearchDropdown() {
@@ -12077,7 +12125,6 @@
   const HEADER_SEARCH_QUICK_QUERIES = [
     'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
   ];
-  const HEADER_SEARCH_GENRE_HINTS = ['драма', 'комедия', 'триллер', 'фантастика', 'боевик', 'ужасы'];
 
   function _readJsonLs(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function _writeJsonLs(k, o) { try { localStorage.setItem(k, JSON.stringify(o)); } catch (e) {} }
@@ -12161,24 +12208,29 @@
     });
   }
 
-  function renderHeaderSearchHubHtml(bag, opts) {
-    opts = opts || {};
-    bag = bag || { popular: mergeHeaderSearchPopularChips(null), premieres: [] };
-    const recQ = _readJsonLs(LS_SEARCH_RECENT, []);
-    const recF = _readJsonLs(LS_FILM_RECENT, []);
+  function renderHeaderSearchTypeTabsHtml() {
     const tabs = [
       { id: 'any', label: 'Все' },
       { id: 'film', label: 'Фильмы' },
       { id: 'series', label: 'Сериалы' },
     ];
-    let h = '<div class="hs-hub">';
-    h += '<div class="hs-hub-tabs" role="tablist" aria-label="Тип поиска">';
+    let h = '<div class="hs-hub-tabs" role="tablist" aria-label="Тип поиска">';
     tabs.forEach((t) => {
       h += '<button type="button" class="hs-hub-tab' + (_headerSearchHubType === t.id ? ' active' : '') +
         '" data-hs-hub-tab="' + t.id + '" role="tab" aria-selected="' + (_headerSearchHubType === t.id ? 'true' : 'false') + '">' +
         escapeHtml(t.label) + '</button>';
     });
     h += '</div>';
+    return h;
+  }
+
+  function renderHeaderSearchHubHtml(bag, opts) {
+    opts = opts || {};
+    bag = bag || { popular: mergeHeaderSearchPopularChips(null), premieres: [] };
+    const recQ = _readJsonLs(LS_SEARCH_RECENT, []);
+    const recF = _readJsonLs(LS_FILM_RECENT, []);
+    let h = '<div class="hs-hub">';
+    h += renderHeaderSearchTypeTabsHtml();
 
     if (bag.popular.length) {
       h += '<div class="header-search-recent-title">Популярные запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
@@ -12187,12 +12239,6 @@
       });
       h += '</div>';
     }
-
-    h += '<div class="header-search-recent-title">Жанры</div><div class="header-search-recent-row hs-hub-chips-row">';
-    HEADER_SEARCH_GENRE_HINTS.forEach((g) => {
-      h += '<button type="button" class="header-search-chip header-search-chip--genre" data-hs-genre-q="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
-    });
-    h += '</div>';
 
     if (recQ.length) {
       h += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
@@ -12250,7 +12296,10 @@
     };
     dd.innerHTML = renderHeaderSearchHubHtml(shellBag, embedded ? { embedded: true } : {});
     dd.classList.remove('hidden');
-    if (dd.id === 'header-search-dropdown') setHeaderSearchDropdownOpen(true);
+    if (dd.id === 'header-search-dropdown') {
+      setHeaderSearchDropdownOpen(true);
+      scheduleHeaderSearchDropdownLayout();
+    }
     if (embedded) bindHeaderSearchHubClicks(dd);
     if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
       return;
@@ -12260,6 +12309,7 @@
         if (!dd) return;
         dd.innerHTML = renderHeaderSearchHubHtml(bag, embedded ? { embedded: true } : {});
         if (embedded) bindHeaderSearchHubClicks(dd);
+        if (dd.id === 'header-search-dropdown') scheduleHeaderSearchDropdownLayout();
       })
       .catch(() => {
         if (!dd) return;
@@ -12268,6 +12318,7 @@
           embedded ? { embedded: true } : {},
         );
         if (embedded) bindHeaderSearchHubClicks(dd);
+        if (dd.id === 'header-search-dropdown') scheduleHeaderSearchDropdownLayout();
       });
   }
 
@@ -12318,6 +12369,12 @@
         e.stopPropagation();
         _headerSearchHubType = tabBtn.getAttribute('data-hs-hub-tab') || 'any';
         _siteSearchFilterState.type = _headerSearchHubType;
+        const input = document.getElementById('header-search-input');
+        const activeQ = input ? input.value.trim() : '';
+        if (activeQ.length >= 2) {
+          runHeaderSearch(activeQ);
+          return;
+        }
         const dd = document.getElementById('header-search-dropdown');
         if (dd && !dd.classList.contains('hidden')) showHeaderSearchHub(dd);
         else if (root.id === 'site-search-status') {
@@ -12333,15 +12390,6 @@
         e.preventDefault();
         e.stopPropagation();
         applyHeaderSearchQuery(popBtn.getAttribute('data-hs-popular-q') || popBtn.getAttribute('data-hs-recent-q') || popBtn.textContent);
-        return;
-      }
-      const genreBtn = e.target.closest('[data-hs-genre-q]');
-      if (genreBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const g = genreBtn.getAttribute('data-hs-genre-q') || '';
-        _siteSearchFilterState.genre = g;
-        applyHeaderSearchQuery(g, { genre: g });
         return;
       }
       const premBtn = e.target.closest('[data-hs-premiere-kp]');
@@ -12407,9 +12455,11 @@
     if (!dd) return;
     persons = persons || [];
     if ((!items || !items.length) && (!persons || !persons.length)) {
-      dd.innerHTML = `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
+      dd.innerHTML = renderHeaderSearchTypeTabsHtml() +
+        `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
       dd.classList.remove('hidden');
       setHeaderSearchDropdownOpen(true);
+      scheduleHeaderSearchDropdownLayout();
       return;
     }
     let html = '';
@@ -12447,10 +12497,11 @@
         ${actionBtn}
       </div>`;
     }).join('');
-    html = '<div class="hs-preview-body">' + html + '</div>' + headerSearchPreviewResultsFootHtml();
+    html = renderHeaderSearchTypeTabsHtml() + '<div class="hs-preview-body">' + html + '</div>' + headerSearchPreviewResultsFootHtml();
     dd.innerHTML = html;
     dd.classList.remove('hidden');
     setHeaderSearchDropdownOpen(true);
+    scheduleHeaderSearchDropdownLayout();
   }
 
   function runHeaderSearch(query) {
@@ -12461,9 +12512,10 @@
       return;
     }
     if (dd) {
-      dd.innerHTML = siteSearchLoadingHtml();
+      dd.innerHTML = renderHeaderSearchTypeTabsHtml() + siteSearchLoadingHtml();
       dd.classList.remove('hidden');
       setHeaderSearchDropdownOpen(true);
+      scheduleHeaderSearchDropdownLayout();
     }
     // Link shortcut
     if (/kinopoisk\.(ru|com)\/(film|series)\//i.test(query) || /imdb\.com\/title\/tt\d+/i.test(query)) {
@@ -13133,6 +13185,7 @@
     const dd = document.getElementById('header-search-dropdown');
     const clearBtn = document.getElementById('header-search-clear');
     if (!wrap || !input) return;
+    bindHeaderSearchViewportSync();
 
     wrap.addEventListener('click', (e) => {
       if (e.target.closest('#header-search-dropdown')) return;
@@ -13157,6 +13210,7 @@
       else if (v.length >= 2 && dd && dd.innerHTML) {
         dd.classList.remove('hidden');
         setHeaderSearchDropdownOpen(true);
+        scheduleHeaderSearchDropdownLayout();
       }
     });
     input.addEventListener('keydown', (e) => {
