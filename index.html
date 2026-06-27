@@ -934,9 +934,14 @@
         </div>
       </section>
 
-      <section>
+      <section class="landing-articles-section" id="articles-guides">
         <h2 class="section-title">Статьи и гайды</h2>
-        <div class="articles-grid">
+        <div class="articles-grid landing-articles-grid" id="landing-articles-grid">
+                <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
+                    <span class="article-card-title">Список просмотренных фильмов</span>
+                    <span class="article-card-desc">Как быстро начать вести базу и получить рекомендации</span>
+                </a>
                 <a href="/articles/prilozhenie-treker-dlya-filmov.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
                     <span class="article-card-title">Приложение-трекер для фильмов</span>
@@ -1043,6 +1048,7 @@
                     <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                 </a>
         </div>
+        <nav class="articles-pagination" id="landing-articles-pagination" aria-label="Страницы статей"></nav>
       </section>
     </main>
 
@@ -2259,7 +2265,8 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260617i18nfix3',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260622seriesfast1'
+          'home-rails.js?v=20260622seriesfast1',
+          'landing-articles.js?v=20260627articles1'
         ];
         var list;
         if (isSearch) {

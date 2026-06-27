@@ -139,6 +139,12 @@
     <priority>0.92</priority>
   </url>
   <url>
+    <loc>https://movie-planner.ru/articles/kak-vesti-spisok-prosmotrennyh-filmov.html</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.93</priority>
+  </url>
+  <url>
     <loc>https://movie-planner.ru/watchlist</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
