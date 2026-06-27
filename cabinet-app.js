@@ -6042,7 +6042,7 @@
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
   const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   let _homeDashboardCache = null;
 
   function loadHomeSectionsOrder() {
@@ -6383,8 +6383,28 @@
     return '';
   }
 
+  function homeRailFallbackPayload(path) {
+    const dash = _homeDashboardCache || {};
+    const p = String(path || '');
+    let items = [];
+    if (p.indexOf('/api/home/rails/unwatched') === 0) {
+      items = Array.isArray(dash.unwatched) ? dash.unwatched : [];
+    } else if (p.indexOf('/api/home/rails/recent-rated') === 0) {
+      items = Array.isArray(dash.recent_rated) ? dash.recent_rated : [];
+    } else if (p.indexOf('/api/home/rails/series-mix') === 0 || p.indexOf('/api/home/rails/series') === 0) {
+      items = Array.isArray(dash.series_mix) && dash.series_mix.length
+        ? dash.series_mix
+        : (Array.isArray(dash.series) && dash.series.length ? dash.series : (_homeSeriesPreview || []));
+    }
+    if (!items.length) return null;
+    return { success: true, items: items.slice(0, 12), total: items.length, offset: 0, limit: items.length, has_more: false };
+  }
+
   function homeRailApiGet(path) {
     return api(path, { timeoutMs: 32000 }).then(function (data) {
+      if ((!data || data.success === false || data.error === "network") && homeRailFallbackPayload(path)) {
+        return homeRailFallbackPayload(path);
+      }
       if (!data || data.success === false || data.error === "network") {
         var err = new Error("rail_fetch_failed");
         err.code = "RAIL_FAILED";
@@ -6830,6 +6850,11 @@
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
+    if (!isGuestCabinetPreview()) {
+      setTimeout(function () {
+        try { mountHomeDashboardRails(); } catch (_) {}
+      }, 40);
+    }
   }
 
   function bindHomePosterPreviewEnrichOnce(scope) {
@@ -7017,7 +7042,7 @@
   function _patchHomeDashboardStaticBlocks() {
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
-    ['plans', 'premieres', 'tournament'].forEach((bid) => {
+    (isGuestCabinetPreview() ? ['premieres', 'series'] : ['plans', 'premieres', 'tournament']).forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
