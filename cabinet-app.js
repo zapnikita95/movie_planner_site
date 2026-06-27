@@ -1401,11 +1401,20 @@
       isDesktop: typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 900px)').matches,
       apiGet: function (url, opts) {
         const u = String(url || '');
-        if (opts && opts.bypassCache) {
-          const sep = u.indexOf('?') >= 0 ? '&' : '?';
-          return api(u + sep + '_=' + Date.now());
+        let path = u;
+        if (path.indexOf('/api/miniapp/onboarding/') >= 0) {
+          const apiOpts = { timeoutMs: 70000 };
+          if (opts && opts.bypassCache) {
+            const sep = path.indexOf('?') >= 0 ? '&' : '?';
+            path = path + sep + '_=' + Date.now();
+          }
+          return api(path, apiOpts);
         }
-        return api(u);
+        if (opts && opts.bypassCache) {
+          const sep = path.indexOf('?') >= 0 ? '&' : '?';
+          return api(path + sep + '_=' + Date.now());
+        }
+        return api(path);
       },
       apiPost: siteOnboardingApiPost,
       escapeHtml: escapeHtml,
