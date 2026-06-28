@@ -994,10 +994,15 @@
       });
   }
 
+  let _openFilmPageByKpInflight = null;
+
   function openFilmPageByKp(kpId, opts) {
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
+    if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
+      return _openFilmPageByKpInflight.promise;
+    }
     if (!getToken()) {
       sessionStorage.setItem('mp_pending_kp_open', kp);
       if (o.action) sessionStorage.setItem('mp_pending_kp_action', o.action);
@@ -1024,33 +1029,36 @@
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
-    if (pageRootEarly) {
+    const hasHeroEarly = !!(pageRootEarly && pageRootEarly.querySelector('.film-hero-with-tag'));
+    if (pageRootEarly && !hasHeroEarly) {
       if (!paintFilmRouteBoot(kp, o)) {
         pageRootEarly.className = 'movie-page loading';
         pageRootEarly.innerHTML = pageLoadingHtml();
       }
     }
     const shellSeed = popFilmShellSeed(kp);
-    if (shellSeed && shellSeed.title && pageRootEarly && !paintFilmRouteBoot(kp, o)) {
+    if (shellSeed && shellSeed.title && pageRootEarly && !hasHeroEarly && !paintFilmRouteBoot(kp, o)) {
       pageRootEarly.className = 'movie-page';
       renderFilmDetailHero(mapLiteFilmForHero(shellSeed, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
         inBase: false,
         pendingAction: o.action || '',
       });
     }
-    api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
-      .then(function (lite) {
-        if (!lite || !lite.title || !pageRootEarly) return;
-        if (shellSeed && shellSeed.title) return;
-        if (paintFilmRouteBoot(kp, o)) return;
-        pageRootEarly.className = 'movie-page';
-        renderFilmDetailHero(mapLiteFilmForHero(lite, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
-          inBase: !!lite.in_library,
-          pendingAction: o.action || '',
-        });
-      })
-      .catch(function () {});
-    return api('/api/site/film-by-kp/' + kp, { timeoutMs: 12000 }).then(function (res) {
+    if (!hasHeroEarly) {
+      api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
+        .then(function (lite) {
+          if (!lite || !lite.title || !pageRootEarly) return;
+          if (shellSeed && shellSeed.title) return;
+          if (paintFilmRouteBoot(kp, o)) return;
+          pageRootEarly.className = 'movie-page';
+          renderFilmDetailHero(mapLiteFilmForHero(lite, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
+            inBase: !!lite.in_library,
+            pendingAction: o.action || '',
+          });
+        })
+        .catch(function () {});
+    }
+    const inflight = api('/api/site/film-by-kp/' + kp, { timeoutMs: 15000 }).then(function (res) {
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), {
           skipHistory: o.skipHistory,
@@ -1059,10 +1067,18 @@
           action: o.action || '',
         });
       }
+      if (hasHeroEarly) return null;
       return openFilmHeroByKpPublic(kp, o);
     }).catch(function () {
+      if (hasHeroEarly) return null;
       return openFilmHeroByKpPublic(kp, o);
+    }).finally(function () {
+      if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
+        _openFilmPageByKpInflight = null;
+      }
     });
+    _openFilmPageByKpInflight = { kp: kp, promise: inflight };
+    return inflight;
   }
 
   // Глобальный toast — простое, но заметное уведомление внизу экрана.
@@ -1894,6 +1910,7 @@
       || pendingKp;
 
     function deferCabinetLists() {
+      if (filmKp) return;
       setTimeout(function () {
         loadPlans();
         loadUnwatched();
@@ -11894,8 +11911,12 @@
     } else {
       runLoad(null);
     }
-    return api('/api/site/film/' + filmId, { timeoutMs: 20000 }).then(function (detail) {
+    return api('/api/site/film/' + filmId, { timeoutMs: 25000 }).then(function (detail) {
       if (!detail || !detail.success) {
+        if (pageRoot.querySelector('.film-hero-with-tag')) {
+          showToast('Не удалось обновить карточку', { type: 'error' });
+          return;
+        }
         pageRoot.className = 'movie-page';
         pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p>';
         return;

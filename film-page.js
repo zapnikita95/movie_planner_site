@@ -1988,7 +1988,7 @@
 
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
-        if (global.__MP_CABINET_FULL || global.openFilmPageByKp) return;
+        if (cabinetMode && token()) return;
         fetchJsonAuth('/api/site/film-by-kp/' + encodeURIComponent(kpId), 15000)
           .then(function (lookup) {
             if (!lookup || !lookup.in_library || !lookup.film_id) {

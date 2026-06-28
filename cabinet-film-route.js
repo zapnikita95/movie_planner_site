@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260628seriesep2';
+  var BUILD = '20260628seriesep3';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -105,14 +105,6 @@
       try {
         document.dispatchEvent(new CustomEvent('mp:cabinet-full-ready'));
       } catch (_e) {}
-      if (getToken() && typeof global.openFilmPageByKp === 'function') {
-        var kpOpen = kpFromPath();
-        if (kpOpen) {
-          try {
-            global.openFilmPageByKp(kpOpen, { replace: true });
-          } catch (_openEx) {}
-        }
-      }
       if (cb) cb();
     };
     s.onerror = function () {
