@@ -3878,6 +3878,9 @@
         const uid = data && data.user_id;
         return uid ? presetAvatarUrlForUser(uid) : '';
       },
+      resolvePosterUrl: function (kp) {
+        return posterUrl(kp);
+      },
       onFilmKp: function (kp) {
         const norm = String(kp || '').replace(/\D/g, '');
         if (norm) openFilmPageByKp(norm);
@@ -7405,9 +7408,14 @@
   function tournamentPodiumAvatarHtml(w) {
     const name = (w && w.name) || '?';
     const letter = escapeHtml(String(name).trim().charAt(0).toUpperCase() || '?');
-    const src = resolveMediaUrl(w && w.photo_url);
+    const uid = w && w.user_id;
+    const preset = uid ? presetAvatarUrlForUser(uid) : '';
+    let src = resolveMediaUrl(w && w.photo_url);
+    if (!src && uid) {
+      src = API_BASE + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg';
+    }
     if (src) {
-      return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode(\'' + letter + '\'))">';
+      return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" data-mp-fallback="' + escapeHtml(preset) + '" onerror="if(this.dataset.mpFb!==\'1\'&&this.dataset.mpFallback){this.dataset.mpFb=\'1\';this.src=this.dataset.mpFallback}else{this.replaceWith(document.createTextNode(\'' + letter + '\'))}">';
     }
     return '<span class="tourn-podium-avatar-letter">' + letter + '</span>';
   }
@@ -15461,10 +15469,62 @@
     if (!url && cache.is_group_profile && cache.room_emoji && (/^https?:\/\//i.test(cache.room_emoji) || String(cache.room_emoji).startsWith('/api/'))) {
       url = cache.room_emoji;
     }
+    const cid = (u && u.chat_id) || cache.chat_id;
+    if (!url && cid && cache.is_personal !== false) {
+      url = API_BASE + '/api/avatar/' + encodeURIComponent(String(cid)) + '.jpg';
+    }
     if (!url && cache.is_personal !== false && cache.chat_id) {
       url = presetAvatarUrlForUser(cache.chat_id);
     }
     return url;
+  }
+
+  function profileAchCircleHtml(a) {
+    const id = String((a && (a.id || a.achievement_id)) || '').trim();
+    const rawName = (a && a.name) || '';
+    const name = rawName && rawName !== id ? rawName : 'Ачивка';
+    const desc = (a && a.description) || '';
+    const icon = (a && a.icon) || '🏅';
+    const tip = desc ? name + ' — ' + desc : name;
+    return (
+      '<button type="button" class="user-profile-ach" data-ach-id="' + escapeHtml(id) + '" aria-label="' + escapeHtml(tip) + '">' +
+        '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+        '<span class="user-profile-ach-tip" role="tooltip">' +
+          '<span class="user-profile-ach-tip-name">' + escapeHtml(name) + '</span>' +
+          (desc ? '<span class="user-profile-ach-tip-desc">' + escapeHtml(desc) + '</span>' : '') +
+        '</span>' +
+      '</button>'
+    );
+  }
+
+  function openProfileAchievementsModal(achievements, achTotal) {
+    const items = Array.isArray(achievements) ? achievements : [];
+    if (!items.length) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'mp-dialog-overlay';
+    overlay.innerHTML =
+      '<div class="mp-dialog-card profile-ach-dialog" role="dialog" aria-modal="true">' +
+        '<div class="profile-ach-dialog-head">' +
+          '<h3 class="profile-sub-title">Достижения</h3>' +
+          '<button type="button" class="ach-panel-close profile-ach-dialog-close" aria-label="Закрыть">✕</button>' +
+        '</div>' +
+        '<p class="cabinet-hint user-profile-ach-sub-count">' +
+          escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
+        '</p>' +
+        '<div class="profile-ach-dialog-grid">' +
+          items.map(function (a) { return profileAchievementCardHtml(a); }).join('') +
+        '</div>' +
+      '</div>';
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
+    function close() {
+      document.body.style.overflow = '';
+      overlay.remove();
+    }
+    overlay.querySelector('.profile-ach-dialog-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
   }
 
   function profileAchievementCardHtml(a) {
@@ -15488,7 +15548,7 @@
     const host = root.querySelector('#profile-hub-achievements');
     if (!host || !profileData) return;
     const allAchievements = Array.isArray(profileData.achievements) ? profileData.achievements : [];
-    const items = allAchievements.slice(0, 6);
+    const items = allAchievements.slice(0, 3);
     const total = Number(profileData.achievements_count || allAchievements.length || 0);
     if (!items.length && total <= 0) {
       host.classList.add('hidden');
@@ -15497,19 +15557,23 @@
     }
     host.classList.remove('hidden');
     host.innerHTML =
-      '<div class="user-profile-block">' +
-        '<div class="user-profile-block-head">' +
-          '<div class="user-profile-section-title">' +
-            mpIcon('medal', { size: 'sm', className: 'user-profile-section-icon' }) +
-            '<h3 class="user-profile-block-title">Достижения</h3>' +
-          '</div>' +
-          (total > items.length ? '<span class="user-profile-ach-all">Показаны последние</span>' : '') +
+      '<div class="profile-ach-preview">' +
+        '<div class="profile-ach-preview-head">' +
+          '<span class="profile-ach-preview-label">Достижения</span>' +
+          (total > 0
+            ? '<button type="button" class="user-profile-ach-all" data-profile-ach-all="1">Все достижения</button>'
+            : '') +
         '</div>' +
-        '<div class="ach-panel-category-grid user-profile-ach-grid">' +
-          items.map(profileAchievementCardHtml).join('') +
+        '<div class="user-profile-ach-row">' +
+          items.map(profileAchCircleHtml).join('') +
         '</div>' +
       '</div>';
-    bindProfileSubNav(root);
+    const allBtn = host.querySelector('[data-profile-ach-all]');
+    if (allBtn) {
+      allBtn.addEventListener('click', function () {
+        openProfileAchievementsModal(allAchievements, total);
+      });
+    }
   }
 
   function scheduleOwnProfileAchievementsLoad(root, user) {
@@ -15614,12 +15678,13 @@
         '<div class="profile-hub-highlights">'
         + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(filmsInBase != null ? filmsInBase : '—')) + '</b><span>в базе</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(watchedTotal != null ? watchedTotal : '—')) + '</b><span>смотрел</span></button>'
-        + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(seriesTotal != null ? seriesTotal : '—')) + '</b><span>сериалов</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(seriesTotal != null ? seriesTotal : '—')) + '</b><span>сериалы</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="groups"><b id="profile-hub-friends-count">' + escapeHtml(String(friendsCount)) + '</b><span id="profile-hub-friends-label">' + escapeHtml(friendsLabel) + '</span></button>'
         + '</div>'
       ) : '';
 
       root.innerHTML = '<div class="profile-hub">'
+        + '<div class="profile-hub-left">'
         + '<div class="profile-hub-header">'
         + '<div class="profile-hub-avatar" id="profile-hub-avatar"></div>'
         + '<div class="profile-hub-info">'
@@ -15630,6 +15695,7 @@
         + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
         + '</div>'
         + '<div id="profile-hub-achievements" class="profile-hub-achievements hidden"></div>'
+        + '</div>'
         + '<div class="mp-list">'
         + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
         + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
@@ -17018,7 +17084,7 @@
   }
 
   function _wtPosterUrl(kp) {
-    return MP_POSTER_PLACEHOLDER;
+    return posterUrl(kp) || MP_POSTER_PLACEHOLDER;
   }
 
   function _wtFilmTileHtml(f, mode) {

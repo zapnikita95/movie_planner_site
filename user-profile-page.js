@@ -1,5 +1,5 @@
 /**
- * Страница пользователя в веб-кабинете (паритет с miniapp /friends/:userId).
+ * Страница пользователя в веб-кабинете (паритет с native /friends/:userId).
  */
 (function (global) {
   'use strict';
@@ -78,15 +78,20 @@
     }
   }
 
-  function profileSectionHead(iconKey, title, actionHtml) {
+  function achCircleHtml(a) {
+    const id = String((a && (a.id || a.achievement_id)) || '').trim();
+    const tip = achTip(a);
+    const name = achName(a);
+    const desc = (a && a.description) || '';
+    const icon = (a && a.icon) || '🏅';
     return (
-      '<div class="user-profile-block-head">' +
-        '<div class="user-profile-section-title">' +
-          mpIcon(iconKey, { size: 'sm', className: 'user-profile-section-icon' }) +
-          '<h3 class="user-profile-block-title">' + escapeHtml(title) + '</h3>' +
-        '</div>' +
-        (actionHtml || '') +
-      '</div>'
+      '<button type="button" class="user-profile-ach" data-ach-id="' + escapeHtml(id) + '" aria-label="' + escapeHtml(tip) + '">' +
+        '<span class="user-profile-ach-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+        '<span class="user-profile-ach-tip" role="tooltip">' +
+          '<span class="user-profile-ach-tip-name">' + escapeHtml(name) + '</span>' +
+          (desc ? '<span class="user-profile-ach-tip-desc">' + escapeHtml(desc) + '</span>' : '') +
+        '</span>' +
+      '</button>'
     );
   }
 
@@ -101,6 +106,117 @@
         '<div class="ach-panel-info">' +
           '<div class="ach-panel-name">' + escapeHtml(name) + '</div>' +
           (desc ? '<div class="ach-panel-desc">' + escapeHtml(desc) + '</div>' : '') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function posterForFilm(hooks, kp) {
+    if (hooks && typeof hooks.resolvePosterUrl === 'function') {
+      return hooks.resolvePosterUrl(kp) || '';
+    }
+    return '';
+  }
+
+  function filmPosterCardHtml(item, hooks, opts) {
+    opts = opts || {};
+    const kp = item && item.kp_id;
+    if (!kp) return '';
+    const poster = posterForFilm(hooks, kp);
+    const title = escapeHtml(item.film_title || item.title || 'Фильм');
+    const badge = opts.rating != null
+      ? '<span class="profile-film-card-badge">' + escapeHtml(String(opts.rating)) + '/10</span>'
+      : (opts.planType
+        ? '<span class="profile-film-card-badge profile-film-card-badge--plan">' + escapeHtml(opts.planType === 'cinema' ? 'Кино' : 'Дом') + '</span>'
+        : '');
+    return (
+      '<button type="button" class="profile-film-card" data-kp="' + escapeHtml(String(kp)) + '" title="' + title + '">' +
+        '<span class="profile-film-card-poster">' +
+          (poster
+            ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+            : '<span class="profile-film-card-ph">🎬</span>') +
+          badge +
+        '</span>' +
+        '<span class="profile-film-card-title">' + title + '</span>' +
+      '</button>'
+    );
+  }
+
+  function filmPreviewBlockHtml(title, films, hooks, opts) {
+    opts = opts || {};
+    const list = (films || []).slice(0, opts.limit || 8);
+    if (!list.length) return '';
+    const action = opts.action
+      ? '<button type="button" class="profile-film-block-more" data-action="' + escapeHtml(opts.action) + '">Все →</button>'
+      : '';
+    return (
+      '<section class="profile-film-block">' +
+        '<div class="profile-film-block-head">' +
+          '<h3 class="profile-film-block-title">' + escapeHtml(title) + '</h3>' +
+          action +
+        '</div>' +
+        '<div class="profile-film-rail">' +
+          list.map(function (f) {
+            return filmPosterCardHtml(f, hooks, {
+              rating: opts.ratingField ? f[opts.ratingField] : null,
+              planType: opts.planField ? f[opts.planField] : null,
+            });
+          }).join('') +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  function bindFilmCards(root, hooks) {
+    root.querySelectorAll('.profile-film-card[data-kp]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const kp = btn.getAttribute('data-kp');
+        if (kp && hooks.onFilmKp) hooks.onFilmKp(kp);
+      });
+    });
+  }
+
+  function openAchievementsModal(achievements, achTotal) {
+    const items = Array.isArray(achievements) ? achievements : [];
+    if (!items.length) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'mp-dialog-overlay';
+    overlay.innerHTML =
+      '<div class="mp-dialog-card profile-ach-dialog" role="dialog" aria-modal="true">' +
+        '<div class="profile-ach-dialog-head">' +
+          '<h3 class="profile-sub-title">Достижения</h3>' +
+          '<button type="button" class="ach-panel-close profile-ach-dialog-close" aria-label="Закрыть">✕</button>' +
+        '</div>' +
+        '<p class="cabinet-hint user-profile-ach-sub-count">' +
+          escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
+        '</p>' +
+        '<div class="profile-ach-dialog-grid">' + items.map(achCardHtml).join('') + '</div>' +
+      '</div>';
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
+    function close() {
+      document.body.style.overflow = '';
+      overlay.remove();
+    }
+    overlay.querySelector('.profile-ach-dialog-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+  }
+
+  function achPreviewHtml(allAchievements, achTotal) {
+    const items = (allAchievements || []).slice(0, 3);
+    if (!items.length && !achTotal) return '';
+    return (
+      '<div class="profile-ach-preview">' +
+        '<div class="profile-ach-preview-head">' +
+          '<span class="profile-ach-preview-label">Достижения</span>' +
+          (achTotal > 0
+            ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
+            : '') +
+        '</div>' +
+        '<div class="user-profile-ach-row">' +
+          items.map(achCircleHtml).join('') +
         '</div>' +
       '</div>'
     );
@@ -144,49 +260,6 @@
       ? '<div class="profile-hub-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>'
       : '';
 
-    const tasteHtml = data.taste_match != null && !isSelf
-      ? '<button type="button" class="mp-list-item user-profile-taste-row" data-action="taste">' +
-          mpIcon('stats', { className: 'mp-list-icon' }) +
-          '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(String(data.taste_match)) + '% совпадение вкусов</span>' +
-          (data.taste_common
-            ? '<span class="mp-list-hint">' + escapeHtml(String(data.taste_common)) + ' общих оценок</span>'
-            : '') +
-          '</span><span class="mp-list-arrow">›</span></button>'
-      : '';
-
-    let actionsHtml = '';
-    if (!isSelf) {
-      if (isFriend) {
-        actionsHtml =
-          '<div class="user-profile-actions user-profile-actions--row">' +
-            '<button type="button" class="btn btn-secondary user-profile-action-main" data-action="mutual">' +
-              mpIcon('film', { className: 'mp-action-icon', size: 'sm' }) + '<span>Смотрим вместе</span></button>' +
-            '<button type="button" class="btn btn-ghost user-profile-action-side" data-action="unfriend">Удалить</button>' +
-          '</div>';
-      } else if (st === 'pending_incoming') {
-        actionsHtml =
-          '<div class="user-profile-actions">' +
-            '<p class="cabinet-hint user-profile-hint">Хочет добавить вас в друзья</p>' +
-            '<div class="user-profile-actions--row">' +
-              '<button type="button" class="btn btn-primary user-profile-action-main" data-action="accept">Принять</button>' +
-              '<button type="button" class="btn btn-ghost user-profile-action-side" data-action="decline">✕</button>' +
-            '</div></div>';
-      } else if (st === 'pending_outgoing') {
-        actionsHtml = '<p class="cabinet-hint user-profile-hint">Запрос отправлен — ждём ответа</p>';
-      } else if (hooks.isInviteLanding && !isSelf) {
-        actionsHtml =
-          '<div class="user-profile-actions">' +
-            '<p class="cabinet-hint user-profile-hint">Приглашает вас в друзья</p>' +
-            '<button type="button" class="btn btn-primary user-profile-action-main" data-action="accept-invite">Принять приглашение</button>' +
-          '</div>';
-      } else {
-        actionsHtml =
-          '<div class="user-profile-actions">' +
-            '<button type="button" class="btn btn-primary user-profile-action-main" data-action="add">Добавить в друзья</button>' +
-          '</div>';
-      }
-    }
-
     const unwatched = data.unwatched_count != null ? data.unwatched_count : 0;
     const watched = data.watched_count != null ? data.watched_count : null;
     const statsHtml =
@@ -198,55 +271,95 @@
               '<b>' + escapeHtml(String(unwatched)) + '</b><span>непросмотр.</span></button>'
           : '') +
         (watched != null && (isFriend || isSelf)
-          ? '<button type="button" class="profile-hub-stat" data-action="watched-scroll">' +
+          ? '<button type="button" class="profile-hub-stat" data-action="watched-all">' +
               '<b>' + escapeHtml(String(watched)) + '</b><span>просмотр.</span></button>'
           : '') +
-        '<button type="button" class="profile-hub-stat" data-action="ach-all">' +
+        '<button type="button" class="profile-hub-stat" data-action="ach-open">' +
           '<b>' + escapeHtml(String(data.achievements_count || (data.achievements || []).length || 0)) + '</b><span>ачивок</span></button>' +
       '</div>';
 
-    const recent = (data.recent_ratings || []).slice(0, 12);
-    const recentHtml = recent.length
-      ? '<div class="user-profile-block">' +
-          profileSectionHead('ratings', 'Последние оценки') +
-          '<div class="user-profile-rating-list">' + recent.map(function (r) { return ratingRowHtml(r, hooks); }).join('') + '</div>' +
-          (Number(data.ratings_count) > recent.length
-            ? '<button type="button" class="btn btn-secondary user-profile-more" data-action="ratings-all">Все оценки →</button>'
+    const allAchievements = data.achievements || [];
+    const achTotal = Number(data.achievements_count || allAchievements.length || 0);
+
+    let leftActionsHtml = '';
+    if (!isSelf) {
+      if (isFriend) {
+        leftActionsHtml =
+          '<button type="button" class="btn btn-secondary btn-full profile-hub-mutual" data-action="mutual">' +
+            mpIcon('film', { className: 'mp-action-icon', size: 'sm' }) + '<span>Смотрим вместе</span></button>';
+      } else if (st === 'pending_incoming') {
+        leftActionsHtml =
+          '<div class="user-profile-actions">' +
+            '<p class="cabinet-hint user-profile-hint">Хочет добавить вас в друзья</p>' +
+            '<div class="user-profile-actions--row">' +
+              '<button type="button" class="btn btn-primary user-profile-action-main" data-action="accept">Принять</button>' +
+              '<button type="button" class="btn btn-ghost user-profile-action-side" data-action="decline">✕</button>' +
+            '</div></div>';
+      } else if (st === 'pending_outgoing') {
+        leftActionsHtml = '<p class="cabinet-hint user-profile-hint">Запрос отправлен — ждём ответа</p>';
+      } else if (hooks.isInviteLanding && !isSelf) {
+        leftActionsHtml =
+          '<div class="user-profile-actions">' +
+            '<p class="cabinet-hint user-profile-hint">Приглашает вас в друзья</p>' +
+            '<button type="button" class="btn btn-primary user-profile-action-main" data-action="accept-invite">Принять приглашение</button>' +
+          '</div>';
+      } else {
+        leftActionsHtml =
+          '<button type="button" class="btn btn-primary btn-full" data-action="add">Добавить в друзья</button>';
+      }
+    }
+
+    const tasteHtml = data.taste_match != null && !isSelf
+      ? '<button type="button" class="mp-list-item user-profile-taste-row" data-action="taste">' +
+          mpIcon('stats', { className: 'mp-list-icon' }) +
+          '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(String(data.taste_match)) + '% совпадение вкусов</span>' +
+          (data.taste_common
+            ? '<span class="mp-list-hint">' + escapeHtml(String(data.taste_common)) + ' общих оценок</span>'
             : '') +
-        '</div>'
+          '</span><span class="mp-list-arrow">›</span></button>'
       : '';
 
-    const allAchievements = data.achievements || [];
-    const achievements = allAchievements.slice(0, 12);
-    const achTotal = Number(data.achievements_count || allAchievements.length || 0);
-    const achAllBtn = achTotal > 0
-      ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
-      : '';
-    const achHtml = achievements.length || achTotal
-      ? '<div class="user-profile-block">' +
-          profileSectionHead('medal', 'Достижения', achAllBtn) +
-          '<div class="ach-panel-category-grid user-profile-ach-grid">' +
-            achievements.map(achCardHtml).join('') +
-          '</div></div>'
+    const rightHtml =
+      tasteHtml +
+      filmPreviewBlockHtml('Последние оценки', data.recent_ratings, hooks, {
+        action: 'ratings-all',
+        limit: 8,
+        ratingField: 'rating',
+      }) +
+      filmPreviewBlockHtml('Недавно просмотренные', data.recent_watched, hooks, {
+        action: 'watched-all',
+        limit: 8,
+      }) +
+      filmPreviewBlockHtml('Планы', data.upcoming_plans, hooks, {
+        action: 'plans-all',
+        limit: 8,
+        planField: 'plan_type',
+      });
+
+    const unfriendBtn = isFriend && !isSelf
+      ? '<button type="button" class="btn btn-logout btn-full" data-action="unfriend">Удалить из друзей</button>'
       : '';
 
     root.innerHTML =
-      '<div class="profile-hub user-friend-profile">' +
-        '<div class="profile-hub-header">' +
-          '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
-          '<div class="profile-hub-info">' +
-            '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
-            metaHtml +
-            statsHtml +
+      '<div class="profile-hub profile-hub--friend">' +
+        '<div class="profile-hub-left">' +
+          '<div class="profile-hub-header">' +
+            '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
+            '<div class="profile-hub-info">' +
+              '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
+              metaHtml +
+              statsHtml +
+            '</div>' +
           '</div>' +
+          achPreviewHtml(allAchievements, achTotal) +
+          leftActionsHtml +
         '</div>' +
-        tasteHtml +
-        actionsHtml +
-        achHtml +
-        recentHtml +
+        '<div class="profile-hub-right">' + rightHtml + '</div>' +
+        unfriendBtn +
       '</div>';
 
     setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial, uid);
+    bindFilmCards(root, hooks);
     bindRatingRows(root, hooks);
 
     root.querySelector('[data-action="taste"]')?.addEventListener('click', function () {
@@ -299,25 +412,20 @@
         .catch(function (e) { if (hooks.toast) hooks.toast((e && e.message) || 'Ошибка', 'error'); });
     });
     root.querySelectorAll('[data-action="ratings-all"]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        loadRatingsList(root, uid, hooks);
-      });
+      btn.addEventListener('click', function () { loadRatingsList(root, uid, hooks); });
     });
     root.querySelectorAll('[data-action="unwatched-all"]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        loadUnwatchedList(root, uid, hooks);
-      });
+      btn.addEventListener('click', function () { loadUnwatchedList(root, uid, hooks); });
     });
-    root.querySelectorAll('[data-action="ach-all"]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        loadAchievementsList(root, uid, allAchievements, achTotal, hooks);
-      });
+    root.querySelectorAll('[data-action="watched-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { loadWatchedList(root, uid, hooks, data.recent_watched); });
     });
-    root.querySelectorAll('[data-action="watched-scroll"]').forEach(function (btn) {
+    root.querySelectorAll('[data-action="plans-all"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { loadPlansList(root, uid, hooks, data.upcoming_plans); });
+    });
+    root.querySelectorAll('[data-action="ach-all"], [data-action="ach-open"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var el = root.querySelector('.user-profile-block');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        else if (hooks.toast) hooks.toast('Просмотрено: ' + String(watched != null ? watched : '—'));
+        openAchievementsModal(allAchievements, achTotal);
       });
     });
     scheduleTastePoll(root, uid, hooks, data);
@@ -325,28 +433,17 @@
 
   function patchTasteRow(root, uid, tasteMatch, tasteCommon, hooks) {
     if (tasteMatch == null) return;
-    var existing = root.querySelector('[data-action="taste"]');
+    var right = root.querySelector('.profile-hub-right');
+    if (!right) return;
+    var existing = right.querySelector('[data-action="taste"]');
     if (existing) {
       var titleEl = existing.querySelector('.mp-list-title');
       var hintEl = existing.querySelector('.mp-list-hint');
       if (titleEl) titleEl.textContent = String(tasteMatch) + '% совпадение вкусов';
-      if (tasteCommon) {
-        if (hintEl) hintEl.textContent = String(tasteCommon) + ' общих оценок';
-        else {
-          var textSpan = existing.querySelector('.mp-list-text');
-          if (textSpan) {
-            var h = document.createElement('span');
-            h.className = 'mp-list-hint';
-            h.textContent = String(tasteCommon) + ' общих оценок';
-            textSpan.appendChild(h);
-          }
-        }
-      }
+      if (tasteCommon && hintEl) hintEl.textContent = String(tasteCommon) + ' общих оценок';
       return;
     }
-    var stats = root.querySelector('.profile-hub-stats');
-    if (!stats) return;
-    stats.insertAdjacentHTML('afterend',
+    right.insertAdjacentHTML('afterbegin',
       '<button type="button" class="mp-list-item user-profile-taste-row" data-action="taste">' +
         mpIcon('stats', { className: 'mp-list-icon' }) +
         '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(String(tasteMatch)) + '% совпадение вкусов</span>' +
@@ -355,7 +452,7 @@
           : '') +
         '</span><span class="mp-list-arrow">›</span></button>'
     );
-    var btn = root.querySelector('[data-action="taste"]');
+    var btn = right.querySelector('[data-action="taste"]');
     if (btn && hooks.onTaste) {
       btn.addEventListener('click', function () { hooks.onTaste(uid); });
     }
@@ -365,43 +462,47 @@
     var st = data.friendship_status;
     var isFriend = st === 'accepted' || st === 'friends';
     var isSelf = hooks.viewerUserId != null && Number(hooks.viewerUserId) === uid;
-    if (!isFriend || isSelf) return;
-    if (data.taste_match != null) return;
-
-    var attempts = 0;
-    function poll() {
-      if (attempts >= 5) return;
-      attempts += 1;
-      hooks.api('/api/friends/' + encodeURIComponent(String(uid)) + '/taste-summary', { timeoutMs: 8000 })
-        .then(function (r) {
-          if (!r || r.success === false) return;
-          if (r.taste_match != null) {
-            patchTasteRow(root, uid, r.taste_match, r.taste_common, hooks);
-            return;
-          }
-          if (r.refreshing && attempts < 5) setTimeout(poll, 3000);
-        })
-        .catch(function () {});
-    }
-    setTimeout(poll, data.taste_refreshing ? 1500 : 800);
+    if (!isFriend || isSelf || data.taste_match != null) return;
+    hooks.api('/api/friends/' + encodeURIComponent(String(uid)) + '/taste-summary', { timeoutMs: 8000 })
+      .then(function (r) {
+        if (!r || r.success === false || r.taste_match == null) return;
+        patchTasteRow(root, uid, r.taste_match, r.taste_common, hooks);
+      })
+      .catch(function () {});
   }
 
-  function loadAchievementsList(root, uid, achievements, achTotal, hooks) {
-    const items = achievements || [];
-    root.innerHTML =
-      '<div class="profile-hub user-friend-profile user-profile-sub">' +
-        '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
-        '<h3 class="profile-sub-title">Достижения</h3>' +
-        '<p class="cabinet-hint user-profile-ach-sub-count">' +
-          escapeHtml(String(items.length)) + ' из ' + escapeHtml(String(achTotal || items.length)) +
-        '</p>' +
-        (items.length
-          ? '<div class="ach-panel-category-grid user-profile-ach-grid">' + items.map(achCardHtml).join('') + '</div>'
-          : '<p class="cabinet-hint">Пока нет достижений</p>') +
-      '</div>';
-    root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () {
-      hooks.reload();
-    });
+  function loadWatchedList(root, uid, hooks, cached) {
+    if (cached && cached.length) {
+      root.innerHTML =
+        '<div class="profile-hub user-friend-profile user-profile-sub">' +
+          '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
+          '<h3 class="profile-sub-title">Недавно просмотренные</h3>' +
+          '<div class="profile-film-rail profile-film-rail--grid">' +
+            cached.map(function (f) { return filmPosterCardHtml(f, hooks, {}); }).join('') +
+          '</div></div>';
+      bindFilmCards(root, hooks);
+      root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () { hooks.reload(); });
+      return;
+    }
+    root.innerHTML = '<p class="cabinet-hint">Пока нет просмотренных</p>';
+  }
+
+  function loadPlansList(root, uid, hooks, cached) {
+    if (cached && cached.length) {
+      root.innerHTML =
+        '<div class="profile-hub user-friend-profile user-profile-sub">' +
+          '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
+          '<h3 class="profile-sub-title">Планы</h3>' +
+          '<div class="profile-film-rail profile-film-rail--grid">' +
+            cached.map(function (f) {
+              return filmPosterCardHtml(f, hooks, { planType: f.plan_type });
+            }).join('') +
+          '</div></div>';
+      bindFilmCards(root, hooks);
+      root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () { hooks.reload(); });
+      return;
+    }
+    root.innerHTML = '<p class="cabinet-hint">Пока нет планов</p>';
   }
 
   function loadRatingsList(root, uid, hooks) {
@@ -418,9 +519,7 @@
               : '<p class="cabinet-hint">Нет оценок</p>') +
           '</div>';
         bindRatingRows(root, hooks);
-        root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () {
-          hooks.reload();
-        });
+        root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () { hooks.reload(); });
       })
       .catch(function () {
         root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
@@ -437,20 +536,13 @@
             '<button type="button" class="mp-sub-back" data-action="back-main">← Профиль</button>' +
             '<h3 class="profile-sub-title">Непросмотренные</h3>' +
             (films.length
-              ? '<div class="user-profile-rating-list">' + films.map(function (f) {
-                  return (
-                    '<button type="button" class="user-profile-rating-row" data-kp="' + escapeHtml(String(f.kp_id || '')) + '">' +
-                      '<span class="user-profile-rating-title">' + escapeHtml(f.title || 'Фильм') + '</span>' +
-                      (f.year ? '<span class="user-profile-rating-year">' + escapeHtml(String(f.year)) + '</span>' : '') +
-                    '</button>'
-                  );
-                }).join('') + '</div>'
+              ? '<div class="profile-film-rail profile-film-rail--grid">' +
+                  films.map(function (f) { return filmPosterCardHtml(f, hooks, {}); }).join('') +
+                '</div>'
               : '<p class="cabinet-hint">Всё просмотрено</p>') +
           '</div>';
-        bindRatingRows(root, hooks);
-        root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () {
-          hooks.reload();
-        });
+        bindFilmCards(root, hooks);
+        root.querySelector('[data-action="back-main"]')?.addEventListener('click', function () { hooks.reload(); });
       })
       .catch(function () {
         root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';

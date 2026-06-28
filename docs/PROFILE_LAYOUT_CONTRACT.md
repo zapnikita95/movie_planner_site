@@ -21,9 +21,20 @@ Any profile-related change must keep this contract.
 3. Action row for friend profile:
    - "Смотрим вместе" + secondary friendship action.
    - Must be rendered under highlights.
-4. Achievements block:
-   - Friend profile: visible in profile body.
-   - Own profile: visible in profile hub (latest achievements preview).
+4. Achievements block (left column, compact):
+   - Up to 3 circle icons in a row (emoji only, tooltip on hover).
+   - Button "Все достижения" opens modal with full cards.
+   - No wide rectangle cards on the profile surface.
+
+5. Friend profile desktop:
+   - Left: avatar, highlights, achievement circles, "Смотрим вместе".
+   - Right: film preview rails with posters (recent ratings, recently watched, plans).
+   - Bottom center: red destructive action ("Удалить из друзей").
+
+6. Own profile desktop:
+   - Left: avatar, highlights, achievement circles.
+   - Right: settings menu list.
+   - Bottom center: "Выйти из аккаунта" only — nothing below menu except logout.
 
 ## Loading behavior
 
