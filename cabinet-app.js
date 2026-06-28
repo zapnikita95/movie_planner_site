@@ -6741,6 +6741,13 @@
     }
 
     if (blockId === 'unwatched') {
+      const seed = _homeDashboardCache && Array.isArray(_homeDashboardCache.unwatched)
+        ? _homeDashboardCache.unwatched.slice(0, 12)
+        : [];
+      if (seed.length) {
+        return '<section class="home-dash-block" data-home-block="unwatched">' + head
+          + '<div class="home-section-body">' + renderHomePosterRailHtml(seed) + '</div></section>';
+      }
       return '<section class="home-dash-block" data-home-block="unwatched">' + head
         + '<div class="home-section-body">'
         + '<div class="home-poster-rail home-rail--draggable" data-home-rail="unwatched" role="list"></div>'
@@ -6754,6 +6761,17 @@
         if (!guestSeries.length) return '';
         return '<section class="home-dash-block" data-home-block="series">' + head
           + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries) + '</div></section>';
+      }
+      const seed = _homeDashboardCache
+        ? (
+            Array.isArray(_homeDashboardCache.series_mix) && _homeDashboardCache.series_mix.length
+              ? _homeDashboardCache.series_mix
+              : (Array.isArray(_homeDashboardCache.series) ? _homeDashboardCache.series : [])
+          ).slice(0, 12)
+        : [];
+      if (seed.length) {
+        return '<section class="home-dash-block" data-home-block="series">' + head
+          + '<div class="home-section-body">' + renderHomePosterRailHtml(seed) + '</div></section>';
       }
       return '<section class="home-dash-block" data-home-block="series">' + head
         + '<div class="home-section-body">'
@@ -6780,6 +6798,13 @@
         + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
     }
     if (blockId === 'recent_ratings') {
+      const seed = _homeDashboardCache && Array.isArray(_homeDashboardCache.recent_rated)
+        ? _homeDashboardCache.recent_rated.slice(0, 12)
+        : [];
+      if (seed.length) {
+        return '<section class="home-dash-block" data-home-block="recent_ratings">' + head
+          + '<div class="home-section-body">' + renderHomePosterRailHtml(seed, { rated: true }) + '</div></section>';
+      }
       const ratedCount = _homeDashboardCache && _homeDashboardCache.rated_films_count != null
         ? Number(_homeDashboardCache.rated_films_count)
         : null;
@@ -6935,6 +6960,36 @@
     return fetchPublicPremieresForDisplay('current_month').catch(() => ({ items: [], rollover: false }));
   }
 
+  function normalizeHomeSeedItems(data) {
+    return (data && data.success !== false && Array.isArray(data.items)) ? data.items : [];
+  }
+
+  function fetchLoggedHomeSeed() {
+    if (!getToken()) return Promise.resolve({});
+    return Promise.all([
+      api('/api/site/unwatched?offset=0&limit=12', { timeoutMs: 12000 }).catch(() => null),
+      api('/api/home/rails/series?offset=0&limit=12', { timeoutMs: 12000 }).catch(() => null),
+      api('/api/site/ratings', { timeoutMs: 12000 }).catch(() => null),
+      api('/api/tournament/preview', { timeoutMs: 12000 }).catch(() => null),
+      fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
+    ]).then((parts) => {
+      const ratings = normalizeHomeSeedItems(parts[2]).slice(0, 12);
+      const series = normalizeHomeSeedItems(parts[1]).length
+        ? normalizeHomeSeedItems(parts[1])
+        : normalizeHomeSeedItems(parts[4]);
+      const out = {
+        unwatched: normalizeHomeSeedItems(parts[0]).slice(0, 12),
+        series: series.slice(0, 12),
+        recent_rated: ratings,
+      };
+      if (parts[2] && parts[2].success !== false) out.rated_films_count = ratings.length;
+      if (parts[3] && parts[3].success && parts[3].tournament_preview) {
+        out.tournament_preview = parts[3].tournament_preview;
+      }
+      return out;
+    }).catch(() => ({}));
+  }
+
   function fetchPremieresForDisplay(period) {
     if (!getToken()) {
       return fetchPublicPremieresForDisplay(period);
@@ -6984,6 +7039,10 @@
     }
     applyHomeEmojiVisibility();
 
+    const dashboardPromise = isGuestCabinetPreview()
+      ? Promise.resolve(null)
+      : api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null);
+
     _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
@@ -6991,36 +7050,55 @@
             fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
           ]
         : [
-            api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null),
             fetchHomePremierePreview(),
+            fetchLoggedHomeSeed(),
           ]
     )
       .then((pair) => {
-        const prem = isGuestCabinetPreview() ? pair[0] : pair[1];
-        const dashData = isGuestCabinetPreview() ? null : pair[0];
+        const prem = pair[0];
+        const seedData = isGuestCabinetPreview() ? null : pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         if (isGuestCabinetPreview()) {
           _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
         }
-        _homeDashboardCache = dashData && dashData.success ? dashData : null;
-        if (_homeDashboardCache && !_homeDashboardCache.tournament_preview) {
-          return api('/api/tournament/preview', { timeoutMs: 12000 })
-            .then((tp) => {
-              if (tp && tp.success && tp.tournament_preview) {
-                _homeDashboardCache.tournament_preview = tp.tournament_preview;
-              }
-              return _homeDashboardCache;
-            })
-            .catch(() => _homeDashboardCache);
+        if (seedData && !isGuestCabinetPreview()) {
+          _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
+          _homeTournamentPreview = seedData.tournament_preview || _homeTournamentPreview;
+        }
+        if (!isGuestCabinetPreview()) {
+          dashboardPromise.then((dashData) => {
+            if (!dashData || !dashData.success) return null;
+            _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, dashData);
+            _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
+            updateInboxFabBadge(dashData.inbox_unread || 0);
+            try { updateCabinetHomeStats(dashData); } catch (_) {}
+            if (dashData.show_tournament_intro) {
+              setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+            }
+            _patchHomeDashboardStaticBlocks();
+            return dashData;
+          }).catch(() => {});
+          if (_homeDashboardCache && !_homeDashboardCache.tournament_preview) {
+            return api('/api/tournament/preview', { timeoutMs: 12000 })
+              .then((tp) => {
+                if (tp && tp.success && tp.tournament_preview) {
+                  _homeDashboardCache.tournament_preview = tp.tournament_preview;
+                  _homeTournamentPreview = tp.tournament_preview;
+                }
+                return _homeDashboardCache;
+              })
+              .catch(() => _homeDashboardCache);
+          }
+          return _homeDashboardCache;
         }
         return _homeDashboardCache;
       })
       .then((dashResolved) => {
         if (dashResolved && !isGuestCabinetPreview()) {
           _homeDashboardCache = dashResolved;
-          _homeTournamentPreview = dashResolved.tournament_preview || null;
-          updateInboxFabBadge(dashResolved.inbox_unread || 0);
+          _homeTournamentPreview = dashResolved.tournament_preview || _homeTournamentPreview;
+          if (dashResolved.inbox_unread != null) updateInboxFabBadge(dashResolved.inbox_unread || 0);
           try { updateCabinetHomeStats(dashResolved); } catch (_) {}
           if (dashResolved.show_tournament_intro) {
             setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
@@ -7042,11 +7120,14 @@
   function _patchHomeDashboardStaticBlocks() {
     const root = document.getElementById('home-dashboard-root');
     if (!root) return;
-    (isGuestCabinetPreview() ? ['premieres', 'series'] : ['plans', 'premieres', 'tournament']).forEach((bid) => {
+    (isGuestCabinetPreview()
+      ? ['premieres', 'series']
+      : ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament']
+    ).forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
-        if (existing) existing.remove();
+        if (existing && isGuestCabinetPreview()) existing.remove();
         return;
       }
       if (existing) {
