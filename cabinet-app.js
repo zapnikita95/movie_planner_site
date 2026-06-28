@@ -1909,14 +1909,22 @@
       || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
       || pendingKp;
 
+    function isHomeSectionVisible() {
+      const secHome = document.getElementById('section-home');
+      return !!(secHome && !secHome.classList.contains('hidden'));
+    }
+
     function deferCabinetLists() {
       if (filmKp) return;
+      const onHome = isHomeSectionVisible();
       setTimeout(function () {
         loadPlans();
-        loadUnwatched();
-        loadSeries();
-        loadRatings();
-      }, 1500);
+        if (!onHome) {
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+        }
+      }, onHome ? 2800 : 1500);
     }
 
     if (filmKp && window.__MP_FILM_RENDERED) {
@@ -1965,9 +1973,11 @@
         loadRatings();
       } else {
         loadPlans();
-        loadUnwatched();
-        loadSeries();
-        loadRatings();
+        if (!isHomeSectionVisible()) {
+          loadUnwatched();
+          loadSeries();
+          loadRatings();
+        }
         handleAuthEntryDeepLinks();
         pathUserBoot = userIdFromLocation();
         const pathTagBoot = filmTagIdFromPathname(window.location.pathname);
@@ -6137,6 +6147,15 @@
 
   let _homeDashTimer = null;
   let _homeDashInflight = null;
+  let _homeRailMountTimer = null;
+
+  function _scheduleMountHomeDashboardRails() {
+    clearTimeout(_homeRailMountTimer);
+    _homeRailMountTimer = setTimeout(function () {
+      try { mountHomeDashboardRails(); } catch (_) {}
+    }, 140);
+  }
+
   function scheduleHomeDashboardRefresh() {
     clearTimeout(_homeDashTimer);
     _homeDashTimer = setTimeout(() => {
@@ -7000,28 +7019,15 @@
 
   function fetchLoggedHomeSeed() {
     if (!getToken()) return Promise.resolve({});
-    return Promise.all([
-      api('/api/site/unwatched?offset=0&limit=12', { timeoutMs: 12000 }).catch(() => null),
-      api('/api/home/rails/series?offset=0&limit=12', { timeoutMs: 12000 }).catch(() => null),
-      api('/api/site/ratings', { timeoutMs: 12000 }).catch(() => null),
-      api('/api/tournament/preview', { timeoutMs: 12000 }).catch(() => null),
-      fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
-    ]).then((parts) => {
-      const ratings = normalizeHomeSeedItems(parts[2]).slice(0, 12);
-      const series = normalizeHomeSeedItems(parts[1]).length
-        ? normalizeHomeSeedItems(parts[1])
-        : normalizeHomeSeedItems(parts[4]);
-      const out = {
-        unwatched: normalizeHomeSeedItems(parts[0]).slice(0, 12),
-        series: series.slice(0, 12),
-        recent_rated: ratings,
-      };
-      if (parts[2] && parts[2].success !== false) out.rated_films_count = ratings.length;
-      if (parts[3] && parts[3].success && parts[3].tournament_preview) {
-        out.tournament_preview = parts[3].tournament_preview;
-      }
-      return out;
-    }).catch(() => ({}));
+    return api('/api/tournament/preview', { timeoutMs: 12000 })
+      .then((tp) => {
+        const out = {};
+        if (tp && tp.success && tp.tournament_preview) {
+          out.tournament_preview = tp.tournament_preview;
+        }
+        return out;
+      })
+      .catch(() => ({}));
   }
 
   function fetchPremieresForDisplay(period) {
@@ -7111,6 +7117,7 @@
               setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
             }
             _patchHomeDashboardStaticBlocks();
+            _scheduleMountHomeDashboardRails();
             return dashData;
           }).catch(() => {});
           if (_homeDashboardCache && !_homeDashboardCache.tournament_preview) {
@@ -7144,9 +7151,7 @@
         _homeDashInflight = null;
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
-        setTimeout(function () {
-          try { mountHomeDashboardRails(); } catch (_) {}
-        }, 140);
+        _scheduleMountHomeDashboardRails();
       });
     return _homeDashInflight;
   }
