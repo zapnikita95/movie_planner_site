@@ -8769,6 +8769,24 @@
     return div.innerHTML;
   }
 
+  function ruPlural(n, one, few, many) {
+    const num = Math.abs(Number(n) || 0);
+    const mod10 = num % 10;
+    const mod100 = num % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  function seriesStatsChipLabels(stats) {
+    const out = [];
+    const sc = Number((stats && stats.seasons_count) || 0);
+    const ec = Number((stats && stats.episodes_total) || 0);
+    if (sc > 0) out.push(sc + ' ' + ruPlural(sc, 'сезон', 'сезона', 'сезонов'));
+    if (ec > 0) out.push(ec + ' ' + ruPlural(ec, 'серия', 'серии', 'серий'));
+    return out;
+  }
+
   function mpStatsTitle(iconKey, text, dataKey) {
     try {
       if (window.MPIcons && typeof window.MPIcons.statsTitle === 'function') {
@@ -10445,7 +10463,7 @@
     const page = Math.min(Math.max(0, st.page || 0), totalPages - 1);
     const pageEps = eps.slice(page * pageSize, page * pageSize + pageSize);
     const seasonLabel = seasonRow ? ('Сезон ' + seasonRow.season) : '';
-    const countLabel = totalEps ? (totalEps + ' ' + (totalEps === 1 ? 'серия' : (totalEps < 5 ? 'серии' : 'серий'))) : '';
+    const countLabel = totalEps ? (totalEps + ' ' + ruPlural(totalEps, 'серия', 'серии', 'серий')) : '';
     let html = '<div class="film-series-toolbar-head">'
       + '<div class="film-series-toolbar-title">' + escapeHtml(seasonLabel) + '</div>'
       + (countLabel ? '<div class="film-series-toolbar-meta">' + escapeHtml(countLabel) + '</div>' : '')
@@ -12131,12 +12149,22 @@
   }
 
   function buildFilmGenreChipsHtml(film) {
+    const chips = [];
+    if (film && film.is_series) {
+      const stats = film.series_stats || (film.series_progress && film.series_progress.series_stats) || null;
+      seriesStatsChipLabels(stats).forEach((label) => {
+        chips.push('<span class="chip">' + escapeHtml(label) + '</span>');
+      });
+    }
     const parts = String((film && film.genres) || '')
       .split(/[,;/|]+/)
       .map((s) => s.trim())
       .filter(Boolean);
     if (!parts.length) parts.push(film && film.is_series ? 'сериал' : 'фильм');
-    return parts.slice(0, 8).map((label) => '<span class="chip">' + escapeHtml(label) + '</span>').join('');
+    parts.slice(0, 8).forEach((label) => {
+      chips.push('<span class="chip">' + escapeHtml(label) + '</span>');
+    });
+    return chips.join('');
   }
 
   function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {

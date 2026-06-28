@@ -10731,7 +10731,15 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
 }
 @media (max-width: 520px) {
   .film-series-ep-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .film-series-ep-btn {
+    min-height: 34px;
+    padding: 4px 2px;
+    font-size: 9px;
+    border-radius: 10px;
+    letter-spacing: -0.02em;
   }
   .film-series-code {
     font-size: 10px;

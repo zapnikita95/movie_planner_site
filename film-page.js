@@ -42,6 +42,28 @@
     });
   }
 
+  function ruPlural(n, one, few, many) {
+    var num = Math.abs(Number(n) || 0);
+    var mod10 = num % 10;
+    var mod100 = num % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  function seriesStatsChipLabels(stats) {
+    var out = [];
+    var sc = Number((stats && stats.seasons_count) || 0);
+    var ec = Number((stats && stats.episodes_total) || 0);
+    if (sc > 0) {
+      out.push(sc + ' ' + ruPlural(sc, 'сезон', 'сезона', 'сезонов'));
+    }
+    if (ec > 0) {
+      out.push(ec + ' ' + ruPlural(ec, 'серия', 'серии', 'серий'));
+    }
+    return out;
+  }
+
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
     if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters/i.test(s)) return '';
@@ -419,7 +441,7 @@
     var page = Math.min(Math.max(0, st.page || 0), totalPages - 1);
     var pageEps = eps.slice(page * pageSize, page * pageSize + pageSize);
     var seasonLabel = seasonRow ? ('Сезон ' + seasonRow.season) : '';
-    var countLabel = totalEps ? (totalEps + ' ' + (totalEps === 1 ? 'серия' : (totalEps < 5 ? 'серии' : 'серий'))) : '';
+    var countLabel = totalEps ? (totalEps + ' ' + ruPlural(totalEps, 'серия', 'серии', 'серий')) : '';
     var html = '<div class="film-series-toolbar-head">'
       + '<div class="film-series-toolbar-title">' + escapeHtml(seasonLabel) + '</div>'
       + (countLabel ? '<div class="film-series-toolbar-meta">' + escapeHtml(countLabel) + '</div>' : '')
@@ -1707,15 +1729,24 @@
           return r.json();
         });
       }
-      function renderGenreChips(genresStr, isSeries) {
+      function renderGenreChips(genresStr, isSeries, seriesStats) {
         var container = document.getElementById('chips');
         if (!container) return;
         container.innerHTML = '';
+        if (isSeries) {
+          seriesStatsChipLabels(seriesStats).forEach(function (label) {
+            var statChip = document.createElement('span');
+            statChip.className = 'chip';
+            statChip.textContent = label;
+            container.appendChild(statChip);
+          });
+        }
         var parts = String(genresStr || '')
           .split(/[,;/|]+/)
           .map(function (s) { return s.trim(); })
           .filter(Boolean);
-        if (!parts.length) parts = [isSeries ? 'сериал' : 'фильм'];
+        if (!parts.length && !isSeries) parts = ['фильм'];
+        else if (!parts.length && isSeries) parts = ['сериал'];
         parts.slice(0, 8).forEach(function (label) {
           var chip = document.createElement('button');
           chip.type = 'button';
@@ -2029,7 +2060,7 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
-          renderGenreChips(f.genres, f.is_series);
+          renderGenreChips(f.genres, f.is_series, f.series_stats);
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = kpId; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');
