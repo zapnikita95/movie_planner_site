@@ -5,7 +5,13 @@
   'use strict';
 
   var SITE_ORIGIN = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
-  var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
+  var API_BASE = (function () {
+    try {
+      var h = (global.location && global.location.hostname) || '';
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return SITE_ORIGIN;
+    } catch (_e) {}
+    return (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
+  })();
 
   function appOpenBannerHtml() {
     if (global.MpAppOpenBanner && MpAppOpenBanner.appOpenBannerHtml) {

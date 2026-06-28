@@ -17,6 +17,10 @@
     return 'https://movie-planner.ru';
   })();
   const API_BASE = (function () {
+    try {
+      var h = (window.location && window.location.hostname) || '';
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return SITE_ORIGIN;
+    } catch (e) {}
     if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
     return SITE_ORIGIN;
   })();
@@ -2523,7 +2527,11 @@
 
   function api(url, options = {}) {
     const token = getToken();
-    const max503Retries = 3;
+    const lowRetryRoute =
+      String(url || '').indexOf('/api/home/rails/') === 0 ||
+      String(url || '').indexOf('/api/tournament/preview') === 0 ||
+      String(url || '').indexOf('/api/site/profiles') === 0;
+    const max503Retries = lowRetryRoute ? 1 : 3;
     const attempt = (retried, retry503, me401Retries) => apiOnce(url, options, token).then((res) => {
       if (apiShouldRetry503(res) && retry503 < max503Retries) {
         const delayMs = 320 * Math.pow(2, retry503);
@@ -2572,7 +2580,7 @@
 
   let _profilesApiInflight = null;
   function fetchSiteProfiles(opts) {
-    const lite = !!(opts && opts.lite);
+    const lite = !(opts && opts.full === true);
     const url = lite ? '/api/site/profiles?lite=1' : '/api/site/profiles';
     if (_profilesApiInflight && _profilesApiInflight.url === url) return _profilesApiInflight.promise;
     const promise = api(url).finally(() => {
