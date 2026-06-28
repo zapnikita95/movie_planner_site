@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628headergrid1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628headergrid1">
+    <link rel="preload" href="/style-v2.css?v=20260628headergrid2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628headergrid2">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -108,16 +108,16 @@
       })();
     </script>
     <style id="mp-landing-critical">
-      html.mp-landing-boot #header-search.hidden{display:block!important;visibility:hidden;opacity:0;pointer-events:none;flex:1 1 100%!important;max-width:100%!important;min-width:0!important;margin:0!important;order:3}
+      html.mp-landing-boot #header-search{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;max-width:none!important;min-width:0!important;margin:0!important;overflow:visible!important}
       html.mp-landing-boot .header-content{display:flex!important;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:96px;box-sizing:border-box}
       html.mp-landing-boot .logo{flex:0 1 auto;min-width:0}
-      html.mp-landing-boot .header-buttons{flex:1 1 auto;display:flex;justify-content:flex-end;min-width:0}
-      @media(min-width:861px){
-        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:auto minmax(300px,1fr) auto;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
-        html.mp-landing-boot .logo{grid-column:1;justify-self:start}
-        html.mp-landing-boot .header-buttons{grid-column:3;justify-self:end;display:flex}
-        html.mp-landing-boot #header-search{grid-column:2;order:unset!important;flex:unset!important;max-width:none!important;margin:0!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
-        html.mp-landing-boot #header-search.hidden{visibility:visible!important;opacity:1!important}
+      html.mp-landing-boot .header-buttons{flex:0 0 auto;display:flex;justify-content:flex-end;min-width:0}
+      html.mp-landing-boot #header-search{order:3;flex:1 1 100%!important;width:100%!important}
+      @media(min-width:769px){
+        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:auto minmax(320px,1fr) auto!important;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
+        html.mp-landing-boot .logo{grid-column:1;grid-row:1;justify-self:start}
+        html.mp-landing-boot .header-buttons{grid-column:3;grid-row:1;justify-self:end;order:unset}
+        html.mp-landing-boot #header-search{grid-column:2;grid-row:1;order:unset!important;flex:unset!important;width:100%!important;justify-self:stretch}
       }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
@@ -201,9 +201,9 @@
           }
         } catch (_) {}
       })();
-      // Маркетинговая / — классы body до первого кадра (см. inline script сразу после <body>)
+      // Маркетинговая / — nav + unhide поиска (классы body — inline script сразу после <body>)
       (function () {
-        function bootLandingRootHeader() {
+        function finishLandingRootHeader() {
           try {
             var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
             if (path !== '/' && path !== '/index.html') return;
@@ -217,7 +217,11 @@
             }
           } catch (_) {}
         }
-        bootLandingRootHeader();
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', finishLandingRootHeader);
+        } else {
+          finishLandingRootHeader();
+        }
       })();
       // Залогинен на / — редирект в кабинет /home (гость остаётся на лендинге)
       (function () {
@@ -661,7 +665,7 @@
     <header id="site-header">
       <div class="header-content">
         <a href="/" class="logo"><img src="images/icon48.png" alt="Movie Planner">Movie Planner</a>
-        <div class="header-search hidden" id="header-search" role="search" aria-hidden="true">
+        <div class="header-search" id="header-search" role="search">
           <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
           <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
           <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="regular" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
@@ -702,6 +706,14 @@
         </div>
       </div>
     </header>
+    <script>
+      (function () {
+        var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+        if (path !== '/' && path !== '/index.html') return;
+        var nav = document.getElementById('landing-root-nav');
+        if (nav) nav.classList.remove('hidden');
+      })();
+    </script>
 
     <nav class="cabinet-nav film-standalone-nav hidden" id="landing-root-nav" aria-label="Разделы">
       <a class="cabinet-nav-btn" href="/home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></a>
