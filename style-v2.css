@@ -15020,13 +15020,23 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 
 .profile-hub { display: flex; flex-direction: column; gap: 14px; }
 .profile-hub-header {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   padding: 14px;
+  padding-top: 12px;
+  padding-right: 12px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
+}
+.profile-hub-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
 }
 .profile-hub-avatar,
 .profile-hub-avatar img {
@@ -15058,20 +15068,29 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 }
 .profile-hub-meta { margin-top: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.55); }
 .profile-hub-edit {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: auto;
+  height: auto;
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #ff5aa5;
   cursor: pointer;
   flex-shrink: 0;
+  line-height: 0;
 }
+.profile-hub-edit:hover { opacity: 0.85; }
+.profile-hub-header-top .profile-hub-info { padding-right: 28px; }
 .profile-hub-stats,
 .profile-hub-highlights {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
 .profile-hub-stat {
   display: flex;
@@ -15090,14 +15109,13 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 }
 .profile-hub-stat b { font-size: 17px; font-weight: 800; color: #ff5aa5; }
 .profile-hub-stat span {
-  font-size: 9px;
-  line-height: 1.15;
-  padding: 0 3px;
+  font-size: 10px;
+  line-height: 1.2;
+  padding: 0 2px;
   text-align: center;
   color: rgba(255, 255, 255, 0.55);
   text-transform: lowercase;
-  word-break: break-word;
-  hyphens: auto;
+  white-space: nowrap;
 }
 .profile-hub-achievements { margin-top: 0; }
 .profile-hub-achievements .user-profile-block { margin-top: 0; }
@@ -15121,17 +15139,24 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   color: rgba(255, 255, 255, 0.55);
 }
 .profile-ach-preview .user-profile-ach-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
   flex-wrap: nowrap;
-  gap: 8px;
   padding: 0;
+  width: 100%;
 }
 .profile-ach-preview .user-profile-ach {
-  width: 48px;
-  height: 48px;
+  width: 100%;
+  max-width: 64px;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0 auto;
   border: 0;
   background: transparent;
+  justify-self: center;
 }
-.profile-ach-preview .user-profile-ach-icon { font-size: 24px; }
+.profile-ach-preview .user-profile-ach-icon { font-size: 28px; }
 .profile-ach-dialog { max-width: 520px; max-height: min(88vh, calc(100dvh - 32px)); overflow: hidden; display: flex; flex-direction: column; }
 .profile-ach-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .profile-ach-dialog-grid {
@@ -15158,15 +15183,57 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
 }
-.profile-film-block-more {
+.profile-film-block-more,
+.profile-film-block-more.link-inline {
   border: 0;
   background: none;
   color: #ff5aa5;
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
+  white-space: nowrap;
+}
+.profile-film-block-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.profile-activity-block { margin-bottom: 14px; }
+.profile-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-activity-row:hover { background: rgba(255, 255, 255, 0.06); }
+.profile-activity-row-icon {
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+  font-size: 18px;
+}
+.profile-activity-row-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.88);
+}
+.profile-activity-row-meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
 }
 .profile-film-rail {
   display: flex;
@@ -15355,7 +15422,7 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 @media (min-width: 900px) {
   .profile-hub {
     display: grid;
-    grid-template-columns: minmax(300px, 380px) 1fr;
+    grid-template-columns: minmax(320px, 400px) 1fr;
     grid-template-rows: auto auto;
     gap: 20px 24px;
     align-items: start;
@@ -15389,6 +15456,14 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
     flex-direction: column;
     gap: 4px;
     min-height: 100%;
+    min-width: 0;
+  }
+  .profile-hub--friend > .btn-logout {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    max-width: none;
+    margin-top: 8px;
   }
   .profile-hub-avatar,
   .profile-hub-avatar img {
@@ -15429,15 +15504,18 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   }
 }
 @media (min-width: 1024px) {
-  .profile-hub-header { align-items: flex-start; }
+  .profile-hub-header-top { align-items: flex-start; }
   .profile-hub-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
   }
-  .profile-hub-info .profile-hub-highlights {
-    max-width: 420px;
-  }
+  .profile-hub-highlights { margin-top: 0; }
+  .profile-hub-stat span { font-size: 11px; }
+  .profile-ach-preview .user-profile-ach { max-width: 72px; }
+  .profile-ach-preview .user-profile-ach-icon { font-size: 30px; }
   .user-friend-profile .user-profile-actions,
   .user-friend-profile .user-profile-block {
     max-width: 640px;

@@ -147,7 +147,7 @@
     const list = (films || []).slice(0, opts.limit || 8);
     if (!list.length) return '';
     const action = opts.action
-      ? '<button type="button" class="profile-film-block-more" data-action="' + escapeHtml(opts.action) + '">Все →</button>'
+      ? '<button type="button" class="link-inline home-dash-more profile-film-block-more" data-action="' + escapeHtml(opts.action) + '">Весь список →</button>'
       : '';
     return (
       '<section class="profile-film-block">' +
@@ -165,6 +165,85 @@
         '</div>' +
       '</section>'
     );
+  }
+
+  function activityEventLabel(item) {
+    const et = item && item.event_type;
+    if (et === 'rating') {
+      const title = item.film_title || 'фильм';
+      const score = item.value != null ? String(item.value) : '—';
+      return 'Оценил «' + title + '» — ' + score + '/10';
+    }
+    if (et === 'plan_home') return 'Запланировал дома «' + (item.film_title || 'фильм') + '»';
+    if (et === 'plan_cinema') return 'Запланировал в кино «' + (item.film_title || 'фильм') + '»';
+    if (et === 'achievement') {
+      const ach = item.achievement || {};
+      return 'Получил «' + (ach.name || item.extra || 'ачивку') + '»';
+    }
+    return '';
+  }
+
+  function activityEventIcon(item) {
+    const et = item && item.event_type;
+    if (et === 'rating') return '⭐';
+    if (et === 'plan_cinema') return '🎟';
+    if (et === 'plan_home') return '📅';
+    if (et === 'achievement') return (item.achievement && item.achievement.icon) || '🏅';
+    return '•';
+  }
+
+  function formatActivityWhen(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const now = new Date();
+      const diffMs = now - d;
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffDays <= 0) return 'сегодня';
+      if (diffDays === 1) return 'вчера';
+      if (diffDays < 7) return diffDays + ' дн. назад';
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  function activityPreviewBlockHtml(items, hooks) {
+    const list = (items || []).slice(0, 8);
+    if (!list.length) return '';
+    return (
+      '<section class="profile-activity-block">' +
+        '<div class="profile-film-block-head">' +
+          '<h3 class="profile-film-block-title">Недавняя активность</h3>' +
+        '</div>' +
+        '<div class="profile-activity-list">' +
+          list.map(function (item) {
+            const kp = item && item.kp_id;
+            const label = activityEventLabel(item);
+            const when = formatActivityWhen(item.happened_at);
+            return (
+              '<button type="button" class="profile-activity-row"' +
+                (kp ? ' data-kp="' + escapeHtml(String(kp)) + '"' : '') +
+                '>' +
+                '<span class="profile-activity-row-icon" aria-hidden="true">' + escapeHtml(activityEventIcon(item)) + '</span>' +
+                '<span class="profile-activity-row-text">' + escapeHtml(label) + '</span>' +
+                (when ? '<span class="profile-activity-row-meta">' + escapeHtml(when) + '</span>' : '') +
+              '</button>'
+            );
+          }).join('') +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  function bindActivityRows(root, hooks) {
+    root.querySelectorAll('.profile-activity-row[data-kp]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const kp = btn.getAttribute('data-kp');
+        if (kp && hooks.onFilmKp) hooks.onFilmKp(kp);
+      });
+    });
   }
 
   function bindFilmCards(root, hooks) {
@@ -205,14 +284,14 @@
   }
 
   function achPreviewHtml(allAchievements, achTotal) {
-    const items = (allAchievements || []).slice(0, 3);
+    const items = (allAchievements || []).slice(0, 6);
     if (!items.length && !achTotal) return '';
     return (
       '<div class="profile-ach-preview">' +
         '<div class="profile-ach-preview-head">' +
           '<span class="profile-ach-preview-label">Достижения</span>' +
           (achTotal > 0
-            ? '<button type="button" class="user-profile-ach-all" data-action="ach-all">Все достижения</button>'
+            ? '<button type="button" class="link-inline home-dash-more" data-action="ach-all">Все достижения →</button>'
             : '') +
         '</div>' +
         '<div class="user-profile-ach-row">' +
@@ -268,11 +347,11 @@
           '<b>' + escapeHtml(String(data.ratings_count || 0)) + '</b><span>оценок</span></button>' +
         (isFriend || isSelf
           ? '<button type="button" class="profile-hub-stat" data-action="unwatched-all">' +
-              '<b>' + escapeHtml(String(unwatched)) + '</b><span>непросмотр.</span></button>'
+              '<b>' + escapeHtml(String(unwatched)) + '</b><span>ждут</span></button>'
           : '') +
         (watched != null && (isFriend || isSelf)
           ? '<button type="button" class="profile-hub-stat" data-action="watched-all">' +
-              '<b>' + escapeHtml(String(watched)) + '</b><span>просмотр.</span></button>'
+              '<b>' + escapeHtml(String(watched)) + '</b><span>смотрел</span></button>'
           : '') +
         '<button type="button" class="profile-hub-stat" data-action="ach-open">' +
           '<b>' + escapeHtml(String(data.achievements_count || (data.achievements || []).length || 0)) + '</b><span>ачивок</span></button>' +
@@ -330,10 +409,18 @@
         action: 'watched-all',
         limit: 8,
       }) +
+      activityPreviewBlockHtml(data.recent_activity, hooks) +
+      filmPreviewBlockHtml('Сериалы в очереди', data.series_waiting, hooks, {
+        action: 'unwatched-all',
+        limit: 8,
+      }) +
       filmPreviewBlockHtml('Планы', data.upcoming_plans, hooks, {
         action: 'plans-all',
         limit: 8,
         planField: 'plan_type',
+      }) +
+      filmPreviewBlockHtml('Премьеры', data.premiere_subscriptions, hooks, {
+        limit: 8,
       });
 
     const unfriendBtn = isFriend && !isSelf
@@ -344,12 +431,14 @@
       '<div class="profile-hub profile-hub--friend">' +
         '<div class="profile-hub-left">' +
           '<div class="profile-hub-header">' +
-            '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
-            '<div class="profile-hub-info">' +
-              '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
-              metaHtml +
-              statsHtml +
+            '<div class="profile-hub-header-top">' +
+              '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
+              '<div class="profile-hub-info">' +
+                '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
+                metaHtml +
+              '</div>' +
             '</div>' +
+            statsHtml +
           '</div>' +
           achPreviewHtml(allAchievements, achTotal) +
           leftActionsHtml +
@@ -360,6 +449,7 @@
 
     setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial, uid);
     bindFilmCards(root, hooks);
+    bindActivityRows(root, hooks);
     bindRatingRows(root, hooks);
 
     root.querySelector('[data-action="taste"]')?.addEventListener('click', function () {

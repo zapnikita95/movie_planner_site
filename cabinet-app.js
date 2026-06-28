@@ -15548,7 +15548,7 @@
     const host = root.querySelector('#profile-hub-achievements');
     if (!host || !profileData) return;
     const allAchievements = Array.isArray(profileData.achievements) ? profileData.achievements : [];
-    const items = allAchievements.slice(0, 3);
+    const items = allAchievements.slice(0, 6);
     const total = Number(profileData.achievements_count || allAchievements.length || 0);
     if (!items.length && total <= 0) {
       host.classList.add('hidden');
@@ -15561,7 +15561,7 @@
         '<div class="profile-ach-preview-head">' +
           '<span class="profile-ach-preview-label">Достижения</span>' +
           (total > 0
-            ? '<button type="button" class="user-profile-ach-all" data-profile-ach-all="1">Все достижения</button>'
+            ? '<button type="button" class="link-inline home-dash-more" data-profile-ach-all="1">Все достижения →</button>'
             : '') +
         '</div>' +
         '<div class="user-profile-ach-row">' +
@@ -15686,13 +15686,15 @@
       root.innerHTML = '<div class="profile-hub">'
         + '<div class="profile-hub-left">'
         + '<div class="profile-hub-header">'
+        + '<div class="profile-hub-header-top">'
         + '<div class="profile-hub-avatar" id="profile-hub-avatar"></div>'
         + '<div class="profile-hub-info">'
         + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
         + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
-        + statsHtml
         + '</div>'
         + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
+        + '</div>'
+        + statsHtml
         + '</div>'
         + '<div id="profile-hub-achievements" class="profile-hub-achievements hidden"></div>'
         + '</div>'
