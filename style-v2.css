@@ -7072,6 +7072,15 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   flex: 1 1 220px;
   min-width: 220px;
 }
+.cards-list .card.film-card-v2 {
+  overflow: visible;
+}
+.cards-list .card.film-card-v2:has(.action-dropdown.open) {
+  z-index: 120;
+}
+.action-dropdown.open {
+  z-index: 121;
+}
 .action-dropdown-btn {
   width: 100%;
   display: inline-flex;
@@ -7160,7 +7169,7 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   transform: translateY(-4px);
   pointer-events: none;
   transition: opacity 0.15s ease, transform 0.15s ease;
-  z-index: 30;
+  z-index: 200;
   display: flex;
   flex-direction: column;
   gap: 2px;
