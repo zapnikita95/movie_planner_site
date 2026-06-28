@@ -126,9 +126,11 @@
     const title = escapeHtml(item.film_title || item.title || 'Фильм');
     const badge = opts.rating != null
       ? '<span class="profile-film-card-badge">' + escapeHtml(String(opts.rating)) + '/10</span>'
-      : (opts.planType
-        ? '<span class="profile-film-card-badge profile-film-card-badge--plan">' + escapeHtml(opts.planType === 'cinema' ? 'Кино' : 'Дом') + '</span>'
-        : '');
+      : (opts.progressLabel
+        ? '<span class="profile-film-card-badge profile-film-card-badge--plan">' + escapeHtml(String(opts.progressLabel)) + '</span>'
+        : (opts.planType
+          ? '<span class="profile-film-card-badge profile-film-card-badge--plan">' + escapeHtml(opts.planType === 'cinema' ? 'Кино' : 'Дом') + '</span>'
+          : ''));
     return (
       '<button type="button" class="profile-film-card" data-kp="' + escapeHtml(String(kp)) + '" title="' + title + '">' +
         '<span class="profile-film-card-poster">' +
@@ -142,24 +144,40 @@
     );
   }
 
+  function countFriendPreviewBlocks(data) {
+    var n = 0;
+    if ((data.recent_ratings || []).length) n++;
+    if ((data.recent_watched || []).length) n++;
+    if ((data.recent_activity || []).length) n++;
+    if ((data.series_in_progress || []).length) n++;
+    if ((data.series_waiting || []).length) n++;
+    if ((data.upcoming_plans || []).length) n++;
+    if ((data.premiere_subscriptions || []).length) n++;
+    return n;
+  }
+
   function filmPreviewBlockHtml(title, films, hooks, opts) {
     opts = opts || {};
-    const list = (films || []).slice(0, opts.limit || 8);
+    var denseFill = !!opts.denseFill;
+    var limit = denseFill ? (opts.denseLimit || 14) : (opts.limit || 8);
+    const list = (films || []).slice(0, limit);
     if (!list.length) return '';
     const action = opts.action
       ? '<button type="button" class="link-inline home-dash-more profile-film-block-more" data-action="' + escapeHtml(opts.action) + '">Весь список →</button>'
       : '';
+    const railClass = denseFill ? 'profile-film-rail profile-film-rail--dense-grid' : 'profile-film-rail';
     return (
-      '<section class="profile-film-block">' +
+      '<section class="profile-film-block' + (denseFill ? ' profile-film-block--dense' : '') + '">' +
         '<div class="profile-film-block-head">' +
           '<h3 class="profile-film-block-title">' + escapeHtml(title) + '</h3>' +
           action +
         '</div>' +
-        '<div class="profile-film-rail">' +
+        '<div class="' + railClass + '">' +
           list.map(function (f) {
             return filmPosterCardHtml(f, hooks, {
               rating: opts.ratingField ? f[opts.ratingField] : null,
               planType: opts.planField ? f[opts.planField] : null,
+              progressLabel: opts.progressField ? f[opts.progressField] : null,
             });
           }).join('') +
         '</div>' +
@@ -398,29 +416,49 @@
           '</span><span class="mp-list-arrow">›</span></button>'
       : '';
 
+    const previewBlockCount = countFriendPreviewBlocks(data);
+    const denseFill = previewBlockCount <= 1;
+
     const rightHtml =
       tasteHtml +
       filmPreviewBlockHtml('Последние оценки', data.recent_ratings, hooks, {
         action: 'ratings-all',
         limit: 8,
+        denseFill: denseFill && (data.recent_ratings || []).length && !(data.recent_watched || []).length,
+        denseLimit: 14,
         ratingField: 'rating',
+      }) +
+      filmPreviewBlockHtml('Сериалы сейчас', data.series_in_progress, hooks, {
+        action: 'watched-all',
+        limit: 8,
+        denseFill: denseFill,
+        denseLimit: 14,
+        progressField: 'progress_label',
       }) +
       filmPreviewBlockHtml('Недавно просмотренные', data.recent_watched, hooks, {
         action: 'watched-all',
         limit: 8,
+        denseFill: denseFill,
+        denseLimit: 14,
       }) +
       activityPreviewBlockHtml(data.recent_activity, hooks) +
       filmPreviewBlockHtml('Сериалы в очереди', data.series_waiting, hooks, {
         action: 'unwatched-all',
         limit: 8,
+        denseFill: denseFill,
+        denseLimit: 14,
       }) +
       filmPreviewBlockHtml('Планы', data.upcoming_plans, hooks, {
         action: 'plans-all',
         limit: 8,
+        denseFill: denseFill,
+        denseLimit: 14,
         planField: 'plan_type',
       }) +
       filmPreviewBlockHtml('Премьеры', data.premiere_subscriptions, hooks, {
         limit: 8,
+        denseFill: denseFill,
+        denseLimit: 14,
       });
 
     const unfriendBtn = isFriend && !isSelf

@@ -13652,8 +13652,15 @@ button.tourn-podium-row {
 
 /* ——— Страница пользователя ——— */
 .cabinet-user-profile .user-profile-shell {
-  max-width: 720px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  width: 100%;
+}
+.cabinet-user-profile .user-profile-root {
+  width: 100%;
+}
+.cabinet-user-profile .profile-hub--friend {
+  width: 100%;
 }
 .user-profile-back {
   display: inline-flex;
@@ -15088,7 +15095,7 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 .profile-hub-stats,
 .profile-hub-highlights {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(72px, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -15245,6 +15252,28 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 .profile-film-rail--grid {
   flex-wrap: wrap;
   overflow: visible;
+}
+.profile-film-rail--dense-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
+  flex-wrap: unset;
+  width: 100%;
+}
+.profile-film-rail--dense-grid .profile-film-card {
+  width: 100%;
+  flex: unset;
+  max-width: none;
+}
+.profile-film-rail--dense-grid .profile-film-card-poster {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+.profile-film-rail--dense-grid .profile-film-card-poster img {
+  width: 100%;
+  height: 100%;
 }
 .profile-film-card {
   flex: 0 0 92px;
@@ -15422,7 +15451,7 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 @media (min-width: 900px) {
   .profile-hub {
     display: grid;
-    grid-template-columns: minmax(320px, 400px) 1fr;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
     grid-template-rows: auto auto;
     gap: 20px 24px;
     align-items: start;
@@ -15454,16 +15483,20 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   .profile-hub--friend .profile-hub-right {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     min-height: 100%;
     min-width: 0;
+    align-self: stretch;
   }
   .profile-hub--friend > .btn-logout {
     grid-column: 2;
     grid-row: 2;
     justify-self: start;
-    max-width: none;
+    max-width: 320px;
     margin-top: 8px;
+  }
+  .profile-film-rail--dense-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
   .profile-hub-avatar,
   .profile-hub-avatar img {
@@ -15514,6 +15547,7 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   }
   .profile-hub-highlights { margin-top: 0; }
   .profile-hub-stat span { font-size: 11px; }
+  .profile-hub-stat { min-height: 52px; padding: 8px 2px; }
   .profile-ach-preview .user-profile-ach { max-width: 72px; }
   .profile-ach-preview .user-profile-ach-icon { font-size: 30px; }
   .user-friend-profile .user-profile-actions,

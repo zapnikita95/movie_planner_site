@@ -702,7 +702,7 @@
     try {
       if (getToken()) {
         document.documentElement.classList.add('mp-session');
-        if (sectionFromPath(window.location.pathname) || isSearchLocation() || kpIdFromPathname(window.location.pathname) || staffIdFromPathname(window.location.pathname)) {
+        if (sectionFromPath(window.location.pathname) || isSearchLocation() || kpIdFromPathname(window.location.pathname) || staffIdFromPathname(window.location.pathname) || userIdFromPathname(window.location.pathname)) {
           document.documentElement.classList.add('mp-auth-boot');
         }
       } else {
@@ -1903,6 +1903,16 @@
       document.body.classList.remove('login-only-overlay');
       syncSessionHtmlClass();
       renderHeader(me);
+      return Promise.resolve();
+    }
+    const pathUserEarly = userIdFromPathname(window.location.pathname) || userIdFromLocation();
+    if (pathUserEarly && me) {
+      document.body.classList.remove('login-only-overlay');
+      syncSessionHtmlClass();
+      renderHeader(me);
+      showScreen('cabinet-readonly');
+      markCabinetUserNav('user');
+      openUserProfile(pathUserEarly, { replace: true, skipPush: true, skipReturnCapture: true });
       return Promise.resolve();
     }
     if (isMarketingRootPath(window.location.pathname)) {
@@ -3579,9 +3589,12 @@
 
   function cabinetDeepSectionFromLocation() {
     try {
+      const pathUser = userIdFromPathname(window.location.pathname) || userIdFromLocation();
+      if (pathUser && getToken()) return 'user';
       const fromPath = sectionFromPath(window.location.pathname);
       if (fromPath) return fromPath;
       const st = window.history && window.history.state;
+      if (st && st.section === 'user' && st.userId) return 'user';
       if (st && st.section && SECTION_TO_PATH[st.section]) return st.section;
     } catch (_) {}
     return null;
@@ -3640,6 +3653,18 @@
     }
     const deepSection = cabinetDeepSectionFromLocation();
     if (deepSection) {
+      if (deepSection === 'user') {
+        const uid = userIdFromPathname(window.location.pathname)
+          || userIdFromLocation()
+          || (window.history && window.history.state && window.history.state.userId);
+        if (uid) {
+          _currentUserProfileId = Number(uid);
+          markCabinetUserNav('user');
+          showSection('user', { replace: true, skipPush: !!options.skipPush });
+          try { mountUserProfilePage(_currentUserProfileId); } catch (_) {}
+          return 'user';
+        }
+      }
       showSection(deepSection, { replace: true, skipPush: !!options.skipPush });
       return deepSection;
     }
@@ -3934,6 +3959,7 @@
       }
     }
     _currentUserProfileId = uid;
+    markCabinetUserNav('user');
     showSection('user', { replace: !!o.replace, skipPush: true });
     if (!o.skipPush) pushUserProfileUrl(uid, !!o.replace);
     const shell = document.querySelector('#section-user .user-profile-shell');
@@ -5967,9 +5993,8 @@
         }
         const pathUserAfterLogin = userIdFromLocation();
         if (pathUserAfterLogin) {
-          setTimeout(function () {
-            openUserProfile(pathUserAfterLogin, { replace: true, skipPush: true, skipReturnCapture: true });
-          }, 0);
+          markCabinetUserNav('user');
+          openUserProfile(pathUserAfterLogin, { replace: true, skipPush: true, skipReturnCapture: true });
         }
       } catch (_) {}
     }).catch(function () {

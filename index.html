@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260629profilefix5" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260629profilefix5">
+    <link rel="preload" href="/style-v2.css?v=20260629profilefix6" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260629profilefix6">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -102,8 +102,10 @@
           try { document.title = 'Персона · Movie Planner'; } catch (_) {}
           return;
         }
-        if (path === '/' || path === '/index.html') {
-          document.documentElement.classList.add('mp-landing-boot');
+        if (/^\/u\/-?\d+$/.test(path) || /^\/user\/-?\d+$/.test(path)) {
+          document.documentElement.classList.add('mp-user-boot');
+          try { document.title = 'Профиль · Movie Planner'; } catch (_) {}
+          return;
         }
       })();
     </script>
@@ -129,6 +131,10 @@
       html.mp-session #header-user-wrap.hidden{display:flex!important}
       html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
       html.mp-session #landing{display:none!important}
+      html.mp-user-boot #section-home{display:none!important}
+      html.mp-user-boot #section-user{display:block!important}
+      html.mp-user-boot #section-user.hidden{display:block!important}
+      html.mp-user-boot #cabinet-readonly.hidden{display:block!important}
       .film-card-v2-poster .series-poster-alarm{position:absolute!important;top:8px!important;right:8px!important;z-index:6!important;width:32px!important;height:32px!important;padding:0!important;margin:0!important;border-radius:999px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.52)!important;border:1px solid rgba(255,255,255,.18)!important;color:#fff!important;cursor:pointer!important;box-shadow:none!important}
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
@@ -540,6 +546,55 @@
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintRouteBoot);
           else paintRouteBoot();
+        } catch (_) {}
+      })();
+      // /u/:id — сразу профиль, без мелькания главной
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          var userMatch = path.match(/^\/u\/(-?\d+)$/) || path.match(/^\/user\/(-?\d+)$/);
+          if (!userMatch) return;
+          function hasRouteToken() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+                }
+                for (var j = 0; j < sessions.length; j++) {
+                  if (sessions[j] && sessions[j].token) return true;
+                }
+              }
+              return !!localStorage.getItem('mp_site_token');
+            } catch (_e) { return false; }
+          }
+          if (!hasRouteToken()) return;
+          document.documentElement.classList.add('mp-session', 'mp-auth-boot', 'mp-user-boot');
+          function loadingShell() {
+            return '<div class="mp-page-loading" role="status" aria-live="polite" aria-busy="true" aria-label="Загрузка">'
+              + '<div class="mp-page-loading-spinner" aria-hidden="true"></div></div>';
+          }
+          function paintUserBoot() {
+            document.body.classList.add('in-cabinet');
+            var landing = document.getElementById('landing');
+            if (landing) landing.classList.add('hidden');
+            var cabinet = document.getElementById('cabinet-readonly');
+            if (cabinet) {
+              cabinet.classList.remove('hidden');
+              cabinet.classList.remove('cabinet-home-root');
+            }
+            document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (sec) {
+              if (!sec) return;
+              sec.classList.toggle('hidden', sec.id !== 'section-user');
+            });
+            var root = document.getElementById('user-profile-root');
+            if (root && !root.innerHTML.trim()) root.innerHTML = loadingShell();
+            var hs = document.getElementById('header-search');
+            if (hs) hs.classList.remove('hidden');
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintUserBoot);
+          else paintUserBoot();
         } catch (_) {}
       })();
       // SEO для /features/collections (краулеры и первый paint)
@@ -2392,7 +2447,7 @@
           'mp-icons.js?v=20260627history1'
         ];
         var cabinet = [
-          'user-profile-page.js?v=20260629profilefix5',
+          'user-profile-page.js?v=20260629profilefix6',
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
@@ -2407,7 +2462,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260629profilefix5'
+            'cabinet-app.js?v=20260629profilefix6'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2418,9 +2473,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260629profilefix5');
+          list.push('cabinet-app.js?v=20260629profilefix6');
         } else {
-          list.push('cabinet-app.js?v=20260629profilefix5');
+          list.push('cabinet-app.js?v=20260629profilefix6');
         }
         function loadAt(i) {
           if (i >= list.length) return;
