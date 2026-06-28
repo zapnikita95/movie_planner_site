@@ -10761,8 +10761,8 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   left: 4px;
   color: rgba(236,72,153,.78);
 }
-/* Film hero: keep plan CTA + icon row visible at ~1280×800 without scroll */
-@media (min-width: 1100px) and (max-height: 860px) {
+/* Film hero: keep plan CTA + icon row visible at ~1280×800 / ~1024×784 without scroll */
+@media (min-width: 861px) and (max-height: 860px) {
   #section-film .hero,
   #section-film .film-hero,
   .movie-page .hero {
@@ -10770,6 +10770,27 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
     padding: 14px 22px 18px;
     gap: 20px;
     align-items: center;
+  }
+  #section-film .film-hero,
+  #section-film .hero,
+  main.film-page .hero,
+  .film-hero {
+    grid-template-columns: minmax(240px, min(300px, 34vw)) minmax(0, 1fr);
+  }
+  .film-hero-poster-wrap,
+  #section-film .poster-wrap,
+  main.film-page .poster-wrap {
+    width: 100%;
+    max-width: none;
+    align-self: center;
+  }
+  .film-hero-poster,
+  #section-film .poster,
+  main.film-page .poster {
+    width: 100%;
+    max-height: min(calc(100vh - 210px), 440px);
+    height: auto;
+    aspect-ratio: 2 / 3;
   }
   #section-film .hero h1,
   .movie-page h1 {
@@ -12903,17 +12924,22 @@ body.film-standalone-page {
         gap: 20px;
       }
       .hero,
-      main.film-page .hero {
+      main.film-page .hero,
+      #section-film .hero,
+      #section-film .film-hero,
+      .film-hero {
         min-height: 0;
-        grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+        grid-template-columns: minmax(220px, min(280px, 32vw)) minmax(0, 1fr);
         gap: 14px;
         padding: 14px 16px;
-        align-items: start;
+        align-items: center;
       }
+      .film-hero-poster-wrap,
       .poster-wrap,
+      #section-film .poster-wrap,
       main.film-page .poster-wrap {
-        width: min(190px, 100%);
-        max-width: 190px;
+        width: 100%;
+        max-width: none;
       }
       body.film-standalone-page .hero h1,
       main.film-page .hero h1,
@@ -12948,9 +12974,29 @@ body.film-standalone-page {
         font-size: clamp(20px, 2.6vw, 30px) !important;
       }
       .hero,
-      main.film-page .hero {
+      main.film-page .hero,
+      #section-film .hero,
+      #section-film .film-hero,
+      .film-hero {
         padding: 12px 14px;
         gap: 12px;
+        grid-template-columns: minmax(250px, min(300px, 36vw)) minmax(0, 1fr);
+        align-items: center;
+      }
+      .film-hero-poster-wrap,
+      .poster-wrap,
+      #section-film .poster-wrap,
+      main.film-page .poster-wrap {
+        width: 100%;
+        max-width: none;
+      }
+      .film-hero-poster,
+      .poster,
+      #section-film .poster,
+      main.film-page .poster {
+        width: 100%;
+        max-height: min(calc(100vh - 200px), 420px);
+        height: auto;
       }
       body.film-standalone-page #site-header {
         margin-bottom: 12px;
@@ -14230,8 +14276,8 @@ html {
 @media (min-width: 769px) and (max-width: 1100px) {
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page):not(.in-search-page) .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    grid-template-rows: auto auto !important;
+    grid-template-columns: auto minmax(160px, min(280px, 30vw)) auto !important;
+    grid-template-rows: auto !important;
     align-items: center;
     gap: 10px 12px !important;
   }
@@ -14242,15 +14288,15 @@ html {
     min-width: 0;
   }
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page):not(.in-search-page) .header-buttons {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
     justify-self: end;
     min-width: 0;
     max-width: 100%;
   }
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page):not(.in-search-page) .header-search:not(.hidden) {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    grid-column: 2;
+    grid-row: 1;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
