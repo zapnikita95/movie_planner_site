@@ -13349,8 +13349,8 @@
     }
     const typeParam = _headerSearchHubType || 'any';
     const searchPromise = getToken()
-      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(typeParam))
-      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&type=' + encodeURIComponent(typeParam), { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(typeParam) + '&person_limit=1')
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&type=' + encodeURIComponent(typeParam) + '&person_limit=1', { method: 'GET', mode: 'cors' }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;

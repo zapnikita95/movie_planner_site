@@ -914,7 +914,7 @@
       }
       var html = '';
       if (persons.length) {
-        html += persons.slice(0, 3).map(function (p) {
+        html += persons.slice(0, 1).map(function (p) {
           var photo = cleanPoster(p.photo) || '/images/person-avatar-placeholder.png';
           var name = escapeText(p.name_ru || p.name_en || 'Персона');
           var prof = escapeText(String(p.professions || '').slice(0, 60));
@@ -948,7 +948,7 @@
         controller = global.AbortController ? new AbortController() : null;
         dd.innerHTML = searchLoadingHtml();
         dd.classList.remove('hidden');
-        fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6', {
+        fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6&person_limit=1', {
           method: 'GET',
           mode: 'cors',
           signal: controller ? controller.signal : undefined,
