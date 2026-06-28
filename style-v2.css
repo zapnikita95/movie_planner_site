@@ -9135,7 +9135,7 @@ a.header-settings-nav-item {
   body.in-cabinet #section-home .home-quick-actions {
     justify-content: center;
     gap: 22px;
-    margin: 8px 0 36px;
+    margin: 8px 0 14px;
   }
   body.in-cabinet #section-home .home-emoji-btn {
     width: 80px;
@@ -9973,8 +9973,8 @@ a.header-settings-nav-item {
     display: flex !important;
   }
 }
-/* Cabinet topbar only on home section */
-#cabinet-readonly:not(.cabinet-home-root) .cabinet-topbar {
+/* Профиль уже в #site-header — дублирующий topbar в кабинете не показываем */
+#cabinet-readonly .cabinet-topbar {
   display: none !important;
 }
 body.guest-cabinet-preview #cabinet-readonly .cabinet-topbar {

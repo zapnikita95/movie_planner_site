@@ -254,7 +254,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { home: true, premieres: true };
+  const GUEST_CABINET_SECTIONS = { home: true, premieres: true, whattowatch: true };
 
   function guestMayOpenCabinetSection(sectionId) {
     if (!isGuestCabinetPreview()) return true;
@@ -360,7 +360,7 @@
     } catch (_) {}
   }
 
-  /** Гость: только /home и /premieres — кабинет с cabinet-nav, без topbar «Профиль». */
+  /** Гость: /home, /premieres, /whattowatch и /features/collections/* — без topbar «Профиль». */
   function bootGuestCabinetPreview(sectionId) {
     try {
       if (getToken() || !document.getElementById('landing')) return false;
@@ -371,8 +371,21 @@
 
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       let sec = sectionId || sectionFromPath(bootPath) || 'home';
-      if (sec !== 'home' && sec !== 'premieres') return false;
-      if (bootPath !== '/home' && bootPath !== '/premieres') return false;
+      const collCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
+        ? window.MpCollectionsPage.collectionCodeFromPath(bootPath)
+        : null;
+      if (collCode || bootPath.indexOf('/features/collections') === 0) {
+        sec = 'whattowatch';
+        siteWtwScope = 'collections';
+        siteWtwCollectionCode = collCode || null;
+        try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+      } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
+        sec = 'whattowatch';
+      }
+      if (sec !== 'home' && sec !== 'premieres' && sec !== 'whattowatch') return false;
+      const guestPathOk = bootPath === '/home' || bootPath === '/premieres' || bootPath === '/whattowatch'
+        || bootPath.indexOf('/features/collections') === 0;
+      if (!guestPathOk) return false;
 
       document.body.classList.add('guest-cabinet-preview');
       document.body.classList.remove('login-only-overlay');
@@ -4586,7 +4599,7 @@
     if (cabinetReadonlyActive()) {
       readonly.classList.toggle('cabinet-home-root', sectionId === 'home');
       const topbar = readonly.querySelector('.cabinet-topbar');
-      if (topbar) topbar.classList.toggle('hidden', isGuestCabinetPreview() || sectionId !== 'home');
+      if (topbar) topbar.classList.add('hidden');
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
@@ -14533,11 +14546,13 @@
     }
     if (planBtn) {
       planBtn.addEventListener('click', () => {
+        if (!requireAuthForAction('Войдите, чтобы запланировать просмотр')) return;
         openSiteFilmPlanModal(film.kp_id, film.title || '', 'home');
       });
     }
     if (addBtn) {
       addBtn.addEventListener('click', () => {
+        if (!requireAuthForAction('Войдите, чтобы добавить фильм в базу')) return;
         addBtn.disabled = true;
         addBtn.textContent = 'Добавляем…';
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: film.kp_id }) })
@@ -14621,8 +14636,20 @@
       + '</div></div>';
   }
 
+  function wtwModeNeedsAuth(m) {
+    if (!m) return false;
+    if (m.kind === 'random' && (m.id === 'my_unwatched' || m.id === 'similar_my_top')) return true;
+    if (m.kind === 'wizard' && m.wizardScope === 'library') return true;
+    if (m.kind === 'premieres_reco') return true;
+    return false;
+  }
+
   function triggerWtwModeAction(m) {
     if (!m) return;
+    if (!getToken() && wtwModeNeedsAuth(m)) {
+      requireAuthForAction('Войдите, чтобы подобрать из вашей базы');
+      return;
+    }
     if (m.kind === 'random') {
       runSiteRandomMode(m.id);
       return;
@@ -17582,6 +17609,10 @@
 
   function handlePremiereNotifyButton(button, onDone) {
     if (!button || button.disabled) return;
+    if (!getToken()) {
+      requireAuthForAction('Войдите, чтобы получать напоминания о премьерах');
+      return;
+    }
     const action = button.getAttribute('data-action');
     const kp = button.getAttribute('data-kp');
     const date = button.getAttribute('data-date');
@@ -18425,30 +18456,11 @@
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
-      if (guestDeep === 'home' || guestDeep === 'premieres') {
-        bootGuestCabinetPreview(guestDeep);
-        handleAuthEntryDeepLinks();
-        return;
-      }
-      if (guestDeep === 'collections' || guestDeep === 'whattowatch') {
-        const collCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
-          ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
-          : null;
-        showScreen('cabinet-readonly');
-        renderHeader(null);
-        if (collCode) {
-          siteWtwScope = 'collections';
-          siteWtwCollectionCode = collCode;
-          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
-        } else if (guestDeep === 'collections' || window.location.pathname.indexOf('/features/collections') === 0) {
-          siteWtwScope = 'collections';
-          siteWtwCollectionCode = null;
-          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+      if (guestDeep === 'home' || guestDeep === 'premieres' || guestDeep === 'whattowatch') {
+        if (bootGuestCabinetPreview(guestDeep)) {
+          handleAuthEntryDeepLinks();
+          return;
         }
-        showSection('whattowatch', { skipPush: true });
-        afterCabinetSectionShown('whattowatch');
-        handleAuthEntryDeepLinks();
-        return;
       }
       if (guestDeep && guestMayOpenCabinetSection(guestDeep)) {
         showScreen('cabinet-readonly');

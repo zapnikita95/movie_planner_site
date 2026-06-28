@@ -633,6 +633,108 @@
     if (block) block.classList.add("hidden");
   }
 
+  function apiPublicGet(path) {
+    if (typeof global.apiPublic === "function") {
+      return global.apiPublic(path);
+    }
+    var base = global.API_BASE || "https://api.movie-planner.ru";
+    return fetch(base + path, { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.json().catch(function () { return {}; }); });
+  }
+
+  function collectionCodeFromPath(pathname) {
+    var p = (pathname || (typeof window !== "undefined" ? window.location.pathname : "") || "").replace(/\/$/, "");
+    if (p.indexOf("/features/collections/") !== 0) return null;
+    var code = p.split("/features/collections/")[1].split("/")[0];
+    if (!code || code === "collections") return null;
+    if (!/^[A-Za-z0-9_-]{2,64}$/.test(code)) return null;
+    return code;
+  }
+
+  function bindWtwCollectionsPanel(root) {
+    if (!root || root._wtwCollBound) return;
+    root._wtwCollBound = true;
+    root.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-coll-action]");
+      if (!btn || !root.contains(btn)) return;
+      e.preventDefault();
+      var action = btn.getAttribute("data-coll-action");
+      if (action === "wtw-back") {
+        if (typeof global.__mpWtwCollectionsBack === "function") global.__mpWtwCollectionsBack();
+        return;
+      }
+      if (action === "wtw-public-open") {
+        var code = btn.getAttribute("data-coll-id");
+        if (code && typeof global.__mpWtwOpenCollectionCode === "function") {
+          global.__mpWtwOpenCollectionCode(code);
+        }
+      }
+    });
+  }
+
+  function renderDiscoveryHub(root) {
+    if (!root) return;
+    root.innerHTML =
+      '<div class="collections-page collections-page--discovery">'
+      + '<p class="cabinet-hint collections-intro">Готовые подборки Movie Planner — откройте список и добавьте понравившиеся в базу.</p>'
+      + '<div class="collections-list-host" id="wtw-collections-discovery-list"><div class="settings-loading">Загружаем…</div></div>'
+      + "</div>";
+    bindWtwCollectionsPanel(root);
+    apiPublicGet("/api/public/collections?limit=80").then(function (data) {
+      var listEl = root.querySelector("#wtw-collections-discovery-list");
+      if (!listEl) return;
+      if (!data || !data.success) {
+        listEl.className = "collections-empty-wrap";
+        listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
+        return;
+      }
+      var items = data.collections || [];
+      fillListEl(listEl, items, function (c) {
+        return listItemHtml({
+          action: "wtw-public-open",
+          id: c.short_code,
+          icon: "globe",
+          iconClass: " mp-list-icon--public",
+          title: c.name,
+          hint: (c.films_count || 0) + " в подборке",
+        });
+      }, '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
+    }).catch(function () {
+      var listEl = root.querySelector("#wtw-collections-discovery-list");
+      if (listEl) {
+        listEl.className = "collections-empty-wrap";
+        listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
+      }
+    });
+  }
+
+  function renderPublicByCode(root, shortCode) {
+    if (!root || !shortCode) return;
+    root.innerHTML = detailSkeleton("Подборка", "🌐", "");
+    bindWtwCollectionsPanel(root);
+    var backBtn = root.querySelector('[data-coll-action="back"]');
+    if (backBtn) backBtn.setAttribute("data-coll-action", "wtw-back");
+    apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode)).then(function (data) {
+      if (!data || !data.success || !data.collection) {
+        root.innerHTML =
+          '<p class="cabinet-hint">Подборка не найдена</p>'
+          + '<button type="button" class="mp-sub-back" data-coll-action="wtw-back">← Коллекции</button>';
+        bindWtwCollectionsPanel(root);
+        return;
+      }
+      var c = data.collection;
+      var films = data.films || [];
+      var titleEl = root.querySelector(".collections-detail-title");
+      var hintEl = root.querySelector(".collections-detail-hint");
+      if (titleEl) titleEl.textContent = stripHtml(c.name || "");
+      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
+      var body = root.querySelector("#collections-detail-body");
+      if (body) body.innerHTML = filmsGridHtml(films);
+    }).catch(function () {
+      root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
+    });
+  }
+
   global.MpCollectionsPage = {
     render: renderCollectionsSection,
     applySeo: applyCollectionsSeo,
@@ -642,6 +744,9 @@
       _view = "hub";
       _viewId = null;
     },
+    renderDiscoveryHub: renderDiscoveryHub,
+    renderPublicByCode: renderPublicByCode,
+    collectionCodeFromPath: collectionCodeFromPath,
     SEO: SEO,
   };
 })(typeof window !== "undefined" ? window : globalThis);

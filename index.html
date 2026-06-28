@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628hotfix-series3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628hotfix-series3">
+    <link rel="preload" href="/style-v2.css?v=20260628guestwtw1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628guestwtw1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -390,7 +390,7 @@
             else paintAuthedDeep();
             return;
           }
-          if (sectionId !== 'home' && sectionId !== 'premieres') return;
+          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'whattowatch') return;
           function paintGuestDeep() { paintCabinetDeep(sectionId, true); }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintGuestDeep);
           else paintGuestDeep();
@@ -2390,7 +2390,7 @@
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260628homefix2',
-          'collections-page.js?v=20260617i18nfix3',
+          'collections-page.js?v=20260628guestwtw1',
           'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1'
         ];
@@ -2400,7 +2400,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628searchhub1'
+            'cabinet-app.js?v=20260628guestwtw1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2411,9 +2411,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628searchhub1');
+          list.push('cabinet-app.js?v=20260628guestwtw1');
         } else {
-          list.push('cabinet-app.js?v=20260628searchhub1');
+          list.push('cabinet-app.js?v=20260628guestwtw1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
