@@ -5559,10 +5559,8 @@
     });
 
     const regPrivacy = document.getElementById('login-register-privacy');
-    const oauthG = document.getElementById('login-oauth-google');
     const oauthY = document.getElementById('login-oauth-yandex');
     const tgWrap = document.getElementById('login-tg-widget-wrap');
-    const oauthGIn = document.getElementById('login-oauth-google-in');
     const oauthYIn = document.getElementById('login-oauth-yandex-in');
     const tgWrapIn = document.getElementById('login-tg-widget-wrap-in');
     function nudgeRegPrivacy() {
@@ -5575,7 +5573,7 @@
     }
     function syncRegOauthButtons() {
       const ok = regPrivacy && regPrivacy.checked;
-      [oauthG, oauthY, tgWrap].forEach((btn) => {
+      [oauthY, tgWrap].forEach((btn) => {
         if (!btn) return;
         btn.classList.toggle('is-locked', !ok);
       });
@@ -5597,9 +5595,6 @@
         startFn();
       });
     }
-    wireOAuthBtn(oauthGIn, () => {
-      window.location.href = SITE_ORIGIN + '/api/site/oauth/google/start?accept=1';
-    }, false);
     wireOAuthBtn(oauthYIn, () => {
       window.location.href = SITE_ORIGIN + '/api/site/oauth/yandex/start?accept=1';
     }, false);
@@ -5611,9 +5606,6 @@
         startSiteBotAuth(modal, null, null, null);
       });
     }
-    wireOAuthBtn(oauthG, () => {
-      window.location.href = SITE_ORIGIN + '/api/site/oauth/google/start?accept=1';
-    }, true);
     wireOAuthBtn(oauthY, () => {
       window.location.href = SITE_ORIGIN + '/api/site/oauth/yandex/start?accept=1';
     }, true);
@@ -15691,7 +15683,7 @@
       + settingsToggleRow({ id: 'settings-notify-friends-achievements', emoji: '🏅', title: 'Достижения друзей', hint: 'Когда друг получает ачивку', checked: notifFriendsAchievements })
       + '</div></section>'
       + '<section class="settings-panel settings-panel--compact settings-panel--links">'
-      + profileListItemHtml('Аккаунты и вход', 'Google, Яндекс, почта', { icon: 'key', sub: 'accounts' })
+      + profileListItemHtml('Аккаунты и вход', 'Яндекс, Telegram, почта', { icon: 'key', sub: 'accounts' })
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
@@ -15727,7 +15719,6 @@
       + '<h3 class="profile-sub-title">Аккаунты и вход</h3>'
       + '<section class="settings-panel settings-panel--wide">'
       + '<div class="settings-connectors">'
-      + '<button type="button" class="settings-row" data-profile-link="google">🔗 Google</button>'
       + '<button type="button" class="settings-row" data-profile-link="yandex">🔗 Яндекс</button>'
       + '<button type="button" class="settings-row" id="profile-settings-add-login">+ Добавить вход</button>'
       + '</div><div class="settings-accounts-list">' + sessionsHtml + '</div>'

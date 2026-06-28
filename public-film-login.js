@@ -206,9 +206,6 @@
             '<div class="login-register-oauth-block login-oauth-block--login">' +
               '<div class="login-oauth-caption">Войти с помощью</div>' +
               '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
-                '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google-in" title="Google" aria-label="Google">' +
-                  '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
-                '</button>' +
                 '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex-in" title="Яндекс" aria-label="Яндекс">' +
                   '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
                 '</button>' +
@@ -235,9 +232,6 @@
             '<div class="login-register-oauth-block">' +
               '<div class="login-oauth-caption">Зарегистрироваться с помощью</div>' +
               '<div class="login-methods-grid" role="group" aria-label="Способы регистрации">' +
-                '<button type="button" class="login-oauth-btn login-oauth-google" id="login-oauth-google" title="Google" aria-label="Google">' +
-                  '<span class="login-oauth-icon login-oauth-icon--google" aria-hidden="true"></span>' +
-                '</button>' +
                 '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
                   '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
                 '</button>' +
@@ -346,7 +340,7 @@
 
   function syncPrivacyLock() {
     var ok = privacyOk();
-    ['login-oauth-google', 'login-oauth-yandex', 'login-tg-widget-wrap'].forEach(function (id) {
+    ['login-oauth-yandex', 'login-tg-widget-wrap'].forEach(function (id) {
       var btn = $(id);
       if (!btn) return;
       btn.classList.toggle('is-locked', !ok);
@@ -399,13 +393,6 @@
     });
     syncPrivacyLock();
 
-    var gIn = $('login-oauth-google-in');
-    if (gIn) {
-      gIn.addEventListener('click', function () {
-        rememberOAuthReturn();
-        global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
-      });
-    }
     var yIn = $('login-oauth-yandex-in');
     if (yIn) {
       yIn.addEventListener('click', function () {
@@ -422,14 +409,6 @@
       });
     }
 
-    var g = $('login-oauth-google');
-    if (g) {
-      g.addEventListener('click', function () {
-        if (!privacyOk()) { nudgePrivacy(); return; }
-        rememberOAuthReturn();
-        global.location.href = cfg.apiBase + '/api/site/oauth/google/start?accept=1';
-      });
-    }
     var y = $('login-oauth-yandex');
     if (y) {
       y.addEventListener('click', function () {
