@@ -1905,6 +1905,9 @@
     if (filmKp && window.__MP_FILM_RENDERED) {
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       showFilmPageLayout();
+      if (getToken()) {
+        void openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+      }
       deferCabinetLists();
       scheduleOnboarding = false;
       return Promise.resolve();
@@ -1916,8 +1919,7 @@
       showScreen('cabinet-readonly');
       showFilmPageLayout();
       if (getToken()) {
-        void refreshFilmPageAuthFromLiteRoute(filmKp);
-        try { document.dispatchEvent(new CustomEvent('mp:film-refresh-auth')); } catch (_) {}
+        void openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
       }
       deferCabinetLists();
       scheduleOnboarding = false;

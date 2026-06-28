@@ -1960,19 +1960,47 @@
         });
       }
 
+      function fetchJsonAuth(url, timeoutMs) {
+        var ms = timeoutMs || 25000;
+        return new Promise(function (resolve, reject) {
+          var done = false;
+          var timer = setTimeout(function () {
+            if (done) return;
+            done = true;
+            reject(new Error('timeout'));
+          }, ms);
+          fetch(apiBase + url, { headers: authHeaders() })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (done) return;
+              done = true;
+              clearTimeout(timer);
+              resolve(data);
+            })
+            .catch(function (err) {
+              if (done) return;
+              done = true;
+              clearTimeout(timer);
+              reject(err);
+            });
+        });
+      }
+
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
-        fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
-          .then(function (r) { return r.json(); })
+        if (global.__MP_CABINET_FULL || global.openFilmPageByKp) return;
+        fetchJsonAuth('/api/site/film-by-kp/' + encodeURIComponent(kpId), 15000)
           .then(function (lookup) {
             if (!lookup || !lookup.in_library || !lookup.film_id) {
               applyAuthToolbar({ film: { kp_id: kpId }, toolbarOpts: { inBase: false, authenticated: true } });
               return;
             }
-            return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(lookup.film_id)), { headers: authHeaders() })
-              .then(function (r) { return r.json(); })
+            return fetchJsonAuth('/api/site/film/' + encodeURIComponent(String(lookup.film_id)), 25000)
               .then(function (detail) {
-                if (!detail || !detail.success || !detail.film) return;
+                if (!detail || !detail.success || !detail.film) {
+                  if (hint) hint.textContent = 'Не удалось загрузить ваши данные по сериалу';
+                  return;
+                }
                 var f = detail.film;
                 var myRating = 0;
                 var uid = detail.me && detail.me.user_id;
@@ -1994,7 +2022,9 @@
                 });
               });
           })
-          .catch(function () {});
+          .catch(function () {
+            if (hint) hint.textContent = 'Не удалось загрузить данные кабинета';
+          });
       }
 
       initStandaloneSiteChrome({
