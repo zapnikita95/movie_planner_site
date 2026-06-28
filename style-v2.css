@@ -10554,6 +10554,189 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
 .film-toolbar-expand.hidden {
   display: none !important;
 }
+/* Series episode picker in film toolbar */
+.film-icon-btn--series {
+  width: auto;
+  min-width: 58px;
+  max-width: 88px;
+  padding: 0 8px;
+}
+.film-icon-btn--series.is-active {
+  border-color: rgba(155, 77, 255, 0.55);
+  background: rgba(155, 77, 255, 0.22);
+}
+.film-series-code {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+#series-expand-panel.film-toolbar-expand {
+  text-align: left;
+}
+.film-series-toolbar-panel {
+  position: relative;
+  width: 100%;
+  max-width: min(100%, 500px);
+  margin: 0 auto;
+}
+.film-series-toolbar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.film-series-toolbar-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.film-series-toolbar-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+.film-series-seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.film-series-season-tab {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.film-series-season-tab.is-active {
+  border-color: rgba(236, 72, 153, 0.55);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.45), rgba(155, 77, 255, 0.45));
+  color: #fff;
+}
+.film-series-ep-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.film-series-ep-btn {
+  min-height: 38px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: 'Unbounded', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.film-series-ep-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.film-series-ep-btn:active {
+  transform: scale(0.96);
+}
+.film-series-ep-btn.is-watched {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ec4899, #9b4dff);
+  color: #fff;
+}
+.film-series-ep-btn.is-selected {
+  box-shadow: 0 0 0 2px rgba(155, 77, 255, 0.35), 0 0 0 3px rgba(236, 72, 153, 0.75);
+}
+.film-series-ep-btn.is-watched.is-selected {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35), 0 0 0 3px #fff;
+}
+.film-series-ep-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.film-series-ep-pager-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.film-series-ep-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.film-series-ep-pager-label {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+}
+.film-series-mark-up-to-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ec4899, #9b4dff);
+  color: #fff;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+}
+.film-series-mark-up-to-btn:hover {
+  opacity: 0.92;
+}
+.film-series-mark-up-to-btn:active {
+  transform: scale(0.98);
+}
+.film-series-toolbar-loading {
+  text-align: center;
+  padding: 16px 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+.film-series-toolbar-loading--overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 8, 18, 0.72);
+  border-radius: 12px;
+}
+.film-series-toolbar-empty {
+  text-align: center;
+  margin: 0;
+  padding: 12px 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+@media (max-width: 520px) {
+  .film-series-ep-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .film-series-code {
+    font-size: 10px;
+  }
+}
 .film-icon-btn.hidden,
 #facts-toggle-btn.hidden {
   display: none !important;

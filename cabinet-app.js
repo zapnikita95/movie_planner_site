@@ -10270,6 +10270,306 @@
     );
   }
 
+  const SERIES_EP_COLS = 10;
+  const SERIES_EP_ROWS = 5;
+  const SERIES_EP_PAGE_SIZE = SERIES_EP_COLS * SERIES_EP_ROWS;
+
+  function seriesEpisodeOrd(season, episode) {
+    return Number(season) * 100000 + Number(episode);
+  }
+
+  function seriesEpisodeCode(season, episode) {
+    if (season == null || episode == null) return '';
+    return 'S' + season + 'E' + episode;
+  }
+
+  function seriesToolbarProgressCode(item) {
+    const sp = (item && item.series_progress) || {};
+    const last = sp.last_watched;
+    if (last && last.season != null && last.episode != null) {
+      return seriesEpisodeCode(last.season, last.episode);
+    }
+    const next = sp.next_unwatched || (item && item.next_episode);
+    if (next && next.season != null && next.episode != null) {
+      return seriesEpisodeCode(next.season, next.episode);
+    }
+    return 'S1E1';
+  }
+
+  function seriesProgressFromPayload(payload) {
+    if (!payload) return null;
+    return {
+      seasons: payload.seasons || [],
+      last_watched: payload.last_watched || null,
+      next_unwatched: payload.next_unwatched || null,
+      catalog_available: !!payload.catalog_available,
+      watched_count: payload.watched_count || 0,
+      all_episodes_watched: !!payload.all_episodes_watched,
+    };
+  }
+
+  function seriesLastWatchedEp(progress) {
+    const watched = [];
+    (progress.seasons || []).forEach(function (s) {
+      (s.episodes || []).forEach(function (ep) {
+        if (ep.watched) watched.push({ season: s.season, episode: ep.episode });
+      });
+    });
+    if (!watched.length) return null;
+    watched.sort(function (a, b) { return seriesEpisodeOrd(a.season, a.episode) - seriesEpisodeOrd(b.season, b.episode); });
+    return watched[watched.length - 1];
+  }
+
+  function seriesNextUnwatchedEp(progress) {
+    const seasons = progress.seasons || [];
+    for (let si = 0; si < seasons.length; si++) {
+      const eps = seasons[si].episodes || [];
+      for (let ei = 0; ei < eps.length; ei++) {
+        if (!eps[ei].watched) {
+          return { season: seasons[si].season, episode: eps[ei].episode };
+        }
+      }
+    }
+    return null;
+  }
+
+  function seriesEpIsWatched(progress, season, episode) {
+    const s = (progress.seasons || []).find(function (x) { return Number(x.season) === Number(season); });
+    if (!s) return false;
+    const ep = (s.episodes || []).find(function (x) { return Number(x.episode) === Number(episode); });
+    return !!(ep && ep.watched);
+  }
+
+  function applySeriesProgressToFilm(film, progress) {
+    if (!film || !progress) return film;
+    film.series_progress = progress;
+    film.next_episode = progress.next_unwatched || null;
+    if (progress.last_watched) {
+      film.progress = 'S' + progress.last_watched.season + ' • E' + progress.last_watched.episode;
+    }
+    return film;
+  }
+
+  function updateSeriesToolbarButton(root, code) {
+    const btn = root && root.querySelector('[data-series-toggle]');
+    if (!btn) return;
+    const label = code || 'S1E1';
+    btn.setAttribute('aria-label', 'Прогресс сериала ' + label);
+    btn.setAttribute('title', 'Прогресс: ' + label);
+    const ico = btn.querySelector('.film-series-code');
+    if (ico) ico.textContent = label;
+  }
+
+  function renderSeriesToolbarPanelHtml(state) {
+    const st = state || {};
+    const progress = st.progress || {};
+    const seasons = progress.seasons || [];
+    if (!seasons.length) {
+      return '<p class="film-series-toolbar-empty">' + escapeHtml(st.error || 'Список серий недоступен') + '</p>';
+    }
+    const selSeason = st.selectedSeason != null ? st.selectedSeason : (seasons[0] && seasons[0].season);
+    const seasonRow = seasons.find(function (s) { return Number(s.season) === Number(selSeason); }) || seasons[0];
+    const eps = (seasonRow && seasonRow.episodes) || [];
+    const totalEps = eps.length;
+    const pageSize = SERIES_EP_PAGE_SIZE;
+    const totalPages = Math.max(1, Math.ceil(totalEps / pageSize));
+    const page = Math.min(Math.max(0, st.page || 0), totalPages - 1);
+    const pageEps = eps.slice(page * pageSize, page * pageSize + pageSize);
+    const seasonLabel = seasonRow ? ('Сезон ' + seasonRow.season) : '';
+    const countLabel = totalEps ? (totalEps + ' ' + (totalEps === 1 ? 'серия' : (totalEps < 5 ? 'серии' : 'серий'))) : '';
+    let html = '<div class="film-series-toolbar-head">'
+      + '<div class="film-series-toolbar-title">' + escapeHtml(seasonLabel) + '</div>'
+      + (countLabel ? '<div class="film-series-toolbar-meta">' + escapeHtml(countLabel) + '</div>' : '')
+      + '</div>';
+    if (seasons.length > 1) {
+      html += '<div class="film-series-seasons" role="tablist">' + seasons.map(function (s) {
+        const active = Number(s.season) === Number(selSeason);
+        return '<button type="button" class="film-series-season-tab' + (active ? ' is-active' : '') + '" data-series-season="' + escapeHtml(String(s.season)) + '" role="tab">' + escapeHtml('S' + s.season) + '</button>';
+      }).join('') + '</div>';
+    }
+    html += '<div class="film-series-ep-grid" role="list">' + pageEps.map(function (ep) {
+      const watched = !!ep.watched;
+      const selected = st.selected && Number(st.selected.season) === Number(seasonRow.season) && Number(st.selected.episode) === Number(ep.episode);
+      const cls = ['film-series-ep-btn', watched ? 'is-watched' : '', selected ? 'is-selected' : ''].filter(Boolean).join(' ');
+      const code = ep.code || seriesEpisodeCode(seasonRow.season, ep.episode);
+      return '<button type="button" class="' + cls + '" data-series-ep-season="' + escapeHtml(String(seasonRow.season)) + '" data-series-ep="' + escapeHtml(String(ep.episode)) + '" role="listitem">' + escapeHtml(code) + '</button>';
+    }).join('') + '</div>';
+    if (totalPages > 1) {
+      html += '<div class="film-series-ep-pager">'
+        + '<button type="button" class="film-series-ep-pager-btn" data-series-page="' + (page - 1) + '"' + (page <= 0 ? ' disabled' : '') + ' aria-label="Предыдущая страница">‹</button>'
+        + '<span class="film-series-ep-pager-label">' + (page + 1) + ' / ' + totalPages + '</span>'
+        + '<button type="button" class="film-series-ep-pager-btn" data-series-page="' + (page + 1) + '"' + (page >= totalPages - 1 ? ' disabled' : '') + ' aria-label="Следующая страница">›</button>'
+        + '</div>';
+    }
+    if (st.showMarkUpTo && st.selected) {
+      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">Отметить до выбранной</button>';
+    }
+    return html;
+  }
+
+  function bindSeriesToolbarPanel(root, film, panelRoot, state, rerender) {
+    if (!panelRoot) return;
+    panelRoot.querySelectorAll('[data-series-season]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.selectedSeason = parseInt(btn.getAttribute('data-series-season'), 10);
+        state.page = 0;
+        state.selected = null;
+        state.showMarkUpTo = false;
+        rerender();
+      });
+    });
+    panelRoot.querySelectorAll('[data-series-page]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        state.page = parseInt(btn.getAttribute('data-series-page'), 10);
+        rerender();
+      });
+    });
+    panelRoot.querySelectorAll('[data-series-ep]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const season = parseInt(btn.getAttribute('data-series-ep-season'), 10);
+        const episode = parseInt(btn.getAttribute('data-series-ep'), 10);
+        if (!season || !episode) return;
+        const progress = state.progress || {};
+        const next = seriesNextUnwatchedEp(progress);
+        const last = seriesLastWatchedEp(progress);
+        const watched = seriesEpIsWatched(progress, season, episode);
+        if (watched && last && Number(last.season) === season && Number(last.episode) === episode) {
+          state.pending = true;
+          rerender();
+          api('/api/site/series/' + film.film_id + '/episodes/mark', {
+            method: 'POST',
+            body: JSON.stringify({ season: season, episode: episode, watched: false }),
+            timeoutMs: 45000,
+          }).then(function (data) {
+            if (!data || !data.success) throw new Error((data && data.error) || 'error');
+            state.progress = seriesProgressFromPayload(data);
+            state.selected = null;
+            state.showMarkUpTo = false;
+            applySeriesProgressToFilm(film, state.progress);
+            updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+            if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
+          }).catch(function () {
+            showToast('Не удалось снять отметку', { type: 'error' });
+          }).finally(function () {
+            state.pending = false;
+            rerender();
+          });
+          return;
+        }
+        if (!watched && next && Number(next.season) === season && Number(next.episode) === episode) {
+          state.pending = true;
+          rerender();
+          api('/api/site/series/' + film.film_id + '/episodes/mark', {
+            method: 'POST',
+            body: JSON.stringify({ season: season, episode: episode, mark_all_previous: false }),
+            timeoutMs: 45000,
+          }).then(function (data) {
+            if (!data || !data.success) throw new Error((data && data.error) || 'error');
+            if (data.marked_count) showToast('Отмечена ' + seriesEpisodeCode(season, episode));
+            state.progress = seriesProgressFromPayload(data);
+            state.selected = null;
+            state.showMarkUpTo = false;
+            applySeriesProgressToFilm(film, state.progress);
+            updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+            if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
+          }).catch(function () {
+            showToast('Не удалось отметить серию', { type: 'error' });
+          }).finally(function () {
+            state.pending = false;
+            rerender();
+          });
+          return;
+        }
+        state.selected = { season: season, episode: episode };
+        state.showMarkUpTo = !watched && next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode);
+        rerender();
+      });
+    });
+    const markUpTo = panelRoot.querySelector('[data-series-mark-up-to]');
+    if (markUpTo) {
+      markUpTo.addEventListener('click', function () {
+        if (!state.selected || state.pending) return;
+        const season = state.selected.season;
+        const episode = state.selected.episode;
+        state.pending = true;
+        rerender();
+        api('/api/site/series/' + film.film_id + '/episodes/mark', {
+          method: 'POST',
+          body: JSON.stringify({ season: season, episode: episode, mark_all_previous: true }),
+          timeoutMs: 60000,
+        }).then(function (data) {
+          if (!data || !data.success) throw new Error((data && data.error) || 'error');
+          showToast('Отмечено серий: ' + (data.marked_count || 0));
+          state.progress = seriesProgressFromPayload(data);
+          state.selected = null;
+          state.showMarkUpTo = false;
+          applySeriesProgressToFilm(film, state.progress);
+          updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+          if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
+        }).catch(function () {
+          showToast('Не удалось отметить серии', { type: 'error' });
+        }).finally(function () {
+          state.pending = false;
+          rerender();
+        });
+      });
+    }
+  }
+
+  function mountSeriesToolbarPanel(root, film) {
+    const panelWrap = root && root.querySelector('#series-toolbar-panel-root');
+    if (!panelWrap || !film || !film.film_id) return;
+    if (!root._mpSeriesToolbarState) root._mpSeriesToolbarState = {};
+    const state = root._mpSeriesToolbarState;
+    if (!state.progress) {
+      state.progress = seriesProgressFromPayload(film.series_progress || {});
+      if (film.series_progress && film.series_progress.last_watched) {
+        state.selectedSeason = film.series_progress.last_watched.season;
+      } else if (film.series_progress && film.series_progress.next_unwatched) {
+        state.selectedSeason = film.series_progress.next_unwatched.season;
+      }
+    }
+    function rerender() {
+      if (state.loading) {
+        panelWrap.innerHTML = '<div class="film-series-toolbar-loading">Загрузка серий…</div>';
+        return;
+      }
+      if (state.pending) {
+        panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state) + '<div class="film-series-toolbar-loading film-series-toolbar-loading--overlay">Сохраняем…</div>';
+        bindSeriesToolbarPanel(root, film, panelWrap, state, rerender);
+        return;
+      }
+      panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state);
+      bindSeriesToolbarPanel(root, film, panelWrap, state, rerender);
+    }
+    if (state.loaded && state.progress && (state.progress.seasons || []).length) {
+      rerender();
+      return;
+    }
+    state.loading = true;
+    rerender();
+    api('/api/site/series/' + film.film_id + '/progress', { timeoutMs: 45000 }).then(function (data) {
+      if (!data || !data.success) {
+        state.error = (data && data.error) || 'Не удалось загрузить серии';
+        if (!state.progress || !(state.progress.seasons || []).length) state.progress = { seasons: [] };
+        return;
+      }
+      state.progress = seriesProgressFromPayload(data);
+      state.loaded = true;
+      state.error = null;
+      const anchor = data.last_watched || data.next_unwatched;
+      if (anchor && anchor.season != null) state.selectedSeason = anchor.season;
+      applySeriesProgressToFilm(film, state.progress);
+      updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+    }).catch(function () {
+      state.error = 'Не удалось загрузить серии';
+    }).finally(function () {
+      state.loading = false;
+      rerender();
+    });
+  }
+
   function buildFilmPlanDropdown(item, opts) {
     opts = opts || {};
     if (!item || !item.kp_id) return '';
@@ -10359,13 +10659,22 @@
     const factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
     const factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
     const premiereBtn = renderFilmToolbarPremiereBtn(item);
-    const panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + '</div>';
+    const isSeriesInBase = !!(item.is_series && opts.inBase && item.film_id);
+    const seriesCode = isSeriesInBase ? seriesToolbarProgressCode(item) : '';
+    const seriesBtn = isSeriesInBase
+      ? '<button type="button" class="film-icon-btn film-icon-btn--series" id="series-progress-toggle" data-series-toggle="1" data-film-id="' + escapeHtml(String(item.film_id)) + '" aria-label="Прогресс сериала ' + escapeHtml(seriesCode) + '" title="Прогресс: ' + escapeHtml(seriesCode) + '"><span class="film-icon-ico film-series-code">' + escapeHtml(seriesCode) + '</span></button>'
+      : '';
+    const seriesPanelHtml = isSeriesInBase
+      ? '<div class="film-toolbar-expand hidden" id="series-expand-panel"><div class="film-series-toolbar-panel" id="series-toolbar-panel-root"><div class="film-series-toolbar-loading">Загрузка серий…</div></div></div>'
+      : '';
+    const panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + seriesPanelHtml + '</div>';
     return (
       '<div class="film-page-toolbar">' +
         planBlock +
         '<div class="film-toolbar-icons">' +
           addIconBtn +
           watchIconBtn +
+          seriesBtn +
           rateBtnOnly +
           factsBtnOnly +
           premiereBtn +
@@ -10446,11 +10755,17 @@
     const preserved = {
       factsOpen: !!oldToolbar.querySelector('#facts-expand-panel:not(.hidden)'),
       ratingOpen: !!oldToolbar.querySelector('#rating-expand-panel:not(.hidden)'),
+      seriesOpen: !!oldToolbar.querySelector('#series-expand-panel:not(.hidden)'),
       factsHtml: (oldToolbar.querySelector('#facts-list') || {}).innerHTML || '',
+      seriesState: oldToolbar._mpSeriesToolbarState ? JSON.parse(JSON.stringify(oldToolbar._mpSeriesToolbarState)) : null,
     };
     const opts = toolbarOpts || filmToolbarOptsFromDetail(film, ratings, me);
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
+      film_id: film.film_id,
+      is_series: film.is_series,
+      series_progress: film.series_progress,
+      next_episode: film.next_episode,
       title: film.title,
       year: film.year,
       plan_type: film.plan_type,
@@ -10479,6 +10794,14 @@
       if (panel) panel.classList.remove('hidden');
       if (btn) btn.classList.add('is-active');
     }
+    if (preserved.seriesOpen) {
+      const panel = newToolbar.querySelector('#series-expand-panel');
+      const btn = newToolbar.querySelector('[data-series-toggle]');
+      if (panel) panel.classList.remove('hidden');
+      if (btn) btn.classList.add('is-active');
+      if (preserved.seriesState) newToolbar._mpSeriesToolbarState = preserved.seriesState;
+      mountSeriesToolbarPanel(newToolbar, film);
+    }
     return newToolbar;
   }
 
@@ -10490,13 +10813,16 @@
     const shareBtn = root.querySelector('[data-share-film]');
     const ratingPanel = root.querySelector('#rating-expand-panel');
     const factsPanel = root.querySelector('#facts-expand-panel');
+    const seriesPanel = root.querySelector('#series-expand-panel');
+    const seriesToggle = root.querySelector('[data-series-toggle]');
     const factsList = root.querySelector('#facts-list');
     function togglePanel(btn, panel) {
       if (!btn || !panel) return;
       const open = !panel.classList.contains('hidden');
       if (ratingPanel && panel !== ratingPanel) ratingPanel.classList.add('hidden');
       if (factsPanel && panel !== factsPanel) factsPanel.classList.add('hidden');
-      root.querySelectorAll('[data-rate-toggle],[data-facts-toggle]').forEach((b) => b.classList.remove('is-active'));
+      if (seriesPanel && panel !== seriesPanel) seriesPanel.classList.add('hidden');
+      root.querySelectorAll('[data-rate-toggle],[data-facts-toggle],[data-series-toggle]').forEach(function (b) { b.classList.remove('is-active'); });
       if (open) {
         panel.classList.add('hidden');
         btn.classList.remove('is-active');
@@ -10542,6 +10868,16 @@
         togglePanel(factsToggle, factsPanel);
       });
       preloadFacts();
+    }
+    if (seriesToggle && seriesPanel && film && film.film_id && film.is_series) {
+      seriesToggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePanel(seriesToggle, seriesPanel);
+        if (!seriesPanel.classList.contains('hidden')) {
+          mountSeriesToolbarPanel(root, film);
+        }
+      });
     }
     if (shareBtn) {
       shareBtn.addEventListener('click', () => {
@@ -11710,6 +12046,10 @@
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
+      film_id: film.film_id,
+      is_series: film.is_series,
+      series_progress: film.series_progress,
+      next_episode: film.next_episode,
       title: film.title,
       year: film.year,
       plan_type: film.plan_type,
