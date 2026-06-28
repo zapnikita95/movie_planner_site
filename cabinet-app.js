@@ -933,7 +933,12 @@
     const film = filmFromRouteBoot(kp);
     const pageRoot = document.getElementById('film-page-content');
     if (!film || !pageRoot || isGenericFilmTitle(film.title)) return false;
-    if (shouldPatchFilmHeroInPlace(pageRoot, film)) return true;
+    if (shouldPatchFilmHeroInPlace(pageRoot, film)) {
+      mergeBootPoster(film, kp);
+      applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
+      ensureFilmHeroCastLoaded(film, pageRoot);
+      return true;
+    }
     try {
       document.title = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '') + ' · Movie Planner';
     } catch (_) {}
@@ -7010,23 +7015,53 @@
   }
 
   function fetchPublicPremieresForDisplay(period) {
-    const cacheKey = 'mp_guest_premieres_v5_' + String(period || 'current_month');
+    const cacheKey = 'mp_guest_premieres_v6_' + String(period || 'current_month');
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
     }
-    const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : period;
+    const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : (period || 'upcoming');
     const url = getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36';
     return fetchPublicJson(url, 8000)
       .then((data) => {
         let items = (data && data.success && data.items) ? data.items.slice() : [];
-        items = filterPremieresUpcomingMsk(items, { keepUndated: true, guestFallback: true });
+        if (period === 'in_theaters') {
+          if (typeof filterPremieresHubNowPlaying === 'function') {
+            items = filterPremieresHubNowPlaying(items);
+          }
+        } else {
+          items = filterPremieresUpcomingMsk(items, { keepUndated: true, guestFallback: true });
+        }
         items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
         const out = { items: items, rollover: false };
         if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
       })
       .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [], rollover: false }));
+  }
+
+  function fetchPremieresForSearchHub() {
+    const cacheKey = 'mp_search_hub_premieres_v1';
+    const cached = readBrowserCache(cacheKey);
+    if (cached && Array.isArray(cached.items) && cached.items.length) {
+      return Promise.resolve(cached);
+    }
+    const load = getToken()
+      ? api('/api/site/premieres?period=in_theaters&limit=24').then((data) => ({
+          items: (data && data.success && data.items) ? data.items.slice() : [],
+        }))
+      : fetchPublicPremieresForDisplay('in_theaters');
+    return load
+      .then((prem) => {
+        let items = (prem && prem.items) ? prem.items.slice() : [];
+        if (getToken() && typeof filterPremieresHubNowPlaying === 'function') {
+          items = filterPremieresHubNowPlaying(items);
+        }
+        const out = { items: items.slice(0, 10) };
+        if (out.items.length) writeBrowserCache(cacheKey, out);
+        return out;
+      })
+      .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [] }));
   }
 
   function fetchPublicSeriesForDisplay() {
@@ -10855,6 +10890,7 @@
           );
           bindFilmModalInteractions(detail.film, pageRoot);
           try { loadFilmFriendsSocial(detail.film); } catch (_) {}
+          ensureFilmHeroCastLoaded(detail.film, pageRoot);
         }
         return detail;
       });
@@ -10897,6 +10933,7 @@
     oldToolbar.outerHTML = toolbarHtml;
     const newToolbar = root.querySelector('.film-page-toolbar');
     bindFilmPageToolbar(newToolbar, film, opts);
+    ensureFilmHeroCastLoaded(film, root);
     if (preserved.factsHtml) {
       const list = newToolbar.querySelector('#facts-list');
       if (list) list.innerHTML = preserved.factsHtml;
@@ -11992,6 +12029,7 @@
           replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me));
           bindFilmModalInteractions(cached.film, pageRoot);
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
+          ensureFilmHeroCastLoaded(cached.film, pageRoot);
         } else {
           renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
         }
@@ -12047,6 +12085,7 @@
           replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me));
           bindFilmModalInteractions(data.film, pageRoot);
           try { loadFilmFriendsSocial(data.film); } catch (_) {}
+          ensureFilmHeroCastLoaded(data.film, pageRoot);
           try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
           return;
         }
@@ -12255,6 +12294,7 @@
     fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/cast', { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (cast) {
+        root.removeAttribute('data-mp-cast-pending');
         const director = cast && cast.director;
         const actors = (cast && cast.actors) || [];
         const html = buildFilmCastHtml(director, actors, filmFallback && filmFallback.country);
@@ -12266,9 +12306,27 @@
         bindStaffCastLinks(root, { guestPreview: true });
         bindFilmActorsExpand(root);
       }).catch(function () {
+        root.removeAttribute('data-mp-cast-pending');
         root.innerHTML = buildFilmCrewFallback(filmFallback);
         bindFilmActorsExpand(root);
       });
+  }
+
+  function findFilmCastRoot(root) {
+    const scope = root || document.getElementById('film-page-content');
+    if (!scope) return null;
+    return scope.querySelector('#film-hero-cast-root, #film-cast-root, .film-hero-crew');
+  }
+
+  function ensureFilmHeroCastLoaded(film, root) {
+    const castRoot = findFilmCastRoot(root);
+    if (!castRoot) return;
+    if (castRoot.getAttribute('data-mp-cast-pending') === '1') return;
+    if (castRoot.querySelector('.staff-cast-link')) return;
+    const hasCrew = castRoot.querySelector('.film-cast-row');
+    if (hasCrew && !castRoot.querySelector('.film-cast-skeleton')) return;
+    castRoot.setAttribute('data-mp-cast-pending', '1');
+    loadFilmCastSection(film && film.kp_id, castRoot, film);
   }
 
   function buildFilmCrewFallback(film) {
@@ -13037,20 +13095,12 @@
     if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
       return Promise.resolve(_headerSearchHubCache);
     }
-    const premPromise = getToken()
-      ? fetchPremieresForDisplay('current_month').catch(() => ({ items: [] }))
-      : fetchPublicPremieresForDisplay('upcoming').catch(() => ({ items: [] }));
+    const premPromise = fetchPremieresForSearchHub().catch(() => ({ items: [] }));
     const popPromise = getToken()
       ? api('/api/site/search/popular').catch(() => null)
       : Promise.resolve(null);
     return Promise.all([popPromise, premPromise]).then(([pop, prem]) => {
       let items = (prem && prem.items) ? prem.items.slice() : [];
-      if (typeof filterPremieresUpcomingMsk === 'function') {
-        items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: false } : {});
-      }
-      if (typeof filterPremieresHubNowPlaying === 'function') {
-        items = filterPremieresHubNowPlaying(items);
-      }
       const bag = {
         ts: Date.now(),
         popular: mergeHeaderSearchPopularChips(pop),

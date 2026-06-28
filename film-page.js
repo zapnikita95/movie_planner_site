@@ -905,6 +905,8 @@
   }
 
   function bindStandaloneSearch(apiBase, loginNow) {
+    if (global.__MP_CABINET_HEADER_SEARCH || global.__MP_HEADER_SEARCH_BOUND) return;
+    if (document.body && document.body.classList.contains('in-cabinet')) return;
     var input = document.getElementById('header-search-input');
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
@@ -1225,7 +1227,6 @@
     if (!header) return;
     if (opts.cabinetMode) {
       bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
-      bindStandaloneSearch(apiBase, opts.loginNow);
       bindStandaloneLogoHome();
       return;
     }
@@ -1921,24 +1922,30 @@
         '</div>';
       }
       function applyPublicCastPayload(d) {
-        var root = document.getElementById('film-cast-root');
+        var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root || !d) return;
         var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
         root.innerHTML = html || '';
         if (html) bindPublicCastLinks(root);
       }
       function loadPublicCast() {
-        var root = document.getElementById('film-cast-root');
+        var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root) return;
-        if (!root.innerHTML.trim()) root.innerHTML = buildPublicCastSkeletonHtml();
+        if (root.getAttribute('data-mp-cast-pending') === '1') return;
+        if (!root.innerHTML.trim() || root.querySelector('.film-cast-skeleton')) {
+          root.innerHTML = buildPublicCastSkeletonHtml();
+        }
+        root.setAttribute('data-mp-cast-pending', '1');
         apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/cast')
           .then(function (d) {
+            root.removeAttribute('data-mp-cast-pending');
             if (!d || !d.success) { return; }
             if (d.director || (d.actors && d.actors.length)) applyPublicCastPayload(d);
             else root.innerHTML = '';
           })
           .catch(function () {
-            var root2 = document.getElementById('film-cast-root');
+            root.removeAttribute('data-mp-cast-pending');
+            var root2 = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
             if (root2) root2.innerHTML = '';
           });
       }
@@ -2045,6 +2052,10 @@
 
       loadPublicCast();
       scheduleLoadFacts();
+      document.addEventListener('mp:cabinet-full-ready', function onCabinetReady() {
+        document.removeEventListener('mp:cabinet-full-ready', onCabinetReady);
+        loadPublicCast();
+      });
       apiGet('/api/public/film/' + encodeURIComponent(kpId))
         .then(function (data) {
           if (!data || !data.success || !data.film) {
@@ -2331,6 +2342,7 @@
         var newToolbar = hero.querySelector('.film-page-toolbar');
         bindAuthToolbar(stub, filmState);
         bindPublicFilmToolbar(newToolbar, stub);
+        loadPublicCast();
         if (newToolbar) {
           var factsBtn = newToolbar.querySelector('[data-facts-toggle]');
           var factsListEl = newToolbar.querySelector('#facts-list');

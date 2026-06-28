@@ -2400,20 +2400,20 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628series3'
+            'cabinet-app.js?v=20260628hotfix-cast1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260628series3');
-          list.push('cabinet-film-route.js?v=20260628hotfix-series3');
+          list.push('film-page.js?v=20260628hotfix-cast1');
+          list.push('cabinet-film-route.js?v=20260628hotfix-cast1');
         } else if (isStaff) {
           list.push('film-page.js?v=20260628search1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628series3');
+          list.push('cabinet-app.js?v=20260628hotfix-cast1');
         } else {
-          list.push('cabinet-app.js?v=20260628series3');
+          list.push('cabinet-app.js?v=20260628hotfix-cast1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
