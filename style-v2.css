@@ -969,8 +969,47 @@ body.in-cabinet #section-inbox {
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35);
 }
 .series-sub-toggle {
-  min-width: 40px;
+  min-width: 0;
   white-space: nowrap;
+}
+.series-poster-alarm {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.series-poster-alarm:hover {
+  background: rgba(0, 0, 0, 0.78);
+  border-color: rgba(255, 255, 255, 0.42);
+  transform: scale(1.06);
+}
+.series-poster-alarm.is-active {
+  background: linear-gradient(135deg, rgba(255, 45, 123, 0.88), rgba(155, 77, 255, 0.88));
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.series-poster-alarm .series-alarm-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+.series-poster-alarm:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 .cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); overflow-x: auto; padding-bottom: 4px; }
 .cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.78); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }

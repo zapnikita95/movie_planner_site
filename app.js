@@ -6809,7 +6809,7 @@
     const streamingUrl = (s.online_link || '').trim();
     const subActive = !!s.has_subscription;
     const subToggleBtn = s.film_id
-      ? `<button type="button" class="btn btn-small ${subActive ? 'btn-primary' : 'btn-secondary'} series-sub-toggle" data-series-sub-toggle="${escapeHtml(String(s.film_id))}" data-subscribed="${subActive ? '1' : '0'}" onclick="event.stopPropagation()">${seriesAlarmIconHtml(subActive)}</button>`
+      ? `<button type="button" class="series-sub-toggle series-poster-alarm${subActive ? ' is-active' : ''}" data-series-sub-toggle="${escapeHtml(String(s.film_id))}" data-subscribed="${subActive ? '1' : '0'}" aria-label="${subActive ? 'Убрать из ожидаю' : 'Добавить в ожидаю'}" title="${subActive ? 'Убрать из ожидаю' : 'Добавить в ожидаю'}" onclick="event.stopPropagation()">${seriesAlarmIconHtml(subActive)}</button>`
       : '';
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
@@ -6820,11 +6820,11 @@
           ${filmCardPosterHtml(s.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(s.film_id, 0)}
+          ${subToggleBtn}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(s.title)}</div>
           <div class="film-card-v2-status">${progress}</div>
-          <div style="margin:8px 0 6px">${subToggleBtn}</div>
           ${buildFilmActionBar({ kp_id: s.kp_id, title: s.title, is_series: true, online_link: s.online_link })}
         </div>
       </div>`;
@@ -7102,7 +7102,7 @@
   }
 
   function seriesAlarmIconHtml(subscribed) {
-    if (subscribed) {
+    if (!subscribed) {
       return '<span class="series-alarm-icon series-alarm-icon--off" aria-hidden="true">⏰</span>';
     }
     return '<span class="series-alarm-icon" aria-hidden="true">⏰</span>';
