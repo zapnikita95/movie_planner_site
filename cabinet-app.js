@@ -18271,7 +18271,6 @@
         if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
         if (sec === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
         if (sec === 'inbox' && typeof renderInboxSection === 'function') renderInboxSection();
-        if (sec === 'tournament' && typeof renderTournamentSection === 'function') renderTournamentSection();
         if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
         if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
         if (sec === 'series-hub') { try { renderSeriesHubSection(); } catch (_) {} }
