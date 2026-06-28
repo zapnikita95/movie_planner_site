@@ -546,6 +546,13 @@
     return true;
   }
 
+  function heroKpIdFromRoot(root) {
+    if (!root) return '';
+    const hero = root.querySelector('.film-hero-with-tag');
+    if (!hero) return '';
+    return String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+  }
+
   /** Закрыть модалку входа без перезагрузки страницы под ней. */
   function dismissLoginModal() {
     stopSiteBotAuthPoll();
@@ -1033,7 +1040,8 @@
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
-    const hasHeroEarly = !!(pageRootEarly && pageRootEarly.querySelector('.film-hero-with-tag'));
+    const heroKpEarly = heroKpIdFromRoot(pageRootEarly);
+    const hasHeroEarly = !!heroKpEarly && heroKpEarly === kp;
     if (pageRootEarly && !hasHeroEarly) {
       if (!paintFilmRouteBoot(kp, o)) {
         pageRootEarly.className = 'movie-page loading';
@@ -11939,7 +11947,8 @@
         }
       } else {
         const kpHint = o.kpId || kpIdFromPathname(window.location.pathname);
-        const hasHero = !!pageRoot.querySelector('.film-hero-with-tag');
+        const currentHeroKp = heroKpIdFromRoot(pageRoot);
+        const hasHero = !!currentHeroKp && (!kpHint || currentHeroKp === String(kpHint).replace(/\D/g, ''));
         if (!hasHero) {
           if (!kpHint || !paintFilmRouteBoot(kpHint, o)) {
             pageRoot.className = 'movie-page loading';
@@ -12138,7 +12147,7 @@
 
     content.className = 'movie-page';
     content.innerHTML =
-      '<section class="hero film-hero-with-tag" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(String(film.kp_id || '')) + '" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (window.MPIcons ? window.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
