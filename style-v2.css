@@ -973,10 +973,10 @@ body.in-cabinet #section-inbox {
   white-space: nowrap;
 }
 .series-poster-alarm {
-  position: absolute;
+  position: absolute !important;
   top: 8px;
   right: 8px;
-  z-index: 4;
+  z-index: 6;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1006,6 +1006,14 @@ body.in-cabinet #section-inbox {
 .series-poster-alarm .series-alarm-icon {
   font-size: 15px;
   line-height: 1;
+}
+.film-card-v2-poster .series-poster-alarm,
+.film-card-v2-poster .series-sub-toggle.series-poster-alarm {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 6 !important;
+  inset: auto auto auto auto;
 }
 .series-poster-alarm:disabled {
   opacity: 0.55;

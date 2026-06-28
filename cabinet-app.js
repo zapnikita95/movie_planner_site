@@ -342,6 +342,7 @@
   }
 
   function showGuestLandingScreen() {
+    if (getToken()) return false;
     const onRoot = isMarketingRootPath(window.location.pathname);
     setLandingRootNavVisible(onRoot);
     document.body.classList.remove('in-cabinet', 'guest-cabinet-preview', 'login-only-overlay');
@@ -677,6 +678,9 @@
     try {
       if (getToken()) {
         document.documentElement.classList.add('mp-session');
+        if (sectionFromPath(window.location.pathname) || isSearchLocation() || kpIdFromPathname(window.location.pathname) || staffIdFromPathname(window.location.pathname)) {
+          document.documentElement.classList.add('mp-auth-boot');
+        }
       } else {
         document.documentElement.classList.remove('mp-session');
         document.documentElement.classList.remove('mp-auth-boot');
@@ -699,6 +703,8 @@
     try {
       if (!getToken()) return false;
       document.body.classList.remove('login-only-overlay');
+      document.body.classList.add('in-cabinet');
+      document.documentElement.classList.add('mp-auth-boot');
       syncSessionHtmlClass();
       ensureLoggedInHeader();
       if (!document.getElementById('landing')) return false;
@@ -3129,6 +3135,7 @@
   function renderHeader(me) {
     const header = document.getElementById('site-header');
     if (!header) return;
+    if (!me && getToken()) me = _cabinetMeCache || cachedSessionMeStub();
     const loginBtn = header.querySelector('[data-action="login"]');
     const userWrap = document.getElementById('header-user-wrap');
     if (me && me.name) {

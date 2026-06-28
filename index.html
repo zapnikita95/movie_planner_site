@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628dropdownz1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628dropdownz1">
+    <link rel="preload" href="/style-v2.css?v=20260628noflicker1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628noflicker1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -119,6 +119,17 @@
         html.mp-landing-boot .header-buttons{grid-column:3;grid-row:1;justify-self:end;order:unset}
         html.mp-landing-boot #header-search{grid-column:2;grid-row:1;order:unset!important;flex:unset!important;width:100%!important;justify-self:stretch}
       }
+    </style>
+    <style id="mp-cabinet-critical">
+      html.mp-auth-boot #landing{display:none!important}
+      html.mp-auth-boot #cabinet-readonly.hidden{display:block!important}
+      html.mp-auth-boot body.in-cabinet #header-search{display:block!important}
+      html.mp-session #site-header [data-action="login"]{display:none!important}
+      html.mp-session #header-user-wrap{display:flex!important}
+      html.mp-session #header-user-wrap.hidden{display:flex!important}
+      html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
+      html.mp-session #landing{display:none!important}
+      .film-card-v2-poster .series-poster-alarm{position:absolute!important;top:8px!important;right:8px!important;z-index:6!important;width:32px!important;height:32px!important;padding:0!important;margin:0!important;border-radius:999px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.52)!important;border:1px solid rgba(255,255,255,.18)!important;color:#fff!important;cursor:pointer!important;box-shadow:none!important}
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" media="print" onload="this.media='all'">
@@ -271,11 +282,11 @@
           } catch (_) {}
         } catch (_) {}
       })();
-      // /home и /premieres — гостевой кабинет без мелькания лендинга (не на /)
+      // Любой deep-link кабинета — без мелькания лендинга / «Войти» до cabinet-app.js
       (function () {
         try {
-          var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/home' && path !== '/premieres') return;
+          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path === '/index.html') path = '/';
           function hasStoredSiteSession() {
             try {
               var active = localStorage.getItem('mp_site_active_chat_id');
@@ -291,44 +302,98 @@
               return !!localStorage.getItem('mp_site_token');
             } catch (_) { return false; }
           }
-          if (hasStoredSiteSession()) {
-            document.documentElement.classList.add('mp-auth-boot', 'mp-session');
-            return;
+          function cabinetSectionFromPath(p) {
+            if (!p || p === '/') return null;
+            if (p.indexOf('/settings') === 0) return 'settings';
+            if (p.indexOf('/features/collections') === 0) return 'whattowatch';
+            var map = {
+              '/home': 'home',
+              '/plans': 'plans',
+              '/watchlist': 'unwatched',
+              '/series': 'series',
+              '/series-hub': 'series-hub',
+              '/whattowatch': 'whattowatch',
+              '/shazam': 'shazam',
+              '/ratings': 'ratings',
+              '/stats': 'stats',
+              '/premieres': 'premieres',
+              '/groups': 'groups',
+              '/integrations': 'integrations',
+              '/tv': 'tv',
+              '/extension': 'extension',
+              '/about': 'about',
+              '/tournament': 'tournament',
+              '/my-api': 'developer',
+              '/inbox': 'inbox'
+            };
+            return map[p] || null;
           }
-          function paintGuestCabinetDeep() {
+          function paintSessionHeaderStub() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              var session = null;
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active)) { session = sessions[i]; break; }
+                }
+                if (!session) {
+                  for (var k = 0; k < sessions.length; k++) {
+                    if (sessions[k] && sessions[k].token) { session = sessions[k]; break; }
+                  }
+                }
+              }
+              if (!session || !session.token) return;
+              var profileName = document.getElementById('header-profile-name');
+              var profilePill = document.getElementById('header-profile-pill');
+              if (profileName && session.name) profileName.textContent = session.name;
+              if (profilePill) profilePill.classList.remove('hidden');
+            } catch (_) {}
+          }
+          function paintCabinetDeep(sectionId, guestPreview) {
+            document.body.classList.add('in-cabinet');
+            if (guestPreview) document.body.classList.add('guest-cabinet-preview');
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
             var cabinet = document.getElementById('cabinet-readonly');
-            if (cabinet) cabinet.classList.remove('hidden');
-            document.body.classList.add('in-cabinet');
-            document.body.classList.add('guest-cabinet-preview');
-            var sectionId = path === '/premieres' ? 'premieres' : 'home';
+            if (!cabinet) return;
+            cabinet.classList.remove('hidden');
             document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (el) {
-              el.classList.add('hidden');
+              if (!el || !el.id) return;
+              el.classList.toggle('hidden', el.id !== 'section-' + sectionId);
             });
-            var sec = document.getElementById('section-' + sectionId);
-            if (sec) sec.classList.remove('hidden');
-            document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn').forEach(function (b) {
-              b.classList.remove('active');
-              if (b.getAttribute('data-section') === sectionId) b.classList.add('active');
+            document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn[data-section]').forEach(function (b) {
+              b.classList.toggle('active', b.getAttribute('data-section') === sectionId);
             });
             if (sectionId === 'home') {
               var topbar = document.querySelector('#cabinet-readonly .cabinet-topbar');
               if (topbar) topbar.classList.add('hidden');
-              var ro = document.getElementById('cabinet-readonly');
-              if (ro) ro.classList.add('cabinet-home-root');
+              cabinet.classList.add('cabinet-home-root');
+            } else {
+              cabinet.classList.remove('cabinet-home-root');
             }
             var hs = document.getElementById('header-search');
             if (hs) hs.classList.remove('hidden');
-            document.querySelectorAll('.cabinet-nav-btn[data-section="tournament"], #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
-              el.classList.add('hidden');
-            });
+            if (guestPreview) {
+              document.querySelectorAll('.cabinet-nav-btn[data-section="tournament"], #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
+                el.classList.add('hidden');
+              });
+            }
+            if (!guestPreview) paintSessionHeaderStub();
           }
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', paintGuestCabinetDeep);
-          } else {
-            paintGuestCabinetDeep();
+          var sectionId = cabinetSectionFromPath(path);
+          if (!sectionId) return;
+          if (hasStoredSiteSession()) {
+            document.documentElement.classList.add('mp-auth-boot', 'mp-session');
+            function paintAuthedDeep() { paintCabinetDeep(sectionId, false); }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintAuthedDeep);
+            else paintAuthedDeep();
+            return;
           }
+          if (sectionId !== 'home' && sectionId !== 'premieres') return;
+          function paintGuestDeep() { paintCabinetDeep(sectionId, true); }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintGuestDeep);
+          else paintGuestDeep();
         } catch (_) {}
       })();
       // /features/collections — открыть «Смотреть» → вкладка «Коллекции»
@@ -477,47 +542,6 @@
           else paintRouteBoot();
         } catch (_) {}
       })();
-      // Гость: только /home и /premieres — shell кабинета (не на маркетинговой /)
-      (function () {
-        try {
-          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
-          var secMap = { '/home': 'home', '/premieres': 'premieres' };
-          var sec = secMap[path];
-          if (!sec) return;
-          function hasGuestToken() {
-            try {
-              var active = localStorage.getItem('mp_site_active_chat_id');
-              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
-              if (Array.isArray(sessions)) {
-                for (var i = 0; i < sessions.length; i++) {
-                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
-                }
-              }
-              return !!localStorage.getItem('mp_site_token');
-            } catch (_) { return false; }
-          }
-          if (hasGuestToken()) return;
-          function paintGuestCabinetBoot() {
-            document.body.classList.add('in-cabinet', 'guest-cabinet-preview');
-            var landing = document.getElementById('landing');
-            if (landing) landing.classList.add('hidden');
-            var cabinet = document.getElementById('cabinet-readonly');
-            if (!cabinet) return;
-            cabinet.classList.remove('hidden');
-            var topbar = cabinet.querySelector('.cabinet-topbar');
-            if (topbar) topbar.classList.add('hidden');
-            cabinet.querySelectorAll('.cabinet-section').forEach(function (el) {
-              if (!el || !el.id) return;
-              el.classList.toggle('hidden', el.id !== 'section-' + sec);
-            });
-            cabinet.querySelectorAll('.cabinet-nav-btn[data-section]').forEach(function (b) {
-              b.classList.toggle('active', b.getAttribute('data-section') === sec);
-            });
-          }
-          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintGuestCabinetBoot);
-          else paintGuestCabinetBoot();
-        } catch (_) {}
-      })();
       // SEO для /features/collections (краулеры и первый paint)
       (function () {
         try {
@@ -654,6 +678,39 @@
   <script>
     (function () {
       var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+      if (path === '/index.html') path = '/';
+      function hasStoredSiteSession() {
+        try {
+          var active = localStorage.getItem('mp_site_active_chat_id');
+          var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+          if (Array.isArray(sessions)) {
+            for (var i = 0; i < sessions.length; i++) {
+              if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+            }
+            for (var j = 0; j < sessions.length; j++) {
+              if (sessions[j] && sessions[j].token) return true;
+            }
+          }
+          return !!localStorage.getItem('mp_site_token');
+        } catch (_) { return false; }
+      }
+      function cabinetSectionFromPath(p) {
+        if (!p || p === '/') return null;
+        if (p.indexOf('/settings') === 0) return 'settings';
+        if (p.indexOf('/features/collections') === 0) return 'whattowatch';
+        var map = {
+          '/home': 1, '/plans': 1, '/watchlist': 1, '/series': 1, '/series-hub': 1,
+          '/whattowatch': 1, '/shazam': 1, '/ratings': 1, '/stats': 1, '/premieres': 1,
+          '/groups': 1, '/integrations': 1, '/tv': 1, '/extension': 1, '/about': 1,
+          '/tournament': 1, '/my-api': 1, '/inbox': 1
+        };
+        return map[p] ? p : null;
+      }
+      if (cabinetSectionFromPath(path) && hasStoredSiteSession()) {
+        document.documentElement.classList.add('mp-auth-boot', 'mp-session');
+        document.body.classList.add('in-cabinet');
+        return;
+      }
       if (path !== '/' && path !== '/index.html') return;
       document.body.classList.add('landing-root-page', 'film-standalone-page');
       document.documentElement.classList.add('mp-landing-boot');
@@ -2334,7 +2391,7 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260628homefix2',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260628seriesalarm1',
+          'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1'
         ];
         var list;
@@ -2343,7 +2400,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628seriesalarm1'
+            'cabinet-app.js?v=20260628noflicker1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2354,9 +2411,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628seriesalarm1');
+          list.push('cabinet-app.js?v=20260628noflicker1');
         } else {
-          list.push('cabinet-app.js?v=20260628seriesalarm1');
+          list.push('cabinet-app.js?v=20260628noflicker1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
