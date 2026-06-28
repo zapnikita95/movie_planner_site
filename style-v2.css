@@ -11930,7 +11930,7 @@ body.film-standalone-page {
     }
     body.film-standalone-page .header-content {
       display: grid;
-      grid-template-columns: 1fr minmax(280px, 560px) 1fr;
+      grid-template-columns: auto minmax(var(--hdr-grid-search-min, 280px), var(--hdr-grid-search-max, 1fr)) auto;
       align-items: center;
       gap: clamp(12px, 2vw, 20px);
       max-width: 1180px;
@@ -14008,9 +14008,40 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
 @media (min-width: 769px) {
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 560px) minmax(0, 1fr);
+    grid-template-columns: auto minmax(var(--hdr-grid-search-min, 280px), var(--hdr-grid-search-max, 1fr)) auto;
     align-items: center;
     gap: clamp(12px, 2vw, 20px);
+  }
+
+  body.film-standalone-page .header-content,
+  body.landing-root-page .header-content,
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
+    --hdr-grid-search-min: 280px;
+    --hdr-grid-search-max: 1fr;
+  }
+
+  /* Гость: поиск тянется между логотипом и «Войти» */
+  html:not(.mp-session) body.film-standalone-page .header-content,
+  html:not(.mp-session) body.landing-root-page .header-content,
+  html:not(.mp-session) body:not(.in-cabinet):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
+    --hdr-grid-search-min: 300px;
+    --hdr-grid-search-max: 1fr;
+  }
+
+  /* Сессия: уже поиск, больше места под профиль / колокол / настройки */
+  html.mp-session .header-content,
+  body.in-cabinet .header-content,
+  .header-content:has(#header-user-wrap:not(.hidden)) {
+    --hdr-grid-search-min: 200px;
+    --hdr-grid-search-max: min(400px, 36vw);
+  }
+
+  html.mp-session .header-buttons,
+  body.in-cabinet .header-buttons,
+  .header-content:has(#header-user-wrap:not(.hidden)) .header-buttons {
+    justify-self: end;
+    flex-shrink: 0;
+    min-width: max-content;
   }
 
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .logo {

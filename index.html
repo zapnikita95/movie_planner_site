@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628headercls1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628headercls1">
+    <link rel="preload" href="/style-v2.css?v=20260628headergrid1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628headergrid1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -113,7 +113,7 @@
       html.mp-landing-boot .logo{flex:0 1 auto;min-width:0}
       html.mp-landing-boot .header-buttons{flex:1 1 auto;display:flex;justify-content:flex-end;min-width:0}
       @media(min-width:861px){
-        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,560px) minmax(0,1fr);align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
+        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:auto minmax(300px,1fr) auto;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
         html.mp-landing-boot .logo{grid-column:1;justify-self:start}
         html.mp-landing-boot .header-buttons{grid-column:3;justify-self:end;display:flex}
         html.mp-landing-boot #header-search{grid-column:2;order:unset!important;flex:unset!important;max-width:none!important;margin:0!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
