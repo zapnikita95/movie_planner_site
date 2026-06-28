@@ -45,15 +45,33 @@
     return desc ? name + ' — ' + desc : name;
   }
 
-  function setAvatarEl(el, photoUrl, initial) {
+  function presetAvatarUrlForUser(userId) {
+    const n = Math.abs(Number(userId) || 0);
+    const id = String((n % 7) + 1).padStart(2, '0');
+    var base = (typeof global !== 'undefined' && global.API_BASE) || '';
+    return base + '/api/avatar/defaults/' + id + '.jpg';
+  }
+
+  function setAvatarEl(el, photoUrl, initial, userId) {
     if (!el) return;
-    if (photoUrl) {
-      el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+    var preset = presetAvatarUrlForUser(userId);
+    var src = photoUrl || preset;
+    if (src && src.indexOf('/api/') === 0 && src.indexOf('http') !== 0) {
+      var base = (typeof global !== 'undefined' && global.API_BASE) || '';
+      src = base + src;
+    }
+    if (src) {
+      el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
       var img = el.querySelector('img');
       if (img) {
         img.addEventListener('error', function () {
-          el.textContent = initial;
-        }, { once: true });
+          if (img.dataset.mpAvatarFallback === '1') {
+            el.textContent = initial;
+            return;
+          }
+          img.dataset.mpAvatarFallback = '1';
+          img.src = preset;
+        }, { once: false });
       }
     } else {
       el.textContent = initial;
@@ -228,7 +246,7 @@
         achHtml +
       '</div>';
 
-    setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial);
+    setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial, uid);
     bindRatingRows(root, hooks);
 
     root.querySelector('[data-action="taste"]')?.addEventListener('click', function () {

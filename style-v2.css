@@ -15037,6 +15037,18 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   font-size: 22px;
   font-weight: 800;
 }
+.profile-hub-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(255, 90, 165, 0.35), rgba(120, 80, 255, 0.28));
+  color: #fff;
+}
+.profile-hub-avatar img {
+  object-fit: cover;
+  display: block;
+}
 .profile-hub-info { flex: 1; min-width: 0; }
 .profile-hub-name {
   font-size: 18px;

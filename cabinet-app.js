@@ -3028,6 +3028,12 @@
     return String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
   }
 
+  function presetAvatarUrlForUser(userId) {
+    const n = Math.abs(Number(userId) || 0);
+    const id = String((n % 7) + 1).padStart(2, '0');
+    return API_BASE + '/api/avatar/defaults/' + id + '.jpg';
+  }
+
   function resolveMediaUrl(url) {
     const raw = String(url || '').trim();
     if (!raw) return '';
@@ -3036,16 +3042,22 @@
     return raw;
   }
 
-  function setAvatarEl(el, url, name) {
+  function setAvatarEl(el, url, name, userId) {
     if (!el) return;
     const initial = escapeHtml(avatarInitial(name));
-    const src = resolveMediaUrl(url);
-    if (src) {
-      el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy">';
-      const img = el.querySelector('img');
-      if (img) img.addEventListener('error', () => { el.textContent = initial; }, { once: true });
-    } else {
-      el.textContent = initial;
+    const preset = presetAvatarUrlForUser(userId);
+    const src = resolveMediaUrl(url) || preset;
+    el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy">';
+    const img = el.querySelector('img');
+    if (img) {
+      img.addEventListener('error', () => {
+        if (img.dataset.mpAvatarFallback === '1') {
+          el.textContent = initial;
+          return;
+        }
+        img.dataset.mpAvatarFallback = '1';
+        img.src = preset;
+      }, { once: false });
     }
   }
 
@@ -3864,7 +3876,7 @@
         const resolved = resolveMediaUrl(url);
         if (resolved) return resolved;
         const uid = data && data.user_id;
-        return uid ? resolveMediaUrl(API_BASE + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg') : '';
+        return uid ? presetAvatarUrlForUser(uid) : '';
       },
       onFilmKp: function (kp) {
         const norm = String(kp || '').replace(/\D/g, '');
@@ -15450,7 +15462,7 @@
       url = cache.room_emoji;
     }
     if (!url && cache.is_personal !== false && cache.chat_id) {
-      url = API_BASE + '/api/avatar/' + encodeURIComponent(String(cache.chat_id)) + '.jpg';
+      url = presetAvatarUrlForUser(cache.chat_id);
     }
     return url;
   }
@@ -15524,8 +15536,7 @@
     Promise.all([
       api('/api/miniapp/profile').catch(() => null),
       api('/api/friends').catch(() => null),
-      fetch(API_BASE + '/api/app/release', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([profileRes, friendsRes, appRelease]) => {
+    ]).then(([profileRes, friendsRes]) => {
       const d = profileRes;
       const u = d && d.user;
       const sub = d && d.subscription;
@@ -15578,7 +15589,7 @@
         + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
         + '</div>';
 
-      setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name);
+      setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name, u.chat_id || u.user_id || u.id);
       bindProfileSubNav(root);
       const dl = document.getElementById('profile-hub-download');
       if (dl && window.MpAppDownload && typeof window.MpAppDownload.bindProfileDownloadButton === 'function') {

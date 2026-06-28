@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628tournfix2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628tournfix2">
+    <link rel="preload" href="/style-v2.css?v=20260629profilefix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260629profilefix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1151,6 +1151,11 @@
                     <span class="article-card-title">MCP и AI-агенты</span>
                     <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                 </a>
+                <a href="/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
+                    <span class="article-card-title">Соло-фаундер: чеклист</span>
+                    <span class="article-card-desc">Деньги, Mac, Railway и путь от бота до App Store</span>
+                </a>
         </div>
         <nav class="articles-pagination" id="landing-articles-pagination" aria-label="Страницы статей"></nav>
       </section>
@@ -1871,6 +1876,11 @@
                                 <span class="article-card-title">MCP и AI-агенты</span>
                                 <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                             </a>
+                            <a href="/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
+                                <span class="article-card-title">Соло-фаундер: чеклист</span>
+                                <span class="article-card-desc">Деньги, Mac, Railway и путь от бота до App Store</span>
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -2258,6 +2268,11 @@
                                 <span class="article-card-title">MCP и AI-агенты</span>
                                 <span class="article-card-desc">Подключите Claude или Cursor к планировщику</span>
                             </a>
+                            <a href="/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html" class="article-card">
+                                <span class="article-card-icon mp-icon" data-mp-icon="rocket"></span>
+                                <span class="article-card-title">Соло-фаундер: чеклист</span>
+                                <span class="article-card-desc">Деньги, Mac, Railway и путь от бота до App Store</span>
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -2377,7 +2392,7 @@
           'mp-icons.js?v=20260627history1'
         ];
         var cabinet = [
-          'user-profile-page.js?v=20260619reglayout1',
+          'user-profile-page.js?v=20260629profilefix1',
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
@@ -2392,7 +2407,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628tournfix2'
+            'cabinet-app.js?v=20260629profilefix1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2403,9 +2418,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628tournfix2');
+          list.push('cabinet-app.js?v=20260629profilefix1');
         } else {
-          list.push('cabinet-app.js?v=20260628tournfix2');
+          list.push('cabinet-app.js?v=20260629profilefix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
