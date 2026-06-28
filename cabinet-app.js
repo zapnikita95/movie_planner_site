@@ -10270,12 +10270,14 @@
     );
   }
 
-  function buildFilmPlanDropdown(item) {
+  function buildFilmPlanDropdown(item, opts) {
+    opts = opts || {};
     if (!item || !item.kp_id) return '';
     const kp = String(item.kp_id).replace(/\D/g, '');
     if (!kp) return '';
     const titleAttr = escapeHtml(item.title || '');
     const yearAttr = escapeHtml(String(item.year || ''));
+    const planLabel = opts.label || 'Запланировать просмотр';
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
     const planItems = [
       `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
@@ -10302,7 +10304,7 @@
     return (
       `<div class="action-dropdown" data-dropdown-root="plan">` +
         `<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">` +
-          `<span class="action-dropdown-btn-label"><span class="action-dropdown-btn-emoji" aria-hidden="true">📅</span><span class="action-dropdown-btn-text">Запланировать просмотр</span></span>` +
+          `<span class="action-dropdown-btn-label"><span class="action-dropdown-btn-emoji" aria-hidden="true">📅</span><span class="action-dropdown-btn-text">${escapeHtml(planLabel)}</span></span>` +
           `<span class="action-dropdown-caret">▾</span>` +
         `</button>` +
         `<div class="action-dropdown-menu">${menuItems}</div>` +
@@ -10625,7 +10627,7 @@
     if (!kp) return '';
     const titleAttr = escapeHtml(item.title || '');
     const yearAttr = escapeHtml(String(item.year || ''));
-    return `<div class="film-action-bar">${buildFilmPlanDropdown(item)}</div>`;
+    return `<div class="film-action-bar">${buildFilmPlanDropdown(item, { label: 'Запланировать' })}</div>`;
   }
 
   function closeAllActionDropdowns(except) {

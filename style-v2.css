@@ -7128,6 +7128,16 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   white-space: nowrap;
   min-width: 0;
 }
+.cards-list .film-card-v2 .action-dropdown-btn {
+  padding: 0 14px;
+  gap: 6px;
+}
+.cards-list .film-card-v2 .action-dropdown-btn-label,
+.cards-list .film-card-v2 .action-dropdown-btn-text {
+  overflow: visible;
+  text-overflow: clip;
+  flex-shrink: 0;
+}
 .action-dropdown-btn-emoji {
   flex-shrink: 0;
   line-height: 1;
