@@ -3643,7 +3643,6 @@
     if (sectionId === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
     if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
-    if (sectionId === 'tournament') { try { renderTournamentSection && renderTournamentSection(); } catch (_) {} }
     if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
     if (sectionId === 'collections') {
       try {
@@ -4560,6 +4559,17 @@
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.add('hidden');
   }
+  /** Снять ранний boot CSS (/f/:kp), иначе mp-film-boot держит #section-film поверх любого раздела. */
+  function clearFilmBootLayout(readonly) {
+    try {
+      document.documentElement.classList.remove('mp-film-boot', 'mp-staff-boot');
+    } catch (_) {}
+    const ro = readonly || document.getElementById('cabinet-readonly');
+    if (!ro) return;
+    ro.classList.remove('film-page-mode');
+    const filmSec = ro.querySelector('#section-film');
+    if (filmSec) filmSec.classList.add('hidden');
+  }
   function setFilmPageToolbar(_film) {
     /* sticky film toolbar removed — title lives in hero h1 */
   }
@@ -4623,9 +4633,11 @@
       });
       rendered = true;
     }
+    if (rendered && sectionId !== 'film') {
+      clearFilmBootLayout(readonly);
+    }
     if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
       _filmModalCurrentId = null;
-      if (readonly) readonly.classList.remove('film-page-mode');
       if (sectionId !== 'collections') {
         try { restoreDocumentTitle(); } catch (e) {}
       }
@@ -7284,7 +7296,33 @@
   const TOURNAMENT_CURRENT_FROM_DAY = 6;
   const TOURNAMENT_MONTH_UPPER = ['', 'ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ', 'ИЮЛЬ', 'АВГУСТ', 'СЕНТЯБРЬ', 'ОКТЯБРЬ', 'НОЯБРЬ', 'ДЕКАБРЬ'];
   let _siteTournamentLiveCache = null;
+  let _siteTournamentLiveInflight = null;
   let _siteTournamentResultsCache = null;
+  let _siteTournamentResultsInflight = null;
+
+  function fetchSiteTournamentLeaderboard() {
+    if (_siteTournamentLiveCache) return Promise.resolve(_siteTournamentLiveCache);
+    if (_siteTournamentLiveInflight) return _siteTournamentLiveInflight;
+    _siteTournamentLiveInflight = api('/api/tournament/leaderboard', { timeoutMs: 45000 })
+      .then((data) => {
+        if (data && data.success) _siteTournamentLiveCache = data;
+        return data;
+      })
+      .finally(() => { _siteTournamentLiveInflight = null; });
+    return _siteTournamentLiveInflight;
+  }
+
+  function fetchSiteTournamentResultsPrevious() {
+    if (_siteTournamentResultsCache) return Promise.resolve(_siteTournamentResultsCache);
+    if (_siteTournamentResultsInflight) return _siteTournamentResultsInflight;
+    _siteTournamentResultsInflight = api('/api/tournament/results?period=previous', { timeoutMs: 45000 })
+      .then((data) => {
+        if (data && data.success) _siteTournamentResultsCache = data;
+        return data;
+      })
+      .finally(() => { _siteTournamentResultsInflight = null; });
+    return _siteTournamentResultsInflight;
+  }
   let _siteTournamentPeriodKind = null;
   let _siteTournamentActiveNomId = null;
 
@@ -7485,12 +7523,7 @@
       _siteTournamentPeriodKind = kind;
       root.innerHTML = pageLoadingHtml();
       if (kind === 'current') {
-        const load = _siteTournamentLiveCache
-          ? Promise.resolve(_siteTournamentLiveCache)
-          : api('/api/tournament/leaderboard').then((data) => {
-            if (data && data.success) _siteTournamentLiveCache = data;
-            return data;
-          });
+        const load = fetchSiteTournamentLeaderboard();
         load.then((data) => {
           if (!data || !data.success) {
             showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
@@ -7503,12 +7536,7 @@
         }).catch(() => showError());
         return;
       }
-      const load = _siteTournamentResultsCache
-        ? Promise.resolve(_siteTournamentResultsCache)
-        : api('/api/tournament/results?period=previous').then((data) => {
-          if (data && data.success) _siteTournamentResultsCache = data;
-          return data;
-        });
+      const load = fetchSiteTournamentResultsPrevious();
       load.then((data) => {
         if (!data || !data.success) {
           showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
@@ -18284,9 +18312,6 @@
         }
         if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
           renderSettingsSection();
-        }
-        if (sectionId === 'tournament' && typeof renderTournamentSection === 'function') {
-          renderTournamentSection();
         }
         if (sectionId === 'inbox' && typeof renderInboxSection === 'function') {
           renderInboxSection();
