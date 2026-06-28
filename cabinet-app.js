@@ -13599,12 +13599,11 @@
     const menu = getProfileMenuEl();
     if (!menu) return;
     if (!profiles.length) {
-      menu.innerHTML = '<div class="profile-menu-hint">Пока только личный профиль.</div>'
-        + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
+      menu.innerHTML = '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
       menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
       return;
     }
-    menu.innerHTML = profiles.map((p) => {
+    const itemsHtml = profiles.map((p) => {
       const emoji = p.is_personal
         ? '👤'
         : (p.group_emoji && String(p.group_emoji).trim() ? p.group_emoji : (p.is_virtual ? '🎬' : '💬'));
@@ -13614,17 +13613,21 @@
       const nameHtml = active
         ? `<div class="profile-menu-item-name profile-menu-item-name-active">${disp}</div>`
         : `<div class="profile-menu-item-name">${disp}</div>`;
-      return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}">
+      const metaParts = [typeLabel];
+      if ((p.movies_count || 0) > 0) metaParts.push((p.movies_count || 0) + ' фильмов');
+      if ((p.ratings_count || 0) > 0) metaParts.push((p.ratings_count || 0) + ' оценок');
+      return `<div class="profile-menu-item ${active ? 'active' : ''}" data-chat-id="${escapeHtml(String(p.chat_id))}" role="menuitem">
           <div class="profile-menu-item-main">
             <span class="profile-menu-item-emoji">${escapeHtml(emoji)}</span>
             <div class="profile-menu-item-info">
               ${nameHtml}
-              <div class="profile-menu-item-meta">${typeLabel} · ${p.movies_count || 0} фильмов · ${p.ratings_count || 0} оценок</div>
+              <div class="profile-menu-item-meta">${escapeHtml(metaParts.join(' · '))}</div>
             </div>
           </div>
           ${active ? '<span class="profile-menu-item-active-tag">активен</span>' : ''}
         </div>`;
-    }).join('')
+    }).join('');
+    menu.innerHTML = '<div class="profile-menu-scroll">' + itemsHtml + '</div>'
       + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
 
     menu.querySelectorAll('.profile-menu-item').forEach((el) => {
@@ -13641,11 +13644,10 @@
   function updateProfileSwitcherUI(me) {
     const nameEl = document.getElementById('cabinet-profile-name');
     const kickerEl = document.querySelector('.cabinet-user-kicker');
-    const emojiEl = document.getElementById('cabinet-profile-emoji');
     const heroName = document.getElementById('cabinet-user-name');
     const heroAvatar = document.getElementById('cabinet-user-avatar');
     if (!nameEl || !me) return;
-    const profileLabel = me.is_group_profile ? (me.name || 'Группа') : 'Личный профиль';
+    const profileLabel = me.is_group_profile ? (me.name || 'Группа') : 'Личный';
     nameEl.textContent = profileLabel;
     if (kickerEl) kickerEl.textContent = greetingByHour() + ',';
     if (heroName) heroName.textContent = (me.name || 'Профиль') + '!';
@@ -13657,16 +13659,12 @@
       heroAvatarUrl = API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
     }
     setAvatarEl(heroAvatar, heroAvatarUrl, me.name);
-    if (emojiEl) {
-      const em = (me.room_emoji != null && String(me.room_emoji).trim() !== '') ? me.room_emoji : '';
-      emojiEl.textContent = em;
-    }
     _cabinetMeCache = me;
     refreshGroupSuggestions(me);
     updateGroupContextFab();
     setProfileSwitcherVisible(true);
     const token = ++_profileSwitcherFetchToken;
-    fetchSiteProfiles().then((data) => {
+    fetchSiteProfiles({ lite: true }).then((data) => {
       if (token !== _profileSwitcherFetchToken || !data || !data.success) return;
       renderProfileMenuItems(data.profiles || [], data.active_chat_id);
     }).catch(() => {});
@@ -13686,14 +13684,18 @@
     menu.classList.remove('hidden');
     if (btn) btn.setAttribute('aria-expanded', 'true');
     menu.innerHTML = '<div class="profile-menu-hint">Загружаем профили…</div>';
-    fetchSiteProfiles().then((data) => {
+    fetchSiteProfiles({ lite: true }).then((data) => {
       if (!data || !data.success) {
-        menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>';
+        menu.innerHTML = '<div class="profile-menu-hint">' + escapeHtml((data && data.error) || 'Не удалось загрузить профили') + '</div>'
+          + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
+        menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
         return;
       }
       renderProfileMenuItems(data.profiles || [], data.active_chat_id);
     }).catch(() => {
-      menu.innerHTML = '<div class="profile-menu-hint">Сервер не отвечает.</div>';
+      menu.innerHTML = '<div class="profile-menu-hint">Сервер не отвечает.</div>'
+        + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
+      menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
     });
   }
 
@@ -13720,15 +13722,9 @@
 
   function bindProfileSwitcher() {
     const btn = document.getElementById('cabinet-profile-btn');
-    const nameEl = document.getElementById('cabinet-profile-name');
     if (btn) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (nameEl && (e.target === nameEl || (nameEl.contains && nameEl.contains(e.target)))) {
-          closeProfileMenu();
-          openAccountDropdown();
-          return;
-        }
         const menu = getProfileMenuEl();
         if (menu && menu.classList.contains('hidden')) openProfileMenu();
         else closeProfileMenu();

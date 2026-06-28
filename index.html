@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260628headergrid2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260628headergrid2">
+    <link rel="preload" href="/style-v2.css?v=20260628profilefix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260628profilefix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1177,16 +1177,17 @@
                         <div class="cabinet-user-avatar" id="cabinet-user-avatar"></div>
                         <div class="cabinet-user-copy">
                             <div class="cabinet-user-kicker">Профиль</div>
-                            <div class="cabinet-user-name" id="cabinet-user-name">Профиль</div>
+                            <div class="cabinet-user-name-row">
+                                <div class="cabinet-user-name" id="cabinet-user-name">Профиль</div>
+                                <div class="cabinet-profile-switcher hidden" id="cabinet-profile-switcher" aria-hidden="true">
+                                    <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" tabindex="-1" aria-hidden="true" aria-haspopup="menu" aria-expanded="false" aria-controls="cabinet-topbar-profile-menu">
+                                        <span class="cabinet-profile-name" id="cabinet-profile-name">Личный</span>
+                                        <span class="cabinet-profile-caret" aria-hidden="true">▾</span>
+                                    </button>
+                                    <div class="cabinet-profile-menu hidden" id="cabinet-topbar-profile-menu" role="menu" aria-label="Переключение профиля"></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="cabinet-profile-switcher hidden" id="cabinet-profile-switcher" aria-hidden="true">
-                        <button type="button" class="cabinet-profile-btn" id="cabinet-profile-btn" tabindex="-1" aria-hidden="true" aria-haspopup="menu" aria-expanded="false" aria-controls="cabinet-topbar-profile-menu">
-                            <span class="cabinet-profile-emoji" id="cabinet-profile-emoji"></span>
-                            <span class="cabinet-profile-name" id="cabinet-profile-name">Личный профиль</span>
-                            <span class="cabinet-profile-caret" aria-hidden="true">▾</span>
-                        </button>
-                        <div class="cabinet-profile-menu hidden" id="cabinet-topbar-profile-menu" role="menu" aria-label="Переключение профиля"></div>
                     </div>
                 </div>
             </div>
@@ -2324,7 +2325,7 @@
           'app-download.js?v=20260619store1',
           'onboarding-flow.js?v=20260628homefix2',
           'collections-page.js?v=20260617i18nfix3',
-          'home-rails.js?v=20260628homefix4',
+          'home-rails.js?v=20260628profilefix1',
           'landing-articles.js?v=20260627articles1'
         ];
         var list;
@@ -2333,7 +2334,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628homefix4'
+            'cabinet-app.js?v=20260628profilefix1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2344,9 +2345,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628homefix4');
+          list.push('cabinet-app.js?v=20260628profilefix1');
         } else {
-          list.push('cabinet-app.js?v=20260628homefix4');
+          list.push('cabinet-app.js?v=20260628profilefix1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
