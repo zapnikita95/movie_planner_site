@@ -1997,7 +1997,14 @@
   function getActiveSession() {
     const sessions = getSessions();
     const active = getActiveChatId();
-    return sessions.find((s) => String(s.chat_id) === String(active)) || null;
+    const session = sessions.find((s) => String(s.chat_id) === String(active));
+    if (session && session.token) return session;
+    const fallback = sessions.find((s) => s && s.token);
+    if (fallback && fallback.chat_id != null) {
+      setActiveChatId(fallback.chat_id);
+      return fallback;
+    }
+    return null;
   }
 
   function getPersonalSessionName() {
@@ -2013,9 +2020,7 @@
   }
 
   function getToken() {
-    const sessions = getSessions();
-    const active = getActiveChatId();
-    const session = sessions.find((s) => String(s.chat_id) === String(active));
+    const session = getActiveSession();
     return session ? session.token : null;
   }
 
