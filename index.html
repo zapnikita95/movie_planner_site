@@ -1333,6 +1333,15 @@
                                 <input type="text" id="section-search-series" class="section-search base-search-input" placeholder="Найти" data-section="series" aria-label="Поиск в разделе Сериалы" autocomplete="off">
                             </div>
                         </div>
+                        <div class="plans-filter-tabs series-status-tabs" id="series-status-tabs" role="tablist" aria-label="Статус сериалов">
+                            <button type="button" class="plans-filter-tab active" data-series-status-filter="all" role="tab" aria-selected="true">Все</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="watching" role="tab" aria-selected="false">▶ Смотрю</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="ongoing" role="tab" aria-selected="false">📅 Выходят</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="awaiting_episodes" role="tab" aria-selected="false">⏰ Ожидаю</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="finished" role="tab" aria-selected="false">Завершённые</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="not_started" role="tab" aria-selected="false">Не начаты</button>
+                            <button type="button" class="plans-filter-tab" data-series-status-filter="watched" role="tab" aria-selected="false">Просмотренные</button>
+                        </div>
                         <div class="base-filter-toolbar" aria-label="Фильтры">
                             <div class="base-filter-toolbar-scroll">
                                 <label class="base-filter-chip base-filter-chip--field">
@@ -2334,7 +2343,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260628profilefix1'
+            'cabinet-app.js?v=20260628homefix5'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2345,9 +2354,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260627apiams1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260628profilefix1');
+          list.push('cabinet-app.js?v=20260628homefix5');
         } else {
-          list.push('cabinet-app.js?v=20260628profilefix1');
+          list.push('cabinet-app.js?v=20260628homefix5');
         }
         function loadAt(i) {
           if (i >= list.length) return;

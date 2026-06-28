@@ -1943,8 +1943,8 @@
       } else {
         loadPlans();
         loadUnwatched();
-        setTimeout(function () { loadSeries(); }, 2500);
-        setTimeout(function () { loadRatings(); }, 240);
+        loadSeries();
+        loadRatings();
         handleAuthEntryDeepLinks();
         pathUserBoot = userIdFromLocation();
         const pathTagBoot = filmTagIdFromPathname(window.location.pathname);
@@ -3582,6 +3582,9 @@
     if (sectionId === 'unwatched' || sectionId === 'series' || sectionId === 'ratings') {
       try { refreshBaseUserTagPills(); } catch (_) {}
     }
+    if (sectionId === 'unwatched') { try { loadUnwatched(); } catch (_) {} }
+    if (sectionId === 'series') { try { loadSeries(); } catch (_) {} }
+    if (sectionId === 'ratings') { try { loadRatings(); } catch (_) {} }
     if (sectionId === 'home') {
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
@@ -7424,7 +7427,10 @@
       if (baseTab) {
         e.preventDefault();
         const sec = baseTab.getAttribute('data-base-section');
-        if (sec) showSection(sec);
+        if (sec) {
+          showSection(sec);
+          afterCabinetSectionShown(sec);
+        }
         return;
       }
       const collEntry = e.target.closest('[data-go-collections]');
@@ -8197,6 +8203,8 @@
   let seriesItems = [];
   let seriesMixItems = [];
   let _seriesHubTab = 'upcoming';
+  let _seriesStatusFilter = 'all';
+  let _seriesLoadInflight = null;
   let ratingsItems = [];
 
   function sectionSearchQuery(section) {
@@ -8457,18 +8465,55 @@
     /* series-mix rail on /home loads via MPHomeRails — avoid duplicate API storm */
   }
 
+  function seriesMatchesStatusFilter(item, filter) {
+    const watchedCount = Number(item.watched_count || 0);
+    const status = String(item.status || '').toLowerCase();
+    const watched = !!item.watched || status === 'watched';
+    if (!filter || filter === 'all') return true;
+    if (filter === 'watching') {
+      return watchedCount > 0 && !watched && status !== 'finished' && status !== 'watched';
+    }
+    if (filter === 'ongoing') return status === 'ongoing' && !watched;
+    if (filter === 'awaiting_episodes') return !!item.has_subscription && !watched;
+    if (filter === 'finished') return status === 'finished' || status === 'ended';
+    if (filter === 'not_started') return status === 'not_started' && !watched;
+    if (filter === 'watched') return watched;
+    if (filter === 'awaiting') return !!item.has_subscription;
+    return true;
+  }
+
+  function bindSeriesStatusFiltersOnce() {
+    const tabs = document.getElementById('series-status-tabs');
+    if (!tabs || tabs.dataset.bound) return;
+    tabs.dataset.bound = '1';
+    tabs.querySelectorAll('[data-series-status-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        _seriesStatusFilter = btn.getAttribute('data-series-status-filter') || 'all';
+        tabs.querySelectorAll('[data-series-status-filter]').forEach((b) => {
+          const on = b.getAttribute('data-series-status-filter') === _seriesStatusFilter;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        renderSeriesList();
+      });
+    });
+  }
+
   function renderSeriesList() {
     const ctx = seriesListContext();
     const el = document.getElementById(ctx.elId);
     if (!el) return;
+    if (_seriesLoadInflight && !seriesItems.length) {
+      el.innerHTML = '<p class="empty-hint">Загружаем…</p>';
+      return;
+    }
     if (!seriesItems.length) {
-      el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте.</p>';
+      el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте или отметьте просмотр в карточке.</p>';
       return;
     }
     const fs = sectionFilterState(ctx.sectionKey);
     const list = filterByTitle(seriesItems, sectionSearchQuery(ctx.sectionKey), 'title', ['actors', 'genres', 'year']).filter((s) => {
-      if (fs.type === 'awaiting') return !!s.has_subscription;
-      if (fs.type === 'watching') return Number(s.watched_count || 0) > 0;
+      if (!seriesMatchesStatusFilter(s, _seriesStatusFilter)) return false;
       const y = parseInt(String(s.year || ''), 10);
       if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
       if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
@@ -8502,20 +8547,35 @@
   }
 
   function loadSeries() {
-    api('/api/site/series').then((data) => {
-      if (!data.success) return;
+    const ctx = seriesListContext();
+    const el = document.getElementById(ctx.elId);
+    bindSeriesStatusFiltersOnce();
+    if (!seriesItems.length && el) {
+      el.innerHTML = '<p class="empty-hint">Загружаем…</p>';
+    }
+    if (_seriesLoadInflight) return _seriesLoadInflight;
+    _seriesLoadInflight = api('/api/site/series', { timeoutMs: 32000 }).then((data) => {
+      if (!data || !data.success) {
+        if (el) el.innerHTML = '<p class="empty-hint">Не удалось загрузить сериалы. Обновите страницу.</p>';
+        return;
+      }
       seriesItems = Array.isArray(data.items) ? data.items : [];
       bindSectionSearchOnce('series', renderSeriesList);
       ['year-from', 'year-to', 'genre'].forEach((suffix) => {
-        const el = document.getElementById('section-filter-series-' + suffix);
-        if (el && !el.dataset.bound) {
-          el.dataset.bound = '1';
-          el.addEventListener('input', renderSeriesList);
-          el.addEventListener('change', renderSeriesList);
+        const filterEl = document.getElementById('section-filter-series-' + suffix);
+        if (filterEl && !filterEl.dataset.bound) {
+          filterEl.dataset.bound = '1';
+          filterEl.addEventListener('input', renderSeriesList);
+          filterEl.addEventListener('change', renderSeriesList);
         }
       });
       renderSeriesList();
+    }).catch(() => {
+      if (el) el.innerHTML = '<p class="empty-hint">Не удалось загрузить сериалы. Попробуйте ещё раз.</p>';
+    }).finally(() => {
+      _seriesLoadInflight = null;
     });
+    return _seriesLoadInflight;
   }
 
   function formatRatedDate(ratedAt) {
