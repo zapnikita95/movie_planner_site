@@ -190,7 +190,7 @@
     const unwatched = data.unwatched_count != null ? data.unwatched_count : 0;
     const watched = data.watched_count != null ? data.watched_count : null;
     const statsHtml =
-      '<div class="profile-hub-stats">' +
+      '<div class="profile-hub-highlights">' +
         '<button type="button" class="profile-hub-stat" data-action="ratings-all">' +
           '<b>' + escapeHtml(String(data.ratings_count || 0)) + '</b><span>оценок</span></button>' +
         (isFriend || isSelf
@@ -237,13 +237,13 @@
           '<div class="profile-hub-info">' +
             '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
             metaHtml +
+            statsHtml +
           '</div>' +
         '</div>' +
-        statsHtml +
         tasteHtml +
         actionsHtml +
-        recentHtml +
         achHtml +
+        recentHtml +
       '</div>';
 
     setAvatarEl(document.getElementById('user-friend-avatar'), photo, initial, uid);

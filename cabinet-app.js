@@ -15467,6 +15467,62 @@
     return url;
   }
 
+  function profileAchievementCardHtml(a) {
+    const icon = (a && a.icon) || '🏅';
+    const id = String((a && (a.id || a.achievement_id)) || '').trim();
+    const rawName = (a && a.name) || '';
+    const name = rawName && rawName !== id ? rawName : 'Ачивка';
+    const desc = (a && a.description) || '';
+    return (
+      '<div class="ach-panel-card earned user-profile-ach-card" tabindex="0" role="button" aria-label="' + escapeHtml(name) + '">' +
+        '<div class="ach-panel-icon">' + escapeHtml(icon) + '</div>' +
+        '<div class="ach-panel-info">' +
+          '<div class="ach-panel-name">' + escapeHtml(name) + '</div>' +
+          (desc ? '<div class="ach-panel-desc">' + escapeHtml(desc) + '</div>' : '') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderOwnProfileAchievements(root, profileData) {
+    const host = root.querySelector('#profile-hub-achievements');
+    if (!host || !profileData) return;
+    const allAchievements = Array.isArray(profileData.achievements) ? profileData.achievements : [];
+    const items = allAchievements.slice(0, 6);
+    const total = Number(profileData.achievements_count || allAchievements.length || 0);
+    if (!items.length && total <= 0) {
+      host.classList.add('hidden');
+      host.innerHTML = '';
+      return;
+    }
+    host.classList.remove('hidden');
+    host.innerHTML =
+      '<div class="user-profile-block">' +
+        '<div class="user-profile-block-head">' +
+          '<div class="user-profile-section-title">' +
+            mpIcon('medal', { size: 'sm', className: 'user-profile-section-icon' }) +
+            '<h3 class="user-profile-block-title">Достижения</h3>' +
+          '</div>' +
+          (total > items.length ? '<span class="user-profile-ach-all">Показаны последние</span>' : '') +
+        '</div>' +
+        '<div class="ach-panel-category-grid user-profile-ach-grid">' +
+          items.map(profileAchievementCardHtml).join('') +
+        '</div>' +
+      '</div>';
+    bindProfileSubNav(root);
+  }
+
+  function scheduleOwnProfileAchievementsLoad(root, user) {
+    const userId = Number((user && (user.share_user_id || user.user_id || user.id || user.chat_id)) || 0);
+    if (!userId) return;
+    api('/api/friends/' + encodeURIComponent(String(userId)) + '/profile', { timeoutMs: 10000 })
+      .then(function (profileData) {
+        if (!profileData || profileData.success === false) return;
+        renderOwnProfileAchievements(root, profileData);
+      })
+      .catch(function () {});
+  }
+
   function profileListItemHtml(title, hint, attrs) {
     const a = attrs || {};
     let data = '';
@@ -15555,7 +15611,7 @@
       const watchedTotal = totals && totals.watched != null ? totals.watched : totals && totals.watched_count;
       const seriesTotal = totals && totals.series != null ? totals.series : totals && totals.series_count;
       const statsHtml = totals ? (
-        '<div class="profile-hub-stats">'
+        '<div class="profile-hub-highlights">'
         + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(filmsInBase != null ? filmsInBase : '—')) + '</b><span>в базе</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(watchedTotal != null ? watchedTotal : '—')) + '</b><span>смотрел</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(seriesTotal != null ? seriesTotal : '—')) + '</b><span>сериалов</span></button>'
@@ -15569,10 +15625,11 @@
         + '<div class="profile-hub-info">'
         + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
         + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
+        + statsHtml
         + '</div>'
         + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
         + '</div>'
-        + statsHtml
+        + '<div id="profile-hub-achievements" class="profile-hub-achievements hidden"></div>'
         + '<div class="mp-list">'
         + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
         + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
@@ -15592,6 +15649,7 @@
       if (dl && window.MpAppDownload && typeof window.MpAppDownload.bindProfileDownloadButton === 'function') {
         window.MpAppDownload.bindProfileDownloadButton(dl);
       }
+      scheduleOwnProfileAchievementsLoad(root, u);
       api('/api/friends', { timeoutMs: 10000 }).catch(function () { return null; }).then(function (friendsRes) {
         const cnt = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
         const lbl = cnt === 1 ? 'друг' : (cnt >= 2 && cnt <= 4 ? 'друга' : 'друзей');

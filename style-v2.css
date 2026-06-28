@@ -15067,7 +15067,8 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   cursor: pointer;
   flex-shrink: 0;
 }
-.profile-hub-stats {
+.profile-hub-stats,
+.profile-hub-highlights {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
@@ -15089,6 +15090,8 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 }
 .profile-hub-stat b { font-size: 17px; font-weight: 800; color: #ff5aa5; }
 .profile-hub-stat span { font-size: 10px; color: rgba(255, 255, 255, 0.55); text-transform: lowercase; }
+.profile-hub-achievements { margin-top: 2px; }
+.profile-hub-achievements .user-profile-block { margin-top: 0; }
 
 .user-friend-profile { max-width: 720px; margin: 0 auto; }
 .user-friend-profile .user-profile-block { margin-top: 4px; }
@@ -15214,12 +15217,11 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
     grid-column: 1;
     padding: 20px;
   }
-  .profile-hub-stats {
-    grid-column: 1;
-  }
+  .profile-hub-header .profile-hub-highlights { margin-top: 8px; }
+  .profile-hub > .profile-hub-achievements { grid-column: 1; }
   .profile-hub > .mp-list {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     align-self: start;
   }
   .profile-hub > .btn-logout {
@@ -15263,6 +15265,21 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   }
   #settings-import-ext .settings-import-form {
     grid-template-columns: 1fr;
+  }
+}
+@media (min-width: 1024px) {
+  .profile-hub-header { align-items: flex-start; }
+  .profile-hub-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .profile-hub-info .profile-hub-highlights {
+    max-width: 420px;
+  }
+  .user-friend-profile .user-profile-actions,
+  .user-friend-profile .user-profile-block {
+    max-width: 640px;
   }
 }
 .settings-import-form--ext {
@@ -15464,11 +15481,14 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
     min-height: 42px;
     font-size: 14px;
   }
-  body.in-cabinet .profile-hub-stats {
+  body.in-cabinet .profile-hub-stats,
+  body.in-cabinet .profile-hub-highlights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   body.in-cabinet .profile-hub-stats .profile-hub-stat:nth-child(3),
-  body.in-cabinet .profile-hub-stats .profile-hub-stat:nth-child(4) {
+  body.in-cabinet .profile-hub-stats .profile-hub-stat:nth-child(4),
+  body.in-cabinet .profile-hub-highlights .profile-hub-stat:nth-child(3),
+  body.in-cabinet .profile-hub-highlights .profile-hub-stat:nth-child(4) {
     /* keep 2x2 on very narrow */
   }
 }
