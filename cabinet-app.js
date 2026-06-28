@@ -1038,7 +1038,7 @@
         pendingAction: o.action || '',
       });
     }
-    const litePaint = api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite')
+    api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
       .then(function (lite) {
         if (!lite || !lite.title || !pageRootEarly) return;
         if (shellSeed && shellSeed.title) return;
@@ -1050,20 +1050,18 @@
         });
       })
       .catch(function () {});
-    return litePaint.then(function () {
-      return api('/api/site/film-by-kp/' + kp).then(function (res) {
-        if (res && res.success && res.film_id) {
-          return openFilmPage(Number(res.film_id), {
-            skipHistory: o.skipHistory,
-            replace: o.replace,
-            kpId: kp,
-            action: o.action || '',
-          });
-        }
-        return openFilmHeroByKpPublic(kp, o);
-      }).catch(function () {
-        return openFilmHeroByKpPublic(kp, o);
-      });
+    return api('/api/site/film-by-kp/' + kp, { timeoutMs: 12000 }).then(function (res) {
+      if (res && res.success && res.film_id) {
+        return openFilmPage(Number(res.film_id), {
+          skipHistory: o.skipHistory,
+          replace: o.replace,
+          kpId: kp,
+          action: o.action || '',
+        });
+      }
+      return openFilmHeroByKpPublic(kp, o);
+    }).catch(function () {
+      return openFilmHeroByKpPublic(kp, o);
     });
   }
 
@@ -6250,6 +6248,7 @@
     let attrs = '';
     if (fid) attrs += ' data-film-id="' + escapeHtml(String(fid)) + '"';
     if (kp) attrs += ' data-kp-id="' + escapeHtml(String(kp)) + '"';
+    if (item && item.is_series) attrs += ' data-is-series="1"';
     return attrs;
   }
 
@@ -6641,7 +6640,8 @@
     return { tile, kp, fid };
   }
 
-  function openHomeDashboardFilmTile(kp, fid) {
+  function openHomeDashboardFilmTile(kp, fid, tile) {
+    if (tile) stashFilmShellFromCard(tile);
     if (isCabinetActive()) {
       openFilmNav(kp, fid);
       return;
@@ -6663,7 +6663,7 @@
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
       e.preventDefault();
       e.stopPropagation();
-      openHomeDashboardFilmTile(hit.kp, hit.fid);
+      openHomeDashboardFilmTile(hit.kp, hit.fid, hit.tile);
     }, true);
   }
 
@@ -11556,7 +11556,7 @@
     } else {
       runLoad(null);
     }
-    return api('/api/site/film/' + filmId).then(function (detail) {
+    return api('/api/site/film/' + filmId, { timeoutMs: 20000 }).then(function (detail) {
       if (!detail || !detail.success) {
         pageRoot.className = 'movie-page';
         pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить: ' + escapeHtml((detail && detail.error) || 'ошибка') + '</p>';
