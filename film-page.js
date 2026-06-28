@@ -455,11 +455,13 @@
     function postMark(body) {
       state.pending = true;
       rerender();
-      fetch(apiBase + '/api/site/series/' + film.film_id + '/episodes/mark', {
-        method: 'POST',
-        headers: authHeadersFn(),
-        body: JSON.stringify(body),
-      }).then(function (r) { return r.json(); }).then(function (data) {
+      ensureFilmIdForSeriesFilm(film, apiBase, authHeadersFn).then(function () {
+        return fetch(apiBase + '/api/site/series/' + film.film_id + '/episodes/mark', {
+          method: 'POST',
+          headers: authHeadersFn(),
+          body: JSON.stringify(body),
+        }).then(function (r) { return r.json(); });
+      }).then(function (data) {
         if (!data || !data.success) throw new Error((data && data.error) || 'error');
         if (body.mark_all_previous) filmPageToast('Отмечено серий: ' + (data.marked_count || 0));
         else if (body.watched === false) filmPageToast('Отметка снята');
@@ -523,61 +525,121 @@
     }
   }
 
+  function filmPageConfirmDialog(title, message, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var overlay = document.createElement('div');
+      overlay.className = 'mp-dialog-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      overlay.innerHTML =
+        '<div class="mp-dialog-card">' +
+          '<div class="modal-title">' + escapeHtml(title || 'Подтверждение') + '</div>' +
+          '<p class="cabinet-hint">' + escapeHtml(message || '') + '</p>' +
+          '<div style="display:flex;gap:10px;margin-top:16px">' +
+            '<button type="button" class="btn btn-secondary" id="mp-confirm-cancel">' + escapeHtml(opts.cancelLabel || 'Отмена') + '</button>' +
+            '<button type="button" class="btn btn-primary" id="mp-confirm-ok">' + escapeHtml(opts.confirmLabel || 'Да') + '</button>' +
+          '</div>' +
+        '</div>';
+      function close(result) {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_e) {}
+        resolve(!!result);
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close(false);
+      });
+      overlay.querySelector('#mp-confirm-cancel').addEventListener('click', function () { close(false); });
+      overlay.querySelector('#mp-confirm-ok').addEventListener('click', function () { close(true); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  function ensureFilmIdForSeriesFilm(film, apiBase, authHeadersFn) {
+    if (film && film.film_id) return Promise.resolve(film.film_id);
+    var kp = String((film && film.kp_id) || '').replace(/\D/g, '');
+    if (!kp) return Promise.reject(new Error('no_kp'));
+    return fetch(apiBase + '/api/site/add-film', {
+      method: 'POST',
+      headers: authHeadersFn(),
+      body: JSON.stringify({ kp_id: Number(kp) }),
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      if (!res || !res.success || !res.film_id) throw new Error((res && res.error) || 'add_failed');
+      film.film_id = Number(res.film_id);
+      film.is_series = true;
+      return film.film_id;
+    });
+  }
+
   function mountSeriesToolbarPanel(root, film, apiBase, authHeadersFn) {
     var panelWrap = root && root.querySelector('#series-toolbar-panel-root');
-    if (!panelWrap || !film || !film.film_id) return;
-    if (!root._mpSeriesToolbarState) root._mpSeriesToolbarState = {};
-    var state = root._mpSeriesToolbarState;
-    if (!state.progress) {
-      state.progress = seriesProgressFromPayload(film.series_progress || {});
-      if (film.series_progress && film.series_progress.last_watched) {
-        state.selectedSeason = film.series_progress.last_watched.season;
-      } else if (film.series_progress && film.series_progress.next_unwatched) {
-        state.selectedSeason = film.series_progress.next_unwatched.season;
+    if (!panelWrap || !film || !film.is_series) return;
+    function loadPanel() {
+      if (!root._mpSeriesToolbarState) root._mpSeriesToolbarState = {};
+      var state = root._mpSeriesToolbarState;
+      if (!state.progress) {
+        state.progress = seriesProgressFromPayload(film.series_progress || {});
+        if (film.series_progress && film.series_progress.last_watched) {
+          state.selectedSeason = film.series_progress.last_watched.season;
+        } else if (film.series_progress && film.series_progress.next_unwatched) {
+          state.selectedSeason = film.series_progress.next_unwatched.season;
+        }
       }
-    }
-    function rerender() {
-      if (state.loading) {
-        panelWrap.innerHTML = '<div class="film-series-toolbar-loading">Загрузка серий…</div>';
-        return;
-      }
-      if (state.pending) {
-        panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state) + '<div class="film-series-toolbar-loading film-series-toolbar-loading--overlay">Сохраняем…</div>';
-        bindSeriesToolbarPanel(root, film, panelWrap, state, rerender, apiBase, authHeadersFn);
-        return;
-      }
-      panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state);
-      bindSeriesToolbarPanel(root, film, panelWrap, state, rerender, apiBase, authHeadersFn);
-    }
-    if (state.loaded && state.progress && (state.progress.seasons || []).length) {
-      rerender();
-      return;
-    }
-    state.loading = true;
-    rerender();
-    fetch(apiBase + '/api/site/series/' + film.film_id + '/progress', { headers: authHeadersFn() })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data || !data.success) {
-          state.error = (data && data.error) || 'Не удалось загрузить серии';
-          if (!state.progress || !(state.progress.seasons || []).length) state.progress = { seasons: [] };
+      function rerender() {
+        if (state.loading) {
+          panelWrap.innerHTML = '<div class="film-series-toolbar-loading">Загрузка серий…</div>';
           return;
         }
-        state.progress = seriesProgressFromPayload(data);
-        state.loaded = true;
-        state.error = null;
-        var anchor = data.last_watched || data.next_unwatched;
-        if (anchor && anchor.season != null) state.selectedSeason = anchor.season;
-        applySeriesProgressToFilm(film, state.progress);
-        updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
-      })
-      .catch(function () {
-        state.error = 'Не удалось загрузить серии';
-      })
-      .finally(function () {
-        state.loading = false;
+        if (state.pending) {
+          panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state) + '<div class="film-series-toolbar-loading film-series-toolbar-loading--overlay">Сохраняем…</div>';
+          bindSeriesToolbarPanel(root, film, panelWrap, state, rerender, apiBase, authHeadersFn);
+          return;
+        }
+        panelWrap.innerHTML = renderSeriesToolbarPanelHtml(state);
+        bindSeriesToolbarPanel(root, film, panelWrap, state, rerender, apiBase, authHeadersFn);
+      }
+      if (state.loaded && state.progress && (state.progress.seasons || []).length) {
         rerender();
-      });
+        return;
+      }
+      state.loading = true;
+      rerender();
+      fetch(apiBase + '/api/site/series/' + film.film_id + '/progress', { headers: authHeadersFn() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.success) {
+            state.error = (data && data.error) || 'Не удалось загрузить серии';
+            if (!state.progress || !(state.progress.seasons || []).length) state.progress = { seasons: [] };
+            return;
+          }
+          state.progress = seriesProgressFromPayload(data);
+          state.loaded = true;
+          state.error = null;
+          var anchor = data.last_watched || data.next_unwatched;
+          if (anchor && anchor.season != null) state.selectedSeason = anchor.season;
+          applySeriesProgressToFilm(film, state.progress);
+          updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+        })
+        .catch(function () {
+          state.error = 'Не удалось загрузить серии';
+        })
+        .finally(function () {
+          state.loading = false;
+          rerender();
+        });
+    }
+    if (film.film_id) {
+      loadPanel();
+      return;
+    }
+    panelWrap.innerHTML = '<div class="film-series-toolbar-loading">Добавляем в базу…</div>';
+    ensureFilmIdForSeriesFilm(film, apiBase, authHeadersFn).then(function () {
+      updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
+      loadPanel();
+    }).catch(function () {
+      panelWrap.innerHTML = '<p class="film-series-toolbar-empty">Не удалось добавить сериал в базу</p>';
+    });
   }
 
   function buildFilmPageToolbar(item, opts) {
@@ -625,12 +687,18 @@
     var factsPanelHtml = '<div class="film-toolbar-expand hidden" id="facts-expand-panel"><ul class="film-toolbar-facts-list" id="facts-list"></ul></div>';
     var factsBtnOnly = '<button type="button" class="film-icon-btn hidden" id="facts-toggle-btn" data-facts-toggle="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Интересные факты" title="Интересные факты"><span class="film-icon-ico">🤔</span><span class="film-icon-label">Факты</span></button>';
     var premiereBtn = renderFilmToolbarPremiereBtn(item);
-    var isSeriesInBase = !!(item.is_series && opts.inBase && item.film_id);
-    var seriesCode = isSeriesInBase ? seriesToolbarProgressCode(item) : '';
-    var seriesBtn = isSeriesInBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--series" id="series-progress-toggle" data-series-toggle="1" data-film-id="' + escapeHtml(String(item.film_id)) + '" aria-label="Прогресс сериала ' + escapeHtml(seriesCode) + '" title="Прогресс: ' + escapeHtml(seriesCode) + '"><span class="film-icon-ico film-series-code">' + escapeHtml(seriesCode) + '</span></button>'
+    var showSeriesToolbar = !!(
+      item.is_series && opts.authenticated && (
+        (opts.inBase && item.film_id) || (!opts.inBase && item.kp_id)
+      )
+    );
+    var seriesCode = showSeriesToolbar
+      ? (opts.inBase && item.film_id ? seriesToolbarProgressCode(item) : 'S1E1')
       : '';
-    var seriesPanelHtml = isSeriesInBase
+    var seriesBtn = showSeriesToolbar
+      ? '<button type="button" class="film-icon-btn film-icon-btn--series" id="series-progress-toggle" data-series-toggle="1" data-film-id="' + escapeHtml(String(item.film_id || '')) + '" data-kp-id="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Прогресс сериала ' + escapeHtml(seriesCode) + '" title="Прогресс: ' + escapeHtml(seriesCode) + '"><span class="film-icon-ico film-series-code">' + escapeHtml(seriesCode) + '</span></button>'
+      : '';
+    var seriesPanelHtml = showSeriesToolbar
       ? '<div class="film-toolbar-expand hidden" id="series-expand-panel"><div class="film-series-toolbar-panel" id="series-toolbar-panel-root"><div class="film-series-toolbar-loading">Загрузка серий…</div></div></div>'
       : '';
     var panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + factsPanelHtml + seriesPanelHtml + '</div>';
@@ -1962,6 +2030,11 @@
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series);
+          if (f.is_series) {
+            try { global.__mpFilmPageSeriesKp = kpId; } catch (_e) {}
+            var heroSec = document.querySelector('.film-hero-with-tag');
+            if (heroSec) heroSec.setAttribute('data-is-series', '1');
+          }
           var boot = readMpRouteBoot();
           var posterToApply = f.poster_url;
           if (boot && boot.poster_url && (!cleanPosterUrl(posterToApply) || !isGoodFilmPosterUrl(posterToApply))) {
@@ -2174,8 +2247,10 @@
             if (!token()) { loginNow(); return; }
             togglePanel(seriesToggle, seriesPanel);
             if (!seriesPanel.classList.contains('hidden')) {
-              var film = root._mpFilm || filmCtx;
-              if (film && film.film_id && film.is_series) {
+              var film = root._mpFilm || filmCtx || {};
+              if (!film.is_series && global.__mpFilmPageSeriesKp === kpId) film.is_series = true;
+              if (!film.kp_id) film.kp_id = kpId;
+              if (film.is_series) {
                 mountSeriesToolbarPanel(root, film, apiBase, authHeaders);
               }
             }
@@ -2212,6 +2287,14 @@
         var old = hero.querySelector('.film-page-toolbar');
         if (old) old.remove();
         var stub = filmState.film || { kp_id: kpId };
+        if (!stub.is_series) {
+          if (global.__mpFilmPageSeriesKp === kpId) stub.is_series = true;
+          else {
+            var heroSec = document.querySelector('.film-hero-with-tag[data-is-series="1"]');
+            if (heroSec) stub.is_series = true;
+          }
+        }
+        if (!stub.kp_id) stub.kp_id = kpId;
         var toolbarHtml = buildFilmPageToolbar(stub, filmState.toolbarOpts || {});
         hero.insertAdjacentHTML('beforeend', toolbarHtml);
         var newToolbar = hero.querySelector('.film-page-toolbar');
@@ -2245,11 +2328,32 @@
           var watchedBtn = root.querySelector('[data-action="toggle-watched"]');
           if (watchedBtn) {
             watchedBtn.addEventListener('click', function () {
-              fetch(apiBase + '/api/site/film/' + film.film_id + '/watched', {
-                method: 'POST', headers: authHeaders(), body: JSON.stringify({ watched: !film.watched }),
-              }).then(function (r) { return r.json(); }).then(function (d) {
-                if (d && d.success) { film.watched = !film.watched; applyAuthToolbar(film, filmState); }
-              });
+              var nextWatched = !film.watched;
+              function doToggle() {
+                fetch(apiBase + '/api/site/film/' + film.film_id + '/watched', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ watched: nextWatched }),
+                }).then(function (r) { return r.json(); }).then(function (d) {
+                  if (!d || !d.success) return;
+                  film.watched = nextWatched;
+                  if (film.is_series && !nextWatched) {
+                    film.series_progress = { seasons: [], last_watched: null, next_unwatched: null, catalog_available: true };
+                    film.next_episode = null;
+                    var tb = document.querySelector('.film-page-toolbar');
+                    if (tb) tb._mpSeriesToolbarState = null;
+                  }
+                  applyAuthToolbar({ film: film, toolbarOpts: filmState.toolbarOpts });
+                });
+              }
+              if (film.watched && !nextWatched) {
+                var msg = film.is_series
+                  ? 'Снять отметку «просмотрен»? Весь прогресс по сериям будет сброшен. Сериал останется в базе.'
+                  : 'Снять отметку «просмотрен»?';
+                filmPageConfirmDialog('Снять просмотрен?', msg, { confirmLabel: 'Да, снять' }).then(function (ok) {
+                  if (ok) doToggle();
+                });
+                return;
+              }
+              doToggle();
             });
           }
           var starsWrap = root.querySelector('[data-rating-stars="1"]');
