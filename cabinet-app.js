@@ -15532,11 +15532,8 @@
   }
 
   function renderProfileHub(root) {
-    root.innerHTML = '<div class="settings-loading">Загружаем профиль…</div>';
-    Promise.all([
-      api('/api/miniapp/profile').catch(() => null),
-      api('/api/friends').catch(() => null),
-    ]).then(([profileRes, friendsRes]) => {
+    root.innerHTML = pageLoadingHtml();
+    api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).then(function (profileRes) {
       const d = profileRes;
       const u = d && d.user;
       const sub = d && d.subscription;
@@ -15550,19 +15547,19 @@
         : 'Профиль';
       const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
       const hasPaid = !!(sub && sub.active);
-      const friendsCount = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
-      const friendsLabel = friendsCount === 1 ? 'друг' : (friendsCount >= 2 && friendsCount <= 4 ? 'друга' : 'друзей');
+      let friendsCount = 0;
+      let friendsLabel = 'друзей';
       const downloadHint = 'Android или iPhone';
       const avatarUrl = resolveProfileAvatarUrl(u);
-      const filmsInBase = totals.total != null ? totals.total : totals.films_in_base;
-      const watchedTotal = totals.watched != null ? totals.watched : totals.watched_count;
-      const seriesTotal = totals.series != null ? totals.series : totals.series_count;
+      const filmsInBase = totals && totals.total != null ? totals.total : totals && totals.films_in_base;
+      const watchedTotal = totals && totals.watched != null ? totals.watched : totals && totals.watched_count;
+      const seriesTotal = totals && totals.series != null ? totals.series : totals && totals.series_count;
       const statsHtml = totals ? (
         '<div class="profile-hub-stats">'
         + '<button type="button" class="profile-hub-stat" data-profile-section="unwatched"><b>' + escapeHtml(String(filmsInBase != null ? filmsInBase : '—')) + '</b><span>в базе</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="stats"><b>' + escapeHtml(String(watchedTotal != null ? watchedTotal : '—')) + '</b><span>смотрел</span></button>'
         + '<button type="button" class="profile-hub-stat" data-profile-section="series"><b>' + escapeHtml(String(seriesTotal != null ? seriesTotal : '—')) + '</b><span>сериалов</span></button>'
-        + '<button type="button" class="profile-hub-stat" data-profile-section="groups"><b>' + escapeHtml(String(friendsCount)) + '</b><span>' + escapeHtml(friendsLabel) + '</span></button>'
+        + '<button type="button" class="profile-hub-stat" data-profile-section="groups"><b id="profile-hub-friends-count">' + escapeHtml(String(friendsCount)) + '</b><span id="profile-hub-friends-label">' + escapeHtml(friendsLabel) + '</span></button>'
         + '</div>'
       ) : '';
 
@@ -15595,7 +15592,15 @@
       if (dl && window.MpAppDownload && typeof window.MpAppDownload.bindProfileDownloadButton === 'function') {
         window.MpAppDownload.bindProfileDownloadButton(dl);
       }
-    }).catch(() => {
+      api('/api/friends', { timeoutMs: 10000 }).catch(function () { return null; }).then(function (friendsRes) {
+        const cnt = (friendsRes && friendsRes.friends && friendsRes.friends.length) || 0;
+        const lbl = cnt === 1 ? 'друг' : (cnt >= 2 && cnt <= 4 ? 'друга' : 'друзей');
+        const cntEl = document.getElementById('profile-hub-friends-count');
+        const lblEl = document.getElementById('profile-hub-friends-label');
+        if (cntEl) cntEl.textContent = String(cnt);
+        if (lblEl) lblEl.textContent = lbl;
+      });
+    }).catch(function () {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить профиль. Попробуйте обновить страницу.</p>';
     });
   }
@@ -15795,9 +15800,9 @@
       return;
     }
 
-    root.innerHTML = '<div class="settings-loading">Загружаем…</div>';
+    root.innerHTML = pageLoadingHtml();
     Promise.all([
-      api('/api/miniapp/profile').catch(() => null),
+      api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).catch(() => null),
       api('/api/miniapp/settings').catch(() => null),
       api('/api/mobile/billing/tariffs').catch(() => null),
     ]).then(([profileRes, settingsRes, tariffsRes]) => {

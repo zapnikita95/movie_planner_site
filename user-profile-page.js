@@ -320,6 +320,70 @@
         else if (hooks.toast) hooks.toast('Просмотрено: ' + String(watched != null ? watched : '—'));
       });
     });
+    scheduleTastePoll(root, uid, hooks, data);
+  }
+
+  function patchTasteRow(root, uid, tasteMatch, tasteCommon, hooks) {
+    if (tasteMatch == null) return;
+    var existing = root.querySelector('[data-action="taste"]');
+    if (existing) {
+      var titleEl = existing.querySelector('.mp-list-title');
+      var hintEl = existing.querySelector('.mp-list-hint');
+      if (titleEl) titleEl.textContent = String(tasteMatch) + '% совпадение вкусов';
+      if (tasteCommon) {
+        if (hintEl) hintEl.textContent = String(tasteCommon) + ' общих оценок';
+        else {
+          var textSpan = existing.querySelector('.mp-list-text');
+          if (textSpan) {
+            var h = document.createElement('span');
+            h.className = 'mp-list-hint';
+            h.textContent = String(tasteCommon) + ' общих оценок';
+            textSpan.appendChild(h);
+          }
+        }
+      }
+      return;
+    }
+    var stats = root.querySelector('.profile-hub-stats');
+    if (!stats) return;
+    stats.insertAdjacentHTML('afterend',
+      '<button type="button" class="mp-list-item user-profile-taste-row" data-action="taste">' +
+        mpIcon('stats', { className: 'mp-list-icon' }) +
+        '<span class="mp-list-text"><span class="mp-list-title">' + escapeHtml(String(tasteMatch)) + '% совпадение вкусов</span>' +
+        (tasteCommon
+          ? '<span class="mp-list-hint">' + escapeHtml(String(tasteCommon)) + ' общих оценок</span>'
+          : '') +
+        '</span><span class="mp-list-arrow">›</span></button>'
+    );
+    var btn = root.querySelector('[data-action="taste"]');
+    if (btn && hooks.onTaste) {
+      btn.addEventListener('click', function () { hooks.onTaste(uid); });
+    }
+  }
+
+  function scheduleTastePoll(root, uid, hooks, data) {
+    var st = data.friendship_status;
+    var isFriend = st === 'accepted' || st === 'friends';
+    var isSelf = hooks.viewerUserId != null && Number(hooks.viewerUserId) === uid;
+    if (!isFriend || isSelf) return;
+    if (data.taste_match != null) return;
+
+    var attempts = 0;
+    function poll() {
+      if (attempts >= 5) return;
+      attempts += 1;
+      hooks.api('/api/friends/' + encodeURIComponent(String(uid)) + '/taste-summary', { timeoutMs: 8000 })
+        .then(function (r) {
+          if (!r || r.success === false) return;
+          if (r.taste_match != null) {
+            patchTasteRow(root, uid, r.taste_match, r.taste_common, hooks);
+            return;
+          }
+          if (r.refreshing && attempts < 5) setTimeout(poll, 3000);
+        })
+        .catch(function () {});
+    }
+    setTimeout(poll, data.taste_refreshing ? 1500 : 800);
   }
 
   function loadAchievementsList(root, uid, achievements, achTotal, hooks) {
