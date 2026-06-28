@@ -11861,11 +11861,13 @@ body.header-search-dropdown-open .header-search-dropdown {
   z-index: 422 !important;
   pointer-events: auto;
 }
-body.header-search-dropdown-open #cabinet-readonly,
-body.header-search-dropdown-open #site-search-root,
-body.header-search-dropdown-open #landing,
-body.header-search-dropdown-open #public-stats {
-  pointer-events: none;
+@media (max-width: 768px) {
+  body.header-search-dropdown-open #cabinet-readonly,
+  body.header-search-dropdown-open #site-search-root,
+  body.header-search-dropdown-open #landing,
+  body.header-search-dropdown-open #public-stats {
+    pointer-events: none;
+  }
 }
 .hs-result--recent {
   width: 100%;

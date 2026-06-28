@@ -449,6 +449,30 @@
     '</nav>';
   }
 
+  function resetStandaloneHeaderSearchState() {
+    try {
+      var dd = document.getElementById('header-search-dropdown');
+      if (dd) dd.classList.add('hidden');
+      document.body.classList.remove('header-search-dropdown-open', 'header-search-body-locked');
+      if (document.body) document.body.style.top = '';
+    } catch (_e) {}
+  }
+
+  function bindStandaloneNavLinks(navEl) {
+    if (!navEl) return;
+    navEl.querySelectorAll('a.cabinet-nav-btn[href]').forEach(function (a) {
+      if (a.dataset.mpStandaloneNavBound === '1') return;
+      a.dataset.mpStandaloneNavBound = '1';
+      a.addEventListener('click', function (e) {
+        var href = a.getAttribute('href') || '';
+        if (!href) return;
+        e.preventDefault();
+        resetStandaloneHeaderSearchState();
+        global.location.href = href;
+      });
+    });
+  }
+
   function setStandaloneHeaderAvatar(el, url, name, apiBase) {
     if (!el) return;
     var initial = String(name || 'П').trim().charAt(0).toUpperCase() || 'П';
@@ -476,6 +500,7 @@
     var navEl = navWrap.firstElementChild;
     if (navEl) {
       shell.insertBefore(navEl, main);
+      bindStandaloneNavLinks(navEl);
       try {
         if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
       } catch (_e) {}
@@ -871,7 +896,9 @@
     if (shell && main) {
       var navWrap = document.createElement('div');
       navWrap.innerHTML = standaloneNavHtml();
-      shell.insertBefore(navWrap.firstElementChild, main);
+      var navEl = navWrap.firstElementChild;
+      shell.insertBefore(navEl, main);
+      bindStandaloneNavLinks(navEl);
     }
     bindStandaloneSearch(apiBase, opts.loginNow);
     bindStandaloneVoiceMic(apiBase, opts.loginNow);
@@ -1995,7 +2022,12 @@
               applyAuthToolbar({ film: { kp_id: kpId }, toolbarOpts: { inBase: false, authenticated: true } });
               return;
             }
-            return fetchJsonAuth('/api/site/film/' + encodeURIComponent(String(lookup.film_id)), 25000)
+            // Сразу показываем "в базе", даже если детальная карточка подвиснет.
+            applyAuthToolbar({
+              film: { kp_id: kpId, film_id: lookup.film_id },
+              toolbarOpts: { inBase: true, authenticated: true },
+            });
+            return fetchJsonAuth('/api/site/film/' + encodeURIComponent(String(lookup.film_id)), 8500)
               .then(function (detail) {
                 if (!detail || !detail.success || !detail.film) {
                   if (hint) hint.textContent = 'Не удалось загрузить ваши данные по сериалу';
@@ -2020,6 +2052,23 @@
                     ratingLocked: f.is_virtual_room && f.can_rate_in_group === false,
                   },
                 });
+              })
+              .catch(function (_e) {
+                return fetchJsonAuth('/api/site/series/' + encodeURIComponent(String(lookup.film_id)) + '/progress', 5000)
+                  .then(function (progressData) {
+                  if (!progressData || !progressData.success) return;
+                  applyAuthToolbar({
+                    film: {
+                      kp_id: kpId,
+                      film_id: lookup.film_id,
+                      is_series: true,
+                      progress: progressData.progress || null,
+                      series_progress: progressData,
+                    },
+                    toolbarOpts: { inBase: true, authenticated: true },
+                  });
+                })
+                  .catch(function () {});
               });
           })
           .catch(function () {

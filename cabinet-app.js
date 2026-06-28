@@ -6085,7 +6085,28 @@
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
   const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
   let _homeDashboardCache = null;
+
+  function homeBrowserCacheKey() {
+    const active = String(getActiveChatId() || '').trim();
+    if (!active) return null;
+    return HOME_BROWSER_CACHE_KEY_PREFIX + active;
+  }
+
+  function readHomeDashboardBrowserCache() {
+    const key = homeBrowserCacheKey();
+    if (!key) return null;
+    const cached = readBrowserCache(key);
+    if (!cached || typeof cached !== 'object') return null;
+    return cached;
+  }
+
+  function writeHomeDashboardBrowserCache(payload) {
+    const key = homeBrowserCacheKey();
+    if (!key || !payload || typeof payload !== 'object') return;
+    writeBrowserCache(key, payload);
+  }
 
   function loadHomeSectionsOrder() {
     try {
@@ -7077,6 +7098,10 @@
     if (!hadBlocks) {
       _paintHomeDashboardBlocks();
     }
+    if (!_homeDashboardCache && !isGuestCabinetPreview()) {
+      const cachedDash = readHomeDashboardBrowserCache();
+      if (cachedDash) _homeDashboardCache = cachedDash;
+    }
     applyHomeEmojiVisibility();
 
     const dashboardPromise = isGuestCabinetPreview()
@@ -7104,12 +7129,14 @@
         }
         if (seedData && !isGuestCabinetPreview()) {
           _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
+          writeHomeDashboardBrowserCache(_homeDashboardCache);
           _homeTournamentPreview = seedData.tournament_preview || _homeTournamentPreview;
         }
         if (!isGuestCabinetPreview()) {
           dashboardPromise.then((dashData) => {
             if (!dashData || !dashData.success) return null;
             _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, dashData);
+            writeHomeDashboardBrowserCache(_homeDashboardCache);
             _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
             updateInboxFabBadge(dashData.inbox_unread || 0);
             try { updateCabinetHomeStats(dashData); } catch (_) {}
@@ -7126,6 +7153,7 @@
                 if (tp && tp.success && tp.tournament_preview) {
                   _homeDashboardCache.tournament_preview = tp.tournament_preview;
                   _homeTournamentPreview = tp.tournament_preview;
+                  writeHomeDashboardBrowserCache(_homeDashboardCache);
                 }
                 return _homeDashboardCache;
               })
@@ -7138,6 +7166,7 @@
       .then((dashResolved) => {
         if (dashResolved && !isGuestCabinetPreview()) {
           _homeDashboardCache = dashResolved;
+          writeHomeDashboardBrowserCache(_homeDashboardCache);
           _homeTournamentPreview = dashResolved.tournament_preview || _homeTournamentPreview;
           if (dashResolved.inbox_unread != null) updateInboxFabBadge(dashResolved.inbox_unread || 0);
           try { updateCabinetHomeStats(dashResolved); } catch (_) {}
