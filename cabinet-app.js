@@ -14083,6 +14083,9 @@
   }
 
   function bindHeaderSearch() {
+    if (window.__MP_HEADER_SEARCH_BOUND) return;
+    window.__MP_HEADER_SEARCH_BOUND = true;
+    window.__MP_CABINET_HEADER_SEARCH = true;
     const wrap = document.getElementById('header-search');
     const input = document.getElementById('header-search-input');
     const dd = document.getElementById('header-search-dropdown');
@@ -17544,7 +17547,7 @@
       const pParts = ymd.split('-').map(Number);
       const pUtc = Date.UTC(pParts[0], pParts[1] - 1, pParts[2]);
       const delta = Math.round((pUtc - tUtc) / 86400000);
-      return delta >= -21 && delta <= 120;
+      return delta >= -30 && delta <= 120;
     });
   }
 
