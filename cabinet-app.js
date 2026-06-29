@@ -7882,7 +7882,7 @@
     function syncVoiceLabel() {
       if (!voiceText || !voiceBtn) return;
       if (shVoiceUploading) {
-        voiceText.textContent = 'Обрабатываем…';
+        voiceText.textContent = '🎤 Записать голосом';
         voiceBtn.classList.remove('recording');
         voiceBtn.disabled = true;
         return;
@@ -7989,8 +7989,8 @@
         return;
       }
       setLoading(true);
-      if (status) status.textContent = 'Думаем над запросом… (3–10 сек)';
-      if (results) results.innerHTML = '<div class="shazam-loading-row"><span class="shazam-run-btn-spinner" aria-hidden="true"></span><span>Ищем фильмы по описанию…</span></div>';
+      if (status) status.textContent = '';
+      if (results) results.innerHTML = '';
       if (findMoreWrap) findMoreWrap.classList.add('hidden');
       api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: query }), timeoutMs: 90000 })
         .then((data) => {
@@ -8068,8 +8068,8 @@
           syncVoiceLabel();
           return;
         }
-        if (status) status.textContent = 'Распознаём голос…';
-        if (results) results.innerHTML = '<div class="shazam-loading-row"><span class="shazam-run-btn-spinner" aria-hidden="true"></span><span>Распознаём и ищем…</span></div>';
+        if (status) status.textContent = '';
+        if (results) results.innerHTML = '';
         syncFindButton();
         syncVoiceLabel();
         try {
@@ -8088,7 +8088,12 @@
             if (results) results.innerHTML = '';
           }
         } catch (err) {
-          if (status) status.textContent = 'Ошибка: ' + ((err && err.message) || 'не удалось распознать');
+          const msg = (err && err.message) || 'не удалось распознать';
+          if (status) {
+            status.textContent = msg === 'request_timeout'
+              ? 'Долго отвечает сервер — попробуйте ещё раз'
+              : 'Ошибка: ' + msg;
+          }
           if (results) results.innerHTML = '';
         } finally {
           shVoiceUploading = false;
