@@ -6983,7 +6983,7 @@
       const headExtra = tp && tp.period_label ? ('<div class="cabinet-hint">' + escapeHtml(tp.period_label) + ' · ' + escapeHtml(nom.label) + '</div>') : '';
       const rows = top.length
         ? top.map((item, i) => {
-            const score = Number(item[nom.field] || 0);
+            const score = tournamentNomScoreSite(item, nom);
             const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
             return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
               + '<span class="home-tourn-rank">' + medal(i, item) + '</span>'
@@ -7398,6 +7398,16 @@
     return true;
   }
 
+  function tournamentDefaultActiveNomIdSite(data) {
+    const noms = (data && data.nominations) || [];
+    const lb = (data && data.leaderboard) || [];
+    for (let i = 0; i < noms.length; i += 1) {
+      const nom = noms[i];
+      if (lb.some((x) => tournamentRowVisibleSite(x, nom))) return nom.id;
+    }
+    return (noms[0] && noms[0].id) || 'ratings_month';
+  }
+
   function tournamentNomIconSite(nom) {
     const map = {
       ratings_month: 'ratings',
@@ -7574,7 +7584,7 @@
             showError(data && data.error === 'timeout' ? 'Сервер не ответил вовремя — обновите страницу' : 'Не удалось загрузить таблицу');
             return;
           }
-          _siteTournamentActiveNomId = nomId || _siteTournamentActiveNomId || (data.nominations && data.nominations[0] && data.nominations[0].id) || 'ratings_month';
+          _siteTournamentActiveNomId = nomId || _siteTournamentActiveNomId || tournamentDefaultActiveNomIdSite(data);
           root.innerHTML = tournamentLivePageSiteHtml(data, { activeNomId: _siteTournamentActiveNomId });
           bindTournamentPeriodSwitchSite(root, (p) => renderPeriod(p));
           bindTournamentLiveTabsSite(root, data, _siteTournamentActiveNomId, (id) => renderPeriod('current', id));
