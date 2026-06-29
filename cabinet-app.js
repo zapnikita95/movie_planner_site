@@ -7992,11 +7992,15 @@
       if (status) status.textContent = '';
       if (results) results.innerHTML = '';
       if (findMoreWrap) findMoreWrap.classList.add('hidden');
-      api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: query }), timeoutMs: 90000 })
+      api('/api/miniapp/shazam', { method: 'POST', body: JSON.stringify({ query: query }), timeoutMs: 120000 })
         .then((data) => {
           if (!data || !data.success) {
             const err = (data && data.message) || (data && data.error) || 'Не удалось выполнить поиск';
-            if (status) status.textContent = typeof err === 'string' ? err : 'Ошибка';
+            if (status) {
+              status.textContent = err === 'timeout'
+                ? 'Долго отвечает сервер — попробуйте ещё раз'
+                : (typeof err === 'string' ? err : 'Ошибка');
+            }
             if (results) results.innerHTML = '';
             return;
           }
@@ -8005,8 +8009,13 @@
           renderShazamGrid(items);
           appendShazamHistory(query, items, source || 'text');
         })
-        .catch(() => {
-          if (status) status.textContent = 'Ошибка сети — попробуйте ещё раз';
+        .catch((err) => {
+          const msg = (err && err.message) || '';
+          if (status) {
+            status.textContent = msg === 'request_timeout'
+              ? 'Долго отвечает сервер — попробуйте ещё раз'
+              : 'Ошибка сети — попробуйте ещё раз';
+          }
           if (results) results.innerHTML = '';
         })
         .finally(() => setLoading(false));
