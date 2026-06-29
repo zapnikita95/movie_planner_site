@@ -7401,11 +7401,17 @@
   function tournamentDefaultActiveNomIdSite(data) {
     const noms = (data && data.nominations) || [];
     const lb = (data && data.leaderboard) || [];
+    let bestNom = (noms[0] && noms[0].id) || 'ratings_month';
+    let bestCount = -1;
     for (let i = 0; i < noms.length; i += 1) {
       const nom = noms[i];
-      if (lb.some((x) => tournamentRowVisibleSite(x, nom))) return nom.id;
+      const count = lb.filter((x) => tournamentRowVisibleSite(x, nom)).length;
+      if (count > bestCount) {
+        bestCount = count;
+        bestNom = nom.id;
+      }
     }
-    return (noms[0] && noms[0].id) || 'ratings_month';
+    return bestNom;
   }
 
   function tournamentNomIconSite(nom) {
