@@ -8855,11 +8855,14 @@ a.link-inline:hover {
 .shazam-examples { margin-top: 4px; margin-bottom: 8px; }
 .shazam-examples-label { margin-bottom: 6px; }
 .shazam-example-chips {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px 8px;
 }
 .shazam-example-chips .chip {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
   padding: 6px 10px;
   font-size: 12px;
   line-height: 1.25;
@@ -8872,9 +8875,6 @@ a.link-inline:hover {
   word-break: break-word;
 }
 .shazam-example-chips .chip:hover { background: rgba(255, 255, 255, 0.08); }
-@media (max-width: 420px) {
-  .shazam-example-chips { grid-template-columns: 1fr; }
-}
 .shazam-status {
   margin-top: 8px;
   font-size: 13px;
