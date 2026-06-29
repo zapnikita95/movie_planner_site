@@ -7924,7 +7924,7 @@
         const rating = it.rating != null && it.rating !== ''
           ? ' · ★ ' + Number(it.rating).toFixed(1) : '';
         const btnAdd = kp
-          ? '<div class="home-shazam-card-actions"><button type="button" class="btn btn-small btn-primary btn-full" data-action="add-film-pick" data-kp="' + escapeHtml(kp) + '">В базу</button></div>'
+          ? '<div class="home-shazam-card-actions"><button type="button" class="shazam-card-add-btn" data-action="add-film-pick" data-kp="' + escapeHtml(kp) + '">В базу</button></div>'
           : '';
         return '<div class="home-shazam-card">' + poster
           + '<div class="home-shazam-card-body">'
