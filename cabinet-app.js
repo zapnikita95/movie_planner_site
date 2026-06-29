@@ -2566,6 +2566,7 @@
     const lowRetryRoute =
       String(url || '').indexOf('/api/home/rails/') === 0 ||
       String(url || '').indexOf('/api/tournament/preview') === 0 ||
+      String(url || '').indexOf('/api/tournament/leaderboard') === 0 ||
       String(url || '').indexOf('/api/site/profiles') === 0;
     const max503Retries = lowRetryRoute ? 1 : 3;
     const attempt = (retried, retry503, me401Retries) => apiOnce(url, options, token).then((res) => {
@@ -6277,6 +6278,93 @@
   };
 
   let _homeTournamentPreview = null;
+  let _homeTournamentActiveNomId = 'ratings_month';
+
+  function homeTournamentLeaderboardData() {
+    return _siteTournamentLiveCache || null;
+  }
+
+  function renderHomeTournamentRowsHtml(data, activeNomId, limit) {
+    const noms = (data && data.nominations) || [];
+    const nom = noms.find((n) => n.id === activeNomId) || noms[0] || { id: 'ratings_month', unit: 'оценок', label: 'Оценки' };
+    const items = (data.leaderboard || []).filter((x) => tournamentRowVisibleSite(x, nom));
+    const sorted = items.slice().sort((a, b) => tournamentNomScoreSite(b, nom) - tournamentNomScoreSite(a, nom));
+    const top = sorted.slice(0, Math.max(1, limit || 5));
+    const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.');
+    if (!top.length) {
+      return '<p class="empty-hint home-tourn-empty">Пока пусто — оцените фильм, добавьте билет к сеансу или зайдите два дня подряд.</p>';
+    }
+    return top.map((item, i) => {
+      const score = tournamentNomScoreSite(item, nom);
+      const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
+      return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
+        + '<span class="home-tourn-rank">' + medal(i) + '</span>'
+        + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
+        + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  function renderHomeTournamentTabsHtml(data, activeNomId) {
+    const noms = (data && data.nominations) || [];
+    if (!noms.length) return '';
+    return '<div class="tourn-lb-tabs home-tourn-tabs" id="home-tourn-tabs" role="tablist">'
+      + noms.map((n) =>
+        '<button type="button" class="chip tourn-lb-tab' + (n.id === activeNomId ? ' active' : '') + '" data-home-tourn-nom="' + escapeHtml(n.id) + '" role="tab">'
+        + tournamentNomIconSite(n) + ' ' + escapeHtml(n.label || '') + '</button>',
+      ).join('')
+      + '</div>';
+  }
+
+  function bindHomeTournamentTabsOnce() {
+    const block = document.querySelector('.home-tourn-block');
+    if (!block || block._homeTournBound) return;
+    block._homeTournBound = true;
+    block.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-home-tourn-nom]');
+      if (!btn) return;
+      e.preventDefault();
+      const id = btn.getAttribute('data-home-tourn-nom') || 'ratings_month';
+      _homeTournamentActiveNomId = id;
+      const data = homeTournamentLeaderboardData();
+      const tabsEl = block.querySelector('#home-tourn-tabs');
+      const rowsEl = block.querySelector('#home-tourn-rows');
+      if (tabsEl) {
+        tabsEl.querySelectorAll('[data-home-tourn-nom]').forEach((b) => {
+          b.classList.toggle('active', b.getAttribute('data-home-tourn-nom') === id);
+        });
+      }
+      if (rowsEl && data) {
+        rowsEl.innerHTML = renderHomeTournamentRowsHtml(data, id, 5);
+      }
+    });
+  }
+
+  function paintHomeTournamentBlock() {
+    const root = document.getElementById('home-dashboard-root');
+    if (!root || isGuestCabinetPreview()) return;
+    if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return;
+    const data = homeTournamentLeaderboardData();
+    const activeId = _homeTournamentActiveNomId || 'ratings_month';
+    const noms = (data && data.nominations) || [];
+    const nom = noms.find((n) => n.id === activeId) || noms[0] || { label: 'Оценки' };
+    const periodLabel = (data && data.period && data.period.label) || (data && data.current_month_label) || '';
+    const headExtra = periodLabel ? ('<div class="cabinet-hint">' + escapeHtml(periodLabel) + '</div>') : '';
+    const tabsHtml = data ? renderHomeTournamentTabsHtml(data, activeId) : '';
+    const rowsHtml = data
+      ? renderHomeTournamentRowsHtml(data, activeId, 5)
+      : '<p class="empty-hint home-tourn-empty">Загрузка…</p>';
+    const html = '<section class="home-dash-block home-tourn-block" data-home-block="tournament">'
+      + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
+      + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
+      + tabsHtml
+      + '<div class="home-tourn-rows" id="home-tourn-rows">' + rowsHtml + '</div></section>';
+    const existing = root.querySelector('[data-home-block="tournament"]');
+    if (existing) existing.outerHTML = html;
+    else root.insertAdjacentHTML('beforeend', html);
+    bindHomeTournamentTabsOnce();
+  }
+
   let _cabinetMeCache = null;
 
   function filterGroupFilmSuggestions(actions, myUserId) {
@@ -6971,35 +7059,7 @@
         + '</div></section>';
     }
     if (blockId === 'tournament') {
-      if (isGuestCabinetPreview()) return '';
-      if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return '';
-      const tp = _homeTournamentPreview;
-      const nom = (tp && tp.nominations && tp.nominations[0]) || { field: 'ratings_month', unit: 'оценок', label: 'Оценки' };
-      const top = (tp && tp.top) || [];
-      const medal = (i, item) => {
-        const idx = item && item.rank != null ? Number(item.rank) - 1 : i;
-        return idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
-      };
-      const headExtra = tp && tp.period_label ? ('<div class="cabinet-hint">' + escapeHtml(tp.period_label) + ' · ' + escapeHtml(nom.label) + '</div>') : '';
-      const rows = top.length
-        ? top.map((item, i) => {
-            const score = tournamentNomScoreSite(item, nom);
-            const uidAttr = item.user_id != null ? (' data-user-profile="' + Number(item.user_id) + '"') : '';
-            return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
-              + '<span class="home-tourn-rank">' + medal(i, item) + '</span>'
-              + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-              + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
-              + '</button>';
-          }).join('')
-        : '<p class="empty-hint">Пока пусто — станьте первым участником месяца</p>';
-      const meInTop = top.some((item) => item.is_me);
-      const hint = tp && tp.participating === false && !meInTop
-        ? '<p class="cabinet-hint">Оцените фильм, добавьте билет к сеансу или зайдите два дня подряд — и вы попадёте в таблицу.</p>'
-        : '';
-      return '<section class="home-dash-block home-tourn-block" data-home-block="tournament">'
-        + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
-        + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
-        + '<div class="home-tourn-rows">' + rows + hint + '</div></section>';
+      return '';
     }
     return '';
   }
@@ -7148,13 +7208,12 @@
 
   function fetchLoggedHomeSeed() {
     if (!getToken()) return Promise.resolve({});
-    return api('/api/tournament/preview', { timeoutMs: 12000 })
-      .then((tp) => {
-        const out = {};
-        if (tp && tp.success && tp.tournament_preview) {
-          out.tournament_preview = tp.tournament_preview;
+    return fetchSiteTournamentLeaderboard()
+      .then((data) => {
+        if (data && data.success) {
+          return { tournament_leaderboard: data };
         }
-        return out;
+        return {};
       })
       .catch(() => ({}));
   }
@@ -7238,7 +7297,10 @@
         if (seedData && !isGuestCabinetPreview()) {
           _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
           writeHomeDashboardBrowserCache(_homeDashboardCache);
-          _homeTournamentPreview = seedData.tournament_preview || _homeTournamentPreview;
+          if (seedData.tournament_leaderboard) {
+            _siteTournamentLiveCache = seedData.tournament_leaderboard;
+            paintHomeTournamentBlock();
+          }
         }
         if (!isGuestCabinetPreview()) {
           dashboardPromise.then((dashData) => {
@@ -7252,21 +7314,10 @@
               setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
             }
             _patchHomeDashboardStaticBlocks();
+            paintHomeTournamentBlock();
             _scheduleMountHomeDashboardRails();
             return dashData;
           }).catch(() => {});
-          if (_homeDashboardCache && !_homeDashboardCache.tournament_preview) {
-            return api('/api/tournament/preview', { timeoutMs: 12000 })
-              .then((tp) => {
-                if (tp && tp.success && tp.tournament_preview) {
-                  _homeDashboardCache.tournament_preview = tp.tournament_preview;
-                  _homeTournamentPreview = tp.tournament_preview;
-                  writeHomeDashboardBrowserCache(_homeDashboardCache);
-                }
-                return _homeDashboardCache;
-              })
-              .catch(() => _homeDashboardCache);
-          }
           return _homeDashboardCache;
         }
         return _homeDashboardCache;
@@ -7276,6 +7327,9 @@
           _homeDashboardCache = dashResolved;
           writeHomeDashboardBrowserCache(_homeDashboardCache);
           _homeTournamentPreview = dashResolved.tournament_preview || _homeTournamentPreview;
+          if (dashResolved.tournament_leaderboard) {
+            _siteTournamentLiveCache = dashResolved.tournament_leaderboard;
+          }
           if (dashResolved.inbox_unread != null) updateInboxFabBadge(dashResolved.inbox_unread || 0);
           try { updateCabinetHomeStats(dashResolved); } catch (_) {}
           if (dashResolved.show_tournament_intro) {
@@ -7288,6 +7342,7 @@
         _homeDashInflight = null;
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
+        paintHomeTournamentBlock();
         _scheduleMountHomeDashboardRails();
       });
     return _homeDashInflight;
@@ -7312,6 +7367,7 @@
         root.insertAdjacentHTML('beforeend', html);
       }
     });
+    paintHomeTournamentBlock();
     renderHomeMoreLinks(loadHomeSectionsHidden());
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
   }
@@ -7343,7 +7399,7 @@
   function fetchSiteTournamentLeaderboard() {
     if (_siteTournamentLiveCache) return Promise.resolve(_siteTournamentLiveCache);
     if (_siteTournamentLiveInflight) return _siteTournamentLiveInflight;
-    _siteTournamentLiveInflight = api('/api/tournament/leaderboard', { timeoutMs: 45000 })
+    _siteTournamentLiveInflight = api('/api/tournament/leaderboard', { timeoutMs: 8000 })
       .then((data) => {
         if (data && data.success) _siteTournamentLiveCache = data;
         return data;
@@ -7399,19 +7455,7 @@
   }
 
   function tournamentDefaultActiveNomIdSite(data) {
-    const noms = (data && data.nominations) || [];
-    const lb = (data && data.leaderboard) || [];
-    let bestNom = (noms[0] && noms[0].id) || 'ratings_month';
-    let bestCount = -1;
-    for (let i = 0; i < noms.length; i += 1) {
-      const nom = noms[i];
-      const count = lb.filter((x) => tournamentRowVisibleSite(x, nom)).length;
-      if (count > bestCount) {
-        bestCount = count;
-        bestNom = nom.id;
-      }
-    }
-    return bestNom;
+    return 'ratings_month';
   }
 
   function tournamentNomIconSite(nom) {

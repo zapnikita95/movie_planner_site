@@ -13387,11 +13387,27 @@ body.film-standalone-page {
   gap: 8px;
   margin-top: 4px;
 }
+.home-tourn-block .home-tourn-rows {
+  gap: 4px;
+  margin-top: 0;
+}
+.home-tourn-block .home-tourn-tabs {
+  margin: 6px 0 4px;
+}
+.home-tourn-block .home-tourn-tabs .chip {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.home-tourn-block .home-tourn-empty {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+}
 .home-tourn-row,
 button.home-tourn-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -13404,6 +13420,12 @@ button.home-tourn-row {
   appearance: none;
   -webkit-appearance: none;
   transition: background 0.13s, border-color 0.13s;
+}
+.home-tourn-block .home-tourn-row,
+.home-tourn-block button.home-tourn-row {
+  padding: 6px 10px;
+  gap: 8px;
+  border-radius: 10px;
 }
 .home-tourn-row:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -13419,6 +13441,10 @@ button.home-tourn-row {
   font-size: 18px;
   line-height: 1;
 }
+.home-tourn-block .home-tourn-rank {
+  width: 22px;
+  font-size: 15px;
+}
 .home-tourn-name {
   flex: 1;
   min-width: 0;
@@ -13428,11 +13454,17 @@ button.home-tourn-row {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.home-tourn-block .home-tourn-name {
+  font-size: 13px;
+}
 .home-tourn-score {
   flex-shrink: 0;
   font-size: 14px;
   font-weight: 800;
   color: var(--accent, #ff2d7b);
+}
+.home-tourn-block .home-tourn-score {
+  font-size: 13px;
 }
 .tourn-lb-tabs {
   display: flex;
