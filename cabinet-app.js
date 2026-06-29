@@ -6278,7 +6278,19 @@
   };
 
   let _homeTournamentPreview = null;
-  let _homeTournamentActiveNomId = 'ratings_month';
+  let _homeTournamentActiveNomId = null;
+
+  function homeTournamentActiveNomId(data) {
+    const noms = (data && data.nominations) || [];
+    const current = _homeTournamentActiveNomId;
+    if (current) {
+      const nom = noms.find((n) => n.id === current);
+      if (nom && (data.leaderboard || []).some((x) => tournamentRowVisibleSite(x, nom))) {
+        return current;
+      }
+    }
+    return tournamentDefaultActiveNomIdSite(data);
+  }
 
   function homeTournamentLeaderboardData() {
     return _siteTournamentLiveCache || null;
@@ -6345,7 +6357,8 @@
     if (!root || isGuestCabinetPreview()) return;
     if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return;
     const data = homeTournamentLeaderboardData();
-    const activeId = _homeTournamentActiveNomId || 'ratings_month';
+    const activeId = homeTournamentActiveNomId(data);
+    _homeTournamentActiveNomId = activeId;
     const noms = (data && data.nominations) || [];
     const nom = noms.find((n) => n.id === activeId) || noms[0] || { label: 'Оценки' };
     const periodLabel = (data && data.period && data.period.label) || (data && data.current_month_label) || '';
@@ -7455,7 +7468,18 @@
   }
 
   function tournamentDefaultActiveNomIdSite(data) {
-    return 'ratings_month';
+    const noms = (data && data.nominations) || [];
+    const lb = (data && data.leaderboard) || [];
+    let bestId = (noms[0] && noms[0].id) || 'episodes_watched_month';
+    let bestCount = -1;
+    noms.forEach((nom) => {
+      const cnt = lb.filter((x) => tournamentRowVisibleSite(x, nom)).length;
+      if (cnt > bestCount) {
+        bestCount = cnt;
+        bestId = nom.id;
+      }
+    });
+    return bestId;
   }
 
   function tournamentNomIconSite(nom) {
