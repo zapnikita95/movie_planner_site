@@ -11463,6 +11463,14 @@ body.site-search-sheet-open { overflow: hidden; }
   max-width: 100%;
   padding: 2px 0;
 }
+.site-search-persons-grid--compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.site-search-persons-grid--compact .site-search-person-card {
+  min-width: 0;
+}
 .site-search-persons-more {
   display: contents;
 }
@@ -11470,19 +11478,32 @@ body.site-search-sheet-open { overflow: hidden; }
   display: none;
 }
 .site-search-persons-expand-btn {
-  grid-column: 1 / -1;
-  justify-self: center;
-  margin-top: 4px;
-  padding: 8px 18px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 999px;
-  border: 1px solid rgba(168, 85, 247, 0.45);
-  background: rgba(8, 6, 24, 0.55);
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  background: rgba(8, 6, 24, 0.45);
   color: rgba(244, 246, 255, 0.88);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: border-color 0.15s ease, background 0.15s ease;
+}
+.site-search-persons-grid--compact .site-search-persons-expand-btn {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.site-search-persons-grid--compact .site-search-persons-more:not(.hidden) {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 .site-search-persons-expand-btn:hover {
   border-color: rgba(255, 45, 123, 0.55);

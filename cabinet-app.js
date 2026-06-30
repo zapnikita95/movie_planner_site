@@ -13710,17 +13710,17 @@
     return '<div class="site-search-results-loading">' + siteSearchLoadingHtml() + '</div>';
   }
 
-  const SITE_SEARCH_PERSONS_VISIBLE = 4;
+  const SITE_SEARCH_PERSONS_VISIBLE = 1;
 
   function siteSearchPersonsBlockHtml(persons) {
     if (!persons || !persons.length) return '';
     const cards = persons.map(siteSearchPersonCardHtml);
     const hasMore = cards.length > SITE_SEARCH_PERSONS_VISIBLE;
-    let html = '<div class="site-search-persons-grid">';
+    let html = '<div class="site-search-persons-grid site-search-persons-grid--compact">';
     html += cards.slice(0, SITE_SEARCH_PERSONS_VISIBLE).join('');
     if (hasMore) {
       html += '<div class="site-search-persons-more hidden">' + cards.slice(SITE_SEARCH_PERSONS_VISIBLE).join('') + '</div>';
-      html += '<button type="button" class="site-search-persons-expand-btn" aria-expanded="false">Развернуть</button>';
+      html += '<button type="button" class="site-search-persons-expand-btn" aria-expanded="false" aria-label="Показать ещё людей"><span aria-hidden="true">▾</span></button>';
     }
     html += '</div>';
     return html;
@@ -13735,8 +13735,9 @@
     btn.addEventListener('click', () => {
       const open = more.classList.contains('hidden');
       more.classList.toggle('hidden', !open);
-      btn.textContent = open ? 'Свернуть' : 'Развернуть';
+      btn.innerHTML = open ? '<span aria-hidden="true">▴</span>' : '<span aria-hidden="true">▾</span>';
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.setAttribute('aria-label', open ? 'Свернуть людей' : 'Показать ещё людей');
     });
   }
 
