@@ -1954,12 +1954,20 @@
       return !!(secHome && !secHome.classList.contains('hidden'));
     }
 
+    function cabinetSectionNeedsListPrefetch() {
+      const sec = visibleCabinetSectionId && visibleCabinetSectionId()
+        || sectionFromPath(window.location.pathname)
+        || 'home';
+      return sec === 'unwatched' || sec === 'series' || sec === 'ratings';
+    }
+
     function deferCabinetLists() {
       if (filmKp) return;
       const onHome = isHomeSectionVisible();
+      const prefetchLists = cabinetSectionNeedsListPrefetch();
       setTimeout(function () {
         loadPlans();
-        if (!onHome) {
+        if (prefetchLists && !onHome) {
           loadUnwatched();
           loadSeries();
           loadRatings();
@@ -2013,7 +2021,7 @@
         loadRatings();
       } else {
         loadPlans();
-        if (!isHomeSectionVisible()) {
+        if (cabinetSectionNeedsListPrefetch() && !isHomeSectionVisible()) {
           loadUnwatched();
           loadSeries();
           loadRatings();
@@ -8614,6 +8622,8 @@
   }
 
   function loadUnwatched() {
+    const sec = document.getElementById('section-unwatched');
+    if (sec && sec.classList.contains('hidden')) return;
     api('/api/site/unwatched').then((data) => {
       unwatchedItems = Array.isArray(data && data.items) ? data.items : [];
       bindUnwatchedSortIcons();
@@ -8841,6 +8851,8 @@
   function loadSeries() {
     const ctx = seriesListContext();
     const el = document.getElementById(ctx.elId);
+    const sec = document.getElementById('section-series');
+    if (sec && sec.classList.contains('hidden') && ctx.elId === 'series-list') return;
     bindSeriesStatusFiltersOnce();
     if (!seriesItems.length && el) {
       el.innerHTML = '<p class="empty-hint">Загружаем…</p>';
@@ -8935,6 +8947,8 @@
   function loadRatings() {
     const el = document.getElementById('ratings-list');
     if (!el) return;
+    const sec = document.getElementById('section-ratings');
+    if (sec && sec.classList.contains('hidden')) return;
     ratingsMemberFilter = '';
     api('/api/site/ratings').then((data) => {
       ratingsItems = Array.isArray(data && data.items) ? data.items : [];
