@@ -13510,59 +13510,56 @@ button.home-tourn-row {
 /* Итоги турнира */
 body.in-cabinet #section-tournament .tournament-page-root,
 body.in-cabinet #section-tournament .tourn-page {
-  max-width: 560px;
+  max-width: min(1100px, 96vw);
   margin: 0 auto;
   text-align: center;
 }
-@media (min-width: 901px) {
-  body.in-cabinet #section-tournament .tournament-page-root,
-  body.in-cabinet #section-tournament .tourn-page {
-    max-width: min(1280px, 96vw);
-    text-align: center;
+.tourn-sections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+  text-align: left;
+}
+.tourn-nom-block {
+  width: 100%;
+  min-width: 0;
+}
+@media (min-width: 640px) {
+  .tourn-sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
   }
-  body.in-cabinet #section-tournament .tourn-sections {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 16px;
-    text-align: left;
-  }
-  body.in-cabinet #section-tournament .tourn-nom-block {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 220px;
-  }
-  body.in-cabinet #section-tournament .tourn-nom-title {
-    font-size: 15px;
-    margin-bottom: 10px;
-  }
-  body.in-cabinet #section-tournament .tourn-nom-list {
-    gap: 8px;
+}
+@media (min-width: 1100px) {
+  .tourn-sections {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
   }
   body.in-cabinet #section-tournament .tourn-podium-row {
-    padding: 14px 16px;
-    gap: 12px;
-    border-radius: 12px;
+    padding: 12px 14px;
+    gap: 10px;
   }
   body.in-cabinet #section-tournament .tourn-podium-rank {
-    width: 32px;
-    font-size: 20px;
+    width: 28px;
+    font-size: 18px;
   }
   body.in-cabinet #section-tournament .tourn-podium-avatar {
-    width: 52px;
-    height: 52px;
-    font-size: 20px;
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
   }
   body.in-cabinet #section-tournament .tourn-podium-name {
-    font-size: 15px;
-    line-height: 1.3;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    font-size: 14px;
+    line-height: 1.25;
   }
   body.in-cabinet #section-tournament .tourn-podium-score {
-    font-size: 13px;
+    font-size: 12px;
+  }
+  body.in-cabinet #section-tournament .tourn-nom-title {
+    font-size: 14px;
+    min-height: 2.8em;
+    margin-bottom: 10px;
   }
 }
 .tourn-page-kicker {
@@ -13593,13 +13590,12 @@ body.in-cabinet #section-tournament .tourn-page {
   margin-top: 22px;
   text-align: center;
 }
-.tourn-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  text-align: left;
-}
 .tourn-nom-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-family: 'Unbounded', sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -13660,12 +13656,6 @@ button.tourn-podium-row {
 }
 .tourn-podium-avatar-letter {
   line-height: 1;
-}
-.tourn-nom-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 .tourn-page-headbar {
   display: flex;
@@ -13746,9 +13736,8 @@ button.tourn-podium-row {
   font-size: 16px;
   font-weight: 700;
   line-height: 1.3;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 .tourn-podium-score {
   font-size: 14px;
