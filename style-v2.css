@@ -16836,6 +16836,31 @@ img.mp-poster-placeholder,
   flex-shrink: 0;
   background: #120818;
 }
+/* Полноразмерные постеры в grid «Скоро выходят» / «Рекомендации» — не сжимать до 48px */
+.series-hub-discovery-grid .card-poster,
+.series-hub-discovery-grid .film-card-v2-poster img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 0;
+  flex-shrink: initial;
+}
+.series-hub-grid-panel {
+  margin-top: 16px;
+}
+.series-hub-grid-panel .cards-list {
+  margin-top: 0;
+}
+.series-hub-library-panel .base-filter-toolbar {
+  margin-bottom: 18px;
+}
+.series-hub-library-panel #series-hub-list.cards-list {
+  margin-top: 4px;
+}
+.series-hub-discovery-card {
+  cursor: pointer;
+}
 .plans-filter-tab .mp-icon {
   margin-right: 4px;
   vertical-align: -2px;

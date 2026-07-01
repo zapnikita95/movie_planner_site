@@ -8689,10 +8689,12 @@
     else if (it.year) metaParts.push(String(it.year));
     metaParts.push('Сериал');
     const meta = metaParts.join(' · ');
-    return '<button type="button" class="site-search-card" data-site-search-kp="' + escapeHtml(kp) + '">'
-      + siteSearchPosterHtml(poster)
-      + '<span><span class="site-search-card-title">' + escapeHtml(it.title || '') + '</span>'
-      + '<span class="site-search-card-meta"><span>' + escapeHtml(meta) + '</span></span></span></button>';
+    return '<div class="card series-card film-card-v2 series-hub-discovery-card" data-kp-id="' + escapeHtml(kp) + '">'
+      + '<div class="film-card-v2-poster">' + filmCardPosterHtml(it.kp_id, poster) + '</div>'
+      + '<div class="film-card-v2-body">'
+      + '<div class="film-card-v2-title">' + escapeHtml(it.title || '') + '</div>'
+      + '<div class="film-card-v2-status">' + escapeHtml(meta) + '</div>'
+      + '</div></div>';
   }
 
   function bindSeriesHubTabsOnce() {
@@ -8742,7 +8744,7 @@
     const url = _seriesHubTab === 'upcoming'
       ? '/api/site/series/upcoming?offset=0&limit=60'
       : '/api/site/series/recommendations?offset=0&limit=60';
-    api(url).then((data) => {
+    api(url, { timeoutMs: _seriesHubTab === 'recommendations' ? 12000 : 32000 }).then((data) => {
       const items = (data && data.items) || [];
       if (!items.length) {
         gridPanel.innerHTML = '<p class="empty-hint">'
@@ -8752,10 +8754,10 @@
           + '</p>';
         return;
       }
-      gridPanel.innerHTML = '<div class="site-search-results">' + items.map(renderSeriesHubSearchCard).join('') + '</div>';
-      gridPanel.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const kp = btn.getAttribute('data-site-search-kp');
+      gridPanel.innerHTML = '<div class="cards-list series-hub-discovery-grid">' + items.map(renderSeriesHubSearchCard).join('') + '</div>';
+      gridPanel.querySelectorAll('.series-hub-discovery-card[data-kp-id]').forEach((card) => {
+        card.addEventListener('click', () => {
+          const kp = card.getAttribute('data-kp-id');
           if (kp) openFilmPageByKp(kp);
         });
       });
