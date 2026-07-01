@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260701landingedit1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260701landingedit1">
+    <link rel="preload" href="/style-v2.css?v=20260701landingwow1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260701landingwow1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -969,24 +969,30 @@
         </div>
       </section>
 
-      <section id="landing-features">
-        <h2 class="section-title gradient">Возможности</h2>
-        <div class="bento-grid">
-          <div class="bento-card" id="landing-feat-watchlist"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="watchlist"></span> Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
-          <div class="bento-card" id="landing-feat-plans"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="calendar"></span> Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
-          <div class="bento-card" id="landing-feat-series"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="series"></span> Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
-          <div class="bento-card" id="landing-feat-tickets"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="ticket"></span> Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
-          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="ratings"></span> Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
-          <div class="bento-card"><h3>📱 Приложение Android</h3><p>Планы, база, билеты и уведомления — актуальный APK на <a href="/download">странице загрузки</a></p></div>
-          <div class="bento-card"><h3>✨ Telegram Mini App</h3><p>Интерфейс в Telegram — из меню бота или по <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">кнопке запуска</a></p></div>
-          <div class="bento-card"><h3>🌐 Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb и Letterboxd, отслеживайте просмотр на стримингах</p></div>
-          <div class="bento-card"><h3><span class="mp-icon mp-icon--inline" data-mp-icon="series"></span> Запуск на Smart TV</h3><p>Подключите телевизор в боте или кабинете — в карточке фильма появится «На ТВ» с запуском в Кинопоиск HD, Okko или ivi по QR или с телефона</p></div>
+      <section id="landing-features" class="landing-features-section">
+        <h2 class="section-title landing-section-title--center">Возможности</h2>
+        <div class="landing-feats-carousel" aria-roledescription="carousel">
+          <button type="button" class="landing-feats-arrow landing-feats-arrow--prev" aria-label="Предыдущая возможность">‹</button>
+          <div class="landing-feats-viewport" id="landing-feats-viewport">
+            <div class="bento-grid landing-feats-track">
+          <div class="bento-card landing-feat-card" id="landing-feat-watchlist"><div class="landing-feat-icon mp-icon" data-mp-icon="watchlist" aria-hidden="true"></div><h3>Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-plans"><div class="landing-feat-icon mp-icon" data-mp-icon="calendar" aria-hidden="true"></div><h3>Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-series"><div class="landing-feat-icon mp-icon" data-mp-icon="series" aria-hidden="true"></div><h3>Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-tickets"><div class="landing-feat-icon mp-icon" data-mp-icon="ticket" aria-hidden="true"></div><h3>Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="ratings" aria-hidden="true"></div><h3>Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="phone" aria-hidden="true"></div><h3>Приложение Android</h3><p>Планы, база, билеты и уведомления — актуальный APK на <a href="/download">странице загрузки</a></p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="telegram" aria-hidden="true"></div><h3>Telegram Mini App</h3><p>Интерфейс в Telegram — из меню бота или по <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">кнопке запуска</a></p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="extension" aria-hidden="true"></div><h3>Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb и Letterboxd, отслеживайте просмотр на стримингах</p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="tv" aria-hidden="true"></div><h3>Запуск на Smart TV</h3><p>Подключите телевизор в боте или кабинете — в карточке фильма появится «На ТВ» с запуском в Кинопоиск HD, Okko или ivi</p></div>
+            </div>
+          </div>
+          <button type="button" class="landing-feats-arrow landing-feats-arrow--next" aria-label="Следующая возможность">›</button>
         </div>
       </section>
 
-      <section>
-        <h2 class="section-title">Как это работает</h2>
-        <div class="steps">
+      <section class="landing-how-section">
+        <h2 class="section-title landing-section-title--center">Как это работает</h2>
+        <div class="steps landing-steps landing-steps--center">
           <div class="step"><div class="step-number">1</div><h3>Добавление в базу</h3><p>Отправьте ссылку на Кинопоиск в бота или добавьте фильм через расширение</p></div>
           <div class="step"><div class="step-number">2</div><h3>Планирование</h3><p>Запланируйте просмотр дома или в кино — бот поймёт «суббота» или дату</p></div>
           <div class="step"><div class="step-number">3</div><h3>Напоминания</h3><p>Получайте напоминания, для билетов — за 10 минут до сеанса</p></div>
@@ -1009,22 +1015,23 @@
         </details>
       </section>
 
-      <section>
-        <h2 class="section-title gradient">Запустите фильм на телевизоре</h2>
-        <p style="text-align:center;max-width:760px;margin:0 auto 32px;color:var(--text-muted, #aaa);font-size:17px;line-height:1.55;">
-          Подключите телевизор в боте или в кабинете — в карточке каждого фильма появится <b>«📺 На ТВ»</b>
-          Подходит Android TV, Яндекс ТВ, Google TV, Samsung, LG и другие Smart TV с браузером
+      <section class="landing-tv-section">
+        <h2 class="section-title landing-section-title--center">Запустите фильм на телевизоре</h2>
+        <p class="landing-tv-lead">
+          Подключите телевизор в боте или в кабинете — в карточке каждого фильма появится
+          <span class="landing-tv-badge"><span class="mp-icon mp-icon--inline" data-mp-icon="tv" aria-hidden="true"></span> На ТВ</span>.
+          Подходит Android TV, Яндекс ТВ, Google TV, Samsung, LG и другие Smart TV с браузером.
         </p>
-        <div class="steps">
-          <div class="step"><div class="step-number">1</div><h3>Подключите ТВ</h3><p>Выберите модель телевизора в боте (меню 🔌) или в кабинете — займёт минуту</p></div>
-          <div class="step"><div class="step-number">2</div><h3>Нажмите «На ТВ»</h3><p>Откроется страница с Кинопоиск HD, Okko, ivi, Cast и QR-кодом для телефона</p></div>
-          <div class="step"><div class="step-number">3</div><h3>Быстрый запуск на Android TV</h3><p>Можно запустить фильм с компьютера или Raspberry Pi — один клик, без телефона</p></div>
+        <div class="steps landing-steps landing-steps--center">
+          <div class="step"><div class="landing-step-icon mp-icon" data-mp-icon="tv" aria-hidden="true"></div><div class="step-number">1</div><h3>Подключите ТВ</h3><p>Выберите модель телевизора в боте или в кабинете — займёт минуту</p></div>
+          <div class="step"><div class="landing-step-icon mp-icon" data-mp-icon="play" aria-hidden="true"></div><div class="step-number">2</div><h3>Нажмите «На ТВ»</h3><p>Откроется страница с Кинопоиск HD, Okko, ivi, Cast и QR-кодом для телефона</p></div>
+          <div class="step"><div class="landing-step-icon mp-icon" data-mp-icon="laptop" aria-hidden="true"></div><div class="step-number">3</div><h3>Быстрый запуск на Android TV</h3><p>Можно запустить фильм с компьютера или Raspberry Pi — один клик, без телефона</p></div>
         </div>
       </section>
 
       <section>
-        <div class="cta-section">
-          <h2 class="section-title gradient">Начните использовать прямо сейчас</h2>
+        <div class="cta-section landing-cta-section">
+          <h2 class="section-title landing-section-title--center">Начните использовать прямо сейчас</h2>
           <p class="cta-subtitle">Ведение базы и напоминания бесплатны. Расширенные функции — по подписке</p>
           <div class="hero-buttons">
             <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
@@ -2462,7 +2469,8 @@
           'onboarding-flow.js?v=20260628homefix2',
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260628noflicker1',
-          'landing-articles.js?v=20260627articles1'
+          'landing-articles.js?v=20260627articles1',
+          'landing-features-carousel.js?v=20260701landingwow1'
         ];
         var list;
         if (isSearch) {
