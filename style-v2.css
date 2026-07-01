@@ -18365,3 +18365,277 @@ img.mp-poster-placeholder,
     border-radius: 10px !important;
   }
 }
+
+/* —— Site cabinet: подбор «По эмоции» (/whattowatch) —— */
+.site-emotion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 920px;
+  margin: 12px auto 0;
+  min-height: min(560px, calc(100vh - 220px));
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 45, 123, 0.06) 0%, rgba(18, 18, 26, 0.98) 28%);
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+}
+.site-emotion-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+.site-emotion-toolbar-title {
+  flex: 1;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+.site-emotion-chat {
+  flex: 1;
+  min-height: 200px;
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.site-emotion-msg {
+  display: flex;
+  max-width: 88%;
+}
+.site-emotion-msg--assist { align-self: flex-start; }
+.site-emotion-msg--user { align-self: flex-end; }
+.site-emotion-bubble {
+  padding: 11px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.site-emotion-msg--assist .site-emotion-bubble {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom-left-radius: 4px;
+}
+.site-emotion-msg--user .site-emotion-bubble {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.75), rgba(255, 45, 123, 0.65));
+  border-bottom-right-radius: 4px;
+  color: #fff;
+}
+.site-emotion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.site-emotion-chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 90, 165, 0.35);
+  background: rgba(255, 90, 165, 0.1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.site-emotion-chip:hover {
+  background: rgba(255, 90, 165, 0.22);
+  transform: translateY(-1px);
+}
+.site-emotion-composer {
+  flex-shrink: 0;
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.28);
+}
+.site-emotion-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.site-emotion-hint {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.site-emotion-hint:hover {
+  border-color: rgba(255, 90, 165, 0.45);
+  background: rgba(255, 90, 165, 0.08);
+}
+.site-emotion-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.site-emotion-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+.site-emotion-input:focus {
+  border-color: rgba(255, 90, 165, 0.5);
+}
+.site-emotion-mic,
+.site-emotion-send {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  font-family: inherit;
+}
+.site-emotion-mic {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.site-emotion-mic.recording {
+  background: rgba(255, 45, 123, 0.35);
+  animation: mp-pulse 1.2s ease infinite;
+}
+.site-emotion-send {
+  background: linear-gradient(135deg, #7c3aed, #ff2d7b);
+  color: #fff;
+  font-weight: 800;
+}
+.site-emotion-results {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+}
+.site-emotion-film-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.site-emotion-film-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 90, 165, 0.35);
+}
+.site-emotion-film-poster {
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.site-emotion-film-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.site-emotion-film-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.site-emotion-film-meta,
+.site-emotion-desc {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.35;
+}
+.site-emotion-rating {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd166;
+  margin-bottom: 4px;
+}
+.site-emotion-reason {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: rgba(255, 184, 218, 0.92);
+  line-height: 1.35;
+}
+.site-emotion-footer {
+  padding: 0 16px 16px;
+}
+.site-emotion-footer .btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+@media (min-width: 901px) {
+  body.in-cabinet #section-whattowatch .site-emotion-panel {
+    min-height: 580px;
+    max-width: min(840px, 92vw);
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-chat {
+    max-height: min(56vh, 520px);
+    padding: 20px 24px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-bubble {
+    font-size: 15px;
+    padding: 12px 16px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-film-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    padding: 14px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-composer {
+    padding: 14px 20px 20px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-input {
+    font-size: 16px;
+    padding: 13px 16px;
+  }
+  body.in-cabinet #section-whattowatch .site-emotion-toolbar-title {
+    font-size: 18px;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row {
+    padding: 16px 18px;
+  }
+  body.in-cabinet #section-whattowatch .whattowatch-content {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.in-cabinet #section-whattowatch .site-emotion-results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

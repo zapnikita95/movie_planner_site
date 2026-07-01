@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подбор фильмов по вопросам — Movie Planner</title>
+    <meta name="description" content="Как работает подбор фильмов по вопросам в Movie Planner: жанры, годы, режиссёр, актёр — из вашей базы или со всего Кинопоиска. Переиграть с теми же критериями или поменять фильтры.">
+    <meta name="keywords" content="подборка фильма по вопросам, подборка фильмов на основе просмотренных, генератор фильмов по вкусам, приложение подбирающее фильмы под тебя, подбор фильмов по понравившимся фильмам, подборка фильмов по настройкам, что посмотреть вечером">
+    <link rel="canonical" href="https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html">
+    <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html">
+    <link rel="alternate" hreflang="x-default" href="https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="Подбор фильмов по вопросам — Movie Planner">
+    <meta property="og:description" content="Мастер подбора в Movie Planner: несколько вопросов — один фильм под ваши критерии. Из базы, с Кинопоиска или смешанно.">
+    <meta property="og:url" content="https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Movie Planner">
+    <link rel="stylesheet" href="../style-v2.css">
+    <link rel="icon" href="../images/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Подбор фильмов по вопросам в Movie Planner",
+      "description": "Мастер подбора: жанры, годы, режиссёр и актёр — из вашей базы или со всего Кинопоиска.",
+      "datePublished": "2026-07-02",
+      "dateModified": "2026-07-02",
+      "author": {"@type": "Person", "name": "Никита", "url": "https://t.me/zapnikita95"},
+      "publisher": {"@type": "Organization", "name": "Movie Planner", "url": "https://movie-planner.ru/"},
+      "mainEntityOfPage": "https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Как подобрать фильм по вопросам в Movie Planner?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Откройте раздел «Смотреть» в приложении или веб-кабинете, выберите «Пожелания» и пройдите мастер: откуда искать (ваша база, Кинопоиск или смешанно), жанры, годы, при желании — режиссёр и актёр. В конце сервис предложит фильм."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Можно ли получить другой фильм с теми же критериями?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Да. После результата нажмите «Ещё» — подберётся другой фильм с теми же фильтрами. Кнопка «Изменить фильтры» вернёт вас к вопросам, чтобы поменять жанры, годы или людей."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Чем подбор по вопросам отличается от «По эмоции»?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "«Пожелания» — это структурированный мастер с жанрами, годами и людьми. «По эмоции» — диалог с ИИ: вы описываете настроение своими словами, нейросеть задаёт уточняющие вопросы и предлагает 3–5 фильмов."
+          }
+        }
+      ]
+    }
+    </script>
+</head>
+<body>
+  <div class="content-wrapper subpage-wrapper">
+    <header class="site-header-subpage">
+      <div class="header-content">
+        <a href="/" class="logo"><img src="../images/icon48.png" alt="Movie Planner">Movie Planner</a>
+        <div class="site-header-subpage-actions">
+          <a href="/?open_login=1" class="btn btn-small btn-secondary">Войти</a>
+          <a href="/" class="btn btn-small btn-primary">Открыть кабинет</a>
+        </div>
+      </div>
+    </header>
+    <main class="container subpage-main">
+        <section class="article-content">
+            <h1>Подбор фильмов по вопросам</h1>
+            <p class="date">2 июля 2026</p>
+
+            <p>«Подборка фильма по вопросам», «генератор по вкусам», «что посмотреть из того, что ещё не видел» — когда не хочется листать Кинопоиск часами, в <strong>Movie Planner</strong> есть режим <strong>«Пожелания»</strong> в разделе <a href="/whattowatch">«Смотреть»</a>. Это короткий мастер: вы отвечаете на несколько шагов — и получаете один конкретный фильм или сериал под ваши критерии.</p>
+
+            <h2>Откуда подбирать</h2>
+            <p>В начале мастера вы выбираете источник:</p>
+            <ul>
+                <li><strong>Из вашей библиотеки</strong> — только то, что уже добавили в базу и ещё не отметили как просмотренное.</li>
+                <li><strong>С Кинопоиска</strong> — из всей базы KP: удобно, когда ищете новинку вне вашего watchlist.</li>
+                <li><strong>Смешанно</strong> — сначала непросмотренное из вашей базы, если не нашлось — фильм с Кинопоиска.</li>
+            </ul>
+            <p>На вкладках «Непросмотренные» и «Со всего мира» в разделе «Смотреть» мастер открывается сразу с нужным источником — не нужно выбирать его повторно.</p>
+
+            <h2>Какие вопросы задаёт мастер</h2>
+            <ol>
+                <li><strong>Жанры</strong> — можно выбрать несколько или пропустить.</li>
+                <li><strong>Годы выпуска</strong> — пресеты вроде «2020+», «2010–2019» или диапазон вашей базы.</li>
+                <li><strong>Режиссёр и актёр</strong> — если ищете в своей библиотеке, список строится из людей, которые уже есть в ваших фильмах.</li>
+                <li><strong>Рейтинг Кинопоиска</strong> — при поиске по всему KP (например, «не ниже 7+»).</li>
+                <li><strong>Фильм или сериал</strong> — или «без разницы».</li>
+            </ol>
+            <p>После последнего шага Movie Planner подбирает один вариант с постером, описанием и кнопками действий.</p>
+
+            <h2>Что делать с результатом</h2>
+            <ul>
+                <li><strong>На страницу фильма</strong> — полное описание, cast, трейлеры, добавление в базу.</li>
+                <li><strong>Добавить в базу</strong> или <strong>Запланировать</strong> — если фильм уже в вашем watchlist.</li>
+                <li><strong>Ещё</strong> — тот же набор критериев, другой фильм. Удобно, когда первый вариант не зашёл, а настроение то же.</li>
+                <li><strong>Изменить фильтры</strong> — вернуться к вопросам и поменять жанры, годы или людей.</li>
+            </ul>
+
+            <h2>Рекомендации на основе просмотренного</h2>
+            <p>Если вы отмечаете просмотренное и ставите оценки, Movie Planner учитывает вкус в других режимах того же раздела «Смотреть»:</p>
+            <ul>
+                <li><strong>По оценкам в базе</strong> — похожие на ваши высокие оценки, ещё не добавленные в watchlist.</li>
+                <li><strong>Рекомендации премьер</strong> — новинки в прокате под ваш профиль.</li>
+                <li><strong>Случайный из непросмотренных</strong> — когда хочется сюрприза, но только из своей очереди.</li>
+            </ul>
+            <p>Чем полнее база просмотренного, тем точнее подбор. Как быстро её заполнить — в статье <a href="kak-vesti-spisok-prosmotrennyh-filmov.html">как вести список просмотренных фильмов</a>.</p>
+
+            <h2>Подбор по эмоции — другой сценарий</h2>
+            <p>Рядом с мастером «Пожелания» в том же разделе «Смотреть» есть режим <strong><a href="podbor-filmov-po-emocii.html">«По эмоции»</a></strong>. Здесь не нужно выбирать жанры кнопками — вы пишете или говорите, <em>что хотите почувствовать</em>: «хочу расслабиться», «нужна лёгкая комедия для двоих», «что-то мрачное, но не ужас».</p>
+            <p>Искусственный интеллект задаёт несколько уточняющих вопросов в формате диалога и в конце предлагает 3–5 фильмов с кратким объяснением, почему они подходят. Можно начать заново с другим настроением или попросить ещё варианты в том же диалоге.</p>
+            <p>«Пожелания» — когда знаете параметры. «По эмоции» — когда знаете только настроение.</p>
+
+            <h2>Где попробовать</h2>
+            <p>Раздел <a href="/whattowatch">«Смотреть»</a> в <a href="/?open_login=1">веб-кабинете</a>, в <a href="prilozhenie-iphone-ios-android.html">мобильном приложении</a> и в Telegram Mini App. Один аккаунт — одна база и те же рекомендации на всех устройствах.</p>
+
+            <div class="article-cta">
+                <p class="article-cta-lead">Откройте «Смотреть» и пройдите мастер</p>
+                <div class="footer-store-row">
+                    <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/app-store-badge.svg" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+                    </a>
+                    <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+                    </a>
+                </div>
+                <div class="article-cta-secondary">
+                    <a href="/whattowatch">Раздел «Смотреть»</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/?open_login=1">Войти в кабинет</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/">На главную</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="article-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-store-row">
+                        <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/app-store-badge.svg" alt="App Store" width="110" height="36" loading="lazy">
+                        </a>
+                        <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/google-play-badge.svg" alt="Google Play" width="120" height="36" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-info">
+                    <h3>Контакты</h3>
+                    <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="footer-year"></span> Movie Planner · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия</a></p>
+            </div>
+        </div>
+    </footer>
+  </div>
+  <script src="../public-film-login.js?v=20260602tgsafari1"></script>
+  <script src="../film-page.js?v=20260602sitefix5"></script>
+  <script src="../articles/article-chrome.js?v=20260621"></script>
+</body>
+</html>

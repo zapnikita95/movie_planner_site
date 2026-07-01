@@ -7,7 +7,7 @@
     <!--MP_ROUTE_META-->
     <title>Movie Planner — приложение-трекер для фильмов и сериалов, список кино</title>
     <meta name="description" content="Movie Planner — приложение, где можно составить список кино и отслеживать просмотренное: трекер фильмов и сериалов, watchlist, оценки, планы. iOS, Android, веб-кабинет movie-planner.ru.">
-    <meta name="keywords" content="приложение трекер для фильмов, приложение где можно составить список кино, трекер фильмов и сериалов, трекер просмотренных фильмов и сериалов, приложение для списка фильмов, watchlist кино, watch list, вотчлист, to watch list, список фильмов, составить список кино, movie planner, movie-planner.ru, планер фильмов, отметить просмотренные фильмы, отмечать просмотренные фильмы, общий список фильмов с друзьями, портал для составления списков фильмов, трекер сериалов, серики, сирики">
+    <meta name="keywords" content="приложение трекер для фильмов, приложение где можно составить список кино, трекер фильмов и сериалов, трекер просмотренных фильмов и сериалов, приложение для списка фильмов, приложение для отметки фильмов которые посмотрел, приложение для списка просмотренных фильмов, приложения для отмечания фильмов, приложение где можно отмечать просмотренные фильмы и сериалы, подборка фильмов на основе просмотренных, подборка фильма по вопросам, генератор фильмов по вкусам, watchlist кино, watch list, вотчлист, to watch list, список фильмов, составить список кино, movie planner, movie-planner.ru, планер фильмов, отметить просмотренные фильмы, отмечать просмотренные фильмы, общий список фильмов с друзьями, портал для составления списков фильмов, трекер сериалов">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260701searchcast1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260701searchcast1">
+    <link rel="preload" href="/style-v2.css?v=20260702wtwemotion1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702wtwemotion1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1060,11 +1060,15 @@
                 </div>
                 <div class="faq-item">
                     <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
-                    <div class="faq-body">В Movie Planner — приложении и на <a href="/?open_login=1">movie-planner.ru</a>. Добавьте фильм в базу, после просмотра нажмите «Просмотрено» и поставьте оценку. История и статистика сохраняются в личном профиле. Подробнее — в <a href="/articles/kak-vesti-watchlist.html">гайде по watchlist</a>.</div>
+                    <div class="faq-body">В Movie Planner — <a href="/articles/prilozhenie-treker-dlya-filmov.html">приложение для отметки фильмов</a> и сериалов на <a href="/?open_login=1">movie-planner.ru</a> и в iOS/Android. После просмотра нажмите «Просмотрено» и поставьте оценку. Подробнее — <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">список просмотренных</a>.</div>
                 </div>
                 <div class="faq-item">
                     <div class="faq-head">Где можно вести совместный список фильмов?</div>
                     <div class="faq-body">Создайте группу в кабинете («Друзья и группы») — для пары, друзей, киноклуба или подписчиков. Общая база непросмотренных, предложения фильмов и планы «смотрим вместе». <a href="/articles/sovmetnyj-spisok-filmov-gruppy.html">Подробный гайд по группам</a>.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-head">Как подобрать фильм по вопросам или настроению?</div>
+                    <div class="faq-body">В разделе <a href="/whattowatch">«Смотреть»</a>: мастер <a href="/articles/podbor-filmov-po-voprosam.html">«Пожелания»</a> (жанры, годы, режиссёр) или <a href="/articles/podbor-filmov-po-emocii.html">«По эмоции»</a> — диалог с ИИ. Рекомендации точнее, если вы отмечаете просмотренное и оценки.</div>
                 </div>
                 <div class="faq-item">
                     <div class="faq-head">Как настроить уведомления о новых сериях в Telegram?</div>
@@ -1108,6 +1112,11 @@
       <section class="landing-articles-section" id="articles-guides">
         <h2 class="section-title">Статьи и гайды</h2>
         <div class="articles-grid landing-articles-grid" id="landing-articles-grid">
+                <a href="/articles/podbor-filmov-po-voprosam.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="target"></span>
+                    <span class="article-card-title">Подбор фильмов по вопросам</span>
+                    <span class="article-card-desc">Мастер «Пожелания» и рекомендации по просмотренному</span>
+                </a>
                 <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
                     <span class="article-card-title">Список просмотренных фильмов</span>
@@ -2483,7 +2492,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260701searchcast1'
+            'cabinet-app.js?v=20260702wtwemotion1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2494,9 +2503,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260701searchcast1');
+          list.push('cabinet-app.js?v=20260702wtwemotion1');
         } else {
-          list.push('cabinet-app.js?v=20260701searchcast1');
+          list.push('cabinet-app.js?v=20260702wtwemotion1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

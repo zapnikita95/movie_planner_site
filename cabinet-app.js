@@ -14672,6 +14672,7 @@
       icon: 'watchlist',
       label: 'Непросмотренные',
       modes: [
+        { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
         { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из ваших непросмотренных' },
         { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
       ],
@@ -14681,6 +14682,7 @@
       icon: 'globe',
       label: 'Со всего мира',
       modes: [
+        { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
         { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из всех фильмов или свежие премьеры' },
         { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
         { id: 'similar_my_top', kind: 'random', icon: 'ratings', title: 'По оценкам в базе', hint: 'Похожие на ваши высокие оценки, ещё не в базе' },
@@ -14883,6 +14885,10 @@
       openSiteWtwWizardOverlay(m.wizardScope || null);
       return;
     }
+    if (m.kind === 'emotion') {
+      mountSiteEmotionPanel();
+      return;
+    }
     if (m.kind === 'premieres_reco') {
       runSitePremiereReco();
     }
@@ -14909,9 +14915,340 @@
     });
   }
 
+  const SITE_EMOTION_HINTS = [
+    { text: 'Хочу расслабиться', send: 'Хочу расслабиться после работы' },
+    { text: 'Нужна комедия', send: 'Подбери комедию под моё настроение' },
+    { text: 'Что посмотреть?', send: 'Что посмотреть по моему настроению?' },
+  ];
+  let siteEmotionUnmount = null;
+
+  function mountSiteEmotionPanel() {
+    const root = document.getElementById('whattowatch-result');
+    const modesEl = document.getElementById('site-wtw-modes');
+    const scopeEl = document.querySelector('#whattowatch-content .wtw-scope-toggle');
+    if (!root) return;
+    if (typeof siteEmotionUnmount === 'function') {
+      try { siteEmotionUnmount(); } catch (_) {}
+      siteEmotionUnmount = null;
+    }
+    if (modesEl) modesEl.classList.add('hidden');
+    if (scopeEl) scopeEl.classList.add('hidden');
+    root.classList.remove('hidden');
+
+    const INTRO = 'Расскажите, что хотите почувствовать от просмотра — своими словами или голосом.';
+    const state = {
+      answers: [],
+      messages: [],
+      question: null,
+      films: null,
+      loading: false,
+      phase: 'intro',
+      opener: '',
+      shownKpIds: [],
+      lastInputSource: 'text',
+    };
+    let voiceSess = null;
+    let micStream = null;
+
+    function emotionPayload(extra) {
+      const p = Object.assign({}, extra || {});
+      if (state.shownKpIds.length) p.exclude_kp_ids = state.shownKpIds.slice(0, 40);
+      return p;
+    }
+
+    function rememberShown(films) {
+      (films || []).forEach((f) => {
+        const id = f && f.kp_id ? Number(f.kp_id) : 0;
+        if (id > 0 && state.shownKpIds.indexOf(id) < 0) state.shownKpIds.push(id);
+      });
+    }
+
+    function renderFilmCard(f) {
+      if (!f) return '';
+      const poster = cleanPosterUrl(f.poster) || posterUrl(f.kp_id);
+      const meta = [f.year ? String(f.year) : '', f.is_series ? 'сериал' : 'фильм'].filter(Boolean).join(' · ');
+      const rating = (f.rating != null && !isNaN(Number(f.rating)))
+        ? '<span class="site-emotion-rating">★ ' + escapeHtml(Number(f.rating).toFixed(1)) + '</span>' : '';
+      const reason = (f.reason || '').trim();
+      const reasonHtml = reason ? '<p class="site-emotion-reason">' + escapeHtml(reason) + '</p>' : '';
+      const desc = String(f.description || '').trim();
+      const descHtml = desc ? '<p class="site-emotion-desc">' + escapeHtml(desc.slice(0, 160)) + (desc.length > 160 ? '…' : '') + '</p>' : '';
+      return '<article class="site-emotion-film-card" data-kp="' + escapeHtml(String(f.kp_id || '')) + '" data-fid="' + escapeHtml(String(f.film_id || '')) + '" tabindex="0" role="button">'
+        + '<div class="site-emotion-film-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span class="site-pick-poster-ph">🎬</span>') + '</div>'
+        + '<div class="site-emotion-film-body"><h4 class="site-emotion-film-title">' + escapeHtml(f.title || '—') + '</h4>'
+        + (meta ? '<p class="site-emotion-film-meta">' + escapeHtml(meta) + '</p>' : '') + rating + reasonHtml + descHtml + '</div></article>';
+    }
+
+    function wireFilmCards() {
+      root.querySelectorAll('.site-emotion-film-card').forEach((card) => {
+        const open = () => {
+          const fid = card.getAttribute('data-fid');
+          const kp = card.getAttribute('data-kp');
+          if (fid) openFilmPage(Number(fid), { kpId: kp ? Number(kp) : undefined });
+          else if (kp) openFilmPageByKp(String(kp));
+        };
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
+      });
+    }
+
+    function renderHints() {
+      if (state.phase !== 'intro' && state.phase !== 'question') return '';
+      if (state.loading || state.messages.some((m) => m.role === 'user')) return '';
+      return '<div class="site-emotion-hints">' + SITE_EMOTION_HINTS.map((h, i) =>
+        '<button type="button" class="site-emotion-hint" data-hint="' + i + '">' + escapeHtml(h.text) + '</button>',
+      ).join('') + '</div>';
+    }
+
+    function renderComposer() {
+      if (state.phase !== 'intro' && state.phase !== 'question') return '';
+      const ph = state.phase === 'intro' ? 'хочу расслабиться после работы…' : 'Или напишите своими словами…';
+      return '<div class="site-emotion-composer">'
+        + renderHints()
+        + '<div class="site-emotion-input-row">'
+        + '<input type="text" class="site-emotion-input" id="site-emotion-input" placeholder="' + escapeHtml(ph) + '" autocomplete="off" />'
+        + '<button type="button" class="site-emotion-mic" id="site-emotion-mic" aria-label="Голосом">🎤</button>'
+        + '<button type="button" class="site-emotion-send" id="site-emotion-send" aria-label="Отправить">↑</button>'
+        + '</div></div>';
+    }
+
+    function paint() {
+      const introBubble = state.phase === 'intro' && !state.messages.length
+        ? '<div class="site-emotion-msg site-emotion-msg--assist"><div class="site-emotion-bubble">' + escapeHtml(INTRO) + '</div></div>' : '';
+      const msgs = state.messages.map((m) => {
+        const cls = m.role === 'user' ? 'site-emotion-msg--user' : 'site-emotion-msg--assist';
+        return '<div class="site-emotion-msg ' + cls + '"><div class="site-emotion-bubble">' + escapeHtml(m.text) + '</div></div>';
+      }).join('');
+      const typing = state.loading ? '<div class="site-emotion-msg site-emotion-msg--assist"><div class="site-emotion-bubble site-emotion-typing"><span class="site-pick-loading">…</span></div></div>' : '';
+      let chips = '';
+      if (state.question && state.question.options && state.question.options.length) {
+        chips = '<div class="site-emotion-chips">' + state.question.options.map((opt) =>
+          '<button type="button" class="site-emotion-chip" data-opt="' + escapeHtml(opt.label || '') + '">' + escapeHtml(opt.label || '') + '</button>',
+        ).join('') + '</div>';
+      }
+      let results = '';
+      if (state.phase === 'results' && state.films && state.films.length) {
+        results = '<div class="site-emotion-results">' + state.films.map(renderFilmCard).join('') + '</div>';
+      } else if (state.phase === 'empty') {
+        results = '<div class="site-pick-empty">Не нашли подходящих фильмов. Попробуйте другие ответы.</div>';
+      }
+      const footer = (state.phase === 'results' || state.phase === 'empty')
+        ? '<div class="site-emotion-footer"><button type="button" class="btn btn-primary" id="site-emotion-restart">Начать заново</button></div>' : '';
+
+      root.innerHTML = '<div class="site-emotion-panel">'
+        + '<div class="site-emotion-toolbar">'
+        + '<button type="button" class="btn btn-secondary btn-small" id="site-emotion-back">← Режимы</button>'
+        + '<span class="site-emotion-toolbar-title">По эмоции ✨</span>'
+        + '</div>'
+        + '<div class="site-emotion-chat" id="site-emotion-chat">' + introBubble + msgs + typing + chips + results + '</div>'
+        + renderComposer() + footer + '</div>';
+
+      const chatEl = root.querySelector('#site-emotion-chat');
+      if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+      root.querySelector('#site-emotion-back')?.addEventListener('click', unmount);
+      root.querySelector('#site-emotion-restart')?.addEventListener('click', () => reset(true));
+      root.querySelectorAll('.site-emotion-chip').forEach((btn) => {
+        btn.addEventListener('click', () => { void submitAnswer(btn.getAttribute('data-opt') || btn.textContent || ''); });
+      });
+      root.querySelectorAll('.site-emotion-hint').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const h = SITE_EMOTION_HINTS[Number(btn.getAttribute('data-hint'))];
+          if (!h) return;
+          if (state.phase === 'intro') void submitOpener(h.send);
+          else void submitAnswer(h.send);
+        });
+      });
+      wireFilmCards();
+
+      const inputEl = root.querySelector('#site-emotion-input');
+      const sendBtn = root.querySelector('#site-emotion-send');
+      const micBtn = root.querySelector('#site-emotion-mic');
+      const submitCurrent = () => {
+        const t = (inputEl && inputEl.value || '').trim();
+        if (!t) return;
+        state.lastInputSource = 'text';
+        if (state.phase === 'intro') void submitOpener(t);
+        else void submitAnswer(t);
+      };
+      if (sendBtn) sendBtn.addEventListener('click', submitCurrent);
+      if (inputEl) {
+        inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitCurrent(); } });
+        if (state.phase === 'intro') try { inputEl.focus(); } catch (_) {}
+      }
+      if (micBtn) {
+        micBtn.addEventListener('click', () => { void toggleVoice(micBtn, inputEl, (text) => {
+          if (inputEl) inputEl.value = text;
+          state.lastInputSource = 'voice';
+          if (state.phase === 'intro') void submitOpener(text);
+          else void submitAnswer(text);
+        }); });
+      }
+    }
+
+    function reset(clearShown) {
+      state.answers = [];
+      state.messages = [];
+      state.question = null;
+      state.films = null;
+      state.opener = '';
+      state.loading = false;
+      state.phase = 'intro';
+      if (clearShown) state.shownKpIds = [];
+      state.lastInputSource = 'text';
+      paint();
+    }
+
+    async function submitOpener(text) {
+      if (state.loading || state.phase !== 'intro') return;
+      const t = (text || '').trim();
+      if (!t) return;
+      state.opener = t;
+      state.messages.push({ role: 'user', text: t });
+      state.loading = true;
+      paint();
+      try {
+        const data = await api('/api/miniapp/emotion', { method: 'POST', body: JSON.stringify(emotionPayload({ action: 'start', opener: t })) });
+        state.loading = false;
+        if (!data || !data.success) throw new Error('start failed');
+        if (data.assistant_text) state.messages.push({ role: 'assistant', text: data.assistant_text });
+        applyEmotionResponse(data);
+      } catch (_) {
+        state.loading = false;
+        state.phase = 'empty';
+        state.messages.push({ role: 'assistant', text: 'Не удалось начать подбор. Проверьте соединение.' });
+      }
+      paint();
+    }
+
+    async function submitAnswer(text) {
+      if (state.loading || !state.question) return;
+      const t = (text || '').trim();
+      if (!t) return;
+      state.messages.push({ role: 'user', text: t });
+      state.answers.push({ question_id: state.question.id, question_text: state.question.text, answer: t });
+      state.question = null;
+      state.loading = true;
+      paint();
+      try {
+        const data = await api('/api/miniapp/emotion', { method: 'POST', body: JSON.stringify(emotionPayload({
+          action: 'answer',
+          answers: state.answers,
+          opener: state.opener || undefined,
+        })) });
+        state.loading = false;
+        if (!data || !data.success) throw new Error((data && data.error) || 'error');
+        if (data.assistant_text) state.messages.push({ role: 'assistant', text: data.assistant_text });
+        applyEmotionResponse(data);
+      } catch (_) {
+        state.loading = false;
+        state.phase = 'empty';
+        state.messages.push({ role: 'assistant', text: 'Что-то пошло не так. Попробуйте ещё раз.' });
+      }
+      paint();
+    }
+
+    function applyEmotionResponse(data) {
+      if (data.phase === 'results') {
+        state.phase = 'results';
+        state.films = data.films || [];
+        rememberShown(state.films);
+        state.question = null;
+      } else if (data.phase === 'empty') {
+        state.phase = 'empty';
+        state.films = [];
+        state.question = null;
+      } else {
+        state.phase = 'question';
+        state.question = data.question;
+      }
+    }
+
+    function pickVoiceMime() {
+      if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+      return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
+    }
+
+    function releaseMic() {
+      if (!micStream) return;
+      try { micStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      micStream = null;
+    }
+
+    async function toggleVoice(micBtn, inputEl, onText) {
+      if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices) {
+        showToast('Голос недоступен в этом браузере');
+        return;
+      }
+      if (voiceSess) {
+        try { if (voiceSess.rec.state === 'recording') voiceSess.rec.stop(); } catch (_) {}
+        voiceSess = null;
+        return;
+      }
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) {
+        showToast('Нет доступа к микрофону');
+        return;
+      }
+      micStream = stream;
+      const mime = pickVoiceMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        releaseMic();
+        micBtn.classList.remove('recording');
+        micBtn.textContent = '🎤';
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+        if (!blob.size) return;
+        try {
+          const fd = new FormData();
+          fd.append('audio', blob, 'voice.webm');
+          const headers = {};
+          const token = getToken();
+          if (token) headers.Authorization = 'Bearer ' + token;
+          const r = await fetch(API_BASE + '/api/miniapp/emotion/voice', { method: 'POST', body: fd, headers });
+          const data = await r.json().catch(() => ({}));
+          const v = (data && data.text || '').trim();
+          if (v && onText) onText(v);
+          else showToast('Не расслышали — попробуйте ещё раз');
+        } catch (_) {
+          showToast('Не удалось распознать голос');
+        }
+      };
+      voiceSess = { rec };
+      rec.start();
+      micBtn.classList.add('recording');
+      micBtn.textContent = '●';
+      setTimeout(() => {
+        if (voiceSess && voiceSess.rec === rec) {
+          try { if (rec.state === 'recording') rec.stop(); } catch (_) {}
+          voiceSess = null;
+        }
+      }, 30000);
+    }
+
+    function unmount() {
+      releaseMic();
+      if (modesEl) modesEl.classList.remove('hidden');
+      if (scopeEl) scopeEl.classList.remove('hidden');
+      root.innerHTML = '';
+      siteEmotionUnmount = null;
+    }
+
+    siteEmotionUnmount = unmount;
+    reset(false);
+  }
+
   function renderWhattowatchSection() {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
+    if (typeof siteEmotionUnmount === 'function') {
+      try { siteEmotionUnmount(); } catch (_) {}
+      siteEmotionUnmount = null;
+    }
     try {
       const pathCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
         ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
