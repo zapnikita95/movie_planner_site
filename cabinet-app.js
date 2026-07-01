@@ -13541,7 +13541,7 @@
     openFilmPageByKp(k);
   }
 
-  const HEADER_SEARCH_PREVIEW_PERSONS = 1;
+  const HEADER_SEARCH_PREVIEW_PERSONS = 4;
 
   function headerSearchPreviewResultsFootHtml() {
     return (
@@ -13727,7 +13727,7 @@
     return '<div class="site-search-results-loading">' + siteSearchLoadingHtml() + '</div>';
   }
 
-  const SITE_SEARCH_PERSONS_VISIBLE = 1;
+  const SITE_SEARCH_PERSONS_VISIBLE = 4;
 
   function siteSearchPersonsBlockHtml(persons) {
     if (!persons || !persons.length) return '';

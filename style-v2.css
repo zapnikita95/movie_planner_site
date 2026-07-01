@@ -11531,8 +11531,8 @@ body.site-search-sheet-open { overflow: hidden; }
   padding: 2px 0;
 }
 .site-search-persons-grid--compact {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: stretch;
   gap: 8px;
 }
 .site-search-persons-grid--compact .site-search-person-card {
@@ -11562,9 +11562,14 @@ body.site-search-sheet-open { overflow: hidden; }
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .site-search-persons-grid--compact .site-search-persons-expand-btn {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
+  grid-column: 1;
+  grid-row: auto;
+  justify-self: center;
+  width: 100%;
+  max-width: 220px;
+  height: 36px;
+  border-radius: 8px;
+  margin: 4px auto 0;
 }
 .site-search-persons-grid--compact .site-search-persons-more:not(.hidden) {
   grid-column: 1 / -1;
@@ -11934,7 +11939,8 @@ body.landing-root-page #landing-root-nav.hidden {
     padding-right: 12px;
   }
   body.in-search-page .search-filter-toolbar {
-    margin-top: 0;
+    margin-top: 14px;
+    margin-bottom: 6px;
   }
   body.in-search-page #landing-root-nav {
     display: none !important;
