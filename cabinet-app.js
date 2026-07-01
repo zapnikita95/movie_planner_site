@@ -3432,7 +3432,8 @@
     if (document.body.classList.contains('header-search-body-locked')) return;
     _headerSearchScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.classList.add('header-search-body-locked');
-    document.body.style.top = '-' + _headerSearchScrollLockY + 'px';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
     const header = document.getElementById('site-header');
     if (header) header.classList.remove('site-header--retracted');
   }
@@ -3440,9 +3441,9 @@
   function unlockHeaderSearchBodyScroll() {
     if (!document.body.classList.contains('header-search-body-locked')) return;
     document.body.classList.remove('header-search-body-locked');
-    const y = _headerSearchScrollLockY;
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
     document.body.style.top = '';
-    window.scrollTo(0, y);
   }
 
   function setHeaderSearchDropdownOpen(open) {
@@ -14307,6 +14308,12 @@
       _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), SITE_SEARCH_INPUT_DEBOUNCE_MS);
     });
     input.addEventListener('focus', () => {
+      document.body.classList.add('header-search-input-focused');
+      const header = document.getElementById('site-header');
+      if (header) header.classList.remove('site-header--retracted');
+      requestAnimationFrame(function () {
+        try { wrap.scrollIntoView({ block: 'start', behavior: 'auto' }); } catch (_) {}
+      });
       const v = input.value.trim();
       if (v.length < 2 && dd) showHeaderSearchHub(dd);
       else if (v.length >= 2 && dd && dd.innerHTML) {
@@ -14314,6 +14321,13 @@
         setHeaderSearchDropdownOpen(true);
         scheduleHeaderSearchDropdownLayout();
       }
+    });
+    input.addEventListener('blur', () => {
+      window.setTimeout(function () {
+        if (document.activeElement !== input) {
+          document.body.classList.remove('header-search-input-focused');
+        }
+      }, 120);
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
