@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260702yandexlogin2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260702yandexlogin2">
+    <link rel="preload" href="/style-v2.css?v=20260702guestob1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702guestob1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -125,7 +125,11 @@
     <style id="mp-cabinet-critical">
       html.mp-auth-boot #landing{display:none!important}
       html.mp-auth-boot #cabinet-readonly.hidden{display:block!important}
+      html.mp-guest-cabinet-boot #landing{display:none!important}
+      html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
+      html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important}
       html.mp-auth-boot body.in-cabinet #header-search{display:block!important}
+      html.mp-guest-cabinet-boot body.in-cabinet #header-search{display:block!important}
       html.mp-session #site-header [data-action="login"]{display:none!important}
       html.mp-session #site-header #login-btn{display:none!important}
       html.mp-session #site-header .header-login-btn{display:none!important}
@@ -359,9 +363,22 @@
               if (profilePill) profilePill.classList.remove('hidden');
             } catch (_) {}
           }
+          function injectSectionBootCss(sectionId) {
+            if (!sectionId || sectionId === 'home') return;
+            var id = 'mp-cabinet-section-boot';
+            if (document.getElementById(id)) return;
+            var st = document.createElement('style');
+            st.id = id;
+            st.textContent =
+              'html.mp-auth-boot #section-home,html.mp-guest-cabinet-boot #section-home{display:none!important}'
+              + '#section-' + sectionId + '{display:block!important}'
+              + '#section-' + sectionId + '.hidden{display:block!important}';
+            document.head.appendChild(st);
+          }
           function paintCabinetDeep(sectionId, guestPreview) {
             document.body.classList.add('in-cabinet');
             if (guestPreview) document.body.classList.add('guest-cabinet-preview');
+            injectSectionBootCss(sectionId);
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
             var cabinet = document.getElementById('cabinet-readonly');
@@ -384,6 +401,14 @@
             var hs = document.getElementById('header-search');
             if (hs) hs.classList.remove('hidden');
             if (guestPreview) {
+              document.body.classList.add('landing-root-page', 'film-standalone-page');
+              var nav = document.getElementById('landing-root-nav');
+              if (nav) nav.classList.remove('hidden');
+              var navPathMap = { home: '/home', plans: '/plans', whattowatch: '/whattowatch', premieres: '/premieres' };
+              var navHref = navPathMap[sectionId];
+              document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach(function (b) {
+                b.classList.toggle('active', navHref && b.getAttribute('href') === navHref);
+              });
               document.querySelectorAll('.cabinet-nav-btn[data-section="tournament"], #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
                 el.classList.add('hidden');
               });
@@ -394,12 +419,15 @@
           if (!sectionId) return;
           if (hasStoredSiteSession()) {
             document.documentElement.classList.add('mp-auth-boot', 'mp-session');
+            injectSectionBootCss(sectionId);
             function paintAuthedDeep() { paintCabinetDeep(sectionId, false); }
             if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintAuthedDeep);
             else paintAuthedDeep();
             return;
           }
-          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'whattowatch') return;
+          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'whattowatch' && sectionId !== 'plans') return;
+          document.documentElement.classList.add('mp-guest-cabinet-boot');
+          injectSectionBootCss(sectionId);
           function paintGuestDeep() { paintCabinetDeep(sectionId, true); }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintGuestDeep);
           else paintGuestDeep();
@@ -923,8 +951,8 @@
         <p hidden id="hero-product-matrix">Movie Planner: планер фильмов и сериалов, watchlist, отметка просмотренных, уведомления о новых сериях, коллекции и папки по рубрикам, оценки с друзьями. Android, iOS, веб-кабинет movie-planner.ru, Telegram Mini App, расширение Chrome.</p>
         <div class="hero-buttons">
           <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
-          <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
-          <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
+          <button type="button" class="btn-secondary" data-action="login">Веб кабинет</button>
+          <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть в Telegram</a>
           <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
         </div>
       </section>
@@ -1015,28 +1043,13 @@
         </details>
       </section>
 
-      <section class="landing-tv-section">
-        <h2 class="section-title landing-section-title--center">Запустите фильм на телевизоре</h2>
-        <p class="landing-tv-lead">
-          Подключите телевизор в боте или в кабинете — в карточке каждого фильма появится
-          <span class="landing-tv-badge"><span class="mp-icon mp-icon--inline" data-mp-icon="tv" aria-hidden="true"></span> На ТВ</span>.
-          Подходит Android TV, Яндекс ТВ, Google TV, Samsung, LG и другие Smart TV с браузером.
-        </p>
-        <div class="steps landing-steps landing-steps--center">
-          <div class="step"><div class="step-number">1</div><h3 class="landing-step-title"><span class="mp-icon mp-icon--inline landing-step-emoji" data-mp-icon="tv" aria-hidden="true"></span> Подключите ТВ</h3><p>Выберите модель телевизора в боте или в кабинете — займёт минуту</p></div>
-          <div class="step"><div class="step-number">2</div><h3 class="landing-step-title"><span class="mp-icon mp-icon--inline landing-step-emoji" data-mp-icon="play" aria-hidden="true"></span> Нажмите «На ТВ»</h3><p>Откроется страница с Кинопоиск HD, Okko, ivi, Cast и QR-кодом для телефона</p></div>
-          <div class="step"><div class="step-number">3</div><h3 class="landing-step-title"><span class="mp-icon mp-icon--inline landing-step-emoji" data-mp-icon="laptop" aria-hidden="true"></span> Быстрый запуск на Android TV</h3><p>Можно запустить фильм с компьютера или Raspberry Pi — один клик, без телефона</p></div>
-        </div>
-      </section>
-
       <section>
         <div class="cta-section landing-cta-section">
-          <h2 class="section-title landing-section-title--center">Начните использовать прямо сейчас</h2>
-          <p class="cta-subtitle">Ведение базы и напоминания бесплатны. Расширенные функции — по подписке</p>
+          <h2 class="section-title landing-section-title--center">Начните использовать прямо сейчас бесплатно</h2>
           <div class="hero-buttons">
             <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
-            <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть Mini App</a>
-            <a href="https://t.me/movie_planner_bot" class="btn-secondary" target="_blank" rel="noopener">Telegram-бот</a>
+            <button type="button" class="btn-secondary" data-action="login">Веб кабинет</button>
+            <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть в Telegram</a>
             <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
           </div>
         </div>
@@ -2475,11 +2488,11 @@
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
-          'onboarding-flow.js?v=20260628homefix2',
+          'onboarding-flow.js?v=20260702guestob1',
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1',
-          'landing-features-carousel.js?v=20260701landingfix2'
+          'landing-features-carousel.js?v=20260702landingfix3'
         ];
         var list;
         if (isSearch) {
@@ -2487,7 +2500,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260702wtwroute2'
+            'cabinet-app.js?v=20260702landingfix3'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2498,9 +2511,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702wtwroute2');
+          list.push('cabinet-app.js?v=20260702landingfix3');
         } else {
-          list.push('cabinet-app.js?v=20260702wtwroute2');
+          list.push('cabinet-app.js?v=20260702landingfix3');
         }
         function loadAt(i) {
           if (i >= list.length) return;

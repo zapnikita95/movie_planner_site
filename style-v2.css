@@ -2083,7 +2083,8 @@ button.what-is-v2-feature {
   body.film-standalone-page .film-standalone-nav,
   body.staff-standalone-page .film-standalone-nav,
   body.user-standalone-page .film-standalone-nav,
-  body.landing-root-page #landing-root-nav {
+  body.landing-root-page #landing-root-nav,
+  html.mp-guest-cabinet-boot #landing-root-nav {
     position: fixed;
     left: 0;
     right: 0;
@@ -16147,7 +16148,34 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .mp-onboard-pick-tile--rec-enter { animation: mp-onboard-rec-enter .42s ease-out both; }
-.mp-onboard-picker-confirm { flex-shrink: 0; margin-top: 10px; position: relative; z-index: 5; }
+.mp-onboard-picker-confirm { flex-shrink: 0; margin-top: 10px; position: relative; z-index: 5; min-height: 48px; }
+.guest-onboard-cta {
+  margin: 0 0 16px;
+  padding: 16px 14px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.14), rgba(59, 130, 246, 0.1));
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  text-align: center;
+}
+.guest-onboard-cta-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.guest-onboard-cta-btn {
+  width: 100%;
+  max-width: 320px;
+  min-height: 48px;
+}
+@media (max-width: 480px) {
+  .mp-onboard-picker-inner { padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+  .mp-onboard-pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mp-onboard-picker-title { font-size: 16px; padding: 0 4px; }
+  .mp-onboard-picker-confirm { margin-top: 12px; margin-bottom: max(2px, env(safe-area-inset-bottom)); }
+  .guest-onboard-cta { margin-left: 0; margin-right: 0; padding: 14px 12px; }
+  .guest-onboard-cta-title { font-size: 16px; }
+}
 .mp-onboard-picker-confirm.btn-disabled,
 .btn-primary.btn-disabled { opacity: 0.45; pointer-events: none; }
 .mp-onboard-weekend-rail { display: flex; gap: 12px; overflow-x: auto; padding: 8px 2px 12px; scroll-snap-type: x mandatory; }
@@ -16512,6 +16540,13 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   .mp-plan-modal-card { max-width: 480px; }
 }
 
+.plans-filter-tabs.hidden {
+  display: none !important;
+}
+.plans-filter-tab.hidden {
+  display: none !important;
+}
+
 /* ——— Plans empty hub + desktop plan cards ——— */
 .plans-empty-hub-wrap,
 .plans-empty-premieres {
@@ -16525,14 +16560,43 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 .plans-empty-hub-hint {
   text-align: center;
   font-size: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 .plans-empty-hub {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 22px;
+  gap: 28px;
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 420px;
+}
+.plans-empty-hub-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 96px;
+  min-width: 96px;
+  max-width: 120px;
+}
+.plans-empty-hub-label {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+}
+body.in-cabinet #section-plans .plans-empty-hub .home-emoji-btn {
+  width: 72px;
+  height: 72px;
+  font-size: 34px;
+}
+body.in-cabinet #section-plans .home-emoji-btn--plan {
+  width: 84px;
+  height: 84px;
+  font-size: 40px !important;
 }
 .home-emoji-btn--plan {
   background: linear-gradient(135deg, #7c3aed 0%, #ff2d7b 55%, #ff8c42 100%) !important;
@@ -16545,12 +16609,14 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
 }
 @media (min-width: 901px) {
   body.in-cabinet #section-plans .plans-empty-hub .home-emoji-btn {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     font-size: 38px;
   }
   body.in-cabinet #section-plans .home-emoji-btn--plan {
-    font-size: 46px !important;
+    width: 96px;
+    height: 96px;
+    font-size: 44px !important;
   }
   body.in-cabinet #section-plans .plans-filter-tabs {
     justify-content: center;
@@ -18032,10 +18098,27 @@ img.mp-poster-placeholder,
   text-align: center;
 }
 
+.landing-steps--center {
+  gap: 0;
+  margin: 24px auto;
+}
+
+.landing-steps--center .step {
+  padding: 14px 8px;
+}
+
+.landing-steps--center .step-number {
+  margin-bottom: 8px;
+}
+
+.landing-steps--center .step h3 {
+  margin-bottom: 6px;
+}
+
 .landing-steps--center .step p {
   max-width: 340px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  line-height: 1.45;
 }
 
 @media (min-width: 769px) {
@@ -18268,6 +18351,7 @@ img.mp-poster-placeholder,
   body.landing-root-page .landing-feat-card {
     flex: 0 0 calc(100% - 4px);
     scroll-snap-align: center;
+    scroll-snap-stop: always;
     text-align: center;
     padding: 24px 18px 20px;
     border-radius: 16px;
@@ -18287,18 +18371,28 @@ img.mp-poster-placeholder,
 
   body.landing-root-page .landing-steps--center {
     max-width: 100%;
-    margin: 0 auto;
+    margin: 12px auto 0;
   }
 
   body.landing-root-page .landing-steps--center .step {
-    padding: 20px 12px;
+    padding: 12px 8px 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   body.landing-root-page .landing-steps--center .step-number {
-    font-size: 1.75rem;
+    font-size: 1.45rem;
     color: rgba(255, 214, 122, 0.35);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+  }
+
+  body.landing-root-page .landing-steps--center .step h3 {
+    margin-bottom: 4px;
+    font-size: 16px;
+  }
+
+  body.landing-root-page .landing-steps--center .step p {
+    font-size: 14px;
+    line-height: 1.4;
   }
 
   body.landing-root-page .landing-tv-lead {

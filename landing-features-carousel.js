@@ -7,16 +7,14 @@
 
   var prevBtn = document.querySelector('.landing-feats-arrow--prev');
   var nextBtn = document.querySelector('.landing-feats-arrow--next');
-  var originalCount = 0;
-  var loopWidth = 0;
-  var normalizing = false;
+  var animating = false;
 
   function isCarouselMode() {
     return window.matchMedia('(max-width: 768px)').matches;
   }
 
   function cards() {
-    return track.querySelectorAll('.landing-feat-card:not([data-feat-clone])');
+    return track.querySelectorAll('.landing-feat-card');
   }
 
   function cardStep() {
@@ -28,47 +26,30 @@
     return card.offsetWidth + gap;
   }
 
-  function teardownClones() {
-    track.querySelectorAll('[data-feat-clone]').forEach(function (el) {
-      el.remove();
-    });
-    loopWidth = 0;
+  function clampIndex(idx) {
+    var list = cards();
+    if (!list.length) return 0;
+    return Math.max(0, Math.min(list.length - 1, idx));
   }
 
-  function setupInfiniteLoop() {
-    teardownClones();
+  function readIndex() {
+    var step = cardStep();
+    if (!step) return 0;
+    return clampIndex(Math.round(viewport.scrollLeft / step));
+  }
+
+  function scrollToIndex(idx, smooth) {
     if (!isCarouselMode()) return;
-    var originals = cards();
-    originalCount = originals.length;
-    if (!originalCount) return;
-
-    originals.forEach(function (card) {
-      var clone = card.cloneNode(true);
-      clone.setAttribute('data-feat-clone', '1');
-      clone.removeAttribute('id');
-      track.appendChild(clone);
-    });
-
-    loopWidth = cardStep() * originalCount;
-  }
-
-  function normalizeScroll(instant) {
-    if (!isCarouselMode() || !loopWidth || normalizing) return;
-    if (viewport.scrollLeft >= loopWidth - 2) {
-      normalizing = true;
-      viewport.scrollLeft -= loopWidth;
-      normalizing = false;
-    }
+    var next = clampIndex(idx);
+    var left = next * cardStep();
+    animating = true;
+    viewport.scrollTo({ left: left, behavior: smooth ? 'smooth' : 'auto' });
+    window.setTimeout(function () { animating = false; }, smooth ? 380 : 0);
   }
 
   function scrollByCard(dir) {
-    if (!isCarouselMode()) {
-      viewport.scrollBy({ left: dir * cardStep(), behavior: 'smooth' });
-      return;
-    }
-    setupInfiniteLoop();
-    viewport.scrollBy({ left: dir * cardStep(), behavior: 'smooth' });
-    window.setTimeout(normalizeScroll, 320);
+    if (!isCarouselMode() || animating) return;
+    scrollToIndex(readIndex() + dir, true);
   }
 
   if (prevBtn) {
@@ -79,35 +60,44 @@
   }
 
   var touchStartX = 0;
+  var touchStartY = 0;
   viewport.addEventListener('touchstart', function (e) {
+    if (!isCarouselMode()) return;
     touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
   }, { passive: true });
 
   viewport.addEventListener('touchend', function (e) {
+    if (!isCarouselMode() || animating) return;
     var dx = e.changedTouches[0].screenX - touchStartX;
-    if (Math.abs(dx) < 40) return;
+    var dy = e.changedTouches[0].screenY - touchStartY;
+    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
     scrollByCard(dx < 0 ? 1 : -1);
   }, { passive: true });
 
+  function snapToNearest() {
+    if (!isCarouselMode() || animating) return;
+    scrollToIndex(readIndex(), false);
+  }
+
   viewport.addEventListener('scroll', function () {
-    if (normalizing) return;
-    requestAnimationFrame(normalizeScroll);
+    if (animating || !isCarouselMode()) return;
+    window.clearTimeout(viewport._mpFeatSnapT);
+    viewport._mpFeatSnapT = window.setTimeout(snapToNearest, 120);
   }, { passive: true });
 
   if (typeof viewport.addEventListener === 'function') {
-    viewport.addEventListener('scrollend', normalizeScroll, { passive: true });
+    viewport.addEventListener('scrollend', snapToNearest, { passive: true });
   }
 
   window.addEventListener('resize', function () {
-    setupInfiniteLoop();
+    if (!isCarouselMode()) return;
+    scrollToIndex(readIndex(), false);
   });
-
-  setupInfiniteLoop();
 
   try {
     if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') {
       window.MPIcons.hydrate(document.getElementById('landing-features'));
-      window.MPIcons.hydrate(document.querySelector('.landing-tv-section'));
     }
   } catch (_) {}
 })();

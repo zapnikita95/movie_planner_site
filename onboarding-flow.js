@@ -23,8 +23,11 @@
   }
 
   const STATE_KEY = "mp_onboard_v2_state";
+  const GUEST_STATE_KEY = "mp_guest_onboard_state";
   const MAX_SIMILAR_LOADS = 15;
+  const GUEST_MAX_SIMILAR_LOADS = 5;
   const MAX_TILES = 100;
+  const GUEST_INITIAL_SEED_CHUNK = 24;
   const SKIP_WATCHED_RATINGS_MIN = 100;
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
@@ -266,6 +269,27 @@
     } catch (_e) {}
   }
 
+  function readGuestState() {
+    try {
+      const raw = sessionStorage.getItem(GUEST_STATE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function writeGuestState(st) {
+    try {
+      sessionStorage.setItem(GUEST_STATE_KEY, JSON.stringify(st || {}));
+    } catch (_e) {}
+  }
+
+  function clearGuestState() {
+    try {
+      sessionStorage.removeItem(GUEST_STATE_KEY);
+    } catch (_e) {}
+  }
+
   function isObBack(val) {
     return !!(val && val.__back === true);
   }
@@ -493,6 +517,17 @@
   function onboardingImportWantUrl(mediaType) {
     return (
       "/api/miniapp/onboarding/import-want-seed?type=" + encodeURIComponent(mediaType || "any")
+    );
+  }
+
+  function guestOnboardingSeedUrl(mediaType, offset, limit) {
+    return (
+      "/api/public/onboarding/seed?type=" +
+      encodeURIComponent(mediaType || "film") +
+      "&offset=" +
+      encodeURIComponent(String(offset || 0)) +
+      "&limit=" +
+      encodeURIComponent(String(limit || GUEST_INITIAL_SEED_CHUNK))
     );
   }
 
@@ -784,6 +819,10 @@
     const html =
       '<div class="mp-onboard-title">Где вы ведёте базу просмотренного?</div>' +
       '<div class="list" style="margin-top:10px">' +
+      '<button type="button" class="list-item" data-ob-db-pick="none">' +
+      '<span class="list-emoji">—</span>' +
+      '<span class="list-text"><span class="list-title">Нет базы</span></span>' +
+      '<span class="list-arrow">›</span></button>' +
       '<button type="button" class="list-item" data-ob-db-pick="kp">' +
       '<span class="list-emoji">🎬</span>' +
       '<span class="list-text"><span class="list-title">Кинопоиск</span></span>' +
@@ -799,10 +838,6 @@
       '<button type="button" class="list-item" data-ob-db-pick="other">' +
       '<span class="list-emoji">✏️</span>' +
       '<span class="list-text"><span class="list-title">Другой сервис</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
-      '<button type="button" class="list-item" data-ob-db-pick="none">' +
-      '<span class="list-emoji">—</span>' +
-      '<span class="list-text"><span class="list-title">Нет базы</span></span>' +
       '<span class="list-arrow">›</span></button>' +
       "</div>" +
       embeddedField("ob-db-other", "Какой сервис?", true) +
@@ -1524,13 +1559,17 @@
     const isImportWant = mode === "import-want";
     const minSelection = Math.max(1, Number(opts.minSelection) || 1);
     let showBackBtn = opts.showBack !== false && mode === "watched" && !isImportWant;
+    const maxSimilarLoads =
+      opts.maxSimilarLoads != null ? Number(opts.maxSimilarLoads) : MAX_SIMILAR_LOADS;
+    const maxTiles = opts.maxTiles != null ? Number(opts.maxTiles) : MAX_TILES;
+    const usePublicApi = !!opts.usePublicApi;
 
     function selClassNow() {
       return mode === "want" || isImportWant ? "want" : "watched";
     }
 
     function gridExhausted() {
-      return similarLoads >= MAX_SIMILAR_LOADS;
+      return similarLoads >= maxSimilarLoads;
     }
     const titleQ = isImportWant
       ? 'Что из похожего вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
@@ -1588,7 +1627,7 @@
       }
 
       function atLimit() {
-        return items.length >= MAX_TILES || similarLoads >= MAX_SIMILAR_LOADS;
+        return items.length >= maxTiles || similarLoads >= maxSimilarLoads;
       }
 
       function emptyGridHtml() {
@@ -1736,6 +1775,15 @@
             });
             deps.unlockViewportScroll();
             ov.remove();
+            if (opts.guestAfterWatched) {
+              resolve({
+                phase: "guest-auth",
+                watchedItems: watchedItems,
+                remainingItems: remainingItems,
+                recommendedKps: Array.from(recommendedKps),
+              });
+              return;
+            }
             resolve({
               phase: "want",
               watchedItems: watchedItems,
@@ -1801,8 +1849,12 @@
         try {
           const ex = Array.from(seenKp).concat(Array.from(watchedKpBlock)).join(",");
           const simType = mediaType === "any" ? "any" : mediaType;
+          const similarBase = usePublicApi
+            ? "/api/public/onboarding/similar"
+            : "/api/miniapp/onboarding/similar";
           const data = await deps.apiGet(
-            "/api/miniapp/onboarding/similar?kp_id=" +
+            similarBase +
+              "?kp_id=" +
               encodeURIComponent(kp) +
               "&type=" +
               encodeURIComponent(simType) +
@@ -1814,7 +1866,7 @@
           batch.forEach(function (it) {
             if (!isPickerItemOk(it)) return;
             const sk = String(it.kp_id);
-            if (seenKp.has(sk) || watchedKpBlock.has(sk) || items.length >= MAX_TILES) return;
+            if (seenKp.has(sk) || watchedKpBlock.has(sk) || items.length >= maxTiles) return;
             seenKp.add(sk);
             recommendedKps.add(sk);
             items.push(it);
@@ -1855,7 +1907,9 @@
         '<div id="ob-pick-grid" class="movies-grid mp-onboard-pick-grid">' +
         "</div>" +
         "</div></div>" +
-        '<button type="button" class="btn-primary btn-full mp-onboard-picker-confirm" id="ob-pick-confirm" disabled>Подтвердить</button>' +
+        '<button type="button" class="btn-primary btn-full mp-onboard-picker-confirm" id="ob-pick-confirm" disabled>' +
+        deps.escapeHtml(opts.confirmLabel || "Подтвердить") +
+        "</button>" +
         "</div>";
 
       deps.lockViewportScroll();
@@ -1899,7 +1953,7 @@
       }
 
       function bindTailScrollPrefetch() {
-        if (!opts.tailSeedUrl || tailScrollBound) return;
+        if ((!opts.tailSeedUrl && !opts.publicSeedPagination) || tailScrollBound) return;
         const sc = ov.querySelector("#ob-pick-scroll");
         if (!sc) return;
         tailScrollBound = true;
@@ -1916,19 +1970,27 @@
       }
 
       async function loadTailPage() {
-        if (!opts.tailSeedUrl || tailLoading || !tailHasMore || atLimit()) return;
+        if ((!opts.tailSeedUrl && !opts.publicSeedPagination) || tailLoading || !tailHasMore || atLimit()) return;
         tailLoading = true;
         const sc = ov.querySelector("#ob-pick-scroll");
         const scrollTop = sc ? sc.scrollTop : 0;
         const ex = Array.from(seenKp).join(",");
-        const sep = opts.tailSeedUrl.indexOf("?") >= 0 ? "&" : "?";
-        let fullUrl =
-          opts.tailSeedUrl +
-          sep +
-          "exclude=" +
-          encodeURIComponent(ex) +
-          "&anchor_offset=" +
-          encodeURIComponent(String(tailAnchorOffset));
+        let fullUrl;
+        if (opts.publicSeedPagination) {
+          fullUrl =
+            guestOnboardingSeedUrl(mediaType, tailAnchorOffset, GUEST_INITIAL_SEED_CHUNK) +
+            "&exclude=" +
+            encodeURIComponent(ex);
+        } else {
+          const sep = opts.tailSeedUrl.indexOf("?") >= 0 ? "&" : "?";
+          fullUrl =
+            opts.tailSeedUrl +
+            sep +
+            "exclude=" +
+            encodeURIComponent(ex) +
+            "&anchor_offset=" +
+            encodeURIComponent(String(tailAnchorOffset));
+        }
         let lastErr = null;
         try {
           for (let attempt = 0; attempt < 3; attempt++) {
@@ -1936,10 +1998,15 @@
             try {
               const sd = await deps.apiGet(fullUrl, { bypassCache: true, timeout: 20000 });
               await appendSeedItems((sd && sd.items) || [], "tail");
-              if (sd && sd.anchor_offset != null) {
+              if (opts.publicSeedPagination) {
+                if (sd && sd.next_offset != null) {
+                  tailAnchorOffset = Number(sd.next_offset) || tailAnchorOffset;
+                }
+                tailHasMore = !!(sd && sd.has_more);
+              } else if (sd && sd.anchor_offset != null) {
                 tailAnchorOffset = Number(sd.anchor_offset) || tailAnchorOffset;
+                tailHasMore = !!(sd && sd.has_more);
               }
-              tailHasMore = !!(sd && sd.has_more);
               paintGrid(scrollTop);
               bindTiles();
               bindTailScrollPrefetch();
@@ -1965,7 +2032,7 @@
           if (!isPickerItemOk(it)) return;
           if (!it || it.kp_id == null) return;
           const sk = String(it.kp_id);
-          if (seenKp.has(sk) || items.length >= MAX_TILES) return;
+          if (seenKp.has(sk) || items.length >= maxTiles) return;
           seenKp.add(sk);
           items.push(it);
           added += 1;
@@ -2010,7 +2077,12 @@
                 success: sd && sd.success ? 1 : 0,
               });
               await appendSeedItems(batch, source || "seed");
-              if (sd && sd.has_more && opts.tailSeedUrl) {
+              if (opts.publicSeedPagination && sd) {
+                if (sd.next_offset != null) {
+                  tailAnchorOffset = Number(sd.next_offset) || tailAnchorOffset;
+                }
+                tailHasMore = !!sd.has_more;
+              } else if (sd && sd.has_more && opts.tailSeedUrl) {
                 tailHasMore = true;
               }
               return;
@@ -2861,5 +2933,236 @@
       {},
     );
     if (typeof onDone === "function") onDone();
+  };
+
+  async function stepGuestRegisterPrompt(deps) {
+    return showCenterDialog(
+      deps,
+      '<div class="mp-onboard-title">Поздравляем, вы уже начали вести вашу базу!</div>' +
+        '<p class="mp-onboard-text">Зарегистрируйтесь, чтобы продолжить</p>' +
+        '<button type="button" class="btn-primary btn-full" data-ob-guest-register style="margin-top:14px">Зарегистрироваться</button>',
+      {
+        backdropClose: false,
+        bind: function (ov, close) {
+          ov.querySelector("[data-ob-guest-register]")?.addEventListener("click", function () {
+            close({ register: true });
+          });
+        },
+      },
+    );
+  }
+
+  async function stepGuestAuthForImport(deps) {
+    return showCenterDialog(
+      deps,
+      '<div class="mp-onboard-title">Войдите или зарегистрируйтесь</div>' +
+        '<p class="mp-onboard-text">Чтобы импортировать базу, нужен личный кабинет</p>' +
+        '<button type="button" class="btn-primary btn-full" data-ob-guest-auth-reg style="margin-top:14px">Зарегистрироваться</button>' +
+        '<button type="button" class="btn-secondary btn-full" data-ob-guest-auth-login style="margin-top:10px">Войти</button>',
+      {
+        backdropClose: true,
+        bind: function (ov, close) {
+          ov.querySelector("[data-ob-guest-auth-reg]")?.addEventListener("click", function () {
+            close({ register: true });
+          });
+          ov.querySelector("[data-ob-guest-auth-login]")?.addEventListener("click", function () {
+            close({ login: true });
+          });
+        },
+      },
+    );
+  }
+
+  async function runGuestOnboardingFlow(deps, onComplete) {
+    if (deps.isAuthed && deps.isAuthed()) {
+      void runFlow(deps, onComplete);
+      return;
+    }
+    obClientLog(deps, "guest.flow.start", {});
+    const s1 = await stepInterest(deps);
+    if (!s1) {
+      if (onComplete) onComplete();
+      return;
+    }
+    const interests = s1.interests || [];
+    const otherText = s1.otherText || "";
+    const meta = getInterestMeta({ interests: interests, otherText: otherText });
+    const seedMediaType = meta.mediaType || "film";
+
+    if (!meta.hasMedia && meta.hasPremieres) {
+      deps.toast("Сначала выберите фильмы или сериалы");
+      return runGuestOnboardingFlow(deps, onComplete);
+    }
+
+    const s2 = await stepDbSource(deps);
+    if (!s2 || isObBack(s2)) {
+      if (onComplete) onComplete();
+      return;
+    }
+    const dbSource = s2.dbSource;
+    const dbOther = s2.dbOther || "";
+
+    if (dbSource === "kp" || dbSource === "myshows" || dbSource === "imdb") {
+      const authChoice = await stepGuestAuthForImport(deps);
+      if (!authChoice) {
+        if (onComplete) onComplete();
+        return;
+      }
+      writeGuestState({
+        path: "import",
+        pendingResume: true,
+        interests: interests,
+        otherText: otherText,
+        dbSource: dbSource,
+        dbOther: dbOther,
+        mediaType: seedMediaType,
+        authIntent: authChoice.register ? "register" : "login",
+      });
+      try {
+        sessionStorage.setItem("mp_guest_auth_via", authChoice.register ? "register" : "login");
+      } catch (_e) {}
+      if (authChoice.register && typeof deps.openRegisterModal === "function") {
+        deps.openRegisterModal();
+      } else if (typeof deps.openLoginModal === "function") {
+        deps.openLoginModal();
+      }
+      if (onComplete) onComplete();
+      return;
+    }
+
+    if (dbSource !== "none" && dbSource !== "other") {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const guestSeedUrl = guestOnboardingSeedUrl(seedMediaType, 0, GUEST_INITIAL_SEED_CHUNK);
+    const watchedPick = await mountFilmPicker(deps, {
+      mode: "watched",
+      mediaType: seedMediaType,
+      seedUrl: guestSeedUrl,
+      tailSeedUrl: guestSeedUrl,
+      publicSeedPagination: true,
+      usePublicApi: true,
+      maxSimilarLoads: GUEST_MAX_SIMILAR_LOADS,
+      maxTiles: MAX_TILES,
+      guestAfterWatched: true,
+      showBack: true,
+      confirmLabel: "Продолжить",
+    });
+    if (!watchedPick || watchedPick.phase !== "guest-auth" || !(watchedPick.watchedItems || []).length) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const regPrompt = await stepGuestRegisterPrompt(deps);
+    if (!regPrompt || !regPrompt.register) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    writeGuestState({
+      path: "watched",
+      pendingResume: true,
+      interests: interests,
+      otherText: otherText,
+      dbSource: dbSource,
+      dbOther: dbOther,
+      mediaType: seedMediaType,
+      watchedItems: watchedPick.watchedItems || [],
+      remainingItems: watchedPick.remainingItems || [],
+      recommendedKps: watchedPick.recommendedKps || [],
+    });
+    try {
+      sessionStorage.setItem("mp_guest_auth_via", "register");
+    } catch (_e2) {}
+    if (typeof deps.openRegisterModal === "function") {
+      deps.openRegisterModal();
+    }
+    if (onComplete) onComplete();
+  }
+
+  global.__mpMountGuestOnboarding = function (deps, onComplete) {
+    deps = resolveOnboardingDeps(deps);
+    Promise.resolve(runGuestOnboardingFlow(deps, onComplete || function () {})).catch(function (err) {
+      obClientLog(deps, "guest.flow.crash", {
+        err: String((err && err.message) || err).slice(0, 300),
+      });
+    });
+  };
+
+  global.__mpResumeGuestOnboardingAfterAuth = async function (deps, opts) {
+    deps = resolveOnboardingDeps(deps);
+    opts = opts || {};
+    const gst = readGuestState();
+    if (!gst || !gst.pendingResume) return false;
+
+    const authVia = opts.authVia || "login";
+    const isNewReg = authVia === "register";
+
+    if (gst.path === "import") {
+      clearGuestState();
+      if (!isNewReg) {
+        return false;
+      }
+      clearState();
+      writeState({
+        interests: gst.interests || [],
+        otherText: gst.otherText || "",
+        dbSource: gst.dbSource,
+        dbOther: gst.dbOther || "",
+        skipIntroCarousel: true,
+      });
+      void saveInterest(deps, {
+        interests: gst.interests || [],
+        other_text: gst.otherText || "",
+        db_source: gst.dbSource,
+        db_other: gst.dbOther || "",
+      });
+      void runFlow(deps, function () {});
+      return true;
+    }
+
+    if (gst.path === "watched" && (gst.watchedItems || []).length) {
+      const mediaType = gst.mediaType || "film";
+      await postBulkLibrary(deps, {
+        watchedItems: gst.watchedItems,
+        wantItems: [],
+      });
+      const wantPick = await mountFilmPicker(deps, {
+        mode: "want",
+        mediaType: mediaType,
+        initialItems: gst.remainingItems || [],
+        seedUrl: (gst.remainingItems || []).length
+          ? null
+          : onboardingSeedUrl(mediaType, [], { excludeLibrary: true }),
+        fallbackSeedUrl: onboardingSeedUrl(mediaType, []),
+        tailSeedUrl: onboardingRatedTailUrl(mediaType),
+        showBack: false,
+        excludeKpIds: (gst.watchedItems || []).map(function (it) {
+          return it.kp_id;
+        }),
+        preloadSimilarFrom: gst.watchedItems || [],
+        recommendedKps: gst.recommendedKps || [],
+      });
+      if (wantPick && wantPick.phase === "done") {
+        await postBulkLibrary(deps, {
+          watchedItems: gst.watchedItems,
+          wantItems: wantPick.wantItems || [],
+        });
+      }
+      void saveInterest(deps, {
+        interests: gst.interests || [],
+        other_text: gst.otherText || "",
+        db_source: gst.dbSource || "none",
+        db_other: gst.dbOther || "",
+      });
+      await deps.markFirstOnboardingDoneAsync();
+      clearGuestState();
+      clearState();
+      return true;
+    }
+
+    clearGuestState();
+    return false;
   };
 })(window);
