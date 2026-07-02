@@ -420,6 +420,7 @@
         window.MpCollectionsPage.showGuestPromo();
       }
     } catch (_) {}
+    try { renderGuestOnboardCta(); } catch (_) {}
   }
 
   /** Гость: /home, /plans, /premieres, /whattowatch и /features/collections/* — без topbar «Профиль». */
@@ -463,9 +464,6 @@
       _cabinetNavBootstrapped = true;
       showSection(sec, { skipPush: true, replace: true });
       afterCabinetSectionShown(sec);
-      if (sec === 'home') {
-        try { renderGuestOnboardCta(); } catch (_) {}
-      }
       return true;
     } catch (_) {
       return false;
@@ -1600,27 +1598,25 @@
   }
 
   function renderGuestOnboardCta() {
-    if (!isGuestCabinetPreview()) return;
-    const secHome = document.getElementById('section-home');
-    if (!secHome || secHome.classList.contains('hidden')) return;
-    if (document.getElementById('guest-onboard-cta')) return;
-    const html =
-      '<section id="guest-onboard-cta" class="guest-onboard-cta" aria-label="Начать вести базу просмотров">' +
-      '<h3 class="guest-onboard-cta-title">Хотите начать вести вашу базу просмотров?</h3>' +
-      '<button type="button" class="btn-primary guest-onboard-cta-btn" id="guest-onboard-start-btn">Начать сейчас</button>' +
-      '</section>';
-    const anchor = document.getElementById('home-dashboard-root');
-    if (anchor) {
-      anchor.insertAdjacentHTML('beforebegin', html);
-    } else {
-      secHome.insertAdjacentHTML('beforeend', html);
-    }
+    bindGuestOnboardCtaOnce();
+    updateGuestOnboardCtaVisibility();
+  }
+
+  function bindGuestOnboardCtaOnce() {
+    if (window._mpGuestOnboardCtaBound) return;
     const btn = document.getElementById('guest-onboard-start-btn');
-    if (btn) {
-      btn.addEventListener('click', function () {
-        startGuestOnboarding();
-      });
-    }
+    if (!btn) return;
+    window._mpGuestOnboardCtaBound = true;
+    btn.addEventListener('click', function () {
+      startGuestOnboarding();
+    });
+  }
+
+  function updateGuestOnboardCtaVisibility() {
+    const el = document.getElementById('guest-onboard-cta');
+    if (!el) return;
+    const show = !getToken() && isMarketingRootPath(window.location.pathname);
+    el.classList.toggle('hidden', !show);
   }
 
   function startGuestOnboarding() {
@@ -2390,6 +2386,7 @@
     syncSessionHtmlClass();
     if (modalEl) modalEl.classList.add('hidden');
     document.body.classList.remove('login-only-overlay');
+    try { updateGuestOnboardCtaVisibility(); } catch (_) {}
     bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
     try {
@@ -3876,7 +3873,6 @@
     if (sectionId === 'series') { try { loadSeries(); } catch (_) {} }
     if (sectionId === 'ratings') { try { loadRatings(); } catch (_) {} }
     if (sectionId === 'home') {
-      try { renderGuestOnboardCta(); } catch (_) {}
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
       try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
     }
@@ -19362,6 +19358,8 @@
       showGuestLandingScreen();
     }
     }
+
+    try { renderGuestOnboardCta(); } catch (_) {}
 
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();

@@ -16164,6 +16164,15 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   border: 1px solid rgba(168, 85, 247, 0.28);
   text-align: center;
 }
+.landing-guest-onboard-cta {
+  max-width: 720px;
+  margin: 28px auto 36px;
+  padding: 22px 18px;
+}
+.landing-guest-onboard-cta .guest-onboard-cta-title {
+  font-size: clamp(18px, 4.5vw, 24px);
+  line-height: 1.35;
+}
 .guest-onboard-cta-title {
   margin: 0 0 12px;
   font-size: 17px;

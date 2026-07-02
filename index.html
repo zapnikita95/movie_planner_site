@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260702vitrine1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260702vitrine1">
+    <link rel="preload" href="/style-v2.css?v=20260702landingob1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702landingob1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -955,6 +955,11 @@
           <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть в Telegram</a>
           <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
         </div>
+      </section>
+
+      <section id="guest-onboard-cta" class="guest-onboard-cta landing-guest-onboard-cta" aria-label="Начать вести базу просмотров">
+        <h2 class="guest-onboard-cta-title">Хотите начать вести вашу базу просмотров?</h2>
+        <button type="button" class="btn-primary guest-onboard-cta-btn" id="guest-onboard-start-btn">Начать сейчас</button>
       </section>
 
       <section class="landing-premieres" id="landing-premieres" aria-labelledby="landing-premieres-title">
@@ -2533,9 +2538,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702vitrine2');
+          list.push('cabinet-app.js?v=20260702landingob1');
         } else {
-          list.push('cabinet-app.js?v=20260702vitrine2');
+          list.push('cabinet-app.js?v=20260702landingob1');
         }
         function loadAt(i) {
           if (i >= list.length) return;
