@@ -1459,11 +1459,24 @@
   ];
 
   function siteLockViewportScroll() {
-    document.body.style.overflow = 'hidden';
+    if (window.__mpSiteScrollLock == null) window.__mpSiteScrollLock = 0;
+    if (window.__mpSiteScrollLock === 0) {
+      window.__mpSiteScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add('mp-scroll-lock');
+      document.body.classList.add('mp-scroll-lock');
+      document.body.style.top = '-' + window.__mpSiteScrollY + 'px';
+    }
+    window.__mpSiteScrollLock += 1;
   }
 
   function siteUnlockViewportScroll() {
-    document.body.style.overflow = '';
+    if (window.__mpSiteScrollLock == null || window.__mpSiteScrollLock <= 0) return;
+    window.__mpSiteScrollLock -= 1;
+    if (window.__mpSiteScrollLock !== 0) return;
+    document.documentElement.classList.remove('mp-scroll-lock');
+    document.body.classList.remove('mp-scroll-lock');
+    document.body.style.top = '';
+    window.scrollTo(0, window.__mpSiteScrollY || 0);
   }
 
   function siteOnboardingApiPost(url, body, libOpts, timeoutMs) {

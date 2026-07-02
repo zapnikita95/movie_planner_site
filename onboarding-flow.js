@@ -344,6 +344,7 @@
         });
       });
       if (typeof o.bind === "function") o.bind(ov, close);
+      attachOnboardOverlayGuards(ov, ".mp-onboard-dialog-card");
     });
   }
 
@@ -770,6 +771,50 @@
     );
   }
 
+  function dbSourcePickButton(value, emoji, label) {
+    return (
+      '<button type="button" class="mp-onboard-db-btn" data-ob-db-pick="' +
+      value +
+      '">' +
+      '<span class="mp-onboard-db-emoji">' +
+      emoji +
+      "</span>" +
+      '<span class="mp-onboard-db-label">' +
+      label +
+      "</span>" +
+      '<span class="mp-onboard-db-arrow">›</span>' +
+      "</button>"
+    );
+  }
+
+  function attachOnboardOverlayGuards(ov, scrollSelector) {
+    if (!ov || ov._obOverlayGuards) return;
+    ov._obOverlayGuards = true;
+    ov.addEventListener(
+      "touchmove",
+      function (ev) {
+        const scrollEl = scrollSelector ? ov.querySelector(scrollSelector) : null;
+        if (scrollEl && (scrollEl === ev.target || scrollEl.contains(ev.target))) return;
+        ev.preventDefault();
+      },
+      { passive: false, capture: true },
+    );
+    ov.addEventListener(
+      "touchstart",
+      function (ev) {
+        ev.stopPropagation();
+      },
+      { capture: true },
+    );
+    ov.addEventListener(
+      "click",
+      function (ev) {
+        ev.stopPropagation();
+      },
+      { capture: true },
+    );
+  }
+
   async function stepInterest(deps) {
     const html =
       '<div class="mp-onboard-title">Расскажите о ваших интересах</div>' +
@@ -818,29 +863,14 @@
   async function stepDbSource(deps, mediaLabel) {
     const html =
       '<div class="mp-onboard-title">Где вы ведёте базу просмотренного?</div>' +
-      '<div class="list" style="margin-top:10px">' +
-      '<button type="button" class="list-item" data-ob-db-pick="none">' +
-      '<span class="list-emoji">—</span>' +
-      '<span class="list-text"><span class="list-title">Нет базы</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
-      '<button type="button" class="list-item" data-ob-db-pick="kp">' +
-      '<span class="list-emoji">🎬</span>' +
-      '<span class="list-text"><span class="list-title">Кинопоиск</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
-      '<button type="button" class="list-item" data-ob-db-pick="myshows">' +
-      '<span class="list-emoji">📺</span>' +
-      '<span class="list-text"><span class="list-title">MyShows</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
-      '<button type="button" class="list-item" data-ob-db-pick="imdb">' +
-      '<span class="list-emoji">🌐</span>' +
-      '<span class="list-text"><span class="list-title">IMDb</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
-      '<button type="button" class="list-item" data-ob-db-pick="other">' +
-      '<span class="list-emoji">✏️</span>' +
-      '<span class="list-text"><span class="list-title">Другой сервис</span></span>' +
-      '<span class="list-arrow">›</span></button>' +
+      '<div class="mp-onboard-db-list">' +
+      dbSourcePickButton("none", "—", "Нет базы") +
+      dbSourcePickButton("kp", "🎬", "Кинопоиск") +
+      dbSourcePickButton("myshows", "📺", "MyShows") +
+      dbSourcePickButton("imdb", "🌐", "IMDb") +
+      dbSourcePickButton("other", "✏️", "Другой сервис") +
       "</div>" +
-      embeddedField("ob-db-other", "Какой сервис?", true) +
+      embeddedField("ob-db-other", "Какой сервис?", false) +
       '<button type="button" class="btn-primary btn-full hidden" data-ob-db-other-continue style="margin-top:12px">Продолжить</button>';
     return showCenterDialog(deps, html, {
       showBack: true,
@@ -987,15 +1017,9 @@
           body =
             '<div class="mp-onboard-title">Импорт оценок</div>' +
             '<p class="mp-onboard-text">Перенесите просмотренное — получите <strong>2000 монеток</strong>.</p>' +
-            '<div class="list" style="margin-top:10px">' +
-            '<button type="button" class="list-item" data-ob-view="kp">' +
-            '<span class="list-emoji">🎬</span>' +
-            '<span class="list-text"><span class="list-title">Кинопоиск</span></span>' +
-            '<span class="list-arrow">›</span></button>' +
-            '<button type="button" class="list-item" data-ob-view="ext">' +
-            '<span class="list-emoji">🌐</span>' +
-            '<span class="list-text"><span class="list-title">MyShows / IMDb</span></span>' +
-            '<span class="list-arrow">›</span></button>' +
+            '<div class="mp-onboard-db-list">' +
+            dbSourcePickButton("kp", "🎬", "Кинопоиск") +
+            dbSourcePickButton("ext", "🌐", "MyShows / IMDb") +
             "</div>" +
             '<button type="button" class="btn-ghost btn-full" data-ob-skip style="margin-top:10px">Пропустить</button>';
         } else if (mode === "kp") {
@@ -1693,7 +1717,7 @@
             })
             .filter(Boolean)
             .join("");
-          if (dim) dim.classList.toggle("mp-onboard-grid-dimmed", gridExhausted());
+          if (dim) dim.classList.toggle("mp-onboard-grid-dimmed", loadingSimilar > 0);
           syncConfirmState();
           if (scrollTop != null) {
             const sc = ov.querySelector("#ob-pick-scroll");
@@ -1719,7 +1743,8 @@
         ov.querySelectorAll("[data-ob-kp]").forEach(function (btn) {
           if (btn._obPickTileBound) return;
           btn._obPickTileBound = true;
-          btn.addEventListener("click", function (ev) {
+          function onTileActivate(ev) {
+            ev.preventDefault();
             ev.stopPropagation();
             const kp = btn.getAttribute("data-ob-kp") || "";
             if (!kp) return;
@@ -1731,7 +1756,8 @@
             syncConfirmState();
             if (wasOn || atLimit() || loadingSimilar > 0) return;
             void loadSimilar(kp);
-          });
+          }
+          btn.addEventListener("click", onTileActivate);
         });
       }
 
@@ -1926,6 +1952,7 @@
           });
       } catch (_e2) {}
       document.body.appendChild(ov);
+      attachOnboardOverlayGuards(ov, "#ob-pick-scroll");
       bindPickerChrome();
       if (items.length) {
         paintGrid(0);
