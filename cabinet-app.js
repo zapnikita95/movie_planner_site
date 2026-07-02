@@ -205,30 +205,23 @@
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
-  /** Vitrine rails: never raw KP iphone360 — real art or branded placeholder only. */
+  /** Vitrine rails: TMDB posters only — never Kinopoisk CDN. */
   function vitrinePosterSrc(item) {
-    const kp = item && (item.kp_id || item.kp);
     const raw = cleanPosterUrl(item && item.poster);
-    if (raw && isGoodFilmPosterUrl(raw) && !isKpIphonePosterUrl(raw, kp)) return raw;
     if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
     return MP_POSTER_PLACEHOLDER;
   }
 
   function filterVitrineSeriesItems(items, limit) {
     const lim = Math.max(1, Number(limit) || 12);
-    const withPoster = [];
-    const fallback = [];
+    const out = [];
     (items || []).forEach(function (m) {
       const src = vitrinePosterSrc(m);
-      const entry = Object.assign({}, m, { poster: src });
-      if (src && src !== MP_POSTER_PLACEHOLDER) withPoster.push(entry);
-      else fallback.push(entry);
+      if (src && src !== MP_POSTER_PLACEHOLDER) {
+        out.push(Object.assign({}, m, { poster: src }));
+      }
     });
-    const out = withPoster.slice(0, lim);
-    if (out.length < lim) {
-      out.push.apply(out, fallback.slice(0, lim - out.length));
-    }
-    return out;
+    return out.slice(0, lim);
   }
 
   function currentFilmPosterFromDom(root) {
@@ -7362,7 +7355,7 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v5';
+    const cacheKey = 'mp_guest_series_v6';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 24) });

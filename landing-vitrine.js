@@ -6,7 +6,7 @@
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
   var premCacheKey = "mp_landing_premieres_v2";
-  var seriesCacheKey = "mp_landing_series_v2";
+  var seriesCacheKey = "mp_landing_series_v3";
 
   function apiBase() {
     if (global.MpApiConfig && typeof global.MpApiConfig.apiOrigin === "function") {
@@ -63,28 +63,21 @@
   }
 
   function vitrinePosterSrc(item) {
-    var kp = item && (item.kp_id || item.kp);
     var raw = String((item && item.poster) || "").trim();
     if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
-    if (raw && !isKpIphonePosterUrl(raw, kp) && !/film-poster-placeholder/i.test(raw)) return raw;
     return MP_POSTER_PLACEHOLDER;
   }
 
   function filterVitrineSeries(items, limit) {
     var lim = Math.max(1, Number(limit) || 12);
-    var withPoster = [];
-    var fallback = [];
+    var out = [];
     (items || []).forEach(function (m) {
       var src = vitrinePosterSrc(m);
-      var entry = Object.assign({}, m, { poster: src });
-      if (src && src !== MP_POSTER_PLACEHOLDER) withPoster.push(entry);
-      else fallback.push(entry);
+      if (src && src !== MP_POSTER_PLACEHOLDER) {
+        out.push(Object.assign({}, m, { poster: src }));
+      }
     });
-    var out = withPoster.slice(0, lim);
-    if (out.length < lim) {
-      out = out.concat(fallback.slice(0, lim - out.length));
-    }
-    return out;
+    return out.slice(0, lim);
   }
 
   function formatPremiereDate(raw) {
