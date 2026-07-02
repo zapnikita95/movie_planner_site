@@ -623,9 +623,27 @@
     }
   }
 
+  function hasStoredSiteSession() {
+    try {
+      var active = localStorage.getItem('mp_site_active_chat_id');
+      var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+      if (Array.isArray(sessions)) {
+        for (var i = 0; i < sessions.length; i++) {
+          if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+        }
+        for (var j = 0; j < sessions.length; j++) {
+          if (sessions[j] && sessions[j].token) return true;
+        }
+      }
+      return !!localStorage.getItem('mp_site_token');
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function init(options) {
     cfg = Object.assign(cfg, options || {});
-    injectModal();
+    if (!hasStoredSiteSession()) injectModal();
     consumeOAuthHash();
   }
 

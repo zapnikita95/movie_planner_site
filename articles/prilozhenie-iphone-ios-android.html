@@ -15,7 +15,18 @@
     <meta property="og:url" content="https://movie-planner.ru/articles/prilozhenie-iphone-ios-android.html">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Movie Planner">
-    <link rel="stylesheet" href="../style-v2.css">
+        <link rel="stylesheet" href="../style-v2.css?v=20260702articlechrome1">
+    <style id="mp-article-critical">
+      html.mp-session #site-header [data-action="login"],
+      html.mp-session #site-header #login-btn,
+      html.mp-session #site-header .header-login-btn,
+      html.mp-session .site-header-subpage-actions{display:none!important}
+      html.mp-session #header-user-wrap{display:flex!important}
+      html.mp-session #header-user-wrap.hidden{display:flex!important}
+      html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
+      html.mp-session #login-modal.modal:not(.hidden){visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    </style>
+    <script src="../articles/article-session-boot.js?v=20260702articlechrome1"></script>
     <link rel="icon" href="../images/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -42,12 +53,36 @@
 </head>
 <body>
   <div class="content-wrapper subpage-wrapper">
-    <header class="site-header-subpage">
+        <header id="site-header">
       <div class="header-content">
-        <a href="/" class="logo"><img src="../images/icon48.png" alt="Movie Planner">Movie Planner</a>
-        <div class="site-header-subpage-actions">
-          <a href="/?open_login=1" class="btn btn-small btn-secondary">Войти</a>
-          <a href="/" class="btn btn-small btn-primary">Открыть кабинет</a>
+        <a class="logo" href="/"><img src="../images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>
+        <div class="header-search" id="header-search" role="search">
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
+        <div class="header-buttons">
+          <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="header-util-row">
+              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+              </button>
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
+            </div>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
+              <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
+            </button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
+          </div>
         </div>
       </div>
     </header>

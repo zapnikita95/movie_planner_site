@@ -1219,6 +1219,65 @@
     }
   }
 
+  function standaloneHeaderHasAuthShell() {
+    var wrap = document.getElementById('header-user-wrap');
+    var search = document.getElementById('header-search');
+    return !!(wrap && search);
+  }
+
+  function patchStandaloneAuthHeader(me, opts) {
+    opts = opts || {};
+    var apiBase = opts.apiBase || API_BASE;
+    var mainSelector = opts.mainSelector || 'main.film-page';
+    var name = (me && me.name) || 'Профиль';
+    var coinsVal = '—';
+    if (me && me.coins) {
+      coinsVal = me.coins.is_infinite ? '∞' : (me.coins.balance != null ? String(me.coins.balance) : '—');
+    }
+    var photo = (me && (me.photo_url || me.avatar_url)) || '';
+    if (!photo && me && me.chat_id) {
+      photo = apiBase + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
+    }
+    var loginBtn = document.getElementById('login-btn') || document.querySelector('#site-header [data-action="login"]');
+    if (loginBtn) loginBtn.classList.add('hidden');
+    var wrap = document.getElementById('header-user-wrap');
+    if (wrap) wrap.classList.remove('hidden');
+    var pill = document.getElementById('header-profile-pill');
+    if (pill) pill.classList.remove('hidden');
+    var nameEl = document.getElementById('header-profile-name');
+    if (nameEl) nameEl.textContent = name;
+    var coinsEl = document.getElementById('header-coins-val');
+    if (coinsEl) coinsEl.textContent = coinsVal;
+    setStandaloneHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name, apiBase);
+    bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
+    var inboxBtn = document.getElementById('header-inbox-btn');
+    if (inboxBtn && !inboxBtn.dataset.mpInboxBound) {
+      inboxBtn.dataset.mpInboxBound = '1';
+      inboxBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeStandaloneAccountDropdown();
+        global.location.href = '/inbox';
+      });
+    }
+    var shell = document.querySelector('.page-shell');
+    var main = shell && shell.querySelector(mainSelector);
+    var nav = document.getElementById('film-standalone-nav');
+    if (nav) nav.remove();
+    if (shell && main) {
+      var navWrap = document.createElement('div');
+      navWrap.innerHTML = standaloneNavHtml();
+      var navEl = navWrap.firstElementChild;
+      shell.insertBefore(navEl, main);
+      bindStandaloneNavLinks(navEl);
+      try {
+        if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
+      } catch (_e) {}
+    }
+    bindStandaloneSearch(apiBase, opts.loginNow);
+    bindStandaloneVoiceMic(apiBase, opts.loginNow);
+    bindStandaloneLogoHome();
+  }
+
   function applyStandaloneAuthChrome(me, opts) {
     opts = opts || {};
     var apiBase = opts.apiBase || API_BASE;
@@ -1228,6 +1287,10 @@
     if (opts.cabinetMode) {
       bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
       bindStandaloneLogoHome();
+      return;
+    }
+    if (standaloneHeaderHasAuthShell()) {
+      patchStandaloneAuthHeader(me, opts);
       return;
     }
     var name = (me && me.name) || 'Профиль';
@@ -1320,7 +1383,7 @@
       var path = opts.spaReturnPath || global.location.pathname || '/';
       global.location.href = '/?open_login=1&__spa=' + encodeURIComponent(path);
     };
-    var loginBtn = document.getElementById('login-btn');
+    var loginBtn = document.getElementById('login-btn') || document.querySelector('#site-header [data-action="login"]');
     if (loginBtn && opts.bindLogin !== false) {
       loginBtn.addEventListener('click', function () { loginNow(); });
     }

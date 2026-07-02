@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Один разработчик: как поднять сервис из Telegram-бота до App Store — честный чеклист</title>
+    <meta name="description" content="Соло-фаундер: Mac, сторы, Railway, самозанятость, ЮKassa, оплата в Play, App Store и RuStore. Честный чеклист Movie Planner.">
+    <link rel="canonical" href="https://movie-planner.ru/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html">
+    <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html">
+    <link rel="alternate" hreflang="x-default" href="https://movie-planner.ru/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="Один разработчик: от Telegram-бота до App Store">
+    <meta property="og:description" content="Честный чеклист по деньгам, Mac, Railway и AI-редакторам — без мифа «соло-фаундер за три дня».">
+    <meta property="og:url" content="https://movie-planner.ru/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html">
+    <meta property="og:type" content="article">
+    <meta property="og:image" content="https://movie-planner.ru/images/solo-founder-movie-planner-cover.png">
+    <meta property="og:site_name" content="Movie Planner">
+        <link rel="stylesheet" href="../style-v2.css?v=20260702articlechrome1">
+    <style id="mp-article-critical">
+      html.mp-session #site-header [data-action="login"],
+      html.mp-session #site-header #login-btn,
+      html.mp-session #site-header .header-login-btn,
+      html.mp-session .site-header-subpage-actions{display:none!important}
+      html.mp-session #header-user-wrap{display:flex!important}
+      html.mp-session #header-user-wrap.hidden{display:flex!important}
+      html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
+      html.mp-session #login-modal.modal:not(.hidden){visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    </style>
+    <script src="../articles/article-session-boot.js?v=20260702articlechrome1"></script>
+    <link rel="icon" href="../images/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Один разработчик: как поднять сервис из Telegram-бота до App Store",
+      "description": "Сколько нужно денег и времени соло-фаундеру: Mac, сторы, Railway, карты для РФ, Cursor и публичный код на GitHub.",
+      "image": "https://movie-planner.ru/images/solo-founder-movie-planner-cover.png",
+      "datePublished": "2026-06-28",
+      "dateModified": "2026-06-28",
+      "author": {
+        "@type": "Person",
+        "name": "Никита",
+        "url": "https://t.me/zapnikita95"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Movie Planner",
+        "url": "https://movie-planner.ru/"
+      },
+      "mainEntityOfPage": "https://movie-planner.ru/articles/solo-razrabotchik-kak-podnyat-prilozhenie.html"
+    }
+    </script>
+</head>
+<body>
+  <div class="content-wrapper subpage-wrapper">
+        <header id="site-header">
+      <div class="header-content">
+        <a class="logo" href="/"><img src="../images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>
+        <div class="header-search" id="header-search" role="search">
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
+        <div class="header-buttons">
+          <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="header-util-row">
+              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+              </button>
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
+            </div>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
+              <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
+            </button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container subpage-main">
+        <section class="article-content">
+            <h1>Один разработчик: как поднять сервис из Telegram-бота до App Store</h1>
+            <p class="date">28 июня 2026</p>
+
+            <p>Я Никита, делаю <strong>Movie Planner</strong> — планировщик кино и сериалов: <a href="https://movie-planner.ru">веб-кабинет</a>, приложения на iOS и Android, Mini App и бот в Telegram. Начинал с обычного чата. Сейчас — полноценный продукт с уведомлениями, билетами, ИИ-поиском и фоновыми job'ами.</p>
+            <p>Эта статья — не про «как написать код». Она про <strong>что нужно по деньгам, времени и нервам</strong>, если вы один, аудитория русскоязычная, и вы не senior-разработчик. Полная версия для VC — в нашем <a href="https://github.com/zapnikita95/movie_planner_bot/blob/main/docs/articles/article-vc-solo-founder-movie-planner.md">markdown на GitHub</a>.</p>
+
+            <h2>MVP за неделю — миф и правда</h2>
+            <p>На VC сейчас два лагеря: «собрал за выходные» и «не лезь, всё мёртво». Реальность посередине:</p>
+            <ul>
+                <li><strong>Узкий MVP</strong> (бот с несколькими командами, один сценарий) — реально <strong>1–2 недели</strong> с AI-редактором.</li>
+                <li><strong>Нормальный сервис</strong> (auth, Postgres, деплой, сторы, поддержка) — <strong>месяцы</strong>, даже если код пишет Cursor.</li>
+            </ul>
+            <p>Курсы «соло-фаундер за 3 дня» продают фантазию. Продукт = баги, edge cases, модерация сторов и «на моём телефоне не работает».</p>
+
+            <h2>Мой путь</h2>
+            <ol>
+                <li><strong>Telegram-бот</strong> — дешёвый вход, пользователь уже в чате.</li>
+                <li><strong>Mini App + веб-кабинет</strong> — когда чат не хватил для постеров, планов и статистики.</li>
+                <li><strong>iOS и Android</strong> — push, билеты, офлайн; плюс RuStore для РФ.</li>
+                <li><strong>Всё остальное</strong> — расширения, MCP, импорт с Кинопоиска, worker 24/7. Это год+ жизни, не «ещё одна кнопка».</li>
+            </ol>
+            <p>Совет: начните с <strong>одного канала</strong>, не со «бот + сайт + два приложения» в первый день.</p>
+
+            <h2>Я не программист — и это уже ок</h2>
+            <p>Я не пишу Python и TypeScript «с нуля руками». Основной инструмент — <strong>Cursor</strong> (иногда Codex / ChatGPT с кодом). Моя работа: продакт, тесты на реальных устройствах, ревью диффов, деплой и логи.</p>
+            <p>Нейросеть убирает рутину набора кода, но <strong>не заменяет</strong> понимание, что должен делать продукт.</p>
+
+            <h2>Деньги и железо</h2>
+            <table>
+                <thead>
+                    <tr><th>Что</th><th>Сколько</th><th>Зачем</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Google Play Console</td><td><strong>$25</strong> один раз</td><td>Релиз Android</td></tr>
+                    <tr><td>Apple Developer</td><td><strong>$99/год</strong></td><td>TestFlight и App Store</td></tr>
+                    <tr><td>Mac</td><td>от ~80k ₽ или аренда</td><td>iOS без Mac в норме не собрать</td></tr>
+                    <tr><td>RuStore</td><td>бесплатно</td><td>Отдельная сборка для РФ</td></tr>
+                    <tr><td>Домен .ru</td><td>~200–500 ₽/год</td><td>OAuth, письма, вид сервиса</td></tr>
+                    <tr><td>Railway (хостинг)</td><td>$0 → ~$5–20/мес</td><td>Бэкенд + Postgres, см. ниже</td></tr>
+                    <tr><td>Cursor / LLM API</td><td>от ~$20/мес</td><td>Код и ИИ в продукте</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Карты из России:</strong> Apple и Google ждут международную карту. Indie-разработчики часто используют виртуальные карты через сервисы в Telegram или банки, где ещё проходят зарубежные платежи. Без этого застрянете на $25 + $99, не на коде.</p>
+
+            <h2>Монетизация: самозанятость, ЮKassa и четыре стора</h2>
+            <p>Я <strong>самозанятый</strong> (НПД). Оплата — <strong>ЮKassa</strong> на сайте и в приложениях Play/iOS: экран <strong>«Оплата и подписка»</strong> (billing), checkout в WebView. Подписка после платежа включается <strong>автоматически</strong>.</p>
+            <p><strong>Чеки.</strong> Мне в Telegram приходит уведомление о платеже — я <strong>отвечаю на него</strong> и отправляю пользователю чек. Так живёт большая часть оплат сейчас; API «Мой налог» для авточеков допиливаю. Для соло на старте это нормально: оплата не ручная, чек — с участием фаундера.</p>
+            <p>Модель — <strong>freemium</strong>: база без оплаты, ИИ-лимиты через <strong>монетки</strong>.</p>
+
+            <table>
+                <thead>
+                    <tr><th>Канал</th><th>Оплата</th><th>Нюанс</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Сайт / кабинет</td><td>ЮKassa</td><td>Главный предсказуемый канал в рублях</td></tr>
+                    <tr><td>Google Play</td><td>ЮKassa в WebView</td><td>Своя платёжка внутри приложения; Billing не использую</td></tr>
+                    <tr><td>App Store</td><td>ЮKassa в WebView, без IAP</td><td>По правилам Apple — IAP; мой путь рискованный, ревью почти без споров</td></tr>
+                    <tr><td>RuStore</td><td>Пожертвование (CloudTips)</td><td>Только RuStore-сборка: нет billing, «Пожертвовать»</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Google Play</h3>
+            <p>Checkout ЮKassa прямо в приложении. Для русского indie часто рабочий путь: рубли, СБП, чеки НПД, один поток с сайтом. Формально Play требует Billing для digital goods — риск письма от Google остаётся.</p>
+
+            <h3>App Store — как не увязать в ревью</h3>
+            <ul>
+                <li><strong>Freemium</strong> — база бесплатна, оплата только за лимиты ИИ.</li>
+                <li>Checkout не на каждом экране — в профиле / billing.</li>
+                <li><strong>Без StoreKit</strong> — сознательный риск; Apple может потребовать IAP на следующем обновлении.</li>
+                <li>В review notes: подписка опциональна, база бесплатна.</li>
+            </ul>
+            <p>У меня ревью прошло <strong>почти без дискуссий</strong> (русское приложение, freemium). Это не гарантия. План Б: убрать оплату из iOS и вести на <a href="https://movie-planner.ru">сайт</a>.</p>
+
+            <h3>Паттерн «trial в приложении → продление на сайте»</h3>
+            <p>В <strong>другом проекте</strong>: приложение бесплатное, trial полной версии, после конца trial — «продлите на сайте» (без IAP в приложении). Apple тоже особо не придирались — снова не гарантия, но мягче для reader/SaaS-логики.</p>
+
+            <h3>RuStore: донат (отдельная сборка)</h3>
+            <p>В Play и iOS — полноценный billing + ЮKassa. В RuStore отдельный AAB: <strong>«Пожертвовать»</strong> (CloudTips), за донат — <strong>бесконечные монетки</strong>. Не путать с Play-сборкой.</p>
+            <p><em>Не юридическая консультация. Правила сторов меняются — проверяйте консоли перед релизом.</em></p>
+
+            <h2>Почему Railway</h2>
+            <p>Бэкенд Movie Planner на <strong>Railway</strong> (Python + Postgres + отдельный worker). Я выбрал его потому что:</p>
+            <ul>
+                <li><strong>Можно начать бесплатно</strong> — прототип и первые пользователи без большого счёта.</li>
+                <li><strong>Гибкая шкала</strong> — с ~$5/мес хватает на лёгкий prod; потом докидываешь RAM и второй сервис.</li>
+                <li><strong>Git push → deploy</strong> — для соло это критично.</li>
+                <li><strong>Managed Postgres</strong> в одном биллинге.</li>
+            </ul>
+            <p>Альтернативы: <strong>Fly.io</strong> и <strong>Render</strong> (простой старт), <strong>VPS</strong> (Hetzner, Selectel — дёшево, но админишь сам), <strong>Yandex Cloud</strong> (рубли и РФ, больше DevOps).</p>
+
+            <h2>Код на GitHub</h2>
+            <p>Репозитории: <a href="https://github.com/zapnikita95/movie_planner_bot">movie_planner_bot</a> (бэкенд) и <a href="https://github.com/zapnikita95/movieplanner-mobile">movieplanner-mobile</a> (приложения). Код <strong>публичный</strong> — можно смотреть структуру и CI. Это коммерческий сервис (не MIT), но прозрачность важнее «чёрного ящика»: учиться на живом примере, открытый API/MCP, дисциплина не коммитить секреты.</p>
+
+            <h2>Сроки по уровням</h2>
+            <ul>
+                <li><strong>Прототип бота</strong> — дни.</li>
+                <li><strong>MVP в одном канале</strong> — 2–4 недели.</li>
+                <li><strong>Живой prod с сайтом</strong> — 2–4 месяца.</li>
+                <li><strong>Экосистема как сейчас</strong> — год+ и всё ещё допиливается.</li>
+            </ul>
+
+            <h2>Чеклист «хочу попробовать»</h2>
+            <ol>
+                <li>Один сценарий, не десять фич.</li>
+                <li>AI-редактор + готовность читать код.</li>
+                <li>GitHub, Postgres с первого дня, домен.</li>
+                <li>Для Android: $25 и карта. Для iOS: Mac + $99/год.</li>
+                <li>Монетизация: самозанятый + ЮKassa на сайте; сторы — по разным правилам (см. выше).</li>
+                <li>2–4 недели на MVP, месяцы на «не стыдно показать друзьям».</li>
+            </ol>
+
+            <p>Если откликается кино — попробуйте Movie Planner в <a href="/?open_login=1">веб-кабинете</a> или в приложении. Если своя идея — начните с одного маленького куска сегодня.</p>
+
+            <div class="article-cta">
+                <p class="article-cta-lead">Попробуйте в приложении или веб-кабинете</p>
+                <div class="footer-store-row">
+                    <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/app-store-badge.svg" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+                    </a>
+                    <a href="/download" class="footer-store-badge" id="article-cta-android" target="_blank" rel="noopener">
+                        <img src="../images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+                    </a>
+                </div>
+                <div class="article-cta-secondary">
+                    <a href="/?open_login=1">Войти в кабинет</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/">На главную</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/articles/mcp-ai-agent-movie-planner.html">MCP и AI-агенты</a>
+                </div>
+            </div>
+</section>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="article-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-store-row">
+                        <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/app-store-badge.svg" alt="App Store" width="110" height="36" loading="lazy">
+                        </a>
+                        <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/google-play-badge.svg" alt="Google Play" width="120" height="36" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-info">
+                    <h3>Контакты</h3>
+                    <p>📍 Москва</p>
+                    <p>📞 +7 (977) 613-45-08</p>
+                    <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></p>
+                </div>
+                <div class="footer-social">
+                    <h3>Мы в соцсетях</h3>
+                    <div class="social-links">
+                        <a href="https://t.me/movie_planner_channel" target="_blank" rel="noopener" class="social-link" aria-label="Telegram канал"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg></a>
+                        <a href="https://instagram.com/movie_planner_bot" target="_blank" rel="noopener" class="social-link" aria-label="Instagram"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
+            </div>
+        </div>
+    </footer>
+  </div>
+  <script src="../public-film-login.js?v=20260602tgsafari1"></script>
+  <script src="../film-page.js?v=20260602sitefix5"></script>
+  <script src="article-chrome.js?v=20260617chrome1"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

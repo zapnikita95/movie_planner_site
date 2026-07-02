@@ -1,16 +1,17 @@
 (function (global) {
   'use strict';
 
+  var BUILD = '20260702articlechrome1';
+  var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
+  var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
+  var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
+
   if (!global.__mpMetrikaSite) {
     var ms = document.createElement('script');
     ms.src = '/yandex-metrika.js?v=20260621';
     ms.async = true;
     (document.head || document.documentElement).appendChild(ms);
   }
-
-  var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
-  var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
-  var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
 
   var root = document.documentElement;
   var locale = (root.getAttribute('lang') || 'ru').slice(0, 2);
@@ -58,14 +59,47 @@
     return strings[key] || COPY.ru[key] || key;
   }
 
+  function hasStoredSiteSession() {
+    if (global.MpArticleSessionBoot && typeof MpArticleSessionBoot.hasStoredSiteSession === 'function') {
+      return MpArticleSessionBoot.hasStoredSiteSession();
+    }
+    try {
+      var active = localStorage.getItem('mp_site_active_chat_id');
+      var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+      if (Array.isArray(sessions)) {
+        for (var i = 0; i < sessions.length; i++) {
+          if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+        }
+        for (var j = 0; j < sessions.length; j++) {
+          if (sessions[j] && sessions[j].token) return true;
+        }
+      }
+      return !!localStorage.getItem('mp_site_token');
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function applyChromeCopy() {
     Object.keys(strings).forEach(function (key) {
       document.querySelectorAll('[data-mp-chrome="' + key + '"]').forEach(function (el) {
         el.textContent = strings[key];
       });
     });
-    var loginBtn = document.getElementById('login-btn');
+    var loginBtn = document.getElementById('login-btn') || document.querySelector('[data-action="login"]');
     if (loginBtn) loginBtn.textContent = t('sign-in');
+    var searchInput = document.getElementById('header-search-input');
+    if (searchInput) {
+      searchInput.placeholder = t('search-placeholder');
+      searchInput.setAttribute('aria-label', t('search-label'));
+    }
+    var mic = document.getElementById('header-search-mic');
+    if (mic) {
+      mic.setAttribute('aria-label', t('voice-input'));
+      mic.setAttribute('title', t('voice-input'));
+    }
+    var clearBtn = document.getElementById('header-search-clear');
+    if (clearBtn) clearBtn.setAttribute('aria-label', t('clear'));
   }
 
   function headerShellHtml() {
@@ -73,9 +107,9 @@
       ? MpFilmPage.standaloneHeaderSearchHtml()
       : (
         '<div class="header-search" id="header-search" role="search">' +
-          '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
+          '<span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>' +
           '<input type="text" id="header-search-input" class="header-search-input" placeholder="' + t('search-placeholder') + '" autocomplete="off" aria-label="' + t('search-label') + '">' +
-          '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="' + t('voice-input') + '" title="' + t('voice-input') + '">🎤</button>' +
+          '<button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="' + t('voice-input') + '" title="' + t('voice-input') + '"></button>' +
           '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="' + t('clear') + '">×</button>' +
           '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
         '</div>'
@@ -85,10 +119,71 @@
         '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
         search +
         '<div class="header-buttons">' +
-          '<button type="button" class="btn-primary" id="login-btn">' + t('sign-in') + '</button>' +
+          '<button type="button" class="header-login-btn" data-action="login" id="login-btn">' + t('sign-in') + '</button>' +
+          '<div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">' +
+            '<button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">' +
+              '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
+              '<span class="header-profile-name" id="header-profile-name"></span>' +
+            '</button>' +
+            '<div class="header-util-row">' +
+              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
+                '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
+              '</button>' +
+              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
+                '<span class="header-coins-sprite"></span><span id="header-coins-val">—</span>' +
+              '</button>' +
+            '</div>' +
+            '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">' +
+              '<span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>' +
+            '</button>' +
+            '<div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );
+  }
+
+  function headerAlreadyModern(header) {
+    return !!(header && header.querySelector('#header-search') && header.querySelector('.header-buttons'));
+  }
+
+  function upgradeHeader() {
+    var header = document.querySelector('.site-header-subpage, #site-header');
+    if (!header) return;
+    header.id = 'site-header';
+    header.className = '';
+    if (headerAlreadyModern(header)) {
+      if (hasStoredSiteSession()) {
+        document.documentElement.classList.add('mp-session', 'mp-auth-boot');
+        if (global.MpArticleSessionBoot && typeof MpArticleSessionBoot.paintSessionHeaderStub === 'function') {
+          MpArticleSessionBoot.paintSessionHeaderStub(MpArticleSessionBoot.readStoredSession());
+        }
+      }
+      return;
+    }
+    header.innerHTML = headerShellHtml();
+    if (hasStoredSiteSession()) {
+      document.documentElement.classList.add('mp-session', 'mp-auth-boot');
+      if (global.MpArticleSessionBoot && typeof MpArticleSessionBoot.paintSessionHeaderStub === 'function') {
+        MpArticleSessionBoot.paintSessionHeaderStub(MpArticleSessionBoot.readStoredSession());
+      }
+    }
+  }
+
+  function mountArticleNav() {
+    if (!global.MpFilmPage) return;
+    if (typeof MpFilmPage.mountStandaloneCabinetNav === 'function') {
+      MpFilmPage.mountStandaloneCabinetNav('main.subpage-main');
+      return;
+    }
+    if (typeof MpFilmPage.standaloneNavHtml !== 'function') return;
+    var shell = document.querySelector('.page-shell');
+    var main = shell && shell.querySelector('main.subpage-main');
+    if (!shell || !main || document.getElementById('film-standalone-nav')) return;
+    var navWrap = document.createElement('div');
+    navWrap.innerHTML = MpFilmPage.standaloneNavHtml();
+    var navEl = navWrap.firstElementChild;
+    if (navEl) shell.insertBefore(navEl, main);
   }
 
   function rustoreBadgeHtml() {
@@ -97,14 +192,6 @@
         '<img src="/images/rustore-badge.svg?v=20260529rustore1" alt="' + t('download-rustore') + '" width="135" height="40" loading="lazy">' +
       '</a>'
     );
-  }
-
-  function upgradeHeader() {
-    var header = document.querySelector('.site-header-subpage, #site-header');
-    if (!header) return;
-    header.id = 'site-header';
-    header.className = '';
-    header.innerHTML = headerShellHtml();
   }
 
   function ensureRuStoreInRow(row) {
@@ -152,9 +239,21 @@
   function bumpArticleStylesheet() {
     document.querySelectorAll('link[rel="stylesheet"][href*="style-v2"]').forEach(function (link) {
       var href = link.getAttribute('href') || '';
-      if (!href || href.indexOf('?v=') !== -1) return;
-      link.href = href + (href.indexOf('?') === -1 ? '?' : '&') + 'v=20260625articletypo1';
+      if (!href || href.indexOf('?v=' + BUILD) !== -1) return;
+      var base = href.split('?')[0];
+      link.href = base + '?v=' + BUILD;
     });
+  }
+
+  function hydrateArticleIcons() {
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) {
+        var header = document.getElementById('site-header');
+        if (header) MPIcons.hydrate(header);
+        var nav = document.getElementById('film-standalone-nav');
+        if (nav) MPIcons.hydrate(nav);
+      }
+    } catch (_e) {}
   }
 
   function initArticleChrome() {
@@ -166,12 +265,13 @@
     } catch (_e) {}
 
     bumpArticleStylesheet();
-
     upgradeHeader();
+    mountArticleNav();
     upgradeStoreBadges();
     upgradeFooter();
     applyChromeCopy();
     resolveStoreLinks();
+    hydrateArticleIcons();
 
     if (!global.MpFilmPage || typeof MpFilmPage.initStandaloneSiteChrome !== 'function') return;
 
