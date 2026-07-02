@@ -6,8 +6,10 @@
   "use strict";
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
-  var premCacheKey = "mp_landing_premieres_v3";
-  var seriesCacheKey = "mp_landing_series_v4";
+  var premCacheKey = "mp_landing_premieres_v4";
+  var seriesCacheKey = "mp_landing_series_v5";
+  var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+  var SERIES_LIMIT = 50;
 
   function apiBase() {
     if (global.MpApiConfig && typeof global.MpApiConfig.apiOrigin === "function") {
@@ -38,6 +40,7 @@
       if (!raw) return null;
       var data = JSON.parse(raw);
       if (!data || !Array.isArray(data.items)) return null;
+      if (data.ts && Date.now() - Number(data.ts) > CACHE_TTL_MS) return null;
       return data;
     } catch (_e) {
       return null;
@@ -46,7 +49,7 @@
 
   function writeCache(key, data) {
     try {
-      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.setItem(key, JSON.stringify({ ts: Date.now(), items: data.items || [] }));
     } catch (_e) {}
   }
 
@@ -54,6 +57,18 @@
     return fetch(url, { method: "GET", mode: "cors" })
       .then(function (r) { return r.json(); })
       .catch(function () { return null; });
+  }
+
+  function dedupeByKp(items) {
+    var seen = {};
+    var out = [];
+    (items || []).forEach(function (m) {
+      var kp = String((m && m.kp_id) || "").replace(/\D/g, "");
+      if (!kp || seen[kp]) return;
+      seen[kp] = true;
+      out.push(m);
+    });
+    return out;
   }
 
   function posterForPremiere(it) {
@@ -70,13 +85,13 @@
     if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
     if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
     if (global.posterUrl && it && it.kp_id) return global.posterUrl(it.kp_id);
-    return MP_POSTER_PLACEHOLDER;
+    return "";
   }
 
   function filterSeries(items, limit) {
-    var lim = Math.max(1, Number(limit) || 16);
+    var lim = Math.max(1, Number(limit) || SERIES_LIMIT);
     var out = [];
-    (items || []).forEach(function (m) {
+    dedupeByKp(items).forEach(function (m) {
       var src = posterForSeries(m);
       if (!src || /film-poster-placeholder/i.test(src)) return;
       out.push(Object.assign({}, m, { poster: src }));
@@ -110,6 +125,7 @@
     var kp = String(it.kp_id || "").replace(/\D/g, "");
     if (!kp) return "";
     var poster = posterForSeries(it);
+    if (!poster) return "";
     var href = "/f/" + encodeURIComponent(kp);
     return '<a class="landing-pre-card landing-pre-card--series" href="' + href + '">'
       + '<div class="landing-pre-card-poster">'
@@ -124,7 +140,7 @@
 
   function paintTrack(track, html) {
     if (!track || !html) return;
-    track.innerHTML = html + html;
+    track.innerHTML = html;
   }
 
   function loadPremieres() {
@@ -132,11 +148,11 @@
     if (!track) return Promise.resolve();
     var cached = readCache(premCacheKey);
     if (cached && cached.items && cached.items.length) {
-      paintTrack(track, cached.items.map(premiereCard).join(""));
+      paintTrack(track, dedupeByKp(cached.items).slice(0, 18).map(premiereCard).join(""));
     }
     return fetchJson(apiBase() + "/api/public/premieres?period=upcoming&limit=18")
       .then(function (data) {
-        var items = (data && data.success && data.items) ? data.items.slice(0, 18) : [];
+        var items = dedupeByKp((data && data.success && data.items) ? data.items : []).slice(0, 18);
         if (!items.length && cached && cached.items) return;
         writeCache(premCacheKey, { items: items });
         paintTrack(track, items.map(premiereCard).join(""));
@@ -148,20 +164,20 @@
     if (!track) return Promise.resolve();
     var cached = readCache(seriesCacheKey);
     if (cached && cached.items && cached.items.length) {
-      var cachedFiltered = filterSeries(cached.items, 16);
+      var cachedFiltered = filterSeries(cached.items, SERIES_LIMIT);
       if (cachedFiltered.length) {
-        paintTrack(track, cachedFiltered.map(seriesCard).join(""));
+        paintTrack(track, cachedFiltered.map(seriesCard).filter(Boolean).join(""));
       }
     }
-    return fetchJson(apiBase() + "/api/public/series/upcoming?limit=24")
+    return fetchJson(apiBase() + "/api/public/series/upcoming?limit=" + SERIES_LIMIT)
       .then(function (data) {
         var items = filterSeries(
           (data && data.success && data.items) ? data.items.slice() : [],
-          16
+          SERIES_LIMIT
         );
         if (!items.length && cached && cached.items) return;
         writeCache(seriesCacheKey, { items: items });
-        paintTrack(track, items.map(seriesCard).join(""));
+        paintTrack(track, items.map(seriesCard).filter(Boolean).join(""));
       });
   }
 
@@ -172,7 +188,11 @@
   }
 
   global.__mpLandingVitrineRefresh = function () {
-    loadPremieres().catch(function () {});
+    try {
+      localStorage.removeItem(premCacheKey);
+      localStorage.removeItem(seriesCacheKey);
+    } catch (_e) {}
+    return Promise.all([loadPremieres(), loadSeries()]).catch(function () {});
   };
 
   if (global.renderPremiereNotifyButton) {

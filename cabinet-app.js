@@ -218,8 +218,12 @@
 
   function filterVitrineSeriesItems(items, limit) {
     const lim = Math.max(1, Number(limit) || 12);
+    const seen = new Set();
     const out = [];
     (items || []).forEach(function (m) {
+      const kp = String((m && (m.kp_id || m.kp)) || '').replace(/\D/g, '');
+      if (kp && seen.has(kp)) return;
+      if (kp) seen.add(kp);
       const src = seriesShowcasePosterSrc(m);
       if (!src) return;
       out.push(Object.assign({}, m, { poster: src }));
@@ -7358,24 +7362,24 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v7';
+    const cacheKey = 'mp_guest_series_v8';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
-      return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 24) });
+      return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 50) });
     }
-    const url = getPublicApiBase() + '/api/public/series/upcoming?limit=24';
+    const url = getPublicApiBase() + '/api/public/series/upcoming?limit=50';
     return fetchPublicJson(url, 8000)
       .then((data) => {
         const items = filterVitrineSeriesItems(
           (data && data.success && data.items) ? data.items.slice() : [],
-          24
+          50
         );
         const out = { items: items };
         if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
       })
       .catch(() => (cached && Array.isArray(cached.items)
-        ? { items: filterVitrineSeriesItems(cached.items, 24) }
+        ? { items: filterVitrineSeriesItems(cached.items, 50) }
         : { items: [] }));
   }
 

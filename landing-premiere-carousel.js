@@ -1,5 +1,5 @@
 /**
- * Автопрокрутка каруселей премьер и сериалов на лендинге.
+ * Автопрокрутка каруселей премьер и сериалов на лендинге (без дублирования карточек).
  */
 (function () {
   "use strict";
@@ -14,14 +14,6 @@
 
     var paused = false;
     var resumeTimer = null;
-    var halfWidth = 0;
-
-    function measure() {
-      halfWidth = track.scrollWidth / 2;
-      if (halfWidth > 0 && viewport.scrollLeft >= halfWidth) {
-        viewport.scrollLeft -= halfWidth;
-      }
-    }
 
     function pauseAuto() {
       paused = true;
@@ -36,14 +28,11 @@
     });
     viewport.addEventListener("scroll", pauseAuto, { passive: true });
 
-    window.addEventListener("resize", measure);
-    measure();
-
     function tick() {
-      if (!paused && halfWidth > viewport.clientWidth) {
+      if (!paused && track.scrollWidth > viewport.clientWidth + 4) {
         viewport.scrollLeft += SCROLL_PX_PER_FRAME;
-        if (viewport.scrollLeft >= halfWidth) {
-          viewport.scrollLeft -= halfWidth;
+        if (viewport.scrollLeft + viewport.clientWidth >= track.scrollWidth - 2) {
+          viewport.scrollLeft = 0;
         }
       }
       requestAnimationFrame(tick);
