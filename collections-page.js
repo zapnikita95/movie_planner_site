@@ -272,7 +272,7 @@
         if (typeof global.__mpOpenFilmTagFromCollections === "function") {
           global.__mpOpenFilmTagFromCollections(tagId);
         } else if (typeof global.openFilmTagView === "function") {
-          global.openFilmTagView(tagId, { returnSection: "collections" });
+          global.openFilmTagView(tagId, { returnSection: "whattowatch" });
         }
         return;
       }

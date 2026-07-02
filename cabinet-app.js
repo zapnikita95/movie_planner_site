@@ -3621,6 +3621,7 @@
       if (fromPath) return fromPath;
       const st = window.history && window.history.state;
       if (st && st.section === 'user' && st.userId) return 'user';
+      if (st && st.section === 'collections') return 'whattowatch';
       if (st && st.section && SECTION_TO_PATH[st.section]) return st.section;
     } catch (_) {}
     return null;
@@ -3707,13 +3708,6 @@
     if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
     if (sectionId === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
     if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
-    if (sectionId === 'collections') {
-      try {
-        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
-          window.MpCollectionsPage.render({ resetView: true });
-        }
-      } catch (_) {}
-    }
     if (sectionId === 'unwatched' || sectionId === 'series' || sectionId === 'ratings') {
       try { refreshBaseUserTagPills(); } catch (_) {}
     }
@@ -4659,8 +4653,24 @@
     } catch (_) {}
   }
 
+  function openSiteWhattowatch(opts) {
+    const o = opts || {};
+    const scope = o.scope;
+    if (scope === 'library' || scope === 'world' || scope === 'collections') {
+      siteWtwScope = scope;
+      try { sessionStorage.setItem('mp_wtw_scope', scope); } catch (_) {}
+    }
+    if (scope !== 'collections') siteWtwCollectionCode = null;
+    markCabinetUserNav('whattowatch');
+    showSection('whattowatch', { replace: !!o.replace, skipPush: !!o.skipPush });
+  }
+
   function showSection(sectionId, opts) {
     const options = opts || {};
+    if (sectionId === 'collections') {
+      openSiteWhattowatch({ scope: 'collections', replace: options.replace, skipPush: options.skipPush });
+      return;
+    }
     dismissStaffHoverPreview();
     try { closeAccountDropdown(); } catch (_) {}
     try { closeHeaderInboxDropdown(); } catch (_) {}
@@ -4681,7 +4691,7 @@
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
       tShown = t;
-      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag' || sectionId === 'collections') ? 'unwatched'
+      const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag') ? 'unwatched'
         : sectionId === 'series-hub' ? 'home' : sectionId;
       readonly.querySelectorAll('.cabinet-nav button').forEach((b) => {
         b.classList.remove('active');
@@ -4705,9 +4715,7 @@
     }
     if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
       _filmModalCurrentId = null;
-      if (sectionId !== 'collections') {
-        try { restoreDocumentTitle(); } catch (e) {}
-      }
+      try { restoreDocumentTitle(); } catch (e) {}
     }
     if (rendered && !options.skipPush && SECTION_TO_PATH[sectionId]) {
       pushSectionUrl(sectionId, !!options.replace);
@@ -4801,14 +4809,6 @@
     }
     if (rendered && sectionId === 'stats') {
       try { mountStatsSection(); } catch (_) {}
-    }
-    if (rendered && sectionId === 'collections') {
-      try {
-        if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
-          window.MpCollectionsPage.render();
-        }
-      } catch (_) {}
-      try { window.scrollTo(0, 0); } catch (_) {}
     }
     if (rendered && sectionId === 'user' && _currentUserProfileId) {
       try {
@@ -7713,12 +7713,7 @@
       const collEntry = e.target.closest('[data-go-collections]');
       if (collEntry) {
         e.preventDefault();
-        markCabinetUserNav('whattowatch');
-        siteWtwScope = 'collections';
-        siteWtwCollectionCode = null;
-        try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
-        showSection('whattowatch');
-        afterCabinetSectionShown('whattowatch');
+        openSiteWhattowatch({ scope: 'collections' });
         return;
       }
       const collFilm = e.target.closest('#collections-content .collections-film-card, #site-wtw-collections-panel .collections-film-card');
@@ -16138,11 +16133,7 @@
         if (sec === 'integrations') { /* section wired in showSection */ }
         if (sec === 'about') { try { bindFaq && bindFaq(); } catch (_) {} }
         if (sec === 'collections') {
-          markCabinetUserNav('whattowatch');
-          siteWtwScope = 'collections';
-          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
-          showSection('whattowatch');
-          if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
+          openSiteWhattowatch({ scope: 'collections' });
           return;
         }
       });
@@ -18923,11 +18914,7 @@
         if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
         if (sec === 'series-hub') { try { renderSeriesHubSection(); } catch (_) {} }
         if (sec === 'collections') {
-          try {
-            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
-              window.MpCollectionsPage.render({ resetView: true });
-            }
-          } catch (_) {}
+          openSiteWhattowatch({ scope: 'collections', skipPush: true });
         }
       }
     });
@@ -18954,8 +18941,14 @@
         if (sectionId === 'groups') {
           renderGroupsSection();
         }
-        if (sectionId === 'whattowatch' && typeof renderWhattowatchSection === 'function') {
-          renderWhattowatchSection();
+        if (sectionId === 'whattowatch') {
+          const navPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (navPath === '/whattowatch') {
+            siteWtwScope = 'library';
+            siteWtwCollectionCode = null;
+            try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
+          }
+          if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
         }
         if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
           renderSettingsSection();
