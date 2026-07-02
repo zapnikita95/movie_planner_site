@@ -17152,6 +17152,41 @@ img.mp-poster-placeholder,
 .series-hub-library-panel .base-filter-toolbar {
   margin-bottom: 18px;
 }
+#section-series .base-filter-toolbar-scroll,
+.series-hub-library-panel .base-filter-toolbar-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+#section-series .base-filter-chip,
+.series-hub-library-panel .base-filter-chip {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  max-width: none;
+  flex: 1 1 0;
+  min-width: 0;
+}
+#section-series .base-filter-chip--wide,
+.series-hub-library-panel .base-filter-chip--wide {
+  flex: 1.4 1 0;
+}
+#section-series .base-filter-chip-k,
+.series-hub-library-panel .base-filter-chip-k {
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#section-series .base-filter-chip-native,
+.series-hub-library-panel .base-filter-chip-native {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
 .series-hub-library-panel #series-hub-list.cards-list {
   margin-top: 4px;
 }
@@ -17184,6 +17219,11 @@ img.mp-poster-placeholder,
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 .landing-premieres-all:hover { text-decoration: underline; }
 .landing-premieres-viewport {
@@ -18460,7 +18500,7 @@ img.mp-poster-placeholder,
   body.landing-root-page .landing-feat-card {
     flex: 0 0 calc(100% - 4px);
     scroll-snap-align: center;
-    scroll-snap-stop: always;
+    scroll-snap-stop: normal;
     text-align: center;
     padding: 24px 18px 20px;
     border-radius: 16px;

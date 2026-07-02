@@ -8,17 +8,17 @@
   var prevBtn = document.querySelector('.landing-feats-arrow--prev');
   var nextBtn = document.querySelector('.landing-feats-arrow--next');
   var animating = false;
+  var autoPaused = false;
+  var resumeTimer = null;
+  var SCROLL_PX = 0.35;
+  var RESUME_MS = 2400;
 
   function isCarouselMode() {
     return window.matchMedia('(max-width: 768px)').matches;
   }
 
-  function cards() {
-    return track.querySelectorAll('.landing-feat-card');
-  }
-
   function cardStep() {
-    var list = cards();
+    var list = track.querySelectorAll('.landing-feat-card');
     if (!list.length) return viewport.clientWidth;
     var card = list[0];
     var style = window.getComputedStyle(track);
@@ -26,30 +26,41 @@
     return card.offsetWidth + gap;
   }
 
-  function clampIndex(idx) {
-    var list = cards();
-    if (!list.length) return 0;
-    return Math.max(0, Math.min(list.length - 1, idx));
+  function maxScrollLeft() {
+    return Math.max(0, track.scrollWidth - viewport.clientWidth);
   }
 
-  function readIndex() {
-    var step = cardStep();
-    if (!step) return 0;
-    return clampIndex(Math.round(viewport.scrollLeft / step));
+  function pauseAuto() {
+    autoPaused = true;
+    if (resumeTimer) clearTimeout(resumeTimer);
+    resumeTimer = window.setTimeout(function () {
+      autoPaused = false;
+    }, RESUME_MS);
   }
 
-  function scrollToIndex(idx, smooth) {
-    if (!isCarouselMode()) return;
-    var next = clampIndex(idx);
-    var left = next * cardStep();
-    animating = true;
-    viewport.scrollTo({ left: left, behavior: smooth ? 'smooth' : 'auto' });
-    window.setTimeout(function () { animating = false; }, smooth ? 380 : 0);
+  function scrollToLeft(left, smooth) {
+    var target = Math.max(0, Math.min(maxScrollLeft(), left));
+    animating = !!smooth;
+    viewport.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+    window.setTimeout(function () {
+      animating = false;
+    }, smooth ? 420 : 0);
   }
 
   function scrollByCard(dir) {
     if (!isCarouselMode() || animating) return;
-    scrollToIndex(readIndex() + dir, true);
+    pauseAuto();
+    var step = cardStep();
+    var next = viewport.scrollLeft + dir * step;
+    if (dir > 0 && next >= maxScrollLeft() - 1) {
+      scrollToLeft(0, false);
+      return;
+    }
+    if (dir < 0 && next <= 0) {
+      scrollToLeft(maxScrollLeft(), false);
+      return;
+    }
+    scrollToLeft(next, true);
   }
 
   if (prevBtn) {
@@ -60,40 +71,33 @@
   }
 
   var touchStartX = 0;
-  var touchStartY = 0;
   viewport.addEventListener('touchstart', function (e) {
     if (!isCarouselMode()) return;
     touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
+    pauseAuto();
   }, { passive: true });
 
   viewport.addEventListener('touchend', function (e) {
     if (!isCarouselMode() || animating) return;
     var dx = e.changedTouches[0].screenX - touchStartX;
-    var dy = e.changedTouches[0].screenY - touchStartY;
-    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
+    if (Math.abs(dx) < 36) return;
     scrollByCard(dx < 0 ? 1 : -1);
   }, { passive: true });
 
-  function snapToNearest() {
-    if (!isCarouselMode() || animating) return;
-    scrollToIndex(readIndex(), false);
-  }
-
-  viewport.addEventListener('scroll', function () {
-    if (animating || !isCarouselMode()) return;
-    window.clearTimeout(viewport._mpFeatSnapT);
-    viewport._mpFeatSnapT = window.setTimeout(snapToNearest, 120);
-  }, { passive: true });
-
-  if (typeof viewport.addEventListener === 'function') {
-    viewport.addEventListener('scrollend', snapToNearest, { passive: true });
-  }
-
-  window.addEventListener('resize', function () {
-    if (!isCarouselMode()) return;
-    scrollToIndex(readIndex(), false);
+  ['pointerenter', 'wheel'].forEach(function (ev) {
+    viewport.addEventListener(ev, pauseAuto, { passive: true });
   });
+
+  function tick() {
+    if (isCarouselMode() && !autoPaused && !animating && track.scrollWidth > viewport.clientWidth + 4) {
+      viewport.scrollLeft += SCROLL_PX;
+      if (viewport.scrollLeft + viewport.clientWidth >= track.scrollWidth - 2) {
+        viewport.scrollLeft = 0;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 
   try {
     if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') {

@@ -4834,6 +4834,10 @@
 
   function showSection(sectionId, opts) {
     const options = opts || {};
+    if (isGuestCabinetPreview() && !guestMayOpenCabinetSection(sectionId)) {
+      requireAuthForAction('Войдите, чтобы открыть этот раздел');
+      return;
+    }
     if (sectionId === 'collections') {
       openSiteWhattowatch({ scope: 'collections', replace: options.replace, skipPush: options.skipPush });
       return;
@@ -7862,6 +7866,16 @@
     }
 
     renderPeriod(periodKind, _siteTournamentActiveNomId);
+  }
+
+  function bindLandingSeriesAuthOnce() {
+    const btn = document.querySelector('#landing-series [data-landing-series-auth]');
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      requireAuthForAction('Войдите, чтобы открыть каталог сериалов');
+    });
   }
 
   function bindHomeSectionNavOnce() {
@@ -19076,6 +19090,7 @@
     } catch (_) {}
     bindPlansGotoOnce();
     bindHomeSectionNavOnce();
+    bindLandingSeriesAuthOnce();
     bindHomeDashboardFilmNavOnce();
     bindHomeLayoutModalOnce();
     bindHomeShazamOnce();
@@ -19125,6 +19140,16 @@
       try { restoreDocumentTitle(); } catch (e) {}
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
+        if (!getToken() && !guestMayOpenCabinetSection(sec)) {
+          requireAuthForAction('Войдите, чтобы открыть этот раздел');
+          try {
+            if (isGuestCabinetPreview()) {
+              history.replaceState(null, '', '/home');
+              showSection('home', { skipPush: true });
+            }
+          } catch (_) {}
+          return;
+        }
         if (getToken()) {
           const ro = document.getElementById('cabinet-readonly');
           const ob = document.getElementById('cabinet-onboarding');

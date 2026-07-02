@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260703obfix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260703obfix1">
+    <link rel="preload" href="/style-v2.css?v=20260703landing1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260703landing1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1019,14 +1019,13 @@
           <div class="landing-feats-viewport" id="landing-feats-viewport">
             <div class="bento-grid landing-feats-track">
           <div class="bento-card landing-feat-card" id="landing-feat-watchlist"><div class="landing-feat-icon mp-icon" data-mp-icon="watchlist" aria-hidden="true"></div><h3>Ведение базы кино</h3><p>Личная и общая база — свой watchlist или общий список с друзьями</p></div>
-          <div class="bento-card landing-feat-card" id="landing-feat-plans"><div class="landing-feat-icon mp-icon" data-mp-icon="calendar" aria-hidden="true"></div><h3>Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре, напоминания — «суббота», «завтра»</p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-plans"><div class="landing-feat-icon mp-icon" data-mp-icon="calendar" aria-hidden="true"></div><h3>Планирование просмотров</h3><p>Планируйте кино на выходные дома или в кинотеатре — напоминания живым языком: «суббота», «завтра»</p></div>
           <div class="bento-card landing-feat-card" id="landing-feat-series"><div class="landing-feat-icon mp-icon" data-mp-icon="series" aria-hidden="true"></div><h3>Трекинг сериалов</h3><p>Отслеживайте эпизоды и получайте уведомления о новых сериях</p></div>
-          <div class="bento-card landing-feat-card" id="landing-feat-tickets"><div class="landing-feat-icon mp-icon" data-mp-icon="ticket" aria-hidden="true"></div><h3>Билеты в кино</h3><p>Сохраняйте билеты — бот пришлёт их за 10 минут до сеанса</p></div>
-          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="ratings" aria-hidden="true"></div><h3>Рекомендации</h3><p>Персональные рекомендации на основе ваших оценок 9–10</p></div>
-          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="phone" aria-hidden="true"></div><h3>Приложение Android</h3><p>Планы, база, билеты и уведомления — актуальный APK на <a href="/download">странице загрузки</a></p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-tickets"><div class="landing-feat-icon mp-icon" data-mp-icon="ticket" aria-hidden="true"></div><h3>Билеты в кино</h3><p>Сохраняйте билеты в сервис — они придут в уведомлении перед сеансом</p></div>
+          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="ratings" aria-hidden="true"></div><h3>Рекомендации</h3><p>Персональные рекомендации по высоким оценкам, ответам опроса и ощущениям</p></div>
+          <div class="bento-card landing-feat-card" id="landing-feat-apps"><div class="landing-feat-icon mp-icon" data-mp-icon="phone" aria-hidden="true"></div><h3>Приложение iOS и Android</h3><p>Планы, база, билеты и уведомления — в <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" target="_blank" rel="noopener">App Store</a> и <a href="https://play.google.com/store/apps/details?id=com.movie_planner&amp;hl=ru" target="_blank" rel="noopener">Google Play</a></p></div>
           <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="telegram" aria-hidden="true"></div><h3>Telegram Mini App</h3><p>Интерфейс в Telegram — из меню бота или по <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">кнопке запуска</a></p></div>
           <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="extension" aria-hidden="true"></div><h3>Браузерное расширение</h3><p>Добавляйте фильмы с Кинопоиска, IMDb и Letterboxd, отслеживайте просмотр на стримингах</p></div>
-          <div class="bento-card landing-feat-card"><div class="landing-feat-icon mp-icon" data-mp-icon="tv" aria-hidden="true"></div><h3>Запуск на Smart TV</h3><p>Подключите телевизор в боте или кабинете — в карточке фильма появится «На ТВ» с запуском в Кинопоиск HD, Okko или ivi</p></div>
             </div>
           </div>
           <button type="button" class="landing-feats-arrow landing-feats-arrow--next" aria-label="Следующая возможность">›</button>
@@ -1036,7 +1035,7 @@
       <section class="landing-premieres landing-series-vitrine" id="landing-series" aria-labelledby="landing-series-title">
         <div class="landing-premieres-head">
           <h2 class="section-title" id="landing-series-title">Сериалы</h2>
-          <a class="landing-premieres-all" href="/series">Все →</a>
+          <button type="button" class="landing-premieres-all" data-landing-series-auth="1">Все →</button>
         </div>
         <div class="landing-premieres-viewport" id="landing-series-viewport">
           <div class="landing-premieres-track" id="landing-series-track"></div>
@@ -2517,7 +2516,7 @@
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1',
-          'landing-features-carousel.js?v=20260702vitrine4'
+          'landing-features-carousel.js?v=20260703landing1'
         ];
         var list;
         if (isSearch) {
@@ -2525,7 +2524,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260702vitrine4'
+            'cabinet-app.js?v=20260703landing1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2536,9 +2535,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702vitrine4');
+          list.push('cabinet-app.js?v=20260703landing1');
         } else {
-          list.push('cabinet-app.js?v=20260702vitrine4');
+          list.push('cabinet-app.js?v=20260703landing1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260702vitrine4');
