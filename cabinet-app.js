@@ -197,6 +197,40 @@
     return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
+  function isKpIphonePosterUrl(src, kpId) {
+    const s = String(src || '').trim();
+    if (!s || !kpId) return false;
+    const kp = String(kpId).replace(/\D/g, '');
+    if (!kp) return false;
+    return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
+  }
+
+  /** Vitrine rails: never raw KP iphone360 — real art or branded placeholder only. */
+  function vitrinePosterSrc(item) {
+    const kp = item && (item.kp_id || item.kp);
+    const raw = cleanPosterUrl(item && item.poster);
+    if (raw && isGoodFilmPosterUrl(raw) && !isKpIphonePosterUrl(raw, kp)) return raw;
+    if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
+    return MP_POSTER_PLACEHOLDER;
+  }
+
+  function filterVitrineSeriesItems(items, limit) {
+    const lim = Math.max(1, Number(limit) || 12);
+    const withPoster = [];
+    const fallback = [];
+    (items || []).forEach(function (m) {
+      const src = vitrinePosterSrc(m);
+      const entry = Object.assign({}, m, { poster: src });
+      if (src && src !== MP_POSTER_PLACEHOLDER) withPoster.push(entry);
+      else fallback.push(entry);
+    });
+    const out = withPoster.slice(0, lim);
+    if (out.length < lim) {
+      out.push.apply(out, fallback.slice(0, lim - out.length));
+    }
+    return out;
+  }
+
   function currentFilmPosterFromDom(root) {
     const scope = root || document;
     const img = scope.querySelector('#film-page-content .poster, #section-film .poster, .poster-wrap .poster');
@@ -1054,6 +1088,9 @@
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
+    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+      return Promise.resolve();
+    }
     if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
       return _openFilmPageByKpInflight.promise;
     }
@@ -1114,6 +1151,7 @@
         .catch(function () {});
     }
     const inflight = api('/api/site/film-by-kp/' + kp, { timeoutMs: 15000 }).then(function (res) {
+      if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) return null;
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), {
           skipHistory: o.skipHistory,
@@ -2091,7 +2129,7 @@
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       showFilmPageLayout();
       if (getToken()) {
-        void openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+        ensureLoggedInHeader();
       }
       deferCabinetLists();
       scheduleOnboarding = false;
@@ -2104,7 +2142,7 @@
       showScreen('cabinet-readonly');
       showFilmPageLayout();
       if (getToken()) {
-        void openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
+        ensureLoggedInHeader();
       }
       deferCabinetLists();
       scheduleOnboarding = false;
@@ -4306,6 +4344,7 @@
         const kp = link.getAttribute('data-staff-kp');
         if (!kp) return;
         e.preventDefault();
+        e.stopPropagation();
         if (typeof openStaffPage === 'function') {
           openStaffPage(kp, { replace: false });
         } else {
@@ -4578,6 +4617,7 @@
   function openStaffPage(kpId, opts) {
     const o = opts || {};
     dismissStaffHoverPreview();
+    _openFilmPageByKpInflight = null;
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
     const pageRoot = document.getElementById('film-page-content');
@@ -6917,9 +6957,12 @@
   function renderHomePosterRailHtml(items, opts) {
     const o = opts || {};
     const rated = !!o.rated;
+    const vitrine = !!o.vitrine;
     if (!items || !items.length) return '';
     return '<div class="home-poster-rail home-rail--draggable" role="list">' + items.map((m) => {
-      const poster = m.poster || (m.kp_id ? posterUrl(m.kp_id) : '');
+      const poster = vitrine
+        ? vitrinePosterSrc(m)
+        : (m.poster || (m.kp_id ? posterUrl(m.kp_id) : ''));
       const img = poster
         ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>'
         : '<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
@@ -6956,9 +6999,11 @@
       const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
       const attrs = homeDashNavAttrs(it);
       const imgSrc = cleanPosterUrl(poster) || MP_POSTER_PLACEHOLDER;
+      const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
       return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
-        + '<div class="home-pre-card-poster">'
+        + '<div class="home-pre-card-poster premiere-poster-media">'
         + '<img class="home-pre-card-poster-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+        + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
@@ -7132,10 +7177,10 @@
 
     if (blockId === 'series') {
       if (isGuestCabinetPreview()) {
-        const guestSeries = (_homeSeriesPreview || []).slice(0, 12);
+        const guestSeries = filterVitrineSeriesItems(_homeSeriesPreview || [], 12);
         if (!guestSeries.length) return '';
         return '<section class="home-dash-block" data-home-block="series">' + head
-          + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries) + '</div></section>';
+          + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries, { vitrine: true }) + '</div></section>';
       }
       const seed = _homeDashboardCache
         ? (
@@ -7317,20 +7362,25 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v4';
+    const cacheKey = 'mp_guest_series_v5';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
-      return Promise.resolve(cached);
+      return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 24) });
     }
     const url = getPublicApiBase() + '/api/public/series/upcoming?limit=24';
     return fetchPublicJson(url, 8000)
       .then((data) => {
-        const items = (data && data.success && data.items) ? data.items.slice() : [];
+        const items = filterVitrineSeriesItems(
+          (data && data.success && data.items) ? data.items.slice() : [],
+          24
+        );
         const out = { items: items };
         if (out.items.length) writeBrowserCache(cacheKey, out);
         return out;
       })
-      .catch(() => (cached && Array.isArray(cached.items) ? cached : { items: [] }));
+      .catch(() => (cached && Array.isArray(cached.items)
+        ? { items: filterVitrineSeriesItems(cached.items, 24) }
+        : { items: [] }));
   }
 
   function fetchHomePremierePreview() {
@@ -7805,6 +7855,19 @@
     if (window._mpHomeNavBound) return;
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
+      const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
+      if (!premiereBtn || !premiereBtn.closest('.home-dashboard-root, #landing')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handlePremiereNotifyButton(premiereBtn, () => {
+        if (premiereBtn.closest('#landing') && typeof window.__mpLandingVitrineRefresh === 'function') {
+          window.__mpLandingVitrineRefresh();
+        } else {
+          renderHomeDashboardFromCache();
+        }
+      });
+    }, true);
+    document.addEventListener('click', (e) => {
       if (homeDashboardFilmTileFromEvent(e)) return;
       const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
       if (card && card.closest('#home-dashboard-root') && !e.target.closest('button,a,input,select,textarea,[data-stop-card-click]')) {
@@ -7843,15 +7906,6 @@
       if (collFilm) {
         e.preventDefault();
         openFilmFromCard(collFilm);
-        return;
-      }
-      const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
-      if (premiereBtn && premiereBtn.closest('.home-dashboard-root')) {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePremiereNotifyButton(premiereBtn, () => {
-          renderHomeDashboardFromCache();
-        });
         return;
       }
       const t = e.target.closest('[data-home-show-section]');
@@ -12330,6 +12384,9 @@
 
   function openFilmPage(filmId, opts) {
     const o = opts || {};
+    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+      return;
+    }
     if (!getToken()) {
       showToast('Войдите в кабинет');
       return;

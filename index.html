@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260702guestob1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260702guestob1">
+    <link rel="preload" href="/style-v2.css?v=20260702vitrine1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702vitrine1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -957,6 +957,16 @@
         </div>
       </section>
 
+      <section class="landing-premieres" id="landing-premieres" aria-labelledby="landing-premieres-title">
+        <div class="landing-premieres-head">
+          <h2 class="section-title" id="landing-premieres-title">Премьеры</h2>
+          <a class="landing-premieres-all" href="/premieres">Все →</a>
+        </div>
+        <div class="landing-premieres-viewport" id="landing-premieres-viewport">
+          <div class="landing-premieres-track" id="landing-premieres-track"></div>
+        </div>
+      </section>
+
       <section>
         <div class="what-is-v2">
           <div class="what-is-v2-label">Что такое Movie Planner</div>
@@ -1015,6 +1025,16 @@
             </div>
           </div>
           <button type="button" class="landing-feats-arrow landing-feats-arrow--next" aria-label="Следующая возможность">›</button>
+        </div>
+      </section>
+
+      <section class="landing-premieres landing-series-vitrine" id="landing-series" aria-labelledby="landing-series-title">
+        <div class="landing-premieres-head">
+          <h2 class="section-title" id="landing-series-title">Сериалы</h2>
+          <a class="landing-premieres-all" href="/series">Все →</a>
+        </div>
+        <div class="landing-premieres-viewport" id="landing-series-viewport">
+          <div class="landing-premieres-track" id="landing-series-track"></div>
         </div>
       </section>
 
@@ -2492,7 +2512,9 @@
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1',
-          'landing-features-carousel.js?v=20260702landingfix3'
+          'landing-features-carousel.js?v=20260702landingfix3',
+          'landing-premiere-carousel.js?v=20260702vitrine1',
+          'landing-vitrine.js?v=20260702vitrine1'
         ];
         var list;
         if (isSearch) {
@@ -2511,9 +2533,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702landingfix3');
+          list.push('cabinet-app.js?v=20260702vitrine1');
         } else {
-          list.push('cabinet-app.js?v=20260702landingfix3');
+          list.push('cabinet-app.js?v=20260702vitrine1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

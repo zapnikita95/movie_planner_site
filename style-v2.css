@@ -15170,6 +15170,13 @@ body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"
   object-fit: cover;
   display: block;
 }
+.home-pre-card-poster.premiere-poster-media > span[data-stop-card-click] {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 3;
+  line-height: 0;
+}
 .home-poster-tile-img img {
   width: 100%;
   height: 100%;
@@ -17157,6 +17164,12 @@ img.mp-poster-placeholder,
   margin-top: 4px;
   font-size: 11px;
   color: rgba(170, 179, 210, 0.92);
+}
+.landing-series-vitrine {
+  margin-top: 8px;
+}
+.landing-series-vitrine .landing-pre-card--series {
+  border-color: rgba(129, 140, 248, 0.22);
 }
 
 /* Film user tags */

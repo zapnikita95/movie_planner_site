@@ -1918,6 +1918,7 @@
             if (!kp) return;
             if (global.MpCabinetNav && typeof global.MpCabinetNav.openStaffPage === 'function') {
               e.preventDefault();
+              e.stopPropagation();
               global.MpCabinetNav.openStaffPage(kp, { replace: false });
               return;
             }

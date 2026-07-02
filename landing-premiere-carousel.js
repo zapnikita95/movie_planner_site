@@ -1,5 +1,5 @@
 /**
- * Автопрокрутка карусели премьер на лендинге + пауза при наведении/свайпе.
+ * Автопрокрутка каруселей премьер и сериалов на лендинге.
  */
 (function () {
   "use strict";
@@ -7,9 +7,9 @@
   var SCROLL_PX_PER_FRAME = 0.45;
   var RESUME_DELAY_MS = 2200;
 
-  function init() {
-    var viewport = document.getElementById("landing-premieres-viewport");
-    var track = document.getElementById("landing-premieres-track");
+  function bindCarousel(viewportId, trackId) {
+    var viewport = document.getElementById(viewportId);
+    var track = document.getElementById(trackId);
     if (!viewport || !track) return;
 
     var paused = false;
@@ -18,7 +18,7 @@
 
     function measure() {
       halfWidth = track.scrollWidth / 2;
-      if (viewport.scrollLeft >= halfWidth) {
+      if (halfWidth > 0 && viewport.scrollLeft >= halfWidth) {
         viewport.scrollLeft -= halfWidth;
       }
     }
@@ -49,6 +49,11 @@
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+  }
+
+  function init() {
+    bindCarousel("landing-premieres-viewport", "landing-premieres-track");
+    bindCarousel("landing-series-viewport", "landing-series-track");
   }
 
   if (document.readyState === "loading") {
