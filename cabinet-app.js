@@ -3525,7 +3525,7 @@
     settings: '/settings',
     developer: '/my-api',
     inbox: '/inbox',
-    collections: '/whattowatch',
+    collections: '/features/collections',
   };
   const PROFILE_SUB_TO_PATH = {
     hub: '/settings',
@@ -3567,6 +3567,7 @@
   }
 
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
+  PATH_TO_SECTION['/whattowatch'] = 'whattowatch';
 
   function sectionFromPath(pathname) {
     if (!pathname) return null;
@@ -3574,6 +3575,7 @@
     if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return null;
     if (normalized.startsWith('/settings')) return 'settings';
+    if (normalized === '/whattowatch') return 'whattowatch';
     if (normalized.startsWith('/features/collections/')) return 'whattowatch';
     if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
@@ -15228,9 +15230,15 @@
       const pathCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
         ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
         : null;
+      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       if (pathCode) {
         siteWtwScope = 'collections';
         siteWtwCollectionCode = pathCode;
+      } else if (bootPath.indexOf('/features/collections') === 0) {
+        siteWtwScope = 'collections';
+      } else if (bootPath === '/whattowatch') {
+        const saved = sessionStorage.getItem('mp_wtw_scope');
+        siteWtwScope = (saved === 'world' || saved === 'library') ? saved : 'library';
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
         if (saved === 'world' || saved === 'library' || saved === 'collections') siteWtwScope = saved;
@@ -16130,11 +16138,12 @@
         if (sec === 'integrations') { /* section wired in showSection */ }
         if (sec === 'about') { try { bindFaq && bindFaq(); } catch (_) {} }
         if (sec === 'collections') {
-          try {
-            if (window.MpCollectionsPage && typeof window.MpCollectionsPage.render === 'function') {
-              window.MpCollectionsPage.render({ resetView: true });
-            }
-          } catch (_) {}
+          markCabinetUserNav('whattowatch');
+          siteWtwScope = 'collections';
+          try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+          showSection('whattowatch');
+          if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
+          return;
         }
       });
     });
