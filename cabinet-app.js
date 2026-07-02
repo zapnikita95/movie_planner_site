@@ -205,23 +205,36 @@
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
+  function isKpCdnPosterUrl(src) {
+    const s = String(src || '').trim();
+    if (!s) return false;
+    return /kp\.yandex|kinopoisk|iphone360|get-kinopoisk-image|avatars\.mds\.yandex/i.test(s);
+  }
+
   /** Vitrine rails: TMDB posters only — never Kinopoisk CDN. */
   function vitrinePosterSrc(item) {
     const raw = cleanPosterUrl(item && item.poster);
     if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
+    if (raw && /film-poster-placeholder/i.test(raw)) return raw;
+    if (raw && !isKpCdnPosterUrl(raw) && /image\.tmdb\.org/i.test(raw)) return raw;
     return MP_POSTER_PLACEHOLDER;
   }
 
   function filterVitrineSeriesItems(items, limit) {
     const lim = Math.max(1, Number(limit) || 12);
-    const out = [];
+    const withPoster = [];
+    const fallback = [];
     (items || []).forEach(function (m) {
       const src = vitrinePosterSrc(m);
-      if (src && src !== MP_POSTER_PLACEHOLDER) {
-        out.push(Object.assign({}, m, { poster: src }));
-      }
+      const entry = Object.assign({}, m, { poster: src });
+      if (src && src !== MP_POSTER_PLACEHOLDER) withPoster.push(entry);
+      else fallback.push(entry);
     });
-    return out.slice(0, lim);
+    const out = withPoster.slice(0, lim);
+    if (out.length < lim) {
+      out.push.apply(out, fallback.slice(0, lim - out.length));
+    }
+    return out;
   }
 
   function currentFilmPosterFromDom(root) {
