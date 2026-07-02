@@ -14639,6 +14639,7 @@
     { label: '7+', value: 7 },
     { label: '7.5+', value: 7.5 },
     { label: '8+', value: 8 },
+    { label: '9+', value: 9 },
   ];
   const SITE_WTW_SCOPES = {
     library: {
