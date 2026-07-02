@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260702landingob1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260702landingob1">
+    <link rel="preload" href="/style-v2.css?v=20260702vitrine3" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702vitrine3">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2517,9 +2517,7 @@
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260628noflicker1',
           'landing-articles.js?v=20260627articles1',
-          'landing-features-carousel.js?v=20260702landingfix3',
-          'landing-premiere-carousel.js?v=20260702vitrine1',
-          'landing-vitrine.js?v=20260702vitrine2'
+          'landing-features-carousel.js?v=20260702vitrine3'
         ];
         var list;
         if (isSearch) {
@@ -2527,7 +2525,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260702landingfix3'
+            'cabinet-app.js?v=20260702vitrine3'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2538,9 +2536,13 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702landingob1');
+          list.push('cabinet-app.js?v=20260702vitrine3');
         } else {
-          list.push('cabinet-app.js?v=20260702landingob1');
+          list.push('cabinet-app.js?v=20260702vitrine3');
+          if (!isRoute) {
+            list.push('landing-premiere-carousel.js?v=20260702vitrine3');
+            list.push('landing-vitrine.js?v=20260702vitrine3');
+          }
         }
         function loadAt(i) {
           if (i >= list.length) return;

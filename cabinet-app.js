@@ -205,36 +205,26 @@
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
-  function isKpCdnPosterUrl(src) {
-    const s = String(src || '').trim();
-    if (!s) return false;
-    return /kp\.yandex|kinopoisk|iphone360|get-kinopoisk-image|avatars\.mds\.yandex/i.test(s);
-  }
-
-  /** Vitrine rails: TMDB posters only — never Kinopoisk CDN. */
-  function vitrinePosterSrc(item) {
+  /** Series vitrine: real posters; confirmed KP stubs fall back to branded via onerror. */
+  function seriesShowcasePosterSrc(item) {
+    const kp = item && (item.kp_id || item.kp);
     const raw = cleanPosterUrl(item && item.poster);
     if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
-    if (raw && /film-poster-placeholder/i.test(raw)) return raw;
-    if (raw && !isKpCdnPosterUrl(raw) && /image\.tmdb\.org/i.test(raw)) return raw;
+    if (raw && isGoodFilmPosterUrl(raw) && !isKpIphonePosterUrl(raw, kp)) return raw;
+    if (raw && isKpIphonePosterUrl(raw, kp)) return raw;
+    if (kp) return posterUrl(kp);
     return MP_POSTER_PLACEHOLDER;
   }
 
   function filterVitrineSeriesItems(items, limit) {
     const lim = Math.max(1, Number(limit) || 12);
-    const withPoster = [];
-    const fallback = [];
+    const out = [];
     (items || []).forEach(function (m) {
-      const src = vitrinePosterSrc(m);
-      const entry = Object.assign({}, m, { poster: src });
-      if (src && src !== MP_POSTER_PLACEHOLDER) withPoster.push(entry);
-      else fallback.push(entry);
+      const src = seriesShowcasePosterSrc(m);
+      if (!src) return;
+      out.push(Object.assign({}, m, { poster: src }));
     });
-    const out = withPoster.slice(0, lim);
-    if (out.length < lim) {
-      out.push.apply(out, fallback.slice(0, lim - out.length));
-    }
-    return out;
+    return out.slice(0, lim);
   }
 
   function currentFilmPosterFromDom(root) {
@@ -6963,7 +6953,7 @@
     if (!items || !items.length) return '';
     return '<div class="home-poster-rail home-rail--draggable" role="list">' + items.map((m) => {
       const poster = vitrine
-        ? vitrinePosterSrc(m)
+        ? seriesShowcasePosterSrc(m)
         : (m.poster || (m.kp_id ? posterUrl(m.kp_id) : ''));
       const img = poster
         ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>'
@@ -6996,20 +6986,24 @@
 
   function renderHomePremiereRailHtml(items) {
     if (!items || !items.length) return '';
-    return '<div class="home-prem-rail" role="list">' + items.slice(0, 12).map((it) => {
+    return '<div class="home-prem-rail home-rail--draggable" role="list">' + items.slice(0, 12).map((it) => {
       const poster = it.poster || posterUrl(it.kp_id);
-      const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
+      const datePill = typeof formatPremiereDateDdMm === 'function' ? formatPremiereDateDdMm(it.premiere_date) : '';
       const attrs = homeDashNavAttrs(it);
       const imgSrc = cleanPosterUrl(poster) || MP_POSTER_PLACEHOLDER;
       const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
+      const img = imgSrc
+        ? '<img class="home-pre-card-poster-img premiere-poster-tile-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+        : '<div class="home-pre-card-poster-img premiere-poster-tile-img premiere-poster-tile-img--ph"></div>';
       return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
         + '<div class="home-pre-card-poster premiere-poster-media">'
-        + '<img class="home-pre-card-poster-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
+        + img
+        + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
         + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
-        + '<div class="home-pre-card-meta">' + (dateLabel ? (mpIcon('calendar', { size: 'sm' }) + ' ' + escapeHtml(String(dateLabel))) : '') + '</div>'
+        + (it.year ? '<div class="home-pre-card-meta">' + escapeHtml(String(it.year)) + '</div>' : '')
         + '</div></button>';
     }).join('') + '</div>';
   }
@@ -7364,7 +7358,7 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v6';
+    const cacheKey = 'mp_guest_series_v7';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 24) });
@@ -19441,6 +19435,8 @@
     window.api = api;
     window.escapeHtml = escapeHtml;
     window.posterUrl = posterUrl;
+    window.renderPremiereNotifyButton = renderPremiereNotifyButton;
+    window.formatPremiereDateDdMm = formatPremiereDateDdMm;
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
     window._mpDismissLoginModal = dismissLoginModal;
