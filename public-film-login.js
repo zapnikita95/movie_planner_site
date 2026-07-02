@@ -204,15 +204,12 @@
           '</div>' +
           '<div class="login-auth-pane" id="login-pane-login" data-login-pane="login">' +
             '<div class="login-register-oauth-block login-oauth-block--login">' +
-              '<div class="login-oauth-caption">Войти с помощью</div>' +
-              '<div class="login-methods-grid" role="group" aria-label="Способы входа">' +
-                '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex-in" title="Яндекс" aria-label="Яндекс">' +
-                  '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
-                '</button>' +
-                '<button type="button" id="login-tg-widget-wrap-in" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap" title="Telegram" aria-label="Telegram">' +
-                  '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
-                '</button>' +
-              '</div>' +
+              '<button type="button" class="yandex-id-login-btn" id="login-oauth-yandex-in" aria-label="Войти с Яндекс ID">' +
+                '<span class="yandex-id-login-btn__label">' +
+                  '<img class="yandex-id-login-btn__art yandex-id-login-btn__art--full" src="/images/yandex-id-login-full.svg" alt="" width="260" height="56" draggable="false">' +
+                  '<img class="yandex-id-login-btn__art yandex-id-login-btn__art--short" src="/images/yandex-id-login-short.svg" alt="" width="200" height="56" draggable="false">' +
+                '</span>' +
+              '</button>' +
             '</div>' +
             '<div class="login-email-section">' +
               '<div class="login-email-caption">Войти по почте</div>' +
@@ -230,15 +227,12 @@
           '</div>' +
           '<div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">' +
             '<div class="login-register-oauth-block">' +
-              '<div class="login-oauth-caption">Зарегистрироваться с помощью</div>' +
-              '<div class="login-methods-grid" role="group" aria-label="Способы регистрации">' +
-                '<button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Яндекс">' +
-                  '<span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>' +
-                '</button>' +
-                '<button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Telegram">' +
-                  '<span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>' +
-                '</button>' +
-              '</div>' +
+              '<button type="button" class="yandex-id-login-btn" id="login-oauth-yandex" aria-label="Войти с Яндекс ID">' +
+                '<span class="yandex-id-login-btn__label">' +
+                  '<img class="yandex-id-login-btn__art yandex-id-login-btn__art--full" src="/images/yandex-id-login-full.svg" alt="" width="260" height="56" draggable="false">' +
+                  '<img class="yandex-id-login-btn__art yandex-id-login-btn__art--short" src="/images/yandex-id-login-short.svg" alt="" width="200" height="56" draggable="false">' +
+                '</span>' +
+              '</button>' +
             '</div>' +
             '<div class="login-register-card">' +
               '<div class="login-register-title">Создать аккаунт</div>' +
@@ -340,12 +334,8 @@
 
   function syncPrivacyLock() {
     var ok = privacyOk();
-    ['login-oauth-yandex', 'login-tg-widget-wrap'].forEach(function (id) {
-      var btn = $(id);
-      if (!btn) return;
-      btn.classList.toggle('is-locked', !ok);
-      btn.classList.toggle('login-tg-widget-wrap--locked', !ok);
-    });
+    var btn = $('login-oauth-yandex');
+    if (btn) btn.classList.toggle('is-locked', !ok);
   }
 
   function finishLogin(data) {
@@ -400,14 +390,6 @@
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
       });
     }
-    var tgIn = $('login-tg-widget-wrap-in');
-    if (tgIn) {
-      tgIn.addEventListener('click', function (e) {
-        e.preventDefault();
-        rememberOAuthReturn();
-        startPfBotAuth(null, null, null);
-      });
-    }
 
     var y = $('login-oauth-yandex');
     if (y) {
@@ -415,15 +397,6 @@
         if (!privacyOk()) { nudgePrivacy(); return; }
         rememberOAuthReturn();
         global.location.href = cfg.apiBase + '/api/site/oauth/yandex/start?accept=1';
-      });
-    }
-    var tg = $('login-tg-widget-wrap');
-    if (tg) {
-      tg.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (!privacyOk()) { nudgePrivacy(); return; }
-        rememberOAuthReturn();
-        startPfBotAuth(null, null, null);
       });
     }
 

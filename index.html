@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260702wtwemotion1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260702wtwemotion1">
+    <link rel="preload" href="/style-v2.css?v=20260702yandexlogin1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260702yandexlogin1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -855,16 +855,12 @@
 
         <div class="login-auth-pane" id="login-pane-login" data-login-pane="login">
           <div class="login-register-oauth-block login-oauth-block--login">
-            <div class="login-oauth-caption">Войти с помощью</div>
-            <div class="login-methods-grid" role="group" aria-label="Способы входа">
-              <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex-in" title="Яндекс" aria-label="Войти через Яндекс">
-                <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
-                <span class="visually-hidden">Яндекс</span>
-              </button>
-              <button type="button" id="login-tg-widget-wrap-in" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap" title="Telegram" aria-label="Войти через Telegram">
-                <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
-              </button>
-            </div>
+            <button type="button" class="yandex-id-login-btn" id="login-oauth-yandex-in" aria-label="Войти с Яндекс ID">
+              <span class="yandex-id-login-btn__label">
+                <img class="yandex-id-login-btn__art yandex-id-login-btn__art--full" src="/images/yandex-id-login-full.svg" alt="" width="260" height="56" draggable="false">
+                <img class="yandex-id-login-btn__art yandex-id-login-btn__art--short" src="/images/yandex-id-login-short.svg" alt="" width="200" height="56" draggable="false">
+              </span>
+            </button>
           </div>
           <div class="login-email-section">
             <div class="login-email-caption">Войти по почте</div>
@@ -883,16 +879,12 @@
 
         <div class="login-auth-pane hidden" id="login-pane-register" data-login-pane="register">
           <div class="login-register-oauth-block">
-            <div class="login-oauth-caption">Зарегистрироваться с помощью</div>
-            <div class="login-methods-grid" role="group" aria-label="Способы регистрации">
-              <button type="button" class="login-oauth-btn login-oauth-yandex" id="login-oauth-yandex" title="Яндекс" aria-label="Зарегистрироваться через Яндекс">
-                <span class="login-oauth-icon login-oauth-icon--yandex" aria-hidden="true"></span>
-                <span class="visually-hidden">Яндекс</span>
-              </button>
-              <button type="button" id="login-tg-widget-wrap" class="login-oauth-btn login-oauth-telegram login-tg-widget-wrap login-tg-widget-wrap--locked" title="Telegram" aria-label="Зарегистрироваться через Telegram">
-                <span class="login-oauth-icon login-oauth-icon--telegram" aria-hidden="true"></span>
-              </button>
-            </div>
+            <button type="button" class="yandex-id-login-btn" id="login-oauth-yandex" aria-label="Войти с Яндекс ID">
+              <span class="yandex-id-login-btn__label">
+                <img class="yandex-id-login-btn__art yandex-id-login-btn__art--full" src="/images/yandex-id-login-full.svg" alt="" width="260" height="56" draggable="false">
+                <img class="yandex-id-login-btn__art yandex-id-login-btn__art--short" src="/images/yandex-id-login-short.svg" alt="" width="200" height="56" draggable="false">
+              </span>
+            </button>
           </div>
           <div class="login-register-card">
             <div class="login-register-title">Создать аккаунт</div>
@@ -2469,7 +2461,7 @@
           'mp-api-config.js?v=20260627apiams1',
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260622logindismiss1',
+          'public-film-login.js?v=20260702yandexlogin1',
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=20260617i18nfix3',
           'film-user-tags.js?v=20260617tags3',
@@ -2492,7 +2484,7 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260702wtwemotion1'
+            'cabinet-app.js?v=20260702yandexlogin1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
@@ -2503,9 +2495,9 @@
         } else if (isStaff) {
           list.push('film-page.js?v=20260628searchhub1');
           list.push('staff-page.js?v=20260628stafffix1');
-          list.push('cabinet-app.js?v=20260702wtwemotion1');
+          list.push('cabinet-app.js?v=20260702yandexlogin1');
         } else {
-          list.push('cabinet-app.js?v=20260702wtwemotion1');
+          list.push('cabinet-app.js?v=20260702yandexlogin1');
         }
         function loadAt(i) {
           if (i >= list.length) return;

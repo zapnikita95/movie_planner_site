@@ -3280,9 +3280,60 @@ body.in-public-stats .footer-extension-cabinet {
 
 .login-methods-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 16px;
+}
+
+.yandex-id-login-btn {
+  display: block;
+  width: 100%;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+
+.yandex-id-login-btn:hover:not(:disabled):not(.is-locked) {
+  opacity: 0.92;
+}
+
+.yandex-id-login-btn:disabled,
+.yandex-id-login-btn.is-locked {
+  opacity: 0.52;
+  cursor: pointer;
+}
+
+.yandex-id-login-btn__label {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+
+.yandex-id-login-btn__art {
+  display: block;
+  width: 100%;
+  height: 56px;
+  pointer-events: none;
+}
+
+.yandex-id-login-btn__art--short {
+  display: none;
+}
+
+@media (max-width: 220px) {
+  .yandex-id-login-btn__art--full {
+    display: none;
+  }
+
+  .yandex-id-login-btn__art--short {
+    display: block;
+  }
 }
 
 .login-oauth-btn {

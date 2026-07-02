@@ -4507,9 +4507,7 @@
 
     const regPrivacy = document.getElementById('login-register-privacy');
     const oauthY = document.getElementById('login-oauth-yandex');
-    const tgWrap = document.getElementById('login-tg-widget-wrap');
     const oauthYIn = document.getElementById('login-oauth-yandex-in');
-    const tgWrapIn = document.getElementById('login-tg-widget-wrap-in');
     function nudgeRegPrivacy() {
       if (regPrivacy) {
         regPrivacy.closest('.login-oauth-privacy')?.classList.add('needs-attention');
@@ -4520,11 +4518,7 @@
     }
     function syncRegOauthButtons() {
       const ok = regPrivacy && regPrivacy.checked;
-      [oauthY, tgWrap].forEach((btn) => {
-        if (!btn) return;
-        btn.classList.toggle('is-locked', !ok);
-      });
-      if (tgWrap) tgWrap.classList.toggle('login-tg-widget-wrap--locked', !ok);
+      if (oauthY) oauthY.classList.toggle('is-locked', !ok);
     }
     if (regPrivacy) regPrivacy.addEventListener('change', () => {
       syncRegOauthButtons();
@@ -4545,29 +4539,9 @@
     wireOAuthBtn(oauthYIn, () => {
       window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
     }, false);
-    if (tgWrapIn) {
-      tgWrapIn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        rememberAuthReturnPath();
-        startSiteBotAuth(modal, null, null, null);
-      });
-    }
     wireOAuthBtn(oauthY, () => {
       window.location.href = API_BASE + '/api/site/oauth/yandex/start?accept=1';
     }, true);
-    if (tgWrap) {
-      tgWrap.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!regPrivacy || !regPrivacy.checked) {
-          nudgeRegPrivacy();
-          return;
-        }
-        rememberAuthReturnPath();
-        startSiteBotAuth(modal, null, null, null);
-      });
-    }
 
     if (openBtn) {
       openBtn.addEventListener('click', () => {
