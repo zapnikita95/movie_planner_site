@@ -216,12 +216,15 @@
     return MP_POSTER_PLACEHOLDER;
   }
 
+  const VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
+
   function filterVitrineSeriesItems(items, limit) {
     const lim = Math.max(1, Number(limit) || 12);
     const seen = new Set();
     const out = [];
     (items || []).forEach(function (m) {
       const kp = String((m && (m.kp_id || m.kp)) || '').replace(/\D/g, '');
+      if (kp && VITRINE_SERIES_KP_BLOCKLIST[kp]) return;
       if (kp && seen.has(kp)) return;
       if (kp) seen.add(kp);
       const src = seriesShowcasePosterSrc(m);
@@ -7379,7 +7382,7 @@
   }
 
   function fetchPublicSeriesForDisplay() {
-    const cacheKey = 'mp_guest_series_v8';
+    const cacheKey = 'mp_guest_series_v9';
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve({ items: filterVitrineSeriesItems(cached.items, 50) });

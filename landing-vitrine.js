@@ -7,7 +7,8 @@
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
   var premCacheKey = "mp_landing_premieres_v4";
-  var seriesCacheKey = "mp_landing_series_v5";
+  var seriesCacheKey = "mp_landing_series_v6";
+  var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
 
@@ -92,6 +93,8 @@
     var lim = Math.max(1, Number(limit) || SERIES_LIMIT);
     var out = [];
     dedupeByKp(items).forEach(function (m) {
+      var kp = String((m && m.kp_id) || "").replace(/\D/g, "");
+      if (kp && VITRINE_SERIES_KP_BLOCKLIST[kp]) return;
       var src = posterForSeries(m);
       if (!src || /film-poster-placeholder/i.test(src)) return;
       out.push(Object.assign({}, m, { poster: src }));
