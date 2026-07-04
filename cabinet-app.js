@@ -16530,7 +16530,68 @@
       + '<button type="submit" class="btn btn-secondary btn-full">Импортировать</button>'
       + '</form></div>'
       + '<p class="profile-settings-status" id="profile-import-status"></p>'
+      + '</section>'
+      + profileExportBlockHtml();
+  }
+
+  function profileExportBlockHtml() {
+    return '<section class="settings-panel settings-panel--wide" id="settings-export-block">'
+      + '<h3 class="settings-panel-title">📥 Скачать базу</h3>'
+      + '<p class="settings-panel-lead">Экспорт в CSV: полная таблица или формат IMDb Ratings — его можно импортировать в MyShows.</p>'
+      + '<div class="settings-export-actions">'
+      + '<button type="button" class="btn btn-secondary btn-full settings-export-btn" data-export-fmt="full">Скачать полную таблицу (CSV)</button>'
+      + '<button type="button" class="btn btn-ghost btn-full settings-export-btn" data-export-fmt="imdb">Скачать IMDb CSV</button>'
+      + '</div>'
+      + '<p class="profile-settings-status" id="profile-export-status"></p>'
       + '</section>';
+  }
+
+  function downloadLibraryExport(fmt, statusEl) {
+    const token = getToken();
+    if (!token) {
+      if (statusEl) statusEl.textContent = 'Войдите в кабинет';
+      return Promise.resolve(false);
+    }
+    const url = API_BASE + '/api/miniapp/library/export?format=' + encodeURIComponent(fmt || 'full');
+    if (statusEl) statusEl.textContent = 'Готовим файл…';
+    return fetchWithTimeout(url, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + token },
+    }, 120000).then(async (r) => {
+      if (!r.ok) {
+        if (statusEl) statusEl.textContent = 'Не удалось скачать';
+        return false;
+      }
+      const blob = await r.blob();
+      const dispo = r.headers.get('Content-Disposition') || '';
+      const m = /filename="([^"]+)"/i.exec(dispo);
+      const filename = (m && m[1]) || ('movie-planner-export-' + (fmt || 'full') + '.csv');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+      if (statusEl) statusEl.textContent = 'Файл скачан';
+      return true;
+    }).catch(() => {
+      if (statusEl) statusEl.textContent = 'Ошибка сети';
+      return false;
+    });
+  }
+
+  function bindLibraryExportControls(root) {
+    const statusEl = root.querySelector('#profile-export-status');
+    root.querySelectorAll('.settings-export-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const fmt = btn.getAttribute('data-export-fmt') || 'full';
+        btn.disabled = true;
+        downloadLibraryExport(fmt, statusEl).finally(() => {
+          btn.disabled = false;
+        });
+      });
+    });
   }
 
   function renderProfileEditPage(root, d) {
@@ -17357,6 +17418,9 @@
         el.className = 'profile-settings-status' + (msg ? (ok ? ' success' : ' error') : '');
       };
       bindProfileImportControls(root, setImportStatus);
+    }
+    if (root.querySelector('.settings-export-btn')) {
+      bindLibraryExportControls(root);
     }
   }
 

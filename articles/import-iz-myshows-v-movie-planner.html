@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Импорт из MyShows в Movie Planner — перенос сериалов с прогрессом</title>
+    <meta name="description" content="Как импортировать просмотренные сериалы из MyShows в Movie Planner: ссылка на профиль, страница /wasted/, сохранение прогресса по эпизодам. И обратный экспорт в IMDb CSV.">
+    <meta name="keywords" content="импорт myshows, перенести сериалы из myshows, трекер с импортом списка, myshows wasted, movie planner myshows">
+    <link rel="canonical" href="https://movie-planner.ru/articles/import-iz-myshows-v-movie-planner.html">
+    <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/articles/import-iz-myshows-v-movie-planner.html">
+    <link rel="alternate" hreflang="x-default" href="https://movie-planner.ru/articles/import-iz-myshows-v-movie-planner.html">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="Импорт из MyShows в Movie Planner">
+    <meta property="og:description" content="Как импортировать просмотренные сериалы из MyShows в Movie Planner: ссылка на профиль, страница /wasted/, сохранение прогресса по эпизодам. И обратный экспорт в IMDb CSV.">
+    <meta property="og:url" content="https://movie-planner.ru/articles/import-iz-myshows-v-movie-planner.html">
+    <meta property="og:type" content="article">
+        <link rel="stylesheet" href="../style-v2.css?v=20260702articlechrome1">
+    <style id="mp-article-critical">
+      html.mp-session #site-header [data-action="login"],
+      html.mp-session #site-header #login-btn,
+      html.mp-session #site-header .header-login-btn,
+      html.mp-session .site-header-subpage-actions{display:none!important}
+      html.mp-session #header-user-wrap{display:flex!important}
+      html.mp-session #header-user-wrap.hidden{display:flex!important}
+      html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
+      html.mp-session #login-modal.modal:not(.hidden){visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    </style>
+    <script src="../articles/article-session-boot.js?v=20260702articlechrome1"></script>
+    <link rel="icon" href="../images/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="content-wrapper subpage-wrapper">
+        <header id="site-header">
+      <div class="header-content">
+        <a class="logo" href="/"><img src="../images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>
+        <div class="header-search" id="header-search" role="search">
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
+        <div class="header-buttons">
+          <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="header-util-row">
+              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+              </button>
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
+            </div>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
+              <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
+            </button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container subpage-main">
+        <section class="article-content">
+            <h1>Как перенести базу из MyShows в Movie Planner — и не потерять серии</h1>
+
+            <p class="date">5 июля 2026</p>
+            <p>Если вы годами вели сериалы в <strong>MyShows</strong>, переезд на другой трекер пугает одним: пропадёт прогресс по эпизодам. В <strong>Movie Planner</strong> импорт из MyShows как раз заточен под это — подтянутся сериалы, оценки и отметки серий.</p>
+
+            <h2>Импорт в Movie Planner (из MyShows к нам)</h2>
+            <ol>
+                <li><a href="/?open_login=1">Войдите в кабинет</a> или откройте приложение → <strong>Настройки → Импорт</strong>.</li>
+                <li>Выберите вкладку <strong>MyShows / IMDb</strong>.</li>
+                <li>Вставьте ссылку вида <code>myshows.me/ваш_логин</code> или <code>myshows.me/ваш_логин/wasted/</code>.</li>
+                <li>Если профиль закрыт — сохраните страницу <code>/wasted/</code> как HTML («веб-страница, только HTML») и вставьте содержимое.</li>
+                <li>Нажмите «Импортировать» — сервис сопоставит тайтлы с Кинопоиском и отметит просмотренные эпизоды.</li>
+            </ol>
+            <p>Прогресс по сезонам сохраняется: не нужно заново кликать каждую серию. Импорт идёт в фоне — можно закрыть страницу.</p>
+
+            <h2>А если нужно наоборот — в MyShows?</h2>
+            <p>У MyShows нет импорта произвольного CSV со сериалами. Официально принимаются списки <a href="https://myshows.me/about/import-imdb/" target="_blank" rel="noopener">из IMDb</a> и <a href="https://myshows.me/about/import-kp/" target="_blank" rel="noopener">с Кинопоиска</a>. В Movie Planner можно <a href="skachat-tablicu-bazy-kino-csv.html">скачать базу в формате IMDb Ratings CSV</a> и загрузить фильмы с оценками в MyShows (для сериалов удобнее оставаться в одном трекере или импортировать к нам).</p>
+
+            <h2>MyShows или Movie Planner</h2>
+            <p>MyShows — сильный веб-трекер сериалов. Movie Planner — фильмы и сериалы в одной базе, приложение iOS/Android, планы просмотра, премьеры, группы с друзьями. Сравнение: <a href="movie-planner-vs-myshows.html">Movie Planner vs MyShows</a>.</p>
+
+            <h2>Читайте также</h2>
+            <ul>
+                <li><a href="skachat-tablicu-bazy-kino-csv.html">Скачать таблицу базы кино (CSV)</a></li>
+                <li><a href="kak-vesti-spisok-prosmotrennyh-filmov.html">Как вести список просмотренных фильмов</a></li>
+                <li><a href="treker-filmov-serialov-zametki.html">Трекер с заметками и отметкой серий</a></li>
+            </ul>
+
+            <div class="article-cta">
+                <p class="article-cta-lead">Откройте кабинет или скачайте приложение</p>
+                <div class="footer-store-row">
+                    <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/app-store-badge.svg" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+                    </a>
+                    <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+                    </a>
+                </div>
+                <div class="article-cta-secondary">
+                    <a href="/?open_login=1">Войти в кабинет</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/watchlist">Открыть базу</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/">На главную</a>
+                </div>
+            </div>
+</section>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="article-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-store-row">
+                        <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/app-store-badge.svg" alt="App Store" width="110" height="36" loading="lazy">
+                        </a>
+                        <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/google-play-badge.svg" alt="Google Play" width="120" height="36" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-info">
+                    <h3>Контакты</h3>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
+            </div>
+        </div>
+    </footer>
+  </div>
+  <script src="../public-film-login.js?v=20260602tgsafari1"></script>
+  <script src="../film-page.js?v=20260602sitefix5"></script>
+  <script src="article-chrome.js?v=20260617chrome1"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
