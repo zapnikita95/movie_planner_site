@@ -3289,6 +3289,11 @@ body.in-public-stats .footer-extension-cabinet {
   padding: 36px 28px 32px;
 }
 
+#login-modal .modal-close {
+  z-index: 2;
+  pointer-events: auto;
+}
+
 .login-methods-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -4603,6 +4608,7 @@ body.header-search-dropdown-open .header-search-glyph--close {
 .mp-dialog-card,
 .mp-surprise-dialog-card,
 .ach-celebration-card {
+  position: relative;
   width: 100%;
   max-width: 340px;
   max-height: min(88vh, calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
@@ -16353,9 +16359,15 @@ body.mp-scroll-lock {
 
 /* ---- Plan modal (mini-app parity) ---- */
 .mp-plan-modal-card {
+  position: relative;
   max-width: 400px;
   text-align: left;
   padding: 20px 18px 16px;
+}
+.mp-plan-modal-card > .mp-onboard-dismiss {
+  z-index: 4;
+  opacity: 0.82;
+  pointer-events: auto;
 }
 .mp-plan-modal-card .mp-onboard-title {
   text-align: center;

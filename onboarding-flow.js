@@ -799,20 +799,6 @@
       },
       { passive: false, capture: true },
     );
-    ov.addEventListener(
-      "touchstart",
-      function (ev) {
-        ev.stopPropagation();
-      },
-      { capture: true },
-    );
-    ov.addEventListener(
-      "click",
-      function (ev) {
-        ev.stopPropagation();
-      },
-      { capture: true },
-    );
   }
 
   async function stepInterest(deps) {

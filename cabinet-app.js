@@ -311,6 +311,12 @@
 
   function showLoginModalOverlay() {
     try {
+      if (window.MpPublicFilmLogin && typeof window.MpPublicFilmLogin.show === 'function') {
+        window.MpPublicFilmLogin.show();
+        setLoginAuthTab(loginTabFromQuery());
+        scheduleSiteBotAuthPrefetch();
+        return;
+      }
       document.body.classList.add('login-only-overlay');
       const landing = document.getElementById('landing');
       if (landing) landing.classList.add('hidden');
@@ -5814,7 +5820,7 @@
     if (window._mpCabinetLoginBound) return;
     window._mpCabinetLoginBound = true;
     const modal = document.getElementById('login-modal');
-    const openBtn = document.querySelector('[data-action="login"]');
+    const openBtns = document.querySelectorAll('[data-action="login"]');
     const closeElements = document.querySelectorAll('[data-action="close-login"]');
 
     document.querySelectorAll('[data-login-tab]').forEach((btn) => {
@@ -5862,13 +5868,15 @@
       window.location.href = SITE_ORIGIN + '/api/site/oauth/yandex/start?accept=1';
     }, true);
 
-    if (openBtn) {
-      openBtn.addEventListener('click', () => {
+    openBtns.forEach((openBtn) => {
+      if (openBtn.dataset.mpCabinetLoginOpenBound) return;
+      openBtn.dataset.mpCabinetLoginOpenBound = '1';
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         setLoginAuthTab('login');
-        if (modal) modal.classList.remove('hidden');
-        scheduleSiteBotAuthPrefetch();
+        showLoginModalOverlay();
       });
-    }
+    });
     closeElements.forEach((el) => el.addEventListener('click', dismissLoginModal));
 
     bindEmailLogin();

@@ -209,9 +209,12 @@
     });
 
     global._mpDismissLoginModal = function () {
+      if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.hide === 'function') {
+        global.MpPublicFilmLogin.hide();
+        return;
+      }
       if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.close === 'function') {
         global.MpPublicFilmLogin.close();
-        return;
       }
     };
 

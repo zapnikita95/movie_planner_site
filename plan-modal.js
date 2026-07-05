@@ -863,7 +863,16 @@
     card = document.createElement('div');
     card.className = 'mp-dialog-card mp-plan-modal-card';
     ov.appendChild(card);
-    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) close();
+    });
+    ov.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-plan-close]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+      }
+    }, true);
     document.body.style.overflow = 'hidden';
     document.body.appendChild(ov);
     renderForm();

@@ -251,6 +251,15 @@
     }
   }
 
+  function isMarketingLanding() {
+    try {
+      var path = (global.location.pathname || '').replace(/\/$/, '') || '/';
+      return path === '/' || path === '/index.html';
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function restorePublicRouteShellAfterDismiss() {
     if (!isPublicFilmOrStaffRoute()) return;
     try {
@@ -295,17 +304,40 @@
     return modal;
   }
 
+  function bindCloseHandlers() {
+    var modal = $('login-modal');
+    if (!modal) return;
+    modal.querySelectorAll('[data-action="close-login"], .modal-close').forEach(function (node) {
+      if (node._mpCloseBound) return;
+      node._mpCloseBound = true;
+      node.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        close();
+      }, true);
+    });
+  }
+
   function showLoginModal() {
     var modal = mountLoginModalPortal();
     if (!modal) return;
-    try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
+    document.body.style.overflow = 'hidden';
     var landing = document.getElementById('landing');
-    if (landing) landing.classList.add('hidden');
     var cabinet = document.getElementById('cabinet-readonly');
-    if (cabinet) cabinet.classList.remove('hidden');
+    if (isPublicFilmOrStaffRoute()) {
+      try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
+      if (landing) landing.classList.add('hidden');
+      if (cabinet) cabinet.classList.remove('hidden');
+    } else if (isMarketingLanding()) {
+      document.body.classList.remove('login-only-overlay');
+    } else {
+      try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
+      if (landing) landing.classList.add('hidden');
+      if (cabinet) cabinet.classList.remove('hidden');
+    }
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    bindCloseHandlers();
   }
 
   function hideLoginModal() {
@@ -317,6 +349,12 @@
     }
     document.body.classList.remove('login-only-overlay');
     document.body.style.overflow = '';
+    if (isMarketingLanding()) {
+      var landing = document.getElementById('landing');
+      if (landing) landing.classList.remove('hidden');
+      var cabinet = document.getElementById('cabinet-readonly');
+      if (cabinet && !hasStoredSiteSession()) cabinet.classList.add('hidden');
+    }
     restorePublicRouteShellAfterDismiss();
   }
 
@@ -724,7 +762,7 @@
       sessionStorage.removeItem('mp_pending_kp_open');
       sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_e) {}
-    if (isPublicFilmOrStaffRoute()) {
+    if (isPublicFilmOrStaffRoute() || isMarketingLanding()) {
       hideLoginModal();
       return;
     }
@@ -773,14 +811,56 @@
     }
   }
 
+  function bindGlobalDialogDelegation() {
+    if (global.__MP_DIALOG_DELEGATION_BOUND) return;
+    global.__MP_DIALOG_DELEGATION_BOUND = true;
+    document.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return;
+
+      var planClose = target.closest('[data-plan-close]');
+      if (planClose) {
+        var planOv = planClose.closest('.mp-plan-modal-overlay');
+        if (planOv) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          try { planOv.remove(); } catch (_e) {}
+          document.body.style.overflow = '';
+          return;
+        }
+      }
+
+      var loginModal = document.getElementById('login-modal');
+      if (loginModal && !loginModal.classList.contains('hidden')) {
+        var closeHit = target.closest('#login-modal [data-action="close-login"], #login-modal .modal-close');
+        if (closeHit) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          close();
+          return;
+        }
+      }
+
+      var loginBtn = target.closest('[data-action="login"]');
+      if (loginBtn) {
+        ev.preventDefault();
+        open('', 'login');
+      }
+    }, true);
+  }
+
   function init(options) {
     cfg = Object.assign(cfg, options || {});
     ensureLoginModal();
+    bindGlobalDialogDelegation();
     consumeOAuthHash();
   }
 
-  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal };
+  bindGlobalDialogDelegation();
+
+  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal, hide: hideLoginModal };
   global.showLoginModalOverlay = showLoginModal;
+  global.mpCloseLoginModal = close;
   global._mpDismissLoginModal = function () {
     if (isPublicFilmOrStaffRoute()) {
       hideLoginModal();
