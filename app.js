@@ -5480,7 +5480,11 @@
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
     const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
     const icon = active ? mpIcon('bellOff', { size: 'sm' }) : mpIcon('inbox', { size: 'sm' });
-    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
+    const attrs = ' class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '"';
+    if (posterBell) {
+      return '<span role="button" tabindex="0"' + attrs + '>' + icon + '</span>';
+    }
+    return '<button type="button"' + attrs + '>' + icon + '</button>';
   }
 
   function renderShareFilmIconButton(it, extraClass) {

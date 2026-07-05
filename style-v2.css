@@ -8456,7 +8456,8 @@ a.link-inline:hover {
   color: #fff;
   box-shadow: 0 8px 22px rgba(255, 45, 123, 0.23);
 }
-.premiere-bell-btn[disabled] {
+.premiere-bell-btn[disabled],
+.premiere-bell-btn[aria-disabled="true"] {
   opacity: .65;
   cursor: default;
   transform: none;

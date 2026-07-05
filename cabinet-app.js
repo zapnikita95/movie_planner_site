@@ -6926,7 +6926,12 @@
     const action = active ? 'premiere-notify-off' : 'premiere-notify-on';
     const label = active ? 'Отслеживается' : 'Отслеживать премьеру';
     const icon = active ? mpIcon('bellOff', { size: 'sm' }) : mpIcon('inbox', { size: 'sm' });
-    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '">' + icon + '</button>';
+    const attrs = ' class="' + cls + '" data-action="' + action + '" data-kp="' + kp + '" data-date="' + date + '" title="' + label + '" aria-label="' + label + '"';
+    // Cannot nest <button> inside .home-pre-card (also a button) — browser splits DOM and breaks carousel.
+    if (posterBell) {
+      return '<span role="button" tabindex="0"' + attrs + '>' + icon + '</span>';
+    }
+    return '<button type="button"' + attrs + '>' + icon + '</button>';
   }
 
   function renderFilmToolbarPremiereBtn(item) {
@@ -18585,8 +18590,18 @@
     });
   }
 
+  function premiereNotifyBtnDisabled(button) {
+    return !!(button && (button.disabled || button.getAttribute('aria-disabled') === 'true'));
+  }
+
+  function setPremiereNotifyBtnDisabled(button, disabled) {
+    if (!button) return;
+    if ('disabled' in button) button.disabled = !!disabled;
+    else button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+
   function handlePremiereNotifyButton(button, onDone) {
-    if (!button || button.disabled) return;
+    if (!button || premiereNotifyBtnDisabled(button)) return;
     if (!getToken()) {
       requireAuthForAction('Войдите, чтобы получать напоминания о премьерах');
       return;
@@ -18597,7 +18612,7 @@
     if (!kp || !action) return;
     const isOn = action === 'premiere-notify-on';
     const oldHtml = button.innerHTML;
-    button.disabled = true;
+    setPremiereNotifyBtnDisabled(button, true);
     button.innerHTML = '…';
     const options = isOn
       ? { method: 'POST', body: JSON.stringify({ premiere_date: date }) }
@@ -18607,7 +18622,7 @@
         const msg = data && (data.message || data.error);
         const hint = msg === 'server error' ? 'Сервер не смог сохранить напоминание. Попробуйте позже.' : msg;
         showToast(hint || 'Не удалось изменить напоминание', { type: 'error' });
-        button.disabled = false;
+        setPremiereNotifyBtnDisabled(button, false);
         button.innerHTML = oldHtml;
         return;
       }
@@ -18623,7 +18638,7 @@
       showToast(isOn ? 'Премьера отслеживается' : 'Напоминание отключено');
     }).catch(() => {
       showToast('Ошибка сети', { type: 'error' });
-      button.disabled = false;
+      setPremiereNotifyBtnDisabled(button, false);
       button.innerHTML = oldHtml;
     });
   }
