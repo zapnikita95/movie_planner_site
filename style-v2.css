@@ -35,7 +35,7 @@ html.mp-staff-boot #cabinet-readonly .cabinet-topbar { display: none !important;
 html.mp-film-boot body,
 html.mp-staff-boot body { visibility: visible; }
 
-#login-modal { display: none; }
+#login-modal { display: none; z-index: 12000; }
 #login-modal:not(.hidden) { display: flex !important; }
 .cabinet-section.hidden { display: none !important; }
 

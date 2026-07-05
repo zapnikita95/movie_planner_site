@@ -189,8 +189,62 @@
       });
   }
 
-  function injectModal() {
-    if (document.getElementById('login-modal')) return;
+  function isPublicFilmOrStaffRoute() {
+    try {
+      var path = (global.location.pathname || '').replace(/\/$/, '') || '/';
+      return /^\/f\/\d+$/.test(path) || /^\/s\/\d+$/.test(path);
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function restorePublicRouteShellAfterDismiss() {
+    if (!isPublicFilmOrStaffRoute()) return;
+    try {
+      var landing = document.getElementById('landing');
+      if (landing) landing.classList.add('hidden');
+      var cabinet = document.getElementById('cabinet-readonly');
+      if (cabinet) {
+        cabinet.classList.remove('hidden');
+        if (/^\/f\/\d+$/.test((global.location.pathname || '').replace(/\/$/, '') || '/')) {
+          cabinet.classList.add('film-page-mode');
+        }
+      }
+      document.body.classList.add('in-cabinet');
+      document.body.classList.remove('login-only-overlay');
+      var filmSection = document.getElementById('section-film');
+      if (filmSection) filmSection.classList.remove('hidden');
+    } catch (_e) {}
+  }
+
+  function showLoginModal() {
+    var modal = $('login-modal');
+    if (!modal) return;
+    try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
+    var landing = document.getElementById('landing');
+    if (landing) landing.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideLoginModal() {
+    stopPfBotPoll();
+    var modal = $('login-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('login-only-overlay');
+    document.body.style.overflow = '';
+    restorePublicRouteShellAfterDismiss();
+  }
+
+  function ensureLoginModal() {
+    if (document.getElementById('login-modal')) {
+      bindEvents();
+      return;
+    }
     var wrap = document.createElement('div');
     wrap.innerHTML =
       '<div class="modal hidden" id="login-modal" aria-hidden="true">' +
@@ -260,6 +314,10 @@
       '</div>';
     document.body.appendChild(wrap.firstElementChild);
     bindEvents();
+  }
+
+  function injectModal() {
+    ensureLoginModal();
   }
 
   function $(id) { return document.getElementById(id); }
@@ -572,35 +630,29 @@
   }
 
   function open(action, tabName) {
-    injectModal();
+    ensureLoginModal();
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }
     setLoginTab(tabName === 'register' ? 'register' : 'login');
-    var modal = $('login-modal');
-    if (!modal) return;
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    showLoginModal();
     schedulePfBotPrefetch();
   }
 
   function close() {
-    if (typeof global._mpDismissLoginModal === 'function') {
-      global._mpDismissLoginModal();
-      return;
-    }
-    stopPfBotPoll();
-    var modal = $('login-modal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.setAttribute('aria-hidden', 'true');
-    }
-    document.body.style.overflow = '';
     try {
       sessionStorage.removeItem('mp_pending_kp_open');
       sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_e) {}
+    if (isPublicFilmOrStaffRoute()) {
+      hideLoginModal();
+      return;
+    }
+    if (typeof global._mpDismissLoginModal === 'function') {
+      global._mpDismissLoginModal();
+      return;
+    }
+    hideLoginModal();
   }
 
   function consumeOAuthHash() {
@@ -643,7 +695,7 @@
 
   function init(options) {
     cfg = Object.assign(cfg, options || {});
-    if (!hasStoredSiteSession()) injectModal();
+    ensureLoginModal();
     consumeOAuthHash();
   }
 

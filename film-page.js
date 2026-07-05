@@ -1380,7 +1380,20 @@
         MpPublicFilmLogin.open(action || '');
         return;
       }
+      if (typeof global.showLoginModalOverlay === 'function') {
+        global.showLoginModalOverlay();
+        return;
+      }
+      var modal = document.getElementById('login-modal');
+      if (modal) {
+        document.body.classList.add('login-only-overlay');
+        document.body.style.overflow = 'hidden';
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        return;
+      }
       var path = opts.spaReturnPath || global.location.pathname || '/';
+      if (/^\/f\/\d+$/.test(path) || /^\/s\/\d+$/.test(path)) return;
       global.location.href = '/?open_login=1&__spa=' + encodeURIComponent(path);
     };
     var loginBtn = document.getElementById('login-btn') || document.querySelector('#site-header [data-action="login"]');
@@ -1633,7 +1646,17 @@
               MpPublicFilmLogin.open(action || '');
               return;
             }
-            global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/f/' + kpId);
+            if (typeof global.showLoginModalOverlay === 'function') {
+              global.showLoginModalOverlay();
+              return;
+            }
+            var modal = document.getElementById('login-modal');
+            if (modal) {
+              document.body.classList.add('login-only-overlay');
+              document.body.style.overflow = 'hidden';
+              modal.classList.remove('hidden');
+              modal.setAttribute('aria-hidden', 'false');
+            }
           },
         });
       }
@@ -1778,11 +1801,25 @@
           MpPublicFilmLogin.open(action || '');
           return;
         }
+        if (typeof window.showLoginModalOverlay === 'function') {
+          if (action) {
+            try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
+          }
+          window.showLoginModalOverlay();
+          return;
+        }
+        var modal = document.getElementById('login-modal');
+        if (modal) {
+          if (action) {
+            try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
+          }
+          document.body.classList.add('login-only-overlay');
+          document.body.style.overflow = 'hidden';
+          modal.classList.remove('hidden');
+          modal.setAttribute('aria-hidden', 'false');
+          return;
+        }
         if (hint) hint.textContent = 'Открываем вход…';
-        var suffix = action ? '&action=' + encodeURIComponent(action) : '';
-        setTimeout(function () {
-          window.location.href = '/?open_login=1&kp_open=' + encodeURIComponent(kpId) + suffix;
-        }, 180);
       }
       function rememberAction(action) {
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
@@ -2244,13 +2281,23 @@
       }
       function rebindGuestToolbarActions() {
         var addBtn = document.getElementById('add-btn');
-        if (addBtn) addBtn.addEventListener('click', addCurrentFilm);
+        if (addBtn) addBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          addCurrentFilm();
+        });
         var planWatchBtn = document.getElementById('plan-watch-btn');
-        if (planWatchBtn) planWatchBtn.addEventListener('click', planCurrentFilm);
+        if (planWatchBtn) planWatchBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          planCurrentFilm();
+        });
         var rg = document.getElementById('rate-grid');
         if (!rg) return;
         rg.querySelectorAll('[data-rate]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
             var v = Number(btn.getAttribute('data-rate'));
             if (!(v >= 1 && v <= 10)) return;
             setCurrentRating(v, btn);
@@ -2363,7 +2410,9 @@
           });
         }
         if (shareBtn) {
-          shareBtn.addEventListener('click', function () {
+          shareBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
             var url = pageUrl;
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(url).then(function () {

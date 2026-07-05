@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260705seriesunmark1';
+  var BUILD = '20260705filmauth1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -177,7 +177,14 @@
       global.MpPublicFilmLogin.init({
         kpId: kp,
         onSuccess: function () {
-          try { global.location.reload(); } catch (_e) {}
+          try {
+            document.dispatchEvent(new CustomEvent('mp:film-refresh-auth'));
+          } catch (_e) {}
+          if (global.MpFilmPage && typeof global.MpFilmPage.refreshStandaloneAuthChrome === 'function') {
+            try {
+              global.MpFilmPage.refreshStandaloneAuthChrome({ kpId: kp, mainSelector: '#film-page-content' });
+            } catch (_e2) {}
+          }
         },
       });
     }
