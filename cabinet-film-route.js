@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260705guestplan1';
+  var BUILD = '202607051845fix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -203,8 +203,17 @@
     });
 
     document.addEventListener('mp:film-login-success', function () {
-      if (getToken()) ensureFullCabinet();
+      if (getToken()) {
+        setTimeout(function () { ensureFullCabinet(); }, 800);
+      }
     });
+
+    global._mpDismissLoginModal = function () {
+      if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.close === 'function') {
+        global.MpPublicFilmLogin.close();
+        return;
+      }
+    };
 
     global.MpFilmPage.bootstrap({
       kpId: kp,

@@ -2,6 +2,25 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <script>
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          var params = new URLSearchParams(location.search || '');
+          if (path === '/' || path === '/index.html') {
+            var kp = params.get('kp_open');
+            if (kp && /^\d+$/.test(kp)) {
+              params.delete('kp_open');
+              params.delete('open_login');
+              params.delete('action');
+              var rest = params.toString();
+              location.replace('/f/' + kp + (rest ? '?' + rest : '') + location.hash);
+              return;
+            }
+          }
+        } catch (_e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/">
     <!--MP_ROUTE_META-->
@@ -68,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260705guestplan1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260705guestplan1">
+    <link rel="preload" href="/style-v2.css?v=202607051845fix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=202607051845fix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2513,9 +2532,9 @@
           'mp-api-config.js?v=20260627apiams1',
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260705guestplan1',
+          'public-film-login.js?v=202607051845fix1',
           'page-loading.js?v=20260529mobileparity1',
-          'plan-modal.js?v=20260705guestplan1',
+          'plan-modal.js?v=202607051845fix1',
           'film-user-tags.js?v=20260617tags3',
           'mp-icons.js?v=20260627history1'
         ];
@@ -2542,8 +2561,8 @@
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260705guestplan1');
-          list.push('cabinet-film-route.js?v=20260705guestplan1');
+          list.push('film-page.js?v=202607051845fix1');
+          list.push('cabinet-film-route.js?v=202607051845fix1');
         } else if (isStaff) {
           list.push('film-page.js?v=20260705seriesunmark1');
           list.push('staff-page.js?v=20260628stafffix1');

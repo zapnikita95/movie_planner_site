@@ -1,6 +1,59 @@
 (function (global) {
   'use strict';
 
+  function isPublicFilmRoute() {
+    try {
+      var path = (global.location.pathname || '').replace(/\/$/, '') || '/';
+      return /^\/f\/\d+$/.test(path) || /^\/s\/\d+$/.test(path);
+    } catch (_e) { return false; }
+  }
+
+  function openLoginOverlayNow() {
+    if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.open === 'function') {
+      global.MpPublicFilmLogin.open('');
+      return true;
+    }
+    if (typeof global.showLoginModalOverlay === 'function') {
+      global.showLoginModalOverlay();
+      return true;
+    }
+    return false;
+  }
+
+  function isBlockedLoginNav(url) {
+    var s = String(url || '');
+    return s.indexOf('open_login') >= 0 || s.indexOf('kp_open') >= 0;
+  }
+
+  (function installFilmRouteLoginNavGuard() {
+    if (global.__MP_FILM_LOGIN_NAV_GUARD) return;
+    global.__MP_FILM_LOGIN_NAV_GUARD = true;
+    try {
+      var proto = global.Location && global.Location.prototype;
+      var desc = proto && Object.getOwnPropertyDescriptor(proto, 'href');
+      if (!desc || !desc.set) return;
+      var origSet = desc.set;
+      desc.set = function (v) {
+        if (isPublicFilmRoute() && isBlockedLoginNav(v)) {
+          openLoginOverlayNow();
+          return;
+        }
+        return origSet.call(this, v);
+      };
+      Object.defineProperty(global.location, 'href', desc);
+    } catch (_e) {}
+    var origAssign = global.location.assign.bind(global.location);
+    global.location.assign = function (url) {
+      if (isPublicFilmRoute() && isBlockedLoginNav(url)) { openLoginOverlayNow(); return; }
+      return origAssign(url);
+    };
+    var origReplace = global.location.replace.bind(global.location);
+    global.location.replace = function (url) {
+      if (isPublicFilmRoute() && isBlockedLoginNav(url)) { openLoginOverlayNow(); return; }
+      return origReplace(url);
+    };
+  })();
+
   var TELEGRAM_BOT_USERNAME = 'movie_planner_bot';
   var cfg = {
     kpId: '',
@@ -208,12 +261,27 @@
         cabinet.classList.remove('hidden');
         if (/^\/f\/\d+$/.test((global.location.pathname || '').replace(/\/$/, '') || '/')) {
           cabinet.classList.add('film-page-mode');
+          cabinet.classList.remove('cabinet-home-root');
         }
       }
       document.body.classList.add('in-cabinet');
       document.body.classList.remove('login-only-overlay');
+      document.body.style.overflow = '';
       var filmSection = document.getElementById('section-film');
       if (filmSection) filmSection.classList.remove('hidden');
+      var pageRoot = document.getElementById('film-page-content');
+      if (pageRoot && !pageRoot.querySelector('.film-hero-with-tag') && !pageRoot.querySelector('main.film-page .film-hero-with-tag')) {
+        var kpMatch = (global.location.pathname || '').match(/^\/f\/(\d+)/);
+        if (kpMatch && global.MpFilmPage && typeof global.MpFilmPage.bootstrap === 'function') {
+          global.MpFilmPage.bootstrap({ kpId: kpMatch[1], cabinetMode: true });
+        }
+      }
+      document.querySelectorAll('#cabinet-readonly .cabinet-section').forEach(function (sec) {
+        if (!sec) return;
+        sec.classList.toggle('hidden', sec.id !== 'section-film');
+      });
+      var homeStats = document.getElementById('cabinet-home-stats');
+      if (homeStats) homeStats.classList.add('hidden');
     } catch (_e) {}
   }
 
@@ -713,4 +781,11 @@
 
   global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal };
   global.showLoginModalOverlay = showLoginModal;
+  global._mpDismissLoginModal = function () {
+    if (isPublicFilmOrStaffRoute()) {
+      hideLoginModal();
+      return;
+    }
+    hideLoginModal();
+  };
 })(window);

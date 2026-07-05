@@ -643,7 +643,17 @@
     const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
     const pathKp = kpIdFromPathname(path);
     if (pathKp && (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp))) {
+      document.body.classList.remove('login-only-overlay');
+      document.body.style.overflow = '';
       return;
+    }
+    if (pathKp) {
+      const hero = document.querySelector('#film-page-content .film-hero-with-tag, main.film-page .film-hero-with-tag');
+      if (hero) {
+        document.body.classList.remove('login-only-overlay');
+        document.body.style.overflow = '';
+        return;
+      }
     }
     const pathStaff = path.match(/^\/s\/(\d+)$/);
     if (pathStaff) {
