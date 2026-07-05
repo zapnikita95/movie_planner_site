@@ -7024,7 +7024,8 @@
       const img = imgSrc
         ? '<img class="home-pre-card-poster-img premiere-poster-tile-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
         : '<div class="home-pre-card-poster-img premiere-poster-tile-img premiere-poster-tile-img--ph"></div>';
-      return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
+      // div, not button — nested bell controls must not split the card out of the rail (invalid nested buttons).
+      return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + '>'
         + '<div class="home-pre-card-poster premiere-poster-media">'
         + img
         + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
@@ -7033,7 +7034,7 @@
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
         + (it.year ? '<div class="home-pre-card-meta">' + escapeHtml(String(it.year)) + '</div>' : '')
-        + '</div></button>';
+        + '</div></div>';
     }).join('') + '</div>';
   }
 

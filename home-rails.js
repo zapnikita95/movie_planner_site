@@ -229,14 +229,14 @@
     var meta = pdate ? esc(String(pdate)) : (p.year ? esc(String(p.year)) : "");
     var attrs = siteFilmAttrs(p);
     return (
-      '<button class="home-pre-card" type="button" role="listitem"' + attrs + ">" +
+      '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
       '<div class="home-pre-card-poster">' +
       img + datePillHtml + notifyBtn +
       "</div>" +
       '<div class="home-pre-card-body">' +
       '<div class="home-pre-card-title">' + esc(p.title || "—") + "</div>" +
       '<div class="home-pre-card-meta">' + (meta ? esc(String(meta)) : "") + "</div>" +
-      "</div></button>"
+      "</div></div>"
     );
   }
 

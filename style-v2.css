@@ -15152,6 +15152,8 @@ body.in-cabinet .inbox-fab { display: none !important; }
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+  display: flex;
+  flex-direction: column;
 }
 body.guest-cabinet-preview .cabinet-nav-btn[data-section="tournament"],
 body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"] {
@@ -15195,6 +15197,27 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   min-width: 132px;
   max-width: 168px;
   scroll-snap-align: start;
+}
+#home-dashboard-root .home-section-body {
+  min-width: 0;
+  width: 100%;
+}
+#home-dashboard-root .home-section-body > .home-prem-rail {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  min-width: 0;
+}
+#home-dashboard-root .home-prem-rail > .home-pre-card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 clamp(132px, 38vw, 168px);
+  min-width: 132px;
+  max-width: 168px;
 }
 .home-poster-tile-img img {
   width: 100%;

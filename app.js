@@ -5540,12 +5540,12 @@
       const poster = it.poster || posterUrl(it.kp_id);
       const dateLabel = typeof formatPremiereDate === 'function' ? formatPremiereDate(it.premiere_date) : (it.premiere_date || it.year || '');
       const attrs = homeDashNavAttrs(it);
-      return '<button type="button" class="home-pre-card" role="listitem"' + attrs + '>'
+      return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + '>'
         + '<div class="home-pre-card-poster" style="background-image:url(\'' + escapeHtml(poster || '') + '\')"></div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
         + '<div class="home-pre-card-meta">' + (dateLabel ? (mpIcon('calendar', { size: 'sm' }) + ' ' + escapeHtml(String(dateLabel))) : '') + '</div>'
-        + '</div></button>';
+        + '</div></div>';
     }).join('') + '</div>';
   }
 
