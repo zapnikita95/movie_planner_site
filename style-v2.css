@@ -16016,6 +16016,31 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   body.in-cabinet .profile-hub-highlights .profile-hub-stat:nth-child(4) {
     /* keep 2x2 on very narrow */
   }
+  /* Home premieres rail — force horizontal carousel (regression: cards stacked vertically) */
+  body.in-cabinet #home-dashboard-root .home-section-body > .home-prem-rail,
+  #home-dashboard-root .home-section-body > .home-prem-rail {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+  body.in-cabinet #home-dashboard-root .home-prem-rail > .home-pre-card,
+  #home-dashboard-root .home-prem-rail > .home-pre-card {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 clamp(132px, 42vw, 168px);
+    width: clamp(132px, 42vw, 168px);
+    min-width: 132px;
+    max-width: 168px;
+    scroll-snap-align: start;
+  }
 }
 
 /* Extended onboarding v2 (shared with onboarding-flow.js) */
