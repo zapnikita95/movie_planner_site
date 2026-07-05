@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260705filmauth1';
+  var BUILD = '20260705guestplan1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -202,6 +202,10 @@
       });
     });
 
+    document.addEventListener('mp:film-login-success', function () {
+      if (getToken()) ensureFullCabinet();
+    });
+
     global.MpFilmPage.bootstrap({
       kpId: kp,
       cabinetMode: true,
@@ -210,8 +214,6 @@
         bindNavPrefetch();
         if (getToken()) {
           ensureFullCabinet();
-        } else {
-          scheduleIdleFullCabinet();
         }
       },
     });

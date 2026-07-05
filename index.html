@@ -68,8 +68,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260705filmauth1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260705filmauth1">
+    <link rel="preload" href="/style-v2.css?v=20260705guestplan1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260705guestplan1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -183,6 +183,18 @@
       (function () {
         try {
           var params = new URLSearchParams(window.location.search);
+          var pathEarly = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (pathEarly === '/' || pathEarly === '/index.html') {
+            var kpOpenEarly = params.get('kp_open');
+            if (kpOpenEarly && /^\d+$/.test(kpOpenEarly)) {
+              params.delete('kp_open');
+              params.delete('open_login');
+              params.delete('action');
+              var restKp = params.toString();
+              window.location.replace('/f/' + kpOpenEarly + (restKp ? '?' + restKp : '') + window.location.hash);
+              return;
+            }
+          }
           var spa = params.get('__spa');
           function mpSiteHasToken() {
             try {
@@ -2501,9 +2513,9 @@
           'mp-api-config.js?v=20260627apiams1',
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260705filmauth1',
+          'public-film-login.js?v=20260705guestplan1',
           'page-loading.js?v=20260529mobileparity1',
-          'plan-modal.js?v=20260617i18nfix3',
+          'plan-modal.js?v=20260705guestplan1',
           'film-user-tags.js?v=20260617tags3',
           'mp-icons.js?v=20260627history1'
         ];
@@ -2530,8 +2542,8 @@
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260705filmdesc1');
-          list.push('cabinet-film-route.js?v=20260705filmauth1');
+          list.push('film-page.js?v=20260705guestplan1');
+          list.push('cabinet-film-route.js?v=20260705guestplan1');
         } else if (isStaff) {
           list.push('film-page.js?v=20260705seriesunmark1');
           list.push('staff-page.js?v=20260628stafffix1');

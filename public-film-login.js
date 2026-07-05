@@ -217,12 +217,24 @@
     } catch (_e) {}
   }
 
-  function showLoginModal() {
+  function mountLoginModalPortal() {
     var modal = $('login-modal');
+    if (!modal) return null;
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+    modal.classList.add('mp-login-portal');
+    return modal;
+  }
+
+  function showLoginModal() {
+    var modal = mountLoginModalPortal();
     if (!modal) return;
     try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
     var landing = document.getElementById('landing');
     if (landing) landing.classList.add('hidden');
+    var cabinet = document.getElementById('cabinet-readonly');
+    if (cabinet) cabinet.classList.remove('hidden');
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -699,5 +711,6 @@
     consumeOAuthHash();
   }
 
-  global.MpPublicFilmLogin = { init: init, open: open, close: close };
+  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal };
+  global.showLoginModalOverlay = showLoginModal;
 })(window);

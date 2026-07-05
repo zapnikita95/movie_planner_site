@@ -1399,6 +1399,8 @@
       }
       var modal = document.getElementById('login-modal');
       if (modal) {
+        if (modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal.classList.add('mp-login-portal');
         document.body.classList.add('login-only-overlay');
         document.body.style.overflow = 'hidden';
         modal.classList.remove('hidden');
@@ -1810,29 +1812,26 @@
         return h;
       }
       function loginNow(action) {
-        if (window.MpPublicFilmLogin) {
+        if (action) rememberAction(action);
+        if (window.MpPublicFilmLogin && typeof MpPublicFilmLogin.open === 'function') {
           MpPublicFilmLogin.open(action || '');
           return;
         }
         if (typeof window.showLoginModalOverlay === 'function') {
-          if (action) {
-            try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
-          }
           window.showLoginModalOverlay();
           return;
         }
         var modal = document.getElementById('login-modal');
         if (modal) {
-          if (action) {
-            try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
-          }
+          if (modal.parentElement !== document.body) document.body.appendChild(modal);
+          modal.classList.add('mp-login-portal');
           document.body.classList.add('login-only-overlay');
           document.body.style.overflow = 'hidden';
           modal.classList.remove('hidden');
           modal.setAttribute('aria-hidden', 'false');
           return;
         }
-        if (hint) hint.textContent = 'Открываем вход…';
+        showPublicToast('Не удалось открыть вход');
       }
       function rememberAction(action) {
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
@@ -2094,13 +2093,13 @@
         return raw.replace(/\s*\(\d{4}\)\s*$/, '').trim() || 'Фильм';
       }
 
-      function openStandalonePlanModal(filmLike, place) {
+      function openStandalonePlanModal(filmLike, place, extra) {
         if (!window.MpPlanModal || typeof MpPlanModal.open !== 'function') {
           showPublicToast('Форма плана недоступна');
           return;
         }
         var fl = filmLike || {};
-        MpPlanModal.open({
+        var opts = {
           apiBase: apiBase,
           getAuthHeaders: authHeaders,
           onToast: showPublicToast,
@@ -2114,13 +2113,78 @@
           mode: place === 'cinema' ? 'cinema' : 'home',
           onSuccess: function () {
             if (hint) hint.textContent = '';
+            loadAuthFilmState();
           },
+        };
+        if (extra && typeof extra === 'object') {
+          Object.keys(extra).forEach(function (k) { opts[k] = extra[k]; });
+        }
+        MpPlanModal.open(opts);
+      }
+
+      function rememberPendingGuestPlan(planPayload) {
+        try {
+          sessionStorage.setItem('mp_pending_guest_plan', JSON.stringify({
+            kpId: kpId,
+            mode: planPayload.mode || 'home',
+            body: planPayload.body || {},
+          }));
+        } catch (_e) {}
+      }
+
+      function submitPendingGuestPlan() {
+        var raw;
+        try { raw = sessionStorage.getItem('mp_pending_guest_plan'); } catch (_e) { return; }
+        if (!raw || !token()) return;
+        var pending;
+        try { pending = JSON.parse(raw); } catch (_e) { return; }
+        if (String(pending.kpId) !== String(kpId)) return;
+        sessionStorage.removeItem('mp_pending_guest_plan');
+        var endpoint = pending.mode === 'cinema' ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
+        var body = pending.body || {};
+        function postPlan(filmBody) {
+          var payload = Object.assign({}, body, filmBody);
+          return fetch(apiBase + endpoint, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(payload),
+          }).then(function (r) { return r.json(); })
+            .then(function (res) {
+              if (res && res.success !== false && !res.error) {
+                showPublicToast(pending.mode === 'cinema' ? 'План в кино сохранён' : 'План дома сохранён');
+                loadAuthFilmState();
+              } else {
+                showPublicToast((res && res.error) || 'Не удалось сохранить план');
+              }
+            })
+            .catch(function () { showPublicToast('Ошибка сети'); });
+        }
+        if (body.film_id) return postPlan({});
+        return ensureFilm().then(function (d) {
+          if (!d || !d.success) {
+            showPublicToast((d && d.error) || 'Не удалось добавить фильм');
+            return;
+          }
+          return postPlan({ film_id: d.film_id, kp_id: Number(kpId) });
         });
       }
 
       function startPlanFlow(place) {
         place = place === 'cinema' ? 'cinema' : 'home';
-        if (!token()) { rememberAction('plan'); loginNow('plan'); return; }
+        if (!token()) {
+          openStandalonePlanModal(
+            { kp_id: kpId, title: filmTitleForPlan() },
+            place,
+            {
+              guestMode: true,
+              onRequireAuth: function (planPayload) {
+                rememberPendingGuestPlan(planPayload);
+                loginNow('plan');
+              },
+            }
+          );
+          return;
+        }
         fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
           .then(function (r) { return r.json(); })
           .then(function (lookup) {
@@ -2331,7 +2395,10 @@
           var pending = sessionStorage.getItem('mp_public_film_action') || '';
           if (!pending || pending.split(':')[1] !== kpId || !token()) return;
           sessionStorage.removeItem('mp_public_film_action');
-          if (pending.indexOf('plan:') === 0) startPlanFlow('home');
+          if (pending.indexOf('plan:') === 0) {
+            if (sessionStorage.getItem('mp_pending_guest_plan')) submitPendingGuestPlan();
+            else startPlanFlow('home');
+          }
           else if (pending.indexOf('add:') === 0) addCurrentFilm();
           else if (pending.indexOf('rate') === 0) {
             var rating = Number((pending.split(':')[0] || '').replace('rate', ''));
@@ -2670,7 +2737,12 @@
         cabinetMode: cabinetMode,
         bindLogin: !cabinetMode,
         loginNow: loginNow,
-        onLoginSuccess: function () { loadAuthFilmState(); loadFilmFriendsSocialBlock(); consumePendingAction(); },
+        onLoginSuccess: function () {
+          loadAuthFilmState();
+          loadFilmFriendsSocialBlock();
+          consumePendingAction();
+          try { document.dispatchEvent(new CustomEvent('mp:film-login-success')); } catch (_e) {}
+        },
       });
 
       loadAuthFilmState();
@@ -2679,6 +2751,7 @@
       document.addEventListener('mp:film-refresh-auth', function () {
         loadAuthFilmState();
         loadFilmFriendsSocialBlock();
+        consumePendingAction();
       });
       if (opts.onReady) {
         try { opts.onReady(); } catch (_ready) {}

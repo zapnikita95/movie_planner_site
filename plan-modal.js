@@ -332,6 +332,8 @@
     var getHeaders = opts.getAuthHeaders || function () { return { 'Content-Type': 'application/json' }; };
     var onToast = opts.onToast || function (m) { try { console.log(m); } catch (_e) {} };
     var onSuccess = opts.onSuccess || function () {};
+    var guestMode = !!opts.guestMode;
+    var onRequireAuth = opts.onRequireAuth || null;
     var film = opts.film || {};
     var kp = String(film.kp_id || opts.kpId || '').replace(/\D/g, '');
     var fid = film.film_id != null ? Number(film.film_id) : null;
@@ -431,6 +433,18 @@
         '<div class="selected-film-meta">' + escapeHtml(sel.year || '') + '</div></div></div>'
       ) : '';
 
+      var voiceHtml = guestMode ? '' : (
+        '<div class="field plan-voice-field">' +
+        '<div class="field-label-row"><span class="field-label">Голосом</span></div>' +
+        '<button type="button" id="mp-plan-voice-btn" class="btn btn-secondary btn-full">🎤 Надиктовать план</button>' +
+        '<div id="mp-plan-voice-panel" class="plan-voice-active-panel hidden" role="status"><div class="plan-voice-active-head"><span class="plan-voice-active-pulse"></span><div id="mp-plan-voice-title" class="plan-voice-active-title"></div></div><p id="mp-plan-voice-sub" class="plan-voice-active-sub"></p></div>' +
+        '<div id="mp-plan-voice-status" class="muted small plan-voice-status-line"></div></div>'
+      );
+
+      var guestHintHtml = guestMode
+        ? '<p class="muted small plan-guest-auth-hint">Нужно войти, чтобы сохранить план</p>'
+        : '';
+
       card.innerHTML =
         '<button type="button" class="mp-onboard-dismiss" data-plan-close aria-label="Закрыть">✕</button>' +
         '<div class="mp-onboard-title">Запланировать</div>' +
@@ -439,11 +453,7 @@
         '<button type="button" class="plan-mode' + (!isCinema ? ' active' : '') + '" data-mode="home"><span class="plan-mode-icon">🏠</span><span class="plan-mode-label">Дома</span></button>' +
         '<button type="button" class="plan-mode' + (isCinema ? ' active' : '') + '" data-mode="cinema"><span class="plan-mode-icon">🎟️</span><span class="plan-mode-label">В кино</span></button>' +
         '</div>' +
-        '<div class="field plan-voice-field">' +
-        '<div class="field-label-row"><span class="field-label">Голосом</span></div>' +
-        '<button type="button" id="mp-plan-voice-btn" class="btn btn-secondary btn-full">🎤 Надиктовать план</button>' +
-        '<div id="mp-plan-voice-panel" class="plan-voice-active-panel hidden" role="status"><div class="plan-voice-active-head"><span class="plan-voice-active-pulse"></span><div id="mp-plan-voice-title" class="plan-voice-active-title"></div></div><p id="mp-plan-voice-sub" class="plan-voice-active-sub"></p></div>' +
-        '<div id="mp-plan-voice-status" class="muted small plan-voice-status-line"></div></div>' +
+        voiceHtml +
         selHtml +
         '<div class="field"><label class="field-label">Когда</label>' +
         '<div class="search-relative"><span class="search-icon">🗣️</span>' +
@@ -476,7 +486,10 @@
           '<input type="hidden" id="mp-cinema-name"><input type="hidden" id="mp-cinema-address">' +
           '<input type="hidden" id="mp-cinema-lat"><input type="hidden" id="mp-cinema-lon"></div>'
         ) : '') +
-        '<button type="button" id="mp-plan-submit" class="btn btn-primary btn-full plan-submit-btn">Сохранить</button>' +
+        guestHintHtml +
+        '<button type="button" id="mp-plan-submit" class="btn btn-primary btn-full plan-submit-btn">' +
+        (guestMode ? 'Запланировать' : 'Сохранить') +
+        '</button>' +
         '<div id="mp-plan-status" class="muted small plan-status-line"></div></div>';
 
       bindForm();
@@ -611,6 +624,7 @@
       if (timeEl) timeEl.addEventListener('change', function () { state.time = timeEl.value; });
 
       // Voice
+      if (!guestMode) {
       var voiceBtn = card.querySelector('#mp-plan-voice-btn');
       var voiceStatus = card.querySelector('#mp-plan-voice-status');
       function uploadVoiceBlob(blob, durMs) {
@@ -678,6 +692,7 @@
             }, 30000) };
           }).catch(function () { onToast('Нет доступа к микрофону'); });
         });
+      }
       }
 
       // Cinema tickets + search
@@ -807,6 +822,11 @@
             var cLat = card.querySelector('#mp-cinema-lat'); if (cLat && cLat.value) body.cinema_lat = parseFloat(cLat.value);
             var cLon = card.querySelector('#mp-cinema-lon'); if (cLon && cLon.value) body.cinema_lon = parseFloat(cLon.value);
           }
+          if (guestMode && typeof onRequireAuth === 'function') {
+            close();
+            onRequireAuth({ mode: isCinema ? 'cinema' : 'home', body: body });
+            return;
+          }
           submit.disabled = true;
           submit.textContent = 'Сохраняем…';
           var endpoint = isCinema ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
@@ -829,7 +849,7 @@
             })
             .catch(function (e) {
               submit.disabled = false;
-              submit.textContent = 'Сохранить';
+              submit.textContent = guestMode ? 'Запланировать' : 'Сохранить';
               onToast((e && e.message) || 'Не удалось сохранить план');
             });
         });

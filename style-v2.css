@@ -36,7 +36,17 @@ html.mp-film-boot body,
 html.mp-staff-boot body { visibility: visible; }
 
 #login-modal { display: none; z-index: 12000; }
+#login-modal.mp-login-portal {
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
 #login-modal:not(.hidden) { display: flex !important; }
+.plan-guest-auth-hint { margin: 0 0 8px; text-align: center; opacity: 0.85; }
 .cabinet-section.hidden { display: none !important; }
 
 /* Header search: shared by landing and cabinet */
