@@ -10986,7 +10986,7 @@
         const next = seriesNextUnwatchedEp(progress);
         const last = seriesLastWatchedEp(progress);
         const watched = seriesEpIsWatched(progress, season, episode);
-        if (watched && last && Number(last.season) === season && Number(last.episode) === episode) {
+        if (watched) {
           state.pending = true;
           rerender();
           api('/api/site/series/' + film.film_id + '/episodes/mark', {
@@ -10995,6 +10995,7 @@
             timeoutMs: 45000,
           }).then(function (data) {
             if (!data || !data.success) throw new Error((data && data.error) || 'error');
+            showToast('Отметка снята');
             state.progress = seriesProgressFromPayload(data);
             state.selected = null;
             state.showMarkUpTo = false;

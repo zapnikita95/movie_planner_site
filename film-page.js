@@ -525,7 +525,7 @@
         var next = seriesNextUnwatchedEp(progress);
         var last = seriesLastWatchedEp(progress);
         var watched = seriesEpIsWatched(progress, season, episode);
-        if (watched && last && Number(last.season) === season && Number(last.episode) === episode) {
+        if (watched) {
           postMark({ season: season, episode: episode, watched: false });
           return;
         }
