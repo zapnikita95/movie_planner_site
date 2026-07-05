@@ -194,16 +194,29 @@
     return title + ' — карточка фильма на Movie Planner.';
   }
 
+  var lastFilmDescription = '';
+
   function setFilmDescription(text) {
     var dEl = document.getElementById('film-desc');
     if (!dEl) return;
     var s = String(text || '').trim();
     if (!s || isFilmDescPlaceholder(s)) {
+      if (lastFilmDescription) {
+        dEl.textContent = lastFilmDescription;
+        dEl.classList.remove('hidden', 'skeleton');
+        return;
+      }
+      var existing = String(dEl.textContent || '').trim();
+      if (existing && !isFilmDescPlaceholder(existing) && !dEl.classList.contains('skeleton')) {
+        lastFilmDescription = existing;
+        return;
+      }
       dEl.textContent = '';
       dEl.classList.add('hidden');
       dEl.classList.remove('skeleton');
       return;
     }
+    lastFilmDescription = s;
     dEl.textContent = s;
     dEl.classList.remove('hidden', 'skeleton');
   }
