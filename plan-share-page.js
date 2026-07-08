@@ -6,6 +6,8 @@
 
   var SITE_BASE = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
   var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_BASE;
+  var PENDING_KEY = 'mp_pending_plan_share';
+  var chromeApi = null;
 
   function parseTokenFromPath() {
     var m = (global.location.pathname || '').match(/^\/p\/([^/?#]+)/);
@@ -45,51 +47,84 @@
     return SITE_BASE + '/?open_login=1&__spa=' + encodeURIComponent('/p/' + token);
   }
 
-  function bindAccept(token) {
+  function rememberPendingAccept(token) {
+    try { sessionStorage.setItem(PENDING_KEY, String(token || '')); } catch (_e) {}
+  }
+
+  function clearPendingAccept(token) {
+    try {
+      var pending = sessionStorage.getItem(PENDING_KEY) || '';
+      if (!token || pending === String(token)) sessionStorage.removeItem(PENDING_KEY);
+    } catch (_e) {}
+  }
+
+  function postAccept(token) {
     var btn = document.getElementById('accept-plan-share');
     var status = document.getElementById('accept-status');
+    if (btn) btn.disabled = true;
+    return fetch(API_BASE + '/api/site/plan-share/' + encodeURIComponent(token) + '/accept', {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+      body: '{}',
+    })
+      .then(function (r) {
+        if (r.ok) {
+          clearPendingAccept(token);
+          if (status) {
+            status.textContent = 'Приглашение принято';
+            status.style.display = 'block';
+          }
+          if (btn) btn.textContent = 'Готово';
+          return null;
+        }
+        if (r.status === 401) {
+          rememberPendingAccept(token);
+          global.location.href = loginUrl(token);
+          return null;
+        }
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (status) {
+            status.textContent = (d && (d.error || d.message)) || 'Не удалось принять. Попробуйте ещё раз.';
+            status.style.display = 'block';
+          }
+          if (btn) btn.disabled = false;
+        });
+      })
+      .catch(function () {
+        if (status) {
+          status.textContent = 'Ошибка сети';
+          status.style.display = 'block';
+        }
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  function consumePendingAccept(token) {
+    try {
+      var pending = sessionStorage.getItem(PENDING_KEY) || '';
+      if (!pending || pending !== String(token) || !mpToken()) return;
+    } catch (_e) {
+      return;
+    }
+    postAccept(token);
+  }
+
+  function bindAccept(token) {
+    var btn = document.getElementById('accept-plan-share');
     if (!btn || btn._mpBound) return;
     btn._mpBound = true;
     btn.addEventListener('click', function () {
       if (!mpToken()) {
+        rememberPendingAccept(token);
+        if (chromeApi && chromeApi.loginNow) {
+          chromeApi.loginNow();
+          return;
+        }
         global.location.href = loginUrl(token);
         return;
       }
-      btn.disabled = true;
-      fetch(API_BASE + '/api/site/plan-share/' + encodeURIComponent(token) + '/accept', {
-        method: 'POST',
-        credentials: 'include',
-        headers: authHeaders(),
-        body: '{}',
-      })
-        .then(function (r) {
-          if (r.ok) {
-            if (status) {
-              status.textContent = 'Приглашение принято';
-              status.style.display = 'block';
-            }
-            btn.textContent = 'Готово';
-            return null;
-          }
-          if (r.status === 401) {
-            global.location.href = loginUrl(token);
-            return null;
-          }
-          return r.json().catch(function () { return {}; }).then(function (d) {
-            if (status) {
-              status.textContent = (d && (d.error || d.message)) || 'Не удалось принять. Попробуйте ещё раз.';
-              status.style.display = 'block';
-            }
-            btn.disabled = false;
-          });
-        })
-        .catch(function () {
-          if (status) {
-            status.textContent = 'Ошибка сети';
-            status.style.display = 'block';
-          }
-          btn.disabled = false;
-        });
+      postAccept(token);
     });
   }
 
@@ -111,14 +146,16 @@
       onLoginSuccess: function () {
         refreshAuthChrome(token);
         bindAccept(token);
+        consumePendingAccept(token);
       },
     };
     if (global.MpFilmPage && MpFilmPage.initStandaloneSiteChrome) {
-      MpFilmPage.initStandaloneSiteChrome(chromeOpts);
+      chromeApi = MpFilmPage.initStandaloneSiteChrome(chromeOpts);
     } else {
       var loginBtn = document.querySelector('[data-action="login"]') || document.getElementById('login-btn');
       if (loginBtn) {
         loginBtn.addEventListener('click', function () {
+          rememberPendingAccept(token);
           global.location.href = loginUrl(token);
         });
       }
@@ -164,6 +201,7 @@
     initStandaloneChrome(token);
     bindAccept(token);
     bindOpenLinks(token);
+    if (mpToken()) consumePendingAccept(token);
   }
 
   global.MpPlanSharePage = { init: init };
