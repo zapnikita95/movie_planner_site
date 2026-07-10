@@ -17,11 +17,13 @@
     return 'https://movie-planner.ru';
   })();
   const API_BASE = (function () {
+    if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
     try {
       var h = (window.location && window.location.hostname) || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') return SITE_ORIGIN;
+      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
+        return 'https://api.movie-planner.ru';
+      }
     } catch (e) {}
-    if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
     return SITE_ORIGIN;
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
