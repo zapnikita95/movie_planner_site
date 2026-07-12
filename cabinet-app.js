@@ -4319,6 +4319,32 @@
     });
   }
 
+  const STAFF_ROLE_LABELS = {
+    ACTOR: 'Актер',
+    DIRECTOR: 'Режиссер',
+    PRODUCER: 'Продюсер',
+    WRITER: 'Сценарист',
+    OPERATOR: 'Оператор',
+    COMPOSER: 'Композитор',
+    DESIGN: 'Художник',
+    EDITOR: 'Монтажер',
+    VOICEOVER: 'Озвучка',
+    VOICE_DIRECTOR: 'Режиссер дубляжа',
+    HIMSELF: 'Играет себя',
+    HRONO_TITR_MALE: 'Хроника',
+    HRONO_TITR_FEMALE: 'Хроника',
+    TRANSLATOR: 'Переводчик',
+    CAMEO: 'Камео',
+    UNCREDITED: 'Без указания в титрах',
+  };
+
+  function staffRoleDisplayName(roleKey, roleName) {
+    const rk = String(roleKey || '').trim().toUpperCase();
+    const rn = String(roleName || '').trim();
+    if (rn && rn.toUpperCase() !== rk) return rn;
+    return STAFF_ROLE_LABELS[rk] || rn || rk;
+  }
+
   function staffBootPersonId(boot) {
     if (!boot || boot.type !== 'staff') return '';
     return String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
@@ -4767,7 +4793,7 @@
         return (
           '<section class="staff-role-block' + hiddenCls + '" data-idx="' + idx + '">' +
             '<div class="staff-role-head">' +
-              '<h2>' + escapeHtml(block.role_name || block.role_key || '') + '</h2>' +
+              '<h2>' + escapeHtml(staffRoleDisplayName(block.role_key, block.role_name)) + '</h2>' +
               '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '">В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
             '</div>' +
             bodyHtml +
@@ -4892,7 +4918,7 @@
             films_by_role: rolesMeta.map(function (rm) {
               return {
                 role_key: rm.role_key,
-                role_name: rm.role_name || rm.role_key,
+                role_name: staffRoleDisplayName(rm.role_key, rm.role_name),
                 films: [],
                 total: rm.total || 0,
               };

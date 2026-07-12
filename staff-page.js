@@ -24,6 +24,32 @@
   var _staffPendingFriendsFilter = false;
   var _staffGlobalFilters = { years: [], genres: [] };
 
+  var STAFF_ROLE_LABELS = {
+    ACTOR: 'Актер',
+    DIRECTOR: 'Режиссер',
+    PRODUCER: 'Продюсер',
+    WRITER: 'Сценарист',
+    OPERATOR: 'Оператор',
+    COMPOSER: 'Композитор',
+    DESIGN: 'Художник',
+    EDITOR: 'Монтажер',
+    VOICEOVER: 'Озвучка',
+    VOICE_DIRECTOR: 'Режиссер дубляжа',
+    HIMSELF: 'Играет себя',
+    HRONO_TITR_MALE: 'Хроника',
+    HRONO_TITR_FEMALE: 'Хроника',
+    TRANSLATOR: 'Переводчик',
+    CAMEO: 'Камео',
+    UNCREDITED: 'Без указания в титрах',
+  };
+
+  function staffRoleDisplayName(roleKey, roleName) {
+    var rk = String(roleKey || '').trim().toUpperCase();
+    var rn = String(roleName || '').trim();
+    if (rn && rn.toUpperCase() !== rk) return rn;
+    return STAFF_ROLE_LABELS[rk] || rn || rk;
+  }
+
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
@@ -425,7 +451,7 @@
 
   function rolesHtml(roles) {
     return sortRolesByFilmCount(roles).map(function (block) {
-      var roleTitle = block.role_name || block.role_key || '';
+      var roleTitle = staffRoleDisplayName(block.role_key, block.role_name);
       var roleKey = block.role_key || roleTitle;
       var filtered = filterPersonFilmsClient(block.films || [], _staffFilterState);
       if (!filtered.length) return '';
@@ -991,7 +1017,7 @@
       return String(b.role_key || '').toUpperCase() === rk;
     });
     if (!block) {
-      block = { role_key: rk, role_name: rk, films: [] };
+      block = { role_key: rk, role_name: staffRoleDisplayName(rk, ''), films: [] };
       _staffLastData.films_by_role.push(block);
     }
     var incoming = batchFilms || [];
@@ -1073,7 +1099,7 @@
         var filmsByRole = rolesMeta.map(function (rm) {
           return {
             role_key: rm.role_key,
-            role_name: rm.role_name || rm.role_key,
+            role_name: staffRoleDisplayName(rm.role_key, rm.role_name),
             films: [],
             total: rm.total || 0,
           };
