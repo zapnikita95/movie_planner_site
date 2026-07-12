@@ -1893,12 +1893,20 @@
         }
         var arr = (items && items.length) ? items.slice(0, 6) : [];
         list.innerHTML = '';
+        function formatWebFactHtml(text) {
+          var escaped = String(text || '').replace(/[&<>"']/g, esc);
+          return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        }
+        function webFactBodyHtml(wf) {
+          if (wf && wf.fact_html) return String(wf.fact_html);
+          return formatWebFactHtml(wf && wf.fact);
+        }
         if (webFacts && webFacts.length) {
           webFacts.slice(0, 6).forEach(function (wf) {
             if (!wf || !wf.fact) return;
             var li = document.createElement('li');
             var cat = wf.category ? ('<strong>' + String(wf.category).replace(/[&<>"']/g, esc) + ':</strong> ') : '';
-            var text = String(wf.fact).replace(/[&<>"']/g, esc);
+            var text = webFactBodyHtml(wf);
             var src = '';
             var srcUrl = wf.source_url || wf.source || '';
             var srcLabel = wf.source_label || wf.source_title || 'Источник';

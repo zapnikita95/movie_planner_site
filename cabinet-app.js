@@ -4560,10 +4560,24 @@
     return parts.join('');
   }
 
+  function formatWebFactHtml(text) {
+    const escaped = escapeHtml(String(text || ''));
+    return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function webFactBodyHtml(wf) {
+    if (wf && wf.fact_html) return String(wf.fact_html);
+    return formatWebFactHtml(wf && wf.fact);
+  }
+
   function staffFactsPreviewText(fact) {
-    const t = String(fact || '').replace(/\s+/g, ' ').trim();
+    const t = String(fact || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\s+/g, ' ').trim();
     if (t.length <= 140) return t;
     return t.slice(0, 137).trim() + '…';
+  }
+
+  function staffFactsPreviewHtml(fact) {
+    return formatWebFactHtml(fact);
   }
 
   function renderCabinetStaffPersonFacts(webFacts) {
@@ -4579,12 +4593,12 @@
       return;
     }
     section.classList.remove('hidden');
-    preview.textContent = staffFactsPreviewText(facts[0].fact);
+    preview.innerHTML = staffFactsPreviewHtml(facts[0].fact);
     list.innerHTML = '';
     facts.slice(0, 6).forEach(function (wf) {
       const li = document.createElement('li');
       const cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
-      const text = escapeHtml(wf.fact);
+      const text = webFactBodyHtml(wf);
       let src = '';
       const srcUrl = wf.source_url || '';
       const srcLabel = wf.source_label || wf.source_title || 'Источник';
@@ -4759,10 +4773,10 @@
           ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
         staffMetaHtml(person) +
         '</div></header>' +
-      '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Факты об актёре">' +
+      '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
         '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
           '<span class="staff-facts-toggle-head">' +
-            '<span class="staff-facts-toggle-label">Факты об актёре</span>' +
+            '<span class="staff-facts-toggle-label">Интересные факты</span>' +
           '</span>' +
           '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
           '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
