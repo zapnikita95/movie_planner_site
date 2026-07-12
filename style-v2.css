@@ -10452,6 +10452,7 @@ main.film-page .film-hero-crew {
   font-weight: 600;
 }
 .film-cast-sep { opacity: .55; }
+.staff-cast-plain { color: inherit; }
 .film-hero-crew b,
 .film-modal-crew b,
 #film-cast-root b {

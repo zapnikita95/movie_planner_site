@@ -4546,11 +4546,26 @@
   }
 
   function staffCastLink(entry) {
-    if (!entry || entry.kp_person_id == null) return '';
+    if (!entry) return '';
     const nm = escapeHtml(entry.name_ru || entry.name_en || '');
-    const kp = String(entry.kp_person_id);
+    if (!nm) return '';
+    const kpRaw = entry.kp_person_id;
+    if (kpRaw == null || kpRaw === '') {
+      return '<span class="staff-cast-plain">' + nm + '</span>';
+    }
+    const kp = String(kpRaw).replace(/\D/g, '');
+    if (!kp) return '<span class="staff-cast-plain">' + nm + '</span>';
     const photo = entry.photo ? (' data-staff-photo="' + escapeHtml(String(entry.photo)) + '"') : '';
     return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '"' + photo + '>' + nm + '</a>';
+  }
+
+  function buildFilmCastSkeletonHtml() {
+    return (
+      '<div class="film-cast-skeleton">' +
+        '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
+        '<div class="film-cast-row film-cast-actors" style="margin-top:6px"><span class="film-cast-label">Актёры:</span> <span class="film-cast-skel-line film-cast-skel-line-wide"></span></div>' +
+      '</div>'
+    );
   }
 
   function buildFilmCastHtml(director, actors, country) {
@@ -4562,9 +4577,12 @@
       );
     }
     if (director) {
-      parts.push(
-        '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + staffCastLink(director) + '</div>'
-      );
+      const dirHtml = staffCastLink(director);
+      if (dirHtml) {
+        parts.push(
+          '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + dirHtml + '</div>'
+        );
+      }
     }
     const actorLinks = (actors || []).map(staffCastLink).filter(Boolean);
     if (actorLinks.length) {
@@ -11681,7 +11699,9 @@
 
   function filmToolbarKpFromRoot(root) {
     const share = root && root.querySelector('[data-share-film]');
-    return share ? String(share.getAttribute('data-kp') || '').replace(/\D/g, '') : '';
+    const fromShare = share ? String(share.getAttribute('data-kp') || '').replace(/\D/g, '') : '';
+    if (fromShare) return fromShare;
+    return heroKpIdFromRoot(root);
   }
 
   function filmToolbarOptsFromDetail(film, ratings, me) {
@@ -13058,7 +13078,7 @@
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = pickFilmPosterUrl(film, content);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
-    const crew = '<div class="film-hero-crew" id="film-hero-cast-root"></div>';
+    const crew = '<div class="film-hero-crew" id="film-hero-cast-root">' + buildFilmCastSkeletonHtml() + '</div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
       film_id: film.film_id,
@@ -13133,6 +13153,10 @@
       root.innerHTML = buildFilmCrewFallback(filmFallback);
       return;
     }
+    if (!root.innerHTML.trim() || root.querySelector('.film-cast-skeleton')) {
+      root.innerHTML = buildFilmCastSkeletonHtml();
+    }
+    root.setAttribute('data-mp-cast-pending', '1');
     fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/cast', { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (cast) {

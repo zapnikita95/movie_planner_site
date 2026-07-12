@@ -3232,9 +3232,15 @@
   }
 
   function staffCastLink(entry) {
-    if (!entry || entry.kp_person_id == null) return '';
+    if (!entry) return '';
     const nm = escapeHtml(entry.name_ru || entry.name_en || '');
-    const kp = String(entry.kp_person_id);
+    if (!nm) return '';
+    const kpRaw = entry.kp_person_id;
+    if (kpRaw == null || kpRaw === '') {
+      return '<span class="staff-cast-plain">' + nm + '</span>';
+    }
+    const kp = String(kpRaw).replace(/\D/g, '');
+    if (!kp) return '<span class="staff-cast-plain">' + nm + '</span>';
     return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '">' + nm + '</a>';
   }
 
@@ -3247,9 +3253,12 @@
       );
     }
     if (director) {
-      parts.push(
-        '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + staffCastLink(director) + '</div>'
-      );
+      const dirHtml = staffCastLink(director);
+      if (dirHtml) {
+        parts.push(
+          '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + dirHtml + '</div>'
+        );
+      }
     }
     const actorLinks = (actors || []).map(staffCastLink).filter(Boolean);
     if (actorLinks.length) {

@@ -1929,12 +1929,17 @@
       }
       var CAST_VISIBLE = 4;
       function castPersonLink(entry) {
-        if (!entry || entry.kp_person_id == null) return '';
+        if (!entry) return '';
         var nm = String(entry.name_ru || entry.name_en || '').replace(/[&<>"']/g, function (c) {
           return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
         if (!nm) return '';
-        var kp = String(entry.kp_person_id);
+        var kpRaw = entry.kp_person_id;
+        if (kpRaw == null || kpRaw === '') {
+          return '<span class="staff-cast-plain">' + nm + '</span>';
+        }
+        var kp = String(kpRaw).replace(/\D/g, '');
+        if (!kp) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
         return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + kp + '" data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
       }
@@ -1947,7 +1952,10 @@
           }) + '</div>');
         }
         if (director) {
-          parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + castPersonLink(director) + '</div>');
+          var dirHtml = castPersonLink(director);
+          if (dirHtml) {
+            parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + dirHtml + '</div>');
+          }
         }
         var links = (actors || []).map(castPersonLink).filter(Boolean);
         if (!links.length) return parts.join('');
