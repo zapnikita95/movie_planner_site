@@ -2107,7 +2107,9 @@
     const pathStaffEarly = staffIdFromPathname(window.location.pathname);
     if (pathStaffEarly && me) {
       document.body.classList.remove('login-only-overlay');
+      document.body.classList.add('in-cabinet');
       syncSessionHtmlClass();
+      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       renderHeader(me);
       openStaffPage(pathStaffEarly, { replace: true });
       return Promise.resolve();
@@ -3982,6 +3984,8 @@
   }
   const _staffPathRe = /^\/s\/(\d+)(?:\/?)?$/;
   let _staffPageKpId = null;
+  let _staffPageRepaint = null;
+  let _staffPageFilterState = null;
 
   function staffIdFromPathname(pathname) {
     if (!pathname) return null;
@@ -4476,20 +4480,94 @@
     return parts.join('');
   }
 
+  function staffFactsPreviewText(fact) {
+    const t = String(fact || '').replace(/\s+/g, ' ').trim();
+    if (t.length <= 140) return t;
+    return t.slice(0, 137).trim() + '…';
+  }
+
+  function renderCabinetStaffPersonFacts(webFacts) {
+    const section = document.getElementById('staff-facts-section');
+    const preview = document.getElementById('staff-facts-preview');
+    const list = document.getElementById('staff-facts-list');
+    const panel = document.getElementById('staff-facts-panel');
+    const toggle = document.getElementById('staff-facts-toggle');
+    if (!section || !preview || !list) return;
+    const facts = (webFacts || []).filter(function (f) { return f && f.fact; });
+    if (!facts.length) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+    preview.textContent = staffFactsPreviewText(facts[0].fact);
+    list.innerHTML = '';
+    facts.slice(0, 6).forEach(function (wf) {
+      const li = document.createElement('li');
+      const cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
+      const text = escapeHtml(wf.fact);
+      let src = '';
+      const srcUrl = wf.source_url || '';
+      const srcLabel = wf.source_label || wf.source_title || 'Источник';
+      if (srcUrl) {
+        src = ' <cite class="staff-fact-cite"><a class="staff-fact-source" href="' +
+          escapeHtml(srcUrl) + '" target="_blank" rel="noopener nofollow">' +
+          escapeHtml(srcLabel) + '</a></cite>';
+      }
+      li.innerHTML = cat + text + src;
+      list.appendChild(li);
+    });
+    if (panel) panel.classList.add('hidden');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+      if (!toggle._staffFactsBound) {
+        toggle._staffFactsBound = true;
+        toggle.addEventListener('click', function () {
+          const open = panel && panel.classList.contains('hidden');
+          if (panel) panel.classList.toggle('hidden', !open);
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          const chev = toggle.querySelector('.staff-facts-chevron');
+          if (chev) chev.textContent = open ? '▴' : '▾';
+          if (open) preview.classList.add('hidden');
+          else preview.classList.remove('hidden');
+        });
+      }
+    }
+  }
+
+  function loadCabinetStaffPersonFacts(personId) {
+    const pid = String(personId || _staffPageKpId || '').replace(/\D/g, '');
+    if (!pid) return Promise.resolve();
+    return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(pid) + '/facts', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success) return;
+        renderCabinetStaffPersonFacts(d.web_facts || []);
+      })
+      .catch(function () {});
+  }
+
   function renderStaffPageContent(data, root) {
     const person = data.person || {};
     const roles = data.films_by_role || [];
     const meta = data.filters || { years: [], genres: [] };
-    const filterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+    if (!_staffPageFilterState) {
+      _staffPageFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+    }
+    const filterState = _staffPageFilterState;
 
     function yearOpts() {
       return ['<option value="">Любой</option>'].concat((meta.years || []).map(function (y) {
-        return '<option value="' + y + '">' + y + '</option>';
+        const sel = String(filterState.year) === String(y) ? ' selected' : '';
+        return '<option value="' + y + '"' + sel + '>' + y + '</option>';
       })).join('');
     }
     function genreOpts() {
       return ['<option value="">Любой</option>'].concat((meta.genres || []).map(function (g) {
-        return '<option value="' + escapeHtml(g) + '">' + escapeHtml(g) + '</option>';
+        const sel = String(filterState.genre || '').toLowerCase() === String(g || '').toLowerCase() ? ' selected' : '';
+        return '<option value="' + escapeHtml(g) + '"' + sel + '>' + escapeHtml(g) + '</option>';
       })).join('');
     }
     function gridHtml(films) {
@@ -4574,6 +4652,18 @@
           ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
         staffMetaHtml(person) +
         '</div></header>' +
+      '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Факты об актёре">' +
+        '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel">' +
+          '<span class="staff-facts-toggle-head">' +
+            '<span class="staff-facts-toggle-label">Факты об актёре</span>' +
+            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
+          '</span>' +
+          '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
+        '</button>' +
+        '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
+          '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+        '</div>' +
+      '</section>' +
       '<div class="staff-filters">' +
         '<label class="staff-filter"><span>Год</span><select id="staff-filter-year">' + yearOpts() + '</select></label>' +
         '<label class="staff-filter"><span>Жанр</span><select id="staff-filter-genre">' + genreOpts() + '</select></label>' +
@@ -4669,6 +4759,8 @@
         openFilmNav(kp, fid);
       });
     });
+    _staffPageRepaint = paintRoles;
+    loadCabinetStaffPersonFacts(person.kp_person_id || person.kp_id || _staffPageKpId);
   }
 
   function openStaffPage(kpId, opts) {
@@ -4683,6 +4775,8 @@
       return Promise.resolve();
     }
     _staffPageKpId = kp;
+    _staffPageRepaint = null;
+    _staffPageFilterState = null;
     _filmModalCurrentId = null;
     showScreen('cabinet-readonly');
     showFilmPageLayout();
@@ -4734,7 +4828,8 @@
             block.films = batch.films || [];
             block.has_more = !!batch.has_more;
             if (batch.total != null) block.total = batch.total;
-            renderStaffPageContent(detail, pageRoot);
+            if (_staffPageRepaint) _staffPageRepaint();
+            else renderStaffPageContent(detail, pageRoot);
           });
         }, idx * 120);
       });
@@ -4785,6 +4880,8 @@
 
   function closeStaffPage() {
     _staffPageKpId = null;
+    _staffPageRepaint = null;
+    _staffPageFilterState = null;
     closeFilmPage();
   }
   function isFilmPageOpen() {
