@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Приложение для отметки просмотренных фильмов и отзывов — Movie Planner</title>
+    <meta name="description" content="Где отмечать просмотренные фильмы и сериалы и писать отзывы: оценки 1–10, заметки на карточке, история просмотров в приложении и веб-кабинете Movie Planner.">
+    <meta name="keywords" content="приложение отмечать просмотренные фильмы и писать отзывы, приложение для отметки просмотренных фильмов, отмечать просмотренные фильмы, трекер с оценками, отзывы к фильмам приложение">
+    <link rel="canonical" href="https://movie-planner.ru/articles/prilozhenie-otmetki-i-otzyvy-k-filmam.html">
+    <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/articles/prilozhenie-otmetki-i-otzyvy-k-filmam.html">
+    <link rel="alternate" hreflang="x-default" href="https://movie-planner.ru/articles/prilozhenie-otmetki-i-otzyvy-k-filmam.html">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="Отметки и отзывы к фильмам — Movie Planner">
+    <meta property="og:description" content="Где отмечать просмотренные фильмы и сериалы и писать отзывы: оценки 1–10, заметки на карточке, история просмотров в приложении и веб-кабинете Movie Planner.">
+    <meta property="og:url" content="https://movie-planner.ru/articles/prilozhenie-otmetki-i-otzyvy-k-filmam.html">
+    <meta property="og:type" content="article">
+        <link rel="stylesheet" href="../style-v2.css?v=20260702articlechrome1">
+    <style id="mp-article-critical">
+      html.mp-session #site-header [data-action="login"],
+      html.mp-session #site-header #login-btn,
+      html.mp-session #site-header .header-login-btn,
+      html.mp-session .site-header-subpage-actions{display:none!important}
+      html.mp-session #header-user-wrap{display:flex!important}
+      html.mp-session #header-user-wrap.hidden{display:flex!important}
+      html.mp-session #header-profile-pill.hidden{display:inline-flex!important}
+      html.mp-session #login-modal.modal:not(.hidden){visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    </style>
+    <script src="../articles/article-session-boot.js?v=20260702articlechrome1"></script>
+    <link rel="icon" href="../images/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="content-wrapper subpage-wrapper">
+        <header id="site-header">
+      <div class="header-content">
+        <a class="logo" href="/"><img src="../images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>
+        <div class="header-search" id="header-search" role="search">
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
+        <div class="header-buttons">
+          <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="header-util-row">
+              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+              </button>
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
+            </div>
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
+              <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
+            </button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container subpage-main">
+        <section class="article-content">
+            <h1>Где отмечать просмотренные фильмы и писать отзывы</h1>
+
+            <p class="date">12 июля 2026</p>
+            <p>Запрос «<strong>приложение, где можно отмечать фильмы и писать отзывы</strong>» — про две вещи сразу: зафиксировать факт просмотра и сохранить впечатление, пока оно свежее. В Movie Planner это одна карточка: отметка «просмотрено», оценка и короткая заметка — на телефоне, ноутбуке или в браузере с расширением.</p>
+
+            <h2>Отметка просмотренного за пару секунд</h2>
+            <ul>
+                <li>Фильм или серия — одна кнопка в приложении или на <a href="/watchlist">странице базы</a>.</li>
+                <li>Для сериалов — прогресс S/E, «следующий эпизод» без ручного счёта.</li>
+                <li>На ноутбуке — <a href="rasshirenie-chrome-dlya-kinomanov.html">расширение Chrome</a> на Okko, Кинопоиске, ivi: досмотрели — отметили на той же вкладке.</li>
+            </ul>
+
+            <h2>Оценки и «отзывы» без простыней</h2>
+            <p>Оценка 1–10 попадает в раздел <a href="/ratings">«Оценки»</a> и в статистику вкуса. Заметка на карточке — ваш личный отзыв: «смотреть с Леной», «скучный второй акт», «пересмотреть на каникулах». Это не публичный комментарий ради лайков — дневник для себя и близких.</p>
+
+            <h2>История, которую можно перечитать</h2>
+            <p>В <a href="/stats">статистике</a> видно, сколько посмотрели за месяц и год, какие жанры доминируют. В базе — фильтр «просмотренное с оценкой 8+». Если нужна таблица — <a href="skachat-tablicu-bazy-kino-csv.html">экспорт CSV</a> из настроек.</p>
+
+            <h2>С чего начать</h2>
+            <ol>
+                <li><a href="/?open_login=1">Войти в кабинет</a> или <a href="/download">скачать приложение</a>.</li>
+                <li>Отметить последний просмотренный фильм и поставить оценку.</li>
+                <li>Добавить одну строку заметки — так дневник начинает работать.</li>
+            </ol>
+
+            <h2>Читайте также</h2>
+            <ul>
+                <li><a href="kino-dnevnik-prosmotrennyh-filmov.html">Кино-дневник просмотров</a></li>
+                <li><a href="treker-filmov-serialov-zametki.html">Трекер с заметками</a></li>
+                <li><a href="prilozhenie-treker-dlya-filmov.html">Приложение-трекер для фильмов</a></li>
+            </ul>
+
+            <div class="article-cta">
+                <p class="article-cta-lead">Откройте кабинет или скачайте приложение</p>
+                <div class="footer-store-row">
+                    <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/app-store-badge.svg" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+                    </a>
+                    <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                        <img src="../images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+                    </a>
+                </div>
+                <div class="article-cta-secondary">
+                    <a href="/?open_login=1">Войти в кабинет</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/watchlist">Открыть базу</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="/">На главную</a>
+                </div>
+            </div>
+</section>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="article-footer-apps">
+                    <h4>Приложения</h4>
+                    <div class="footer-store-row">
+                        <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/app-store-badge.svg" alt="App Store" width="110" height="36" loading="lazy">
+                        </a>
+                        <a href="/download" class="footer-store-badge" target="_blank" rel="noopener">
+                            <img src="../images/google-play-badge.svg" alt="Google Play" width="120" height="36" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-info">
+                    <h3>Контакты</h3>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. · <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a></p>
+            </div>
+        </div>
+    </footer>
+  </div>
+  <script src="../public-film-login.js?v=20260602tgsafari1"></script>
+  <script src="../film-page.js?v=20260602sitefix5"></script>
+  <script src="article-chrome.js?v=20260617chrome1"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
