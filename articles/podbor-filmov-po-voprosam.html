@@ -30,49 +30,28 @@
     <link rel="icon" href="../images/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": "Подбор фильмов по вопросам в Movie Planner",
-      "description": "Мастер подбора: жанры, годы, режиссёр и актёр — из вашей базы или со всего Кинопоиска.",
-      "datePublished": "2026-07-02",
-      "dateModified": "2026-07-02",
-      "author": {"@type": "Person", "name": "Никита", "url": "https://t.me/zapnikita95"},
-      "publisher": {"@type": "Organization", "name": "Movie Planner", "url": "https://movie-planner.ru/"},
-      "mainEntityOfPage": "https://movie-planner.ru/articles/podbor-filmov-po-voprosam.html"
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
         {
-          "@type": "Question",
-          "name": "Как подобрать фильм по вопросам в Movie Planner?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Откройте раздел «Смотреть» в приложении или веб-кабинете, выберите «Пожелания» и пройдите мастер: откуда искать (ваша база, Кинопоиск или смешанно), жанры, годы, при желании — режиссёр и актёр. В конце сервис предложит фильм."
-          }
+            "@type": "Question",
+            "name": "Как подобрать фильм по настроению или вопросам?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "В Movie Planner — опрос «Что посмотреть»: несколько вопросов о жанре, темпе и настроении → список фильмов из вашей базы и каталога."
+            }
         },
         {
-          "@type": "Question",
-          "name": "Можно ли получить другой фильм с теми же критериями?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Да. После результата нажмите «Ещё» — подберётся другой фильм с теми же фильтрами. Кнопка «Изменить фильтры» вернёт вас к вопросам, чтобы поменять жанры, годы или людей."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Чем подбор по вопросам отличается от «По эмоции»?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "«Пожелания» — это структурированный мастер с жанрами, годами и людьми. «По эмоции» — диалог с ИИ: вы описываете настроение своими словами, нейросеть задаёт уточняющие вопросы и предлагает 3–5 фильмов."
-          }
+            "@type": "Question",
+            "name": "Учитывает ли подбор то, что я уже смотрел?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Да. Рекомендации опираются на просмотренное с оценками и watchlist — не предлагает то, что уже отметили."
+            }
         }
-      ]
-    }
+    ]
+}
     </script>
 </head>
 <body>
@@ -166,6 +145,21 @@
 
             <h2>Где попробовать</h2>
             <p>Раздел <a href="/whattowatch">«Смотреть»</a> в <a href="/?open_login=1">веб-кабинете</a>, в <a href="prilozhenie-iphone-ios-android.html">мобильном приложении</a> и в Telegram Mini App. Один аккаунт — одна база и те же рекомендации на всех устройствах.</p>
+
+                        <section class="article-faq" aria-labelledby="article-faq-heading">
+                <h2 id="article-faq-heading">Частые вопросы</h2>
+                <dl class="article-faq-list">
+                <div class="article-faq-item">
+                    <dt>Как подобрать фильм по настроению или вопросам?</dt>
+                    <dd>В Movie Planner — опрос «Что посмотреть»: несколько вопросов о жанре, темпе и настроении → список фильмов из вашей базы и каталога.</dd>
+                </div>
+                <div class="article-faq-item">
+                    <dt>Учитывает ли подбор то, что я уже смотрел?</dt>
+                    <dd>Да. Рекомендации опираются на просмотренное с оценками и watchlist — не предлагает то, что уже отметили.</dd>
+                </div>
+                </dl>
+            </section>
+
 
             <div class="article-cta">
                 <p class="article-cta-lead">Откройте «Смотреть» и пройдите мастер</p>
