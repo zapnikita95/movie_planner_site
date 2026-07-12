@@ -4600,6 +4600,12 @@
         const block = roles[idx];
         if (!block) return;
         const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const pendingLoad = (block.total > 0) && !(block.films && block.films.length);
+        sec.classList.toggle('hidden', !filtered.length && !pendingLoad);
+        if (!filtered.length) {
+          if (pendingLoad) return;
+          return;
+        }
         const importable = filtered.filter(function (f) { return f.importable; }).map(function (f) { return String(f.kp_id); });
         const grid = sec.querySelector('.staff-film-grid');
         const empty = sec.querySelector('.staff-empty-role');
@@ -4677,14 +4683,19 @@
         '</div></div>' +
       roles.map(function (block, idx) {
         const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const pendingLoad = (block.total > 0) && !(block.films && block.films.length);
+        const hiddenCls = (!filtered.length && !pendingLoad) ? ' hidden' : '';
         const importable = filtered.filter(function (f) { return f.importable; });
+        const bodyHtml = filtered.length
+          ? gridHtml(filtered)
+          : (pendingLoad ? '<div class="staff-film-grid staff-film-grid--pending" aria-busy="true"></div>' : '');
         return (
-          '<section class="staff-role-block" data-idx="' + idx + '">' +
+          '<section class="staff-role-block' + hiddenCls + '" data-idx="' + idx + '">' +
             '<div class="staff-role-head">' +
               '<h2>' + escapeHtml(block.role_name || block.role_key || '') + '</h2>' +
               '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '">В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
             '</div>' +
-            gridHtml(filtered) +
+            bodyHtml +
           '</section>'
         );
       }).join('') + '</article>';
