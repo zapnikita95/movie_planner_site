@@ -12232,6 +12232,100 @@ body.header-search-dropdown-open .header-search-dropdown {
 .staff-hero-name { margin: 0; font-family: Unbounded, Inter, sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 800; line-height: 1.15; }
 .staff-hero-sub { color: rgba(244,246,255,.62); margin: 4px 0 0; font-size: 15px; }
 .staff-hero-meta { color: rgba(244,246,255,.5); margin: 4px 0 0; font-size: 13px; font-weight: 600; }
+.staff-facts-anchor {
+  margin: 0 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(236, 72, 153, 0.22);
+  background: linear-gradient(135deg, rgba(236,72,153,.08), rgba(59,130,246,.06));
+  overflow: hidden;
+}
+.staff-facts-anchor.hidden { display: none !important; }
+.staff-facts-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: rgba(244,246,255,.95);
+  padding: 12px 16px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.staff-facts-toggle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.staff-facts-toggle-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: rgba(251, 207, 232, .95);
+}
+.staff-facts-chevron {
+  font-size: 12px;
+  opacity: .75;
+  flex-shrink: 0;
+}
+.staff-facts-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(244,246,255,.88);
+  padding-right: 4px;
+}
+.staff-facts-preview.hidden { display: none; }
+.staff-facts-panel {
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 10px 16px 14px;
+}
+.staff-facts-panel.hidden { display: none; }
+.staff-facts-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.staff-facts-list li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(244,246,255,.92);
+}
+.staff-facts-list li::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+  color: rgba(236,72,153,.78);
+}
+.staff-facts-list cite.staff-fact-cite {
+  display: inline;
+  font-style: normal;
+  font-size: 12px;
+  margin-left: 4px;
+}
+.staff-facts-list .staff-fact-source {
+  color: rgba(147, 197, 253, 0.88);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(147, 197, 253, 0.38);
+}
+.staff-facts-list .staff-fact-source:hover {
+  color: rgba(191, 219, 254, 1);
+  border-bottom-color: rgba(191, 219, 254, 0.65);
+}
+.staff-facts-list .staff-fact-source::before {
+  content: "↗ ";
+  font-size: 10px;
+  opacity: .75;
+}
 .staff-loading { padding: 24px 0; color: rgba(244,246,255,.55); }
 /* Person filters — как в Mini App */
 .person-filters { margin: 12px 0 18px; }

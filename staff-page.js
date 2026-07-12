@@ -146,6 +146,73 @@
     return sortRolesForDisplay(roles);
   }
 
+  function staffFactsPreviewText(fact) {
+    var t = String(fact || '').replace(/\s+/g, ' ').trim();
+    if (t.length <= 140) return t;
+    return t.slice(0, 137).trim() + '…';
+  }
+
+  function renderStaffPersonFacts(webFacts) {
+    var section = document.getElementById('staff-facts-section');
+    var preview = document.getElementById('staff-facts-preview');
+    var list = document.getElementById('staff-facts-list');
+    var panel = document.getElementById('staff-facts-panel');
+    var toggle = document.getElementById('staff-facts-toggle');
+    if (!section || !preview || !list) return;
+    var facts = (webFacts || []).filter(function (f) { return f && f.fact; });
+    if (!facts.length) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+    preview.textContent = staffFactsPreviewText(facts[0].fact);
+    list.innerHTML = '';
+    facts.slice(0, 6).forEach(function (wf) {
+      var li = document.createElement('li');
+      var cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
+      var text = escapeHtml(wf.fact);
+      var src = '';
+      var srcUrl = wf.source_url || '';
+      var srcLabel = wf.source_label || wf.source_title || 'Источник';
+      if (srcUrl) {
+        src = ' <cite class="staff-fact-cite"><a class="staff-fact-source" href="' +
+          escapeHtml(srcUrl) + '" target="_blank" rel="noopener nofollow">' +
+          escapeHtml(srcLabel) + '</a></cite>';
+      }
+      li.innerHTML = cat + text + src;
+      list.appendChild(li);
+    });
+    if (panel) panel.classList.add('hidden');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+      if (!toggle._staffFactsBound) {
+        toggle._staffFactsBound = true;
+        toggle.addEventListener('click', function () {
+          var open = panel && panel.classList.contains('hidden');
+          if (panel) panel.classList.toggle('hidden', !open);
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          var chev = toggle.querySelector('.staff-facts-chevron');
+          if (chev) chev.textContent = open ? '▴' : '▾';
+          if (open) preview.classList.add('hidden');
+          else preview.classList.remove('hidden');
+        });
+      }
+    }
+  }
+
+  function loadStaffPersonFacts(personId) {
+    return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/facts', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success) return;
+        renderStaffPersonFacts(d.web_facts || []);
+      })
+      .catch(function () {});
+  }
+
   function staffMetaLine(person) {
     if (!person) return '';
     var parts = [];
@@ -867,12 +934,25 @@
             staffMetaLine(person) +
           '</div>' +
         '</header>' +
+        '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Факты об актёре">' +
+          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel">' +
+            '<span class="staff-facts-toggle-head">' +
+              '<span class="staff-facts-toggle-label">Факты об актёре</span>' +
+              '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
+            '</span>' +
+            '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
+          '</button>' +
+          '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
+            '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+          '</div>' +
+        '</section>' +
         filtersBarHtml() +
         '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
       '</article>';
 
     bindStaffFilters(root);
     bindStaffImportButtons(root, personId);
+    loadStaffPersonFacts(personId);
     root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
       var rk = btn.getAttribute('data-role-key') || '';
       var block = (_staffLastData.films_by_role || []).find(function (b) {

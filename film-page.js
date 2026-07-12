@@ -1885,11 +1885,33 @@
           if (btn) btn.classList.remove('is-active');
         }
       }
-      function renderFacts(items) {
+      function renderFacts(items, webFacts) {
         var list = document.querySelector('.film-toolbar-facts-anchor #facts-list') || document.getElementById('facts-list');
         if (!list) return;
+        function esc(c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        }
         var arr = (items && items.length) ? items.slice(0, 6) : [];
         list.innerHTML = '';
+        if (webFacts && webFacts.length) {
+          webFacts.slice(0, 6).forEach(function (wf) {
+            if (!wf || !wf.fact) return;
+            var li = document.createElement('li');
+            var cat = wf.category ? ('<strong>' + String(wf.category).replace(/[&<>"']/g, esc) + ':</strong> ') : '';
+            var text = String(wf.fact).replace(/[&<>"']/g, esc);
+            var src = '';
+            var srcUrl = wf.source_url || wf.source || '';
+            var srcLabel = wf.source_label || wf.source_title || 'Источник';
+            if (srcUrl) {
+              srcLabel = String(srcLabel).replace(/[&<>"']/g, esc);
+              src = ' <cite class="film-fact-cite"><a class="film-fact-source" href="' + String(srcUrl).replace(/"/g, '&quot;') + '" target="_blank" rel="noopener nofollow">' + srcLabel + '</a></cite>';
+            }
+            li.innerHTML = cat + text + src;
+            list.appendChild(li);
+          });
+          setFactsToggleVisible(true);
+          return;
+        }
         arr.forEach(function (x) {
           var li = document.createElement('li');
           li.textContent = String(x || '');
@@ -2210,13 +2232,14 @@
       function loadFacts() {
         return apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/facts')
           .then(function (d) {
+            var webFacts = (d && Array.isArray(d.web_facts)) ? d.web_facts : [];
             var arr = [];
             if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 6);
             if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
-            renderFacts(arr);
-            return arr;
+            renderFacts(arr, webFacts);
+            return webFacts.length ? webFacts : arr;
           })
-          .catch(function () { renderFacts([]); return []; });
+          .catch(function () { renderFacts([], []); return []; });
       }
 
       function scheduleLoadFacts() {
@@ -2458,17 +2481,13 @@
           if (factsList && !factsList.children.length) {
             apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/facts')
               .then(function (d) {
+                var webFacts = (d && Array.isArray(d.web_facts)) ? d.web_facts : [];
                 var arr = [];
                 if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 6);
                 if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
-                factsToggle.classList.toggle('hidden', !arr.length);
-                if (arr.length) {
-                  factsList.innerHTML = arr.map(function (x) {
-                    return '<li>' + String(x || '').replace(/[&<>"']/g, function (c) {
-                      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-                    }) + '</li>';
-                  }).join('');
-                }
+                var has = webFacts.length || arr.length;
+                factsToggle.classList.toggle('hidden', !has);
+                if (has) renderFacts(arr, webFacts);
               })
               .catch(function () { factsToggle.classList.add('hidden'); });
           }
@@ -2542,11 +2561,13 @@
           if (factsBtn && factsListEl && !factsListEl.children.length) {
             apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/facts')
               .then(function (d) {
+                var webFacts = (d && Array.isArray(d.web_facts)) ? d.web_facts : [];
                 var arr = [];
                 if (d && Array.isArray(d.facts)) arr = d.facts.slice(0, 6);
                 if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
-                factsBtn.classList.toggle('hidden', !arr.length);
-                if (arr.length) renderFacts(arr);
+                var has = webFacts.length || arr.length;
+                factsBtn.classList.toggle('hidden', !has);
+                if (has) renderFacts(arr, webFacts);
               })
               .catch(function () { factsBtn.classList.add('hidden'); });
           }
