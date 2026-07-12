@@ -1135,7 +1135,7 @@
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
-    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+    if (_staffPageKpId) {
       return Promise.resolve();
     }
     if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
@@ -1198,7 +1198,7 @@
         .catch(function () {});
     }
     const inflight = api('/api/site/film-by-kp/' + kp, { timeoutMs: 15000 }).then(function (res) {
-      if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) return null;
+      if (_staffPageKpId) return null;
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), {
           skipHistory: o.skipHistory,
@@ -4690,10 +4690,14 @@
       if (!chunk.length) return '<p class="staff-empty-role muted small">Нет фильмов по фильтрам</p>';
       return '<div class="staff-film-grid">' + chunk.map(function (f) {
         const fid = f.already_in_base_film_id || f.film_id;
-        const clickAttr = fid
-          ? 'data-film-id="' + fid + '"'
-          : 'data-similar-kp="' + escapeHtml(String(f.kp_id)) + '"';
         const kpClean = String(f.kp_id || '').replace(/\D/g, '');
+        const attrs = [];
+        if (fid) attrs.push('data-film-id="' + fid + '"');
+        if (kpClean) {
+          attrs.push('data-similar-kp="' + escapeHtml(kpClean) + '"');
+          attrs.push('data-kp-id="' + escapeHtml(kpClean) + '"');
+        }
+        const clickAttr = attrs.join(' ');
         const posterSrc = cleanPosterUrl(f.poster) || '';
         const poster = posterSrc
           ? '<img class="staff-film-poster" src="' + escapeHtml(posterSrc) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + mpPosterOnErrorAttr() + '>'
@@ -4878,13 +4882,7 @@
         }).finally(function () { btn.disabled = false; });
       });
     });
-    root.querySelectorAll('.staff-film-card').forEach(function (card) {
-      card.addEventListener('click', function () {
-        const kp = card.getAttribute('data-similar-kp') || card.getAttribute('data-kp-id');
-        const fid = card.getAttribute('data-film-id');
-        openFilmNav(kp, fid);
-      });
-    });
+    ensureStaffFilmCardClickDelegation(root);
     _staffPageRepaint = paintRoles;
     loadCabinetStaffPersonFacts(person.kp_person_id || person.kp_id || _staffPageKpId);
   }
@@ -7194,8 +7192,61 @@
     }
   }
 
+  /** Открыть фильм из страницы персоны (/s/) — сменить URL и снять staff-guard. */
+  function openFilmFromStaffNav(kpId, filmId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    const fid = Number(filmId);
+    _staffPageKpId = null;
+    _staffPageRepaint = null;
+    _staffPageDetailData = null;
+    dismissStaffHoverPreview();
+    _openFilmPageByKpInflight = null;
+    if (kp) {
+      try {
+        history.pushState({ view: 'film', kpId: kp, fromStaff: true }, '', '/f/' + kp);
+      } catch (_) {}
+      return openFilmPageByKp(kp, { replace: false, skipHistory: true });
+    }
+    if (fid) {
+      return api('/api/site/film/' + fid, { timeoutMs: 15000 }).then(function (detail) {
+        const filmKp = detail && detail.film && detail.film.kp_id
+          ? String(detail.film.kp_id).replace(/\D/g, '')
+          : '';
+        if (filmKp) {
+          try {
+            history.pushState({ view: 'film', filmId: fid, kpId: filmKp, fromStaff: true }, '', '/f/' + filmKp);
+          } catch (_) {}
+        }
+        return openFilmPage(fid, { skipHistory: true, kpId: filmKp || undefined });
+      }).catch(function () {
+        return openFilmPage(fid, { skipHistory: true });
+      });
+    }
+    return Promise.resolve();
+  }
+
+  function ensureStaffFilmCardClickDelegation(pageRoot) {
+    if (!pageRoot || pageRoot._staffFilmCardClickBound) return;
+    pageRoot._staffFilmCardClickBound = true;
+    pageRoot.addEventListener('click', function (e) {
+      const card = e.target.closest('.staff-film-card');
+      if (!card || !card.closest('.staff-page')) return;
+      if (e.target.closest('.staff-import-btn')) return;
+      e.preventDefault();
+      const kp = card.getAttribute('data-similar-kp')
+        || card.getAttribute('data-kp-id')
+        || card.getAttribute('data-kp')
+        || (card.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
+      const fid = card.getAttribute('data-film-id');
+      openFilmFromStaffNav(kp, fid);
+    });
+  }
+
   /** Открыть фильм в кабинете по kp_id (канонический /f/:kp). */
   function openFilmNav(kpId, filmId) {
+    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+      return openFilmFromStaffNav(kpId, filmId);
+    }
     const kp = String(kpId || '').replace(/\D/g, '');
     if (kp) {
       openFilmPageByKp(kp);
@@ -12487,7 +12538,13 @@
         if (isCabinetActive()) {
           e.preventDefault();
           const kp = String(card.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
-          if (kp) openFilmPageByKp(kp);
+          if (kp) {
+            if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+              openFilmFromStaffNav(kp, null);
+            } else {
+              openFilmPageByKp(kp);
+            }
+          }
         }
         return;
       }
@@ -12709,7 +12766,7 @@
 
   function openFilmPage(filmId, opts) {
     const o = opts || {};
-    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+    if (_staffPageKpId) {
       return;
     }
     if (!getToken()) {
