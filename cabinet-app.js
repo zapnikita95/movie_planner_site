@@ -4258,6 +4258,34 @@
     });
   }
 
+  function splitPersonFilmsByUpcoming(films) {
+    const released = [];
+    const upcoming = [];
+    (films || []).forEach(function (f) {
+      if (!f || !f.kp_id) return;
+      if (f.is_upcoming) upcoming.push(f);
+      else released.push(f);
+    });
+    return { released: released, upcoming: upcoming };
+  }
+
+  function bindStaffUpcomingToggles(root) {
+    if (!root || root._staffUpcomingBound) return;
+    root._staffUpcomingBound = true;
+    root.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-upcoming-toggle]');
+      if (!btn || !root.contains(btn)) return;
+      e.preventDefault();
+      const rk = btn.getAttribute('data-upcoming-toggle') || '';
+      const panel = root.querySelector('[data-upcoming-panel="' + rk + '"]');
+      if (!panel) return;
+      const open = panel.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const chev = btn.querySelector('.staff-upcoming-chevron');
+      if (chev) chev.textContent = open ? '▴' : '▾';
+    });
+  }
+
   function countStaffFilmsSite(roles, state) {
     let total = 0;
     (roles || []).forEach(function (block) {
@@ -4687,7 +4715,7 @@
     }
     function gridHtml(films) {
       const chunk = (films || []).slice(0, 80);
-      if (!chunk.length) return '<p class="staff-empty-role muted small">Нет фильмов по фильтрам</p>';
+      if (!chunk.length) return '';
       return '<div class="staff-film-grid">' + chunk.map(function (f) {
         const fid = f.already_in_base_film_id || f.film_id;
         const kpClean = String(f.kp_id || '').replace(/\D/g, '');
@@ -4714,6 +4742,29 @@
         );
       }).join('') + '</div>';
     }
+    function roleFilmsBodyHtml(films, roleKey) {
+      const split = splitPersonFilmsByUpcoming(films);
+      const releasedHtml = gridHtml(split.released);
+      let upcomingHtml = '';
+      if (split.upcoming.length > 0) {
+        const rkEnc = escapeHtml(roleKey || '');
+        upcomingHtml =
+          '<div class="staff-upcoming-anchor">' +
+            '<button type="button" class="staff-upcoming-toggle" data-upcoming-toggle="' + rkEnc + '" aria-expanded="false">' +
+              '<span class="staff-upcoming-toggle-label">Предстоящие</span>' +
+              '<span class="staff-upcoming-count">(' + split.upcoming.length + ')</span>' +
+              '<span class="staff-upcoming-chevron" aria-hidden="true">▾</span>' +
+            '</button>' +
+            '<div class="staff-upcoming-panel hidden" data-upcoming-panel="' + rkEnc + '">' +
+              gridHtml(split.upcoming) +
+            '</div>' +
+          '</div>';
+      }
+      if (!releasedHtml && !upcomingHtml) {
+        return '<p class="staff-empty-role muted small">Нет фильмов по фильтрам</p>';
+      }
+      return (releasedHtml || '') + upcomingHtml;
+    }
     function paintRoles() {
       root.querySelectorAll('.staff-role-block').forEach(function (sec, idx) {
         const block = roles[idx];
@@ -4726,18 +4777,22 @@
           return;
         }
         const importable = filtered.filter(function (f) { return f.importable; }).map(function (f) { return String(f.kp_id); });
-        const grid = sec.querySelector('.staff-film-grid');
-        const empty = sec.querySelector('.staff-empty-role');
-        if (grid) {
-          const wrap = document.createElement('div');
-          wrap.innerHTML = gridHtml(filtered);
-          const next = wrap.firstElementChild;
-          if (next) grid.replaceWith(next);
-        } else if (empty) {
-          const wrap = document.createElement('div');
-          wrap.innerHTML = gridHtml(filtered);
-          const next = wrap.firstElementChild;
-          if (next) empty.replaceWith(next);
+        const body = sec.querySelector('.staff-role-body');
+        if (body) {
+          body.innerHTML = roleFilmsBodyHtml(filtered, block.role_key || '');
+        } else {
+          const grid = sec.querySelector('.staff-film-grid');
+          const empty = sec.querySelector('.staff-empty-role');
+          const upcomingAnchor = sec.querySelector('.staff-upcoming-anchor');
+          if (grid || empty || upcomingAnchor) {
+            const wrap = document.createElement('div');
+            wrap.innerHTML = roleFilmsBodyHtml(filtered, block.role_key || '');
+            const parent = (grid || empty || upcomingAnchor).parentElement;
+            if (parent) {
+              while (parent.firstChild) parent.removeChild(parent.firstChild);
+              while (wrap.firstChild) parent.appendChild(wrap.firstChild);
+            }
+          }
         }
         const btn = sec.querySelector('.staff-import-btn');
         if (btn) {
@@ -4805,16 +4860,16 @@
         const pendingLoad = (block.total > 0) && !(block.films && block.films.length);
         const hiddenCls = (!filtered.length && !pendingLoad) ? ' hidden' : '';
         const importable = filtered.filter(function (f) { return f.importable; });
-        const bodyHtml = filtered.length
-          ? gridHtml(filtered)
-          : (pendingLoad ? '<div class="staff-film-grid staff-film-grid--pending" aria-busy="true"></div>' : '');
+        const bodyHtml = pendingLoad
+          ? '<div class="staff-film-grid staff-film-grid--pending" aria-busy="true"></div>'
+          : roleFilmsBodyHtml(filtered, block.role_key || '');
         return (
           '<section class="staff-role-block' + hiddenCls + '" data-idx="' + idx + '">' +
             '<div class="staff-role-head">' +
               '<h2>' + escapeHtml(staffRoleDisplayName(block.role_key, block.role_name)) + '</h2>' +
               '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(block.role_key || '') + '">В базу →' + (importable.length ? ' (' + importable.length + ')' : '') + '</button>' +
             '</div>' +
-            bodyHtml +
+            '<div class="staff-role-body">' + bodyHtml + '</div>' +
           '</section>'
         );
       }).join('') + '</article>';
@@ -4883,6 +4938,7 @@
       });
     });
     ensureStaffFilmCardClickDelegation(root);
+    bindStaffUpcomingToggles(root);
     _staffPageRepaint = paintRoles;
     loadCabinetStaffPersonFacts(person.kp_person_id || person.kp_id || _staffPageKpId);
   }
@@ -4956,6 +5012,7 @@
             block.films = batch.films || [];
             block.has_more = !!batch.has_more;
             if (batch.total != null) block.total = batch.total;
+            if (batch.upcoming_total != null) block.upcoming_total = batch.upcoming_total;
             if (_staffPageRepaint) _staffPageRepaint();
             else renderStaffPageContent(detail, pageRoot);
           });

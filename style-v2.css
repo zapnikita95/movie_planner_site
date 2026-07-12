@@ -12397,6 +12397,55 @@ body.header-search-dropdown-open .header-search-dropdown {
 }
 .staff-filter-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
 .staff-role-block { margin-bottom: 28px; }
+.staff-role-body { display: grid; gap: 12px; }
+.staff-upcoming-anchor {
+  margin-top: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  overflow: hidden;
+}
+.staff-upcoming-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: rgba(244,246,255,.72);
+  padding: 10px 36px 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  position: relative;
+}
+.staff-upcoming-toggle-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.staff-upcoming-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(244,246,255,.45);
+}
+.staff-upcoming-chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  opacity: .8;
+}
+.staff-upcoming-panel {
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding: 10px 10px 12px;
+}
+.staff-upcoming-panel.hidden { display: none; }
+.staff-upcoming-panel .staff-film-grid {
+  opacity: .92;
+}
 .staff-role-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
 .staff-role-head h2, .staff-role-head h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: rgba(244,246,255,.55); font-weight: 800; }
 .staff-role-head .staff-import-btn,
