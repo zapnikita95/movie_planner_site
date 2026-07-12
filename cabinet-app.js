@@ -849,6 +849,32 @@
     }
   }
 
+  /** /s/:id + токен — сразу кабинет и спиннер актёра (до /api/site/me). */
+  function bootAuthenticatedStaffShell() {
+    try {
+      if (!getToken() || !document.getElementById('landing')) return false;
+      const pathStaff = staffIdFromPathname(window.location.pathname);
+      if (!pathStaff || !/^\d+$/.test(pathStaff)) return false;
+
+      document.body.classList.remove('login-only-overlay');
+      document.documentElement.classList.add('mp-auth-boot');
+      syncSessionHtmlClass();
+      try { document.documentElement.classList.add('mp-route-ready'); } catch (_) {}
+      showScreen('cabinet-readonly');
+      showFilmPageLayout();
+      ensureLoggedInHeader();
+
+      const pageRoot = document.getElementById('film-page-content');
+      if (pageRoot && !pageRoot.querySelector('.staff-page')) {
+        pageRoot.className = 'container film-page-container staff-page-content loading';
+        pageRoot.innerHTML = pageLoadingHtml(staffLoadingLabelForKp(pathStaff));
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /** /f/:kp + токен — сразу кабинет и спиннер фильма, без редиректа на /?kp_open=. */
   function bootAuthenticatedFilmShell() {
     try {
@@ -2083,6 +2109,7 @@
       document.body.classList.remove('login-only-overlay');
       syncSessionHtmlClass();
       renderHeader(me);
+      openStaffPage(pathStaffEarly, { replace: true });
       return Promise.resolve();
     }
     const pathUserEarly = userIdFromPathname(window.location.pathname) || userIdFromLocation();
@@ -19453,6 +19480,7 @@
         loadMeAndShowCabinet();
       } else {
         bootAuthenticatedFilmShell();
+        bootAuthenticatedStaffShell();
         if (!bootAuthenticatedFilmDeepLink()) {
           bootAuthenticatedCabinetShell();
           loadMeAndShowCabinet();
