@@ -152,6 +152,40 @@
     return t.slice(0, 137).trim() + '…';
   }
 
+  function bindStaffFactsSectionToggle(section, toggle, panel, preview) {
+    if (!section || section._staffFactsBound) return;
+    section._staffFactsBound = true;
+    section.classList.add('staff-facts-anchor--interactive');
+    if (toggle) toggle.setAttribute('tabindex', '-1');
+    section.setAttribute('tabindex', '0');
+    if (!section.getAttribute('role')) section.setAttribute('role', 'button');
+
+    function setOpen(open) {
+      if (panel) panel.classList.toggle('hidden', !open);
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var chev = section.querySelector('.staff-facts-chevron');
+      if (chev) chev.textContent = open ? '▴' : '▾';
+      if (preview) preview.classList.toggle('hidden', open);
+      section.classList.toggle('staff-facts-anchor--open', open);
+    }
+
+    function flip() {
+      var open = !!(panel && panel.classList.contains('hidden'));
+      setOpen(open);
+    }
+
+    section.addEventListener('click', function (e) {
+      if (e.target.closest('.staff-fact-source')) return;
+      if (e.target.closest('a[href]') && !e.target.closest('.staff-facts-toggle-head')) return;
+      flip();
+    });
+    section.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      flip();
+    });
+  }
+
   function renderStaffPersonFacts(webFacts) {
     var section = document.getElementById('staff-facts-section');
     var preview = document.getElementById('staff-facts-preview');
@@ -183,21 +217,8 @@
       list.appendChild(li);
     });
     if (panel) panel.classList.add('hidden');
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', 'false');
-      if (!toggle._staffFactsBound) {
-        toggle._staffFactsBound = true;
-        toggle.addEventListener('click', function () {
-          var open = panel && panel.classList.contains('hidden');
-          if (panel) panel.classList.toggle('hidden', !open);
-          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-          var chev = toggle.querySelector('.staff-facts-chevron');
-          if (chev) chev.textContent = open ? '▴' : '▾';
-          if (open) preview.classList.add('hidden');
-          else preview.classList.remove('hidden');
-        });
-      }
-    }
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    bindStaffFactsSectionToggle(section, toggle, panel, preview);
   }
 
   function loadStaffPersonFacts(personId) {
@@ -567,7 +588,7 @@
 
   function bootMatchesPerson(boot, personId) {
     if (!boot || boot.type !== 'staff') return false;
-    var bootKp = String(boot.kp_person_id || boot.kp_id || '').replace(/\D/g, '');
+    var bootKp = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
     var want = String(personId || _staffPersonId || '').replace(/\D/g, '');
     return !!(bootKp && want && bootKp === want);
   }
@@ -576,7 +597,7 @@
     var boot = readMpRouteBoot();
     var text = String(label || '').trim();
     if (!text && bootMatchesPerson(boot)) {
-      text = boot.display_name || boot.name_ru || 'Загрузка…';
+      text = boot.title || boot.display_name || boot.name_ru || 'Загрузка…';
     }
     if (!text) text = 'Загрузка…';
     return (
@@ -935,11 +956,11 @@
           '</div>' +
         '</header>' +
         '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Факты об актёре">' +
-          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel">' +
+          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
             '<span class="staff-facts-toggle-head">' +
               '<span class="staff-facts-toggle-label">Факты об актёре</span>' +
-              '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
             '</span>' +
+            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
             '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
           '</button>' +
           '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +

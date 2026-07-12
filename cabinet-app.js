@@ -865,9 +865,11 @@
       ensureLoggedInHeader();
 
       const pageRoot = document.getElementById('film-page-content');
-      if (pageRoot && !pageRoot.querySelector('.staff-page')) {
+      if (pageRoot && !pageRoot.querySelector('.staff-page') && !staffBootLoaderAlreadyPainted(pageRoot, pathStaff)) {
         pageRoot.className = 'container film-page-container staff-page-content loading';
         pageRoot.innerHTML = pageLoadingHtml(staffLoadingLabelForKp(pathStaff));
+      } else if (pageRoot && !pageRoot.querySelector('.staff-page')) {
+        pageRoot.className = 'container film-page-container staff-page-content loading';
       }
       return true;
     } catch (_) {
@@ -4317,20 +4319,72 @@
     });
   }
 
+  function staffBootPersonId(boot) {
+    if (!boot || boot.type !== 'staff') return '';
+    return String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
+  }
+
+  function staffLabelFromBoot(boot, kp) {
+    if (!boot || boot.type !== 'staff') return '';
+    const bootKp = staffBootPersonId(boot);
+    const want = String(kp || '').replace(/\D/g, '');
+    if (bootKp && want && bootKp !== want) return '';
+    const label = String(boot.title || boot.display_name || boot.name_ru || '').trim();
+    return label && label !== 'Загрузка…' ? label : '';
+  }
+
   function staffLoadingLabelForKp(kp) {
     try {
-      const el = document.getElementById('mp-route-boot');
-      if (!el) return 'Загрузка…';
-      const boot = JSON.parse(el.textContent || '');
-      if (boot && boot.type === 'staff') {
-        const bootKp = String(boot.kp_person_id || boot.kp_id || '').replace(/\D/g, '');
-        const want = String(kp || '').replace(/\D/g, '');
-        if (bootKp && want && bootKp === want) {
-          return boot.display_name || boot.name_ru || 'Загрузка…';
-        }
-      }
+      const boot = readMpRouteBoot();
+      const fromBoot = staffLabelFromBoot(boot, kp);
+      if (fromBoot) return fromBoot;
     } catch (_) {}
     return 'Загрузка…';
+  }
+
+  function staffBootLoaderAlreadyPainted(pageRoot, kp) {
+    if (!pageRoot) return false;
+    const label = staffLoadingLabelForKp(kp);
+    if (!label || label === 'Загрузка…') return false;
+    const loading = pageRoot.querySelector('.mp-page-loading, .mp-route-boot-loading');
+    if (!loading) return false;
+    const textEl = loading.querySelector('.mp-page-loading-text');
+    const current = textEl ? String(textEl.textContent || '').trim() : '';
+    return !!current && current === label;
+  }
+
+  function bindStaffFactsSectionToggle(section, toggle, panel, preview) {
+    if (!section || section._staffFactsBound) return;
+    section._staffFactsBound = true;
+    section.classList.add('staff-facts-anchor--interactive');
+    if (toggle) toggle.setAttribute('tabindex', '-1');
+    section.setAttribute('tabindex', '0');
+    if (!section.getAttribute('role')) section.setAttribute('role', 'button');
+
+    function setOpen(open) {
+      if (panel) panel.classList.toggle('hidden', !open);
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const chev = section.querySelector('.staff-facts-chevron');
+      if (chev) chev.textContent = open ? '▴' : '▾';
+      if (preview) preview.classList.toggle('hidden', open);
+      section.classList.toggle('staff-facts-anchor--open', open);
+    }
+
+    function flip() {
+      const open = !!(panel && panel.classList.contains('hidden'));
+      setOpen(open);
+    }
+
+    section.addEventListener('click', function (e) {
+      if (e.target.closest('.staff-fact-source')) return;
+      if (e.target.closest('a[href]') && !e.target.closest('.staff-facts-toggle-head')) return;
+      flip();
+    });
+    section.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      flip();
+    });
   }
 
   function bindStaffCastLinks(root, opts) {
@@ -4517,26 +4571,19 @@
       list.appendChild(li);
     });
     if (panel) panel.classList.add('hidden');
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', 'false');
-      if (!toggle._staffFactsBound) {
-        toggle._staffFactsBound = true;
-        toggle.addEventListener('click', function () {
-          const open = panel && panel.classList.contains('hidden');
-          if (panel) panel.classList.toggle('hidden', !open);
-          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-          const chev = toggle.querySelector('.staff-facts-chevron');
-          if (chev) chev.textContent = open ? '▴' : '▾';
-          if (open) preview.classList.add('hidden');
-          else preview.classList.remove('hidden');
-        });
-      }
-    }
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    bindStaffFactsSectionToggle(section, toggle, panel, preview);
   }
+
+  let _staffPageFactsLoadedKp = null;
 
   function loadCabinetStaffPersonFacts(personId) {
     const pid = String(personId || _staffPageKpId || '').replace(/\D/g, '');
     if (!pid) return Promise.resolve();
+    if (_staffPageFactsLoadedKp === pid) {
+      const section = document.getElementById('staff-facts-section');
+      if (section && !section.classList.contains('hidden')) return Promise.resolve();
+    }
     return fetch(getPublicApiBase() + '/api/public/person/' + encodeURIComponent(pid) + '/facts', {
       method: 'GET',
       mode: 'cors',
@@ -4544,12 +4591,40 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.success) return;
+        _staffPageFactsLoadedKp = pid;
         renderCabinetStaffPersonFacts(d.web_facts || []);
       })
       .catch(function () {});
   }
 
+  let _staffPageDetailData = null;
+
+  function mergeStaffSiteDetail(siteDetail) {
+    if (!_staffPageDetailData || !siteDetail || !siteDetail.success) return;
+    const person = siteDetail.person || {};
+    if (person && _staffPageDetailData.person) {
+      Object.assign(_staffPageDetailData.person, person);
+    }
+    if (siteDetail.filters) _staffPageDetailData.filters = siteDetail.filters;
+    const siteRoles = siteDetail.films_by_role || [];
+    const roles = _staffPageDetailData.films_by_role || [];
+    siteRoles.forEach(function (sr) {
+      if (!sr || !sr.role_key) return;
+      const block = roles.find(function (r) { return r && r.role_key === sr.role_key; });
+      if (!block) return;
+      if (sr.total != null) block.total = sr.total;
+      (sr.films || []).forEach(function (sf) {
+        if (!sf || sf.kp_id == null) return;
+        const kpKey = String(sf.kp_id);
+        const bf = (block.films || []).find(function (f) { return f && String(f.kp_id) === kpKey; });
+        if (bf) Object.assign(bf, sf);
+      });
+    });
+    if (_staffPageRepaint) _staffPageRepaint();
+  }
+
   function renderStaffPageContent(data, root) {
+    _staffPageDetailData = data;
     const person = data.person || {};
     const roles = data.films_by_role || [];
     const meta = data.filters || { years: [], genres: [] };
@@ -4659,11 +4734,11 @@
         staffMetaHtml(person) +
         '</div></header>' +
       '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Факты об актёре">' +
-        '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel">' +
+        '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
           '<span class="staff-facts-toggle-head">' +
             '<span class="staff-facts-toggle-label">Факты об актёре</span>' +
-            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
           '</span>' +
+          '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
           '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
         '</button>' +
         '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
@@ -4788,11 +4863,15 @@
     _staffPageKpId = kp;
     _staffPageRepaint = null;
     _staffPageFilterState = null;
+    _staffPageDetailData = null;
+    _staffPageFactsLoadedKp = null;
     _filmModalCurrentId = null;
     showScreen('cabinet-readonly');
     showFilmPageLayout();
     pageRoot.className = 'container film-page-container staff-page-content loading';
-    pageRoot.innerHTML = pageLoadingHtml(staffLoadingLabelForKp(kp));
+    if (!staffBootLoaderAlreadyPainted(pageRoot, kp)) {
+      pageRoot.innerHTML = pageLoadingHtml(staffLoadingLabelForKp(kp));
+    }
     if (!o.skipHistory) {
       try {
         const path = '/s/' + kp;
@@ -4848,6 +4927,7 @@
     function fetchSiteStaffDetail() {
       return api('/api/site/persons/' + kp, { timeoutMs: 20000 });
     }
+    let staffPaintedFromPub = false;
     const detailPromise = fetchPublicStaffDetail().then(function (pub) {
       if (pub && pub.success) {
         if (_staffPageKpId === kp) {
@@ -4857,16 +4937,25 @@
           } catch (_) {}
           renderStaffPageContent(pub, pageRoot);
           paintStaffFilmsProgressive(pub);
+          staffPaintedFromPub = true;
         }
-        if (!authed) return pub;
+        if (!authed) return { detail: pub, painted: staffPaintedFromPub };
         return fetchSiteStaffDetail().then(function (site) {
-          return (site && site.success) ? site : pub;
-        }).catch(function () { return pub; });
+          const merged = (site && site.success) ? site : pub;
+          return { detail: merged, painted: staffPaintedFromPub, siteMerged: !!(site && site.success) };
+        }).catch(function () { return { detail: pub, painted: staffPaintedFromPub }; });
       }
-      if (authed) return fetchSiteStaffDetail();
-      return pub;
+      if (authed) {
+        return fetchSiteStaffDetail().then(function (site) {
+          return { detail: site, painted: false };
+        }).catch(function () { return { detail: pub, painted: false }; });
+      }
+      return { detail: pub, painted: false };
     });
-    return detailPromise.then(function (detail) {
+    return detailPromise.then(function (wrap) {
+      const detail = wrap && wrap.detail != null ? wrap.detail : wrap;
+      const painted = !!(wrap && wrap.painted);
+      const siteMerged = !!(wrap && wrap.siteMerged);
       if (_staffPageKpId !== kp) return;
       if (!detail || !detail.success) {
         if (staffKpFromLocation() || staffIdFromPathname(window.location.pathname) === kp) {
@@ -4875,6 +4964,10 @@
         }
         pageRoot.className = 'container film-page-container staff-page-content';
         pageRoot.innerHTML = '<p class="film-page-error-hint">Не удалось загрузить</p>';
+        return;
+      }
+      if (painted) {
+        if (siteMerged) mergeStaffSiteDetail(detail);
         return;
       }
       pageRoot.className = 'container film-page-container staff-page-content';

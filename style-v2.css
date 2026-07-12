@@ -12238,8 +12238,12 @@ body.header-search-dropdown-open .header-search-dropdown {
   border: 1px solid rgba(236, 72, 153, 0.22);
   background: linear-gradient(135deg, rgba(236,72,153,.08), rgba(59,130,246,.06));
   overflow: hidden;
+  position: relative;
 }
 .staff-facts-anchor.hidden { display: none !important; }
+.staff-facts-anchor--interactive {
+  cursor: pointer;
+}
 .staff-facts-toggle {
   display: block;
   width: 100%;
@@ -12247,9 +12251,10 @@ body.header-search-dropdown-open .header-search-dropdown {
   border: 0;
   background: transparent;
   color: rgba(244,246,255,.95);
-  padding: 12px 16px 10px;
-  cursor: pointer;
+  padding: 12px 44px 10px 16px;
+  cursor: inherit;
   font: inherit;
+  pointer-events: none;
 }
 .staff-facts-toggle-head {
   display: flex;
@@ -12266,9 +12271,18 @@ body.header-search-dropdown-open .header-search-dropdown {
   color: rgba(251, 207, 232, .95);
 }
 .staff-facts-chevron {
-  font-size: 12px;
-  opacity: .75;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: .85;
   flex-shrink: 0;
+  line-height: 1;
+  pointer-events: none;
+}
+.staff-facts-panel .staff-fact-source {
+  pointer-events: auto;
 }
 .staff-facts-preview {
   display: -webkit-box;
