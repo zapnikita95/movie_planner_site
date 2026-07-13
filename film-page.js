@@ -1902,7 +1902,9 @@
           return formatWebFactHtml(wf && wf.fact);
         }
         if (webFacts && webFacts.length) {
-          webFacts.slice(0, 6).forEach(function (wf) {
+          webFacts.filter(function (wf) {
+            return wf && wf.fact && (wf.source_url || wf.source);
+          }).slice(0, 6).forEach(function (wf) {
             if (!wf || !wf.fact) return;
             var li = document.createElement('li');
             var cat = wf.category ? ('<strong>' + String(wf.category).replace(/[&<>"']/g, esc) + ':</strong> ') : '';

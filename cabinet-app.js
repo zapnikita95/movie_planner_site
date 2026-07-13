@@ -11872,7 +11872,7 @@
 
   function filmFactsItemsFromPayload(d) {
     const web = (d && Array.isArray(d.web_facts))
-      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      ? d.web_facts.filter(function (f) { return f && f.fact && f.source_url; })
       : [];
     if (web.length) return web.slice(0, 8);
     let arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
