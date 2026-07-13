@@ -11852,7 +11852,29 @@
     );
   }
 
+  function renderFilmToolbarFactItem(wf) {
+    if (typeof wf === 'string') {
+      return wf ? '<li>' + escapeHtml(wf) + '</li>' : '';
+    }
+    if (!wf || !wf.fact) return '';
+    const cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
+    const text = webFactBodyHtml(wf);
+    let src = '';
+    const srcUrl = wf.source_url || '';
+    const srcLabel = wf.source_label || wf.source_title || 'Источник';
+    if (srcUrl) {
+      src = ' <cite class="film-fact-cite"><a class="film-fact-source" href="' +
+        escapeHtml(srcUrl) + '" target="_blank" rel="noopener nofollow">' +
+        escapeHtml(srcLabel) + '</a></cite>';
+    }
+    return '<li>' + cat + text + src + '</li>';
+  }
+
   function filmFactsItemsFromPayload(d) {
+    const web = (d && Array.isArray(d.web_facts))
+      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      : [];
+    if (web.length) return web.slice(0, 8);
     let arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
     if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
     return arr;
@@ -12014,7 +12036,7 @@
       function paintFactsList(arr) {
         if (!factsList) return;
         factsList.innerHTML = arr.length
-          ? arr.map((x) => '<li>' + escapeHtml(String(x)) + '</li>').join('')
+          ? arr.map(function (x) { return renderFilmToolbarFactItem(x); }).join('')
           : '';
         factsLoaded = arr.length > 0;
       }
