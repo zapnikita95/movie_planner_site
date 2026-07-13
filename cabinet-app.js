@@ -87,7 +87,12 @@
     return { register: register, getFilmId: getFilmId, waitFor: waitFor };
   })();
 
-  const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
+  const MEDIA_ORIGIN = SITE_ORIGIN;
+
+  function avatarUrlForUserId(userId) {
+    const u = String(userId || '').replace(/\D/g, '');
+    return u ? (MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+  }
   const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   const MP_BROWSER_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -3425,14 +3430,14 @@
   function presetAvatarUrlForUser(userId) {
     const n = Math.abs(Number(userId) || 0);
     const id = String((n % 7) + 1).padStart(2, '0');
-    return API_BASE + '/api/avatar/defaults/' + id + '.jpg';
+    return MEDIA_ORIGIN + '/api/avatar/defaults/' + id + '.jpg';
   }
 
   function resolveMediaUrl(url) {
     const raw = rewriteApexMediaUrl(String(url || '').trim());
     if (!raw) return '';
     if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
-    if (raw.startsWith('/api/')) return API_BASE + raw;
+    if (raw.startsWith('/api/')) return MEDIA_ORIGIN + raw;
     return raw;
   }
 
@@ -3615,7 +3620,7 @@
       if (profileName) profileName.textContent = me.name || 'Профиль';
       setAvatarEl(
         profileAvatar,
-        me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''),
+        me.photo_url || me.avatar_url || (me.chat_id ? avatarUrlForUserId(me.chat_id) : ''),
         me.name,
         me.chat_id || me.user_id,
       );
@@ -5607,7 +5612,7 @@
 
   function siteInboxAvatarUrl(uid) {
     const u = String(uid || '').replace(/\D/g, '');
-    return u ? (API_BASE + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+    return u ? avatarUrlForUserId(u) : '';
   }
 
   function siteInboxFormatTime(iso) {
@@ -8317,7 +8322,7 @@
     const preset = uid ? presetAvatarUrlForUser(uid) : '';
     let src = resolveMediaUrl(w && w.photo_url);
     if (!src && uid) {
-      src = API_BASE + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg';
+      src = avatarUrlForUserId(uid);
     }
     if (src) {
       return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" data-mp-fallback="' + escapeHtml(preset) + '" onerror="if(this.dataset.mpFb!==\'1\'&&this.dataset.mpFallback){this.dataset.mpFb=\'1\';this.src=this.dataset.mpFallback}else{this.replaceWith(document.createTextNode(\'' + letter + '\'))}">';
@@ -10229,7 +10234,7 @@
       link.setAttribute('aria-label', 'На главную');
     }
     if (avatarEl) {
-      const photo = userId ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(userId)) + '.jpg') : '';
+      const photo = userId ? avatarUrlForUserId(userId) : '';
       setAvatarEl(avatarEl, photo, name);
     }
     bar.classList.remove('hidden');
@@ -15443,7 +15448,7 @@
       heroAvatarUrl = me.room_emoji;
     }
     if (!heroAvatarUrl && me.is_personal !== false && me.chat_id) {
-      heroAvatarUrl = API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
+      heroAvatarUrl = avatarUrlForUserId(me.chat_id);
     }
     setAvatarEl(heroAvatar, heroAvatarUrl, me.name);
     _cabinetMeCache = me;
@@ -16885,12 +16890,12 @@
     }
     const cid = (u && u.chat_id) || cache.chat_id;
     if (!url && cid && cache.is_personal !== false) {
-      url = API_BASE + '/api/avatar/' + encodeURIComponent(String(cid)) + '.jpg';
+      url = avatarUrlForUserId(cid);
     }
     if (!url && cache.is_personal !== false && cache.chat_id) {
       url = presetAvatarUrlForUser(cache.chat_id);
     }
-    return url;
+    return resolveMediaUrl(url);
   }
 
   function profileAchCircleHtml(a) {
@@ -17899,7 +17904,7 @@
     }
     grid.innerHTML = items.map((a) => {
       const id = String(a.id || a);
-      const src = a.url ? resolveMediaUrl(a.url) : (API_BASE + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
+      const src = a.url ? resolveMediaUrl(a.url) : (MEDIA_ORIGIN + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
       return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(id) + '" aria-label="Выбрать аватар">'
         + '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">'
         + '</button>';
