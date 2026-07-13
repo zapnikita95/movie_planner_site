@@ -7381,30 +7381,6 @@
     });
   }
 
-  function applyHomeCountsFromProfile(dashData) {
-    const counts = (dashData && dashData.counts) || {};
-    const allZero = !counts.unwatched && !counts.watched && !counts.series;
-    if (!allZero) return Promise.resolve(dashData);
-    return api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).then(function (prof) {
-      if (!prof || !prof.success) return dashData;
-      const totals = prof.totals || {};
-      const nextCounts = {
-        unwatched: totals.unwatched != null ? totals.unwatched : counts.unwatched,
-        watched: totals.watched != null ? totals.watched : counts.watched,
-        series: totals.series != null ? totals.series : counts.series,
-      };
-      const merged = Object.assign({}, dashData || {}, { counts: nextCounts });
-      _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, merged);
-      writeHomeDashboardBrowserCache(_homeDashboardCache);
-      try { updateCabinetHomeStats(merged); } catch (_) {}
-      if (prof.user && prof.user.photo_url && _cabinetMeCache) {
-        _cabinetMeCache.photo_url = prof.user.photo_url;
-        renderHeader(_cabinetMeCache);
-      }
-      return merged;
-    }).catch(function () { return dashData; });
-  }
-
   function mountHomeDashboardRails() {
     if (isGuestCabinetPreview()) return;
     if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
@@ -8135,15 +8111,13 @@
             _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
             updateInboxFabBadge(dashData.inbox_unread || 0);
             try { updateCabinetHomeStats(dashData); } catch (_) {}
-            return applyHomeCountsFromProfile(dashData).then(function (merged) {
-              if (dashData.show_tournament_intro) {
-                setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
-              }
-              _patchHomeDashboardStaticBlocks();
-              paintHomeTournamentBlock();
-              _scheduleMountHomeDashboardRails();
-              return merged || dashData;
-            });
+            if (dashData.show_tournament_intro) {
+              setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+            }
+            _patchHomeDashboardStaticBlocks();
+            paintHomeTournamentBlock();
+            _scheduleMountHomeDashboardRails();
+            return dashData;
           }).catch(() => {});
           return _homeDashboardCache;
         }
