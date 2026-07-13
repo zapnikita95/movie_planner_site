@@ -11072,14 +11072,11 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
     line-height: 1.35;
   }
   #section-film .description,
-  .movie-page .description {
+  .movie-page .description,
+  #film-desc {
     margin-top: 8px;
     font-size: 14px;
     line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   .film-page-toolbar {
     margin-top: 10px;
@@ -13171,14 +13168,11 @@ body.film-standalone-page {
       #section-film .hero h1 { font-size: clamp(26px, 3.8vw, 44px); }
       .eyebrow { margin-top: 8px; }
       .film-hero-crew { margin-top: 6px; font-size: 12.5px; }
-      .description {
+      .description,
+      #film-desc {
         margin-top: 8px;
         font-size: 14px;
         line-height: 1.45;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
       }
       .film-page-toolbar { margin-top: 10px; gap: 10px; }
       .film-toolbar-plan { min-height: 48px; font-size: 15px; }
