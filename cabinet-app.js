@@ -289,6 +289,60 @@
     return film;
   }
 
+  function mergeBootDescription(film, kp) {
+    const boot = filmFromRouteBoot(kp);
+    const bootDesc = pickFilmDescription(boot);
+    if (!bootDesc) return film;
+    const cur = pickFilmDescription(film);
+    if (!cur || cur.length < bootDesc.length || /…$|\.\.\.$/.test(cur)) {
+      film.description = bootDesc;
+    }
+    return film;
+  }
+
+  function currentFilmDescriptionFromDom(root) {
+    if (!root) return '';
+    const el = root.querySelector('.hero-content .description, #film-desc.description');
+    if (!el || el.classList.contains('hidden') || el.classList.contains('skeleton')) return '';
+    return String(el.textContent || '').trim();
+  }
+
+  function applyFilmDescriptionToHero(root, film) {
+    if (!root || !film) return;
+    const next = pickFilmDescription(film);
+    if (!next) return;
+    const heroContent = root.querySelector('.hero-content');
+    if (!heroContent) return;
+    let descEl = heroContent.querySelector('.description');
+    const cur = descEl ? String(descEl.textContent || '').trim() : '';
+    if (cur && cur.length >= next.length && !/…$|\.\.\.$/.test(cur)) return;
+    if (!descEl) {
+      const toolbar = heroContent.querySelector('.film-page-toolbar');
+      descEl = document.createElement('p');
+      descEl.className = 'description';
+      if (toolbar) heroContent.insertBefore(descEl, toolbar);
+      else heroContent.appendChild(descEl);
+    }
+    descEl.textContent = next;
+    descEl.classList.remove('hidden', 'skeleton');
+  }
+
+  function ensureFilmHeroDescription(root, film) {
+    if (!root || !film) return Promise.resolve();
+    const kp = String(film.kp_id || '').replace(/\D/g, '');
+    mergeBootDescription(film, kp);
+    if (pickFilmDescription(film)) {
+      applyFilmDescriptionToHero(root, film);
+      return Promise.resolve();
+    }
+    if (currentFilmDescriptionFromDom(root)) return Promise.resolve();
+    if (!kp) return Promise.resolve();
+    return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+      applyFilmDescriptionToHero(root, enriched);
+      return enriched;
+    }).catch(function () { return film; });
+  }
+
   function isGuestCabinetPreview() {
     return cabinetReadonlyActive() && !getToken();
   }
@@ -1054,7 +1108,9 @@
     if (!film || !pageRoot || isGenericFilmTitle(film.title)) return false;
     if (shouldPatchFilmHeroInPlace(pageRoot, film)) {
       mergeBootPoster(film, kp);
+      mergeBootDescription(film, kp);
       applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
+      ensureFilmHeroDescription(pageRoot, film);
       ensureFilmHeroCastLoaded(film, pageRoot);
       return true;
     }
@@ -1179,10 +1235,12 @@
     const shellSeed = popFilmShellSeed(kp);
     if (shellSeed && shellSeed.title && pageRootEarly && !hasHeroEarly && !paintFilmRouteBoot(kp, o)) {
       pageRootEarly.className = 'movie-page';
-      renderFilmDetailHero(mapLiteFilmForHero(shellSeed, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
+      const shellFilm = mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp);
+      renderFilmDetailHero(shellFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
         inBase: false,
         pendingAction: o.action || '',
       });
+      ensureFilmHeroDescription(pageRootEarly, shellFilm);
     }
     if (!hasHeroEarly) {
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
@@ -1191,10 +1249,12 @@
           if (shellSeed && shellSeed.title) return;
           if (paintFilmRouteBoot(kp, o)) return;
           pageRootEarly.className = 'movie-page';
-          renderFilmDetailHero(mapLiteFilmForHero(lite, kp), [], [], { user_id: cabinetUserId }, pageRootEarly, {
+          const liteFilm = mergeBootDescription(mapLiteFilmForHero(lite, kp), kp);
+          renderFilmDetailHero(liteFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
             inBase: !!lite.in_library,
             pendingAction: o.action || '',
           });
+          ensureFilmHeroDescription(pageRootEarly, liteFilm);
         })
         .catch(function () {});
     }
@@ -11758,6 +11818,7 @@
           bindFilmModalInteractions(detail.film, pageRoot);
           try { loadFilmFriendsSocial(detail.film); } catch (_) {}
           ensureFilmHeroCastLoaded(detail.film, pageRoot);
+          ensureFilmHeroDescription(pageRoot, detail.film);
         }
         return detail;
       });
@@ -11825,6 +11886,7 @@
       if (preserved.seriesState) newToolbar._mpSeriesToolbarState = preserved.seriesState;
       mountSeriesToolbarPanel(newToolbar, film);
     }
+    ensureFilmHeroDescription(root, film);
     return newToolbar;
   }
 
@@ -12904,11 +12966,13 @@
         }
         if (shouldPatchFilmHeroInPlace(pageRoot, cached.film)) {
           mergeBootPoster(cached.film, cached.film.kp_id);
+          mergeBootDescription(cached.film, cached.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(cached.film, pageRoot));
           replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me));
           bindFilmModalInteractions(cached.film, pageRoot);
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
           ensureFilmHeroCastLoaded(cached.film, pageRoot);
+          ensureFilmHeroDescription(pageRoot, cached.film);
         } else {
           renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
         }
@@ -12960,11 +13024,13 @@
         }
         if (shouldPatchFilmHeroInPlace(pageRoot, data.film)) {
           mergeBootPoster(data.film, data.film.kp_id);
+          mergeBootDescription(data.film, data.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
           replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me));
           bindFilmModalInteractions(data.film, pageRoot);
           try { loadFilmFriendsSocial(data.film); } catch (_) {}
           ensureFilmHeroCastLoaded(data.film, pageRoot);
+          ensureFilmHeroDescription(pageRoot, data.film);
           try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
           return;
         }
