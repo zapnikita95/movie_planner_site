@@ -1,6 +1,6 @@
 /**
  * Movie Planner — личный кабинет на сайте
- * Страницы: movie-planner.ru. API fetch: api.movie-planner.ru (AMS edge).
+ * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
  */
 (function () {
   'use strict';
@@ -18,12 +18,6 @@
   })();
   const API_BASE = (function () {
     if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
-    try {
-      var h = (window.location && window.location.hostname) || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return 'https://api.movie-planner.ru';
-      }
-    } catch (e) {}
     return SITE_ORIGIN;
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
@@ -186,8 +180,14 @@
     return k ? FILM_SHARE_SITE + '/f/' + k : '';
   }
 
+  function rewriteApexMediaUrl(url) {
+    const s = String(url || '').trim();
+    if (!s) return s;
+    return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+  }
+
   function cleanPosterUrl(src) {
-    const s = String(src || '').trim();
+    const s = rewriteApexMediaUrl(String(src || '').trim());
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
     if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
     return s;
@@ -1303,6 +1303,11 @@
     }
     prepareFilmOpenFromOverlay();
     showFilmPageLayout();
+    try {
+      const path = '/f/' + kp;
+      if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
+      else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+    } catch (_) {}
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
     const heroKpEarly = heroKpIdFromRoot(pageRootEarly);
@@ -1497,7 +1502,7 @@
 
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
-  /** Публичный base URL для Bearer/curl — api.movie-planner.ru на проде. */
+  /** Публичный base URL для Bearer/curl — same-origin на проде. */
   function getPublicApiBase() {
     return API_BASE;
   }
@@ -3416,7 +3421,7 @@
   }
 
   function resolveMediaUrl(url) {
-    const raw = String(url || '').trim();
+    const raw = rewriteApexMediaUrl(String(url || '').trim());
     if (!raw) return '';
     if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
     if (raw.startsWith('/api/')) return API_BASE + raw;
@@ -3600,7 +3605,12 @@
       const profileAvatar = document.getElementById('header-profile-avatar');
       if (profilePill) profilePill.classList.remove('hidden');
       if (profileName) profileName.textContent = me.name || 'Профиль';
-      setAvatarEl(profileAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
+      setAvatarEl(
+        profileAvatar,
+        me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''),
+        me.name,
+        me.chat_id || me.user_id,
+      );
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');
       const coinsVal = document.getElementById('header-coins-val');
@@ -7362,8 +7372,37 @@
         throw err;
       }
       if (!Array.isArray(data.items)) data.items = [];
+      data.items = data.items.map(function (it) {
+        if (!it || !it.poster) return it;
+        const poster = cleanPosterUrl(it.poster);
+        return poster && poster !== it.poster ? Object.assign({}, it, { poster: poster }) : it;
+      });
       return data;
     });
+  }
+
+  function applyHomeCountsFromProfile(dashData) {
+    const counts = (dashData && dashData.counts) || {};
+    const allZero = !counts.unwatched && !counts.watched && !counts.series;
+    if (!allZero) return Promise.resolve(dashData);
+    return api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).then(function (prof) {
+      if (!prof || !prof.success) return dashData;
+      const totals = prof.totals || {};
+      const nextCounts = {
+        unwatched: totals.unwatched != null ? totals.unwatched : counts.unwatched,
+        watched: totals.watched != null ? totals.watched : counts.watched,
+        series: totals.series != null ? totals.series : counts.series,
+      };
+      const merged = Object.assign({}, dashData || {}, { counts: nextCounts });
+      _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, merged);
+      writeHomeDashboardBrowserCache(_homeDashboardCache);
+      try { updateCabinetHomeStats(merged); } catch (_) {}
+      if (prof.user && prof.user.photo_url && _cabinetMeCache) {
+        _cabinetMeCache.photo_url = prof.user.photo_url;
+        renderHeader(_cabinetMeCache);
+      }
+      return merged;
+    }).catch(function () { return dashData; });
   }
 
   function mountHomeDashboardRails() {
@@ -8096,13 +8135,15 @@
             _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
             updateInboxFabBadge(dashData.inbox_unread || 0);
             try { updateCabinetHomeStats(dashData); } catch (_) {}
-            if (dashData.show_tournament_intro) {
-              setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
-            }
-            _patchHomeDashboardStaticBlocks();
-            paintHomeTournamentBlock();
-            _scheduleMountHomeDashboardRails();
-            return dashData;
+            return applyHomeCountsFromProfile(dashData).then(function (merged) {
+              if (dashData.show_tournament_intro) {
+                setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+              }
+              _patchHomeDashboardStaticBlocks();
+              paintHomeTournamentBlock();
+              _scheduleMountHomeDashboardRails();
+              return merged || dashData;
+            });
           }).catch(() => {});
           return _homeDashboardCache;
         }
