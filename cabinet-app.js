@@ -1135,8 +1135,8 @@
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
-    if (_staffPageKpId) {
-      return Promise.resolve();
+    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+      return openFilmFromStaffNav(kp, null);
     }
     if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
       return _openFilmPageByKpInflight.promise;
@@ -1164,6 +1164,7 @@
     if (!isCabinetActive()) {
       showScreen('cabinet-readonly');
     }
+    prepareFilmOpenFromOverlay();
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
@@ -3579,6 +3580,16 @@
     updateSearchPageChrome();
   }
 
+  /** Снять оверлей поиска и показать контейнер фильма перед открытием /f/:kp из шапки или /search. */
+  function prepareFilmOpenFromOverlay() {
+    if (document.body.classList.contains('in-search-page') || isDedicatedSearchScreen()) {
+      hideSiteSearchScreen();
+      return;
+    }
+    const pageRoot = document.getElementById('film-page-content');
+    if (pageRoot) pageRoot.classList.remove('hidden');
+  }
+
   function exitSearchToCabinet() {
     if (!isDedicatedSearchScreen()) return false;
     showScreen('cabinet-readonly');
@@ -5145,6 +5156,8 @@
     ro.querySelectorAll('.cabinet-section').forEach((el) => {
       el.classList.toggle('hidden', el.id !== 'section-film');
     });
+    const pageRoot = document.getElementById('film-page-content');
+    if (pageRoot) pageRoot.classList.remove('hidden');
     ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.add('hidden');
@@ -7276,6 +7289,7 @@
     _staffPageDetailData = null;
     dismissStaffHoverPreview();
     _openFilmPageByKpInflight = null;
+    prepareFilmOpenFromOverlay();
     if (kp) {
       try {
         history.pushState({ view: 'film', kpId: kp, fromStaff: true }, '', '/f/' + kp);
@@ -12843,8 +12857,10 @@
 
   function openFilmPage(filmId, opts) {
     const o = opts || {};
-    if (_staffPageKpId) {
-      return;
+    if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+      const kpHint = String(o.kpId || '').replace(/\D/g, '');
+      if (kpHint) return openFilmFromStaffNav(kpHint, filmId);
+      return openFilmFromStaffNav(null, filmId);
     }
     if (!getToken()) {
       showToast('Войдите в кабинет');
@@ -12862,6 +12878,7 @@
     if (!isCabinetActive()) {
       showScreen('cabinet-readonly');
     }
+    prepareFilmOpenFromOverlay();
     showFilmPageLayout();
     try { window.scrollTo(0, 0); } catch (_) {}
     if (!o.skipHistory) {
@@ -14197,7 +14214,7 @@
       window.location.href = buildFilmShareUrl(k);
       return;
     }
-    openFilmPageByKp(k);
+    openFilmNav(k, null);
   }
 
   const HEADER_SEARCH_PREVIEW_PERSONS = 4;
@@ -14691,7 +14708,7 @@
         e.preventDefault();
         e.stopPropagation();
         const kp = btn.getAttribute('data-site-search-kp');
-        if (kp) openFilmPageByKp(kp);
+        if (kp) openFilmNav(kp, null);
       });
     });
   }
