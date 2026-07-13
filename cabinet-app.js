@@ -183,7 +183,15 @@
   function rewriteApexMediaUrl(url) {
     const s = String(url || '').trim();
     if (!s) return s;
-    return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+    if (s.startsWith('/api/')) return s;
+    if (/^https?:\/\/api\.movie-planner\.ru/i.test(s)) {
+      try {
+        const u = new URL(s);
+        if (u.pathname.startsWith('/api/')) return u.pathname + (u.search || '');
+      } catch (_) {}
+      return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+    }
+    return s;
   }
 
   function cleanPosterUrl(src) {
