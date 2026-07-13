@@ -289,12 +289,63 @@
     return film;
   }
 
+  const _filmHeroDescCache = new Map();
+  const _filmHeroDescInflight = new Map();
+
+  function normalizeFilmDescriptionText(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function isTruncatedFilmDescription(text) {
+    return /…$|\.\.\.$/.test(normalizeFilmDescriptionText(text));
+  }
+
+  function pickBestFilmDescriptionText() {
+    let best = '';
+    for (let i = 0; i < arguments.length; i++) {
+      const s = normalizeFilmDescriptionText(arguments[i]);
+      if (!s || isFilmDescPlaceholder(s)) continue;
+      if (!best) {
+        best = s;
+        continue;
+      }
+      const bestTrunc = isTruncatedFilmDescription(best);
+      const sTrunc = isTruncatedFilmDescription(s);
+      if (bestTrunc && !sTrunc) {
+        best = s;
+        continue;
+      }
+      if (!bestTrunc && sTrunc) continue;
+      if (s.length > best.length) best = s;
+    }
+    return best;
+  }
+
+  function rememberFilmHeroDescription(kp, text) {
+    const key = String(kp || '').replace(/\D/g, '');
+    if (!key) return '';
+    const merged = pickBestFilmDescriptionText(_filmHeroDescCache.get(key) || '', text);
+    if (merged) _filmHeroDescCache.set(key, merged);
+    return merged;
+  }
+
+  function resolveFilmHeroDescription(film, root) {
+    const kp = String((film && film.kp_id) || '').replace(/\D/g, '');
+    const bootDesc = kp ? pickFilmDescription(filmFromRouteBoot(kp)) : '';
+    const bootOk = bootDesc && !isTruncatedFilmDescription(bootDesc) ? bootDesc : '';
+    return pickBestFilmDescriptionText(
+      pickFilmDescription(film),
+      root ? currentFilmDescriptionFromDom(root) : '',
+      kp ? (_filmHeroDescCache.get(kp) || '') : '',
+      bootOk
+    );
+  }
+
   function mergeBootDescription(film, kp) {
-    const boot = filmFromRouteBoot(kp);
-    const bootDesc = pickFilmDescription(boot);
-    if (!bootDesc) return film;
+    const bootDesc = pickFilmDescription(filmFromRouteBoot(kp));
+    if (!bootDesc || isTruncatedFilmDescription(bootDesc)) return film;
     const cur = pickFilmDescription(film);
-    if (!cur || cur.length < bootDesc.length || /…$|\.\.\.$/.test(cur)) {
+    if (!cur || cur.length < bootDesc.length) {
       film.description = bootDesc;
     }
     return film;
@@ -304,18 +355,23 @@
     if (!root) return '';
     const el = root.querySelector('.hero-content .description, #film-desc.description');
     if (!el || el.classList.contains('hidden') || el.classList.contains('skeleton')) return '';
-    return String(el.textContent || '').trim();
+    return normalizeFilmDescriptionText(el.textContent || '');
   }
 
   function applyFilmDescriptionToHero(root, film) {
-    if (!root || !film) return;
-    const next = pickFilmDescription(film);
-    if (!next) return;
+    if (!root || !film) return false;
+    const kp = String(film.kp_id || '').replace(/\D/g, '');
+    const next = rememberFilmHeroDescription(kp, resolveFilmHeroDescription(film, root));
+    if (!next) return false;
+    if (isTruncatedFilmDescription(next) && _filmHeroDescInflight.has(kp)) return false;
     const heroContent = root.querySelector('.hero-content');
-    if (!heroContent) return;
+    if (!heroContent) return false;
     let descEl = heroContent.querySelector('.description');
-    const cur = descEl ? String(descEl.textContent || '').trim() : '';
-    if (cur && cur.length >= next.length && !/…$|\.\.\.$/.test(cur)) return;
+    const cur = normalizeFilmDescriptionText(descEl ? descEl.textContent : '');
+    if (cur === next) return false;
+    if (cur && !isTruncatedFilmDescription(cur) && (isTruncatedFilmDescription(next) || next.length < cur.length)) {
+      return false;
+    }
     if (!descEl) {
       const toolbar = heroContent.querySelector('.film-page-toolbar');
       descEl = document.createElement('p');
@@ -325,22 +381,47 @@
     }
     descEl.textContent = next;
     descEl.classList.remove('hidden', 'skeleton');
+    return true;
   }
 
   function ensureFilmHeroDescription(root, film) {
-    if (!root || !film) return Promise.resolve();
+    if (!root || !film) return Promise.resolve(film);
     const kp = String(film.kp_id || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(film);
+
     mergeBootDescription(film, kp);
-    if (pickFilmDescription(film)) {
+    rememberFilmHeroDescription(kp, pickFilmDescription(film));
+    rememberFilmHeroDescription(kp, currentFilmDescriptionFromDom(root));
+
+    const settled = _filmHeroDescCache.get(kp) || '';
+    if (settled && !isTruncatedFilmDescription(settled)) {
       applyFilmDescriptionToHero(root, film);
-      return Promise.resolve();
+      return Promise.resolve(film);
     }
-    if (currentFilmDescriptionFromDom(root)) return Promise.resolve();
-    if (!kp) return Promise.resolve();
-    return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+
+    if (_filmHeroDescInflight.has(kp)) {
+      return _filmHeroDescInflight.get(kp).then(function () {
+        applyFilmDescriptionToHero(root, film);
+        return film;
+      });
+    }
+
+    const promise = enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+      rememberFilmHeroDescription(kp, pickFilmDescription(enriched));
       applyFilmDescriptionToHero(root, enriched);
       return enriched;
-    }).catch(function () { return film; });
+    }).catch(function () {
+      return film;
+    }).finally(function () {
+      _filmHeroDescInflight.delete(kp);
+    });
+    _filmHeroDescInflight.set(kp, promise);
+
+    const interim = resolveFilmHeroDescription(film, root);
+    if (interim && !isTruncatedFilmDescription(interim) && !currentFilmDescriptionFromDom(root)) {
+      applyFilmDescriptionToHero(root, film);
+    }
+    return promise;
   }
 
   function isGuestCabinetPreview() {
@@ -1248,8 +1329,14 @@
           if (!lite || !lite.title || !pageRootEarly) return;
           if (shellSeed && shellSeed.title) return;
           if (paintFilmRouteBoot(kp, o)) return;
-          pageRootEarly.className = 'movie-page';
           const liteFilm = mergeBootDescription(mapLiteFilmForHero(lite, kp), kp);
+          if (heroKpIdFromRoot(pageRootEarly) === kp && pageRootEarly.querySelector('.film-hero-with-tag')) {
+            mergeBootPoster(liteFilm, kp);
+            applyFilmPosterToHero(pageRootEarly, pickFilmPosterUrl(liteFilm, pageRootEarly));
+            ensureFilmHeroDescription(pageRootEarly, liteFilm);
+            return;
+          }
+          pageRootEarly.className = 'movie-page';
           renderFilmDetailHero(liteFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
             inBase: !!lite.in_library,
             pendingAction: o.action || '',
@@ -11886,7 +11973,6 @@
       if (preserved.seriesState) newToolbar._mpSeriesToolbarState = preserved.seriesState;
       mountSeriesToolbarPanel(newToolbar, film);
     }
-    ensureFilmHeroDescription(root, film);
     return newToolbar;
   }
 
@@ -13120,13 +13206,23 @@
   function enrichFilmDescriptionFromPublic(kpId, filmObj) {
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve(filmObj);
-    if (pickFilmDescription(filmObj)) return Promise.resolve(filmObj);
+    const cached = _filmHeroDescCache.get(kp) || '';
+    if (cached && !isTruncatedFilmDescription(cached)) {
+      filmObj.description = cached;
+      return Promise.resolve(filmObj);
+    }
+    if (pickFilmDescription(filmObj) && !isTruncatedFilmDescription(pickFilmDescription(filmObj))) {
+      return Promise.resolve(filmObj);
+    }
     return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
       .then((r) => r.json())
       .then((data) => {
         const pub = data && data.film;
-        const desc = pickFilmDescription(pub);
-        if (desc) filmObj.description = desc;
+        const desc = normalizeFilmDescriptionText(pickFilmDescription(pub));
+        if (desc) {
+          filmObj.description = desc;
+          rememberFilmHeroDescription(kp, desc);
+        }
         return filmObj;
       })
       .catch(() => filmObj);
@@ -13188,6 +13284,8 @@
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? '<div class="film-hero-panel film-hero-similar">' + buildSimilarRailHtml(similar) + '</div>'
       : '';
+    const descText = resolveFilmHeroDescription(film, content);
+    if (descText) rememberFilmHeroDescription(film.kp_id, descText);
 
     content.className = 'movie-page';
     content.innerHTML =
@@ -13202,7 +13300,7 @@
           '<h1>' + escapeHtml(titleText) + '</h1>' +
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
           crew +
-          (pickFilmDescription(film) ? '<p class="description">' + escapeHtml(pickFilmDescription(film)) + '</p>' : '') +
+          (descText ? '<p class="description">' + escapeHtml(descText) + '</p>' : '') +
           toolbarHtml +
         '</div>' +
       '</section>' +

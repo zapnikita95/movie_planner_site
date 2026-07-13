@@ -10416,7 +10416,7 @@ main.film-page .description,
   line-height: 1.55;
   color: rgba(244,246,255,.78);
   letter-spacing: 0;
-  white-space: pre-wrap;
+  white-space: normal;
 }
 .film-hero-crew,
 .film-modal-crew,
