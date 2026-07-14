@@ -4959,7 +4959,11 @@
       const url = isOpera ? (data.operaExtensionUrl || data.chromeExtensionUrl) : data.chromeExtensionUrl;
       _chromeExtUrl = url;
       document.querySelectorAll('#cabinet-extension-link, #cabinet-extension-link-onboard, #cabinet-footer-extension-link').forEach((a) => {
-        if (a) { a.href = url; a.classList.remove('hidden'); }
+        if (!a) return;
+        a.href = url;
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        if (isMobile) a.classList.add('hidden');
+        else a.classList.remove('hidden');
       });
     }).catch(() => {});
   }
@@ -11761,8 +11765,20 @@
       + '</div></div>';
   }
 
+  function wtwModeNeedsAuth(m) {
+    if (!m) return false;
+    if (m.kind === 'random' && (m.id === 'my_unwatched' || m.id === 'similar_my_top')) return true;
+    if (m.kind === 'wizard' && m.wizardScope === 'library') return true;
+    if (m.kind === 'premieres_reco') return true;
+    return false;
+  }
+
   function triggerWtwModeAction(m) {
     if (!m) return;
+    if (!getToken() && wtwModeNeedsAuth(m)) {
+      requireAuthForAction('Для этого режима нужна ваша база фильмов — войдите или зарегистрируйтесь');
+      return;
+    }
     if (m.kind === 'random') {
       runSiteRandomMode(m.id);
       return;

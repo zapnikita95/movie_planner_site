@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260714guestfilmfix1';
+  var BUILD = '20260714titlefix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -125,19 +125,32 @@
     return false;
   }
 
+  var GUEST_NAV_SECTIONS_LITE = {
+    home: '/home',
+    plans: '/plans',
+    premieres: '/premieres',
+    whattowatch: '/whattowatch',
+  };
+
   function bindGuestCabinetNavLite() {
     document.addEventListener('click', function (e) {
       if (getToken()) return;
       var btn = e.target.closest('#cabinet-readonly .cabinet-nav-btn[data-section]');
       if (!btn) return;
       var sec = btn.getAttribute('data-section') || '';
-      if (sec === 'home' || sec === 'premieres') {
+      if (!sec || sec === 'film') return;
+      var guestPath = GUEST_NAV_SECTIONS_LITE[sec];
+      if (guestPath) {
+        if (_fullReady) return;
         e.preventDefault();
-        global.location.href = sec === 'premieres' ? '/premieres' : '/home';
+        e.stopPropagation();
+        ensureFullCabinet(function () {
+          try { global.location.href = guestPath; } catch (_e) {}
+        });
         return;
       }
-      if (!sec || sec === 'film') return;
       e.preventDefault();
+      e.stopPropagation();
       if (global.MpPublicFilmLogin) {
         global.MpPublicFilmLogin.open('');
       } else {

@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260714guestfilmfix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260714guestfilmfix1">
+    <link rel="preload" href="/style-v2.css?v=20260714titlefix1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260714titlefix1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -135,15 +135,21 @@
       html.mp-landing-boot .header-buttons{flex:0 0 auto;display:flex;justify-content:flex-end;min-width:0}
       html.mp-landing-boot #header-search{order:3;flex:1 1 100%!important;width:100%!important}
       @media(min-width:769px){
-        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:auto minmax(320px,1fr) auto!important;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
+        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,min(560px,40vw)) minmax(0,1fr)!important;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
         html.mp-landing-boot .logo{grid-column:1;grid-row:1;justify-self:start}
         html.mp-landing-boot .header-buttons{grid-column:3;grid-row:1;justify-self:end;order:unset}
-        html.mp-landing-boot #header-search{grid-column:2;grid-row:1;order:unset!important;flex:unset!important;width:100%!important;justify-self:stretch}
+        html.mp-landing-boot #header-search{grid-column:2;grid-row:1;order:unset!important;flex:unset!important;width:100%!important;max-width:560px!important;justify-self:center;margin-inline:auto!important}
       }
     </style>
     <style id="mp-cabinet-critical">
       html.mp-auth-boot #landing{display:none!important}
       html.mp-auth-boot #cabinet-readonly.hidden{display:block!important}
+      html.mp-auth-boot body.in-search-page #cabinet-readonly,
+      html.mp-auth-boot body.in-search-page #cabinet-readonly.hidden,
+      html.mp-guest-cabinet-boot body.in-search-page #cabinet-readonly,
+      html.mp-guest-cabinet-boot body.in-search-page #cabinet-readonly.hidden{display:none!important}
+      html.mp-search-boot #cabinet-readonly,
+      html.mp-search-boot #cabinet-readonly.hidden{display:none!important}
       html.mp-guest-cabinet-boot #landing{display:none!important}
       html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
       html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important}
@@ -2544,7 +2550,8 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260627history1'
+          'mp-icons.js?v=20260627history1',
+          'mp-public-promo.js?v=20260714titlefix1'
         ];
         var cabinet = [
           'user-profile-page.js?v=20260629profilefix6',
@@ -2563,20 +2570,20 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260714guestfilmfix1'
+            'cabinet-app.js?v=20260714titlefix1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260714guestfilmfix1');
-          list.push('cabinet-film-route.js?v=20260714guestfilmfix1');
+          list.push('film-page.js?v=20260714titlefix1');
+          list.push('cabinet-film-route.js?v=20260714titlefix1');
         } else if (isStaff) {
-          list.push('film-page.js?v=20260714guestfilmfix1');
-          list.push('staff-page.js?v=20260714guestfilmfix1');
-          list.push('cabinet-app.js?v=20260714guestfilmfix1');
+          list.push('film-page.js?v=20260714titlefix1');
+          list.push('staff-page.js?v=20260714titlefix1');
+          list.push('cabinet-app.js?v=20260714titlefix1');
         } else {
-          list.push('cabinet-app.js?v=20260714guestfilmfix1');
+          list.push('cabinet-app.js?v=20260714titlefix1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');

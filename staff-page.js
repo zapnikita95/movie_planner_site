@@ -483,6 +483,20 @@
 
   function bindStaffFilters(root) {
     if (!root) return;
+    if (root._staffFiltersBound) {
+      var filtersRootEarly = root.querySelector('#staff-person-filters');
+      updateStaffToggleChips(filtersRootEarly);
+      if (filtersRootEarly) {
+        var sortRating = filtersRootEarly.querySelector('#staff-sort-rating');
+        var sortYearDesc = filtersRootEarly.querySelector('#staff-sort-year-desc');
+        var sortYearAsc = filtersRootEarly.querySelector('#staff-sort-year-asc');
+        if (sortRating) sortRating.classList.toggle('chip-on', _staffSortMode === 'rating_desc');
+        if (sortYearDesc) sortYearDesc.classList.toggle('chip-on', _staffSortMode === 'year_desc');
+        if (sortYearAsc) sortYearAsc.classList.toggle('chip-on', _staffSortMode === 'year_asc');
+      }
+      return;
+    }
+    root._staffFiltersBound = true;
     var yearEl = root.querySelector('#staff-filter-year');
     var genreEl = root.querySelector('#staff-filter-genre');
     var mainBtn = root.querySelector('#staff-toggle-main');
@@ -523,7 +537,8 @@
     }
     function bindSortChip(id, mode) {
       var el = root.querySelector(id);
-      if (!el) return;
+      if (!el || el._staffSortBound) return;
+      el._staffSortBound = true;
       el.addEventListener('click', function () {
         _staffSortMode = _staffSortMode === mode ? 'default' : mode;
         paintStaffRoles();
@@ -532,7 +547,14 @@
     bindSortChip('#staff-sort-rating', 'rating_desc');
     bindSortChip('#staff-sort-year-desc', 'year_desc');
     bindSortChip('#staff-sort-year-asc', 'year_asc');
+    bindStaffRoleExpandButtons(root);
+  }
+
+  function bindStaffRoleExpandButtons(root) {
+    if (!root) return;
     root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
+      if (btn._staffExpandBound) return;
+      btn._staffExpandBound = true;
       btn.addEventListener('click', function () {
         var rk = btn.getAttribute('data-role-expand') || '';
         if (!rk) return;
@@ -613,6 +635,7 @@
       }
     }
     bindStaffFilters(root);
+    bindStaffRoleExpandButtons(root);
     if (_staffPersonId) bindStaffImportButtons(root, _staffPersonId);
   }
 
@@ -746,14 +769,22 @@
     return '';
   }
 
+  var GUEST_NAV_PATHS_STAFF = {
+    '/home': 1,
+    '/plans': 1,
+    '/premieres': 1,
+    '/whattowatch': 1,
+  };
+
   function bindGuestCabinetNav() {
-    document.querySelectorAll('#film-standalone-nav .cabinet-nav-btn').forEach(function (btn) {
+    document.querySelectorAll('#film-standalone-nav .cabinet-nav-btn, #landing-root-nav .cabinet-nav-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         var href = btn.getAttribute('href') || '/';
         if (mpToken()) return;
         var path = href.replace(/\/$/, '') || '/';
-        if (path === '/home' || path === '/premieres' || path === '/') return;
+        if (path === '/' || GUEST_NAV_PATHS_STAFF[path]) return;
         e.preventDefault();
+        e.stopPropagation();
         if (_staffLoginNow) _staffLoginNow('nav');
         else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + _staffPersonId);
       });
@@ -961,6 +992,19 @@
     } catch (_e) {}
   }
 
+  function resolveStaffHeroPhotoUrl(person, personId) {
+    var kp = String(personId || '').replace(/\D/g, '');
+    var boot = readMpRouteBoot();
+    var bootPhoto = '';
+    if (bootMatchesPerson(boot, kp)) {
+      bootPhoto = cleanStaffPersonPhoto(String(boot.photo_url || '').trim());
+    }
+    var apiPhoto = cleanStaffPersonPhoto(person && person.photo);
+    if (bootPhoto && bootPhoto !== MP_PERSON_PLACEHOLDER) return bootPhoto;
+    if (apiPhoto && apiPhoto !== MP_PERSON_PLACEHOLDER) return apiPhoto;
+    return MP_PERSON_PLACEHOLDER;
+  }
+
   function renderStaffData(data, personId) {
     var root = staffContentRoot();
     if (!root) return;
@@ -980,8 +1024,73 @@
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
 
-    var personPhoto = cleanStaffPersonPhoto(person.photo) || MP_PERSON_PLACEHOLDER;
-    var photo = personPhoto
+    var personPhoto = resolveStaffHeroPhotoUrl(person, personId);
+    var bootArticle = root.querySelector('.staff-page--boot');
+    if (bootArticle) {
+      var hero = bootArticle.querySelector('.staff-hero');
+      if (hero) {
+        var img = hero.querySelector('.staff-hero-photo');
+        if (img && img.tagName === 'IMG' && personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER) {
+          if (img.getAttribute('src') !== personPhoto) img.setAttribute('src', personPhoto);
+        }
+        var nameEl = hero.querySelector('.staff-hero-name');
+        if (nameEl) nameEl.textContent = titleName;
+        var subEl = hero.querySelector('.staff-hero-sub');
+        if (secondaryName) {
+          if (subEl) subEl.textContent = secondaryName;
+          else {
+            var textWrap = hero.querySelector('.staff-hero-text');
+            if (textWrap) {
+              textWrap.insertAdjacentHTML('beforeend', '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>');
+            }
+          }
+        } else if (subEl) subEl.remove();
+        var metaHtml = staffMetaLine(person);
+        var metaEl = hero.querySelector('.staff-hero-meta');
+        if (metaHtml) {
+          if (metaEl) metaEl.outerHTML = metaHtml;
+          else {
+            var tw = hero.querySelector('.staff-hero-text');
+            if (tw) tw.insertAdjacentHTML('beforeend', metaHtml);
+          }
+        } else if (metaEl) metaEl.remove();
+      }
+      bootArticle.classList.remove('staff-page--boot');
+      var loadingEl = bootArticle.querySelector('.mp-route-boot-loading');
+      if (loadingEl) loadingEl.remove();
+      root.querySelector('#staff-person-filters') && root.querySelector('#staff-person-filters').remove();
+      root.querySelector('#staff-roles-root') && root.querySelector('#staff-roles-root').remove();
+      root.querySelector('#staff-facts-section') && root.querySelector('#staff-facts-section').remove();
+      bootArticle.insertAdjacentHTML('beforeend',
+        '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
+          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
+            '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
+            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
+            '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
+          '</button>' +
+          '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
+            '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+          '</div>' +
+        '</section>' +
+        filtersBarHtml() +
+        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>'
+      );
+      bindStaffFilters(root);
+      bindStaffRoleExpandButtons(root);
+      bindStaffImportButtons(root, personId);
+      loadStaffPersonFacts(personId);
+      root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
+        var rk = btn.getAttribute('data-role-key') || '';
+        var block = (_staffLastData.films_by_role || []).find(function (b) {
+          return String(b.role_key || '') === rk;
+        });
+        var filtered = block ? filterPersonFilmsClient(block.films || [], _staffFilterState) : [];
+        btn._importIds = filtered.map(function (f) { return String(f.kp_id || ''); }).filter(Boolean);
+      });
+      return;
+    }
+
+    var photo = personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER
       ? '<img class="staff-hero-photo" src="' + escapeHtml(personPhoto) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
       : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
 
@@ -1012,7 +1121,13 @@
       '</article>';
 
     bindStaffFilters(root);
+    bindStaffRoleExpandButtons(root);
     bindStaffImportButtons(root, personId);
+    try {
+      if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
+        global.MpPublicPromo.mountAfterHero(root);
+      }
+    } catch (_e) {}
     loadStaffPersonFacts(personId);
     root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
       var rk = btn.getAttribute('data-role-key') || '';
