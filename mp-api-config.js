@@ -1,12 +1,18 @@
 /**
- * Prod: страницы на movie-planner.ru, XHR/fetch на api.movie-planner.ru (AMS edge).
+ * Prod: страницы на movie-planner.ru.
+ *
+ * В РФ у части провайдеров/сетей `api.movie-planner.ru` может быть недоступен без VPN,
+ * из-за чего ломается авторизованный кабинет (все XHR/fetch туда).
+ *
+ * Поэтому по умолчанию используем same-origin API на `movie-planner.ru` (Railway),
+ * а не отдельный `api.*` хост.
  * OAuth стартует с SITE_ORIGIN — api.* не попадает в адресную строку при обычном входе.
  */
 (function (global) {
   'use strict';
 
   var PROD_SITE = 'https://movie-planner.ru';
-  var PROD_API = 'https://api.movie-planner.ru';
+  var PROD_API = 'https://movie-planner.ru';
 
   function siteOrigin() {
     try {

@@ -1,6 +1,6 @@
 /**
  * Movie Planner — личный кабинет на сайте
- * Страницы: movie-planner.ru. API fetch: api.movie-planner.ru (AMS edge).
+ * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
  */
 (function () {
   'use strict';
@@ -18,12 +18,6 @@
   })();
   const API_BASE = (function () {
     if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
-    try {
-      var h = (window.location && window.location.hostname) || '';
-      if (h === 'movie-planner.ru' || h === 'www.movie-planner.ru') {
-        return 'https://api.movie-planner.ru';
-      }
-    } catch (e) {}
     return SITE_ORIGIN;
   })();
   const BOT_LINK = 'https://t.me/movie_planner_bot';
@@ -93,7 +87,12 @@
     return { register: register, getFilmId: getFilmId, waitFor: waitFor };
   })();
 
-  const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
+  const MEDIA_ORIGIN = SITE_ORIGIN;
+
+  function avatarUrlForUserId(userId) {
+    const u = String(userId || '').replace(/\D/g, '');
+    return u ? (MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+  }
   const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   const MP_BROWSER_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -186,8 +185,22 @@
     return k ? FILM_SHARE_SITE + '/f/' + k : '';
   }
 
+  function rewriteApexMediaUrl(url) {
+    const s = String(url || '').trim();
+    if (!s) return s;
+    if (s.startsWith('/api/')) return s;
+    if (/^https?:\/\/api\.movie-planner\.ru/i.test(s)) {
+      try {
+        const u = new URL(s);
+        if (u.pathname.startsWith('/api/')) return u.pathname + (u.search || '');
+      } catch (_) {}
+      return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+    }
+    return s;
+  }
+
   function cleanPosterUrl(src) {
-    const s = String(src || '').trim();
+    const s = rewriteApexMediaUrl(String(src || '').trim());
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
     if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
     return s;
@@ -1303,6 +1316,11 @@
     }
     prepareFilmOpenFromOverlay();
     showFilmPageLayout();
+    try {
+      const path = '/f/' + kp;
+      if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
+      else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+    } catch (_) {}
     try { window.scrollTo(0, 0); } catch (_) {}
     const pageRootEarly = document.getElementById('film-page-content');
     const heroKpEarly = heroKpIdFromRoot(pageRootEarly);
@@ -1497,7 +1515,7 @@
 
   // Копирование в clipboard с фолбэком на execCommand — работает даже
   // когда navigator.clipboard недоступен (иногда в http/iframe).
-  /** Публичный base URL для Bearer/curl — api.movie-planner.ru на проде. */
+  /** Публичный base URL для Bearer/curl — same-origin на проде. */
   function getPublicApiBase() {
     return API_BASE;
   }
@@ -3412,14 +3430,14 @@
   function presetAvatarUrlForUser(userId) {
     const n = Math.abs(Number(userId) || 0);
     const id = String((n % 7) + 1).padStart(2, '0');
-    return API_BASE + '/api/avatar/defaults/' + id + '.jpg';
+    return MEDIA_ORIGIN + '/api/avatar/defaults/' + id + '.jpg';
   }
 
   function resolveMediaUrl(url) {
-    const raw = String(url || '').trim();
+    const raw = rewriteApexMediaUrl(String(url || '').trim());
     if (!raw) return '';
     if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
-    if (raw.startsWith('/api/')) return API_BASE + raw;
+    if (raw.startsWith('/api/')) return MEDIA_ORIGIN + raw;
     return raw;
   }
 
@@ -3600,7 +3618,12 @@
       const profileAvatar = document.getElementById('header-profile-avatar');
       if (profilePill) profilePill.classList.remove('hidden');
       if (profileName) profileName.textContent = me.name || 'Профиль';
-      setAvatarEl(profileAvatar, me.photo_url || me.avatar_url || (me.chat_id ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg') : ''), me.name);
+      setAvatarEl(
+        profileAvatar,
+        me.photo_url || me.avatar_url || (me.chat_id ? avatarUrlForUserId(me.chat_id) : ''),
+        me.name,
+        me.chat_id || me.user_id,
+      );
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');
       const coinsVal = document.getElementById('header-coins-val');
@@ -4486,6 +4509,136 @@
   }
 
   const FILM_CAST_ACTORS_COLLAPSED = 4;
+  const FILM_DESC_PREVIEW_LEN = 220;
+
+  function buildFilmDescWrapHtml() {
+    return (
+      '<div class="film-desc-wrap" id="film-desc-wrap">' +
+        '<p class="description" id="film-desc">' +
+          '<span class="film-desc-short"></span>' +
+          '<span class="film-desc-full hidden"></span>' +
+          '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
+        '</p>' +
+        '<div class="film-desc-facts hidden" id="film-desc-facts">' +
+          '<div class="film-desc-facts-title">Интересные факты</div>' +
+          '<ul class="film-toolbar-facts-list film-desc-facts-list" id="film-desc-facts-list"></ul>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function ensureFilmDescWrap(heroContent) {
+    if (!heroContent) return null;
+    let wrap = heroContent.querySelector('#film-desc-wrap');
+    if (wrap) return wrap;
+    const toolbar = heroContent.querySelector('.film-page-toolbar');
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildFilmDescWrapHtml();
+    wrap = tmp.firstElementChild;
+    if (toolbar) heroContent.insertBefore(wrap, toolbar);
+    else heroContent.appendChild(wrap);
+    bindFilmDescExpand(wrap);
+    return wrap;
+  }
+
+  function updateFilmDescCollapseState(wrap, fullText, hasFacts) {
+    if (!wrap) return;
+    const text = normalizeFilmDescriptionText(fullText);
+    const descEl = wrap.querySelector('#film-desc');
+    const shortEl = wrap.querySelector('.film-desc-short');
+    const fullEl = wrap.querySelector('.film-desc-full');
+    const btn = wrap.querySelector('.film-desc-more-btn');
+    const factsBlock = wrap.querySelector('#film-desc-facts');
+    if (!descEl || !shortEl || !fullEl || !btn) return;
+    if (!text) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    wrap.classList.remove('hidden');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    const needsMore = text.length > FILM_DESC_PREVIEW_LEN || !!hasFacts;
+    if (text.length > FILM_DESC_PREVIEW_LEN) {
+      const cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
+      shortEl.textContent = cut + '…';
+      fullEl.textContent = text;
+    } else {
+      shortEl.textContent = text;
+      fullEl.textContent = text;
+    }
+    btn.classList.toggle('hidden', !needsMore);
+    if (!needsMore) {
+      shortEl.classList.remove('hidden');
+      fullEl.classList.add('hidden');
+      if (factsBlock) factsBlock.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = 'ещё';
+    } else if (!expanded) {
+      shortEl.classList.remove('hidden');
+      fullEl.classList.add('hidden');
+      if (factsBlock) factsBlock.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = 'ещё';
+    } else {
+      shortEl.classList.add('hidden');
+      fullEl.classList.remove('hidden');
+      if (factsBlock) factsBlock.classList.toggle('hidden', !hasFacts);
+      btn.setAttribute('aria-expanded', 'true');
+      btn.textContent = 'свернуть';
+    }
+    descEl.classList.remove('hidden', 'skeleton');
+  }
+
+  function bindFilmDescExpand(wrap) {
+    if (!wrap || wrap._mpDescExpandBound) return;
+    wrap._mpDescExpandBound = true;
+    const btn = wrap.querySelector('.film-desc-more-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      const next = !expanded;
+      const shortEl = wrap.querySelector('.film-desc-short');
+      const fullEl = wrap.querySelector('.film-desc-full');
+      const factsBlock = wrap.querySelector('#film-desc-facts');
+      const hasFacts = wrap.getAttribute('data-has-facts') === '1';
+      if (shortEl) shortEl.classList.toggle('hidden', next);
+      if (fullEl) fullEl.classList.toggle('hidden', !next);
+      if (factsBlock) factsBlock.classList.toggle('hidden', !next || !hasFacts);
+      btn.textContent = next ? 'свернуть' : 'ещё';
+      btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    });
+  }
+
+  function paintFilmDescFacts(wrap, payload) {
+    if (!wrap) wrap = document.getElementById('film-desc-wrap');
+    if (!wrap) return;
+    const list = wrap.querySelector('#film-desc-facts-list');
+    if (!list) return;
+    const items = filmFactsItemsFromPayload(payload);
+    list.innerHTML = items.map(function (x) { return renderFilmToolbarFactItem(x); }).join('');
+    const hasFacts = items.length > 0;
+    wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
+    const descText = normalizeFilmDescriptionText(
+      wrap.querySelector('.film-desc-full')?.textContent ||
+      wrap.querySelector('.film-desc-short')?.textContent || ''
+    );
+    updateFilmDescCollapseState(wrap, descText, hasFacts);
+  }
+
+  function loadFilmDescFacts(kpId, root) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve();
+    const scope = root || document;
+    const wrap = scope.querySelector('#film-desc-wrap');
+    if (!wrap) return Promise.resolve();
+    if (wrap.getAttribute('data-facts-loaded') === kp) return Promise.resolve();
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/facts', { method: 'GET', mode: 'cors' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        wrap.setAttribute('data-facts-loaded', kp);
+        paintFilmDescFacts(wrap, d);
+      })
+      .catch(function () {});
+  }
 
   function bindFilmActorsExpand(root) {
     if (!root) return;
@@ -5589,7 +5742,7 @@
 
   function siteInboxAvatarUrl(uid) {
     const u = String(uid || '').replace(/\D/g, '');
-    return u ? (API_BASE + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+    return u ? avatarUrlForUserId(u) : '';
   }
 
   function siteInboxFormatTime(iso) {
@@ -7375,6 +7528,11 @@
         throw err;
       }
       if (!Array.isArray(data.items)) data.items = [];
+      data.items = data.items.map(function (it) {
+        if (!it || !it.poster) return it;
+        const poster = cleanPosterUrl(it.poster);
+        return poster && poster !== it.poster ? Object.assign({}, it, { poster: poster }) : it;
+      });
       return data;
     });
   }
@@ -8307,7 +8465,7 @@
     const preset = uid ? presetAvatarUrlForUser(uid) : '';
     let src = resolveMediaUrl(w && w.photo_url);
     if (!src && uid) {
-      src = API_BASE + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg';
+      src = avatarUrlForUserId(uid);
     }
     if (src) {
       return '<img src="' + escapeHtml(src) + '" alt="" class="tourn-podium-avatar-img" loading="lazy" decoding="async" data-mp-fallback="' + escapeHtml(preset) + '" onerror="if(this.dataset.mpFb!==\'1\'&&this.dataset.mpFallback){this.dataset.mpFb=\'1\';this.src=this.dataset.mpFallback}else{this.replaceWith(document.createTextNode(\'' + letter + '\'))}">';
@@ -10219,7 +10377,7 @@
       link.setAttribute('aria-label', 'На главную');
     }
     if (avatarEl) {
-      const photo = userId ? (API_BASE + '/api/avatar/' + encodeURIComponent(String(userId)) + '.jpg') : '';
+      const photo = userId ? avatarUrlForUserId(userId) : '';
       setAvatarEl(avatarEl, photo, name);
     }
     bar.classList.remove('hidden');
@@ -15445,7 +15603,7 @@
       heroAvatarUrl = me.room_emoji;
     }
     if (!heroAvatarUrl && me.is_personal !== false && me.chat_id) {
-      heroAvatarUrl = API_BASE + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
+      heroAvatarUrl = avatarUrlForUserId(me.chat_id);
     }
     setAvatarEl(heroAvatar, heroAvatarUrl, me.name);
     _cabinetMeCache = me;
@@ -16887,12 +17045,12 @@
     }
     const cid = (u && u.chat_id) || cache.chat_id;
     if (!url && cid && cache.is_personal !== false) {
-      url = API_BASE + '/api/avatar/' + encodeURIComponent(String(cid)) + '.jpg';
+      url = avatarUrlForUserId(cid);
     }
     if (!url && cache.is_personal !== false && cache.chat_id) {
       url = presetAvatarUrlForUser(cache.chat_id);
     }
-    return url;
+    return resolveMediaUrl(url);
   }
 
   function profileAchCircleHtml(a) {
@@ -17901,7 +18059,7 @@
     }
     grid.innerHTML = items.map((a) => {
       const id = String(a.id || a);
-      const src = a.url ? resolveMediaUrl(a.url) : (API_BASE + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
+      const src = a.url ? resolveMediaUrl(a.url) : (MEDIA_ORIGIN + '/api/avatar/defaults/' + encodeURIComponent(id) + '.jpg');
       return '<button type="button" class="avatar-picker-item" data-avatar-id="' + escapeHtml(id) + '" aria-label="Выбрать аватар">'
         + '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async">'
         + '</button>';
