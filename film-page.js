@@ -276,15 +276,27 @@
       '<div class="film-desc-wrap" id="film-desc-wrap">' +
         '<p class="description" id="film-desc">' +
           '<span class="film-desc-short"></span>' +
-          '<span class="film-desc-full hidden"></span>' +
+          '<span class="film-desc-full hidden">' +
+            '<span class="film-desc-plot"></span>' +
+            '<span class="film-desc-facts-inline"></span>' +
+          '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
-        '<div class="film-desc-facts hidden" id="film-desc-facts">' +
-          '<div class="film-desc-facts-title">Интересные факты</div>' +
-          '<ul class="film-toolbar-facts-list film-desc-facts-list" id="film-desc-facts-list"></ul>' +
-        '</div>' +
       '</div>'
     );
+  }
+
+  function filmDescPlotText(wrap) {
+    if (!wrap) return String(lastFilmDescription || '').trim();
+    return String(wrap.getAttribute('data-plot-text') || lastFilmDescription || '').trim();
+  }
+
+  function filmDescFactsInlineHtml(payload) {
+    var items = filmFactsItemsFromPayload(payload);
+    if (!items.length) return '';
+    return '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
+      items.map(function (x) { return renderFilmDescFactItem(x); }).join('') +
+      '</ul>';
   }
 
   function ensureFilmDescWrap(heroContent) {
@@ -303,13 +315,14 @@
 
   function updateFilmDescCollapseState(wrap, fullText, hasFacts) {
     if (!wrap) return;
-    var text = String(fullText || '').trim();
+    var text = String(fullText || filmDescPlotText(wrap) || '').trim();
+    wrap.setAttribute('data-plot-text', text);
     var descEl = wrap.querySelector('#film-desc');
     var shortEl = wrap.querySelector('.film-desc-short');
     var fullEl = wrap.querySelector('.film-desc-full');
+    var plotEl = wrap.querySelector('.film-desc-plot');
     var btn = wrap.querySelector('.film-desc-more-btn');
-    var factsBlock = wrap.querySelector('#film-desc-facts');
-    if (!descEl || !shortEl || !fullEl || !btn) return;
+    if (!descEl || !shortEl || !fullEl || !plotEl || !btn) return;
     if (!text) {
       wrap.classList.add('hidden');
       return;
@@ -320,28 +333,24 @@
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       var cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
-      fullEl.textContent = text;
     } else {
       shortEl.textContent = text;
-      fullEl.textContent = text;
     }
+    plotEl.textContent = text;
     btn.classList.toggle('hidden', !needsMore);
     if (!needsMore) {
       shortEl.classList.remove('hidden');
       fullEl.classList.add('hidden');
-      if (factsBlock) factsBlock.classList.add('hidden');
       btn.setAttribute('aria-expanded', 'false');
       btn.textContent = 'ещё';
     } else if (!expanded) {
       shortEl.classList.remove('hidden');
       fullEl.classList.add('hidden');
-      if (factsBlock) factsBlock.classList.add('hidden');
       btn.setAttribute('aria-expanded', 'false');
       btn.textContent = 'ещё';
     } else {
       shortEl.classList.add('hidden');
       fullEl.classList.remove('hidden');
-      if (factsBlock) factsBlock.classList.toggle('hidden', !hasFacts);
       btn.setAttribute('aria-expanded', 'true');
       btn.textContent = 'свернуть';
     }
@@ -358,11 +367,8 @@
       var next = !expanded;
       var shortEl = wrap.querySelector('.film-desc-short');
       var fullEl = wrap.querySelector('.film-desc-full');
-      var factsBlock = wrap.querySelector('#film-desc-facts');
-      var hasFacts = wrap.getAttribute('data-has-facts') === '1';
       if (shortEl) shortEl.classList.toggle('hidden', next);
       if (fullEl) fullEl.classList.toggle('hidden', !next);
-      if (factsBlock) factsBlock.classList.toggle('hidden', !next || !hasFacts);
       btn.textContent = next ? 'свернуть' : 'ещё';
       btn.setAttribute('aria-expanded', next ? 'true' : 'false');
     });
@@ -413,18 +419,29 @@
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
-    var list = wrap.querySelector('#film-desc-facts-list');
-    if (!list) return;
+    var factsEl = wrap.querySelector('.film-desc-facts-inline');
+    var fullEl = wrap.querySelector('.film-desc-full');
+    if (!factsEl && fullEl) {
+      var plotEl = fullEl.querySelector('.film-desc-plot');
+      if (!plotEl) {
+        plotEl = document.createElement('span');
+        plotEl.className = 'film-desc-plot';
+        plotEl.textContent = fullEl.textContent || filmDescPlotText(wrap);
+        fullEl.textContent = '';
+        fullEl.appendChild(plotEl);
+      }
+      factsEl = document.createElement('span');
+      factsEl.className = 'film-desc-facts-inline';
+      fullEl.appendChild(factsEl);
+      var legacyFacts = wrap.querySelector('#film-desc-facts');
+      if (legacyFacts) legacyFacts.remove();
+    }
+    if (!factsEl) return;
     var items = filmFactsItemsFromPayload(payload);
-    list.innerHTML = items.map(function (x) { return renderFilmDescFactItem(x); }).join('');
+    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
     var hasFacts = items.length > 0;
     wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    var descText = String(
-      (wrap.querySelector('.film-desc-full') && wrap.querySelector('.film-desc-full').textContent) ||
-      (wrap.querySelector('.film-desc-short') && wrap.querySelector('.film-desc-short').textContent) ||
-      lastFilmDescription || ''
-    ).trim();
-    updateFilmDescCollapseState(wrap, descText, hasFacts);
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts);
   }
 
   function loadFilmDescFacts(kpId, root) {
@@ -1155,7 +1172,9 @@
 
   function bindStandaloneSearch(apiBase, loginNow) {
     if (global.__MP_CABINET_HEADER_SEARCH || global.__MP_HEADER_SEARCH_BOUND) return;
-    if (document.body && document.body.classList.contains('in-cabinet')) return;
+    var filmCabinetRoute = !!(document.getElementById('cabinet-readonly') &&
+      document.getElementById('cabinet-readonly').classList.contains('film-page-mode'));
+    if (document.body && document.body.classList.contains('in-cabinet') && !filmCabinetRoute) return;
     var input = document.getElementById('header-search-input');
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
@@ -1246,7 +1265,11 @@
       }
     });
     input.addEventListener('focus', function () {
+      if (filmCabinetRoute && typeof global.ensureFullCabinet === 'function') {
+        try { global.ensureFullCabinet(); } catch (_cab) {}
+      }
       if (input.value.trim().length >= 2 && dd.innerHTML) dd.classList.remove('hidden');
+      else if (global.showHeaderSearchHub && dd) global.showHeaderSearchHub(dd);
     });
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
@@ -1652,6 +1675,7 @@
       loginBtn.addEventListener('click', function () { loginNow(); });
     }
     bindStandaloneSearch(apiBase, loginNow);
+    bindStandaloneVoiceMic(apiBase, loginNow);
     bindStandaloneLogoHome();
     try {
       if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(document.getElementById('site-header'));
@@ -2125,10 +2149,11 @@
       }
       function scheduleLoadFacts() {
         var run = function () { loadFilmDescFacts(kpId, document); };
+        run();
         if (typeof requestIdleCallback === 'function') {
-          requestIdleCallback(run, { timeout: 3500 });
+          requestIdleCallback(run, { timeout: 1200 });
         } else {
-          setTimeout(run, 1500);
+          setTimeout(run, 400);
         }
       }
       var CAST_VISIBLE = 4;

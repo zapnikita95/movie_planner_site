@@ -4568,15 +4568,31 @@
       '<div class="film-desc-wrap" id="film-desc-wrap">' +
         '<p class="description" id="film-desc">' +
           '<span class="film-desc-short"></span>' +
-          '<span class="film-desc-full hidden"></span>' +
+          '<span class="film-desc-full hidden">' +
+            '<span class="film-desc-plot"></span>' +
+            '<span class="film-desc-facts-inline"></span>' +
+          '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
-        '<div class="film-desc-facts hidden" id="film-desc-facts">' +
-          '<div class="film-desc-facts-title">Интересные факты</div>' +
-          '<ul class="film-toolbar-facts-list film-desc-facts-list" id="film-desc-facts-list"></ul>' +
-        '</div>' +
       '</div>'
     );
+  }
+
+  function filmDescPlotText(wrap) {
+    if (!wrap) return '';
+    return normalizeFilmDescriptionText(
+      wrap.getAttribute('data-plot-text') ||
+      wrap.querySelector('.film-desc-plot')?.textContent ||
+      wrap.querySelector('.film-desc-short')?.textContent || ''
+    );
+  }
+
+  function filmDescFactsInlineHtml(payload) {
+    const items = filmFactsItemsFromPayload(payload);
+    if (!items.length) return '';
+    return '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
+      items.map((x) => renderFilmToolbarFactItem(x)).join('') +
+      '</ul>';
   }
 
   function ensureFilmDescWrap(heroContent) {
@@ -4595,13 +4611,14 @@
 
   function updateFilmDescCollapseState(wrap, fullText, hasFacts) {
     if (!wrap) return;
-    const text = normalizeFilmDescriptionText(fullText);
+    const text = normalizeFilmDescriptionText(fullText || filmDescPlotText(wrap));
+    wrap.setAttribute('data-plot-text', text);
     const descEl = wrap.querySelector('#film-desc');
     const shortEl = wrap.querySelector('.film-desc-short');
     const fullEl = wrap.querySelector('.film-desc-full');
+    const plotEl = wrap.querySelector('.film-desc-plot');
     const btn = wrap.querySelector('.film-desc-more-btn');
-    const factsBlock = wrap.querySelector('#film-desc-facts');
-    if (!descEl || !shortEl || !fullEl || !btn) return;
+    if (!descEl || !shortEl || !fullEl || !plotEl || !btn) return;
     if (!text) {
       wrap.classList.add('hidden');
       return;
@@ -4612,28 +4629,24 @@
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       const cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
-      fullEl.textContent = text;
     } else {
       shortEl.textContent = text;
-      fullEl.textContent = text;
     }
+    plotEl.textContent = text;
     btn.classList.toggle('hidden', !needsMore);
     if (!needsMore) {
       shortEl.classList.remove('hidden');
       fullEl.classList.add('hidden');
-      if (factsBlock) factsBlock.classList.add('hidden');
       btn.setAttribute('aria-expanded', 'false');
       btn.textContent = 'ещё';
     } else if (!expanded) {
       shortEl.classList.remove('hidden');
       fullEl.classList.add('hidden');
-      if (factsBlock) factsBlock.classList.add('hidden');
       btn.setAttribute('aria-expanded', 'false');
       btn.textContent = 'ещё';
     } else {
       shortEl.classList.add('hidden');
       fullEl.classList.remove('hidden');
-      if (factsBlock) factsBlock.classList.toggle('hidden', !hasFacts);
       btn.setAttribute('aria-expanded', 'true');
       btn.textContent = 'свернуть';
     }
@@ -4650,11 +4663,8 @@
       const next = !expanded;
       const shortEl = wrap.querySelector('.film-desc-short');
       const fullEl = wrap.querySelector('.film-desc-full');
-      const factsBlock = wrap.querySelector('#film-desc-facts');
-      const hasFacts = wrap.getAttribute('data-has-facts') === '1';
       if (shortEl) shortEl.classList.toggle('hidden', next);
       if (fullEl) fullEl.classList.toggle('hidden', !next);
-      if (factsBlock) factsBlock.classList.toggle('hidden', !next || !hasFacts);
       btn.textContent = next ? 'свернуть' : 'ещё';
       btn.setAttribute('aria-expanded', next ? 'true' : 'false');
     });
@@ -4663,17 +4673,29 @@
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
-    const list = wrap.querySelector('#film-desc-facts-list');
-    if (!list) return;
+    let factsEl = wrap.querySelector('.film-desc-facts-inline');
+    const fullEl = wrap.querySelector('.film-desc-full');
+    if (!factsEl && fullEl) {
+      let plotEl = fullEl.querySelector('.film-desc-plot');
+      if (!plotEl) {
+        plotEl = document.createElement('span');
+        plotEl.className = 'film-desc-plot';
+        plotEl.textContent = fullEl.textContent || filmDescPlotText(wrap);
+        fullEl.textContent = '';
+        fullEl.appendChild(plotEl);
+      }
+      factsEl = document.createElement('span');
+      factsEl.className = 'film-desc-facts-inline';
+      fullEl.appendChild(factsEl);
+      const legacyFacts = wrap.querySelector('#film-desc-facts');
+      if (legacyFacts) legacyFacts.remove();
+    }
+    if (!factsEl) return;
     const items = filmFactsItemsFromPayload(payload);
-    list.innerHTML = items.map(function (x) { return renderFilmToolbarFactItem(x); }).join('');
+    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
     const hasFacts = items.length > 0;
     wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    const descText = normalizeFilmDescriptionText(
-      wrap.querySelector('.film-desc-full')?.textContent ||
-      wrap.querySelector('.film-desc-short')?.textContent || ''
-    );
-    updateFilmDescCollapseState(wrap, descText, hasFacts);
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts);
   }
 
   function loadFilmDescFacts(kpId, root) {

@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260714micfix1';
+  var BUILD = '20260714filmfactssearch1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -183,8 +183,10 @@
     var kp = kpFromPath();
     if (!kp || !global.MpFilmPage) return;
 
+    global.ensureFullCabinet = ensureFullCabinet;
     global.__MP_FILM_ROUTE_LITE_READY = true;
     showCabinetFilmShell();
+    ensureFullCabinet();
 
     if (global.MpPublicFilmLogin) {
       global.MpPublicFilmLogin.init({

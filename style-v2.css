@@ -5274,6 +5274,15 @@ body.in-public-stats .header-search {
   white-space: pre-wrap;
 }
 .film-desc-more-btn { display: inline; vertical-align: baseline; }
+.film-desc-facts-inline {
+  display: block;
+  margin-top: 12px;
+}
+.film-desc-facts-inline .film-desc-facts-list,
+.film-desc-facts-inline .film-toolbar-facts-list {
+  margin: 0;
+  padding-left: 1.1em;
+}
 .film-desc-facts { margin-top: 4px; }
 .film-desc-facts-title {
   font-size: 13px;
