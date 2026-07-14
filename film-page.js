@@ -1782,7 +1782,13 @@
     }
     if (boot.description) setFilmDescription(boot.description);
     var descWrapBoot = pageRoot.querySelector('#film-desc-wrap');
-    if (descWrapBoot) bindFilmDescExpand(descWrapBoot);
+    if (descWrapBoot) {
+      bindFilmDescExpand(descWrapBoot);
+      if (boot.facts && boot.facts.length) {
+        paintFilmDescFacts(descWrapBoot, { facts: boot.facts });
+      }
+      loadFilmDescFacts(String(boot.kp_id || kpId), pageRoot);
+    }
     try {
       if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
         global.MpPublicPromo.mountAfterHero(pageRoot);
