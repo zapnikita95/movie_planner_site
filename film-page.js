@@ -299,10 +299,50 @@
       '</ul>';
   }
 
+  function migrateFilmDescWrap(wrap) {
+    if (!wrap) return;
+    var fullEl = wrap.querySelector('.film-desc-full');
+    if (!fullEl) return;
+    var plotText = String(
+      wrap.getAttribute('data-plot-text') ||
+      (fullEl.querySelector('.film-desc-plot') && fullEl.querySelector('.film-desc-plot').textContent) ||
+      fullEl.textContent ||
+      (wrap.querySelector('.film-desc-short') && wrap.querySelector('.film-desc-short').textContent) ||
+      lastFilmDescription ||
+      ''
+    ).trim();
+    if (plotText) wrap.setAttribute('data-plot-text', plotText);
+    var plotEl = fullEl.querySelector('.film-desc-plot');
+    if (!plotEl) {
+      plotEl = document.createElement('span');
+      plotEl.className = 'film-desc-plot';
+      fullEl.textContent = '';
+      fullEl.appendChild(plotEl);
+    }
+    plotEl.textContent = plotText;
+    var factsEl = fullEl.querySelector('.film-desc-facts-inline');
+    if (!factsEl) {
+      factsEl = document.createElement('span');
+      factsEl.className = 'film-desc-facts-inline';
+      fullEl.appendChild(factsEl);
+    }
+    var legacyList = wrap.querySelector('#film-desc-facts-list');
+    if (legacyList && legacyList.innerHTML.trim() && !factsEl.innerHTML.trim()) {
+      factsEl.innerHTML = '<ul class="film-toolbar-facts-list film-desc-facts-list">' + legacyList.innerHTML + '</ul>';
+      wrap.setAttribute('data-has-facts', '1');
+    }
+    var legacyFacts = wrap.querySelector('#film-desc-facts');
+    if (legacyFacts) legacyFacts.remove();
+    bindFilmDescExpand(wrap);
+  }
+
   function ensureFilmDescWrap(heroContent) {
     if (!heroContent) return null;
     var wrap = heroContent.querySelector('#film-desc-wrap');
-    if (wrap) return wrap;
+    if (wrap) {
+      migrateFilmDescWrap(wrap);
+      return wrap;
+    }
     var toolbar = heroContent.querySelector('.film-page-toolbar');
     var tmp = document.createElement('div');
     tmp.innerHTML = buildFilmDescWrapHtml();
@@ -315,6 +355,7 @@
 
   function updateFilmDescCollapseState(wrap, fullText, hasFacts) {
     if (!wrap) return;
+    migrateFilmDescWrap(wrap);
     var text = String(fullText || filmDescPlotText(wrap) || '').trim();
     wrap.setAttribute('data-plot-text', text);
     var descEl = wrap.querySelector('#film-desc');
@@ -411,7 +452,7 @@
       ? d.web_facts.filter(function (f) { return f && f.fact; })
       : [];
     if (web.length) return web.slice(0, 8);
-    var arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
+    var arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 8) : [];
     if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
     return arr;
   }
@@ -419,23 +460,8 @@
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
+    migrateFilmDescWrap(wrap);
     var factsEl = wrap.querySelector('.film-desc-facts-inline');
-    var fullEl = wrap.querySelector('.film-desc-full');
-    if (!factsEl && fullEl) {
-      var plotEl = fullEl.querySelector('.film-desc-plot');
-      if (!plotEl) {
-        plotEl = document.createElement('span');
-        plotEl.className = 'film-desc-plot';
-        plotEl.textContent = fullEl.textContent || filmDescPlotText(wrap);
-        fullEl.textContent = '';
-        fullEl.appendChild(plotEl);
-      }
-      factsEl = document.createElement('span');
-      factsEl.className = 'film-desc-facts-inline';
-      fullEl.appendChild(factsEl);
-      var legacyFacts = wrap.querySelector('#film-desc-facts');
-      if (legacyFacts) legacyFacts.remove();
-    }
     if (!factsEl) return;
     var items = filmFactsItemsFromPayload(payload);
     factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
