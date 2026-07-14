@@ -4590,7 +4590,8 @@
   function filmDescFactsInlineHtml(payload) {
     const items = filmFactsItemsFromPayload(payload);
     if (!items.length) return '';
-    return '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
+    return '<div class="film-desc-facts-title">Интересные факты</div>' +
+      '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
       items.map((x) => renderFilmToolbarFactItem(x)).join('') +
       '</ul>';
   }
@@ -4721,6 +4722,19 @@
     const hasFacts = items.length > 0;
     wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
     updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts);
+  }
+
+  function paintBootFilmDescFacts(kp, root) {
+    const boot = readMpRouteBoot();
+    if (!boot || boot.type !== 'film') return;
+    if (String(boot.kp_id || '').replace(/\D/g, '') !== String(kp || '').replace(/\D/g, '')) return;
+    const scope = root || document;
+    const wrap = scope.querySelector('#film-desc-wrap');
+    if (!wrap) return;
+    const facts = boot.facts || [];
+    const webFacts = boot.web_facts || [];
+    if (!facts.length && !webFacts.length) return;
+    paintFilmDescFacts(wrap, { facts, web_facts: webFacts });
   }
 
   function loadFilmDescFacts(kpId, root) {
@@ -13567,10 +13581,13 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
-    const raw = film.description || film.plot || film.shortDescription || '';
-    const s = String(raw).trim();
-    if (!s || isFilmDescPlaceholder(s)) return '';
-    return s;
+    return pickBestFilmDescriptionText(
+      film.description,
+      film.plot,
+      film.overview_ru,
+      film.overview_en,
+      film.shortDescription
+    );
   }
 
   function enrichFilmDescriptionFromPublic(kpId, filmObj) {
@@ -13706,6 +13723,7 @@
     }
     if (getToken()) loadFilmFriendsSocial(film);
     loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
+    paintBootFilmDescFacts(film.kp_id, content);
     loadFilmDescFacts(film.kp_id, content);
   }
 

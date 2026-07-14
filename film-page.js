@@ -243,10 +243,21 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
-    var raw = film.description || film.plot || film.shortDescription || '';
-    var s = String(raw).trim();
-    if (!s || isFilmDescPlaceholder(s)) return '';
-    return s;
+    var candidates = [
+      film.description,
+      film.plot,
+      film.overview_ru,
+      film.overview_en,
+      film.shortDescription,
+    ];
+    var best = '';
+    candidates.forEach(function (raw) {
+      var s = String(raw || '').trim();
+      if (!s || isFilmDescPlaceholder(s)) return;
+      if (!best || s.length > best.length) best = s;
+      else if (best.endsWith('…') && s.length >= best.length - 1 && !s.endsWith('…')) best = s;
+    });
+    return best;
   }
 
   function trimMetaText(text, maxLen) {
@@ -294,7 +305,8 @@
   function filmDescFactsInlineHtml(payload) {
     var items = filmFactsItemsFromPayload(payload);
     if (!items.length) return '';
-    return '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
+    return '<div class="film-desc-facts-title">Интересные факты</div>' +
+      '<ul class="film-toolbar-facts-list film-desc-facts-list">' +
       items.map(function (x) { return renderFilmDescFactItem(x); }).join('') +
       '</ul>';
   }
@@ -490,6 +502,10 @@
     var wrap = ensureFilmDescWrap(heroContent);
     if (!wrap) return;
     var s = String(text || '').trim();
+    var prev = String(lastFilmDescription || wrap.getAttribute('data-plot-text') || '').trim();
+    if (prev && s && s.length < prev.length && (prev.length > s.length + 24 || prev.endsWith('…'))) {
+      s = prev;
+    }
     if (!s || isFilmDescPlaceholder(s)) {
       if (lastFilmDescription) {
         updateFilmDescCollapseState(wrap, lastFilmDescription, wrap.getAttribute('data-has-facts') === '1');
@@ -1784,8 +1800,8 @@
     var descWrapBoot = pageRoot.querySelector('#film-desc-wrap');
     if (descWrapBoot) {
       bindFilmDescExpand(descWrapBoot);
-      if (boot.facts && boot.facts.length) {
-        paintFilmDescFacts(descWrapBoot, { facts: boot.facts });
+      if (boot.facts && boot.facts.length || boot.web_facts && boot.web_facts.length) {
+        paintFilmDescFacts(descWrapBoot, { facts: boot.facts || [], web_facts: boot.web_facts || [] });
       }
       loadFilmDescFacts(String(boot.kp_id || kpId), pageRoot);
     }
