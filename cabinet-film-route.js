@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '202607051845fix1';
+  var BUILD = '20260714guestfilmfix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
