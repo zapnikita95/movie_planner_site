@@ -15257,7 +15257,7 @@
           <form class="site-search-controls" id="site-search-form">
             <div class="site-search-field">
               <input class="site-search-input" id="site-search-input" type="search" value="${escapeHtml(q)}" placeholder="Название фильма, сериала, имя…" autocomplete="off">
-              <button type="button" class="site-search-mic" id="site-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>
+              <button type="button" class="site-search-mic mp-icon-btn" id="site-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>
             </div>
             <button class="site-search-submit" type="submit">Найти</button>
           </form>
@@ -15324,6 +15324,7 @@
       });
     });
     try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(document.getElementById('site-search-filter-toolbar')); } catch (_) {}
+    try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(document.getElementById('site-search-page')); } catch (_) {}
   }
 
   function runSiteSearchPage() {

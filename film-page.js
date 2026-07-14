@@ -1653,6 +1653,9 @@
     }
     bindStandaloneSearch(apiBase, loginNow);
     bindStandaloneLogoHome();
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(document.getElementById('site-header'));
+    } catch (_hydrate) {}
     if (global.MpPublicFilmLogin && opts.initPublicFilmLogin !== false) {
       MpPublicFilmLogin.init({
         kpId: opts.kpId || '',

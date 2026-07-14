@@ -802,7 +802,7 @@
             '<div class="header-search" id="header-search" role="search">' +
               '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
               '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
-              '<button type="button" class="header-search-mic" id="header-search-mic" aria-label="Голосовой ввод" title="Голосовой ввод">🎤</button>' +
+              '<button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"></button>' +
               '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
               '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
             '</div>' +
@@ -851,6 +851,9 @@
     if (global.MpFilmPage && typeof MpFilmPage.mountStandaloneCabinetNav === 'function') {
       MpFilmPage.mountStandaloneCabinetNav('main.staff-standalone-main');
     }
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(document.getElementById('site-header'));
+    } catch (_) {}
   }
 
   function applyStaffSeoFromApi(staffPayload) {

@@ -11514,6 +11514,11 @@ body.login-only-overlay .parallax-bg {
 }
 .site-search-mic:hover { background: rgba(255,255,255,.12); }
 .site-search-mic.recording { background: rgba(200,40,40,.4); animation: mp-pulse 1s ease infinite; }
+.site-search-mic > i[class^="ph"] {
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+}
 .site-search-input {
   min-height: 56px;
   border: 1px solid rgba(255,255,255,.12);
