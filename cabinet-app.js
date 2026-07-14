@@ -4804,7 +4804,7 @@
       const cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
       const text = webFactBodyHtml(wf);
       let src = '';
-      const srcUrl = wf.source_url || '';
+      const srcUrl = webFactSourceUrl(wf);
       const srcLabel = wf.source_label || wf.source_title || 'Источник';
       if (srcUrl) {
         src = ' <cite class="staff-fact-cite"><a class="staff-fact-source" href="' +
@@ -6389,6 +6389,11 @@
   // и обмениваем полученный JWT на site_session через /api/site/session/from-jwt
   function bindEmailLogin() {
     const modal = document.getElementById('login-modal');
+    if (modal && modal.dataset.mpEmailLoginBound === '1') return;
+    if (modal) modal.dataset.mpEmailLoginBound = '1';
+
+    let loginCodeSubmitting = false;
+    let regCodeSubmitting = false;
     const reqForm = document.getElementById('login-email-form');
     const codeForm = document.getElementById('login-email-code-form');
     const emailInput = document.getElementById('login-email');
@@ -6445,11 +6450,13 @@
     if (reqForm) {
       reqForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (loginCodeSubmitting) return;
         const email = (emailInput && emailInput.value || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
           setStatus('Укажите корректный email', 'error');
           return;
         }
+        loginCodeSubmitting = true;
         if (reqBtn) { reqBtn.disabled = true; reqBtn.textContent = 'Отправляем…'; }
         setStatus('');
         try {
@@ -6472,6 +6479,8 @@
         } catch (err) {
           if (reqBtn) { reqBtn.disabled = false; reqBtn.textContent = 'Код'; }
           setStatus(authNetworkError(err), 'error');
+        } finally {
+          loginCodeSubmitting = false;
         }
       });
     }
@@ -6479,6 +6488,7 @@
     if (regForm) {
       regForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (regCodeSubmitting) return;
         const email = (regEmail && regEmail.value || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
           setRegStatus('Укажите корректный email', 'error');
@@ -6493,6 +6503,7 @@
           nudgeLoginPrivacy('reg');
           return;
         }
+        regCodeSubmitting = true;
         if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Отправляем…'; }
         setRegStatus('');
         try {
@@ -6517,6 +6528,8 @@
         } catch (err) {
           if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Код'; }
           setRegStatus(authNetworkError(err), 'error');
+        } finally {
+          regCodeSubmitting = false;
         }
       });
     }
@@ -11852,6 +11865,11 @@
     );
   }
 
+  function webFactSourceUrl(wf) {
+    const url = String((wf && wf.source_url) || '').trim();
+    return /^https?:\/\//i.test(url) ? url : '';
+  }
+
   function renderFilmToolbarFactItem(wf) {
     if (typeof wf === 'string') {
       return wf ? '<li>' + escapeHtml(wf) + '</li>' : '';
@@ -11860,7 +11878,7 @@
     const cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
     const text = webFactBodyHtml(wf);
     let src = '';
-    const srcUrl = wf.source_url || '';
+    const srcUrl = webFactSourceUrl(wf);
     const srcLabel = wf.source_label || wf.source_title || 'Источник';
     if (srcUrl) {
       src = ' <cite class="film-fact-cite"><a class="film-fact-source" href="' +
@@ -11872,7 +11890,7 @@
 
   function filmFactsItemsFromPayload(d) {
     const web = (d && Array.isArray(d.web_facts))
-      ? d.web_facts.filter(function (f) { return f && f.fact && f.source_url; })
+      ? d.web_facts.filter(function (f) { return f && f.fact; })
       : [];
     if (web.length) return web.slice(0, 8);
     let arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 6) : [];
@@ -12791,9 +12809,16 @@
       return;
     }
 
+    // Ссылки на источники в фактах — не перехватывать (hero на /f/:kp имеет data-kp-id).
+    if (e.target.closest('.film-fact-source, .mp-fact-source, .staff-fact-source')) return;
+    if (e.target.closest('.film-toolbar-facts-list a[href], .mp-seo-facts a[href], .staff-facts-list a[href]')) return;
+
     // Клик по карточке фильма → открыть страницу фильма
     const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
     if (card) {
+      if (card.classList.contains('film-hero-with-tag') || (card.classList.contains('hero') && card.closest('#film-page-content, #section-film'))) {
+        if (e.target.closest('a[href], button, input, select, textarea, .film-page-toolbar, .action-dropdown')) return;
+      }
       if (card.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card')) return;
       if (card.matches('a[href^="/f/"]')) {
         if (isCabinetActive()) {
