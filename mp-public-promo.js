@@ -1,12 +1,6 @@
 (function (global) {
   'use strict';
 
-  function escapeHtml(v) {
-    return String(v || '').replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-    });
-  }
-
   function hasSiteToken() {
     try {
       if (typeof global.getToken === 'function' && global.getToken()) return true;
@@ -23,8 +17,16 @@
     }
   }
 
+  function rememberReturnPath() {
+    try {
+      var path = (global.location.pathname || '/') + (global.location.search || '');
+      sessionStorage.setItem('mp_oauth_return', path);
+    } catch (_e) {}
+  }
+
   function openRegisterCta() {
     try {
+      rememberReturnPath();
       if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.open === 'function') {
         global.MpPublicFilmLogin.open('');
       } else if (typeof global.showLoginModalOverlay === 'function') {
@@ -76,17 +78,25 @@
     if (pageRoot.classList && pageRoot.classList.contains('movie-page')) return pageRoot;
     var nested = pageRoot.querySelector && pageRoot.querySelector('#film-page-content');
     if (nested) return nested;
-    if (pageRoot.classList && pageRoot.classList.contains('staff-page')) return pageRoot;
-    if (pageRoot.querySelector && pageRoot.querySelector('header.staff-hero, .staff-hero')) return pageRoot;
+    if (pageRoot.classList && pageRoot.classList.contains('staff-page')) {
+      return pageRoot.parentElement || pageRoot;
+    }
+    if (pageRoot.querySelector && pageRoot.querySelector('header.staff-hero, .staff-page, .staff-hero')) {
+      return pageRoot;
+    }
     var filmPage = document.getElementById('film-page-content');
-    if (filmPage && filmPage.contains(pageRoot)) return filmPage;
+    if (filmPage && (filmPage === pageRoot || filmPage.contains(pageRoot))) return filmPage;
     return pageRoot;
   }
 
   function findPromoAnchor(root) {
     if (!root || !root.querySelector) return null;
-    return root.querySelector('.film-page-similar-section')
-      || root.querySelector('section.film-hero-with-tag, section.hero.film-hero-with-tag, section.hero')
+    var similar = root.querySelector('.film-page-similar-section');
+    if (similar) return similar;
+    var staff = root.querySelector('article.staff-page, .staff-page');
+    if (staff && staff !== root) return staff;
+    if (root.classList && root.classList.contains('staff-page')) return root;
+    return root.querySelector('section.film-hero-with-tag, section.hero.film-hero-with-tag, section.hero')
       || root.querySelector('header.staff-hero, .staff-hero');
   }
 
@@ -101,7 +111,11 @@
     wrap.innerHTML = buildMpPublicPromoHtml();
     var promo = wrap.firstElementChild;
     if (!promo) return;
-    anchor.insertAdjacentElement('afterend', promo);
+    if (anchor === root) {
+      root.appendChild(promo);
+    } else {
+      anchor.insertAdjacentElement('afterend', promo);
+    }
     bindPromoRegisterBtn(promo);
     try {
       if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(promo);

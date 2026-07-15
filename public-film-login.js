@@ -745,6 +745,7 @@
 
   function open(action, tabName) {
     ensureLoginModal();
+    rememberOAuthReturn();
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }

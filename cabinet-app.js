@@ -2292,6 +2292,7 @@
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       renderHeader(me);
       openStaffPage(pathStaffEarly, { replace: true });
+      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
       return Promise.resolve();
     }
     const pathUserEarly = userIdFromPathname(window.location.pathname) || userIdFromLocation();
@@ -2366,12 +2367,14 @@
 
     if (filmKp && window.__MP_FILM_RENDERED) {
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      syncSessionHtmlClass();
+      showScreen('cabinet-readonly');
       showFilmPageLayout();
       if (getToken()) {
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      scheduleOnboarding = false;
+      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
       return Promise.resolve();
     }
 
@@ -2384,7 +2387,7 @@
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      scheduleOnboarding = false;
+      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
       return Promise.resolve();
     }
 
@@ -2392,7 +2395,7 @@
       void uiToursEnsureHydrated(true);
       openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
       deferCabinetLists();
-      scheduleOnboarding = false;
+      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
       const statsSection = document.getElementById('section-stats');
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
         try { mountStatsSection(); } catch (_) {}
@@ -2568,10 +2571,13 @@
 
   function siteAuthReturnPath() {
     try {
+      const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      const qs = window.location.search || '';
+      if (/^\/f\/\d+$/.test(p) || /^\/s\/\d+$/.test(p) || /^\/u\/-?\d+$/.test(p)) {
+        return p + qs;
+      }
       const uid = userIdFromLocation();
       if (uid) return '/u/' + uid;
-      const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (/^\/u\/-?\d+$/.test(p)) return p;
       return '/';
     } catch (_) {
       return '/';
@@ -2624,6 +2630,7 @@
     if (modalEl) modalEl.classList.add('hidden');
     document.body.classList.remove('login-only-overlay');
     try { updateGuestOnboardCtaVisibility(); } catch (_) {}
+    if (tryReturnAfterAuth()) return { ok: true };
     bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
     try {
@@ -2641,10 +2648,11 @@
     try {
       const dest = sessionStorage.getItem('mp_oauth_return');
       if (!dest) return false;
-      const pathOnly = dest.split('?')[0];
-      if (!/^\/(f\/\d+|u\/\d+)\/?$/.test(pathOnly)) return false;
+      const pathOnly = (dest.split('?')[0] || '').replace(/\/$/, '') || '/';
+      if (!/^\/(f\/\d+|s\/\d+|u\/-?\d+)$/.test(pathOnly)) return false;
       sessionStorage.removeItem('mp_oauth_return');
-      if (pathOnly !== window.location.pathname.replace(/\/$/, '') && pathOnly !== window.location.pathname) {
+      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (pathOnly !== cur) {
         window.location.replace(dest);
         return true;
       }
@@ -13360,6 +13368,11 @@
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     bindFilmPageSimilarCards(section);
+    try {
+      if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAfterHero === 'function') {
+        window.MpPublicPromo.mountAfterHero(pageRoot);
+      }
+    } catch (_) {}
   }
 
   function mountFilmPageSimilarAsync(kpId, pageRoot) {
