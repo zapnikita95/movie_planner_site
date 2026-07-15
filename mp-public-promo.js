@@ -70,13 +70,32 @@
     });
   }
 
+  function resolvePromoMountRoot(pageRoot) {
+    if (!pageRoot) return null;
+    if (pageRoot.id === 'film-page-content') return pageRoot;
+    if (pageRoot.classList && pageRoot.classList.contains('movie-page')) return pageRoot;
+    var nested = pageRoot.querySelector && pageRoot.querySelector('#film-page-content');
+    if (nested) return nested;
+    if (pageRoot.classList && pageRoot.classList.contains('staff-page')) return pageRoot;
+    if (pageRoot.querySelector && pageRoot.querySelector('header.staff-hero, .staff-hero')) return pageRoot;
+    var filmPage = document.getElementById('film-page-content');
+    if (filmPage && filmPage.contains(pageRoot)) return filmPage;
+    return pageRoot;
+  }
+
+  function findPromoAnchor(root) {
+    if (!root || !root.querySelector) return null;
+    return root.querySelector('.film-page-similar-section')
+      || root.querySelector('section.film-hero-with-tag, section.hero.film-hero-with-tag, section.hero')
+      || root.querySelector('header.staff-hero, .staff-hero');
+  }
+
   function mountMpPublicPromoAfterHero(pageRoot) {
-    if (!pageRoot || hasSiteToken()) return;
-    if (pageRoot.querySelector('.mp-public-promo')) return;
-    var anchor = pageRoot.querySelector('.film-page-similar-section')
-      || pageRoot.querySelector(
-      ':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section, .staff-page > header.staff-hero, header.staff-hero'
-    );
+    if (hasSiteToken()) return;
+    var root = resolvePromoMountRoot(pageRoot) || document.getElementById('film-page-content');
+    if (!root) return;
+    if (root.querySelector('.mp-public-promo')) return;
+    var anchor = findPromoAnchor(root);
     if (!anchor) return;
     var wrap = document.createElement('div');
     wrap.innerHTML = buildMpPublicPromoHtml();

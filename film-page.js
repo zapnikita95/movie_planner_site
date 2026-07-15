@@ -2585,7 +2585,9 @@
           if (hint) hint.textContent = '';
           try {
             if (!token() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
-              var promoRoot = document.querySelector('.film-page') || document.getElementById('film-page-content');
+              var promoRoot = document.getElementById('film-page-content')
+                || document.querySelector('.movie-page')
+                || document.querySelector('.film-page');
               if (promoRoot) global.MpPublicPromo.mountAfterHero(promoRoot);
             }
           } catch (_e) {}

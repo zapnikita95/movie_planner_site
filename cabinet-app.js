@@ -1211,6 +1211,11 @@
       applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
       ensureFilmHeroDescription(pageRoot, film);
       ensureFilmHeroCastLoaded(film, pageRoot);
+      try {
+        if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAfterHero === 'function') {
+          window.MpPublicPromo.mountAfterHero(pageRoot);
+        }
+      } catch (_) {}
       return true;
     }
     try {
