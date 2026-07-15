@@ -1618,8 +1618,26 @@ button.what-is-v2-feature {
 .what-is-v2-feature .feat-icon { font-size: 18px; flex-shrink: 0; }
 
 .what-is-v2--public-page {
-  margin: 24px auto 32px;
+  margin: 16px auto 8px;
   max-width: 720px;
+  padding: 32px 28px;
+}
+.mp-public-promo .what-is-v2.what-is-v2--public-page {
+  /* выше специфичность, чем у лендингового .what-is-v2 (60/40) */
+  margin: 16px auto 8px;
+  padding: 32px 28px;
+}
+.mp-public-promo .what-is-v2-label {
+  margin-bottom: 12px;
+}
+.mp-public-promo .what-is-v2-title {
+  margin-bottom: 12px;
+}
+.mp-public-promo .what-is-v2-text {
+  margin-bottom: 16px;
+}
+.mp-public-promo .what-is-v2-cta {
+  margin-top: 12px;
 }
 .what-is-v2-cta {
   display: flex;
@@ -1638,9 +1656,10 @@ button.what-is-v2-feature {
   white-space: nowrap;
 }
 @media (max-width: 768px) {
-  .what-is-v2--public-page {
-    margin: 20px 0 28px;
-    padding: 28px 18px;
+  .what-is-v2--public-page,
+  .mp-public-promo .what-is-v2.what-is-v2--public-page {
+    margin: 10px 0 4px;
+    padding: 22px 16px;
   }
   .what-is-v2-register-btn {
     font-size: 15px;
@@ -1651,11 +1670,28 @@ button.what-is-v2-feature {
 }
 .mp-public-promo {
   display: block;
-  padding: 0 16px;
+  padding: 0 16px 0;
   max-width: 1180px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+/* /f/ и /s/: без «километра» до футера */
+html.mp-film-boot footer.footer,
+html.mp-staff-boot footer.footer,
+#cabinet-readonly.film-page-mode ~ footer.footer,
+body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
+  margin-top: 12px;
+  padding-top: 16px;
+}
+@media (min-width: 769px) {
+  html.mp-film-boot footer.footer,
+  html.mp-staff-boot footer.footer,
+  #cabinet-readonly.film-page-mode ~ footer.footer,
+  body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
+    margin-top: 16px;
+    padding-top: 20px;
+  }
 }
 @media (min-width: 861px) {
   .what-is-v2-register-btn {
@@ -5498,7 +5534,7 @@ main.film-page .film-page-similar-section,
 }
 
 /* Страница фильма /f/:kp (в кабинете) */
-#section-film.film-page { padding: 0 0 32px; }
+#section-film.film-page { padding: 0; margin-bottom: 0; }
 #section-film .film-page-outer {
   max-width: 1180px;
   width: 100%;
@@ -18674,16 +18710,20 @@ img.mp-poster-placeholder,
   }
 
   body.in-cabinet #cabinet-readonly.cabinet.film-page-mode {
-    padding-bottom: 12px;
+    padding-bottom: 8px;
   }
 
-  body.in-cabinet.film-page-mode #cabinet-readonly + footer.footer {
-    margin-top: 20px;
-    padding-top: 20px;
+  html.mp-film-boot footer.footer,
+  html.mp-staff-boot footer.footer,
+  #cabinet-readonly.film-page-mode ~ footer.footer,
+  body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
+    margin-top: 8px;
+    padding-top: 12px;
   }
 
   #section-film.film-page {
-    padding-bottom: 8px;
+    padding-bottom: 0;
+    margin-bottom: 0;
   }
 }
 
