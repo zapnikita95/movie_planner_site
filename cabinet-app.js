@@ -3476,19 +3476,31 @@
     if (!el) return;
     const initial = escapeHtml(avatarInitial(name));
     const preset = presetAvatarUrlForUser(userId);
-    const src = resolveMediaUrl(url) || preset;
-    el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy">';
-    const img = el.querySelector('img');
-    if (img) {
-      img.addEventListener('error', () => {
-        if (img.dataset.mpAvatarFallback === '1') {
-          el.textContent = initial;
-          return;
-        }
-        img.dataset.mpAvatarFallback = '1';
-        img.src = preset;
-      }, { once: false });
+    const canonical = userId ? avatarUrlForUserId(userId) : '';
+    const resolved = resolveMediaUrl(url);
+    const queue = [];
+    /* Один канон: /api/avatar/{id}.jpg (как miniapp/app). Внешний URL — только если API ещё не отдал avatar-proxy. */
+    const preferResolved = resolved && /\/api\/avatar\//i.test(resolved);
+    [preferResolved ? resolved : '', canonical, resolved, preset].forEach(function (src) {
+      const s = String(src || '').trim();
+      if (s && queue.indexOf(s) < 0) queue.push(s);
+    });
+    if (!queue.length) {
+      el.textContent = initial;
+      return;
     }
+    el.innerHTML = '<img src="' + escapeHtml(queue[0]) + '" alt="" decoding="async">';
+    const img = el.querySelector('img');
+    if (!img) return;
+    let step = 1;
+    img.addEventListener('error', function onAvatarErr() {
+      if (step < queue.length) {
+        img.src = queue[step++];
+        return;
+      }
+      img.removeEventListener('error', onAvatarErr);
+      el.textContent = initial;
+    });
   }
 
   function greetingByHour() {
@@ -3649,11 +3661,12 @@
       const profileAvatar = document.getElementById('header-profile-avatar');
       if (profilePill) profilePill.classList.remove('hidden');
       if (profileName) profileName.textContent = me.name || 'Профиль';
+      const avatarUid = me.chat_id || me.user_id;
       setAvatarEl(
         profileAvatar,
-        me.photo_url || me.avatar_url || (me.chat_id ? avatarUrlForUserId(me.chat_id) : ''),
+        me.photo_url || me.avatar_url || '',
         me.name,
-        me.chat_id || me.user_id,
+        avatarUid,
       );
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');

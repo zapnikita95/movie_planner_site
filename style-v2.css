@@ -416,7 +416,8 @@ body.in-cabinet #section-inbox {
 .header-user-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .header-profile-pill,
@@ -1805,14 +1806,14 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   body.in-cabinet .header-user-wrap {
     width: 100%;
     max-width: 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
     gap: 8px;
   }
   body.in-cabinet .header-profile-pill {
     flex-shrink: 0;
   }
   body.in-cabinet .header-util-row {
-    margin-left: auto;
+    margin-left: 0;
     margin-right: 0;
   }
   body.in-cabinet .header-settings-btn {
@@ -10145,9 +10146,9 @@ a.header-settings-nav-item {
 .header-util-row {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   height: 32px;
-  margin-right: 8px;
+  margin-right: 0;
   flex-shrink: 0;
 }
 .header-plan-target {
@@ -13937,7 +13938,7 @@ body.film-standalone-page {
   body.user-standalone-page .header-user-wrap {
     width: 100%;
     max-width: 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
     gap: 8px;
     justify-self: unset !important;
   }
@@ -13945,7 +13946,7 @@ body.film-standalone-page {
   body.film-standalone-page .header-util-row,
   body.staff-standalone-page .header-util-row,
   body.user-standalone-page .header-util-row {
-    margin-left: auto;
+    margin-left: 0;
     margin-right: 0;
   }
 
