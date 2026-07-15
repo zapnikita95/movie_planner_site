@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260715promofix2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260715promofix2">
+    <link rel="preload" href="/style-v2.css?v=20260715promofix3" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260715promofix3">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2549,7 +2549,7 @@
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
           'mp-icons.js?v=20260627history1',
-          'mp-public-promo.js?v=20260715promofix2'
+          'mp-public-promo.js?v=20260715promofix3'
         ];
         var cabinet = [
           'user-profile-page.js?v=20260629profilefix6',
@@ -2568,20 +2568,20 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
-            'cabinet-app.js?v=20260715promofix2'
+            'cabinet-app.js?v=20260715promofix3'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260715promofix2');
-          list.push('cabinet-film-route.js?v=20260715promofix2');
+          list.push('film-page.js?v=20260715promofix3');
+          list.push('cabinet-film-route.js?v=20260715promofix3');
         } else if (isStaff) {
-          list.push('film-page.js?v=20260715promofix2');
-          list.push('staff-page.js?v=20260715promofix2');
-          list.push('cabinet-app.js?v=20260715promofix2');
+          list.push('film-page.js?v=20260715promofix3');
+          list.push('staff-page.js?v=20260715promofix3');
+          list.push('cabinet-app.js?v=20260715promofix3');
         } else {
-          list.push('cabinet-app.js?v=20260715promofix2');
+          list.push('cabinet-app.js?v=20260715promofix3');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');

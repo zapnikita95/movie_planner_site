@@ -1081,6 +1081,11 @@
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
+      try {
+        if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
+          global.MpPublicPromo.mountAfterHero(root);
+        }
+      } catch (_e) {}
       loadStaffPersonFacts(personId);
       root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
         var rk = btn.getAttribute('data-role-key') || '';
