@@ -13336,8 +13336,11 @@
         '<h2 class="section-title section-title--compact film-page-similar-title">' +
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
-        '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' +
-        similar.map(function (s) { return buildSimilarRailCardHtml(s); }).join('') +
+        '<div class="film-page-similar-rail-wrap">' +
+          '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' +
+          similar.map(function (s) { return buildSimilarRailCardHtml(s); }).join('') +
+          '</div>' +
+          '<button type="button" class="film-page-similar-next" aria-label="Листать похожие">›</button>' +
         '</div>' +
       '</section>'
     );
@@ -13355,6 +13358,47 @@
     });
   }
 
+  function bindFilmPageSimilarRailNav(section) {
+    if (!section) return;
+    const rail = section.querySelector('.film-page-similar-rail');
+    const btn = section.querySelector('.film-page-similar-next');
+    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
+    btn.dataset.mpSimilarNavBound = '1';
+    function cardStep() {
+      const card = rail.querySelector('.similar-rail-card');
+      if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
+      let gap = 10;
+      try {
+        const st = window.getComputedStyle(rail);
+        gap = parseFloat(st.columnGap || st.gap || '10') || 10;
+      } catch (_) {}
+      return card.offsetWidth + gap;
+    }
+    function syncNav() {
+      const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      const canScroll = max > 8;
+      btn.hidden = !canScroll;
+      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
+      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+    }
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      if (max <= 8) return;
+      let next = rail.scrollLeft + cardStep() * 2;
+      if (next >= max - 4) next = 0;
+      rail.scrollTo({ left: next, behavior: 'smooth' });
+    });
+    rail.addEventListener('scroll', syncNav, { passive: true });
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(syncNav).observe(rail);
+      }
+    } catch (_) {}
+    syncNav();
+  }
+
   function insertFilmPageSimilarSection(pageRoot, sectionHtml) {
     if (!pageRoot || !sectionHtml) return;
     pageRoot.querySelectorAll('.film-page-similar-section').forEach(function (el) { el.remove(); });
@@ -13368,6 +13412,7 @@
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     bindFilmPageSimilarCards(section);
+    bindFilmPageSimilarRailNav(section);
     try {
       if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAfterHero === 'function') {
         window.MpPublicPromo.mountAfterHero(pageRoot);

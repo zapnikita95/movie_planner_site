@@ -111,9 +111,53 @@
         '<h2 class="section-title section-title--compact film-page-similar-title">' +
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
-        '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' + cards + '</div>' +
+        '<div class="film-page-similar-rail-wrap">' +
+          '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' + cards + '</div>' +
+          '<button type="button" class="film-page-similar-next" aria-label="Листать похожие">›</button>' +
+        '</div>' +
       '</section>'
     );
+  }
+
+  function bindFilmPageSimilarRailNav(section) {
+    if (!section) return;
+    var rail = section.querySelector('.film-page-similar-rail');
+    var btn = section.querySelector('.film-page-similar-next');
+    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
+    btn.dataset.mpSimilarNavBound = '1';
+    function cardStep() {
+      var card = rail.querySelector('.similar-rail-card');
+      if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
+      var gap = 10;
+      try {
+        var st = global.getComputedStyle(rail);
+        gap = parseFloat(st.columnGap || st.gap || '10') || 10;
+      } catch (_e) {}
+      return card.offsetWidth + gap;
+    }
+    function syncNav() {
+      var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      var canScroll = max > 8;
+      btn.hidden = !canScroll;
+      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
+      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+    }
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      if (max <= 8) return;
+      var next = rail.scrollLeft + cardStep() * 2;
+      if (next >= max - 4) next = 0;
+      rail.scrollTo({ left: next, behavior: 'smooth' });
+    });
+    rail.addEventListener('scroll', syncNav, { passive: true });
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(syncNav).observe(rail);
+      }
+    } catch (_ro) {}
+    syncNav();
   }
 
   function insertFilmPageSimilarLite(pageRoot, html) {
@@ -134,6 +178,7 @@
         if (kp) global.location.href = '/f/' + encodeURIComponent(kp);
       });
     });
+    bindFilmPageSimilarRailNav(section);
     try {
       if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
         global.MpPublicPromo.mountAfterHero(pageRoot);
