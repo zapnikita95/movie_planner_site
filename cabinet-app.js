@@ -132,6 +132,17 @@
 
   function mpPersonOnError(img) {
     if (!img || img.dataset.mpPersonFailed === '1') return;
+    var raw = String(img.getAttribute('data-mp-fallbacks') || '').trim();
+    if (raw) {
+      var parts = raw.split('|').map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+      if (parts.length) {
+        var next = parts.shift();
+        img.setAttribute('data-mp-fallbacks', parts.join('|'));
+        img.removeAttribute('srcset');
+        img.src = next;
+        return;
+      }
+    }
     img.onerror = null;
     img.dataset.mpPersonFailed = '1';
     img.src = MP_PERSON_PLACEHOLDER;
@@ -4474,10 +4485,39 @@
     const bootPhoto = boot && bootKp && bootKp === kp
       ? String(boot.photo_url || '').trim()
       : '';
-    const apiPhoto = String((person && person.photo) || '').trim();
-    const bootClean = bootPhoto && !/person-avatar-placeholder/i.test(bootPhoto) ? bootPhoto : '';
-    const apiClean = apiPhoto && !/person-avatar-placeholder/i.test(apiPhoto) ? apiPhoto : '';
-    return bootClean || apiClean || MP_PERSON_PLACEHOLDER;
+    const apiPhoto = String((person && (person.photo || person.photo_url)) || '').trim();
+    const bootClean = bootPhoto && !/person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(bootPhoto) ? bootPhoto : '';
+    const apiClean = apiPhoto && !/person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(apiPhoto) ? apiPhoto : '';
+    const def = kp ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg') : '';
+    return bootClean || apiClean || def || MP_PERSON_PLACEHOLDER;
+  }
+
+  function staffHeroPhotoImgHtml(person, personId) {
+    const kp = String(personId || (person && person.kp_person_id) || '').replace(/\D/g, '');
+    const boot = readMpRouteBoot();
+    const bootKp = staffBootPersonId(boot);
+    const bootPhoto = boot && bootKp && bootKp === kp
+      ? String(boot.photo_url || '').trim()
+      : '';
+    const apiPhoto = String((person && (person.photo || person.photo_url)) || '').trim();
+    const def = kp ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg') : '';
+    const cands = [];
+    [bootPhoto, def, apiPhoto].forEach(function (u) {
+      const s = String(u || '').trim();
+      if (!s || /person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(s)) return;
+      if (cands.indexOf(s) >= 0) return;
+      cands.push(s);
+    });
+    const primary = cands[0] || MP_PERSON_PLACEHOLDER;
+    if (primary === MP_PERSON_PLACEHOLDER) {
+      return '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+    }
+    const rest = cands.slice(1);
+    const fallbackAttr = rest.length ? (' data-mp-fallbacks="' + escapeHtml(rest.join('|')) + '"') : '';
+    return (
+      '<img class="staff-hero-photo" src="' + escapeHtml(primary) + '" alt="" decoding="async" referrerpolicy="no-referrer"' +
+      fallbackAttr + mpPersonOnErrorAttr() + '>'
+    );
   }
 
   function filterPersonFilmsSite(films, state) {
@@ -5284,17 +5324,14 @@
     const secondaryName = person.secondary_name || (
       person.name_en && person.name_ru && person.name_en !== person.name_ru ? person.name_en : ''
     );
-    const photoUrl = resolveStaffHeroPhotoUrl(person, person.kp_person_id || _staffPageKpId);
-    const photo = photoUrl && photoUrl !== MP_PERSON_PLACEHOLDER
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(photoUrl) + '" alt="" referrerpolicy="no-referrer"' + mpPersonOnErrorAttr() + '>'
-      : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+    const photo = staffHeroPhotoImgHtml(person, person.kp_person_id || _staffPageKpId);
     root.innerHTML =
-      '<article class="staff-page"><header class="staff-hero">' + photo +
+      '<article class="staff-page"><div class="staff-hero" role="banner">' + photo +
         '<div class="staff-hero-text"><h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
         (secondaryName
           ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
         staffMetaHtml(person) +
-        '</div></header>' +
+        '</div></div>' +
       '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
         '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
           '<span class="staff-facts-toggle-head">' +

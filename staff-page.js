@@ -375,9 +375,105 @@
 
   function cleanStaffPersonPhoto(src) {
     var s = String(src || '').trim();
-    if (!s || /no-poster/i.test(s)) return '';
+    if (!s || /no-poster|person-avatar-placeholder|kinopoiskapiunofficial/i.test(s)) return '';
     return s;
   }
+
+  function staffDefaultPhotoUrl(personId) {
+    var kp = String(personId || '').replace(/\D/g, '');
+    if (!kp) return '';
+    return 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+  }
+
+  function uniqueStaffPhotoCandidates(list) {
+    var out = [];
+    var seen = {};
+    (list || []).forEach(function (u) {
+      var s = cleanStaffPersonPhoto(u);
+      if (!s || seen[s]) return;
+      seen[s] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
+  function staffHeroPhotoCandidates(person, personId) {
+    var kp = String(personId || '').replace(/\D/g, '');
+    var boot = readMpRouteBoot();
+    var bootPhoto = '';
+    if (bootMatchesPerson(boot, kp)) {
+      bootPhoto = cleanStaffPersonPhoto(String(boot.photo_url || '').trim());
+    }
+    var apiPhoto = cleanStaffPersonPhoto(person && (person.photo || person.photo_url));
+    return uniqueStaffPhotoCandidates([
+      bootPhoto,
+      staffDefaultPhotoUrl(kp),
+      apiPhoto,
+    ]);
+  }
+
+  function resolveStaffHeroPhotoUrl(person, personId) {
+    var cands = staffHeroPhotoCandidates(person, personId);
+    return cands[0] || MP_PERSON_PLACEHOLDER;
+  }
+
+  function staffHeroPhotoImgHtml(person, personId) {
+    var cands = staffHeroPhotoCandidates(person, personId);
+    var primary = cands[0] || MP_PERSON_PLACEHOLDER;
+    var rest = cands.slice(1);
+    if (primary === MP_PERSON_PLACEHOLDER && !rest.length) {
+      return '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+    }
+    var fallbackAttr = rest.length
+      ? (' data-mp-fallbacks="' + escapeHtml(rest.join('|')) + '"')
+      : '';
+    return (
+      '<img class="staff-hero-photo" src="' + escapeHtml(primary) + '" alt="" decoding="async" referrerpolicy="no-referrer"' +
+      fallbackAttr +
+      ' onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'' + MP_PERSON_PLACEHOLDER + '\';}">'
+    );
+  }
+
+  function mpPersonOnErrorLocal(img) {
+    if (!img || img.dataset.mpPersonFailed === '1') return;
+    var raw = String(img.getAttribute('data-mp-fallbacks') || '').trim();
+    if (raw) {
+      var parts = raw.split('|').map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+      if (parts.length) {
+        var next = parts.shift();
+        img.setAttribute('data-mp-fallbacks', parts.join('|'));
+        img.removeAttribute('srcset');
+        img.src = next;
+        return;
+      }
+    }
+    img.onerror = null;
+    img.dataset.mpPersonFailed = '1';
+    img.src = MP_PERSON_PLACEHOLDER;
+    img.classList.add('mp-person-placeholder');
+  }
+  try {
+    if (typeof global.mpPersonOnError !== 'function') {
+      global.mpPersonOnError = mpPersonOnErrorLocal;
+    } else {
+      var _prevPersonOnError = global.mpPersonOnError;
+      global.mpPersonOnError = function (img) {
+        if (!img || img.dataset.mpPersonFailed === '1') return;
+        var raw = String(img.getAttribute('data-mp-fallbacks') || '').trim();
+        if (raw) {
+          var parts = raw.split('|').map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+          if (parts.length) {
+            var next = parts.shift();
+            img.setAttribute('data-mp-fallbacks', parts.join('|'));
+            img.removeAttribute('srcset');
+            img.src = next;
+            return;
+          }
+        }
+        return _prevPersonOnError(img);
+      };
+    }
+  } catch (_e) {}
 
   function staffFilmPosterHtml(poster, kpId) {
     var kp = String(kpId || '').replace(/\D/g, '');
@@ -676,18 +772,16 @@
     if (!bootMatchesPerson(boot)) return staffLoadingHtml();
     var title = boot.display_name || boot.name_ru || 'Персона';
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
-    var photo = cleanStaffPersonPhoto(String(boot.photo_url || '').trim()) || MP_PERSON_PLACEHOLDER;
-    var photoHtml = photo
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(photo) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
-      : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+    var pid = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
+    var photoHtml = staffHeroPhotoImgHtml({ photo: boot.photo_url }, pid);
     return (
       '<article class="staff-page staff-page--boot">' +
-        '<header class="staff-hero">' + photoHtml +
+        '<div class="staff-hero" role="banner">' + photoHtml +
           '<div class="staff-hero-text">' +
             '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
             (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
           '</div>' +
-        '</header>' +
+        '</div>' +
         staffLoadingHtml('Фильмография…') +
       '</article>'
     );
@@ -995,19 +1089,6 @@
     } catch (_e) {}
   }
 
-  function resolveStaffHeroPhotoUrl(person, personId) {
-    var kp = String(personId || '').replace(/\D/g, '');
-    var boot = readMpRouteBoot();
-    var bootPhoto = '';
-    if (bootMatchesPerson(boot, kp)) {
-      bootPhoto = cleanStaffPersonPhoto(String(boot.photo_url || '').trim());
-    }
-    var apiPhoto = cleanStaffPersonPhoto(person && person.photo);
-    if (bootPhoto && bootPhoto !== MP_PERSON_PLACEHOLDER) return bootPhoto;
-    if (apiPhoto && apiPhoto !== MP_PERSON_PLACEHOLDER) return apiPhoto;
-    return MP_PERSON_PLACEHOLDER;
-  }
-
   function renderStaffData(data, personId) {
     var root = staffContentRoot();
     if (!root) return;
@@ -1027,14 +1108,24 @@
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
 
-    var personPhoto = resolveStaffHeroPhotoUrl(person, personId);
+    var photoCandidates = staffHeroPhotoCandidates(person, personId);
+    var personPhoto = photoCandidates[0] || MP_PERSON_PLACEHOLDER;
     var bootArticle = root.querySelector('.staff-page--boot');
     if (bootArticle) {
       var hero = bootArticle.querySelector('.staff-hero');
       if (hero) {
-        var img = hero.querySelector('.staff-hero-photo');
-        if (img && img.tagName === 'IMG' && personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER) {
-          if (img.getAttribute('src') !== personPhoto) img.setAttribute('src', personPhoto);
+        var img = hero.querySelector('img.staff-hero-photo, .staff-hero-photo');
+        if (personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER) {
+          if (img && img.tagName === 'IMG') {
+            var rest = photoCandidates.slice(1);
+            img.setAttribute('data-mp-fallbacks', rest.join('|'));
+            img.dataset.mpPersonFailed = '';
+            img.classList.remove('mp-person-placeholder');
+            if (img.getAttribute('src') !== personPhoto) img.setAttribute('src', personPhoto);
+          } else {
+            var ph = hero.querySelector('.staff-hero-ph, .staff-hero-photo');
+            if (ph) ph.outerHTML = staffHeroPhotoImgHtml(person, personId);
+          }
         }
         var nameEl = hero.querySelector('.staff-hero-name');
         if (nameEl) nameEl.textContent = titleName;
@@ -1098,20 +1189,16 @@
       return;
     }
 
-    var photo = personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER
-      ? '<img class="staff-hero-photo" src="' + escapeHtml(personPhoto) + '" alt="" referrerpolicy="no-referrer" onerror="if(window.mpPersonOnError)window.mpPersonOnError(this);else{this.onerror=null;this.src=\'/images/person-avatar-placeholder.png\';}">'
-      : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
-
     root.innerHTML =
       '<article class="staff-page">' +
-        '<header class="staff-hero">' + photo +
+        '<div class="staff-hero" role="banner">' + staffHeroPhotoImgHtml(person, personId) +
           '<div class="staff-hero-text">' +
             '<h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
             (secondaryName
               ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
             staffMetaLine(person) +
           '</div>' +
-        '</header>' +
+        '</div>' +
         '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
           '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
             '<span class="staff-facts-toggle-head">' +

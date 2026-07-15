@@ -12494,10 +12494,20 @@ body.header-search-dropdown-open .header-search-dropdown {
   #film-page-content.staff-page-content .staff-film-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 .staff-page { display: flex; flex-direction: column; gap: 8px; }
+/* Не наследовать sticky/z-index/background от глобального `header {…}` */
+header.staff-hero,
 .staff-hero {
+  position: relative !important;
+  top: auto !important;
+  z-index: auto !important;
+  isolation: auto;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   display: flex; gap: 18px; align-items: center; margin-bottom: 20px;
   padding: 18px 20px; border-radius: 18px;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
 }
 .staff-hero-photo { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
 .staff-hero-ph { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.08); font-size: 44px; }
