@@ -3155,7 +3155,7 @@
   }
 
   function _shareGroupEmoji(p) {
-    return (p && (p.emoji || (p.is_virtual ? '👥' : '💬'))) || '💬';
+    return (p && (p.group_emoji || p.emoji || (p.is_virtual ? '👥' : '💬'))) || '💬';
   }
 
   async function openShareInAppModal(film, opts) {
@@ -3210,22 +3210,41 @@
     const friendsPanelHtml = friends.length
       ? '<div id="share-panel-friends" class="' +
         (tab === 'friends' ? '' : 'hidden') +
-        '"><div class="list-title-section">Друг</div><div class="list" id="share-fr-list">' +
+        '">' +
+        '<input type="search" class="mp-share-search input-primary" id="share-fr-search" placeholder="Найти друга…" autocomplete="off" aria-label="Найти друга">' +
+        '<div class="mp-share-list" id="share-fr-list" role="listbox" aria-multiselectable="true">' +
         friends
           .map(function (f, i) {
+            const nm = String(f.name || 'Друг').trim() || 'Друг';
+            const uid = f.user_id;
+            const photo =
+              f.photo_url ||
+              (uid ? MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg' : '');
+            const av = photo
+              ? '<img class="mp-share-avatar-img" src="' +
+                escapeHtml(resolveMediaUrl(photo)) +
+                '" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+                '<span class="mp-share-avatar-letter" style="display:none">' +
+                escapeHtml(nm.charAt(0).toUpperCase()) +
+                '</span>'
+              : '<span class="mp-share-avatar-letter">' +
+                escapeHtml(nm.charAt(0).toUpperCase()) +
+                '</span>';
             return (
-              '<label class="list-item" style="cursor:pointer">' +
-              '<input type="radio" name="share-fr" value="' +
-              f.user_id +
+              '<label class="mp-share-row" data-share-name="' +
+              escapeHtml(nm.toLowerCase()) +
+              '">' +
+              '<input type="checkbox" name="share-fr" value="' +
+              uid +
               '" ' +
               (i === 0 ? 'checked' : '') +
-              ' style="margin-right:10px">' +
-              '<span class="list-emoji">' +
-              escapeHtml((f.name || '?')[0].toUpperCase()) +
+              '>' +
+              '<span class="mp-share-avatar">' +
+              av +
               '</span>' +
-              '<span class="list-text"><span class="list-title">' +
-              escapeHtml(f.name || 'Друг') +
-              '</span></span></label>'
+              '<span class="mp-share-name">' +
+              escapeHtml(nm) +
+              '</span></label>'
             );
           })
           .join('') +
@@ -3234,24 +3253,32 @@
     const groupsPanelHtml = shareable.length
       ? '<div id="share-panel-groups" class="' +
         (tab === 'groups' ? '' : 'hidden') +
-        '"><div class="list-title-section">Группа</div><div class="list" id="share-grp-list">' +
+        '">' +
+        '<input type="search" class="mp-share-search input-primary" id="share-grp-search" placeholder="Найти группу…" autocomplete="off" aria-label="Найти группу">' +
+        '<div class="mp-share-list" id="share-grp-list" role="listbox">' +
         shareable
           .map(function (p, i) {
-            const nm =
-              p.display_name != null && p.display_name !== '' ? p.display_name : p.name || 'Группа';
+            const nm = String(
+              (p.display_name != null && p.display_name !== '' ? p.display_name : null) ||
+                p.name ||
+                'Группа',
+            ).trim() || 'Группа';
+            const em = _shareGroupEmoji(p);
             return (
-              '<label class="list-item" style="cursor:pointer">' +
+              '<label class="mp-share-row" data-share-name="' +
+              escapeHtml(nm.toLowerCase()) +
+              '">' +
               '<input type="radio" name="share-grp" value="' +
               p.chat_id +
               '" ' +
               (i === 0 ? 'checked' : '') +
-              ' style="margin-right:10px">' +
-              '<span class="list-emoji">' +
-              escapeHtml(_shareGroupEmoji(p)) +
+              '>' +
+              '<span class="mp-share-avatar mp-share-avatar--emoji">' +
+              escapeHtml(em) +
               '</span>' +
-              '<span class="list-text"><span class="list-title">' +
+              '<span class="mp-share-name">' +
               escapeHtml(nm) +
-              '</span></span></label>'
+              '</span></label>'
             );
           })
           .join('') +
@@ -3305,14 +3332,32 @@
         if (grPanel) grPanel.classList.toggle('hidden', tab !== 'groups');
       });
     });
+    function wireShareSearch(inputId, listId) {
+      const inp = overlay.querySelector('#' + inputId);
+      const list = overlay.querySelector('#' + listId);
+      if (!inp || !list) return;
+      inp.addEventListener('input', function () {
+        const q = String(inp.value || '').trim().toLowerCase();
+        list.querySelectorAll('.mp-share-row').forEach(function (row) {
+          const name = row.getAttribute('data-share-name') || '';
+          row.classList.toggle('hidden', !!(q && name.indexOf(q) < 0));
+        });
+      });
+    }
+    wireShareSearch('share-fr-search', 'share-fr-list');
+    wireShareSearch('share-grp-search', 'share-grp-list');
     overlay.querySelector('#share-grp-send').addEventListener('click', async function () {
       const msgEl = overlay.querySelector('#share-grp-msg');
       const msg = ((msgEl && msgEl.value) || '').trim();
       const sendBtn = overlay.querySelector('#share-grp-send');
       if (tab === 'friends') {
-        const fr = overlay.querySelector('input[name="share-fr"]:checked');
-        const toUser = Number((fr && fr.value) || 0);
-        if (!toUser) {
+        const selected = Array.prototype.slice
+          .call(overlay.querySelectorAll('input[name="share-fr"]:checked'))
+          .map(function (el) {
+            return Number(el.value || 0);
+          })
+          .filter(Boolean);
+        if (!selected.length) {
           showToast('Выберите друга', { type: 'error' });
           return;
         }
@@ -3321,15 +3366,25 @@
             sendBtn.disabled = true;
             sendBtn.textContent = 'Отправка…';
           }
-          const res = await api('/api/friends/recommend', {
-            method: 'POST',
-            body: JSON.stringify({ to_user_id: toUser, kp_id: String(film.kp_id), message: msg }),
-          });
-          if (res && res.success) {
+          let ok = 0;
+          let lastErr = '';
+          for (let i = 0; i < selected.length; i++) {
+            const res = await api('/api/friends/recommend', {
+              method: 'POST',
+              body: JSON.stringify({
+                to_user_id: selected[i],
+                kp_id: String(film.kp_id),
+                message: msg,
+              }),
+            });
+            if (res && res.success) ok += 1;
+            else lastErr = (res && (res.message || res.error)) || 'Не удалось отправить';
+          }
+          if (ok > 0) {
             close();
-            showToast('Фильм отправлен другу');
+            showToast(ok === 1 ? 'Фильм отправлен другу' : 'Фильм отправлен ' + ok + ' друзьям');
           } else {
-            showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
+            showToast(lastErr || 'Не удалось отправить', { type: 'error' });
           }
         } catch (e) {
           showToast('Ошибка отправки', { type: 'error' });
