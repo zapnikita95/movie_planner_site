@@ -3783,8 +3783,9 @@
   }
 
   function siteInboxAvatarUrl(uid) {
-    const u = String(uid || '').replace(/\D/g, '');
-    return u ? (API_BASE + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+    const u = String(uid == null ? '' : uid).replace(/[^\d-]/g, '');
+    if (!u || u === '-') return '';
+    return API_BASE + '/api/avatar/' + encodeURIComponent(u) + '.jpg';
   }
 
   function siteInboxFormatTime(iso) {
