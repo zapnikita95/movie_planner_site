@@ -90,8 +90,10 @@
   const MEDIA_ORIGIN = SITE_ORIGIN;
 
   function avatarUrlForUserId(userId) {
-    const u = String(userId || '').replace(/\D/g, '');
-    return u ? (MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+    // Email/site users have negative chat_id (-40). Keep the minus.
+    const u = String(userId == null ? '' : userId).replace(/[^\d-]/g, '');
+    if (!u || u === '-') return '';
+    return MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg';
   }
   const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
@@ -3534,9 +3536,9 @@
     const canonical = userId ? avatarUrlForUserId(userId) : '';
     const resolved = resolveMediaUrl(url);
     const queue = [];
-    /* Один канон: /api/avatar/{id}.jpg (как miniapp/app). Внешний URL — только если API ещё не отдал avatar-proxy. */
+    /* Prefer API photo_url (may include ?v= cache-bust) over bare /api/avatar/{id}.jpg. */
     const preferResolved = resolved && /\/api\/avatar\//i.test(resolved);
-    [preferResolved ? resolved : '', canonical, resolved, preset].forEach(function (src) {
+    [preferResolved ? resolved : '', resolved, canonical, preset].forEach(function (src) {
       const s = String(src || '').trim();
       if (s && queue.indexOf(s) < 0) queue.push(s);
     });
@@ -6006,8 +6008,7 @@
   }
 
   function siteInboxAvatarUrl(uid) {
-    const u = String(uid || '').replace(/\D/g, '');
-    return u ? avatarUrlForUserId(u) : '';
+    return avatarUrlForUserId(uid);
   }
 
   function siteInboxFormatTime(iso) {
@@ -18487,23 +18488,66 @@
       fileInput.addEventListener('change', () => {
         const file = fileInput.files ? fileInput.files[0] : null;
         if (!file) return;
-        const fd = new FormData();
-        fd.append('photo', file);
-        uploadPhotoBtn.disabled = true;
-        fetch(API_BASE + '/api/miniapp/avatar/upload', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + getToken() },
-          body: fd,
-        })
-          .then((r) => r.json().catch(() => ({})))
-          .then((r) => {
-            if (!r || !r.success) { setStatus('Не удалось сохранить фото', false); return; }
-            setStatus('Фото сохранено', true);
-            fileInput.value = '';
-            loadMeAndShowCabinet();
+        const openCrop = window.mpOpenAvatarCrop;
+        const runUpload = function (blobOrFile) {
+          const fd = new FormData();
+          if (blobOrFile instanceof Blob && !(blobOrFile instanceof File)) {
+            fd.append('photo', blobOrFile, 'avatar.jpg');
+          } else {
+            fd.append('photo', blobOrFile);
+          }
+          uploadPhotoBtn.disabled = true;
+          setStatus('Загружаем фото…', true);
+          fetch(API_BASE + '/api/miniapp/avatar/upload', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + getToken() },
+            body: fd,
           })
-          .catch(() => setStatus('Ошибка сети', false))
-          .finally(() => { uploadPhotoBtn.disabled = false; });
+            .then((r) => r.json().catch(() => ({})))
+            .then((r) => {
+              if (!r || !r.success) {
+                setStatus((r && (r.message || r.error)) || 'Не удалось сохранить фото', false);
+                return;
+              }
+              setStatus('Фото сохранено', true);
+              fileInput.value = '';
+              const fresh = resolveMediaUrl(r.photo_url || '');
+              if (fresh) {
+                [
+                  document.getElementById('settings-profile-avatar'),
+                  document.getElementById('profile-hub-avatar'),
+                  document.getElementById('header-profile-avatar'),
+                  document.getElementById('cabinet-user-avatar'),
+                ].forEach(function (el) {
+                  if (!el) return;
+                  const img = el.querySelector('img');
+                  if (img) img.src = fresh;
+                  else el.innerHTML = '<img src="' + escapeHtml(fresh) + '" alt="" decoding="async">';
+                });
+              }
+              loadMeAndShowCabinet();
+            })
+            .catch(() => setStatus('Ошибка сети', false))
+            .finally(() => { uploadPhotoBtn.disabled = false; });
+        };
+        if (typeof openCrop === 'function') {
+          setStatus('Подбираем кружок…', true);
+          Promise.resolve(openCrop(file))
+            .then(function (cropped) {
+              if (!cropped) {
+                fileInput.value = '';
+                setStatus('', true);
+                return;
+              }
+              runUpload(cropped);
+            })
+            .catch(function (err) {
+              fileInput.value = '';
+              setStatus((err && err.message) || 'Не удалось открыть фото', false);
+            });
+          return;
+        }
+        runUpload(file);
       });
     }
     const searchable = root.querySelector('#profile-settings-searchable');
