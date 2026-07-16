@@ -3773,6 +3773,12 @@
       friend_film_rec: 'Друзья',
       friend_rating_shared: 'Друзья',
       weekend_digest: 'Подборка',
+      cinema_watch_check: 'Кино',
+      cinema_ticket_reminder: 'Планы',
+      plan_friend_invite: 'Планы',
+      plan_friend_cancelled: 'Планы',
+      tournament_welcome: 'Турнир',
+      tournament_win: 'Турнир',
       tournament_month_results: 'Турнир',
       import_episodes_done: 'Сериалы',
       admin_message: 'Movie Planner',
@@ -3866,13 +3872,27 @@
     return '<div class="site-inbox-thumb site-inbox-thumb--icon">' + (o.icon ? mpIcon(o.icon, { size: 'md' }) : mpIcon('library', { size: 'md' })) + '</div>';
   }
 
-  function siteInboxOpenFilmBtn(kp, fid, primary) {
+  function siteInboxOpenFilmBtn(kp, fid, primary, label) {
     if (!kp && !fid) return '';
     const cls = 'btn btn-small ' + (primary ? 'btn-primary' : 'btn-secondary') + ' site-inbox-open-film';
+    const text = (label && String(label).trim()) || 'Открыть страницу фильма';
     return '<button type="button" class="' + cls + '"'
       + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
       + (fid ? ' data-film-id="' + escapeHtml(fid) + '"' : '')
-      + '>Открыть страницу фильма</button>';
+      + '>' + escapeHtml(text) + '</button>';
+  }
+
+  function siteInboxNavBtn(section, label, primary) {
+    if (!section || !label) return '';
+    const cls = 'btn btn-small ' + (primary ? 'btn-primary' : 'btn-secondary') + ' site-inbox-nav';
+    return '<button type="button" class="' + cls + '" data-inbox-section="' + escapeHtml(section) + '">'
+      + escapeHtml(label) + '</button>';
+  }
+
+  function siteInboxMarkRead(ids) {
+    const list = (ids || []).map((x) => Number(x)).filter((n) => n > 0);
+    if (!list.length) return Promise.resolve();
+    return api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ ids: list }) }).catch(() => null);
   }
 
   function siteInboxItemHtml(it, opts) {
@@ -3887,6 +3907,7 @@
     const friendName = siteInboxUserNameFromPayload(pl, it);
     const kind = siteInboxKindLabel(it.kind);
     const unreadCls = it.is_read === false ? ' site-inbox-card--unread' : '';
+    const inboxId = it.id != null ? String(it.id) : '';
     let thumb = '';
     let headline = '';
     let body = '';
@@ -3910,45 +3931,116 @@
       headline = escapeHtml(filmTitle || (it.title || '').trim() || 'Фильм от друга');
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (it.kind === 'plan_reminder') {
+    } else if (it.kind === 'plan_reminder' || it.kind === 'cinema_ticket_reminder') {
       if (!kp && pl && pl.plans && pl.plans[0]) kp = siteInboxExtractKp(pl.plans[0], it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
       headline = escapeHtml(filmTitle || (it.title || 'Напоминание о просмотре').trim());
       body = escapeHtml(siteInboxPlanDetail(pl, it));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
+      if (!compact) actions += siteInboxNavBtn('plans', 'Расписание', false);
     } else if (it.kind === 'rate_reminder') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ratings' });
       headline = escapeHtml(filmTitle || 'Пора оценить');
       body = escapeHtml(siteInboxCleanBody(it.body) || 'Поставьте оценку после просмотра');
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (it.kind === 'premiere_release') {
+      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true, 'Оценить фильм');
+    } else if (it.kind === 'premiere_release' || it.kind === 'premiere_release_batch') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'premieres' });
       headline = escapeHtml(filmTitle || (it.title || 'Премьера').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (['group_share', 'group_share_accepted', 'group_rating', 'group_rate_invite'].includes(it.kind)) {
+      const parts = [];
+      if (kp || fid) parts.push(siteInboxOpenFilmBtn(kp, fid, true));
+      if (it.kind === 'premiere_release_batch' || !compact) {
+        parts.push(siteInboxNavBtn('premieres', 'Все премьеры', false));
+      }
+      actions = parts.join('');
+    } else if (it.kind === 'group_share' || it.kind === 'group_share_accepted') {
+      if (!kp) kp = siteInboxExtractKp(pl, it);
+      const actionId = pl.action_id != null ? String(pl.action_id).replace(/\D/g, '') : '';
+      const accepted = pl.accepted === true || pl.accepted === 'true' || it.kind === 'group_share_accepted';
+      const accPlan = String(pl.accepted_mode || '') === 'plan';
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
+        : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
+      headline = escapeHtml(filmTitle || (it.title || kind).trim());
+      body = escapeHtml(siteInboxCleanBody(it.body));
+      if (accepted) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">'
+          + (accPlan ? '✓ Сеанс в вашем расписании' : '✓ Фильм в вашей базе')
+          + '</span>';
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
+      } else {
+        if (actionId) {
+          actions = '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-accept" data-action-id="'
+            + escapeHtml(actionId) + '"'
+            + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+            + '>Принять в базу</button>';
+        }
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
+      }
+    } else if (['group_rating', 'group_rate_invite'].includes(it.kind)) {
       if (!kp) kp = siteInboxExtractKp(pl, it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
         : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
       headline = escapeHtml(filmTitle || (it.title || kind).trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
+      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true, 'Открыть и оценить');
+    } else if (it.kind === 'plan_friend_invite' || it.kind === 'plan_friend_cancelled') {
+      const token = pl.share_token != null ? String(pl.share_token).trim() : '';
+      const accepted = pl.accepted === true || pl.accepted === 'true';
+      const cancelled = pl.cancelled === true || pl.cancelled === 'true' || it.kind === 'plan_friend_cancelled';
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
+      headline = escapeHtml(filmTitle || (it.title || 'Приглашение на просмотр').trim());
+      body = escapeHtml(siteInboxCleanBody(it.body));
+      if (cancelled) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">Приглашение отменено</span>';
+      } else if (accepted) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">✓ План добавлен в расписание</span>'
+          + siteInboxNavBtn('plans', 'Расписание', false);
+      } else if (token) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-plan-friend-accept" data-share-token="'
+          + escapeHtml(token) + '"'
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Добавить к себе</button>';
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false);
+      } else if (kp || fid) {
+        actions = siteInboxOpenFilmBtn(kp, fid, true);
+      }
+    } else if (it.kind === 'cinema_watch_check') {
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
+      headline = escapeHtml(filmTitle || (it.title || 'Поход в кино').trim());
+      body = escapeHtml(siteInboxCleanBody(it.body) || 'Вы посмотрели этот фильм?');
+      actions = '<button type="button" class="btn btn-small btn-primary site-inbox-cinema-yes"'
+        + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+        + (pl.plan_id != null ? ' data-plan-id="' + escapeHtml(String(pl.plan_id)) + '"' : '')
+        + (pl.film_id != null ? ' data-film-id="' + escapeHtml(String(pl.film_id)) + '"' : '')
+        + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
+        + '>Да</button>'
+        + '<button type="button" class="btn btn-small btn-secondary site-inbox-cinema-no"'
+        + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+        + (pl.plan_id != null ? ' data-plan-id="' + escapeHtml(String(pl.plan_id)) + '"' : '')
+        + '>Нет</button>';
+      if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
     } else if (it.kind === 'weekend_digest') {
       thumb = siteInboxThumbHtml({ icon: 'popcorn' });
       headline = escapeHtml((it.title || 'Подборка').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
+      const filmParts = [];
       const btns = (pl.film_buttons || []).slice(0, compact ? 2 : 6);
-      if (btns.length) {
-        actions = btns.map((fb, idx) => {
-          const fk = fb.kp_id != null ? String(fb.kp_id).replace(/\D/g, '') : '';
-          if (!fk) return '';
-          return siteInboxOpenFilmBtn(fk, '', false);
-        }).join('');
-      }
-    } else if (it.kind === 'tournament_month_results') {
+      btns.forEach((fb) => {
+        const fk = fb && fb.kp_id != null ? String(fb.kp_id).replace(/\D/g, '') : '';
+        if (!fk) return;
+        const lab = (fb && fb.label && String(fb.label).trim()) || 'Фильм';
+        filmParts.push(siteInboxOpenFilmBtn(fk, '', false, lab));
+      });
+      const navParts = [];
+      if (pl.show_random !== false) navParts.push(siteInboxNavBtn('whattowatch', '🎲 Рандом', true));
+      if (pl.show_unwatched !== false) navParts.push(siteInboxNavBtn('unwatched', '🗃️ Непросмотренные', false));
+      actions = filmParts.join('') + navParts.join('');
+    } else if (it.kind === 'tournament_welcome' || it.kind === 'tournament_win' || it.kind === 'tournament_month_results') {
       thumb = siteInboxThumbHtml({ icon: 'tournament' });
-      headline = escapeHtml((it.title || 'Итоги турнира').trim());
+      headline = escapeHtml((it.title || 'Турнир').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
+      actions = siteInboxNavBtn('tournament', 'Турнирная таблица', true)
+        + siteInboxNavBtn('settings', 'Настройки', false);
     } else {
       const useFilm = !!(kp || fid || filmTitle);
       if (useFilm && kp) thumb = siteInboxThumbHtml({ poster: posterUrl(kp) });
@@ -3961,7 +4053,7 @@
 
     const bodyHtml = body ? '<div class="site-inbox-body">' + body + '</div>' : '';
     const actionsHtml = actions ? '<div class="site-inbox-actions' + (compact ? ' site-inbox-actions--compact' : '') + '">' + actions + '</div>' : '';
-    const filmTitleCls = (kp || fid || ['plan_reminder', 'rate_reminder', 'premiere_release'].includes(it.kind)) ? ' site-inbox-headline--film' : '';
+    const filmTitleCls = (kp || fid || ['plan_reminder', 'rate_reminder', 'premiere_release', 'cinema_watch_check', 'plan_friend_invite'].includes(it.kind)) ? ' site-inbox-headline--film' : '';
 
     return '<article class="site-inbox-card site-inbox-card--rich' + unreadCls + '" data-inbox-id="' + escapeHtml(String(it.id || '')) + '">'
       + '<div class="site-inbox-card-row">'
@@ -3981,6 +4073,139 @@
       btn.addEventListener('click', () => {
         closeHeaderInboxDropdown();
         openFilmNav(btn.getAttribute('data-kp-id'), btn.getAttribute('data-film-id'));
+      });
+    });
+    root.querySelectorAll('.site-inbox-nav').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sec = btn.getAttribute('data-inbox-section');
+        if (!sec) return;
+        closeHeaderInboxDropdown();
+        showSection(sec);
+        if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') {
+          try { renderWhattowatchSection(); } catch (_) {}
+        }
+        if (sec === 'unwatched' && typeof loadUnwatched === 'function') {
+          try { loadUnwatched(); } catch (_) {}
+        }
+        if (sec === 'settings' && typeof renderSettingsSection === 'function') {
+          try { renderSettingsSection(); } catch (_) {}
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-gshare-accept').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const aid = Number(btn.getAttribute('data-action-id'));
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        if (!aid) return;
+        btn.disabled = true;
+        try {
+          const res = await api('/api/site/inbox/group-share/accept', {
+            method: 'POST',
+            body: JSON.stringify({ action_id: aid }),
+          });
+          if (res && res.success) {
+            showToast(res.message || (res.mode === 'plan' ? 'Сеанс добавлен в расписание' : 'Фильм добавлен в базу'));
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            if (res.mode === 'plan') showSection('plans');
+            else renderInboxSection();
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось принять', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          const msg = (err && err.message) || 'Не удалось принять';
+          showToast(msg, { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-plan-friend-accept').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const token = (btn.getAttribute('data-share-token') || '').trim();
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        if (!token) return;
+        btn.disabled = true;
+        try {
+          const res = await api('/api/site/plan-share/' + encodeURIComponent(token) + '/accept', {
+            method: 'POST',
+            body: JSON.stringify({}),
+          });
+          if (res && res.success !== false) {
+            showToast('План добавлен');
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            showSection('plans');
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось принять', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось принять', { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-cinema-yes').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        const planId = btn.getAttribute('data-plan-id');
+        const filmId = btn.getAttribute('data-film-id');
+        const kpId = btn.getAttribute('data-kp-id');
+        btn.disabled = true;
+        try {
+          const body = { action: 'yes' };
+          if (planId) body.plan_id = Number(planId);
+          if (filmId) body.film_id = Number(filmId);
+          const res = await api('/api/mobile/cinema-watch-check', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (res && res.success) {
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            showToast('Отметили просмотр');
+            if (kpId || filmId) openFilmNav(kpId, filmId);
+            else renderInboxSection();
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось сохранить', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось сохранить', { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-cinema-no').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        const planId = btn.getAttribute('data-plan-id');
+        btn.disabled = true;
+        try {
+          const body = { action: 'no' };
+          if (planId) body.plan_id = Number(planId);
+          const res = await api('/api/mobile/cinema-watch-check', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (res && res.success) {
+            if (iid) await siteInboxMarkRead([iid]);
+            showToast('Ок, закрыли');
+            renderInboxSection();
+            const list = document.getElementById('header-inbox-dropdown-list');
+            const dd = document.getElementById('header-inbox-dropdown');
+            if (list && dd && !dd.classList.contains('hidden')) {
+              loadHeaderInboxDropdownContent(list);
+            }
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось сохранить', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось сохранить', { type: 'error' });
+          btn.disabled = false;
+        }
       });
     });
     bindSiteInboxFriendActions(root);
