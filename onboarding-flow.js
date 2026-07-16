@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260716return1";
+  const OB_FLOW_V = "20260716return2";
 
   let _obKpImportPoll = null;
 

@@ -1754,12 +1754,14 @@
       }
       if (kp) {
         openSiteOnboardPlanModal(kp, title, cinema ? 'cinema' : 'home');
-      } else {
+      } else if (!peekContentPageFromLocation()) {
         showSection('plans', { replace: replace });
       }
       return;
     }
-    if (p === '/' || p === '') {
+    // Онбординг поверх /f|/s — не уводим со страницы при navigate('/')
+    if (p === '/' || p === '' || p === '/home') {
+      if (peekContentPageFromLocation()) return;
       showSection('home', { replace: replace });
     }
   }
@@ -1797,6 +1799,13 @@
         return uiTourMarkDone(UI_TOUR_KEYS.onboarding);
       },
       markOnboardingSessionComplete: function () {
+        if (peekContentPageFromLocation()) {
+          try {
+            sessionStorage.setItem('mp_force_content_tour', '1');
+            sessionStorage.setItem('mp_force_friends_invite', '1');
+          } catch (_) {}
+          return;
+        }
         try { sessionStorage.setItem('mp_force_home_tour', '1'); } catch (_) {}
         try {
           showSection('home', { replace: true, skipPush: true });
@@ -2761,10 +2770,10 @@
       const primary = o.primaryLabel || 'Продолжить';
       const secondary = o.secondaryLabel || '';
       overlay.innerHTML =
-        '<div class="mp-dialog-card" style="max-width:360px">' +
-          '<div class="modal-title">' + escapeHtml(o.title || '') + '</div>' +
-          '<p class="cabinet-hint" style="margin-top:8px">' + escapeHtml(o.text || '') + '</p>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">' +
+        '<div class="home-tour-card" style="max-width:360px;margin:auto">' +
+          '<div class="home-tour-title">' + escapeHtml(o.title || '') + '</div>' +
+          '<div class="home-tour-text">' + escapeHtml(o.text || '') + '</div>' +
+          '<div class="home-tour-actions" style="flex-direction:column;align-items:stretch">' +
             '<button type="button" class="btn btn-primary" id="mp-choice-primary">' + escapeHtml(primary) + '</button>' +
             (secondary
               ? '<button type="button" class="btn btn-secondary" id="mp-choice-secondary">' + escapeHtml(secondary) + '</button>'
@@ -2786,47 +2795,100 @@
     });
   }
 
+  function tourElVisible(el) {
+    if (!el || !document.body.contains(el)) return false;
+    if (el.classList && el.classList.contains('hidden')) return false;
+    try {
+      const st = window.getComputedStyle(el);
+      if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) return false;
+    } catch (_) {}
+    const r = el.getBoundingClientRect();
+    return r.width >= 2 && r.height >= 2;
+  }
+
+  function filmPageHasFacts() {
+    const wrap = document.querySelector('#film-desc-wrap');
+    return !!(wrap && tourElVisible(wrap) && wrap.getAttribute('data-has-facts') === '1');
+  }
+
+  function staffPageHasFacts() {
+    const sec = document.getElementById('staff-facts-section');
+    return !!(sec && tourElVisible(sec));
+  }
+
   function getFilmPageTourSteps() {
-    return [
+    const steps = [
       {
         selector: '#add-btn',
-        text: 'Добавьте фильм в базу — чтобы не потерять и вернуться к нему позже.',
+        text: 'Добавьте в базу — чтобы фильм не потерялся и всегда был под рукой.',
       },
       {
         selector: '#rate-toggle-btn',
-        text: 'Уже смотрели? Поставьте оценку — так рекомендации становятся точнее.',
+        text: 'Смотрели? Поставьте оценку — от этого зависят рекомендации.',
       },
       {
         selector: '#plan-watch-btn',
-        text: 'Запланируйте просмотр дома или в кино — придёт напоминание.',
+        text: 'Запланируйте просмотр дома или в кино — напомним вовремя.',
       },
       {
         selector: '#share-film-btn',
-        text: 'Поделитесь с друзьями в Movie Planner — пригласите посмотреть вместе.',
-      },
-      {
-        selector: '#film-friends-social-block',
-        fallback: '#share-film-btn',
-        text: 'Здесь видны оценки друзей, если они тоже в Movie Planner.',
+        text: 'Можно сразу позвать друзей из Movie Planner посмотреть вместе.',
       },
     ];
+    const moreBtn = document.querySelector('#film-desc-wrap .film-desc-more-btn');
+    if (filmPageHasFacts() && moreBtn && !moreBtn.classList.contains('hidden')) {
+      steps.push({
+        selector: '#film-desc-wrap .film-desc-more-btn, #film-desc-wrap',
+        text: 'Разверните описание — там есть интересные факты об этом фильме.',
+        before: function () {
+          try {
+            if (moreBtn.getAttribute('aria-expanded') !== 'true') moreBtn.click();
+          } catch (_) {}
+          return 220;
+        },
+      });
+    }
+    const friends = document.querySelector('#film-friends-social-block');
+    if (friends && tourElVisible(friends) && friends.children.length) {
+      steps.push({
+        selector: '#film-friends-social-block',
+        text: 'Здесь оценки друзей — удобно, когда они тоже в Movie Planner.',
+      });
+    }
+    return steps;
   }
 
   function getStaffPageTourSteps() {
-    return [
+    const steps = [];
+    if (staffPageHasFacts()) {
+      steps.push({
+        selector: '#staff-facts-toggle, #staff-facts-section',
+        text: 'Здесь интересные факты — можно развернуть блок и почитать.',
+        before: function () {
+          try {
+            const t = document.getElementById('staff-facts-toggle');
+            const sec = document.getElementById('staff-facts-section');
+            if (t && sec && !sec.classList.contains('staff-facts-anchor--open')) t.click();
+          } catch (_) {}
+          return 220;
+        },
+      });
+    }
+    steps.push(
       {
         selector: '.staff-filters, #staff-person-filters',
-        text: 'Фильтруйте фильмографию по году, жанру и сортируйте по оценке или дате.',
+        text: 'Фильтруйте по году и жанру, сортируйте по оценке или дате.',
       },
       {
         selector: '#staff-toggle-friends',
-        text: 'Фильтр «друзья хорошо оценили» — особенно полезен, когда друзья уже в Movie Planner.',
+        text: '«Друзья хорошо оценили» — фильмы, которые зашли вашим друзьям.',
       },
       {
         selector: '.staff-import-btn',
         text: '«В базу» — добавить сразу все подходящие фильмы роли, не по одному.',
       },
-    ];
+    );
+    return steps;
   }
 
   function runSiteSpotlightTour(opts) {
@@ -2976,15 +3038,15 @@
         let target = null;
         String(step.selector || '').split(',').some(function (sel) {
           const el = document.querySelector(sel.trim());
-          if (el && el.offsetParent !== null) {
+          if (tourElVisible(el)) {
             target = el;
             return true;
           }
-          if (el) target = el;
           return false;
         });
-        if ((!target || target.offsetParent === null) && step.fallback) {
-          target = document.querySelector(step.fallback);
+        if (!target && step.fallback) {
+          const fb = document.querySelector(step.fallback);
+          if (tourElVisible(fb)) target = fb;
         }
         return target;
       }
@@ -3013,18 +3075,32 @@
         document.querySelectorAll('.tour-highlight').forEach(function (el) {
           el.classList.remove('tour-highlight');
         });
+        // Пропускаем шаги без видимой цели (кроме before — он может раскрыть блок)
+        while (idx < steps.length) {
+          const probe = steps[idx];
+          if (resolveTarget(probe) || probe.before) break;
+          idx += 1;
+        }
         const step = steps[idx];
         if (!step) {
           finish();
           return;
         }
         textEl.textContent = step.text;
-        nextBtn.textContent = idx === steps.length - 1 ? 'Понятно' : 'Далее';
+        let lastVisibleIdx = idx;
+        for (let i = idx + 1; i < steps.length; i += 1) {
+          if (resolveTarget(steps[i]) || steps[i].before) lastVisibleIdx = i;
+        }
+        nextBtn.textContent = idx >= lastVisibleIdx ? 'Понятно' : 'Далее';
         applyCardPlacement();
         const runSpotlight = function () {
           const target = resolveTarget(step);
-          if (target) scheduleSync(target);
-          else applyFullDim();
+          if (target) {
+            scheduleSync(target);
+            return;
+          }
+          idx += 1;
+          renderStep();
         };
         if (step.before) {
           const delay = step.before();
@@ -3050,8 +3126,39 @@
     const isFilm = p.type === 'film';
     return runSiteSpotlightTour({
       overlayId: 'site-content-tour-overlay',
-      title: isFilm ? 'Страница фильма' : 'Страница актёра',
+      title: isFilm ? 'Что можно здесь' : 'Страница актёра',
       steps: isFilm ? getFilmPageTourSteps() : getStaffPageTourSteps(),
+    });
+  }
+
+  function ensureOnboardingFlowLoaded() {
+    return new Promise(function (resolve) {
+      if (typeof window.__mpMountExtendedOnboarding === 'function') {
+        resolve(true);
+        return;
+      }
+      let tries = 0;
+      const existing = document.querySelector('script[src*="onboarding-flow.js"]');
+      if (!existing) {
+        const s = document.createElement('script');
+        s.src = '/onboarding-flow.js?v=20260716return2'; // keep in sync with index.html pin
+        s.async = true;
+        s.onload = function () { /* wait below */ };
+        s.onerror = function () { resolve(false); };
+        document.body.appendChild(s);
+      }
+      const wait = setInterval(function () {
+        tries += 1;
+        if (typeof window.__mpMountExtendedOnboarding === 'function') {
+          clearInterval(wait);
+          resolve(true);
+          return;
+        }
+        if (tries >= 50) {
+          clearInterval(wait);
+          resolve(false);
+        }
+      }, 100);
     });
   }
 
@@ -3075,12 +3182,12 @@
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
       overlay.innerHTML =
-        '<div class="mp-dialog-card" style="max-width:360px">' +
-          '<div class="modal-title">Добавьте друзей</div>' +
-          '<p class="cabinet-hint" style="margin-top:8px">' +
-            'Скопируйте ссылку и отправьте друзьям. За приглашения — монетки. Их можно тратить на нейросети, улучшенное отслеживание сериалов и другие функции сервиса.' +
-          '</p>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">' +
+        '<div class="home-tour-card" style="max-width:360px;margin:auto">' +
+          '<div class="home-tour-title">Добавьте друзей</div>' +
+          '<div class="home-tour-text">' +
+            'Скопируйте ссылку и отправьте друзьям. За приглашения — монетки: нейросети, улучшенное отслеживание сериалов и другие функции.' +
+          '</div>' +
+          '<div class="home-tour-actions" style="flex-direction:column;align-items:stretch">' +
             '<button type="button" class="btn btn-primary" id="mp-ob-invite-copy">Скопировать ссылку</button>' +
             '<button type="button" class="btn btn-secondary" id="mp-ob-invite-later">Позже</button>' +
           '</div>' +
@@ -3121,9 +3228,66 @@
     window.location.assign('/home');
   }
 
+  function waitForContentFactsReady(page, timeoutMs) {
+    const limit = typeof timeoutMs === 'number' ? timeoutMs : 2800;
+    const started = Date.now();
+    return new Promise(function (resolve) {
+      function tick() {
+        if (page && page.type === 'film') {
+          const wrap = document.querySelector('#film-desc-wrap');
+          if (wrap && (wrap.getAttribute('data-facts-loaded') || wrap.getAttribute('data-has-facts') === '1')) {
+            resolve();
+            return;
+          }
+        }
+        if (page && page.type === 'staff') {
+          const sec = document.getElementById('staff-facts-section');
+          if (sec && (!sec.classList.contains('hidden') || sec.getAttribute('data-facts-ready') === '1')) {
+            resolve();
+            return;
+          }
+          // факты могут отсутствовать — не ждём весь таймаут, если секция уже точно пустая
+          if (sec && sec.classList.contains('hidden') && Date.now() - started > 900) {
+            resolve();
+            return;
+          }
+        }
+        if (Date.now() - started >= limit) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, 160);
+      }
+      tick();
+    });
+  }
+
+  async function runContentPageWrapUp(page) {
+    const p = page || peekContentPageFromLocation() || readOnboardReturn();
+    if (!p || !peekContentPageFromLocation()) return;
+    try { sessionStorage.removeItem('mp_force_content_tour'); } catch (_) {}
+    const doneKey = 'mp_content_wrapup_done_' + p.type + '_' + p.id;
+    try {
+      if (sessionStorage.getItem(doneKey) === '1') return;
+      sessionStorage.setItem(doneKey, '1');
+    } catch (_) {}
+    await waitForContentFactsReady(p);
+    await startContextualPageTour(p);
+    await showOnboardFriendsInviteStep({ force: true });
+  }
+
   function completeOnboardHandoff(opts) {
     opts = opts || {};
+    const here = peekContentPageFromLocation();
     const ret = readOnboardReturn();
+
+    // Уже на странице, с которой пришли — остаёмся и показываем тур страницы
+    if (here) {
+      writeOnboardReturnFromPath(here.path);
+      void runContentPageWrapUp(here);
+      return;
+    }
+
     if (!ret) {
       try {
         sessionStorage.setItem('mp_force_home_tour', '1');
@@ -3137,12 +3301,13 @@
       scheduleForcedHomeTourIfNeeded();
       return;
     }
+
     const isFilm = ret.type === 'film';
     const pageLabel = isFilm ? 'фильму' : 'актёру';
     void showMpStackedChoiceDialog({
       title: 'Куда дальше?',
       text: 'Можно продолжить знакомство с кабинетом или вернуться к ' + pageLabel +
-        ' — там покажем, что можно сделать прямо на странице.',
+        ' — покажем, что можно сделать прямо на странице.',
       primaryLabel: isFilm ? 'Вернуться к фильму' : 'Вернуться к актёру',
       secondaryLabel: 'Продолжить в кабинете',
     }).then(function (choice) {
@@ -3151,14 +3316,7 @@
           sessionStorage.setItem('mp_force_content_tour', '1');
           sessionStorage.setItem('mp_force_friends_invite', '1');
         } catch (_) {}
-        const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-        if (cur !== ret.path) {
-          window.location.assign(ret.path);
-          return;
-        }
-        void startContextualPageTour(ret).then(function () {
-          return showOnboardFriendsInviteStep({ force: true });
-        });
+        window.location.assign(ret.path);
         return;
       }
       try {
@@ -3166,18 +3324,14 @@
         sessionStorage.setItem('mp_force_friends_invite', '1');
       } catch (_) {}
       clearOnboardReturn();
-      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (cur !== '/home' && cur !== '/') {
-        window.location.assign('/home');
-        return;
-      }
-      scheduleForcedHomeTourIfNeeded();
+      window.location.assign('/home');
     });
   }
 
   let _contentPageOfferScheduled = false;
+  let _contentPageOnboardingRunning = false;
   function scheduleContentPagePostAuthOffer() {
-    if (_contentPageOfferScheduled) return;
+    if (_contentPageOfferScheduled || _contentPageOnboardingRunning) return;
     _contentPageOfferScheduled = true;
     setTimeout(function () {
       _contentPageOfferScheduled = false;
@@ -3188,6 +3342,7 @@
   async function maybeOfferContentPagePostAuth() {
     if (!getToken()) return;
     if (guestOnboardResumePending()) return;
+    if (_contentPageOnboardingRunning) return;
     const page = peekContentPageFromLocation();
     if (!page) return;
     writeOnboardReturnFromPath(page.path);
@@ -3195,37 +3350,51 @@
     try {
       if (sessionStorage.getItem('mp_force_content_tour') === '1') {
         sessionStorage.removeItem('mp_force_content_tour');
-        await startContextualPageTour(page);
-        await showOnboardFriendsInviteStep({ force: true });
+        await runContentPageWrapUp(page);
         return;
       }
     } catch (_) {}
 
+    await uiToursEnsureHydrated();
+
+    // Онбординг уже пройден — только тур страницы (один раз за визит)
+    if (uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+      const tourKey = 'mp_content_tour_once_' + page.type + '_' + page.id;
+      try {
+        if (sessionStorage.getItem(tourKey) === '1') return;
+        sessionStorage.setItem(tourKey, '1');
+      } catch (_) {}
+      if (!cabinetHasData) {
+        await runContentPageWrapUp(page);
+      }
+      return;
+    }
+
     const offerKey = 'mp_content_onboard_offer_' + page.type + '_' + page.id;
     try {
       if (sessionStorage.getItem(offerKey) === '1') return;
+      sessionStorage.setItem(offerKey, '1');
     } catch (_) {}
 
-    await uiToursEnsureHydrated();
-    if (uiTourIsDone(UI_TOUR_KEYS.onboarding) && cabinetHasData) return;
-
-    try { sessionStorage.setItem(offerKey, '1'); } catch (_) {}
-    const isFilm = page.type === 'film';
-    const choice = await showMpStackedChoiceDialog({
-      title: 'Добро пожаловать!',
-      text: isFilm
-        ? 'Вы на странице фильма. Можно настроить базу в кабинете — или остаться здесь и сразу попробовать кнопки.'
-        : 'Вы на странице актёра. Можно настроить базу в кабинете — или остаться здесь и посмотреть фильтры и быстрый импорт.',
-      primaryLabel: 'Остаться на странице',
-      secondaryLabel: 'Настроить кабинет',
-    });
-    if (choice === 'primary') {
-      await startContextualPageTour(page);
-      await showOnboardFriendsInviteStep({ force: true });
+    const ready = await ensureOnboardingFlowLoaded();
+    if (!ready) {
+      await runContentPageWrapUp(page);
       return;
     }
-    if (choice === 'secondary') {
-      goCabinetAfterContentChoice();
+
+    _contentPageOnboardingRunning = true;
+    try {
+      // Попапы онбординга поверх текущей /f|/s — закрытие оставляет на странице
+      await new Promise(function (resolve) {
+        mountSiteFirstOnboardingWizard(function () {
+          resolve();
+        });
+      });
+      if (peekContentPageFromLocation()) {
+        await runContentPageWrapUp(page);
+      }
+    } finally {
+      _contentPageOnboardingRunning = false;
     }
   }
 
