@@ -477,11 +477,14 @@
     return false;
   }
 
-  function showLoginModalOverlay() {
+  function showLoginModalOverlay(preferredTab) {
     try {
+      const tab = preferredTab === 'register' || preferredTab === 'login'
+        ? preferredTab
+        : loginTabFromQuery();
       if (window.MpPublicFilmLogin && typeof window.MpPublicFilmLogin.show === 'function') {
         window.MpPublicFilmLogin.show();
-        setLoginAuthTab(loginTabFromQuery());
+        setLoginAuthTab(tab);
         scheduleSiteBotAuthPrefetch();
         return;
       }
@@ -492,7 +495,7 @@
       if (modal) {
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
-        setLoginAuthTab(loginTabFromQuery());
+        setLoginAuthTab(tab);
       }
       if (!getToken()) {
         const ro = document.getElementById('cabinet-readonly');
@@ -1834,12 +1837,10 @@
         return origApiGet(url, opts);
       },
       openRegisterModal: function () {
-        try { setLoginAuthTab('register'); } catch (_) {}
-        showLoginModalOverlay();
+        showLoginModalOverlay('register');
       },
       openLoginModal: function () {
-        try { setLoginAuthTab('login'); } catch (_) {}
-        showLoginModalOverlay();
+        showLoginModalOverlay('login');
       },
     });
   }
@@ -1887,8 +1888,7 @@
       if (tries >= 40) {
         clearInterval(wait);
         try { showToast('Не удалось открыть онбординг. Обновите страницу.', { type: 'error' }); } catch (_) {}
-        setLoginAuthTab('register');
-        showLoginModalOverlay();
+        showLoginModalOverlay('register');
       }
     }, 100);
   }
@@ -1899,16 +1899,35 @@
       if (!raw) return;
       const gst = JSON.parse(raw);
       if (!gst || !gst.pendingResume) return;
+      // После register на / → location.replace('/home') setTimeout теряется —
+      // kickoff должен уметь стартовать и на cold boot /home.
+      if (window.__mpGuestResumeKickoff) return;
+      window.__mpGuestResumeKickoff = true;
       const authVia = sessionStorage.getItem('mp_guest_auth_via') || 'login';
       sessionStorage.removeItem('mp_guest_auth_via');
-      if (typeof window.__mpResumeGuestOnboardingAfterAuth !== 'function') return;
-      setTimeout(function () {
-        void window.__mpResumeGuestOnboardingAfterAuth(_siteOnboardingDeps(), {
-          authVia: authVia,
-          hasData: !!(data && data.has_data),
-        });
-      }, 900);
-    } catch (_) {}
+      const hasData = !!(data && (data.has_data !== undefined ? data.has_data : data.hasData));
+      let tries = 0;
+      const kick = function () {
+        if (typeof window.__mpResumeGuestOnboardingAfterAuth !== 'function') {
+          tries += 1;
+          if (tries < 50) {
+            setTimeout(kick, 100);
+            return;
+          }
+          window.__mpGuestResumeKickoff = false;
+          return;
+        }
+        setTimeout(function () {
+          void window.__mpResumeGuestOnboardingAfterAuth(_siteOnboardingDeps(), {
+            authVia: authVia,
+            hasData: hasData,
+          });
+        }, 500);
+      };
+      kick();
+    } catch (_) {
+      try { window.__mpGuestResumeKickoff = false; } catch (_e) {}
+    }
   }
 
   function _siteOnboardingResumeAfterImportLeave() {
@@ -2282,7 +2301,11 @@
     if (!getToken()) return Promise.resolve();
     try {
       const gst = JSON.parse(sessionStorage.getItem('mp_guest_onboard_state') || '{}');
-      if (gst && gst.pendingResume) return Promise.resolve();
+      if (gst && gst.pendingResume) {
+        // Не пропускать: иначе после / → /home want-picker никогда не откроется.
+        resumeGuestOnboardingAfterAuth({ has_data: !!cabinetHasData });
+        return Promise.resolve();
+      }
     } catch (_) {}
     const readonly = document.getElementById('cabinet-readonly');
     if (!readonly || readonly.classList.contains('hidden')) return Promise.resolve();
@@ -7357,6 +7380,7 @@
         }
       } catch (_) {}
       showCabinetAfterLogin(me);
+      try { resumeGuestOnboardingAfterAuth(me); } catch (_) {}
       try { refreshBaseUserTagPills(); } catch (_) {}
       try {
         const params = new URLSearchParams(window.location.search);
