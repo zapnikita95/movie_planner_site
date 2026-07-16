@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260716cabtour1";
+  const OB_FLOW_V = "20260716return1";
 
   let _obKpImportPoll = null;
 
@@ -455,19 +455,29 @@
   }
 
 
+  function finishWithOnboardHandoff(deps, onComplete) {
+    dismissAllOnboardingLayers(deps);
+    clearState();
+    if (onComplete) onComplete();
+    if (typeof global.__mpCompleteOnboardHandoff === "function") {
+      global.__mpCompleteOnboardHandoff({ reason: "onboarding" });
+      return;
+    }
+    try {
+      sessionStorage.setItem("mp_force_home_tour", "1");
+      sessionStorage.setItem("mp_force_friends_invite", "1");
+    } catch (_e2) {}
+    deps.navigate("/", { replace: true });
+  }
+
   async function handoffToCabinetAfterImport(deps, st, meta, onComplete) {
     dismissAllOnboardingLayers(deps);
     try {
       await saveInterest(deps, buildInterestPayload(st, meta));
     } catch (_e) {}
-    try {
-      sessionStorage.setItem("mp_force_home_tour", "1");
-    } catch (_e2) {}
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
-    clearState();
-    if (onComplete) onComplete();
-    deps.navigate("/", { replace: true });
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   async function dismissPlanPickToHome(deps, st, meta, onComplete) {
@@ -475,9 +485,7 @@
     await saveInterest(deps, buildInterestPayload(st, meta));
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
-    clearState();
-    if (onComplete) onComplete();
-    deps.navigate("/", { replace: true });
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   async function finishOnboardingTail(deps, st, meta, onComplete) {
@@ -503,14 +511,9 @@
       st.recsHint = true;
       writeState(st);
     }
-    try {
-      sessionStorage.setItem("mp_force_home_tour", "1");
-    } catch (_eTour) {}
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
-    clearState();
-    if (onComplete) onComplete();
-    deps.navigate("/", { replace: true });
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   function onboardingSeedUrl(mediaType, genres, extra) {
@@ -3246,6 +3249,14 @@
       await deps.markFirstOnboardingDoneAsync();
       clearGuestState();
       clearState();
+      if (typeof global.__mpCompleteOnboardHandoff === "function") {
+        global.__mpCompleteOnboardHandoff({ reason: "guest_watched" });
+      } else {
+        try {
+          sessionStorage.setItem("mp_force_home_tour", "1");
+          sessionStorage.setItem("mp_force_friends_invite", "1");
+        } catch (_eTour) {}
+      }
       return true;
     }
 

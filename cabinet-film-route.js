@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260715stafffix1';
+  var BUILD = '20260716return1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -200,6 +200,11 @@
               global.MpFilmPage.refreshStandaloneAuthChrome({ kpId: kp, mainSelector: '#film-page-content' });
             } catch (_e2) {}
           }
+          ensureFullCabinet(function () {
+            if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
+              global.__mpScheduleContentPagePostAuthOffer();
+            }
+          });
         },
       });
     }

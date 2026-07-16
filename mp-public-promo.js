@@ -21,6 +21,22 @@
     try {
       var path = (global.location.pathname || '/') + (global.location.search || '');
       sessionStorage.setItem('mp_oauth_return', path);
+      if (typeof global.__mpWriteOnboardReturnFromLocation === 'function') {
+        global.__mpWriteOnboardReturnFromLocation();
+        return;
+      }
+      var pathOnly = (global.location.pathname || '/').replace(/\/$/, '') || '/';
+      var film = pathOnly.match(/^\/f\/(\d+)$/);
+      var staff = pathOnly.match(/^\/s\/(\d+)$/);
+      if (film) {
+        sessionStorage.setItem('mp_onboard_return', JSON.stringify({
+          type: 'film', id: film[1], path: '/f/' + film[1], savedAt: Date.now(),
+        }));
+      } else if (staff) {
+        sessionStorage.setItem('mp_onboard_return', JSON.stringify({
+          type: 'staff', id: staff[1], path: '/s/' + staff[1], savedAt: Date.now(),
+        }));
+      }
     } catch (_e) {}
   }
 

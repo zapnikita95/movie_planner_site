@@ -1681,13 +1681,14 @@
     document.querySelectorAll('.tour-highlight').forEach(function (el) {
       el.classList.remove('tour-highlight');
     });
-    const homeOv = document.getElementById('site-home-tour-overlay');
-    if (homeOv) {
-      if (homeOv._tourAbort) {
-        try { homeOv._tourAbort.abort(); } catch (_) {}
+    ['site-home-tour-overlay', 'site-content-tour-overlay'].forEach(function (id) {
+      const ov = document.getElementById(id);
+      if (!ov) return;
+      if (ov._tourAbort) {
+        try { ov._tourAbort.abort(); } catch (_) {}
       }
-      try { homeOv.remove(); } catch (_) {}
-    }
+      try { ov.remove(); } catch (_) {}
+    });
     const firstOv = document.getElementById('site-first-onboard-overlay');
     if (firstOv) {
       try { firstOv.remove(); } catch (_) {}
@@ -2268,6 +2269,7 @@
 
         function closeTour() {
           removeSiteTourUi();
+          void maybeShowOnboardFriendsInviteIfNeeded();
         }
 
         function renderStep() {
@@ -2322,6 +2324,11 @@
         return Promise.resolve();
       }
     } catch (_) {}
+    // На /f|/s не уводим в кабинетный онбординг автоматически — оффер «остаться / кабинет».
+    if (peekContentPageFromLocation()) {
+      scheduleContentPagePostAuthOffer();
+      return Promise.resolve();
+    }
     const readonly = document.getElementById('cabinet-readonly');
     if (!readonly || readonly.classList.contains('hidden')) return Promise.resolve();
 
@@ -2370,7 +2377,8 @@
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       renderHeader(me);
       openStaffPage(pathStaffEarly, { replace: true });
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/s/' + pathStaffEarly);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
     const pathUserEarly = userIdFromPathname(window.location.pathname) || userIdFromLocation();
@@ -2452,7 +2460,8 @@
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
 
@@ -2465,7 +2474,8 @@
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
 
@@ -2473,7 +2483,8 @@
       void uiToursEnsureHydrated(true);
       openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       const statsSection = document.getElementById('section-stats');
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
         try { mountStatsSection(); } catch (_) {}
@@ -2523,8 +2534,14 @@
         try { mountStatsSection(); } catch (_) {}
       }
       if (pathStaff || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
-      if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
-      else if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      if (pathStaff) {
+        writeOnboardReturnFromPath('/s/' + pathStaff);
+        scheduleContentPagePostAuthOffer();
+      } else if (scheduleOnboarding) {
+        scheduleSiteOnboardingAfterCabinet();
+      } else if (!cabinetHasData && !pathUserBoot && !pathFid) {
+        scheduleSiteOnboardingAfterCabinet();
+      }
     });
   }
 
@@ -2671,7 +2688,545 @@
       if (path && path !== '/') {
         sessionStorage.setItem('mp_oauth_return', path);
       }
+      writeOnboardReturnFromPath(path);
     } catch (_) {}
+  }
+
+  const ONBOARD_RETURN_KEY = 'mp_onboard_return';
+
+  function parseOnboardReturnPath(path) {
+    const pathOnly = String(path || '').split('?')[0].replace(/\/$/, '') || '/';
+    let m = pathOnly.match(/^\/f\/(\d+)$/);
+    if (m) return { type: 'film', id: m[1], path: '/f/' + m[1] };
+    m = pathOnly.match(/^\/s\/(\d+)$/);
+    if (m) return { type: 'staff', id: m[1], path: '/s/' + m[1] };
+    return null;
+  }
+
+  function writeOnboardReturnFromPath(path) {
+    const parsed = parseOnboardReturnPath(path);
+    if (!parsed) return null;
+    parsed.savedAt = Date.now();
+    try {
+      sessionStorage.setItem(ONBOARD_RETURN_KEY, JSON.stringify(parsed));
+    } catch (_) {}
+    return parsed;
+  }
+
+  function writeOnboardReturnFromLocation() {
+    return writeOnboardReturnFromPath((window.location.pathname || '/') + (window.location.search || ''));
+  }
+
+  function readOnboardReturn() {
+    try {
+      const raw = sessionStorage.getItem(ONBOARD_RETURN_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || !o.path || !o.type) return null;
+      if (o.savedAt && Date.now() - Number(o.savedAt) > 7 * 24 * 60 * 60 * 1000) {
+        sessionStorage.removeItem(ONBOARD_RETURN_KEY);
+        return null;
+      }
+      return o;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function clearOnboardReturn() {
+    try { sessionStorage.removeItem(ONBOARD_RETURN_KEY); } catch (_) {}
+  }
+
+  function peekContentPageFromLocation() {
+    return parseOnboardReturnPath(window.location.pathname || '/');
+  }
+
+  function guestOnboardResumePending() {
+    try {
+      const gst = JSON.parse(sessionStorage.getItem('mp_guest_onboard_state') || '{}');
+      return !!(gst && gst.pendingResume);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showMpStackedChoiceDialog(opts) {
+    const o = opts || {};
+    return new Promise(function (resolve) {
+      const overlay = document.createElement('div');
+      overlay.className = 'mp-dialog-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      const primary = o.primaryLabel || 'Продолжить';
+      const secondary = o.secondaryLabel || '';
+      overlay.innerHTML =
+        '<div class="mp-dialog-card" style="max-width:360px">' +
+          '<div class="modal-title">' + escapeHtml(o.title || '') + '</div>' +
+          '<p class="cabinet-hint" style="margin-top:8px">' + escapeHtml(o.text || '') + '</p>' +
+          '<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">' +
+            '<button type="button" class="btn btn-primary" id="mp-choice-primary">' + escapeHtml(primary) + '</button>' +
+            (secondary
+              ? '<button type="button" class="btn btn-secondary" id="mp-choice-secondary">' + escapeHtml(secondary) + '</button>'
+              : '') +
+          '</div>' +
+        '</div>';
+      function close(result) {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_) {}
+        resolve(result);
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close('dismiss');
+      });
+      overlay.querySelector('#mp-choice-primary').addEventListener('click', function () { close('primary'); });
+      const secBtn = overlay.querySelector('#mp-choice-secondary');
+      if (secBtn) secBtn.addEventListener('click', function () { close('secondary'); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  function getFilmPageTourSteps() {
+    return [
+      {
+        selector: '#add-btn',
+        text: 'Добавьте фильм в базу — чтобы не потерять и вернуться к нему позже.',
+      },
+      {
+        selector: '#rate-toggle-btn',
+        text: 'Уже смотрели? Поставьте оценку — так рекомендации становятся точнее.',
+      },
+      {
+        selector: '#plan-watch-btn',
+        text: 'Запланируйте просмотр дома или в кино — придёт напоминание.',
+      },
+      {
+        selector: '#share-film-btn',
+        text: 'Поделитесь с друзьями в Movie Planner — пригласите посмотреть вместе.',
+      },
+      {
+        selector: '#film-friends-social-block',
+        fallback: '#share-film-btn',
+        text: 'Здесь видны оценки друзей, если они тоже в Movie Planner.',
+      },
+    ];
+  }
+
+  function getStaffPageTourSteps() {
+    return [
+      {
+        selector: '.staff-filters, #staff-person-filters',
+        text: 'Фильтруйте фильмографию по году, жанру и сортируйте по оценке или дате.',
+      },
+      {
+        selector: '#staff-toggle-friends',
+        text: 'Фильтр «друзья хорошо оценили» — особенно полезен, когда друзья уже в Movie Planner.',
+      },
+      {
+        selector: '.staff-import-btn',
+        text: '«В базу» — добавить сразу все подходящие фильмы роли, не по одному.',
+      },
+    ];
+  }
+
+  function runSiteSpotlightTour(opts) {
+    opts = opts || {};
+    const steps = (opts.steps || []).filter(Boolean);
+    if (!steps.length) {
+      if (typeof opts.onDone === 'function') opts.onDone();
+      return Promise.resolve();
+    }
+    if (document.getElementById(opts.overlayId || 'site-content-tour-overlay')) {
+      return Promise.resolve();
+    }
+    return new Promise(function (resolve) {
+      removeSiteTourUi();
+      const TOUR_Z = 12040;
+      let idx = 0;
+      const overlay = document.createElement('div');
+      overlay.id = opts.overlayId || 'site-content-tour-overlay';
+      overlay.className = 'home-tour-overlay-root';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:' + TOUR_Z + ';pointer-events:none';
+
+      const shadeTop = document.createElement('div');
+      const shadeLeft = document.createElement('div');
+      const shadeRight = document.createElement('div');
+      const shadeBottom = document.createElement('div');
+      const ring = document.createElement('div');
+      [shadeTop, shadeLeft, shadeRight, shadeBottom].forEach(function (s) {
+        s.className = 'home-tour-shade';
+      });
+
+      const cardWrap = document.createElement('div');
+      cardWrap.className = 'home-tour-card-wrap';
+      cardWrap.innerHTML = ''
+        + '<div class="home-tour-card">'
+        + '<div class="home-tour-title">' + escapeHtml(opts.title || 'Подсказка') + '</div>'
+        + '<div class="home-tour-text" id="site-spotlight-tour-text"></div>'
+        + '<div class="home-tour-actions">'
+        + '<button type="button" class="btn btn-secondary" id="site-spotlight-tour-skip">Пропустить</button>'
+        + '<button type="button" class="btn btn-primary" id="site-spotlight-tour-next">Далее</button>'
+        + '</div></div>';
+
+      overlay.appendChild(shadeTop);
+      overlay.appendChild(shadeLeft);
+      overlay.appendChild(shadeRight);
+      overlay.appendChild(shadeBottom);
+      overlay.appendChild(ring);
+      overlay.appendChild(cardWrap);
+
+      function applyCardPlacement() {
+        cardWrap.style.cssText = [
+          'position:fixed',
+          'left:50%',
+          'transform:translateX(-50%)',
+          'width:min(520px,calc(100% - 24px))',
+          'max-width:520px',
+          'z-index:' + (TOUR_Z + 10),
+          'pointer-events:auto',
+          'box-sizing:border-box',
+          'bottom:calc(16px + env(safe-area-inset-bottom))',
+          'top:auto',
+        ].join(';');
+      }
+
+      const textEl = overlay.querySelector('#site-spotlight-tour-text');
+      const nextBtn = overlay.querySelector('#site-spotlight-tour-next');
+      const skipBtn = overlay.querySelector('#site-spotlight-tour-skip');
+
+      function paddedViewportRect(el, pad) {
+        const r = el.getBoundingClientRect();
+        const p = typeof pad === 'number' ? pad : 8;
+        const left = Math.max(0, r.left - p);
+        const top = Math.max(0, r.top - p);
+        const right = Math.min(window.innerWidth, r.right + p);
+        const bottom = Math.min(window.innerHeight, r.bottom + p);
+        return {
+          left: left,
+          top: top,
+          right: right,
+          bottom: bottom,
+          width: Math.max(0, right - left),
+          height: Math.max(0, bottom - top),
+        };
+      }
+
+      function applyFullDim() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+        shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + vh + 'px';
+        shadeLeft.style.cssText = 'display:none';
+        shadeRight.style.cssText = 'display:none';
+        shadeBottom.style.cssText = 'display:none';
+        ring.style.cssText = 'display:none';
+      }
+
+      function applyHole(rect) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (rect.width < 4 || rect.height < 4) {
+          applyFullDim();
+          return;
+        }
+        const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+        shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + rect.top + 'px';
+        shadeBottom.style.cssText = common + ';left:0;top:' + rect.bottom + 'px;width:' + vw + 'px;height:' + Math.max(0, vh - rect.bottom) + 'px';
+        shadeLeft.style.cssText = common + ';left:0;top:' + rect.top + 'px;width:' + rect.left + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+        shadeRight.style.cssText = common + ';left:' + rect.right + 'px;top:' + rect.top + 'px;width:' + Math.max(0, vw - rect.right) + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+        ring.style.cssText = [
+          'display:block',
+          'pointer-events:none',
+          'z-index:' + (TOUR_Z + 2),
+          'position:fixed',
+          'left:' + rect.left + 'px',
+          'top:' + rect.top + 'px',
+          'width:' + rect.width + 'px',
+          'height:' + rect.height + 'px',
+          'box-sizing:border-box',
+          'border:3px solid rgba(255,45,123,.92)',
+          'border-radius:14px',
+          'box-shadow:0 0 26px rgba(255,45,123,.32)',
+        ].join(';');
+      }
+
+      let scrollFrame = 0;
+      function syncSpotlight(targetEl) {
+        if (!targetEl || !document.body.contains(targetEl)) {
+          applyFullDim();
+          return;
+        }
+        targetEl.classList.add('tour-highlight');
+        try {
+          targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        } catch (_) {}
+        applyHole(paddedViewportRect(targetEl, 10));
+      }
+
+      function scheduleSync(targetEl) {
+        if (scrollFrame) cancelAnimationFrame(scrollFrame);
+        scrollFrame = requestAnimationFrame(function () {
+          scrollFrame = 0;
+          syncSpotlight(targetEl);
+        });
+      }
+
+      function resolveTarget(step) {
+        if (!step) return null;
+        let target = null;
+        String(step.selector || '').split(',').some(function (sel) {
+          const el = document.querySelector(sel.trim());
+          if (el && el.offsetParent !== null) {
+            target = el;
+            return true;
+          }
+          if (el) target = el;
+          return false;
+        });
+        if ((!target || target.offsetParent === null) && step.fallback) {
+          target = document.querySelector(step.fallback);
+        }
+        return target;
+      }
+
+      const tourAbort = new AbortController();
+      overlay._tourAbort = tourAbort;
+      window.addEventListener('scroll', function () {
+        scheduleSync(resolveTarget(steps[idx]));
+      }, { capture: true, passive: true, signal: tourAbort.signal });
+      window.addEventListener('resize', function () {
+        scheduleSync(resolveTarget(steps[idx]));
+      }, { signal: tourAbort.signal });
+
+      document.documentElement.classList.add('mp-site-home-tour-active');
+      document.body.appendChild(overlay);
+
+      function finish() {
+        removeSiteTourUi();
+        if (typeof opts.onDone === 'function') {
+          try { opts.onDone(); } catch (_) {}
+        }
+        resolve();
+      }
+
+      function renderStep() {
+        document.querySelectorAll('.tour-highlight').forEach(function (el) {
+          el.classList.remove('tour-highlight');
+        });
+        const step = steps[idx];
+        if (!step) {
+          finish();
+          return;
+        }
+        textEl.textContent = step.text;
+        nextBtn.textContent = idx === steps.length - 1 ? 'Понятно' : 'Далее';
+        applyCardPlacement();
+        const runSpotlight = function () {
+          const target = resolveTarget(step);
+          if (target) scheduleSync(target);
+          else applyFullDim();
+        };
+        if (step.before) {
+          const delay = step.before();
+          setTimeout(runSpotlight, typeof delay === 'number' ? delay : 200);
+        } else {
+          runSpotlight();
+        }
+      }
+
+      nextBtn.addEventListener('click', function () {
+        idx += 1;
+        renderStep();
+      });
+      skipBtn.addEventListener('click', finish);
+      applyCardPlacement();
+      renderStep();
+    });
+  }
+
+  function startContextualPageTour(page) {
+    const p = page || peekContentPageFromLocation() || readOnboardReturn();
+    if (!p) return Promise.resolve();
+    const isFilm = p.type === 'film';
+    return runSiteSpotlightTour({
+      overlayId: 'site-content-tour-overlay',
+      title: isFilm ? 'Страница фильма' : 'Страница актёра',
+      steps: isFilm ? getFilmPageTourSteps() : getStaffPageTourSteps(),
+    });
+  }
+
+  function showOnboardFriendsInviteStep(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      try {
+        if (!opts.force && sessionStorage.getItem('mp_force_friends_invite') !== '1') {
+          resolve();
+          return;
+        }
+        sessionStorage.removeItem('mp_force_friends_invite');
+      } catch (_) {}
+      if (!getToken() || !cabinetUserId) {
+        resolve();
+        return;
+      }
+      const overlay = document.createElement('div');
+      overlay.className = 'mp-dialog-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      overlay.innerHTML =
+        '<div class="mp-dialog-card" style="max-width:360px">' +
+          '<div class="modal-title">Добавьте друзей</div>' +
+          '<p class="cabinet-hint" style="margin-top:8px">' +
+            'Скопируйте ссылку и отправьте друзьям. За приглашения — монетки. Их можно тратить на нейросети, улучшенное отслеживание сериалов и другие функции сервиса.' +
+          '</p>' +
+          '<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">' +
+            '<button type="button" class="btn btn-primary" id="mp-ob-invite-copy">Скопировать ссылку</button>' +
+            '<button type="button" class="btn btn-secondary" id="mp-ob-invite-later">Позже</button>' +
+          '</div>' +
+        '</div>';
+      function close() {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_) {}
+        resolve();
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close();
+      });
+      overlay.querySelector('#mp-ob-invite-later').addEventListener('click', close);
+      overlay.querySelector('#mp-ob-invite-copy').addEventListener('click', function () {
+        void shareFriendInviteLink().then(function () { close(); }).catch(function () { close(); });
+      });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  function maybeShowOnboardFriendsInviteIfNeeded() {
+    try {
+      if (sessionStorage.getItem('mp_force_friends_invite') === '1') {
+        return showOnboardFriendsInviteStep({ force: true });
+      }
+    } catch (_) {}
+    return Promise.resolve();
+  }
+
+  function goCabinetAfterContentChoice() {
+    clearOnboardReturn();
+    try {
+      sessionStorage.setItem('mp_force_friends_invite', '1');
+      if (uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+      }
+    } catch (_) {}
+    window.location.assign('/home');
+  }
+
+  function completeOnboardHandoff(opts) {
+    opts = opts || {};
+    const ret = readOnboardReturn();
+    if (!ret) {
+      try {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+        sessionStorage.setItem('mp_force_friends_invite', '1');
+      } catch (_) {}
+      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (cur !== '/home' && cur !== '/') {
+        window.location.assign('/home');
+        return;
+      }
+      scheduleForcedHomeTourIfNeeded();
+      return;
+    }
+    const isFilm = ret.type === 'film';
+    const pageLabel = isFilm ? 'фильму' : 'актёру';
+    void showMpStackedChoiceDialog({
+      title: 'Куда дальше?',
+      text: 'Можно продолжить знакомство с кабинетом или вернуться к ' + pageLabel +
+        ' — там покажем, что можно сделать прямо на странице.',
+      primaryLabel: isFilm ? 'Вернуться к фильму' : 'Вернуться к актёру',
+      secondaryLabel: 'Продолжить в кабинете',
+    }).then(function (choice) {
+      if (choice === 'primary') {
+        try {
+          sessionStorage.setItem('mp_force_content_tour', '1');
+          sessionStorage.setItem('mp_force_friends_invite', '1');
+        } catch (_) {}
+        const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (cur !== ret.path) {
+          window.location.assign(ret.path);
+          return;
+        }
+        void startContextualPageTour(ret).then(function () {
+          return showOnboardFriendsInviteStep({ force: true });
+        });
+        return;
+      }
+      try {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+        sessionStorage.setItem('mp_force_friends_invite', '1');
+      } catch (_) {}
+      clearOnboardReturn();
+      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (cur !== '/home' && cur !== '/') {
+        window.location.assign('/home');
+        return;
+      }
+      scheduleForcedHomeTourIfNeeded();
+    });
+  }
+
+  let _contentPageOfferScheduled = false;
+  function scheduleContentPagePostAuthOffer() {
+    if (_contentPageOfferScheduled) return;
+    _contentPageOfferScheduled = true;
+    setTimeout(function () {
+      _contentPageOfferScheduled = false;
+      void maybeOfferContentPagePostAuth();
+    }, 900);
+  }
+
+  async function maybeOfferContentPagePostAuth() {
+    if (!getToken()) return;
+    if (guestOnboardResumePending()) return;
+    const page = peekContentPageFromLocation();
+    if (!page) return;
+    writeOnboardReturnFromPath(page.path);
+
+    try {
+      if (sessionStorage.getItem('mp_force_content_tour') === '1') {
+        sessionStorage.removeItem('mp_force_content_tour');
+        await startContextualPageTour(page);
+        await showOnboardFriendsInviteStep({ force: true });
+        return;
+      }
+    } catch (_) {}
+
+    const offerKey = 'mp_content_onboard_offer_' + page.type + '_' + page.id;
+    try {
+      if (sessionStorage.getItem(offerKey) === '1') return;
+    } catch (_) {}
+
+    await uiToursEnsureHydrated();
+    if (uiTourIsDone(UI_TOUR_KEYS.onboarding) && cabinetHasData) return;
+
+    try { sessionStorage.setItem(offerKey, '1'); } catch (_) {}
+    const isFilm = page.type === 'film';
+    const choice = await showMpStackedChoiceDialog({
+      title: 'Добро пожаловать!',
+      text: isFilm
+        ? 'Вы на странице фильма. Можно настроить базу в кабинете — или остаться здесь и сразу попробовать кнопки.'
+        : 'Вы на странице актёра. Можно настроить базу в кабинете — или остаться здесь и посмотреть фильтры и быстрый импорт.',
+      primaryLabel: 'Остаться на странице',
+      secondaryLabel: 'Настроить кабинет',
+    });
+    if (choice === 'primary') {
+      await startContextualPageTour(page);
+      await showOnboardFriendsInviteStep({ force: true });
+      return;
+    }
+    if (choice === 'secondary') {
+      goCabinetAfterContentChoice();
+    }
   }
 
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
@@ -7409,6 +7964,11 @@
       showCabinetAfterLogin(me);
       try { resumeGuestOnboardingAfterAuth(me); } catch (_) {}
       try { scheduleForcedHomeTourIfNeeded(); } catch (_) {}
+      try {
+        if (sessionStorage.getItem('mp_force_content_tour') === '1') {
+          scheduleContentPagePostAuthOffer();
+        }
+      } catch (_) {}
       try { refreshBaseUserTagPills(); } catch (_) {}
       try {
         const params = new URLSearchParams(window.location.search);
@@ -21085,6 +21645,9 @@
     window.showLoginModalOverlay = showLoginModalOverlay;
     window._mpDismissLoginModal = dismissLoginModal;
     window._mpApplySiteSessionLogin = applySiteSessionLogin;
+    window.__mpCompleteOnboardHandoff = completeOnboardHandoff;
+    window.__mpScheduleContentPagePostAuthOffer = scheduleContentPagePostAuthOffer;
+    window.__mpWriteOnboardReturnFromLocation = writeOnboardReturnFromLocation;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
