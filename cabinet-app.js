@@ -2349,6 +2349,18 @@
     }, 700);
   }
 
+  /** После импорта/онбординга — тур даже если у пользователя уже has_data. */
+  function scheduleForcedHomeTourIfNeeded() {
+    try {
+      if (sessionStorage.getItem('mp_force_home_tour') !== '1') return;
+    } catch (_) {
+      return;
+    }
+    setTimeout(function () {
+      void maybeStartSiteHomeTour({ force: true });
+    }, 900);
+  }
+
   function showCabinetAfterLogin(me) {
     const pathStaffEarly = staffIdFromPathname(window.location.pathname);
     if (pathStaffEarly && me) {
@@ -7396,6 +7408,7 @@
       } catch (_) {}
       showCabinetAfterLogin(me);
       try { resumeGuestOnboardingAfterAuth(me); } catch (_) {}
+      try { scheduleForcedHomeTourIfNeeded(); } catch (_) {}
       try { refreshBaseUserTagPills(); } catch (_) {}
       try {
         const params = new URLSearchParams(window.location.search);
