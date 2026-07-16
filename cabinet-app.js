@@ -1795,7 +1795,16 @@
       markFirstOnboardingDoneAsync: function () {
         return uiTourMarkDone(UI_TOUR_KEYS.onboarding);
       },
-      markOnboardingSessionComplete: function () {},
+      markOnboardingSessionComplete: function () {
+        try { sessionStorage.setItem('mp_force_home_tour', '1'); } catch (_) {}
+        try {
+          showSection('home', { replace: true, skipPush: true });
+        } catch (_) {}
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+        setTimeout(function () {
+          void maybeStartSiteHomeTour({ force: true });
+        }, 600);
+      },
       posterUrl: function (kp) { return posterUrl(kp); },
       hapticImpact: function () {},
       toast: showToast,
@@ -2019,57 +2028,63 @@
 
   function getSiteHomeTourSteps() {
     return [
-      { selector: '#header-search', text: 'Поиск фильмов и сериалов — добавляйте в базу прямо с сайта.' },
-      { selector: '#cabinet-user-hero', text: 'Ваш профиль: имя, аватар и переход в настройки.' },
-      { selector: '#inbox-fab', text: 'Уведомления: приглашения, планы и напоминания поставить оценку.' },
-      { selector: '.cabinet-nav', text: 'Разделы кабинета: главная, планы, премьеры, база, подбор и турнир.' },
-      { selector: '#home-quick-actions', text: 'Быстрые кнопки: случайный фильм, подбор по описанию и голосовой ввод.' },
+      {
+        selector: '#header-search',
+        text: 'Поиск — найдите фильм или сериал и добавьте в свою базу.',
+      },
       {
         selector: '#home-dashboard-root .home-dash-block',
         fallback: '#home-dashboard-root',
-        text: 'Блоки на главной: планы, непросмотренное, сериалы и премьеры. Настраиваются в шестерёнке.',
+        text: 'Главная: планы, непросмотренное, сериалы и премьеры. Блоки можно настроить в шестерёнке.',
       },
       {
-        selector: '#section-plans .cabinet-plans-toolbar',
-        before: function () {
-          showSection('plans', { replace: true, skipPush: true });
-          try { renderPlansList && renderPlansList(); } catch (_) {}
-          return 280;
-        },
-        text: 'Планы: добавляйте фильмы в базу и смотрите ближайшие сеансы дома и в кино.',
-      },
-      {
-        selector: '.cabinet-nav-btn[data-section="whattowatch"]',
-        before: function () {
-          showSection('home', { replace: true, skipPush: true });
-          return 180;
-        },
-        text: '«Что посмотреть» — случайный выбор и мастер по жанрам, если не знаете, что включить.',
+        selector: '#home-quick-actions',
+        text: 'Быстрый старт: случайный фильм, подбор по описанию и голосовой ввод.',
       },
       {
         selector: '.cabinet-nav-btn[data-section="unwatched"]',
-        text: '«База» — непросмотренные, сериалы и все ваши оценки.',
+        text: '«База» — непросмотренные, сериалы и ваши оценки.',
       },
       {
-        selector: '.cabinet-nav-btn[data-section="tournament"]',
-        before: function () {
-          showSection('home', { replace: true, skipPush: true });
-          return 180;
-        },
-        text: 'Турнир киноманов: оценки, походы в кино и сериалы — топ-3 каждый месяц получают монетки.',
+        selector: '.cabinet-nav-btn[data-section="whattowatch"]',
+        text: '«Что посмотреть» — если не знаете, что включить сегодня.',
+      },
+      {
+        selector: '#cabinet-user-hero',
+        text: 'Профиль и настройки: уведомления, импорт и внешний вид кабинета.',
+      },
+      {
+        selector: '#inbox-fab',
+        text: 'Входящие: приглашения, планы и напоминания поставить оценку.',
       },
     ];
   }
 
-  function maybeStartSiteHomeTour() {
+  function maybeStartSiteHomeTour(opts) {
+    opts = opts || {};
     return uiToursEnsureHydrated().then(function () {
-      if (uiTourIsDone(UI_TOUR_KEYS.home)) return;
+      let force = !!opts.force;
+      try {
+        if (sessionStorage.getItem('mp_force_home_tour') === '1') {
+          force = true;
+          sessionStorage.removeItem('mp_force_home_tour');
+        }
+      } catch (_) {}
+      if (!force && uiTourIsDone(UI_TOUR_KEYS.home)) return;
       if (document.getElementById('site-home-tour-overlay')) return;
       const readonly = document.getElementById('cabinet-readonly');
       const secHome = document.getElementById('section-home');
       if (!readonly || readonly.classList.contains('hidden')) return;
       if (!secHome || secHome.classList.contains('hidden')) {
         try { showSection('home', { replace: true, skipPush: true }); } catch (_) {}
+      }
+
+      if (force) {
+        try {
+          localStorage.removeItem(uiTourScopedKey(UI_TOUR_KEYS.home));
+          localStorage.removeItem(UI_TOUR_KEYS.home);
+          if (_uiTourServerDone) _uiTourServerDone[UI_TOUR_KEYS.home] = false;
+        } catch (_) {}
       }
 
       return uiTourMarkDone(UI_TOUR_KEYS.home).then(function () {
@@ -2097,7 +2112,7 @@
         cardWrap.className = 'home-tour-card-wrap';
         cardWrap.innerHTML = ''
           + '<div class="home-tour-card">'
-          + '<div class="home-tour-title">Короткий тур по кабинету</div>'
+          + '<div class="home-tour-title">Ваш кабинет</div>'
           + '<div class="home-tour-text" id="site-home-tour-text"></div>'
           + '<div class="home-tour-actions">'
           + '<button type="button" class="btn btn-secondary" id="site-home-tour-skip">Пропустить</button>'

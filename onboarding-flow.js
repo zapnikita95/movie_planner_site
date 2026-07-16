@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260716lbimport1";
+  const OB_FLOW_V = "20260716cabtour1";
 
   let _obKpImportPoll = null;
 
@@ -454,6 +454,22 @@
     );
   }
 
+
+  async function handoffToCabinetAfterImport(deps, st, meta, onComplete) {
+    dismissAllOnboardingLayers(deps);
+    try {
+      await saveInterest(deps, buildInterestPayload(st, meta));
+    } catch (_e) {}
+    try {
+      sessionStorage.setItem("mp_force_home_tour", "1");
+    } catch (_e2) {}
+    await deps.markFirstOnboardingDoneAsync();
+    if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
+    clearState();
+    if (onComplete) onComplete();
+    deps.navigate("/", { replace: true });
+  }
+
   async function dismissPlanPickToHome(deps, st, meta, onComplete) {
     dismissAllOnboardingLayers(deps);
     await saveInterest(deps, buildInterestPayload(st, meta));
@@ -487,10 +503,14 @@
       st.recsHint = true;
       writeState(st);
     }
+    try {
+      sessionStorage.setItem("mp_force_home_tour", "1");
+    } catch (_eTour) {}
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
     clearState();
     if (onComplete) onComplete();
+    deps.navigate("/", { replace: true });
   }
 
   function onboardingSeedUrl(mediaType, genres, extra) {
@@ -962,16 +982,16 @@
                 : "IMDb";
         return (
           '<div class="mp-onboard-import-started">' +
-          '<p class="mp-onboard-text"><strong>Импорт начат</strong></p>' +
+          '<p class="mp-onboard-text"><strong>Импорт идёт</strong></p>' +
           '<p class="muted small" style="margin-top:8px;line-height:1.45">Оценки с ' +
           deps.escapeHtml(src) +
-          " подтянем в фоне — можно настроить приложение.</p>" +
+          " подтянем в фоне. Можно сразу открыть кабинет — покажем, где база, поиск и «что посмотреть».</p>" +
           (coinsAdvance > 0
             ? '<p class="mp-onboard-text" style="margin-top:10px"><strong>+' +
               coinsAdvance +
               " монеток</strong> уже на балансе.</p>"
             : "") +
-          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Начать</button>' +
+          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Продолжить в кабинет</button>' +
           "</div>"
         );
       }
@@ -2752,8 +2772,7 @@
     }
 
     if (importInProgress) {
-      dismissAllOnboardingLayers(deps);
-      if (onComplete) onComplete();
+      await handoffToCabinetAfterImport(deps, st, meta, onComplete);
       return;
     }
 
