@@ -1875,7 +1875,22 @@
       window.__mpMountGuestOnboarding(_siteGuestOnboardingDeps(), function () {});
       return;
     }
-    showLoginModalOverlay();
+    // onboarding-flow.js ещё не подгрузился — подождём, не сбрасываем в голый логин
+    let tries = 0;
+    const wait = setInterval(function () {
+      tries += 1;
+      if (typeof window.__mpMountGuestOnboarding === 'function') {
+        clearInterval(wait);
+        window.__mpMountGuestOnboarding(_siteGuestOnboardingDeps(), function () {});
+        return;
+      }
+      if (tries >= 40) {
+        clearInterval(wait);
+        try { showToast('Не удалось открыть онбординг. Обновите страницу.', { type: 'error' }); } catch (_) {}
+        setLoginAuthTab('register');
+        showLoginModalOverlay();
+      }
+    }, 100);
   }
 
   function resumeGuestOnboardingAfterAuth(data) {
@@ -2550,6 +2565,9 @@
     }
     if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
     if (err === 'already_used') return 'Код уже использован — нажмите «Войти» ещё раз или запросите новый код.';
+    if (err === 'bad_code' || err === 'http_401') return 'Неверный код. Проверьте почту и попробуйте ещё раз.';
+    if (err === 'privacy_required') return 'Отметьте согласие с политикой конфиденциальности';
+    if (err === 'email_send_failed') return 'Не удалось отправить письмо. Попробуйте позже или войдите через Яндекс.';
     return fallback || 'Не удалось войти';
   }
 
@@ -7205,12 +7223,12 @@
             body: JSON.stringify({ email, code, for_site: true }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
+            setRegStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
             return;
           }
           const sessionData = siteSessionFromAuthPayload(verifyData) || await exchangeSiteSessionFromAccess(verifyData);
           if (!sessionData || !sessionData.token) {
-            setStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
+            setRegStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
             return;
           }
           await applyDisplayNameIfNeeded(sessionData.token, registrationName());

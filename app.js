@@ -4952,7 +4952,7 @@
         try {
           const verifyData = await authApiJson('/api/auth/email/verify', {
             method: 'POST',
-            body: JSON.stringify({ email, code }),
+            body: JSON.stringify({ email, code, for_site: true }),
           });
           if (!verifyData.success || !verifyData.access) {
             setRegStatus(verifyData.message || verifyData.error || 'Неверный код', 'error');
