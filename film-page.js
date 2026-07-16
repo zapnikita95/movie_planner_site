@@ -2405,9 +2405,10 @@
       }
       var publicFilmCountry = '';
       function buildPublicCastSkeletonHtml() {
+        // Только режиссёр в скелете — строку «Актёры» не рисуем, пока API не подтвердил состав
+        // (анимация и т.п. часто без актёров).
         return '<div class="film-cast-skeleton">' +
           '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
-          '<div class="film-cast-row film-cast-actors" style="margin-top:6px"><span class="film-cast-label">Актёры:</span> <span class="film-cast-skel-line film-cast-skel-line-wide"></span></div>' +
         '</div>';
       }
       function applyPublicCastPayload(d) {
