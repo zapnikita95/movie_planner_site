@@ -3775,6 +3775,8 @@
       weekend_digest: 'Подборка',
       tournament_month_results: 'Турнир',
       import_episodes_done: 'Сериалы',
+      admin_message: 'Movie Planner',
+      payment_receipt: 'Чек',
     };
     if (map[k]) return map[k];
     const raw = String(k || '').replace(/_/g, ' ').trim();
