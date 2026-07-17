@@ -807,7 +807,11 @@
       if (!chatId) return false;
       var name = params.get('name') || 'Профиль';
       try { name = decodeURIComponent(name); } catch (_e) {}
-      finishLogin({ token: tok, chat_id: chatId, name: name, has_data: false, is_personal: true });
+      var payload = { token: tok, chat_id: chatId, name: name, is_personal: true };
+      var hd = params.get('has_data');
+      if (hd === '1' || hd === 'true') payload.has_data = true;
+      else if (hd === '0' || hd === 'false') payload.has_data = false;
+      finishLogin(payload);
       history.replaceState({}, '', location.pathname + location.search);
       return true;
     } catch (_e) {

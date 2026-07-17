@@ -3543,9 +3543,12 @@
         token: tok,
         chat_id: chatId,
         name: name,
-        has_data: false,
         is_personal: true,
       };
+      // Server sends has_data=0|1; omit when absent so we don't wipe a known-true session.
+      const hd = params.get('has_data');
+      if (hd === '1' || hd === 'true') data.has_data = true;
+      else if (hd === '0' || hd === 'false') data.has_data = false;
       const modal = document.getElementById('login-modal');
       const r = applySiteSessionLogin(data, modal, null);
       if (!r.ok) {
@@ -15596,8 +15599,10 @@
       .then((data) => {
         if (!data || !data.success) {
           if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+          const errMsg = (data && data.error) || 'Не удалось добавить фильм.';
           const status = document.getElementById('add-film-status');
-          if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
+          if (status) { status.textContent = errMsg; status.className = 'add-film-status error'; }
+          try { showToast(errMsg, { type: 'error' }); } catch (_) {}
           return;
         }
         if (btn) {
@@ -15618,6 +15623,7 @@
       })
       .catch(() => {
         if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+        try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
       });
   }
 
@@ -16890,9 +16896,15 @@
               } else {
                 addBtn.disabled = false;
                 addBtn.textContent = prev;
+                const errMsg = (data && data.error) || 'Не удалось добавить фильм.';
+                try { showToast(errMsg, { type: 'error' }); } catch (_) {}
               }
             })
-            .catch(() => { addBtn.disabled = false; addBtn.textContent = prev; });
+            .catch(() => {
+              addBtn.disabled = false;
+              addBtn.textContent = prev;
+              try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
+            });
           return;
         }
         const row = e.target.closest('.hs-result[data-hs-row-kp]');
@@ -17260,11 +17272,13 @@
             } else {
               addBtn.disabled = false;
               addBtn.textContent = 'Добавить в базу';
+              try { showToast((r && r.error) || 'Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
             }
           })
           .catch(() => {
             addBtn.disabled = false;
             addBtn.textContent = 'Добавить в базу';
+            try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
           });
       });
     }
