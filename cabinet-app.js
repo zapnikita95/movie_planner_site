@@ -8103,14 +8103,13 @@
       _cabinetMeCache = me;
       try { window._mpApiAuthDegraded = false; } catch (_) {}
       renderHeader(me);
-      void maybeShowAchievementCelebrations();
       updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
       refreshGroupSuggestions(me);
       updateGroupContextFab();
-      loadExtensionConfig();
-      wireCabinetFooterApps();
-      loadTvSettings();
+      // Capacity: keep /me → home critical path lean. TV/config/apps/achievements
+      // compete with dashboard+rails for the same 8–12 gunicorn threads.
+      deferNonCriticalCabinetBoot();
       try {
         const pending = localStorage.getItem('mp_pending_invite_token');
         if (pending) {
@@ -8183,6 +8182,20 @@
         else loadMeAndShowCabinet();
       });
     });
+  }
+
+  function deferNonCriticalCabinetBoot() {
+    const run = function () {
+      try { void maybeShowAchievementCelebrations(); } catch (_) {}
+      try { loadExtensionConfig(); } catch (_) {}
+      try { wireCabinetFooterApps(); } catch (_) {}
+      try { loadTvSettings(); } catch (_) {}
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(run, { timeout: 4500 });
+    } else {
+      setTimeout(run, 2200);
+    }
   }
 
   function wireCabinetFooterApps() {
@@ -8870,7 +8883,7 @@
             metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
           },
         });
-      }, idx * 220);
+      }, idx * 380);
     });
     decorateHomePosterPreviews(root);
   }
@@ -9535,24 +9548,34 @@
             fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
           ]
         : [
+            // Capacity: tournament leaderboard is deferred (idle) — do not compete with dashboard+rails.
             fetchHomePremierePreview(),
-            fetchLoggedHomeSeed(),
           ]
     )
       .then((pair) => {
         const prem = pair[0];
-        const seedData = isGuestCabinetPreview() ? null : pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         if (isGuestCabinetPreview()) {
           _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
-        }
-        if (seedData && !isGuestCabinetPreview()) {
-          _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
-          writeHomeDashboardBrowserCache(_homeDashboardCache);
-          if (seedData.tournament_leaderboard) {
-            _siteTournamentLiveCache = seedData.tournament_leaderboard;
-            paintHomeTournamentBlock();
+        } else {
+          const paintTournamentSeed = function (seedData) {
+            if (!seedData) return;
+            _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
+            writeHomeDashboardBrowserCache(_homeDashboardCache);
+            if (seedData.tournament_leaderboard) {
+              _siteTournamentLiveCache = seedData.tournament_leaderboard;
+              paintHomeTournamentBlock();
+            }
+          };
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(function () {
+              fetchLoggedHomeSeed().then(paintTournamentSeed).catch(function () {});
+            }, { timeout: 5000 });
+          } else {
+            setTimeout(function () {
+              fetchLoggedHomeSeed().then(paintTournamentSeed).catch(function () {});
+            }, 2500);
           }
         }
         if (!isGuestCabinetPreview()) {
