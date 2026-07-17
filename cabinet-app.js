@@ -3141,7 +3141,7 @@
       const existing = document.querySelector('script[src*="onboarding-flow.js"]');
       if (!existing) {
         const s = document.createElement('script');
-        s.src = '/onboarding-flow.js?v=20260716return2'; // keep in sync with index.html pin
+        s.src = '/onboarding-flow.js?v=20260717flow1'; // keep in sync with index.html pin
         s.async = true;
         s.onload = function () { /* wait below */ };
         s.onerror = function () { resolve(false); };
@@ -13025,7 +13025,8 @@
         + '</div>';
     }
     if (st.showMarkUpTo && st.selected) {
-      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">Отметить до выбранной</button>';
+      const markLabel = st.markMode === 'up_to' ? 'Отметить до выбранной' : 'Отметить серию';
+      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">' + markLabel + '</button>';
     }
     return html;
   }
@@ -13052,7 +13053,7 @@
       btn.addEventListener('click', function () {
         const season = parseInt(btn.getAttribute('data-series-ep-season'), 10);
         const episode = parseInt(btn.getAttribute('data-series-ep'), 10);
-        if (!season || !episode) return;
+        if (!Number.isFinite(season) || !Number.isFinite(episode) || season < 1 || episode < 1) return;
         const progress = state.progress || {};
         const next = seriesNextUnwatchedEp(progress);
         const last = seriesLastWatchedEp(progress);
@@ -13070,6 +13071,7 @@
             state.progress = seriesProgressFromPayload(data);
             state.selected = null;
             state.showMarkUpTo = false;
+            state.markMode = null;
             applySeriesProgressToFilm(film, state.progress);
             updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
             if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
@@ -13094,6 +13096,7 @@
             state.progress = seriesProgressFromPayload(data);
             state.selected = null;
             state.showMarkUpTo = false;
+            state.markMode = null;
             applySeriesProgressToFilm(film, state.progress);
             updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
             if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
@@ -13105,8 +13108,11 @@
           });
           return;
         }
+        // Any other unwatched ep: always show a mark action (was dead-select before/without next).
         state.selected = { season: season, episode: episode };
-        state.showMarkUpTo = !watched && next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode);
+        const afterNext = !!(next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode));
+        state.showMarkUpTo = true;
+        state.markMode = afterNext ? 'up_to' : 'single';
         rerender();
       });
     });
@@ -13116,23 +13122,26 @@
         if (!state.selected || state.pending) return;
         const season = state.selected.season;
         const episode = state.selected.episode;
+        const upTo = state.markMode === 'up_to';
         state.pending = true;
         rerender();
         api('/api/site/series/' + film.film_id + '/episodes/mark', {
           method: 'POST',
-          body: JSON.stringify({ season: season, episode: episode, mark_all_previous: true }),
+          body: JSON.stringify({ season: season, episode: episode, mark_all_previous: upTo }),
           timeoutMs: 60000,
         }).then(function (data) {
           if (!data || !data.success) throw new Error((data && data.error) || 'error');
-          showToast('Отмечено серий: ' + (data.marked_count || 0));
+          if (upTo) showToast('Отмечено серий: ' + (data.marked_count || 0));
+          else showToast('Отмечена ' + seriesEpisodeCode(season, episode));
           state.progress = seriesProgressFromPayload(data);
           state.selected = null;
           state.showMarkUpTo = false;
+          state.markMode = null;
           applySeriesProgressToFilm(film, state.progress);
           updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
           if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
         }).catch(function () {
-          showToast('Не удалось отметить серии', { type: 'error' });
+          showToast(upTo ? 'Не удалось отметить серии' : 'Не удалось отметить серию', { type: 'error' });
         }).finally(function () {
           state.pending = false;
           rerender();

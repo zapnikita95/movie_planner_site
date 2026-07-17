@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260716return2";
+  const OB_FLOW_V = "20260717flow1";
 
   let _obKpImportPoll = null;
 
@@ -176,8 +176,8 @@
     const t = String(it.title || "").trim();
     if (!t || t === "—") return false;
     if (!it.poster_ok) return false;
-    if (t === "1+1") return true;
-    return /[а-яА-ЯёЁ]/.test(t);
+    // RU preferred, but EN/Latin titles must still be pickable (empty grid was a real bug).
+    return true;
   }
 
   function obClientLog(deps, event, details) {
@@ -1696,10 +1696,15 @@
 
       function syncConfirmState() {
         const confirm = ov.querySelector("#ob-pick-confirm");
-        const hasSel = selected.size > 0;
+        const need = Math.max(1, Number(minSelection) || 1);
+        const ready = selected.size >= need;
         if (confirm) {
-          confirm.disabled = !hasSel;
-          confirm.classList.toggle("btn-disabled", !hasSel);
+          confirm.disabled = !ready;
+          confirm.classList.toggle("btn-disabled", !ready);
+          if (need > 1) {
+            const base = String(opts.confirmLabel || "Подтвердить");
+            confirm.textContent = ready ? base : base + " (" + selected.size + "/" + need + ")";
+          }
         }
       }
 
@@ -3167,10 +3172,8 @@
     const isNewReg = authVia === "register";
 
     if (gst.path === "premieres") {
+      // Resume for both Register and Login — guest already chose the path.
       clearGuestState();
-      if (!isNewReg) {
-        return false;
-      }
       clearState();
       writeState({
         interests: gst.interests || [],
@@ -3190,10 +3193,8 @@
     }
 
     if (gst.path === "import") {
+      // Resume for both Register and Login (Login used to drop the whole import).
       clearGuestState();
-      if (!isNewReg) {
-        return false;
-      }
       clearState();
       writeState({
         interests: gst.interests || [],
