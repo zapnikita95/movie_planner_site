@@ -1878,6 +1878,8 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     backdrop-filter: blur(14px);
     overflow: visible;
   }
+  /* Auth mobile: 4 tabs — Планы / База / Смотреть / В тренде (Главная — по логотипу) */
+  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="home"],
   body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="premieres"],
   body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="tournament"] {
     display: none !important;
@@ -1899,10 +1901,10 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     white-space: normal;
     text-align: center;
   }
-  body.in-cabinet .cabinet-nav-btn[data-section="home"] { order: 1; }
-  body.in-cabinet .cabinet-nav-btn[data-section="plans"] { order: 2; }
-  body.in-cabinet .cabinet-nav-btn[data-section="unwatched"] { order: 3; }
-  body.in-cabinet .cabinet-nav-btn[data-section="whattowatch"] { order: 4; }
+  body.in-cabinet .cabinet-nav-btn[data-section="plans"] { order: 1; }
+  body.in-cabinet .cabinet-nav-btn[data-section="unwatched"] { order: 2; }
+  body.in-cabinet .cabinet-nav-btn[data-section="whattowatch"] { order: 3; }
+  body.in-cabinet .cabinet-nav-btn[data-section="buzz"] { order: 4; }
   body.in-cabinet .cabinet-nav-btn.active {
     color: #ff2d7b;
     border: 0;
@@ -2226,14 +2228,19 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     backdrop-filter: blur(14px);
     overflow: visible;
   }
-  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
-  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(6),
-  body.landing-root-page #landing-root-nav .cabinet-nav-btn:nth-child(3),
-  body.landing-root-page #landing-root-nav .cabinet-nav-btn:nth-child(6),
-  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
-  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(6),
-  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(3),
-  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn:nth-child(6) {
+  /* Guest mobile: 4 tabs — Планы / Смотреть / Премьеры / В тренде (лого → лендинг /) */
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn[href="/home"],
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn[href="/watchlist"],
+  body.landing-root-page #landing-root-nav .cabinet-nav-btn[href="/tournament"],
+  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/home"],
+  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/watchlist"],
+  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/tournament"],
+  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/home"],
+  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/watchlist"],
+  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/tournament"],
+  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/home"],
+  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/watchlist"],
+  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href="/tournament"] {
     display: none !important;
   }
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn,
@@ -5876,6 +5883,48 @@ main.film-page .film-page-similar-section,
   font-size: 12px;
   line-height: 1.4;
   opacity: 0.85;
+}
+.buzz-digest {
+  margin: 22px 0 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.buzz-digest-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--text-primary, #fff);
+}
+.buzz-digest-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.buzz-digest-email {
+  flex: 1 1 180px;
+  min-width: 160px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  font-family: inherit;
+}
+.buzz-digest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.buzz-digest-btn { min-height: 42px; }
+.buzz-digest-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  min-height: 1.2em;
 }
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
 .buzz-days-select, .buzz-kind-select {
