@@ -7960,18 +7960,42 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   min-width: 0;
 }
 .cards-list .film-card-v2 .action-dropdown-btn {
-  padding: 0 14px;
+  padding: 0 12px;
   gap: 6px;
 }
-.cards-list .film-card-v2 .action-dropdown-btn-label,
-.cards-list .film-card-v2 .action-dropdown-btn-text {
-  overflow: visible;
-  text-overflow: clip;
-  flex-shrink: 0;
+.cards-list .film-card-v2 .action-dropdown-btn-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  flex: 1 1 auto;
 }
-.action-dropdown-btn-emoji {
+.cards-list .film-card-v2 .action-dropdown-btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.action-dropdown-btn-emoji,
+.action-dropdown-btn-ico,
+.action-dropdown-btn .mp-icon {
   flex-shrink: 0;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-dropdown-btn-ico.mp-icon--sm i,
+.action-dropdown-btn .mp-icon--sm i {
+  font-size: 16px;
+}
+.film-toolbar-plan .action-dropdown-btn-ico,
+.film-toolbar-plan .mp-icon {
+  color: inherit;
 }
 .action-dropdown-btn:active { transform: scale(0.97); }
 .action-dropdown-btn:hover {
