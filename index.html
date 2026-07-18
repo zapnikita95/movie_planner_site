@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260718news2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260718news2">
+    <link rel="preload" href="/style-v2.css?v=20260718news3" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260718news3">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1727,11 +1727,11 @@
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="news"></span><span class="section-title-text">Новости</span></h2>
+                    <div class="plans-filter-tabs" id="buzz-sort-tabs" role="tablist" aria-label="Порядок">
+                        <button type="button" class="plans-filter-tab active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
+                        <button type="button" class="plans-filter-tab" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
+                    </div>
                     <div class="buzz-toolbar">
-                        <div class="buzz-sort-pills" role="tablist" aria-label="Порядок">
-                            <button type="button" class="buzz-sort-pill is-active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
-                            <button type="button" class="buzz-sort-pill" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
-                        </div>
                         <select id="buzz-days" class="buzz-days-select" aria-label="Период">
                             <option value="3">3 дня</option>
                             <option value="7" selected>7 дней</option>
@@ -2638,7 +2638,7 @@
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260718news2');
+          list.push('buzz-page.js?v=20260718news3');
           list.push('cabinet-app.js?v=20260718cabinetai1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
