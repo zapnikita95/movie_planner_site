@@ -710,9 +710,12 @@
       watchItems.push('<button type="button" class="action-dropdown-item" data-tickets="1" data-kp="' + kp + '" data-title="' + titleAttr + '" data-year="' + yearAttr + '">🎫 В кино (билет)</button>');
     }
     var menuItems = planItems + watchItems.join('');
+    var planIcon = (global.MPIcons && global.MPIcons.html)
+      ? global.MPIcons.html('calendar', { size: 'sm', className: 'action-dropdown-btn-ico' })
+      : '';
     return '<div class="action-dropdown" data-dropdown-root="plan">' +
       '<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">' +
-      '<span class="action-dropdown-btn-label"><span class="action-dropdown-btn-emoji" aria-hidden="true">📅</span><span class="action-dropdown-btn-text">Запланировать просмотр</span></span>' +
+      '<span class="action-dropdown-btn-label">' + planIcon + '<span class="action-dropdown-btn-text">Запланировать просмотр</span></span>' +
       '<span class="action-dropdown-caret">▾</span></button>' +
       '<div class="action-dropdown-menu">' + menuItems + '</div></div>';
   }
@@ -1170,7 +1173,7 @@
     }
     var planBlock = (authenticated && inBase)
       ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
-      : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>';
+      : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="action-dropdown-btn-ico mp-icon mp-icon--sm" aria-hidden="true"><i class="ph ph-calendar"></i></span><span>Запланировать просмотр</span></button>';
     var addIconBtn = !inBase
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
@@ -2081,7 +2084,7 @@
                 buildFilmDescWrapHtml() +
                 '<div class="film-page-toolbar">' +
                   '<div class="film-toolbar-plan-wrap">' +
-                    '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="film-icon-ico" aria-hidden="true">📅</span><span>Запланировать просмотр</span></button>' +
+                    '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="action-dropdown-btn-ico mp-icon mp-icon--sm" aria-hidden="true"><i class="ph ph-calendar"></i></span><span>Запланировать просмотр</span></button>' +
                   '</div>' +
                   '<div class="film-toolbar-icons">' +
                     '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
