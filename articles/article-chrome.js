@@ -1,16 +1,64 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260702articlechrome1';
+  var BUILD = '20260718headerfix1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
+  var SEARCH_SVG =
+    '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>';
+  var MIC_SVG =
+    '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.83V232a8,8,0,0,1-16,0V207.83A80.09,80.09,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.09,80.09,0,0,1,136,207.83Z"/></svg>';
 
   if (!global.__mpMetrikaSite) {
     var ms = document.createElement('script');
     ms.src = '/yandex-metrika.js?v=20260621';
     ms.async = true;
     (document.head || document.documentElement).appendChild(ms);
+  }
+
+  function ensureStylesheet(href) {
+    if (document.querySelector('link[rel="stylesheet"][href="' + href + '"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    (document.head || document.documentElement).appendChild(link);
+  }
+
+  function ensureIconAssets(done) {
+    ensureStylesheet('https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css');
+    ensureStylesheet('https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css');
+    if (global.MPIcons && typeof global.MPIcons.hydrate === 'function') {
+      if (done) done();
+      return;
+    }
+    var existing = document.querySelector('script[src*="mp-icons.js"]');
+    if (existing) {
+      existing.addEventListener('load', function () { if (done) done(); });
+      if (global.MPIcons && done) done();
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = '/mp-icons.js?v=' + BUILD;
+    s.async = true;
+    s.onload = function () { if (done) done(); };
+    s.onerror = function () { if (done) done(); };
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  function ensureSearchChromeIcons() {
+    var searchIcon = document.querySelector('#header-search .header-search-icon');
+    if (searchIcon && !searchIcon.querySelector('i, svg')) {
+      searchIcon.innerHTML = SEARCH_SVG;
+    }
+    var mic = document.getElementById('header-search-mic');
+    if (mic) {
+      mic.classList.remove('hidden');
+      if (!mic.querySelector('i, svg')) mic.innerHTML = MIC_SVG;
+      mic.style.display = 'inline-flex';
+    }
   }
 
   var root = document.documentElement;
@@ -107,9 +155,9 @@
       ? MpFilmPage.standaloneHeaderSearchHtml()
       : (
         '<div class="header-search" id="header-search" role="search">' +
-          '<span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>' +
+          '<span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true">' + SEARCH_SVG + '</span>' +
           '<input type="text" id="header-search-input" class="header-search-input" placeholder="' + t('search-placeholder') + '" autocomplete="off" aria-label="' + t('search-label') + '">' +
-          '<button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="' + t('voice-input') + '" title="' + t('voice-input') + '"></button>' +
+          '<button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="' + t('voice-input') + '" title="' + t('voice-input') + '">' + MIC_SVG + '</button>' +
           '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="' + t('clear') + '">×</button>' +
           '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
         '</div>'
@@ -254,6 +302,7 @@
         if (nav) MPIcons.hydrate(nav);
       }
     } catch (_e) {}
+    ensureSearchChromeIcons();
   }
 
   function initArticleChrome() {
@@ -266,12 +315,15 @@
 
     bumpArticleStylesheet();
     upgradeHeader();
+    ensureSearchChromeIcons();
     mountArticleNav();
     upgradeStoreBadges();
     upgradeFooter();
     applyChromeCopy();
     resolveStoreLinks();
-    hydrateArticleIcons();
+    ensureIconAssets(function () {
+      hydrateArticleIcons();
+    });
 
     if (!global.MpFilmPage || typeof MpFilmPage.initStandaloneSiteChrome !== 'function') return;
 

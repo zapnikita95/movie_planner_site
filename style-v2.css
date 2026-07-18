@@ -70,6 +70,7 @@ body.landing-root-page #header-search,
 body.in-cabinet #header-search,
 body.in-search-page #header-search,
 body.film-standalone-page #header-search,
+body.article-standalone-page #header-search,
 body.staff-standalone-page #header-search,
 body.user-standalone-page #header-search {
   display: block !important;
@@ -77,13 +78,25 @@ body.user-standalone-page #header-search {
 .header-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 .header-search {
   position: relative;
-  flex: 1 1 420px;
+  flex: 1 1 auto;
   max-width: 560px;
-  min-width: 220px;
+  min-width: 0;
+  z-index: 1;
+}
+.header-buttons {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.header-user-wrap,
+.header-profile-pill {
+  flex-shrink: 0;
 }
 .header-search-icon {
   position: absolute;
@@ -1240,6 +1253,8 @@ header {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex: 0 0 auto;
+  flex-shrink: 0;
 }
 
 .header-login-btn {
@@ -6307,7 +6322,8 @@ main.film-page .film-page-similar-section,
 .header-search {
   flex: 1 1 auto;
   max-width: 520px;
-  margin: 0 18px;
+  min-width: 0;
+  margin: 0 12px;
   position: relative;
   display: flex;
   align-items: center;
@@ -6315,6 +6331,12 @@ main.film-page .film-page-similar-section,
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 14px;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  z-index: 1;
+}
+.header-search .header-search-input {
+  min-width: 0;
+  padding-left: 42px !important;
+  padding-right: 48px !important;
 }
 .header-search:focus-within {
   border-color: rgba(255, 45, 123, 0.5);
