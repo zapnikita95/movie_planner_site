@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260718buzz1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260718buzz1">
+    <link rel="preload" href="/style-v2.css?v=20260718news2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260718news2">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -97,7 +97,7 @@
           '/series': 'Трекер сериалов — прогресс по эпизодам · Movie Planner',
           '/plans': 'Планы просмотра · Movie Planner',
           '/premieres': 'Премьеры фильмов и сериалов · Movie Planner',
-          '/buzz': 'О чём говорят в кино · Movie Planner',
+          '/buzz': 'Новости кино · Movie Planner',
           '/whattowatch': 'Что посмотреть · Movie Planner',
           '/ratings': 'Оценки и история просмотров · Movie Planner',
           '/stats': 'Статистика просмотров · Movie Planner',
@@ -907,7 +907,7 @@
       <a class="cabinet-nav-btn" href="/watchlist"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></a>
       <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
       <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
-      <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="whattowatch"></span><span class="cabinet-nav-btn-text">Buzz</span></a>
+      <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">Новости</span></a>
       <a class="cabinet-nav-btn" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
     </nav>
 
@@ -1419,7 +1419,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="whattowatch"></span><span class="cabinet-nav-btn-text">Buzz</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">Новости</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
@@ -1726,8 +1726,12 @@
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="whattowatch"></span><span class="section-title-text">О чём говорят</span></h2>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="news"></span><span class="section-title-text">Новости</span></h2>
                     <div class="buzz-toolbar">
+                        <div class="buzz-sort-pills" role="tablist" aria-label="Порядок">
+                            <button type="button" class="buzz-sort-pill is-active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
+                            <button type="button" class="buzz-sort-pill" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
+                        </div>
                         <select id="buzz-days" class="buzz-days-select" aria-label="Период">
                             <option value="3">3 дня</option>
                             <option value="7" selected>7 дней</option>
@@ -2596,7 +2600,7 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260718headerfix2',
+          'mp-icons.js?v=20260718news2',
           'mp-public-promo.js?v=20260717flow2'
         ];
         var cabinet = [
@@ -2614,7 +2618,7 @@
         if (isSearch) {
           list = [
             'mp-api-config.js?v=20260627apiams1',
-            'mp-icons.js?v=20260718headerfix2',
+            'mp-icons.js?v=20260718news2',
             'page-loading.js?v=20260529mobileparity1',
             'avatar-crop.js?v=20260717flow2',
             'cabinet-app.js?v=20260718cabinetai1'
@@ -2634,7 +2638,7 @@
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260718buzz1');
+          list.push('buzz-page.js?v=20260718news2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
