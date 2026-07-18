@@ -5936,16 +5936,41 @@ main.film-page .film-page-similar-section,
 .buzz-error { color: #ff6b6b; }
 .buzz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 12px;
   margin-top: 4px;
   align-items: stretch;
 }
+/* Mobile: 2 колонки как film-card, не одна гигантская афиша на весь экран */
+@media (max-width: 640px) {
+  .buzz-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .buzz-tile-title {
+    font-size: 13px;
+    padding: 8px 8px 2px;
+    min-height: 2.4em;
+  }
+  .buzz-tile-meta {
+    font-size: 11px;
+    padding: 0 8px 6px;
+  }
+  .buzz-tile-link--text {
+    min-height: 4em;
+  }
+}
 @media (min-width: 900px) {
   .buzz-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
   }
+}
+/* Карточка фильма поверх раздела: boot-CSS с /buzz не должен оставлять ленту видимой */
+#cabinet-readonly.film-page-mode .cabinet-section:not(#section-film),
+#cabinet-readonly.film-page-mode #section-buzz,
+#cabinet-readonly.film-page-mode #section-buzz.hidden {
+  display: none !important;
 }
 .buzz-tile {
   background: rgba(255,255,255,0.03);

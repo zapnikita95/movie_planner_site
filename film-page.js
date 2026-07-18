@@ -1946,7 +1946,8 @@
 
   function isGenericFilmTitle(title) {
     var t = String(title || '').trim();
-    return !t || t === 'Фильм' || t === 'Film';
+    if (!t || t === 'Фильм' || t === 'Film' || t === 'Сериал' || t === 'Series') return true;
+    return /^(фильм|сериал|film|series)\s+\d+$/i.test(t);
   }
 
   function paintCabinetRouteBoot(kpId, pageRoot, poster) {
