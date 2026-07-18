@@ -8,17 +8,14 @@
     ? window.MP_API_BASE.replace(/\/$/, '')
     : ((typeof window.location !== 'undefined' && window.location.origin) || 'https://movie-planner.ru');
 
-  var KIND_LABELS = {
-    studio: 'студия',
-    blogger: 'блогер',
-    culture: 'культура',
-    media: 'медиа',
-    festival: 'фестиваль',
-    cinema: 'кинотеатр',
-  };
-
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
+  var CLIENT_CACHE_TTL_MS = 6 * 60 * 60 * 1000; /* 6h — контент обновляется раз в ~2–3 дня */
+  var BELL_SVG =
+    '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>' +
+    '</svg>';
+
   var state = {
     days: 7,
     kind: '',
@@ -33,12 +30,6 @@
     return String(s || '').replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
-  }
-
-  function kindBadge(kind) {
-    var k = String(kind || '');
-    if (!k) return '';
-    return '<span class="buzz-kind">' + esc(KIND_LABELS[k] || k) + '</span>';
   }
 
   function ytIcon() {
@@ -72,8 +63,10 @@
     return u ? ('@' + u.replace(/^@/, '')) : 'канал';
   }
 
+  function normTitle(s) {
+    return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
 
-  /** Outbound UTM for authors + our Metrika (trackLinks already on). */
   function withBuzzUtm(url, meta) {
     var raw = String(url || '').trim();
     if (!raw || raw.charAt(0) === '#' || raw.indexOf('/f/') === 0) return raw;
@@ -107,6 +100,29 @@
     } catch (_) {}
   }
 
+  function cacheKey() {
+    return 'mp_buzz_v2:' + state.view + ':' + state.days + ':' + state.sort + ':' + (state.kind || '');
+  }
+
+  function readClientCache() {
+    try {
+      var raw = sessionStorage.getItem(cacheKey());
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.ts || !Array.isArray(parsed.items)) return null;
+      if (Date.now() - parsed.ts > CLIENT_CACHE_TTL_MS) return null;
+      return parsed.items;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeClientCache(items) {
+    try {
+      sessionStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), items: items || [] }));
+    } catch (_) {}
+  }
+
   function sourceChipsHtml(item) {
     var posts = Array.isArray(item.post_urls) ? item.post_urls : [];
     var chans = Array.isArray(item.channels) ? item.channels : [];
@@ -135,6 +151,7 @@
     }
 
     chans.forEach(function (c) {
+      if (state.kind && String(c.channel_kind || '') !== state.kind) return;
       var key = String(c.username || c.label || '').toLowerCase();
       if (!key || seen[key]) return;
       seen[key] = 1;
@@ -173,10 +190,10 @@
     var kp = esc(item.kp_id);
     var date = esc(item.premiere_date || '');
     return (
-      '<span role="button" tabindex="0" class="premiere-bell-btn premiere-poster-bell premiere-poster-bell--overlay"' +
+      '<span role="button" tabindex="0" class="premiere-bell-btn premiere-poster-bell premiere-poster-bell--overlay buzz-premiere-bell"' +
       ' data-action="premiere-notify-on" data-kp="' + kp + '" data-date="' + date + '"' +
       ' data-stop-card-click="1" data-buzz-stop="1" title="Отслеживать премьеру" aria-label="Отслеживать премьеру">' +
-      '<span class="mp-icon mp-icon--sm" data-mp-icon="inbox"></span></span>'
+      BELL_SVG + '</span>'
     );
   }
 
@@ -184,13 +201,15 @@
     var kid = item.kp_id;
     var title = item.title || ('film ' + kid);
     var n = item.mention_count || 0;
-    var cc = item.channel_count || (item.channels || []).length;
-    var kinds = Array.isArray(item.kinds) ? item.kinds : [];
-    if (state.kind) kinds = kinds.filter(function (k) { return k === state.kind; });
-    var badges = kinds.slice(0, 3).map(kindBadge).join('');
+    var chans = Array.isArray(item.channels) ? item.channels : [];
+    if (state.kind) {
+      chans = chans.filter(function (c) { return String(c.channel_kind || '') === state.kind; });
+    }
+    var cc = item.channel_count || chans.length;
     var href = '/f/' + encodeURIComponent(kid);
     var poster = posterUrl(item);
     if (!poster) return '';
+    var itemForChips = Object.assign({}, item, { channels: chans });
 
     return (
       '<article class="buzz-tile">' +
@@ -207,9 +226,8 @@
           '<span class="buzz-tile-meta">' + n + ' упомин. · ' + cc + ' ист.' +
             (item.last_posted ? (' · ' + esc(item.last_posted)) : '') +
           '</span>' +
-          (badges ? '<span class="buzz-tile-kinds">' + badges + '</span>' : '') +
         '</a>' +
-        sourceChipsHtml(item) +
+        sourceChipsHtml(itemForChips) +
       '</article>'
     );
   }
@@ -223,15 +241,14 @@
     var plat = item.platform || 'telegram';
     var chLabel = item.channel_label || item.channel_title || '@канал';
     var chKey = String(item.channel_username || chLabel).replace(/^@/, '');
-    var chUrl = withBuzzUtm(item.channel_url || item.post_url || '#', {
+    var chUrl = withBuzzUtm(item.channel_url || (plat === 'telegram' ? ('https://t.me/' + chKey) : item.post_url) || '#', {
       platform: plat, channel: chKey, kpId: kid, view: 'feed',
     });
     var postUrl = withBuzzUtm(item.post_url || item.channel_url || '#', {
       platform: plat, channel: chKey, kpId: kid, view: 'feed',
     });
-    var excerpt = item.excerpt || filmTitle;
-    var kind = state.kind ? state.kind : (item.channel_kind || '');
-    var badge = kind ? kindBadge(kind) : kindBadge(item.channel_kind);
+    var teaser = String(item.teaser || item.excerpt || '').trim();
+    if (teaser && normTitle(teaser) === normTitle(filmTitle)) teaser = '';
     var outAttrs = ' data-buzz-out="1" data-buzz-platform="' + esc(plat) +
       '" data-buzz-channel="' + esc(chKey) + '" data-buzz-kp="' + esc(kid) + '"';
 
@@ -246,13 +263,16 @@
               (plat === 'youtube' ? ytIcon() : '') + esc(chLabel) +
             '</a>' +
             (item.posted_at ? '<time class="buzz-feed-date">' + esc(item.posted_at) + '</time>' : '') +
-            badge +
             premiereBellHtml(item) +
           '</div>' +
-          '<a class="buzz-feed-excerpt" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
-            esc(excerpt) +
-          '</a>' +
           '<a class="buzz-feed-film" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '">' + esc(filmTitle) + '</a>' +
+          (teaser
+            ? ('<a class="buzz-feed-excerpt" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
+                esc(teaser) +
+              '</a>')
+            : ('<a class="buzz-feed-excerpt buzz-feed-excerpt--link" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
+                (plat === 'youtube' ? 'Открыть ролик' : 'Открыть пост') +
+              '</a>')) +
         '</div>' +
       '</article>'
     );
@@ -301,11 +321,11 @@
       return state.view === 'feed' ? renderFeedItem(it) : renderFilmItem(it);
     }).filter(Boolean).join('');
 
-    if (typeof window.mpIconsEnhance === 'function') {
-      try { window.mpIconsEnhance(grid); } catch (_) {}
-    } else if (window.MpIcons && typeof window.MpIcons.enhance === 'function') {
-      try { window.MpIcons.enhance(grid); } catch (_) {}
-    }
+    try {
+      if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') {
+        window.MPIcons.hydrate(grid);
+      }
+    } catch (_) {}
 
     grid.querySelectorAll('[data-buzz-expand]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
@@ -345,11 +365,20 @@
     });
   }
 
-  function load() {
+  function load(opts) {
+    var silent = opts && opts.silent;
     var loading = document.getElementById('buzz-loading');
     var err = document.getElementById('buzz-error');
-    if (loading) loading.classList.remove('hidden');
+    if (!silent && !state.items.length && loading) loading.classList.remove('hidden');
     if (err) err.classList.add('hidden');
+
+    var cached = readClientCache();
+    if (cached && cached.length && !state.loaded) {
+      state.items = cached;
+      state.loaded = true;
+      paint();
+    }
+
     var q = '/api/public/buzz?days=' + encodeURIComponent(state.days) +
       '&limit=' + (state.view === 'feed' ? '50' : '40');
     if (state.view === 'feed') {
@@ -358,7 +387,7 @@
       q += '&sort=' + encodeURIComponent(state.sort);
     }
     if (state.kind) q += '&kind=' + encodeURIComponent(state.kind);
-    return fetch(API_BASE + q, { method: 'GET', mode: 'cors' })
+    return fetch(API_BASE + q, { method: 'GET', mode: 'cors', credentials: 'omit' })
       .then(function (r) {
         if (!r.ok) throw new Error('api_' + r.status);
         return r.json();
@@ -366,9 +395,15 @@
       .then(function (d) {
         state.items = (d && d.items) || [];
         state.loaded = true;
+        writeClientCache(state.items);
         paint();
       })
       .catch(function () {
+        if (state.items && state.items.length) {
+          /* keep stale client cache on network blip */
+          paint();
+          return;
+        }
         state.loaded = true;
         state.items = [];
         if (loading) loading.classList.add('hidden');
@@ -461,12 +496,14 @@
     if (daysSel) {
       daysSel.addEventListener('change', function () {
         state.days = parseInt(daysSel.value, 10) || 7;
+        state.loaded = false;
         load();
       });
     }
     if (kindSel) {
       kindSel.addEventListener('change', function () {
         state.kind = kindSel.value || '';
+        state.loaded = false;
         load();
       });
     }
@@ -479,6 +516,7 @@
         if (sort === state.sort && state.view === 'films') return;
         state.view = 'films';
         state.sort = sort;
+        state.loaded = false;
         syncTabs();
         load();
       });
@@ -491,6 +529,7 @@
         var view = btn.getAttribute('data-buzz-view') || 'films';
         if (view === state.view) return;
         state.view = view;
+        state.loaded = false;
         syncTabs();
         load();
       });
