@@ -340,6 +340,7 @@
           '<span class="film-desc-full hidden">' +
             '<span class="film-desc-plot"></span>' +
             '<span class="film-desc-facts-inline"></span>' +
+            '<span class="film-desc-reviews-inline"></span>' +
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
@@ -387,6 +388,12 @@
       factsEl = document.createElement('span');
       factsEl.className = 'film-desc-facts-inline';
       fullEl.appendChild(factsEl);
+    }
+    var reviewsEl = fullEl.querySelector('.film-desc-reviews-inline');
+    if (!reviewsEl) {
+      reviewsEl = document.createElement('span');
+      reviewsEl.className = 'film-desc-reviews-inline';
+      fullEl.appendChild(reviewsEl);
     }
     var legacyList = wrap.querySelector('#film-desc-facts-list');
     if (legacyList && legacyList.innerHTML.trim() && !factsEl.innerHTML.trim()) {
@@ -528,8 +535,69 @@
     var items = filmFactsItemsFromPayload(payload);
     factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
     var hasFacts = items.length > 0;
+    var hasReviews = wrap.getAttribute('data-has-reviews') === '1';
     wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts);
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+  }
+
+  function filmDescReviewsInlineHtml(items) {
+    if (!items || !items.length) return '';
+    var lis = items.slice(0, 8).map(function (it) {
+      if (!it || !it.url) return '';
+      var title = escapeHtml(it.title || 'Видео');
+      var ch = escapeHtml(it.channel_title || '');
+      var url = escapeHtml(it.url);
+      var chBit = ch
+        ? ' <span class="film-review-channel">' + ch + '</span>'
+        : '';
+      return '<li><a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
+        title + '</a>' + chBit + '</li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-desc-reviews-title">Разборы</div>' +
+      '<ul class="film-desc-reviews-list">' + lis + '</ul>';
+  }
+
+  function paintFilmDescReviews(wrap, items) {
+    if (!wrap) wrap = document.getElementById('film-desc-wrap');
+    if (!wrap) return;
+    migrateFilmDescWrap(wrap);
+    var fullEl = wrap.querySelector('.film-desc-full');
+    if (!fullEl) return;
+    var revEl = fullEl.querySelector('.film-desc-reviews-inline');
+    if (!revEl) {
+      revEl = document.createElement('span');
+      revEl.className = 'film-desc-reviews-inline';
+      fullEl.appendChild(revEl);
+    }
+    var list = Array.isArray(items) ? items : [];
+    revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
+    var hasReviews = list.length > 0;
+    wrap.setAttribute('data-has-reviews', hasReviews ? '1' : '0');
+    var hasFacts = wrap.getAttribute('data-has-facts') === '1';
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+  }
+
+  function loadFilmDescReviews(kpId, root) {
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve();
+    var scope = root || document;
+    var wrap = scope.querySelector('#film-desc-wrap');
+    if (!wrap) return Promise.resolve();
+    if (wrap.getAttribute('data-reviews-loaded') === kp) return Promise.resolve();
+    return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('api_' + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        wrap.setAttribute('data-reviews-loaded', kp);
+        paintFilmDescReviews(wrap, (d && d.items) || []);
+      })
+      .catch(function () {});
   }
 
   function loadFilmDescFacts(kpId, root) {
@@ -538,7 +606,9 @@
     var scope = root || document;
     var wrap = scope.querySelector('#film-desc-wrap');
     if (!wrap) return Promise.resolve();
-    if (wrap.getAttribute('data-facts-loaded') === kp) return Promise.resolve();
+    if (wrap.getAttribute('data-facts-loaded') === kp) {
+      return loadFilmDescReviews(kp, root);
+    }
     return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/facts', {
       method: 'GET',
       mode: 'cors',
@@ -551,7 +621,8 @@
         wrap.setAttribute('data-facts-loaded', kp);
         paintFilmDescFacts(wrap, d);
       })
-      .catch(function () {});
+      .catch(function () {})
+      .then(function () { return loadFilmDescReviews(kp, root); });
   }
 
   function setFilmDescription(text) {

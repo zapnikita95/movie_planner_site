@@ -5862,6 +5862,43 @@ main.film-page .film-page-similar-section,
 }
 .add-search-person-status { color: rgba(255,255,255,0.62); font-size: 12px; font-weight: 700; }
 
+/* Buzz */
+.buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.buzz-days-select, .buzz-kind-select {
+  padding: 7px 10px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: #fff; font-size: 13px;
+}
+.buzz-loading, .buzz-error, .buzz-empty { padding: 16px; color: var(--text-muted, #999); font-size: 14px; }
+.buzz-error { color: #ff6b6b; }
+.buzz-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.buzz-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.buzz-card-head {
+  width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: 0; color: inherit;
+  padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+}
+.buzz-card-title { font-weight: 600; font-size: 15px; }
+.buzz-card-meta { color: var(--text-muted, #999); font-size: 13px; }
+.buzz-card-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.buzz-card-body { padding: 0 14px 12px; }
+.buzz-posts, .buzz-chans { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+.buzz-post-link, .buzz-chan-link, .buzz-film-link { color: var(--accent, #7eb8ff); }
+.buzz-kind {
+  display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); color: var(--text-muted, #bbb); margin-left: 4px;
+}
+.film-desc-reviews-title { margin: 14px 0 6px; font-weight: 600; font-size: 14px; }
+.film-desc-reviews-list { list-style: none; padding: 0; margin: 0 0 4px; }
+.film-desc-reviews-list li { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
+.film-review-channel { color: var(--text-muted, #999); font-size: 12px; }
+.film-review-link { color: var(--accent, #7eb8ff); }
+
 /* Premieres */
 .premieres-toolbar { display: flex; gap: 8px; }
 .premieres-period-select, .premieres-sort-select { padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 13px; }

@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260718headerfix2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260718headerfix2">
+    <link rel="preload" href="/style-v2.css?v=20260718buzz1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260718buzz1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -97,6 +97,7 @@
           '/series': 'Трекер сериалов — прогресс по эпизодам · Movie Planner',
           '/plans': 'Планы просмотра · Movie Planner',
           '/premieres': 'Премьеры фильмов и сериалов · Movie Planner',
+          '/buzz': 'О чём говорят в кино · Movie Planner',
           '/whattowatch': 'Что посмотреть · Movie Planner',
           '/ratings': 'Оценки и история просмотров · Movie Planner',
           '/stats': 'Статистика просмотров · Movie Planner',
@@ -367,6 +368,7 @@
               '/ratings': 'ratings',
               '/stats': 'stats',
               '/premieres': 'premieres',
+              '/buzz': 'buzz',
               '/groups': 'groups',
               '/integrations': 'integrations',
               '/tv': 'tv',
@@ -441,7 +443,7 @@
               document.body.classList.add('landing-root-page', 'film-standalone-page');
               var nav = document.getElementById('landing-root-nav');
               if (nav) nav.classList.remove('hidden');
-              var navPathMap = { home: '/home', plans: '/plans', whattowatch: '/whattowatch', premieres: '/premieres' };
+              var navPathMap = { home: '/home', plans: '/plans', whattowatch: '/whattowatch', premieres: '/premieres', buzz: '/buzz' };
               var navHref = navPathMap[sectionId];
               document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach(function (b) {
                 b.classList.toggle('active', navHref && b.getAttribute('href') === navHref);
@@ -462,7 +464,7 @@
             else paintAuthedDeep();
             return;
           }
-          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'whattowatch' && sectionId !== 'plans') return;
+          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'buzz' && sectionId !== 'whattowatch' && sectionId !== 'plans') return;
           document.documentElement.classList.add('mp-guest-cabinet-boot');
           injectSectionBootCss(sectionId);
           function paintGuestDeep() { paintCabinetDeep(sectionId, true); }
@@ -824,7 +826,7 @@
         if (p.indexOf('/features/collections') === 0) return 'whattowatch';
         var map = {
           '/home': 1, '/plans': 1, '/watchlist': 1, '/series': 1, '/series-hub': 1,
-          '/whattowatch': 1, '/shazam': 1, '/ratings': 1, '/stats': 1, '/premieres': 1,
+          '/whattowatch': 1, '/shazam': 1, '/ratings': 1, '/stats': 1, '/premieres': 1, '/buzz': 1,
           '/groups': 1, '/integrations': 1, '/tv': 1, '/extension': 1, '/about': 1,
           '/tournament': 1, '/my-api': 1, '/inbox': 1
         };
@@ -905,6 +907,7 @@
       <a class="cabinet-nav-btn" href="/watchlist"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></a>
       <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
       <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
+      <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="whattowatch"></span><span class="cabinet-nav-btn-text">Buzz</span></a>
       <a class="cabinet-nav-btn" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
     </nav>
 
@@ -1416,6 +1419,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="whattowatch"></span><span class="cabinet-nav-btn-text">Buzz</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
@@ -1720,6 +1724,29 @@
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
+                </section>
+                <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="whattowatch"></span><span class="section-title-text">О чём говорят</span></h2>
+                    <div class="buzz-toolbar">
+                        <select id="buzz-days" class="buzz-days-select" aria-label="Период">
+                            <option value="3">3 дня</option>
+                            <option value="7" selected>7 дней</option>
+                            <option value="14">14 дней</option>
+                        </select>
+                        <select id="buzz-kind" class="buzz-kind-select" aria-label="Тип канала">
+                            <option value="">Все источники</option>
+                            <option value="media">Медиа</option>
+                            <option value="blogger">Блогеры</option>
+                            <option value="cinema">Кинотеатры</option>
+                            <option value="studio">Студии</option>
+                            <option value="culture">Культура</option>
+                            <option value="festival">Фестивали</option>
+                        </select>
+                    </div>
+                    <div id="buzz-loading" class="buzz-loading hidden">Загружаем…</div>
+                    <div id="buzz-error" class="buzz-error hidden"></div>
+                    <div id="buzz-empty" class="buzz-empty hidden"></div>
+                    <div id="buzz-grid" class="buzz-grid"></div>
                 </section>
                 <section id="section-tournament" class="cabinet-section hidden cabinet-tournament">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="tournament"></span><span class="section-title-text">Турнирная таблица</span></h2>
@@ -2597,16 +2624,17 @@
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260717flow2');
+          list.push('film-page.js?v=20260718buzz1');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260717flow2');
+          list.push('film-page.js?v=20260718buzz1');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
+          list.push('buzz-page.js?v=20260718buzz1');
           list.push('cabinet-app.js?v=20260718cabinetai1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
