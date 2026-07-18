@@ -5870,6 +5870,13 @@ main.film-page .film-page-similar-section,
   line-height: 1.45;
   max-width: 52rem;
 }
+.buzz-legal-note {
+  margin: 20px 0 4px;
+  color: var(--text-muted, #777);
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
 .buzz-days-select, .buzz-kind-select {
   padding: 10px 14px; border-radius: 999px;
