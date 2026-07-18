@@ -1170,14 +1170,37 @@
     } catch (_) {}
   }
 
-  function popFilmShellSeed(kp) {
+  function peekFilmShellSeed(kp) {
     try {
-      const raw = sessionStorage.getItem('mp_film_shell_kp_' + kp);
-      sessionStorage.removeItem('mp_film_shell_kp_' + kp);
+      const raw = sessionStorage.getItem('mp_film_shell_kp_' + String(kp || '').replace(/\D/g, ''));
       return raw ? JSON.parse(raw) : null;
     } catch (_) {
       return null;
     }
+  }
+
+  function popFilmShellSeed(kp) {
+    try {
+      const key = 'mp_film_shell_kp_' + String(kp || '').replace(/\D/g, '');
+      const raw = sessionStorage.getItem(key);
+      sessionStorage.removeItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /** Подменить библиотечный fallback «Фильм 123» названием с карточки / трендов. */
+  function upgradeGenericFilmTitle(film, kpHint) {
+    if (!film || !isGenericFilmTitle(film.title)) return film;
+    const kp = String(kpHint || film.kp_id || '').replace(/\D/g, '');
+    const shell = peekFilmShellSeed(kp);
+    if (shell && shell.title && !isGenericFilmTitle(shell.title)) {
+      film.title = shell.title;
+      if (shell.year && !film.year) film.year = shell.year;
+      if (shell.poster && !(film.poster_url || film.poster)) film.poster_url = shell.poster;
+    }
+    return film;
   }
 
   function mapPublicFilmForHero(pub, kp) {
@@ -1197,7 +1220,9 @@
 
   function isGenericFilmTitle(title) {
     const t = String(title || '').trim();
-    return !t || t === 'Фильм' || t === 'Film';
+    if (!t || t === 'Фильм' || t === 'Film' || t === 'Сериал' || t === 'Series') return true;
+    // Библиотечный fallback «Фильм 12436795» / «Сериал 123»
+    return /^(фильм|сериал|film|series)\s+\d+$/i.test(t);
   }
 
   function readMpRouteBoot() {
@@ -1359,8 +1384,8 @@
         pageRootEarly.innerHTML = pageLoadingHtml();
       }
     }
-    const shellSeed = popFilmShellSeed(kp);
-    if (shellSeed && shellSeed.title && pageRootEarly && !hasHeroEarly && !paintFilmRouteBoot(kp, o)) {
+    const shellSeed = peekFilmShellSeed(kp);
+    if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title) && pageRootEarly && !hasHeroEarly && !paintFilmRouteBoot(kp, o)) {
       pageRootEarly.className = 'movie-page';
       const shellFilm = mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp);
       renderFilmDetailHero(shellFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
@@ -1373,8 +1398,9 @@
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
         .then(function (lite) {
           if (!lite || !lite.title || !pageRootEarly) return;
-          if (shellSeed && shellSeed.title) return;
+          if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title)) return;
           if (paintFilmRouteBoot(kp, o)) return;
+          if (isGenericFilmTitle(lite.title)) return;
           const liteFilm = mergeBootDescription(mapLiteFilmForHero(lite, kp), kp);
           if (heroKpIdFromRoot(pageRootEarly) === kp && pageRootEarly.querySelector('.film-hero-with-tag')) {
             mergeBootPoster(liteFilm, kp);
@@ -6539,14 +6565,26 @@
   }
   function showFilmPageLayout() {
     const ro = document.getElementById('cabinet-readonly');
-    if (!ro || ro.classList.contains('hidden')) return;
+    if (!ro) return;
+    // Boot-CSS с /buzz форсит #section-buzz.hidden{display:block} — снимаем, иначе лента липнет под /f/
+    try {
+      const bootCss = document.getElementById('mp-cabinet-section-boot');
+      if (bootCss) bootCss.remove();
+    } catch (_) {}
+    if (ro.classList.contains('hidden')) {
+      try { showScreen('cabinet-readonly'); } catch (_) {}
+      ro.classList.remove('hidden');
+    }
     ro.classList.add('film-page-mode');
     ro.querySelectorAll('.cabinet-section').forEach((el) => {
       el.classList.toggle('hidden', el.id !== 'section-film');
     });
+    const buzzSec = document.getElementById('section-buzz');
+    if (buzzSec) buzzSec.classList.add('hidden');
     const pageRoot = document.getElementById('film-page-content');
     if (pageRoot) pageRoot.classList.remove('hidden');
     ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.add('hidden');
   }
@@ -14748,6 +14786,7 @@
         return;
       }
       if (_filmModalCurrentId !== filmId) return;
+      upgradeGenericFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
       const myRating = filmMyRating(detail.ratings || [], detail.me);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
@@ -14766,7 +14805,15 @@
             history.replaceState({ view: 'film', filmId, kpId: data.film.kp_id }, '', filmCanonicalPath(filmId, data.film.kp_id));
           } catch (_) {}
         }
-        if (shouldPatchFilmHeroInPlace(pageRoot, data.film)) {
+        const heroTitleEl = pageRoot.querySelector('#film-title');
+        const heroTitleOk = heroTitleEl && !isGenericFilmTitle(String(heroTitleEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim());
+        if (shouldPatchFilmHeroInPlace(pageRoot, data.film) && (heroTitleOk || !isGenericFilmTitle(data.film.title))) {
+          if (isGenericFilmTitle(data.film.title) && heroTitleOk) {
+            /* оставляем хороший title с shell/buzz, не затираем «Фильм N» */
+          } else if (heroTitleEl && data.film.title && !isGenericFilmTitle(data.film.title)) {
+            const yearSuffix = data.film.year ? ' (' + data.film.year + ')' : '';
+            heroTitleEl.textContent = data.film.title + yearSuffix;
+          }
           mergeBootPoster(data.film, data.film.kp_id);
           mergeBootDescription(data.film, data.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
@@ -14776,10 +14823,12 @@
           ensureFilmHeroCastLoaded(data.film, pageRoot);
           ensureFilmHeroDescription(pageRoot, data.film);
           try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
+          try { popFilmShellSeed(data.film.kp_id || o.kpId); } catch (_) {}
           return;
         }
         renderFilmDetail(data.film, data.ratings, data.similar, data.me, pageRoot);
         setFilmPageToolbar(data.film);
+        try { popFilmShellSeed(data.film.kp_id || o.kpId); } catch (_) {}
         try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} }
       });
     });
@@ -22388,6 +22437,7 @@
     window.__mpWriteOnboardReturnFromLocation = writeOnboardReturnFromLocation;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
+    window.stashFilmShellFromCard = stashFilmShellFromCard;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
     window.openFilmTagView = openFilmTagView;
     window.openStaffPage = openStaffPage;
