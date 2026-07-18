@@ -73,6 +73,24 @@
     <priority>0.85</priority>
   </url>
   <url>
+    <loc>https://movie-planner.ru/articles/interesnye-fakty-o-filmah.html</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://movie-planner.ru/articles/fakty-o-semkah-filmov.html</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://movie-planner.ru/articles/ai-pomoshchnik-podbor-filmov.html</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://movie-planner.ru/articles/podbor-filmov-po-emocii.html</loc>
     <lastmod>2026-05-29</lastmod>
     <changefreq>monthly</changefreq>
