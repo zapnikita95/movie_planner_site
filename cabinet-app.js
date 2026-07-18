@@ -14267,6 +14267,23 @@
     if (e.target.closest('.film-fact-source, .mp-fact-source, .staff-fact-source')) return;
     if (e.target.closest('.film-toolbar-facts-list a[href], .mp-seo-facts a[href], .staff-facts-list a[href]')) return;
 
+    // /f/ ссылка важнее родительского data-kp (плитки «Новости» и т.п.)
+    const buzzStop = e.target.closest('[data-buzz-stop],[data-stop-card-click]');
+    const filmLinkEarly = !buzzStop ? e.target.closest('a[href^="/f/"]') : null;
+    if (filmLinkEarly) {
+      e.preventDefault();
+      e.stopPropagation();
+      const kp = String(filmLinkEarly.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
+      if (kp) {
+        if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
+          openFilmFromStaffNav(kp, null);
+        } else {
+          openFilmPageByKp(kp);
+        }
+      }
+      return;
+    }
+
     // Клик по карточке фильма → открыть страницу фильма
     const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
     if (card) {
