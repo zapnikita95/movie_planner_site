@@ -72,6 +72,41 @@
     return u ? ('@' + u.replace(/^@/, '')) : 'канал';
   }
 
+
+  /** Outbound UTM for authors + our Metrika (trackLinks already on). */
+  function withBuzzUtm(url, meta) {
+    var raw = String(url || '').trim();
+    if (!raw || raw.charAt(0) === '#' || raw.indexOf('/f/') === 0) return raw;
+    if (!/^https?:\/\//i.test(raw)) return raw;
+    try {
+      var u = new URL(raw);
+      if (!u.searchParams.get('utm_source')) u.searchParams.set('utm_source', 'movie_planner');
+      if (!u.searchParams.get('utm_medium')) u.searchParams.set('utm_medium', 'buzz');
+      if (!u.searchParams.get('utm_campaign')) u.searchParams.set('utm_campaign', 'news');
+      var m = meta || {};
+      var content = String(m.channel || m.platform || 'source').replace(/[^\w.\-@]+/g, '_').slice(0, 80);
+      var term = [m.platform || '', m.kpId || '', m.view || state.view || ''].filter(Boolean).join('_').slice(0, 80);
+      if (content && !u.searchParams.get('utm_content')) u.searchParams.set('utm_content', content);
+      if (term && !u.searchParams.get('utm_term')) u.searchParams.set('utm_term', term);
+      return u.toString();
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  function trackBuzzOutbound(meta) {
+    try {
+      if (typeof window.ym === 'function') {
+        window.ym(110038199, 'reachGoal', 'buzz_outbound', {
+          platform: (meta && meta.platform) || '',
+          channel: (meta && meta.channel) || '',
+          kp_id: (meta && meta.kpId) || '',
+          view: (meta && meta.view) || state.view || '',
+        });
+      }
+    } catch (_) {}
+  }
+
   function sourceChipsHtml(item) {
     var posts = Array.isArray(item.post_urls) ? item.post_urls : [];
     var chans = Array.isArray(item.channels) ? item.channels : [];
@@ -79,12 +114,21 @@
     var chips = [];
     var seen = {};
 
-    function chip(label, url, platform) {
+    function chip(label, url, platform, channelKey) {
       var icon = platform === 'youtube' ? ytIcon() : '';
+      var href = withBuzzUtm(url, {
+        platform: platform,
+        channel: channelKey || label,
+        kpId: kid,
+        view: 'films',
+      });
       return (
         '<a class="buzz-source-chip' + (platform === 'youtube' ? ' buzz-source-chip--yt' : '') +
-        '" href="' + esc(url) +
-        '" target="_blank" rel="noopener nofollow" data-buzz-stop="1">' +
+        '" href="' + esc(href) +
+        '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' +
+        ' data-buzz-out="1" data-buzz-platform="' + esc(platform) +
+        '" data-buzz-channel="' + esc(channelKey || label) +
+        '" data-buzz-kp="' + esc(kid) + '">' +
         icon + esc(label) +
         '</a>'
       );
@@ -105,7 +149,8 @@
           }
         }
       }
-      chips.push(chip(channelLabel(c), post || c.url || ('https://t.me/' + u), plat));
+      var chKey = u || channelLabel(c);
+      chips.push(chip(channelLabel(c), post || c.url || ('https://t.me/' + u), plat, chKey));
     });
 
     if (!chips.length) return '';
@@ -177,11 +222,18 @@
     var href = '/f/' + encodeURIComponent(kid);
     var plat = item.platform || 'telegram';
     var chLabel = item.channel_label || item.channel_title || '@канал';
-    var chUrl = item.channel_url || item.post_url || '#';
-    var postUrl = item.post_url || chUrl;
+    var chKey = String(item.channel_username || chLabel).replace(/^@/, '');
+    var chUrl = withBuzzUtm(item.channel_url || item.post_url || '#', {
+      platform: plat, channel: chKey, kpId: kid, view: 'feed',
+    });
+    var postUrl = withBuzzUtm(item.post_url || item.channel_url || '#', {
+      platform: plat, channel: chKey, kpId: kid, view: 'feed',
+    });
     var excerpt = item.excerpt || filmTitle;
     var kind = state.kind ? state.kind : (item.channel_kind || '');
     var badge = kind ? kindBadge(kind) : kindBadge(item.channel_kind);
+    var outAttrs = ' data-buzz-out="1" data-buzz-platform="' + esc(plat) +
+      '" data-buzz-channel="' + esc(chKey) + '" data-buzz-kp="' + esc(kid) + '"';
 
     return (
       '<article class="buzz-feed-row">' +
@@ -190,14 +242,14 @@
         '</a>' +
         '<div class="buzz-feed-body">' +
           '<div class="buzz-feed-head">' +
-            '<a class="buzz-feed-channel" href="' + esc(chUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1">' +
+            '<a class="buzz-feed-channel" href="' + esc(chUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
               (plat === 'youtube' ? ytIcon() : '') + esc(chLabel) +
             '</a>' +
             (item.posted_at ? '<time class="buzz-feed-date">' + esc(item.posted_at) + '</time>' : '') +
             badge +
             premiereBellHtml(item) +
           '</div>' +
-          '<a class="buzz-feed-excerpt" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1">' +
+          '<a class="buzz-feed-excerpt" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
             esc(excerpt) +
           '</a>' +
           '<a class="buzz-feed-film" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '">' + esc(filmTitle) + '</a>' +
@@ -279,6 +331,16 @@
         e.preventDefault();
         e.stopPropagation();
         openFilm(kp);
+      });
+    });
+    grid.querySelectorAll('a[data-buzz-out]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        trackBuzzOutbound({
+          platform: a.getAttribute('data-buzz-platform') || '',
+          channel: a.getAttribute('data-buzz-channel') || '',
+          kpId: a.getAttribute('data-buzz-kp') || '',
+          view: state.view,
+        });
       });
     });
   }
