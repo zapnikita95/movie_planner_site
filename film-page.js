@@ -834,7 +834,8 @@
         + '</div>';
     }
     if (st.showMarkUpTo && st.selected) {
-      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">Отметить до выбранной</button>';
+      var markLabel = st.markMode === 'up_to' ? 'Отметить до выбранной' : 'Отметить серию';
+      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">' + markLabel + '</button>';
     }
     return html;
   }
@@ -858,6 +859,7 @@
         state.progress = seriesProgressFromPayload(data);
         state.selected = null;
         state.showMarkUpTo = false;
+        state.markMode = null;
         applySeriesProgressToFilm(film, state.progress);
         updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
       }).catch(function () {
@@ -873,6 +875,7 @@
         state.page = 0;
         state.selected = null;
         state.showMarkUpTo = false;
+        state.markMode = null;
         rerender();
       });
     });
@@ -887,10 +890,9 @@
       btn.addEventListener('click', function () {
         var season = parseInt(btn.getAttribute('data-series-ep-season'), 10);
         var episode = parseInt(btn.getAttribute('data-series-ep'), 10);
-        if (!season || !episode) return;
+        if (!Number.isFinite(season) || !Number.isFinite(episode) || season < 1 || episode < 1) return;
         var progress = state.progress || {};
         var next = seriesNextUnwatchedEp(progress);
-        var last = seriesLastWatchedEp(progress);
         var watched = seriesEpIsWatched(progress, season, episode);
         if (watched) {
           postMark({ season: season, episode: episode, watched: false });
@@ -901,7 +903,9 @@
           return;
         }
         state.selected = { season: season, episode: episode };
-        state.showMarkUpTo = !watched && next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode);
+        var afterNext = !!(next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode));
+        state.showMarkUpTo = true;
+        state.markMode = afterNext ? 'up_to' : 'single';
         rerender();
       });
     });
@@ -909,7 +913,11 @@
     if (markUpTo) {
       markUpTo.addEventListener('click', function () {
         if (!state.selected || state.pending) return;
-        postMark({ season: state.selected.season, episode: state.selected.episode, mark_all_previous: true });
+        postMark({
+          season: state.selected.season,
+          episode: state.selected.episode,
+          mark_all_previous: state.markMode === 'up_to',
+        });
       });
     }
   }
@@ -2405,9 +2413,10 @@
       }
       var publicFilmCountry = '';
       function buildPublicCastSkeletonHtml() {
+        // Только режиссёр в скелете — строку «Актёры» не рисуем, пока API не подтвердил состав
+        // (анимация и т.п. часто без актёров).
         return '<div class="film-cast-skeleton">' +
           '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
-          '<div class="film-cast-row film-cast-actors" style="margin-top:6px"><span class="film-cast-label">Актёры:</span> <span class="film-cast-skel-line film-cast-skel-line-wide"></span></div>' +
         '</div>';
       }
       function applyPublicCastPayload(d) {

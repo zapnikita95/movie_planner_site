@@ -90,8 +90,10 @@
   const MEDIA_ORIGIN = SITE_ORIGIN;
 
   function avatarUrlForUserId(userId) {
-    const u = String(userId || '').replace(/\D/g, '');
-    return u ? (MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg') : '';
+    // Email/site users have negative chat_id (-40). Keep the minus.
+    const u = String(userId == null ? '' : userId).replace(/[^\d-]/g, '');
+    if (!u || u === '-') return '';
+    return MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(u) + '.jpg';
   }
   const MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   const MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
@@ -475,11 +477,14 @@
     return false;
   }
 
-  function showLoginModalOverlay() {
+  function showLoginModalOverlay(preferredTab) {
     try {
+      const tab = preferredTab === 'register' || preferredTab === 'login'
+        ? preferredTab
+        : loginTabFromQuery();
       if (window.MpPublicFilmLogin && typeof window.MpPublicFilmLogin.show === 'function') {
         window.MpPublicFilmLogin.show();
-        setLoginAuthTab(loginTabFromQuery());
+        setLoginAuthTab(tab);
         scheduleSiteBotAuthPrefetch();
         return;
       }
@@ -490,7 +495,7 @@
       if (modal) {
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
-        setLoginAuthTab(loginTabFromQuery());
+        setLoginAuthTab(tab);
       }
       if (!getToken()) {
         const ro = document.getElementById('cabinet-readonly');
@@ -1676,13 +1681,14 @@
     document.querySelectorAll('.tour-highlight').forEach(function (el) {
       el.classList.remove('tour-highlight');
     });
-    const homeOv = document.getElementById('site-home-tour-overlay');
-    if (homeOv) {
-      if (homeOv._tourAbort) {
-        try { homeOv._tourAbort.abort(); } catch (_) {}
+    ['site-home-tour-overlay', 'site-content-tour-overlay'].forEach(function (id) {
+      const ov = document.getElementById(id);
+      if (!ov) return;
+      if (ov._tourAbort) {
+        try { ov._tourAbort.abort(); } catch (_) {}
       }
-      try { homeOv.remove(); } catch (_) {}
-    }
+      try { ov.remove(); } catch (_) {}
+    });
     const firstOv = document.getElementById('site-first-onboard-overlay');
     if (firstOv) {
       try { firstOv.remove(); } catch (_) {}
@@ -1748,12 +1754,14 @@
       }
       if (kp) {
         openSiteOnboardPlanModal(kp, title, cinema ? 'cinema' : 'home');
-      } else {
+      } else if (!peekContentPageFromLocation()) {
         showSection('plans', { replace: replace });
       }
       return;
     }
-    if (p === '/' || p === '') {
+    // Онбординг поверх /f|/s — не уводим со страницы при navigate('/')
+    if (p === '/' || p === '' || p === '/home') {
+      if (peekContentPageFromLocation()) return;
       showSection('home', { replace: replace });
     }
   }
@@ -1790,7 +1798,23 @@
       markFirstOnboardingDoneAsync: function () {
         return uiTourMarkDone(UI_TOUR_KEYS.onboarding);
       },
-      markOnboardingSessionComplete: function () {},
+      markOnboardingSessionComplete: function () {
+        if (peekContentPageFromLocation()) {
+          try {
+            sessionStorage.setItem('mp_force_content_tour', '1');
+            sessionStorage.setItem('mp_force_friends_invite', '1');
+          } catch (_) {}
+          return;
+        }
+        try { sessionStorage.setItem('mp_force_home_tour', '1'); } catch (_) {}
+        try {
+          showSection('home', { replace: true, skipPush: true });
+        } catch (_) {}
+        try { scheduleHomeDashboardRefresh(); } catch (_) {}
+        setTimeout(function () {
+          void maybeStartSiteHomeTour({ force: true });
+        }, 600);
+      },
       posterUrl: function (kp) { return posterUrl(kp); },
       hapticImpact: function () {},
       toast: showToast,
@@ -1832,12 +1856,10 @@
         return origApiGet(url, opts);
       },
       openRegisterModal: function () {
-        try { setLoginAuthTab('register'); } catch (_) {}
-        showLoginModalOverlay();
+        showLoginModalOverlay('register');
       },
       openLoginModal: function () {
-        try { setLoginAuthTab('login'); } catch (_) {}
-        showLoginModalOverlay();
+        showLoginModalOverlay('login');
       },
     });
   }
@@ -1873,7 +1895,21 @@
       window.__mpMountGuestOnboarding(_siteGuestOnboardingDeps(), function () {});
       return;
     }
-    showLoginModalOverlay();
+    // onboarding-flow.js ещё не подгрузился — подождём, не сбрасываем в голый логин
+    let tries = 0;
+    const wait = setInterval(function () {
+      tries += 1;
+      if (typeof window.__mpMountGuestOnboarding === 'function') {
+        clearInterval(wait);
+        window.__mpMountGuestOnboarding(_siteGuestOnboardingDeps(), function () {});
+        return;
+      }
+      if (tries >= 40) {
+        clearInterval(wait);
+        try { showToast('Не удалось открыть онбординг. Обновите страницу.', { type: 'error' }); } catch (_) {}
+        showLoginModalOverlay('register');
+      }
+    }, 100);
   }
 
   function resumeGuestOnboardingAfterAuth(data) {
@@ -1882,16 +1918,35 @@
       if (!raw) return;
       const gst = JSON.parse(raw);
       if (!gst || !gst.pendingResume) return;
+      // После register на / → location.replace('/home') setTimeout теряется —
+      // kickoff должен уметь стартовать и на cold boot /home.
+      if (window.__mpGuestResumeKickoff) return;
+      window.__mpGuestResumeKickoff = true;
       const authVia = sessionStorage.getItem('mp_guest_auth_via') || 'login';
       sessionStorage.removeItem('mp_guest_auth_via');
-      if (typeof window.__mpResumeGuestOnboardingAfterAuth !== 'function') return;
-      setTimeout(function () {
-        void window.__mpResumeGuestOnboardingAfterAuth(_siteOnboardingDeps(), {
-          authVia: authVia,
-          hasData: !!(data && data.has_data),
-        });
-      }, 900);
-    } catch (_) {}
+      const hasData = !!(data && (data.has_data !== undefined ? data.has_data : data.hasData));
+      let tries = 0;
+      const kick = function () {
+        if (typeof window.__mpResumeGuestOnboardingAfterAuth !== 'function') {
+          tries += 1;
+          if (tries < 50) {
+            setTimeout(kick, 100);
+            return;
+          }
+          window.__mpGuestResumeKickoff = false;
+          return;
+        }
+        setTimeout(function () {
+          void window.__mpResumeGuestOnboardingAfterAuth(_siteOnboardingDeps(), {
+            authVia: authVia,
+            hasData: hasData,
+          });
+        }, 500);
+      };
+      kick();
+    } catch (_) {
+      try { window.__mpGuestResumeKickoff = false; } catch (_e) {}
+    }
   }
 
   function _siteOnboardingResumeAfterImportLeave() {
@@ -1983,57 +2038,63 @@
 
   function getSiteHomeTourSteps() {
     return [
-      { selector: '#header-search', text: 'Поиск фильмов и сериалов — добавляйте в базу прямо с сайта.' },
-      { selector: '#cabinet-user-hero', text: 'Ваш профиль: имя, аватар и переход в настройки.' },
-      { selector: '#inbox-fab', text: 'Уведомления: приглашения, планы и напоминания поставить оценку.' },
-      { selector: '.cabinet-nav', text: 'Разделы кабинета: главная, планы, премьеры, база, подбор и турнир.' },
-      { selector: '#home-quick-actions', text: 'Быстрые кнопки: случайный фильм, подбор по описанию и голосовой ввод.' },
+      {
+        selector: '#header-search',
+        text: 'Поиск — найдите фильм или сериал и добавьте в свою базу.',
+      },
       {
         selector: '#home-dashboard-root .home-dash-block',
         fallback: '#home-dashboard-root',
-        text: 'Блоки на главной: планы, непросмотренное, сериалы и премьеры. Настраиваются в шестерёнке.',
+        text: 'Главная: планы, непросмотренное, сериалы и премьеры. Блоки можно настроить в шестерёнке.',
       },
       {
-        selector: '#section-plans .cabinet-plans-toolbar',
-        before: function () {
-          showSection('plans', { replace: true, skipPush: true });
-          try { renderPlansList && renderPlansList(); } catch (_) {}
-          return 280;
-        },
-        text: 'Планы: добавляйте фильмы в базу и смотрите ближайшие сеансы дома и в кино.',
-      },
-      {
-        selector: '.cabinet-nav-btn[data-section="whattowatch"]',
-        before: function () {
-          showSection('home', { replace: true, skipPush: true });
-          return 180;
-        },
-        text: '«Что посмотреть» — случайный выбор и мастер по жанрам, если не знаете, что включить.',
+        selector: '#home-quick-actions',
+        text: 'Быстрый старт: случайный фильм, подбор по описанию и голосовой ввод.',
       },
       {
         selector: '.cabinet-nav-btn[data-section="unwatched"]',
-        text: '«База» — непросмотренные, сериалы и все ваши оценки.',
+        text: '«База» — непросмотренные, сериалы и ваши оценки.',
       },
       {
-        selector: '.cabinet-nav-btn[data-section="tournament"]',
-        before: function () {
-          showSection('home', { replace: true, skipPush: true });
-          return 180;
-        },
-        text: 'Турнир киноманов: оценки, походы в кино и сериалы — топ-3 каждый месяц получают монетки.',
+        selector: '.cabinet-nav-btn[data-section="whattowatch"]',
+        text: '«Что посмотреть» — если не знаете, что включить сегодня.',
+      },
+      {
+        selector: '#cabinet-user-hero',
+        text: 'Профиль и настройки: уведомления, импорт и внешний вид кабинета.',
+      },
+      {
+        selector: '#inbox-fab',
+        text: 'Входящие: приглашения, планы и напоминания поставить оценку.',
       },
     ];
   }
 
-  function maybeStartSiteHomeTour() {
+  function maybeStartSiteHomeTour(opts) {
+    opts = opts || {};
     return uiToursEnsureHydrated().then(function () {
-      if (uiTourIsDone(UI_TOUR_KEYS.home)) return;
+      let force = !!opts.force;
+      try {
+        if (sessionStorage.getItem('mp_force_home_tour') === '1') {
+          force = true;
+          sessionStorage.removeItem('mp_force_home_tour');
+        }
+      } catch (_) {}
+      if (!force && uiTourIsDone(UI_TOUR_KEYS.home)) return;
       if (document.getElementById('site-home-tour-overlay')) return;
       const readonly = document.getElementById('cabinet-readonly');
       const secHome = document.getElementById('section-home');
       if (!readonly || readonly.classList.contains('hidden')) return;
       if (!secHome || secHome.classList.contains('hidden')) {
         try { showSection('home', { replace: true, skipPush: true }); } catch (_) {}
+      }
+
+      if (force) {
+        try {
+          localStorage.removeItem(uiTourScopedKey(UI_TOUR_KEYS.home));
+          localStorage.removeItem(UI_TOUR_KEYS.home);
+          if (_uiTourServerDone) _uiTourServerDone[UI_TOUR_KEYS.home] = false;
+        } catch (_) {}
       }
 
       return uiTourMarkDone(UI_TOUR_KEYS.home).then(function () {
@@ -2061,7 +2122,7 @@
         cardWrap.className = 'home-tour-card-wrap';
         cardWrap.innerHTML = ''
           + '<div class="home-tour-card">'
-          + '<div class="home-tour-title">Короткий тур по кабинету</div>'
+          + '<div class="home-tour-title">Ваш кабинет</div>'
           + '<div class="home-tour-text" id="site-home-tour-text"></div>'
           + '<div class="home-tour-actions">'
           + '<button type="button" class="btn btn-secondary" id="site-home-tour-skip">Пропустить</button>'
@@ -2217,6 +2278,7 @@
 
         function closeTour() {
           removeSiteTourUi();
+          void maybeShowOnboardFriendsInviteIfNeeded();
         }
 
         function renderStep() {
@@ -2265,8 +2327,17 @@
     if (!getToken()) return Promise.resolve();
     try {
       const gst = JSON.parse(sessionStorage.getItem('mp_guest_onboard_state') || '{}');
-      if (gst && gst.pendingResume) return Promise.resolve();
+      if (gst && gst.pendingResume) {
+        // Не пропускать: иначе после / → /home want-picker никогда не откроется.
+        resumeGuestOnboardingAfterAuth({ has_data: !!cabinetHasData });
+        return Promise.resolve();
+      }
     } catch (_) {}
+    // На /f|/s не уводим в кабинетный онбординг автоматически — оффер «остаться / кабинет».
+    if (peekContentPageFromLocation()) {
+      scheduleContentPagePostAuthOffer();
+      return Promise.resolve();
+    }
     const readonly = document.getElementById('cabinet-readonly');
     if (!readonly || readonly.classList.contains('hidden')) return Promise.resolve();
 
@@ -2294,6 +2365,18 @@
     }, 700);
   }
 
+  /** После импорта/онбординга — тур даже если у пользователя уже has_data. */
+  function scheduleForcedHomeTourIfNeeded() {
+    try {
+      if (sessionStorage.getItem('mp_force_home_tour') !== '1') return;
+    } catch (_) {
+      return;
+    }
+    setTimeout(function () {
+      void maybeStartSiteHomeTour({ force: true });
+    }, 900);
+  }
+
   function showCabinetAfterLogin(me) {
     const pathStaffEarly = staffIdFromPathname(window.location.pathname);
     if (pathStaffEarly && me) {
@@ -2303,7 +2386,8 @@
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       renderHeader(me);
       openStaffPage(pathStaffEarly, { replace: true });
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/s/' + pathStaffEarly);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
     const pathUserEarly = userIdFromPathname(window.location.pathname) || userIdFromLocation();
@@ -2385,7 +2469,8 @@
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
 
@@ -2398,7 +2483,8 @@
         ensureLoggedInHeader();
       }
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       return Promise.resolve();
     }
 
@@ -2406,7 +2492,8 @@
       void uiToursEnsureHydrated(true);
       openFilmPageByKp(filmKp, { replace: true, action: pendingAction });
       deferCabinetLists();
-      if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      writeOnboardReturnFromPath('/f/' + filmKp);
+      scheduleContentPagePostAuthOffer();
       const statsSection = document.getElementById('section-stats');
       if (statsSection && !statsSection.classList.contains('hidden') && pathFid == null) {
         try { mountStatsSection(); } catch (_) {}
@@ -2456,8 +2543,14 @@
         try { mountStatsSection(); } catch (_) {}
       }
       if (pathStaff || pathUserBoot || pathFid || filmTagIdFromPathname(window.location.pathname)) scheduleOnboarding = false;
-      if (scheduleOnboarding) scheduleSiteOnboardingAfterCabinet();
-      else if (!cabinetHasData) scheduleSiteOnboardingAfterCabinet();
+      if (pathStaff) {
+        writeOnboardReturnFromPath('/s/' + pathStaff);
+        scheduleContentPagePostAuthOffer();
+      } else if (scheduleOnboarding) {
+        scheduleSiteOnboardingAfterCabinet();
+      } else if (!cabinetHasData && !pathUserBoot && !pathFid) {
+        scheduleSiteOnboardingAfterCabinet();
+      }
     });
   }
 
@@ -2548,6 +2641,9 @@
     }
     if (err === 'rate_limit' || err === 'http_429') return 'Слишком много попыток — подождите минуту';
     if (err === 'already_used') return 'Код уже использован — нажмите «Войти» ещё раз или запросите новый код.';
+    if (err === 'bad_code' || err === 'http_401') return 'Неверный код. Проверьте почту и попробуйте ещё раз.';
+    if (err === 'privacy_required') return 'Отметьте согласие с политикой конфиденциальности';
+    if (err === 'email_send_failed') return 'Не удалось отправить письмо. Попробуйте позже или войдите через Яндекс.';
     return fallback || 'Не удалось войти';
   }
 
@@ -2601,7 +2697,705 @@
       if (path && path !== '/') {
         sessionStorage.setItem('mp_oauth_return', path);
       }
+      writeOnboardReturnFromPath(path);
     } catch (_) {}
+  }
+
+  const ONBOARD_RETURN_KEY = 'mp_onboard_return';
+
+  function parseOnboardReturnPath(path) {
+    const pathOnly = String(path || '').split('?')[0].replace(/\/$/, '') || '/';
+    let m = pathOnly.match(/^\/f\/(\d+)$/);
+    if (m) return { type: 'film', id: m[1], path: '/f/' + m[1] };
+    m = pathOnly.match(/^\/s\/(\d+)$/);
+    if (m) return { type: 'staff', id: m[1], path: '/s/' + m[1] };
+    return null;
+  }
+
+  function writeOnboardReturnFromPath(path) {
+    const parsed = parseOnboardReturnPath(path);
+    if (!parsed) return null;
+    parsed.savedAt = Date.now();
+    try {
+      sessionStorage.setItem(ONBOARD_RETURN_KEY, JSON.stringify(parsed));
+    } catch (_) {}
+    return parsed;
+  }
+
+  function writeOnboardReturnFromLocation() {
+    return writeOnboardReturnFromPath((window.location.pathname || '/') + (window.location.search || ''));
+  }
+
+  function readOnboardReturn() {
+    try {
+      const raw = sessionStorage.getItem(ONBOARD_RETURN_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || !o.path || !o.type) return null;
+      if (o.savedAt && Date.now() - Number(o.savedAt) > 7 * 24 * 60 * 60 * 1000) {
+        sessionStorage.removeItem(ONBOARD_RETURN_KEY);
+        return null;
+      }
+      return o;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function clearOnboardReturn() {
+    try { sessionStorage.removeItem(ONBOARD_RETURN_KEY); } catch (_) {}
+  }
+
+  function peekContentPageFromLocation() {
+    return parseOnboardReturnPath(window.location.pathname || '/');
+  }
+
+  function guestOnboardResumePending() {
+    try {
+      const gst = JSON.parse(sessionStorage.getItem('mp_guest_onboard_state') || '{}');
+      return !!(gst && gst.pendingResume);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showMpStackedChoiceDialog(opts) {
+    const o = opts || {};
+    return new Promise(function (resolve) {
+      const overlay = document.createElement('div');
+      overlay.className = 'mp-dialog-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      const primary = o.primaryLabel || 'Продолжить';
+      const secondary = o.secondaryLabel || '';
+      overlay.innerHTML =
+        '<div class="home-tour-card" style="max-width:360px;margin:auto">' +
+          '<div class="home-tour-title">' + escapeHtml(o.title || '') + '</div>' +
+          '<div class="home-tour-text">' + escapeHtml(o.text || '') + '</div>' +
+          '<div class="home-tour-actions" style="flex-direction:column;align-items:stretch">' +
+            '<button type="button" class="btn btn-primary" id="mp-choice-primary">' + escapeHtml(primary) + '</button>' +
+            (secondary
+              ? '<button type="button" class="btn btn-secondary" id="mp-choice-secondary">' + escapeHtml(secondary) + '</button>'
+              : '') +
+          '</div>' +
+        '</div>';
+      function close(result) {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_) {}
+        resolve(result);
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close('dismiss');
+      });
+      overlay.querySelector('#mp-choice-primary').addEventListener('click', function () { close('primary'); });
+      const secBtn = overlay.querySelector('#mp-choice-secondary');
+      if (secBtn) secBtn.addEventListener('click', function () { close('secondary'); });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  function tourElVisible(el) {
+    if (!el || !document.body.contains(el)) return false;
+    if (el.classList && el.classList.contains('hidden')) return false;
+    try {
+      const st = window.getComputedStyle(el);
+      if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) return false;
+    } catch (_) {}
+    const r = el.getBoundingClientRect();
+    return r.width >= 2 && r.height >= 2;
+  }
+
+  function filmPageHasFacts() {
+    const wrap = document.querySelector('#film-desc-wrap');
+    return !!(wrap && tourElVisible(wrap) && wrap.getAttribute('data-has-facts') === '1');
+  }
+
+  function staffPageHasFacts() {
+    const sec = document.getElementById('staff-facts-section');
+    return !!(sec && tourElVisible(sec));
+  }
+
+  function getFilmPageTourSteps() {
+    const steps = [
+      {
+        selector: '#add-btn',
+        text: 'Добавьте в базу — чтобы фильм не потерялся и всегда был под рукой.',
+      },
+      {
+        selector: '#rate-toggle-btn',
+        text: 'Смотрели? Поставьте оценку — от этого зависят рекомендации.',
+      },
+      {
+        selector: '#plan-watch-btn',
+        text: 'Запланируйте просмотр дома или в кино — напомним вовремя.',
+      },
+      {
+        selector: '#share-film-btn',
+        text: 'Можно сразу позвать друзей из Movie Planner посмотреть вместе.',
+      },
+    ];
+    const moreBtn = document.querySelector('#film-desc-wrap .film-desc-more-btn');
+    if (filmPageHasFacts() && moreBtn && !moreBtn.classList.contains('hidden')) {
+      steps.push({
+        selector: '#film-desc-wrap .film-desc-more-btn, #film-desc-wrap',
+        text: 'Разверните описание — там есть интересные факты об этом фильме.',
+        before: function () {
+          try {
+            if (moreBtn.getAttribute('aria-expanded') !== 'true') moreBtn.click();
+          } catch (_) {}
+          return 220;
+        },
+      });
+    }
+    const friends = document.querySelector('#film-friends-social-block');
+    if (friends && tourElVisible(friends) && friends.children.length) {
+      steps.push({
+        selector: '#film-friends-social-block',
+        text: 'Здесь оценки друзей — удобно, когда они тоже в Movie Planner.',
+      });
+    }
+    return steps;
+  }
+
+  function getStaffPageTourSteps() {
+    const steps = [];
+    if (staffPageHasFacts()) {
+      steps.push({
+        selector: '#staff-facts-toggle, #staff-facts-section',
+        text: 'Здесь интересные факты — можно развернуть блок и почитать.',
+        before: function () {
+          try {
+            const t = document.getElementById('staff-facts-toggle');
+            const sec = document.getElementById('staff-facts-section');
+            if (t && sec && !sec.classList.contains('staff-facts-anchor--open')) t.click();
+          } catch (_) {}
+          return 220;
+        },
+      });
+    }
+    steps.push(
+      {
+        selector: '.staff-filters, #staff-person-filters',
+        text: 'Фильтруйте по году и жанру, сортируйте по оценке или дате.',
+      },
+      {
+        selector: '#staff-toggle-friends',
+        text: '«Друзья хорошо оценили» — фильмы, которые зашли вашим друзьям.',
+      },
+      {
+        selector: '.staff-import-btn',
+        text: '«В базу» — добавить сразу все подходящие фильмы роли, не по одному.',
+      },
+    );
+    return steps;
+  }
+
+  function runSiteSpotlightTour(opts) {
+    opts = opts || {};
+    const steps = (opts.steps || []).filter(Boolean);
+    if (!steps.length) {
+      if (typeof opts.onDone === 'function') opts.onDone();
+      return Promise.resolve();
+    }
+    if (document.getElementById(opts.overlayId || 'site-content-tour-overlay')) {
+      return Promise.resolve();
+    }
+    return new Promise(function (resolve) {
+      removeSiteTourUi();
+      const TOUR_Z = 12040;
+      let idx = 0;
+      const overlay = document.createElement('div');
+      overlay.id = opts.overlayId || 'site-content-tour-overlay';
+      overlay.className = 'home-tour-overlay-root';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:' + TOUR_Z + ';pointer-events:none';
+
+      const shadeTop = document.createElement('div');
+      const shadeLeft = document.createElement('div');
+      const shadeRight = document.createElement('div');
+      const shadeBottom = document.createElement('div');
+      const ring = document.createElement('div');
+      [shadeTop, shadeLeft, shadeRight, shadeBottom].forEach(function (s) {
+        s.className = 'home-tour-shade';
+      });
+
+      const cardWrap = document.createElement('div');
+      cardWrap.className = 'home-tour-card-wrap';
+      cardWrap.innerHTML = ''
+        + '<div class="home-tour-card">'
+        + '<div class="home-tour-title">' + escapeHtml(opts.title || 'Подсказка') + '</div>'
+        + '<div class="home-tour-text" id="site-spotlight-tour-text"></div>'
+        + '<div class="home-tour-actions">'
+        + '<button type="button" class="btn btn-secondary" id="site-spotlight-tour-skip">Пропустить</button>'
+        + '<button type="button" class="btn btn-primary" id="site-spotlight-tour-next">Далее</button>'
+        + '</div></div>';
+
+      overlay.appendChild(shadeTop);
+      overlay.appendChild(shadeLeft);
+      overlay.appendChild(shadeRight);
+      overlay.appendChild(shadeBottom);
+      overlay.appendChild(ring);
+      overlay.appendChild(cardWrap);
+
+      function applyCardPlacement() {
+        cardWrap.style.cssText = [
+          'position:fixed',
+          'left:50%',
+          'transform:translateX(-50%)',
+          'width:min(520px,calc(100% - 24px))',
+          'max-width:520px',
+          'z-index:' + (TOUR_Z + 10),
+          'pointer-events:auto',
+          'box-sizing:border-box',
+          'bottom:calc(16px + env(safe-area-inset-bottom))',
+          'top:auto',
+        ].join(';');
+      }
+
+      const textEl = overlay.querySelector('#site-spotlight-tour-text');
+      const nextBtn = overlay.querySelector('#site-spotlight-tour-next');
+      const skipBtn = overlay.querySelector('#site-spotlight-tour-skip');
+
+      function paddedViewportRect(el, pad) {
+        const r = el.getBoundingClientRect();
+        const p = typeof pad === 'number' ? pad : 8;
+        const left = Math.max(0, r.left - p);
+        const top = Math.max(0, r.top - p);
+        const right = Math.min(window.innerWidth, r.right + p);
+        const bottom = Math.min(window.innerHeight, r.bottom + p);
+        return {
+          left: left,
+          top: top,
+          right: right,
+          bottom: bottom,
+          width: Math.max(0, right - left),
+          height: Math.max(0, bottom - top),
+        };
+      }
+
+      function applyFullDim() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+        shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + vh + 'px';
+        shadeLeft.style.cssText = 'display:none';
+        shadeRight.style.cssText = 'display:none';
+        shadeBottom.style.cssText = 'display:none';
+        ring.style.cssText = 'display:none';
+      }
+
+      function applyHole(rect) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (rect.width < 4 || rect.height < 4) {
+          applyFullDim();
+          return;
+        }
+        const common = 'position:fixed;background:rgba(0,0,0,.62);pointer-events:auto;z-index:' + (TOUR_Z + 1);
+        shadeTop.style.cssText = common + ';left:0;top:0;width:' + vw + 'px;height:' + rect.top + 'px';
+        shadeBottom.style.cssText = common + ';left:0;top:' + rect.bottom + 'px;width:' + vw + 'px;height:' + Math.max(0, vh - rect.bottom) + 'px';
+        shadeLeft.style.cssText = common + ';left:0;top:' + rect.top + 'px;width:' + rect.left + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+        shadeRight.style.cssText = common + ';left:' + rect.right + 'px;top:' + rect.top + 'px;width:' + Math.max(0, vw - rect.right) + 'px;height:' + (rect.bottom - rect.top) + 'px;display:block';
+        ring.style.cssText = [
+          'display:block',
+          'pointer-events:none',
+          'z-index:' + (TOUR_Z + 2),
+          'position:fixed',
+          'left:' + rect.left + 'px',
+          'top:' + rect.top + 'px',
+          'width:' + rect.width + 'px',
+          'height:' + rect.height + 'px',
+          'box-sizing:border-box',
+          'border:3px solid rgba(255,45,123,.92)',
+          'border-radius:14px',
+          'box-shadow:0 0 26px rgba(255,45,123,.32)',
+        ].join(';');
+      }
+
+      let scrollFrame = 0;
+      function syncSpotlight(targetEl) {
+        if (!targetEl || !document.body.contains(targetEl)) {
+          applyFullDim();
+          return;
+        }
+        targetEl.classList.add('tour-highlight');
+        try {
+          targetEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        } catch (_) {}
+        applyHole(paddedViewportRect(targetEl, 10));
+      }
+
+      function scheduleSync(targetEl) {
+        if (scrollFrame) cancelAnimationFrame(scrollFrame);
+        scrollFrame = requestAnimationFrame(function () {
+          scrollFrame = 0;
+          syncSpotlight(targetEl);
+        });
+      }
+
+      function resolveTarget(step) {
+        if (!step) return null;
+        let target = null;
+        String(step.selector || '').split(',').some(function (sel) {
+          const el = document.querySelector(sel.trim());
+          if (tourElVisible(el)) {
+            target = el;
+            return true;
+          }
+          return false;
+        });
+        if (!target && step.fallback) {
+          const fb = document.querySelector(step.fallback);
+          if (tourElVisible(fb)) target = fb;
+        }
+        return target;
+      }
+
+      const tourAbort = new AbortController();
+      overlay._tourAbort = tourAbort;
+      window.addEventListener('scroll', function () {
+        scheduleSync(resolveTarget(steps[idx]));
+      }, { capture: true, passive: true, signal: tourAbort.signal });
+      window.addEventListener('resize', function () {
+        scheduleSync(resolveTarget(steps[idx]));
+      }, { signal: tourAbort.signal });
+
+      document.documentElement.classList.add('mp-site-home-tour-active');
+      document.body.appendChild(overlay);
+
+      function finish() {
+        removeSiteTourUi();
+        if (typeof opts.onDone === 'function') {
+          try { opts.onDone(); } catch (_) {}
+        }
+        resolve();
+      }
+
+      function renderStep() {
+        document.querySelectorAll('.tour-highlight').forEach(function (el) {
+          el.classList.remove('tour-highlight');
+        });
+        // Пропускаем шаги без видимой цели (кроме before — он может раскрыть блок)
+        while (idx < steps.length) {
+          const probe = steps[idx];
+          if (resolveTarget(probe) || probe.before) break;
+          idx += 1;
+        }
+        const step = steps[idx];
+        if (!step) {
+          finish();
+          return;
+        }
+        textEl.textContent = step.text;
+        let lastVisibleIdx = idx;
+        for (let i = idx + 1; i < steps.length; i += 1) {
+          if (resolveTarget(steps[i]) || steps[i].before) lastVisibleIdx = i;
+        }
+        nextBtn.textContent = idx >= lastVisibleIdx ? 'Понятно' : 'Далее';
+        applyCardPlacement();
+        const runSpotlight = function () {
+          const target = resolveTarget(step);
+          if (target) {
+            scheduleSync(target);
+            return;
+          }
+          idx += 1;
+          renderStep();
+        };
+        if (step.before) {
+          const delay = step.before();
+          setTimeout(runSpotlight, typeof delay === 'number' ? delay : 200);
+        } else {
+          runSpotlight();
+        }
+      }
+
+      nextBtn.addEventListener('click', function () {
+        idx += 1;
+        renderStep();
+      });
+      skipBtn.addEventListener('click', finish);
+      applyCardPlacement();
+      renderStep();
+    });
+  }
+
+  function startContextualPageTour(page) {
+    const p = page || peekContentPageFromLocation() || readOnboardReturn();
+    if (!p) return Promise.resolve();
+    const isFilm = p.type === 'film';
+    return runSiteSpotlightTour({
+      overlayId: 'site-content-tour-overlay',
+      title: isFilm ? 'Что можно здесь' : 'Страница актёра',
+      steps: isFilm ? getFilmPageTourSteps() : getStaffPageTourSteps(),
+    });
+  }
+
+  function ensureOnboardingFlowLoaded() {
+    return new Promise(function (resolve) {
+      if (typeof window.__mpMountExtendedOnboarding === 'function') {
+        resolve(true);
+        return;
+      }
+      let tries = 0;
+      const existing = document.querySelector('script[src*="onboarding-flow.js"]');
+      if (!existing) {
+        const s = document.createElement('script');
+        s.src = '/onboarding-flow.js?v=20260717flow1'; // keep in sync with index.html pin
+        s.async = true;
+        s.onload = function () { /* wait below */ };
+        s.onerror = function () { resolve(false); };
+        document.body.appendChild(s);
+      }
+      const wait = setInterval(function () {
+        tries += 1;
+        if (typeof window.__mpMountExtendedOnboarding === 'function') {
+          clearInterval(wait);
+          resolve(true);
+          return;
+        }
+        if (tries >= 50) {
+          clearInterval(wait);
+          resolve(false);
+        }
+      }, 100);
+    });
+  }
+
+  function showOnboardFriendsInviteStep(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      try {
+        if (!opts.force && sessionStorage.getItem('mp_force_friends_invite') !== '1') {
+          resolve();
+          return;
+        }
+        sessionStorage.removeItem('mp_force_friends_invite');
+      } catch (_) {}
+      if (!getToken() || !cabinetUserId) {
+        resolve();
+        return;
+      }
+      const overlay = document.createElement('div');
+      overlay.className = 'mp-dialog-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      document.body.style.overflow = 'hidden';
+      overlay.innerHTML =
+        '<div class="home-tour-card" style="max-width:360px;margin:auto">' +
+          '<div class="home-tour-title">Добавьте друзей</div>' +
+          '<div class="home-tour-text">' +
+            'Скопируйте ссылку и отправьте друзьям. За приглашения — монетки: нейросети, улучшенное отслеживание сериалов и другие функции.' +
+          '</div>' +
+          '<div class="home-tour-actions" style="flex-direction:column;align-items:stretch">' +
+            '<button type="button" class="btn btn-primary" id="mp-ob-invite-copy">Скопировать ссылку</button>' +
+            '<button type="button" class="btn btn-secondary" id="mp-ob-invite-later">Позже</button>' +
+          '</div>' +
+        '</div>';
+      function close() {
+        document.body.style.overflow = '';
+        try { overlay.remove(); } catch (_) {}
+        resolve();
+      }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close();
+      });
+      overlay.querySelector('#mp-ob-invite-later').addEventListener('click', close);
+      overlay.querySelector('#mp-ob-invite-copy').addEventListener('click', function () {
+        void shareFriendInviteLink().then(function () { close(); }).catch(function () { close(); });
+      });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  function maybeShowOnboardFriendsInviteIfNeeded() {
+    try {
+      if (sessionStorage.getItem('mp_force_friends_invite') === '1') {
+        return showOnboardFriendsInviteStep({ force: true });
+      }
+    } catch (_) {}
+    return Promise.resolve();
+  }
+
+  function goCabinetAfterContentChoice() {
+    clearOnboardReturn();
+    try {
+      sessionStorage.setItem('mp_force_friends_invite', '1');
+      if (uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+      }
+    } catch (_) {}
+    window.location.assign('/home');
+  }
+
+  function waitForContentFactsReady(page, timeoutMs) {
+    const limit = typeof timeoutMs === 'number' ? timeoutMs : 2800;
+    const started = Date.now();
+    return new Promise(function (resolve) {
+      function tick() {
+        if (page && page.type === 'film') {
+          const wrap = document.querySelector('#film-desc-wrap');
+          if (wrap && (wrap.getAttribute('data-facts-loaded') || wrap.getAttribute('data-has-facts') === '1')) {
+            resolve();
+            return;
+          }
+        }
+        if (page && page.type === 'staff') {
+          const sec = document.getElementById('staff-facts-section');
+          if (sec && (!sec.classList.contains('hidden') || sec.getAttribute('data-facts-ready') === '1')) {
+            resolve();
+            return;
+          }
+          // факты могут отсутствовать — не ждём весь таймаут, если секция уже точно пустая
+          if (sec && sec.classList.contains('hidden') && Date.now() - started > 900) {
+            resolve();
+            return;
+          }
+        }
+        if (Date.now() - started >= limit) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, 160);
+      }
+      tick();
+    });
+  }
+
+  async function runContentPageWrapUp(page) {
+    const p = page || peekContentPageFromLocation() || readOnboardReturn();
+    if (!p || !peekContentPageFromLocation()) return;
+    try { sessionStorage.removeItem('mp_force_content_tour'); } catch (_) {}
+    const doneKey = 'mp_content_wrapup_done_' + p.type + '_' + p.id;
+    try {
+      if (sessionStorage.getItem(doneKey) === '1') return;
+      sessionStorage.setItem(doneKey, '1');
+    } catch (_) {}
+    await waitForContentFactsReady(p);
+    await startContextualPageTour(p);
+    await showOnboardFriendsInviteStep({ force: true });
+  }
+
+  function completeOnboardHandoff(opts) {
+    opts = opts || {};
+    const here = peekContentPageFromLocation();
+    const ret = readOnboardReturn();
+
+    // Уже на странице, с которой пришли — остаёмся и показываем тур страницы
+    if (here) {
+      writeOnboardReturnFromPath(here.path);
+      void runContentPageWrapUp(here);
+      return;
+    }
+
+    if (!ret) {
+      try {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+        sessionStorage.setItem('mp_force_friends_invite', '1');
+      } catch (_) {}
+      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (cur !== '/home' && cur !== '/') {
+        window.location.assign('/home');
+        return;
+      }
+      scheduleForcedHomeTourIfNeeded();
+      return;
+    }
+
+    const isFilm = ret.type === 'film';
+    const pageLabel = isFilm ? 'фильму' : 'актёру';
+    void showMpStackedChoiceDialog({
+      title: 'Куда дальше?',
+      text: 'Можно продолжить знакомство с кабинетом или вернуться к ' + pageLabel +
+        ' — покажем, что можно сделать прямо на странице.',
+      primaryLabel: isFilm ? 'Вернуться к фильму' : 'Вернуться к актёру',
+      secondaryLabel: 'Продолжить в кабинете',
+    }).then(function (choice) {
+      if (choice === 'primary') {
+        try {
+          sessionStorage.setItem('mp_force_content_tour', '1');
+          sessionStorage.setItem('mp_force_friends_invite', '1');
+        } catch (_) {}
+        window.location.assign(ret.path);
+        return;
+      }
+      try {
+        sessionStorage.setItem('mp_force_home_tour', '1');
+        sessionStorage.setItem('mp_force_friends_invite', '1');
+      } catch (_) {}
+      clearOnboardReturn();
+      window.location.assign('/home');
+    });
+  }
+
+  let _contentPageOfferScheduled = false;
+  let _contentPageOnboardingRunning = false;
+  function scheduleContentPagePostAuthOffer() {
+    if (_contentPageOfferScheduled || _contentPageOnboardingRunning) return;
+    _contentPageOfferScheduled = true;
+    setTimeout(function () {
+      _contentPageOfferScheduled = false;
+      void maybeOfferContentPagePostAuth();
+    }, 900);
+  }
+
+  async function maybeOfferContentPagePostAuth() {
+    if (!getToken()) return;
+    if (guestOnboardResumePending()) return;
+    if (_contentPageOnboardingRunning) return;
+    const page = peekContentPageFromLocation();
+    if (!page) return;
+    writeOnboardReturnFromPath(page.path);
+
+    try {
+      if (sessionStorage.getItem('mp_force_content_tour') === '1') {
+        sessionStorage.removeItem('mp_force_content_tour');
+        await runContentPageWrapUp(page);
+        return;
+      }
+    } catch (_) {}
+
+    await uiToursEnsureHydrated();
+
+    // Онбординг уже пройден — только тур страницы (один раз за визит)
+    if (uiTourIsDone(UI_TOUR_KEYS.onboarding)) {
+      const tourKey = 'mp_content_tour_once_' + page.type + '_' + page.id;
+      try {
+        if (sessionStorage.getItem(tourKey) === '1') return;
+        sessionStorage.setItem(tourKey, '1');
+      } catch (_) {}
+      if (!cabinetHasData) {
+        await runContentPageWrapUp(page);
+      }
+      return;
+    }
+
+    const offerKey = 'mp_content_onboard_offer_' + page.type + '_' + page.id;
+    try {
+      if (sessionStorage.getItem(offerKey) === '1') return;
+      sessionStorage.setItem(offerKey, '1');
+    } catch (_) {}
+
+    const ready = await ensureOnboardingFlowLoaded();
+    if (!ready) {
+      await runContentPageWrapUp(page);
+      return;
+    }
+
+    _contentPageOnboardingRunning = true;
+    try {
+      // Попапы онбординга поверх текущей /f|/s — закрытие оставляет на странице
+      await new Promise(function (resolve) {
+        mountSiteFirstOnboardingWizard(function () {
+          resolve();
+        });
+      });
+      if (peekContentPageFromLocation()) {
+        await runContentPageWrapUp(page);
+      }
+    } finally {
+      _contentPageOnboardingRunning = false;
+    }
   }
 
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
@@ -2641,6 +3435,11 @@
     if (modalEl) modalEl.classList.add('hidden');
     document.body.classList.remove('login-only-overlay');
     try { updateGuestOnboardCtaVisibility(); } catch (_) {}
+    try {
+      if (window.MpUtm && typeof window.MpUtm.flush === 'function' && data.token) {
+        window.MpUtm.flush(data.token, typeof API_BASE !== 'undefined' ? API_BASE : undefined);
+      }
+    } catch (_utm) {}
     if (tryReturnAfterAuth()) return { ok: true };
     bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
@@ -2749,9 +3548,12 @@
         token: tok,
         chat_id: chatId,
         name: name,
-        has_data: false,
         is_personal: true,
       };
+      // Server sends has_data=0|1; omit when absent so we don't wipe a known-true session.
+      const hd = params.get('has_data');
+      if (hd === '1' || hd === 'true') data.has_data = true;
+      else if (hd === '0' || hd === 'false') data.has_data = false;
       const modal = document.getElementById('login-modal');
       const r = applySiteSessionLogin(data, modal, null);
       if (!r.ok) {
@@ -3155,7 +3957,7 @@
   }
 
   function _shareGroupEmoji(p) {
-    return (p && (p.emoji || (p.is_virtual ? '👥' : '💬'))) || '💬';
+    return (p && (p.group_emoji || p.emoji || (p.is_virtual ? '👥' : '💬'))) || '💬';
   }
 
   async function openShareInAppModal(film, opts) {
@@ -3210,22 +4012,41 @@
     const friendsPanelHtml = friends.length
       ? '<div id="share-panel-friends" class="' +
         (tab === 'friends' ? '' : 'hidden') +
-        '"><div class="list-title-section">Друг</div><div class="list" id="share-fr-list">' +
+        '">' +
+        '<input type="search" class="mp-share-search input-primary" id="share-fr-search" placeholder="Найти друга…" autocomplete="off" aria-label="Найти друга">' +
+        '<div class="mp-share-list" id="share-fr-list" role="listbox" aria-multiselectable="true">' +
         friends
           .map(function (f, i) {
+            const nm = String(f.name || 'Друг').trim() || 'Друг';
+            const uid = f.user_id;
+            const photo =
+              f.photo_url ||
+              (uid ? MEDIA_ORIGIN + '/api/avatar/' + encodeURIComponent(String(uid)) + '.jpg' : '');
+            const av = photo
+              ? '<img class="mp-share-avatar-img" src="' +
+                escapeHtml(resolveMediaUrl(photo)) +
+                '" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+                '<span class="mp-share-avatar-letter" style="display:none">' +
+                escapeHtml(nm.charAt(0).toUpperCase()) +
+                '</span>'
+              : '<span class="mp-share-avatar-letter">' +
+                escapeHtml(nm.charAt(0).toUpperCase()) +
+                '</span>';
             return (
-              '<label class="list-item" style="cursor:pointer">' +
-              '<input type="radio" name="share-fr" value="' +
-              f.user_id +
+              '<label class="mp-share-row" data-share-name="' +
+              escapeHtml(nm.toLowerCase()) +
+              '">' +
+              '<input type="checkbox" name="share-fr" value="' +
+              uid +
               '" ' +
               (i === 0 ? 'checked' : '') +
-              ' style="margin-right:10px">' +
-              '<span class="list-emoji">' +
-              escapeHtml((f.name || '?')[0].toUpperCase()) +
+              '>' +
+              '<span class="mp-share-avatar">' +
+              av +
               '</span>' +
-              '<span class="list-text"><span class="list-title">' +
-              escapeHtml(f.name || 'Друг') +
-              '</span></span></label>'
+              '<span class="mp-share-name">' +
+              escapeHtml(nm) +
+              '</span></label>'
             );
           })
           .join('') +
@@ -3234,24 +4055,32 @@
     const groupsPanelHtml = shareable.length
       ? '<div id="share-panel-groups" class="' +
         (tab === 'groups' ? '' : 'hidden') +
-        '"><div class="list-title-section">Группа</div><div class="list" id="share-grp-list">' +
+        '">' +
+        '<input type="search" class="mp-share-search input-primary" id="share-grp-search" placeholder="Найти группу…" autocomplete="off" aria-label="Найти группу">' +
+        '<div class="mp-share-list" id="share-grp-list" role="listbox">' +
         shareable
           .map(function (p, i) {
-            const nm =
-              p.display_name != null && p.display_name !== '' ? p.display_name : p.name || 'Группа';
+            const nm = String(
+              (p.display_name != null && p.display_name !== '' ? p.display_name : null) ||
+                p.name ||
+                'Группа',
+            ).trim() || 'Группа';
+            const em = _shareGroupEmoji(p);
             return (
-              '<label class="list-item" style="cursor:pointer">' +
+              '<label class="mp-share-row" data-share-name="' +
+              escapeHtml(nm.toLowerCase()) +
+              '">' +
               '<input type="radio" name="share-grp" value="' +
               p.chat_id +
               '" ' +
               (i === 0 ? 'checked' : '') +
-              ' style="margin-right:10px">' +
-              '<span class="list-emoji">' +
-              escapeHtml(_shareGroupEmoji(p)) +
+              '>' +
+              '<span class="mp-share-avatar mp-share-avatar--emoji">' +
+              escapeHtml(em) +
               '</span>' +
-              '<span class="list-text"><span class="list-title">' +
+              '<span class="mp-share-name">' +
               escapeHtml(nm) +
-              '</span></span></label>'
+              '</span></label>'
             );
           })
           .join('') +
@@ -3305,14 +4134,32 @@
         if (grPanel) grPanel.classList.toggle('hidden', tab !== 'groups');
       });
     });
+    function wireShareSearch(inputId, listId) {
+      const inp = overlay.querySelector('#' + inputId);
+      const list = overlay.querySelector('#' + listId);
+      if (!inp || !list) return;
+      inp.addEventListener('input', function () {
+        const q = String(inp.value || '').trim().toLowerCase();
+        list.querySelectorAll('.mp-share-row').forEach(function (row) {
+          const name = row.getAttribute('data-share-name') || '';
+          row.classList.toggle('hidden', !!(q && name.indexOf(q) < 0));
+        });
+      });
+    }
+    wireShareSearch('share-fr-search', 'share-fr-list');
+    wireShareSearch('share-grp-search', 'share-grp-list');
     overlay.querySelector('#share-grp-send').addEventListener('click', async function () {
       const msgEl = overlay.querySelector('#share-grp-msg');
       const msg = ((msgEl && msgEl.value) || '').trim();
       const sendBtn = overlay.querySelector('#share-grp-send');
       if (tab === 'friends') {
-        const fr = overlay.querySelector('input[name="share-fr"]:checked');
-        const toUser = Number((fr && fr.value) || 0);
-        if (!toUser) {
+        const selected = Array.prototype.slice
+          .call(overlay.querySelectorAll('input[name="share-fr"]:checked'))
+          .map(function (el) {
+            return Number(el.value || 0);
+          })
+          .filter(Boolean);
+        if (!selected.length) {
           showToast('Выберите друга', { type: 'error' });
           return;
         }
@@ -3321,15 +4168,25 @@
             sendBtn.disabled = true;
             sendBtn.textContent = 'Отправка…';
           }
-          const res = await api('/api/friends/recommend', {
-            method: 'POST',
-            body: JSON.stringify({ to_user_id: toUser, kp_id: String(film.kp_id), message: msg }),
-          });
-          if (res && res.success) {
+          let ok = 0;
+          let lastErr = '';
+          for (let i = 0; i < selected.length; i++) {
+            const res = await api('/api/friends/recommend', {
+              method: 'POST',
+              body: JSON.stringify({
+                to_user_id: selected[i],
+                kp_id: String(film.kp_id),
+                message: msg,
+              }),
+            });
+            if (res && res.success) ok += 1;
+            else lastErr = (res && (res.message || res.error)) || 'Не удалось отправить';
+          }
+          if (ok > 0) {
             close();
-            showToast('Фильм отправлен другу');
+            showToast(ok === 1 ? 'Фильм отправлен другу' : 'Фильм отправлен ' + ok + ' друзьям');
           } else {
-            showToast((res && (res.message || res.error)) || 'Не удалось отправить', { type: 'error' });
+            showToast(lastErr || 'Не удалось отправить', { type: 'error' });
           }
         } catch (e) {
           showToast('Ошибка отправки', { type: 'error' });
@@ -3476,19 +4333,31 @@
     if (!el) return;
     const initial = escapeHtml(avatarInitial(name));
     const preset = presetAvatarUrlForUser(userId);
-    const src = resolveMediaUrl(url) || preset;
-    el.innerHTML = '<img src="' + escapeHtml(src) + '" alt="" loading="lazy">';
-    const img = el.querySelector('img');
-    if (img) {
-      img.addEventListener('error', () => {
-        if (img.dataset.mpAvatarFallback === '1') {
-          el.textContent = initial;
-          return;
-        }
-        img.dataset.mpAvatarFallback = '1';
-        img.src = preset;
-      }, { once: false });
+    const canonical = userId ? avatarUrlForUserId(userId) : '';
+    const resolved = resolveMediaUrl(url);
+    const queue = [];
+    /* Prefer API photo_url (may include ?v= cache-bust) over bare /api/avatar/{id}.jpg. */
+    const preferResolved = resolved && /\/api\/avatar\//i.test(resolved);
+    [preferResolved ? resolved : '', resolved, canonical, preset].forEach(function (src) {
+      const s = String(src || '').trim();
+      if (s && queue.indexOf(s) < 0) queue.push(s);
+    });
+    if (!queue.length) {
+      el.textContent = initial;
+      return;
     }
+    el.innerHTML = '<img src="' + escapeHtml(queue[0]) + '" alt="" decoding="async">';
+    const img = el.querySelector('img');
+    if (!img) return;
+    let step = 1;
+    img.addEventListener('error', function onAvatarErr() {
+      if (step < queue.length) {
+        img.src = queue[step++];
+        return;
+      }
+      img.removeEventListener('error', onAvatarErr);
+      el.textContent = initial;
+    });
   }
 
   function greetingByHour() {
@@ -3649,11 +4518,12 @@
       const profileAvatar = document.getElementById('header-profile-avatar');
       if (profilePill) profilePill.classList.remove('hidden');
       if (profileName) profileName.textContent = me.name || 'Профиль';
+      const avatarUid = me.chat_id || me.user_id;
       setAvatarEl(
         profileAvatar,
-        me.photo_url || me.avatar_url || (me.chat_id ? avatarUrlForUserId(me.chat_id) : ''),
+        me.photo_url || me.avatar_url || '',
         me.name,
-        me.chat_id || me.user_id,
+        avatarUid,
       );
       // Показать монетки
       const coinsBtn = document.getElementById('header-coins-btn');
@@ -5928,8 +6798,16 @@
       friend_film_rec: 'Друзья',
       friend_rating_shared: 'Друзья',
       weekend_digest: 'Подборка',
+      cinema_watch_check: 'Кино',
+      cinema_ticket_reminder: 'Планы',
+      plan_friend_invite: 'Планы',
+      plan_friend_cancelled: 'Планы',
+      tournament_welcome: 'Турнир',
+      tournament_win: 'Турнир',
       tournament_month_results: 'Турнир',
       import_episodes_done: 'Сериалы',
+      admin_message: 'Movie Planner',
+      payment_receipt: 'Чек',
     };
     if (map[k]) return map[k];
     const raw = String(k || '').replace(/_/g, ' ').trim();
@@ -5938,8 +6816,7 @@
   }
 
   function siteInboxAvatarUrl(uid) {
-    const u = String(uid || '').replace(/\D/g, '');
-    return u ? avatarUrlForUserId(u) : '';
+    return avatarUrlForUserId(uid);
   }
 
   function siteInboxFormatTime(iso) {
@@ -6018,13 +6895,27 @@
     return '<div class="site-inbox-thumb site-inbox-thumb--icon">' + (o.icon ? mpIcon(o.icon, { size: 'md' }) : mpIcon('library', { size: 'md' })) + '</div>';
   }
 
-  function siteInboxOpenFilmBtn(kp, fid, primary) {
+  function siteInboxOpenFilmBtn(kp, fid, primary, label) {
     if (!kp && !fid) return '';
     const cls = 'btn btn-small ' + (primary ? 'btn-primary' : 'btn-secondary') + ' site-inbox-open-film';
+    const text = (label && String(label).trim()) || 'Открыть страницу фильма';
     return '<button type="button" class="' + cls + '"'
       + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
       + (fid ? ' data-film-id="' + escapeHtml(fid) + '"' : '')
-      + '>Открыть страницу фильма</button>';
+      + '>' + escapeHtml(text) + '</button>';
+  }
+
+  function siteInboxNavBtn(section, label, primary) {
+    if (!section || !label) return '';
+    const cls = 'btn btn-small ' + (primary ? 'btn-primary' : 'btn-secondary') + ' site-inbox-nav';
+    return '<button type="button" class="' + cls + '" data-inbox-section="' + escapeHtml(section) + '">'
+      + escapeHtml(label) + '</button>';
+  }
+
+  function siteInboxMarkRead(ids) {
+    const list = (ids || []).map((x) => Number(x)).filter((n) => n > 0);
+    if (!list.length) return Promise.resolve();
+    return api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ ids: list }) }).catch(() => null);
   }
 
   function siteInboxItemHtml(it, opts) {
@@ -6039,6 +6930,7 @@
     const friendName = siteInboxUserNameFromPayload(pl, it);
     const kind = siteInboxKindLabel(it.kind);
     const unreadCls = it.is_read === false ? ' site-inbox-card--unread' : '';
+    const inboxId = it.id != null ? String(it.id) : '';
     let thumb = '';
     let headline = '';
     let body = '';
@@ -6062,45 +6954,116 @@
       headline = escapeHtml(filmTitle || (it.title || '').trim() || 'Фильм от друга');
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (it.kind === 'plan_reminder') {
+    } else if (it.kind === 'plan_reminder' || it.kind === 'cinema_ticket_reminder') {
       if (!kp && pl && pl.plans && pl.plans[0]) kp = siteInboxExtractKp(pl.plans[0], it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
       headline = escapeHtml(filmTitle || (it.title || 'Напоминание о просмотре').trim());
       body = escapeHtml(siteInboxPlanDetail(pl, it));
       if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
+      if (!compact) actions += siteInboxNavBtn('plans', 'Расписание', false);
     } else if (it.kind === 'rate_reminder') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ratings' });
       headline = escapeHtml(filmTitle || 'Пора оценить');
       body = escapeHtml(siteInboxCleanBody(it.body) || 'Поставьте оценку после просмотра');
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (it.kind === 'premiere_release') {
+      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true, 'Оценить фильм');
+    } else if (it.kind === 'premiere_release' || it.kind === 'premiere_release_batch') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'premieres' });
       headline = escapeHtml(filmTitle || (it.title || 'Премьера').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
-    } else if (['group_share', 'group_share_accepted', 'group_rating', 'group_rate_invite'].includes(it.kind)) {
+      const parts = [];
+      if (kp || fid) parts.push(siteInboxOpenFilmBtn(kp, fid, true));
+      if (it.kind === 'premiere_release_batch' || !compact) {
+        parts.push(siteInboxNavBtn('premieres', 'Все премьеры', false));
+      }
+      actions = parts.join('');
+    } else if (it.kind === 'group_share' || it.kind === 'group_share_accepted') {
+      if (!kp) kp = siteInboxExtractKp(pl, it);
+      const actionId = pl.action_id != null ? String(pl.action_id).replace(/\D/g, '') : '';
+      const accepted = pl.accepted === true || pl.accepted === 'true' || it.kind === 'group_share_accepted';
+      const accPlan = String(pl.accepted_mode || '') === 'plan';
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
+        : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
+      headline = escapeHtml(filmTitle || (it.title || kind).trim());
+      body = escapeHtml(siteInboxCleanBody(it.body));
+      if (accepted) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">'
+          + (accPlan ? '✓ Сеанс в вашем расписании' : '✓ Фильм в вашей базе')
+          + '</span>';
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
+      } else {
+        if (actionId) {
+          actions = '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-accept" data-action-id="'
+            + escapeHtml(actionId) + '"'
+            + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+            + '>Принять в базу</button>';
+        }
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
+      }
+    } else if (['group_rating', 'group_rate_invite'].includes(it.kind)) {
       if (!kp) kp = siteInboxExtractKp(pl, it);
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
         : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
       headline = escapeHtml(filmTitle || (it.title || kind).trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
-      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true);
+      if (kp || fid) actions = siteInboxOpenFilmBtn(kp, fid, true, 'Открыть и оценить');
+    } else if (it.kind === 'plan_friend_invite' || it.kind === 'plan_friend_cancelled') {
+      const token = pl.share_token != null ? String(pl.share_token).trim() : '';
+      const accepted = pl.accepted === true || pl.accepted === 'true';
+      const cancelled = pl.cancelled === true || pl.cancelled === 'true' || it.kind === 'plan_friend_cancelled';
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
+      headline = escapeHtml(filmTitle || (it.title || 'Приглашение на просмотр').trim());
+      body = escapeHtml(siteInboxCleanBody(it.body));
+      if (cancelled) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">Приглашение отменено</span>';
+      } else if (accepted) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">✓ План добавлен в расписание</span>'
+          + siteInboxNavBtn('plans', 'Расписание', false);
+      } else if (token) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-plan-friend-accept" data-share-token="'
+          + escapeHtml(token) + '"'
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Добавить к себе</button>';
+        if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false);
+      } else if (kp || fid) {
+        actions = siteInboxOpenFilmBtn(kp, fid, true);
+      }
+    } else if (it.kind === 'cinema_watch_check') {
+      thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
+      headline = escapeHtml(filmTitle || (it.title || 'Поход в кино').trim());
+      body = escapeHtml(siteInboxCleanBody(it.body) || 'Вы посмотрели этот фильм?');
+      actions = '<button type="button" class="btn btn-small btn-primary site-inbox-cinema-yes"'
+        + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+        + (pl.plan_id != null ? ' data-plan-id="' + escapeHtml(String(pl.plan_id)) + '"' : '')
+        + (pl.film_id != null ? ' data-film-id="' + escapeHtml(String(pl.film_id)) + '"' : '')
+        + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
+        + '>Да</button>'
+        + '<button type="button" class="btn btn-small btn-secondary site-inbox-cinema-no"'
+        + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+        + (pl.plan_id != null ? ' data-plan-id="' + escapeHtml(String(pl.plan_id)) + '"' : '')
+        + '>Нет</button>';
+      if (kp || fid) actions += siteInboxOpenFilmBtn(kp, fid, false, 'Карточка фильма');
     } else if (it.kind === 'weekend_digest') {
       thumb = siteInboxThumbHtml({ icon: 'popcorn' });
       headline = escapeHtml((it.title || 'Подборка').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
+      const filmParts = [];
       const btns = (pl.film_buttons || []).slice(0, compact ? 2 : 6);
-      if (btns.length) {
-        actions = btns.map((fb, idx) => {
-          const fk = fb.kp_id != null ? String(fb.kp_id).replace(/\D/g, '') : '';
-          if (!fk) return '';
-          return siteInboxOpenFilmBtn(fk, '', false);
-        }).join('');
-      }
-    } else if (it.kind === 'tournament_month_results') {
+      btns.forEach((fb) => {
+        const fk = fb && fb.kp_id != null ? String(fb.kp_id).replace(/\D/g, '') : '';
+        if (!fk) return;
+        const lab = (fb && fb.label && String(fb.label).trim()) || 'Фильм';
+        filmParts.push(siteInboxOpenFilmBtn(fk, '', false, lab));
+      });
+      const navParts = [];
+      if (pl.show_random !== false) navParts.push(siteInboxNavBtn('whattowatch', '🎲 Рандом', true));
+      if (pl.show_unwatched !== false) navParts.push(siteInboxNavBtn('unwatched', '🗃️ Непросмотренные', false));
+      actions = filmParts.join('') + navParts.join('');
+    } else if (it.kind === 'tournament_welcome' || it.kind === 'tournament_win' || it.kind === 'tournament_month_results') {
       thumb = siteInboxThumbHtml({ icon: 'tournament' });
-      headline = escapeHtml((it.title || 'Итоги турнира').trim());
+      headline = escapeHtml((it.title || 'Турнир').trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
+      actions = siteInboxNavBtn('tournament', 'Турнирная таблица', true)
+        + siteInboxNavBtn('settings', 'Настройки', false);
     } else {
       const useFilm = !!(kp || fid || filmTitle);
       if (useFilm && kp) thumb = siteInboxThumbHtml({ poster: posterUrl(kp) });
@@ -6113,7 +7076,7 @@
 
     const bodyHtml = body ? '<div class="site-inbox-body">' + body + '</div>' : '';
     const actionsHtml = actions ? '<div class="site-inbox-actions' + (compact ? ' site-inbox-actions--compact' : '') + '">' + actions + '</div>' : '';
-    const filmTitleCls = (kp || fid || ['plan_reminder', 'rate_reminder', 'premiere_release'].includes(it.kind)) ? ' site-inbox-headline--film' : '';
+    const filmTitleCls = (kp || fid || ['plan_reminder', 'rate_reminder', 'premiere_release', 'cinema_watch_check', 'plan_friend_invite'].includes(it.kind)) ? ' site-inbox-headline--film' : '';
 
     return '<article class="site-inbox-card site-inbox-card--rich' + unreadCls + '" data-inbox-id="' + escapeHtml(String(it.id || '')) + '">'
       + '<div class="site-inbox-card-row">'
@@ -6133,6 +7096,139 @@
       btn.addEventListener('click', () => {
         closeHeaderInboxDropdown();
         openFilmNav(btn.getAttribute('data-kp-id'), btn.getAttribute('data-film-id'));
+      });
+    });
+    root.querySelectorAll('.site-inbox-nav').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sec = btn.getAttribute('data-inbox-section');
+        if (!sec) return;
+        closeHeaderInboxDropdown();
+        showSection(sec);
+        if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') {
+          try { renderWhattowatchSection(); } catch (_) {}
+        }
+        if (sec === 'unwatched' && typeof loadUnwatched === 'function') {
+          try { loadUnwatched(); } catch (_) {}
+        }
+        if (sec === 'settings' && typeof renderSettingsSection === 'function') {
+          try { renderSettingsSection(); } catch (_) {}
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-gshare-accept').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const aid = Number(btn.getAttribute('data-action-id'));
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        if (!aid) return;
+        btn.disabled = true;
+        try {
+          const res = await api('/api/site/inbox/group-share/accept', {
+            method: 'POST',
+            body: JSON.stringify({ action_id: aid }),
+          });
+          if (res && res.success) {
+            showToast(res.message || (res.mode === 'plan' ? 'Сеанс добавлен в расписание' : 'Фильм добавлен в базу'));
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            if (res.mode === 'plan') showSection('plans');
+            else renderInboxSection();
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось принять', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          const msg = (err && err.message) || 'Не удалось принять';
+          showToast(msg, { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-plan-friend-accept').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const token = (btn.getAttribute('data-share-token') || '').trim();
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        if (!token) return;
+        btn.disabled = true;
+        try {
+          const res = await api('/api/site/plan-share/' + encodeURIComponent(token) + '/accept', {
+            method: 'POST',
+            body: JSON.stringify({}),
+          });
+          if (res && res.success !== false) {
+            showToast('План добавлен');
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            showSection('plans');
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось принять', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось принять', { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-cinema-yes').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        const planId = btn.getAttribute('data-plan-id');
+        const filmId = btn.getAttribute('data-film-id');
+        const kpId = btn.getAttribute('data-kp-id');
+        btn.disabled = true;
+        try {
+          const body = { action: 'yes' };
+          if (planId) body.plan_id = Number(planId);
+          if (filmId) body.film_id = Number(filmId);
+          const res = await api('/api/mobile/cinema-watch-check', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (res && res.success) {
+            if (iid) await siteInboxMarkRead([iid]);
+            closeHeaderInboxDropdown();
+            showToast('Отметили просмотр');
+            if (kpId || filmId) openFilmNav(kpId, filmId);
+            else renderInboxSection();
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось сохранить', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось сохранить', { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-cinema-no').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        const planId = btn.getAttribute('data-plan-id');
+        btn.disabled = true;
+        try {
+          const body = { action: 'no' };
+          if (planId) body.plan_id = Number(planId);
+          const res = await api('/api/mobile/cinema-watch-check', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (res && res.success) {
+            if (iid) await siteInboxMarkRead([iid]);
+            showToast('Ок, закрыли');
+            renderInboxSection();
+            const list = document.getElementById('header-inbox-dropdown-list');
+            const dd = document.getElementById('header-inbox-dropdown');
+            if (list && dd && !dd.classList.contains('hidden')) {
+              loadHeaderInboxDropdownContent(list);
+            }
+          } else {
+            showToast((res && (res.message || res.error)) || 'Не удалось сохранить', { type: 'error' });
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось сохранить', { type: 'error' });
+          btn.disabled = false;
+        }
       });
     });
     bindSiteInboxFriendActions(root);
@@ -6909,12 +8005,12 @@
             body: JSON.stringify({ email, code, for_site: true }),
           });
           if (!verifyData.success || !verifyData.access) {
-            setStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
+            setRegStatus(authUserMessage(verifyData, verifyData.error || 'Неверный код'), 'error');
             return;
           }
           const sessionData = siteSessionFromAuthPayload(verifyData) || await exchangeSiteSessionFromAccess(verifyData);
           if (!sessionData || !sessionData.token) {
-            setStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
+            setRegStatus(authUserMessage(verifyData, 'Не удалось создать сессию'), 'error');
             return;
           }
           await applyDisplayNameIfNeeded(sessionData.token, registrationName());
@@ -7015,14 +8111,13 @@
       _cabinetMeCache = me;
       try { window._mpApiAuthDegraded = false; } catch (_) {}
       renderHeader(me);
-      void maybeShowAchievementCelebrations();
       updateInboxFabBadge(me.inbox_unread || 0);
       updateProfileSwitcherUI(me);
       refreshGroupSuggestions(me);
       updateGroupContextFab();
-      loadExtensionConfig();
-      wireCabinetFooterApps();
-      loadTvSettings();
+      // Capacity: keep /me → home critical path lean. TV/config/apps/achievements
+      // compete with dashboard+rails for the same 8–12 gunicorn threads.
+      deferNonCriticalCabinetBoot();
       try {
         const pending = localStorage.getItem('mp_pending_invite_token');
         if (pending) {
@@ -7043,6 +8138,13 @@
         }
       } catch (_) {}
       showCabinetAfterLogin(me);
+      try { resumeGuestOnboardingAfterAuth(me); } catch (_) {}
+      try { scheduleForcedHomeTourIfNeeded(); } catch (_) {}
+      try {
+        if (sessionStorage.getItem('mp_force_content_tour') === '1') {
+          scheduleContentPagePostAuthOffer();
+        }
+      } catch (_) {}
       try { refreshBaseUserTagPills(); } catch (_) {}
       try {
         const params = new URLSearchParams(window.location.search);
@@ -7088,6 +8190,20 @@
         else loadMeAndShowCabinet();
       });
     });
+  }
+
+  function deferNonCriticalCabinetBoot() {
+    const run = function () {
+      try { void maybeShowAchievementCelebrations(); } catch (_) {}
+      try { loadExtensionConfig(); } catch (_) {}
+      try { wireCabinetFooterApps(); } catch (_) {}
+      try { loadTvSettings(); } catch (_) {}
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(run, { timeout: 4500 });
+    } else {
+      setTimeout(run, 2200);
+    }
   }
 
   function wireCabinetFooterApps() {
@@ -7775,7 +8891,7 @@
             metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
           },
         });
-      }, idx * 220);
+      }, idx * 380);
     });
     decorateHomePosterPreviews(root);
   }
@@ -8440,24 +9556,34 @@
             fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
           ]
         : [
+            // Capacity: tournament leaderboard is deferred (idle) — do not compete with dashboard+rails.
             fetchHomePremierePreview(),
-            fetchLoggedHomeSeed(),
           ]
     )
       .then((pair) => {
         const prem = pair[0];
-        const seedData = isGuestCabinetPreview() ? null : pair[1];
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         if (isGuestCabinetPreview()) {
           _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
-        }
-        if (seedData && !isGuestCabinetPreview()) {
-          _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
-          writeHomeDashboardBrowserCache(_homeDashboardCache);
-          if (seedData.tournament_leaderboard) {
-            _siteTournamentLiveCache = seedData.tournament_leaderboard;
-            paintHomeTournamentBlock();
+        } else {
+          const paintTournamentSeed = function (seedData) {
+            if (!seedData) return;
+            _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
+            writeHomeDashboardBrowserCache(_homeDashboardCache);
+            if (seedData.tournament_leaderboard) {
+              _siteTournamentLiveCache = seedData.tournament_leaderboard;
+              paintHomeTournamentBlock();
+            }
+          };
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(function () {
+              fetchLoggedHomeSeed().then(paintTournamentSeed).catch(function () {});
+            }, { timeout: 5000 });
+          } else {
+            setTimeout(function () {
+              fetchLoggedHomeSeed().then(paintTournamentSeed).catch(function () {});
+            }, 2500);
           }
         }
         if (!isGuestCabinetPreview()) {
@@ -11907,7 +13033,8 @@
         + '</div>';
     }
     if (st.showMarkUpTo && st.selected) {
-      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">Отметить до выбранной</button>';
+      const markLabel = st.markMode === 'up_to' ? 'Отметить до выбранной' : 'Отметить серию';
+      html += '<button type="button" class="film-series-mark-up-to-btn" data-series-mark-up-to="1">' + markLabel + '</button>';
     }
     return html;
   }
@@ -11934,7 +13061,7 @@
       btn.addEventListener('click', function () {
         const season = parseInt(btn.getAttribute('data-series-ep-season'), 10);
         const episode = parseInt(btn.getAttribute('data-series-ep'), 10);
-        if (!season || !episode) return;
+        if (!Number.isFinite(season) || !Number.isFinite(episode) || season < 1 || episode < 1) return;
         const progress = state.progress || {};
         const next = seriesNextUnwatchedEp(progress);
         const last = seriesLastWatchedEp(progress);
@@ -11952,6 +13079,7 @@
             state.progress = seriesProgressFromPayload(data);
             state.selected = null;
             state.showMarkUpTo = false;
+            state.markMode = null;
             applySeriesProgressToFilm(film, state.progress);
             updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
             if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
@@ -11976,6 +13104,7 @@
             state.progress = seriesProgressFromPayload(data);
             state.selected = null;
             state.showMarkUpTo = false;
+            state.markMode = null;
             applySeriesProgressToFilm(film, state.progress);
             updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
             if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
@@ -11987,8 +13116,11 @@
           });
           return;
         }
+        // Any other unwatched ep: always show a mark action (was dead-select before/without next).
         state.selected = { season: season, episode: episode };
-        state.showMarkUpTo = !watched && next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode);
+        const afterNext = !!(next && seriesEpisodeOrd(season, episode) > seriesEpisodeOrd(next.season, next.episode));
+        state.showMarkUpTo = true;
+        state.markMode = afterNext ? 'up_to' : 'single';
         rerender();
       });
     });
@@ -11998,23 +13130,26 @@
         if (!state.selected || state.pending) return;
         const season = state.selected.season;
         const episode = state.selected.episode;
+        const upTo = state.markMode === 'up_to';
         state.pending = true;
         rerender();
         api('/api/site/series/' + film.film_id + '/episodes/mark', {
           method: 'POST',
-          body: JSON.stringify({ season: season, episode: episode, mark_all_previous: true }),
+          body: JSON.stringify({ season: season, episode: episode, mark_all_previous: upTo }),
           timeoutMs: 60000,
         }).then(function (data) {
           if (!data || !data.success) throw new Error((data && data.error) || 'error');
-          showToast('Отмечено серий: ' + (data.marked_count || 0));
+          if (upTo) showToast('Отмечено серий: ' + (data.marked_count || 0));
+          else showToast('Отмечена ' + seriesEpisodeCode(season, episode));
           state.progress = seriesProgressFromPayload(data);
           state.selected = null;
           state.showMarkUpTo = false;
+          state.markMode = null;
           applySeriesProgressToFilm(film, state.progress);
           updateSeriesToolbarButton(root, seriesToolbarProgressCode(film));
           if (_filmModalCache[film.film_id]) applySeriesProgressToFilm(_filmModalCache[film.film_id].film, state.progress);
         }).catch(function () {
-          showToast('Не удалось отметить серии', { type: 'error' });
+          showToast(upTo ? 'Не удалось отметить серии' : 'Не удалось отметить серию', { type: 'error' });
         }).finally(function () {
           state.pending = false;
           rerender();
@@ -14469,8 +15604,10 @@
       .then((data) => {
         if (!data || !data.success) {
           if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+          const errMsg = (data && data.error) || 'Не удалось добавить фильм.';
           const status = document.getElementById('add-film-status');
-          if (status) { status.textContent = (data && data.error) || 'Не удалось добавить фильм.'; status.className = 'add-film-status error'; }
+          if (status) { status.textContent = errMsg; status.className = 'add-film-status error'; }
+          try { showToast(errMsg, { type: 'error' }); } catch (_) {}
           return;
         }
         if (btn) {
@@ -14491,6 +15628,7 @@
       })
       .catch(() => {
         if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+        try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
       });
   }
 
@@ -15763,9 +16901,15 @@
               } else {
                 addBtn.disabled = false;
                 addBtn.textContent = prev;
+                const errMsg = (data && data.error) || 'Не удалось добавить фильм.';
+                try { showToast(errMsg, { type: 'error' }); } catch (_) {}
               }
             })
-            .catch(() => { addBtn.disabled = false; addBtn.textContent = prev; });
+            .catch(() => {
+              addBtn.disabled = false;
+              addBtn.textContent = prev;
+              try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
+            });
           return;
         }
         const row = e.target.closest('.hs-result[data-hs-row-kp]');
@@ -16135,11 +17279,13 @@
             } else {
               addBtn.disabled = false;
               addBtn.textContent = 'Добавить в базу';
+              try { showToast((r && r.error) || 'Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
             }
           })
           .catch(() => {
             addBtn.disabled = false;
             addBtn.textContent = 'Добавить в базу';
+            try { showToast('Ошибка сети. Не удалось добавить фильм.', { type: 'error' }); } catch (_) {}
           });
       });
     }
@@ -18898,23 +20044,66 @@
       fileInput.addEventListener('change', () => {
         const file = fileInput.files ? fileInput.files[0] : null;
         if (!file) return;
-        const fd = new FormData();
-        fd.append('photo', file);
-        uploadPhotoBtn.disabled = true;
-        fetch(API_BASE + '/api/miniapp/avatar/upload', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + getToken() },
-          body: fd,
-        })
-          .then((r) => r.json().catch(() => ({})))
-          .then((r) => {
-            if (!r || !r.success) { setStatus('Не удалось сохранить фото', false); return; }
-            setStatus('Фото сохранено', true);
-            fileInput.value = '';
-            loadMeAndShowCabinet();
+        const openCrop = window.mpOpenAvatarCrop;
+        const runUpload = function (blobOrFile) {
+          const fd = new FormData();
+          if (blobOrFile instanceof Blob && !(blobOrFile instanceof File)) {
+            fd.append('photo', blobOrFile, 'avatar.jpg');
+          } else {
+            fd.append('photo', blobOrFile);
+          }
+          uploadPhotoBtn.disabled = true;
+          setStatus('Загружаем фото…', true);
+          fetch(API_BASE + '/api/miniapp/avatar/upload', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + getToken() },
+            body: fd,
           })
-          .catch(() => setStatus('Ошибка сети', false))
-          .finally(() => { uploadPhotoBtn.disabled = false; });
+            .then((r) => r.json().catch(() => ({})))
+            .then((r) => {
+              if (!r || !r.success) {
+                setStatus((r && (r.message || r.error)) || 'Не удалось сохранить фото', false);
+                return;
+              }
+              setStatus('Фото сохранено', true);
+              fileInput.value = '';
+              const fresh = resolveMediaUrl(r.photo_url || '');
+              if (fresh) {
+                [
+                  document.getElementById('settings-profile-avatar'),
+                  document.getElementById('profile-hub-avatar'),
+                  document.getElementById('header-profile-avatar'),
+                  document.getElementById('cabinet-user-avatar'),
+                ].forEach(function (el) {
+                  if (!el) return;
+                  const img = el.querySelector('img');
+                  if (img) img.src = fresh;
+                  else el.innerHTML = '<img src="' + escapeHtml(fresh) + '" alt="" decoding="async">';
+                });
+              }
+              loadMeAndShowCabinet();
+            })
+            .catch(() => setStatus('Ошибка сети', false))
+            .finally(() => { uploadPhotoBtn.disabled = false; });
+        };
+        if (typeof openCrop === 'function') {
+          setStatus('Подбираем кружок…', true);
+          Promise.resolve(openCrop(file))
+            .then(function (cropped) {
+              if (!cropped) {
+                fileInput.value = '';
+                setStatus('', true);
+                return;
+              }
+              runUpload(cropped);
+            })
+            .catch(function (err) {
+              fileInput.value = '';
+              setStatus((err && err.message) || 'Не удалось открыть фото', false);
+            });
+          return;
+        }
+        runUpload(file);
       });
     }
     const searchable = root.querySelector('#profile-settings-searchable');
@@ -21155,6 +22344,9 @@
     window.showLoginModalOverlay = showLoginModalOverlay;
     window._mpDismissLoginModal = dismissLoginModal;
     window._mpApplySiteSessionLogin = applySiteSessionLogin;
+    window.__mpCompleteOnboardHandoff = completeOnboardHandoff;
+    window.__mpScheduleContentPagePostAuthOffer = scheduleContentPagePostAuthOffer;
+    window.__mpWriteOnboardReturnFromLocation = writeOnboardReturnFromLocation;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;

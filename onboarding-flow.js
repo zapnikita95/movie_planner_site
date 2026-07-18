@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260612obfix25";
+  const OB_FLOW_V = "20260717flow1";
 
   let _obKpImportPoll = null;
 
@@ -176,8 +176,8 @@
     const t = String(it.title || "").trim();
     if (!t || t === "—") return false;
     if (!it.poster_ok) return false;
-    if (t === "1+1") return true;
-    return /[а-яА-ЯёЁ]/.test(t);
+    // RU preferred, but EN/Latin titles must still be pickable (empty grid was a real bug).
+    return true;
   }
 
   function obClientLog(deps, event, details) {
@@ -454,14 +454,38 @@
     );
   }
 
+
+  function finishWithOnboardHandoff(deps, onComplete) {
+    dismissAllOnboardingLayers(deps);
+    clearState();
+    if (onComplete) onComplete();
+    if (typeof global.__mpCompleteOnboardHandoff === "function") {
+      global.__mpCompleteOnboardHandoff({ reason: "onboarding" });
+      return;
+    }
+    try {
+      sessionStorage.setItem("mp_force_home_tour", "1");
+      sessionStorage.setItem("mp_force_friends_invite", "1");
+    } catch (_e2) {}
+    deps.navigate("/", { replace: true });
+  }
+
+  async function handoffToCabinetAfterImport(deps, st, meta, onComplete) {
+    dismissAllOnboardingLayers(deps);
+    try {
+      await saveInterest(deps, buildInterestPayload(st, meta));
+    } catch (_e) {}
+    await deps.markFirstOnboardingDoneAsync();
+    if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
+    finishWithOnboardHandoff(deps, onComplete);
+  }
+
   async function dismissPlanPickToHome(deps, st, meta, onComplete) {
     dismissAllOnboardingLayers(deps);
     await saveInterest(deps, buildInterestPayload(st, meta));
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
-    clearState();
-    if (onComplete) onComplete();
-    deps.navigate("/", { replace: true });
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   async function finishOnboardingTail(deps, st, meta, onComplete) {
@@ -489,8 +513,7 @@
     }
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
-    clearState();
-    if (onComplete) onComplete();
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   function onboardingSeedUrl(mediaType, genres, extra) {
@@ -854,6 +877,7 @@
       dbSourcePickButton("kp", "🎬", "Кинопоиск") +
       dbSourcePickButton("myshows", "📺", "MyShows") +
       dbSourcePickButton("imdb", "🌐", "IMDb") +
+      dbSourcePickButton("letterboxd", "🎞️", "Letterboxd") +
       dbSourcePickButton("other", "✏️", "Другой сервис") +
       "</div>" +
       embeddedField("ob-db-other", "Какой сервис?", false) +
@@ -893,6 +917,9 @@
   function extImportSourceHelp(source) {
     if (source === "imdb") {
       return "IMDb: в десктоп-версии откройте Your Ratings и нажмите Export, затем вставьте CSV.";
+    }
+    if (source === "letterboxd") {
+      return "Letterboxd: логин или ссылка letterboxd.com/логин (публичный RSS), либо ratings.csv из Export Data.";
     }
     return "MyShows: ссылка myshows.me/<логин> или …/wasted/, либо HTML страницы /wasted/.";
   }
@@ -953,19 +980,21 @@
             ? "Кинопоиска"
             : extSource === "myshows"
               ? "MyShows"
-              : "IMDb";
+              : extSource === "letterboxd"
+                ? "Letterboxd"
+                : "IMDb";
         return (
           '<div class="mp-onboard-import-started">' +
-          '<p class="mp-onboard-text"><strong>Импорт начат</strong></p>' +
+          '<p class="mp-onboard-text"><strong>Импорт идёт</strong></p>' +
           '<p class="muted small" style="margin-top:8px;line-height:1.45">Оценки с ' +
           deps.escapeHtml(src) +
-          " подтянем в фоне — можно настроить приложение.</p>" +
+          " подтянем в фоне. Можно сразу открыть кабинет — покажем, где база, поиск и «что посмотреть».</p>" +
           (coinsAdvance > 0
             ? '<p class="mp-onboard-text" style="margin-top:10px"><strong>+' +
               coinsAdvance +
               " монеток</strong> уже на балансе.</p>"
             : "") +
-          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Начать</button>' +
+          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Продолжить в кабинет</button>' +
           "</div>"
         );
       }
@@ -1005,7 +1034,7 @@
             '<p class="mp-onboard-text">Перенесите просмотренное — получите <strong>2000 монеток</strong>.</p>' +
             '<div class="mp-onboard-db-list">' +
             dbSourcePickButton("kp", "🎬", "Кинопоиск") +
-            dbSourcePickButton("ext", "🌐", "MyShows / IMDb") +
+            dbSourcePickButton("ext", "🌐", "MyShows / IMDb / Letterboxd") +
             "</div>" +
             '<button type="button" class="btn-ghost btn-full" data-ob-skip style="margin-top:10px">Пропустить</button>';
         } else if (mode === "kp") {
@@ -1041,10 +1070,10 @@
               '<button type="button" class="btn-ghost btn-full" data-ob-skip style="margin-top:10px">Пропустить</button>';
           }
         } else if (importStartedUi) {
-          const extTitle = extSource === "myshows" ? "MyShows" : extSource === "imdb" ? "IMDb" : "Импорт";
+          const extTitle = extSource === "myshows" ? "MyShows" : extSource === "letterboxd" ? "Letterboxd" : extSource === "imdb" ? "IMDb" : "Импорт";
           body = '<div class="mp-onboard-title">' + extTitle + "</div>" + importStartedPanelHtml();
         } else {
-          const extTitle = extSource === "myshows" ? "MyShows" : "IMDb";
+          const extTitle = extSource === "myshows" ? "MyShows" : extSource === "letterboxd" ? "Letterboxd" : "IMDb";
           const srcChips = lockExtSource
             ? ""
             : '<div class="chips-wrap" style="margin:10px 0">' +
@@ -1054,6 +1083,9 @@
               '<button type="button" class="chip' +
               (extSource === "myshows" ? " chip-on" : "") +
               '" data-ob-ext-src="myshows">MyShows</button>' +
+              '<button type="button" class="chip' +
+              (extSource === "letterboxd" ? " chip-on" : "") +
+              '" data-ob-ext-src="letterboxd">Letterboxd</button>' +
               "</div>";
           const cntChips = [100, 300, 500, 1000, 1500]
             .map(function (n) {
@@ -1079,7 +1111,9 @@
             '<textarea id="ob-ext-payload" class="input-like" placeholder="' +
             (extSource === "imdb"
               ? "Вставьте CSV из IMDb…"
-              : "https://myshows.me/логин/ или …/wasted/") +
+              : extSource === "letterboxd"
+                ? "логин Letterboxd или https://letterboxd.com/логин/"
+                : "https://myshows.me/логин/ или …/wasted/") +
             '" style="width:100%;min-height:170px;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #333;background:#111;color:#eee">' +
             deps.escapeHtml(extPayload) +
             "</textarea>" +
@@ -1662,10 +1696,15 @@
 
       function syncConfirmState() {
         const confirm = ov.querySelector("#ob-pick-confirm");
-        const hasSel = selected.size > 0;
+        const need = Math.max(1, Number(minSelection) || 1);
+        const ready = selected.size >= need;
         if (confirm) {
-          confirm.disabled = !hasSel;
-          confirm.classList.toggle("btn-disabled", !hasSel);
+          confirm.disabled = !ready;
+          confirm.classList.toggle("btn-disabled", !ready);
+          if (need > 1) {
+            const base = String(opts.confirmLabel || "Подтвердить");
+            confirm.textContent = ready ? base : base + " (" + selected.size + "/" + need + ")";
+          }
         }
       }
 
@@ -2594,7 +2633,7 @@
 
     if (
       meta.hasMedia &&
-      (st.dbSource === "kp" || st.dbSource === "myshows" || st.dbSource === "imdb") &&
+      (st.dbSource === "kp" || st.dbSource === "myshows" || st.dbSource === "imdb" || st.dbSource === "letterboxd") &&
       !st.importDone &&
       !st.importSkipped &&
       !st.importStarted
@@ -2604,7 +2643,7 @@
           ? { initialMode: "kp" }
           : {
               initialMode: "ext",
-              extSource: st.dbSource === "myshows" ? "myshows" : "imdb",
+              extSource: st.dbSource === "myshows" ? "myshows" : st.dbSource === "letterboxd" ? "letterboxd" : "imdb",
               lockExtSource: true,
             };
       const imp = await stepImportChoice(deps, importOpts);
@@ -2741,8 +2780,7 @@
     }
 
     if (importInProgress) {
-      dismissAllOnboardingLayers(deps);
-      if (onComplete) onComplete();
+      await handoffToCabinetAfterImport(deps, st, meta, onComplete);
       return;
     }
 
@@ -3003,8 +3041,29 @@
     const seedMediaType = meta.mediaType || "film";
 
     if (!meta.hasMedia && meta.hasPremieres) {
-      deps.toast("Сначала выберите фильмы или сериалы");
-      return runGuestOnboardingFlow(deps, onComplete);
+      // Только премьеры: регистрация → premiere picker (без принудительных фильмов/сериалов)
+      const regPrompt = await stepGuestRegisterPrompt(deps);
+      if (!regPrompt || !regPrompt.register) {
+        if (onComplete) onComplete();
+        return;
+      }
+      writeGuestState({
+        path: "premieres",
+        pendingResume: true,
+        interests: interests,
+        otherText: otherText,
+        dbSource: "none",
+        dbOther: "",
+        mediaType: "film",
+      });
+      try {
+        sessionStorage.setItem("mp_guest_auth_via", "register");
+      } catch (_e0) {}
+      if (typeof deps.openRegisterModal === "function") {
+        deps.openRegisterModal();
+      }
+      if (onComplete) onComplete();
+      return;
     }
 
     const s2 = await stepDbSource(deps);
@@ -3015,7 +3074,7 @@
     const dbSource = s2.dbSource;
     const dbOther = s2.dbOther || "";
 
-    if (dbSource === "kp" || dbSource === "myshows" || dbSource === "imdb") {
+    if (dbSource === "kp" || dbSource === "myshows" || dbSource === "imdb" || dbSource === "letterboxd") {
       const authChoice = await stepGuestAuthForImport(deps);
       if (!authChoice) {
         if (onComplete) onComplete();
@@ -3112,11 +3171,30 @@
     const authVia = opts.authVia || "login";
     const isNewReg = authVia === "register";
 
-    if (gst.path === "import") {
+    if (gst.path === "premieres") {
+      // Resume for both Register and Login — guest already chose the path.
       clearGuestState();
-      if (!isNewReg) {
-        return false;
-      }
+      clearState();
+      writeState({
+        interests: gst.interests || [],
+        otherText: gst.otherText || "",
+        dbSource: "none",
+        dbOther: "",
+        skipIntroCarousel: true,
+      });
+      void saveInterest(deps, {
+        interests: gst.interests || [],
+        other_text: gst.otherText || "",
+        db_source: "none",
+        db_other: "",
+      });
+      void runFlow(deps, function () {});
+      return true;
+    }
+
+    if (gst.path === "import") {
+      // Resume for both Register and Login (Login used to drop the whole import).
+      clearGuestState();
       clearState();
       writeState({
         interests: gst.interests || [],
@@ -3172,6 +3250,14 @@
       await deps.markFirstOnboardingDoneAsync();
       clearGuestState();
       clearState();
+      if (typeof global.__mpCompleteOnboardHandoff === "function") {
+        global.__mpCompleteOnboardHandoff({ reason: "guest_watched" });
+      } else {
+        try {
+          sessionStorage.setItem("mp_force_home_tour", "1");
+          sessionStorage.setItem("mp_force_friends_invite", "1");
+        } catch (_eTour) {}
+      }
       return true;
     }
 

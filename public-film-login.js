@@ -483,7 +483,20 @@
 
   function rememberOAuthReturn() {
     try {
-      sessionStorage.setItem('mp_oauth_return', window.location.pathname + window.location.search);
+      var path = window.location.pathname + window.location.search;
+      sessionStorage.setItem('mp_oauth_return', path);
+      var pathOnly = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      var film = pathOnly.match(/^\/f\/(\d+)$/);
+      var staff = pathOnly.match(/^\/s\/(\d+)$/);
+      if (film) {
+        sessionStorage.setItem('mp_onboard_return', JSON.stringify({
+          type: 'film', id: film[1], path: '/f/' + film[1], savedAt: Date.now(),
+        }));
+      } else if (staff) {
+        sessionStorage.setItem('mp_onboard_return', JSON.stringify({
+          type: 'staff', id: staff[1], path: '/s/' + staff[1], savedAt: Date.now(),
+        }));
+      }
     } catch (_e) {}
   }
 
@@ -512,6 +525,12 @@
 
   function finishLogin(data) {
     if (!data || !data.token) return;
+    rememberOAuthReturn();
+    try {
+      if (global.MpUtm && typeof global.MpUtm.flush === 'function') {
+        global.MpUtm.flush(data.token, cfg.apiBase);
+      }
+    } catch (_utm) {}
     if (typeof global._mpApplySiteSessionLogin === 'function') {
       global._mpApplySiteSessionLogin(data, $('login-modal'), null);
       close();
@@ -520,6 +539,17 @@
     saveSession(data);
     close();
     try { cfg.onSuccess(data); } catch (_e) {}
+    try {
+      if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
+        global.__mpScheduleContentPagePostAuthOffer();
+      } else if (typeof global.ensureFullCabinet === 'function') {
+        global.ensureFullCabinet(function () {
+          if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
+            global.__mpScheduleContentPagePostAuthOffer();
+          }
+        });
+      }
+    } catch (_e2) {}
   }
 
   function applyDisplayName(token, name) {
@@ -782,7 +812,11 @@
       if (!chatId) return false;
       var name = params.get('name') || 'Профиль';
       try { name = decodeURIComponent(name); } catch (_e) {}
-      finishLogin({ token: tok, chat_id: chatId, name: name, has_data: false, is_personal: true });
+      var payload = { token: tok, chat_id: chatId, name: name, is_personal: true };
+      var hd = params.get('has_data');
+      if (hd === '1' || hd === 'true') payload.has_data = true;
+      else if (hd === '0' || hd === 'false') payload.has_data = false;
+      finishLogin(payload);
       history.replaceState({}, '', location.pathname + location.search);
       return true;
     } catch (_e) {

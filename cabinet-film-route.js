@@ -200,6 +200,11 @@
               global.MpFilmPage.refreshStandaloneAuthChrome({ kpId: kp, mainSelector: '#film-page-content' });
             } catch (_e2) {}
           }
+          ensureFullCabinet(function () {
+            if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
+              global.__mpScheduleContentPagePostAuthOffer();
+            }
+          });
         },
       });
     }

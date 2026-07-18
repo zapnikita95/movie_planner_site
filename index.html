@@ -796,6 +796,7 @@
     }
     </script>
     <script src="/yandex-metrika.js?v=20260621"></script>
+    <script src="/utm-capture.js?v=20260718kpalt1"></script>
 </head>
 <body>
   <script>
@@ -858,12 +859,11 @@
         <div class="header-buttons">
           <button type="button" class="header-login-btn" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
-            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
-              <span class="header-profile-avatar" id="header-profile-avatar"></span>
-              <span class="header-profile-name" id="header-profile-name"></span>
-            </button>
-            <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <div class="header-util-row" id="header-util-row">
+              <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+                <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
+              </button>
               <div class="header-inbox-wrap hidden" id="header-inbox-wrap">
                 <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления" aria-haspopup="true" aria-expanded="false">
                   <span class="header-inbox-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
@@ -877,12 +877,13 @@
                   <div class="header-inbox-dropdown-list" id="header-inbox-dropdown-list" aria-live="polite"></div>
                 </div>
               </div>
-              <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
-                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
-                <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
-              </button>
               <select id="header-plan-target" class="header-plan-target hidden" aria-label="Куда сохранить план"></select>
             </div>
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="cabinet-profile-menu header-profile-menu hidden" id="cabinet-profile-menu" role="menu"></div>
             <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки"><span class="header-settings-btn-icon mp-icon" data-mp-icon="gear" aria-hidden="true"></span><span class="header-settings-btn-text">Настройки</span></button>
             <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
           </div>
@@ -1278,6 +1279,11 @@
                     <span class="article-card-icon mp-icon" data-mp-icon="extension"></span>
                     <span class="article-card-title">Расширение Chrome</span>
                     <span class="article-card-desc">Добавление фильмов и трекинг серий в браузере</span>
+                </a>
+                <a href="/articles/alternativa-kinopoisku.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
+                    <span class="article-card-title">Альтернатива Кинопоиску</span>
+                    <span class="article-card-desc">Замена для списков, оценок и сериалов</span>
                 </a>
                 <a href="/articles/movie-planner-vs-kinopoisk.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="scales"></span>
@@ -2544,19 +2550,19 @@
           'mp-api-config.js?v=20260627apiams1',
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=202607052140fix4',
+          'public-film-login.js?v=20260718kpalt1',
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
           'mp-icons.js?v=20260627history1',
-          'mp-public-promo.js?v=20260718cabinetai1'
+          'mp-public-promo.js?v=20260717flow2'
         ];
         var cabinet = [
           'user-profile-page.js?v=20260629profilefix6',
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
-          'onboarding-flow.js?v=202607052140fix4',
+          'onboarding-flow.js?v=20260717flow2',
           'collections-page.js?v=20260628tournfix2',
           'home-rails.js?v=20260705premcarddiv1',
           'landing-articles.js?v=20260627articles1',
@@ -2568,19 +2574,24 @@
             'mp-api-config.js?v=20260627apiams1',
             'mp-icons.js?v=20260627history1',
             'page-loading.js?v=20260529mobileparity1',
+            'avatar-crop.js?v=20260717flow2',
             'cabinet-app.js?v=20260718cabinetai1'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('film-page.js?v=20260718cabinetai1');
+          list.push('onboarding-flow.js?v=20260717flow2');
+          list.push('film-page.js?v=20260717flow2');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
-          list.push('film-page.js?v=20260718cabinetai1');
-          list.push('staff-page.js?v=20260718cabinetai1');
+          list.push('onboarding-flow.js?v=20260717flow2');
+          list.push('film-page.js?v=20260717flow2');
+          list.push('staff-page.js?v=20260717flow2');
+          list.push('avatar-crop.js?v=20260717flow2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
+          list.push('avatar-crop.js?v=20260717flow2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
