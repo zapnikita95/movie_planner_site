@@ -1303,6 +1303,7 @@
       { href: '/watchlist', label: 'База', icon: 'library' },
       { href: '/whattowatch', label: 'Смотреть', icon: 'watch' },
       { href: '/premieres', label: 'Премьеры', icon: 'premieres' },
+      { href: '/buzz', label: 'В тренде', icon: 'trend' },
       { href: '/tournament', label: 'Турнир', icon: 'tournament' },
     ];
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +

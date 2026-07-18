@@ -1914,6 +1914,14 @@
 
   function resumeGuestOnboardingAfterAuth(data) {
     try {
+      // Подписка «В тренде» / digest — не пугать онбордингом, пока не зашли на /home
+      try {
+        if (sessionStorage.getItem('mp_skip_onboard_until_home') === '1') {
+          const p = (window.location.pathname || '').replace(/\/$/, '') || '/';
+          if (p !== '/home') return;
+          sessionStorage.removeItem('mp_skip_onboard_until_home');
+        }
+      } catch (_) {}
       const raw = sessionStorage.getItem('mp_guest_onboard_state');
       if (!raw) return;
       const gst = JSON.parse(raw);
@@ -2361,6 +2369,12 @@
 
   function scheduleSiteOnboardingAfterCabinet() {
     setTimeout(function () {
+      try {
+        if (sessionStorage.getItem('mp_skip_onboard_until_home') === '1') {
+          const p = (window.location.pathname || '').replace(/\/$/, '') || '/';
+          if (p !== '/home') return;
+        }
+      } catch (_) {}
       void maybeStartSiteOnboardingChain();
     }, 700);
   }

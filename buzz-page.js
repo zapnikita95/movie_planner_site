@@ -374,9 +374,81 @@
         if (loading) loading.classList.add('hidden');
         if (err) {
           err.classList.remove('hidden');
-          err.textContent = 'Не удалось загрузить новости.';
+          err.textContent = 'Не удалось загрузить «В тренде».';
         }
       });
+  }
+
+  function digestStatus(msg, isErr) {
+    var el = document.getElementById('buzz-digest-status');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.color = isErr ? '#ff6b6b' : '';
+  }
+
+  function markSkipOnboardingUntilHome() {
+    try { sessionStorage.setItem('mp_skip_onboard_until_home', '1'); } catch (_) {}
+  }
+
+  function bindDigest() {
+    var emailBtn = document.getElementById('buzz-digest-email-btn');
+    var tgBtn = document.getElementById('buzz-digest-tg-btn');
+    if (emailBtn && !emailBtn._mpBound) {
+      emailBtn._mpBound = true;
+      emailBtn.addEventListener('click', function () {
+        var email = (document.getElementById('buzz-digest-email') || {}).value || '';
+        var freq = (document.getElementById('buzz-digest-freq') || {}).value || 'week';
+        email = String(email).trim();
+        if (!email || email.indexOf('@') < 0) {
+          digestStatus('Укажите email', true);
+          return;
+        }
+        digestStatus('Отправляем письмо…');
+        emailBtn.disabled = true;
+        fetch(API_BASE + '/api/public/buzz/digest/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: 'email', email: email, frequency: freq, days_window: state.days }),
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            emailBtn.disabled = false;
+            if (!res.ok || !(res.d && res.d.success)) {
+              digestStatus((res.d && res.d.error) === 'bad_email' ? 'Некорректный email' : 'Не удалось подписаться', true);
+              return;
+            }
+            markSkipOnboardingUntilHome();
+            digestStatus(res.d.confirm_sent
+              ? 'Проверьте почту и подтвердите подписку. Онбординг не запускаем.'
+              : 'Заявка принята. Подтвердите письмо, когда придёт.');
+          })
+          .catch(function () {
+            emailBtn.disabled = false;
+            digestStatus('Сеть недоступна', true);
+          });
+      });
+    }
+    if (tgBtn && !tgBtn._mpBound) {
+      tgBtn._mpBound = true;
+      tgBtn.addEventListener('click', function () {
+        markSkipOnboardingUntilHome();
+        digestStatus('Войдите через Telegram — подписка без онбординга, пока не зайдёте на Главную.');
+        try {
+          if (typeof window.showLoginModalOverlay === 'function') {
+            window.showLoginModalOverlay('login');
+            return;
+          }
+        } catch (_) {}
+        var loginBtn = document.querySelector('[data-action="open-login"], #header-login-btn, .header-login');
+        if (loginBtn) loginBtn.click();
+        else window.location.href = '/?open_login=1&from=buzz_digest';
+      });
+    }
+    try {
+      var params = new URLSearchParams(location.search || '');
+      if (params.get('digest') === 'confirmed') digestStatus('Подписка подтверждена.');
+      if (params.get('digest') === 'error') digestStatus('Ссылка подтверждения недействительна.', true);
+    } catch (_) {}
   }
 
   function bindToolbar() {
@@ -423,6 +495,7 @@
         load();
       });
     }
+    bindDigest();
     syncTabs();
   }
 
