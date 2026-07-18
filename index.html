@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260718news5" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260718news5">
+    <link rel="preload" href="/style-v2.css?v=20260718trend1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260718trend1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -97,7 +97,7 @@
           '/series': 'Трекер сериалов — прогресс по эпизодам · Movie Planner',
           '/plans': 'Планы просмотра · Movie Planner',
           '/premieres': 'Премьеры фильмов и сериалов · Movie Planner',
-          '/buzz': 'Новости кино · Movie Planner',
+          '/buzz': 'В тренде · Movie Planner',
           '/whattowatch': 'Что посмотреть · Movie Planner',
           '/ratings': 'Оценки и история просмотров · Movie Planner',
           '/stats': 'Статистика просмотров · Movie Planner',
@@ -907,7 +907,7 @@
       <a class="cabinet-nav-btn" href="/watchlist"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></a>
       <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
       <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
-      <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">Новости</span></a>
+      <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">В тренде</span></a>
       <a class="cabinet-nav-btn" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
     </nav>
 
@@ -1419,7 +1419,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">База</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">Новости</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="news"></span><span class="cabinet-nav-btn-text">В тренде</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
@@ -1726,8 +1726,8 @@
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="news"></span><span class="section-title-text">Новости</span></h2>
-                    <p class="buzz-seo-lead">Что обсуждают в кино-Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
+                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="news"></span><span class="section-title-text">В тренде</span></h2>
+                    <p class="buzz-seo-lead">Что обсуждают киноканалы в Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
                     <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
                         <button type="button" class="plans-filter-tab active" data-buzz-view="films" role="tab" aria-selected="true">По фильмам</button>
                         <button type="button" class="plans-filter-tab" data-buzz-view="feed" role="tab" aria-selected="false">Лента</button>
@@ -1756,6 +1756,7 @@
                     <div id="buzz-error" class="buzz-error hidden"></div>
                     <div id="buzz-empty" class="buzz-empty hidden"></div>
                     <div id="buzz-grid" class="buzz-grid"></div>
+                    <p class="buzz-legal-note">Ссылки на внешние каналы; контент принадлежит авторам.</p>
                 </section>
                 <section id="section-tournament" class="cabinet-section hidden cabinet-tournament">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="tournament"></span><span class="section-title-text">Турнирная таблица</span></h2>
@@ -2633,18 +2634,18 @@
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260718news5');
+          list.push('film-page.js?v=20260718trend1');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260718news5');
+          list.push('film-page.js?v=20260718trend1');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260718news5');
-          list.push('cabinet-app.js?v=20260718news4');
+          list.push('buzz-page.js?v=20260718trend1');
+          list.push('cabinet-app.js?v=20260718trend1');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');
