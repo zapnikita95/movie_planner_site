@@ -459,7 +459,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, whattowatch: true };
+  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true };
 
   function guestMayOpenCabinetSection(sectionId) {
     if (!isGuestCabinetPreview()) return true;
@@ -551,7 +551,7 @@
   function guestCabinetBottomNavPath() {
     try {
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/whattowatch'
+      if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz' || bootPath === '/whattowatch'
         || bootPath.indexOf('/features/collections') === 0) {
         return true;
       }
@@ -597,7 +597,7 @@
     try { renderGuestOnboardCta(); } catch (_) {}
   }
 
-  /** Гость: /home, /plans, /premieres, /whattowatch и /features/collections/* — без topbar «Профиль». */
+  /** Гость: /home, /plans, /premieres, /buzz, /whattowatch и /features/collections/* — без topbar «Профиль». */
   function bootGuestCabinetPreview(sectionId) {
     try {
       if (getToken() || !document.getElementById('landing')) return false;
@@ -619,8 +619,8 @@
       } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
         sec = 'whattowatch';
       }
-      if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'whattowatch') return false;
-      const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/whattowatch'
+      if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch') return false;
+      const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz' || bootPath === '/whattowatch'
         || bootPath.indexOf('/features/collections') === 0;
       if (!guestPathOk) return false;
 
@@ -3515,7 +3515,7 @@
       return true;
     }
     const sec = sectionFromPath(path);
-    if (sec === 'home' || sec === 'plans' || sec === 'premieres' || sec === 'whattowatch') {
+    if (sec === 'home' || sec === 'plans' || sec === 'premieres' || sec === 'buzz' || sec === 'whattowatch') {
       bootGuestCabinetPreview(sec);
       return true;
     }
@@ -4818,6 +4818,7 @@
     ratings: '/ratings',
     stats: '/stats',
     premieres: '/premieres',
+    buzz: '/buzz',
     groups: '/groups',
     integrations: '/integrations',
     tv: '/tv',
@@ -5004,6 +5005,12 @@
   function afterCabinetSectionShown(sectionId) {
     if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
     if (sectionId === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
+    if (sectionId === 'buzz') {
+      try {
+        if (window.mpBuzzPage && typeof window.mpBuzzPage.load === 'function') window.mpBuzzPage.load();
+        document.dispatchEvent(new CustomEvent('mp:section-shown', { detail: { section: 'buzz' } }));
+      } catch (_) {}
+    }
     if (sectionId === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
     if (sectionId === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
     if (sectionId === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }

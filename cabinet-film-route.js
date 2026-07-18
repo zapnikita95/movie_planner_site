@@ -129,6 +129,7 @@
     home: '/home',
     plans: '/plans',
     premieres: '/premieres',
+    buzz: '/buzz',
     whattowatch: '/whattowatch',
   };
 
