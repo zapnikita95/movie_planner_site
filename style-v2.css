@@ -4503,15 +4503,23 @@ body.header-search-dropdown-open .header-search-glyph--close {
   margin: 0;
 }
 .header-search .header-search-mic {
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   padding: 0;
   box-sizing: border-box;
   line-height: 0;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 .header-search .header-search-mic svg {
   transform: translateY(0.5px);
+}
+.header-search-mic > i[class*="ph"] { display: none !important; }
+.header-search-mic > svg {
+  display: block !important;
+  width: 18px;
+  height: 18px;
 }
 
 .header-search .header-search-icon.mp-icon {
@@ -13166,7 +13174,7 @@ body.film-standalone-page {
     }
     body.film-standalone-page .header-content {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 240px), min(560px, var(--hdr-grid-search-max, 40vw))) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) auto;
       align-items: center;
       gap: clamp(12px, 2vw, 20px);
       max-width: 1180px;
@@ -13794,7 +13802,7 @@ body.film-standalone-page {
         padding-right: 16px;
       }
       body.film-standalone-page .header-content {
-        grid-template-columns: minmax(0, 1fr) minmax(200px, min(560px, 36vw)) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(180px, min(560px, 36vw)) auto;
         gap: 10px;
       }
       body.film-standalone-page .logo span {
@@ -15226,11 +15234,12 @@ html {
   body.in-cabinet .header-content,
   body.landing-root-page .header-content,
   body.film-standalone-page .header-content,
+  body.article-standalone-page .header-content,
   body.staff-standalone-page .header-content,
   body.user-standalone-page .header-content,
   body.in-search-page .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(160px, min(560px, 36vw)) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(160px, min(560px, 32vw)) auto !important;
     grid-template-rows: auto !important;
     align-items: center;
     gap: 10px 12px !important;
@@ -15238,6 +15247,7 @@ html {
   body.in-cabinet .logo,
   body.landing-root-page .logo,
   body.film-standalone-page .logo,
+  body.article-standalone-page .logo,
   body.staff-standalone-page .logo,
   body.user-standalone-page .logo,
   body.in-search-page .logo {
@@ -15249,14 +15259,26 @@ html {
   body.in-cabinet .header-buttons,
   body.landing-root-page .header-buttons,
   body.film-standalone-page .header-buttons,
+  body.article-standalone-page .header-buttons,
   body.staff-standalone-page .header-buttons,
   body.user-standalone-page .header-buttons,
   body.in-search-page .header-buttons {
     grid-column: 3;
     grid-row: 1;
     justify-self: end;
-    min-width: 0;
-    max-width: 100%;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+  }
+  body.in-cabinet .header-user-wrap,
+  body.landing-root-page .header-user-wrap,
+  body.film-standalone-page .header-user-wrap,
+  body.article-standalone-page .header-user-wrap,
+  body.staff-standalone-page .header-user-wrap,
+  body.user-standalone-page .header-user-wrap,
+  body.in-search-page .header-user-wrap {
+    width: auto !important;
+    max-width: none !important;
   }
   body.in-cabinet .header-search:not(.hidden),
   body.landing-root-page .header-search:not(.hidden),
@@ -15295,8 +15317,8 @@ body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone
 
 body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-buttons,
 body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-user-wrap {
-  min-width: 0;
-  flex-shrink: 1;
+  min-width: max-content;
+  flex-shrink: 0;
 }
 
 #landing,
@@ -15336,17 +15358,18 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   }
 }
 
-/* Landing/cabinet/film: search centered on viewport (equal 1fr side tracks) */
+/* Landing/cabinet/film: search centered; right track sizes to profile chrome (never overlaps search) */
 @media (min-width: 769px) {
   html.mp-landing-boot .header-content,
   body.landing-root-page .header-content,
   body.in-cabinet .header-content,
   body.film-standalone-page .header-content,
+  body.article-standalone-page .header-content,
   body.staff-standalone-page .header-content,
   body.user-standalone-page .header-content,
   body.in-search-page .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 240px), min(560px, var(--hdr-grid-search-max, 40vw))) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) auto !important;
     align-items: center;
     gap: clamp(12px, 2vw, 20px);
   }
@@ -15355,6 +15378,7 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   body.landing-root-page .logo,
   body.in-cabinet .logo,
   body.film-standalone-page .logo,
+  body.article-standalone-page .logo,
   body.staff-standalone-page .logo,
   body.user-standalone-page .logo,
   body.in-search-page .logo {
@@ -15369,14 +15393,44 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   body.landing-root-page .header-buttons,
   body.in-cabinet .header-buttons,
   body.film-standalone-page .header-buttons,
+  body.article-standalone-page .header-buttons,
   body.staff-standalone-page .header-buttons,
   body.user-standalone-page .header-buttons,
   body.in-search-page .header-buttons {
     grid-column: 3;
     grid-row: 1;
     justify-self: end;
-    flex-shrink: 0;
-    min-width: max-content;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    min-width: max-content !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 2;
+  }
+
+  html.mp-landing-boot .header-user-wrap,
+  body.landing-root-page .header-user-wrap,
+  body.in-cabinet .header-user-wrap,
+  body.film-standalone-page .header-user-wrap,
+  body.article-standalone-page .header-user-wrap,
+  body.staff-standalone-page .header-user-wrap,
+  body.user-standalone-page .header-user-wrap,
+  body.in-search-page .header-user-wrap {
+    width: auto !important;
+    max-width: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  html.mp-landing-boot #header-profile-pill,
+  body.landing-root-page #header-profile-pill,
+  body.in-cabinet #header-profile-pill,
+  body.film-standalone-page #header-profile-pill,
+  body.article-standalone-page #header-profile-pill,
+  body.staff-standalone-page #header-profile-pill,
+  body.user-standalone-page #header-profile-pill,
+  body.in-search-page #header-profile-pill {
+    position: relative;
+    flex-shrink: 0 !important;
     z-index: 2;
   }
 
@@ -15384,6 +15438,7 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   body.landing-root-page #header-search,
   body.in-cabinet #header-search,
   body.film-standalone-page #header-search,
+  body.article-standalone-page #header-search,
   body.staff-standalone-page #header-search,
   body.user-standalone-page #header-search,
   body.in-search-page #header-search {
@@ -15398,6 +15453,8 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    z-index: 1;
+    overflow: visible;
   }
 
   body.landing-root-page .header-content,
