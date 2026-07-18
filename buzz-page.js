@@ -201,20 +201,27 @@
     var kid = item.kp_id;
     var title = item.title || ('film ' + kid);
     var n = item.mention_count || 0;
-    var chans = Array.isArray(item.channels) ? item.channels : [];
+    var chans = Array.isArray(item.channels) ? item.channels.slice() : [];
     if (state.kind) {
       chans = chans.filter(function (c) { return String(c.channel_kind || '') === state.kind; });
     }
-    var cc = item.channel_count || chans.length;
+    chans.sort(function (a, b) {
+      var ay = (a.platform === 'youtube') ? 0 : 1;
+      var by = (b.platform === 'youtube') ? 0 : 1;
+      return ay - by;
+    });
+    var cc = chans.length || item.channel_count || 0;
     var href = '/f/' + encodeURIComponent(kid);
     var poster = posterUrl(item);
     if (!poster) return '';
+    var hasVideo = !!item.has_video || chans.some(function (c) { return c.platform === 'youtube'; });
     var itemForChips = Object.assign({}, item, { channels: chans });
 
     return (
-      '<article class="buzz-tile">' +
+      '<article class="buzz-tile' + (hasVideo ? ' buzz-tile--video' : '') + '">' +
         '<div class="buzz-tile-poster-wrap">' +
           premiereBellHtml(item) +
+          (hasVideo ? '<span class="buzz-video-badge" aria-label="Есть видео">▶ видео</span>' : '') +
           '<a class="buzz-tile-link" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '" data-title="' + esc(title) + '" data-poster="' + esc(poster) + '">' +
             '<span class="buzz-tile-poster">' +
               '<img src="' + esc(poster) + '" alt="' + esc(title) + '" loading="lazy">' +
@@ -253,7 +260,7 @@
       '" data-buzz-channel="' + esc(chKey) + '" data-buzz-kp="' + esc(kid) + '"';
 
     return (
-      '<article class="buzz-feed-row">' +
+      '<article class="buzz-feed-row' + (plat === 'youtube' ? ' buzz-feed-row--yt' : '') + '">' +
         '<a class="buzz-feed-poster" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '" data-title="' + esc(filmTitle) + '">' +
           '<img src="' + esc(poster) + '" alt="" loading="lazy">' +
         '</a>' +
@@ -262,6 +269,7 @@
             '<a class="buzz-feed-channel" href="' + esc(chUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
               (plat === 'youtube' ? ytIcon() : '') + esc(chLabel) +
             '</a>' +
+            (plat === 'youtube' ? '<span class="buzz-feed-yt-pill">видео</span>' : '') +
             (item.posted_at ? '<time class="buzz-feed-date">' + esc(item.posted_at) + '</time>' : '') +
             premiereBellHtml(item) +
           '</div>' +
@@ -369,14 +377,20 @@
     var silent = opts && opts.silent;
     var loading = document.getElementById('buzz-loading');
     var err = document.getElementById('buzz-error');
-    if (!silent && !state.items.length && loading) loading.classList.remove('hidden');
     if (err) err.classList.add('hidden');
 
+    /* Как у премьер/rails: сразу рисуем кэш текущего фильтра, без чужих данных. */
     var cached = readClientCache();
-    if (cached && cached.length && !state.loaded) {
+    if (cached && cached.length) {
       state.items = cached;
       state.loaded = true;
       paint();
+      if (loading) loading.classList.add('hidden');
+    } else {
+      state.items = [];
+      state.loaded = false;
+      paint();
+      if (!silent && loading) loading.classList.remove('hidden');
     }
 
     var q = '/api/public/buzz?days=' + encodeURIComponent(state.days) +
@@ -399,8 +413,9 @@
         paint();
       })
       .catch(function () {
-        if (state.items && state.items.length) {
-          /* keep stale client cache on network blip */
+        if (cached && cached.length) {
+          state.items = cached;
+          state.loaded = true;
           paint();
           return;
         }
