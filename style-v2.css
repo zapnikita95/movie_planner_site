@@ -19681,3 +19681,131 @@ img.mp-poster-placeholder,
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* —— Site cabinet: AI-помощник (/whattowatch) —— */
+.site-ai-panel {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(18, 18, 26, 0.98) 30%);
+  border-color: rgba(167, 139, 250, 0.22);
+}
+.site-ai-panel .site-emotion-toolbar-title {
+  letter-spacing: -0.02em;
+}
+.site-ai-msg--wide {
+  max-width: 100%;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+.site-ai-msg--wide .site-emotion-bubble {
+  align-self: flex-start;
+  max-width: 88%;
+}
+.site-ai-results {
+  margin-top: 10px;
+}
+.site-ai-textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.4;
+  outline: none;
+}
+.site-ai-textarea:focus {
+  border-color: rgba(167, 139, 250, 0.55);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+.site-ai-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.site-ai-paywall {
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 209, 102, 0.28);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(255, 45, 123, 0.12));
+  display: grid;
+  gap: 10px;
+}
+.site-ai-paywall-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.88);
+}
+.site-ai-paywall .btn {
+  width: 100%;
+  min-height: 44px;
+}
+.site-ai-anchors {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+}
+.site-ai-anchor-pick {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+.site-ai-anchor-pick:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+.site-ai-anchor-pick--selected {
+  border-color: rgba(167, 139, 250, 0.75);
+  background: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
+}
+.site-ai-anchor-submit {
+  width: 100%;
+  min-height: 42px;
+}
+.site-ai-anchor-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (min-width: 901px) {
+  body.in-cabinet #section-whattowatch .site-ai-panel .site-emotion-chat {
+    max-height: min(56vh, 520px);
+  }
+  body.in-cabinet #section-whattowatch .site-ai-results,
+  body.in-cabinet #section-whattowatch .site-ai-anchors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.in-cabinet #section-whattowatch .site-ai-anchor-submit {
+    grid-column: 1 / -1;
+  }
+  body.in-cabinet #section-whattowatch .site-ai-textarea {
+    font-size: 16px;
+    padding: 13px 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.in-cabinet #section-whattowatch .site-ai-results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

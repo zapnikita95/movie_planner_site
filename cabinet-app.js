@@ -17158,6 +17158,7 @@
       icon: 'watchlist',
       label: 'Непросмотренные',
       modes: [
+        { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
         { id: 'my_unwatched', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из ваших непросмотренных' },
         { id: 'wizard_library', kind: 'wizard', wizardScope: 'library', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, режиссёр, актёр' },
@@ -17168,6 +17169,7 @@
       icon: 'globe',
       label: 'Со всего мира',
       modes: [
+        { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
         { id: 'kp_random', kind: 'random', icon: 'random', title: 'Случайный фильм', hint: 'Из всех фильмов или свежие премьеры' },
         { id: 'wizard_world', kind: 'wizard', wizardScope: 'world', icon: 'target', title: 'Пожелания', hint: 'Жанры, годы, рейтинг' },
@@ -17353,6 +17355,7 @@
 
   function wtwModeNeedsAuth(m) {
     if (!m) return false;
+    if (m.kind === 'ai_assistant') return true;
     if (m.kind === 'random' && (m.id === 'my_unwatched' || m.id === 'similar_my_top')) return true;
     if (m.kind === 'wizard' && m.wizardScope === 'library') return true;
     if (m.kind === 'premieres_reco') return true;
@@ -17362,7 +17365,11 @@
   function triggerWtwModeAction(m) {
     if (!m) return;
     if (!getToken() && wtwModeNeedsAuth(m)) {
-      requireAuthForAction('Для этого режима нужна ваша база фильмов — войдите или зарегистрируйтесь');
+      requireAuthForAction(
+        m.kind === 'ai_assistant'
+          ? 'AI-помощник работает с вашей базой — войдите или зарегистрируйтесь'
+          : 'Для этого режима нужна ваша база фильмов — войдите или зарегистрируйтесь',
+      );
       return;
     }
     if (m.kind === 'random') {
@@ -17371,6 +17378,10 @@
     }
     if (m.kind === 'wizard') {
       openSiteWtwWizardOverlay(m.wizardScope || null);
+      return;
+    }
+    if (m.kind === 'ai_assistant') {
+      mountSiteAiAssistantPanel();
       return;
     }
     if (m.kind === 'emotion') {
@@ -17409,6 +17420,7 @@
     { text: 'Что посмотреть?', send: 'Что посмотреть по моему настроению?' },
   ];
   let siteEmotionUnmount = null;
+  let siteAiUnmount = null;
 
   function mountSiteEmotionPanel() {
     const root = document.getElementById('whattowatch-result');
@@ -17418,6 +17430,10 @@
     if (typeof siteEmotionUnmount === 'function') {
       try { siteEmotionUnmount(); } catch (_) {}
       siteEmotionUnmount = null;
+    }
+    if (typeof siteAiUnmount === 'function') {
+      try { siteAiUnmount(); } catch (_) {}
+      siteAiUnmount = null;
     }
     if (modesEl) modesEl.classList.add('hidden');
     if (scopeEl) scopeEl.classList.add('hidden');
@@ -17730,12 +17746,475 @@
     reset(false);
   }
 
+  const SITE_AI_HINTS = [
+    { text: 'Что посмотреть?', send: 'Что посмотреть?' },
+    { text: 'По жанру', send: 'Подбери комедию' },
+    { text: 'По актёру', send: 'Что с Джимом Керри я ещё не смотрел?' },
+  ];
+
+  function openSiteBillingFromAi() {
+    try {
+      _profileSubView = 'billing';
+      showSection('settings');
+      pushSettingsSubUrl('billing');
+      if (typeof renderSettingsSection === 'function') renderSettingsSection();
+    } catch (_) {
+      window.location.href = '/settings/billing';
+    }
+  }
+
+  function formatSiteAiText(text) {
+    const raw = String(text || '');
+    if (!raw) return '';
+    let html = escapeHtml(raw);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  function mountSiteAiAssistantPanel() {
+    const root = document.getElementById('whattowatch-result');
+    const modesEl = document.getElementById('site-wtw-modes');
+    const scopeEl = document.querySelector('#whattowatch-content .wtw-scope-toggle');
+    if (!root) return;
+    if (typeof siteEmotionUnmount === 'function') {
+      try { siteEmotionUnmount(); } catch (_) {}
+      siteEmotionUnmount = null;
+    }
+    if (typeof siteAiUnmount === 'function') {
+      try { siteAiUnmount(); } catch (_) {}
+      siteAiUnmount = null;
+    }
+    if (modesEl) modesEl.classList.add('hidden');
+    if (scopeEl) scopeEl.classList.add('hidden');
+    root.classList.remove('hidden');
+
+    const INTRO =
+      'Подскажу, что посмотреть по вашей базе: учту оценки, жанры и что вы уже видели. ' +
+      'Спросите про любимые фильмы или попросите подбор.';
+    const LOADING = [
+      'Обрабатываю запрос…',
+      'Смотрю вашу базу…',
+      'Ищу фильмы…',
+      'Формулирую ответ…',
+    ];
+    const AI_SESS_KEY = 'mp_site_ai_assist_sess';
+    let cached = null;
+    try {
+      const raw = sessionStorage.getItem(AI_SESS_KEY);
+      cached = raw ? JSON.parse(raw) : null;
+    } catch (_) {}
+
+    const state = {
+      messages: Array.isArray(cached && cached.messages) ? cached.messages : [],
+      loading: false,
+      sessionCharged: !!(cached && cached.sessionCharged),
+      draft: (cached && cached.draft) || '',
+      showHints: true,
+      loadingStatusIdx: 0,
+      loadingStatusTimer: null,
+      paywall: null,
+    };
+    let voiceSess = null;
+    let micStream = null;
+
+    function stopLoadingStatus() {
+      if (state.loadingStatusTimer) {
+        clearInterval(state.loadingStatusTimer);
+        state.loadingStatusTimer = null;
+      }
+    }
+
+    function startLoadingStatus() {
+      stopLoadingStatus();
+      state.loadingStatusIdx = 0;
+      state.loadingStatusTimer = setInterval(() => {
+        state.loadingStatusIdx = (state.loadingStatusIdx + 1) % LOADING.length;
+        const el = root.querySelector('#site-ai-loading-status');
+        if (el) el.textContent = LOADING[state.loadingStatusIdx];
+      }, 2800);
+    }
+
+    function persist() {
+      try {
+        sessionStorage.setItem(AI_SESS_KEY, JSON.stringify({
+          messages: state.messages,
+          sessionCharged: state.sessionCharged,
+          draft: state.draft,
+        }));
+      } catch (_) {}
+    }
+
+    function mapMessages(msgs) {
+      return (msgs || [])
+        .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
+        .map((m) => ({
+          role: m.role,
+          text: m.text || '',
+          films: m.films || [],
+          anchor_picks: m.anchor_picks || [],
+        }));
+    }
+
+    function renderFilmCard(f) {
+      if (!f) return '';
+      const poster = cleanPosterUrl(f.poster) || posterUrl(f.kp_id);
+      const meta = [f.year ? String(f.year) : '', f.is_series ? 'сериал' : 'фильм'].filter(Boolean).join(' · ');
+      const ur = (f.user_rating != null && !isNaN(Number(f.user_rating)))
+        ? '<span class="site-emotion-rating">★ ' + escapeHtml(Number(f.user_rating).toFixed(1)) + '</span>' : '';
+      const reason = (f.reason || '').trim();
+      const reasonHtml = reason ? '<p class="site-emotion-reason">' + escapeHtml(reason) + '</p>' : '';
+      return '<article class="site-emotion-film-card" data-kp="' + escapeHtml(String(f.kp_id || '')) + '" data-fid="' + escapeHtml(String(f.film_id || '')) + '" tabindex="0" role="button">'
+        + '<div class="site-emotion-film-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span class="site-pick-poster-ph">🎬</span>') + '</div>'
+        + '<div class="site-emotion-film-body"><h4 class="site-emotion-film-title">' + escapeHtml(f.title || '—') + '</h4>'
+        + (meta ? '<p class="site-emotion-film-meta">' + escapeHtml(meta) + '</p>' : '') + ur + reasonHtml + '</div></article>';
+    }
+
+    function wireFilmCards() {
+      root.querySelectorAll('.site-emotion-film-card').forEach((card) => {
+        const open = () => {
+          const fid = card.getAttribute('data-fid');
+          const kp = card.getAttribute('data-kp');
+          if (fid) openFilmPage(Number(fid), { kpId: kp ? Number(kp) : undefined });
+          else if (kp) openFilmPageByKp(String(kp));
+        };
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
+      });
+    }
+
+    function renderAnchorPick(f, msgIdx) {
+      const poster = cleanPosterUrl(f.poster) || posterUrl(f.kp_id);
+      const meta = [f.year ? String(f.year) : '', f.is_series ? 'сериал' : 'фильм'].filter(Boolean).join(' · ');
+      const title = f.title || '—';
+      return '<button type="button" class="site-ai-anchor-pick" data-msg-idx="' + String(msgIdx) + '" data-kp-id="'
+        + escapeHtml(String(f.kp_id || '')) + '" data-title="' + escapeHtml(title) + '" aria-pressed="false">'
+        + '<div class="site-emotion-film-poster">' + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">') : '<span class="site-pick-poster-ph">🎬</span>') + '</div>'
+        + '<div class="site-emotion-film-body"><h4 class="site-emotion-film-title">' + escapeHtml(title) + '</h4>'
+        + (meta ? '<p class="site-emotion-film-meta">' + escapeHtml(meta) + '</p>' : '') + '</div></button>';
+    }
+
+    function renderMessagesHtml() {
+      return state.messages.map((m, msgIdx) => {
+        const cls = m.role === 'user' ? 'site-emotion-msg--user' : 'site-emotion-msg--assist';
+        const hasFilms = m.role === 'assistant' && m.films && m.films.length;
+        const hasAnchors = m.role === 'assistant' && m.anchor_picks && m.anchor_picks.length >= 2;
+        const wide = hasFilms || hasAnchors ? ' site-ai-msg--wide' : '';
+        const filmsHtml = hasFilms
+          ? '<div class="site-emotion-results site-ai-results">' + m.films.map(renderFilmCard).join('') + '</div>'
+          : '';
+        const anchorHtml = hasAnchors
+          ? '<div class="site-ai-anchors" data-msg-idx="' + String(msgIdx) + '">'
+            + m.anchor_picks.map((f) => renderAnchorPick(f, msgIdx)).join('')
+            + '<button type="button" class="btn btn-primary site-ai-anchor-submit" data-msg-idx="' + String(msgIdx) + '" disabled>Подобрать похожее</button></div>'
+          : '';
+        const bubble = m.role === 'assistant' ? formatSiteAiText(m.text || '') : escapeHtml(m.text || '');
+        return '<div class="site-emotion-msg ' + cls + wide + '"><div class="site-emotion-bubble">' + bubble + '</div>'
+          + anchorHtml + filmsHtml + '</div>';
+      }).join('');
+    }
+
+    function paint() {
+      const showIntro = !state.messages.length;
+      const introBubble = showIntro
+        ? '<div class="site-emotion-msg site-emotion-msg--assist"><div class="site-emotion-bubble">' + escapeHtml(INTRO) + '</div></div>'
+        : '';
+      const typing = state.loading
+        ? '<div class="site-emotion-msg site-emotion-msg--assist"><div class="site-emotion-bubble site-ai-typing">'
+          + '<span class="site-pick-loading">…</span> <span id="site-ai-loading-status">'
+          + escapeHtml(LOADING[state.loadingStatusIdx || 0]) + '</span></div></div>'
+        : '';
+      const hints = state.showHints && !state.loading && !state.messages.some((m) => m.role === 'user')
+        ? '<div class="site-emotion-hints">' + SITE_AI_HINTS.map((h, i) =>
+          '<button type="button" class="site-emotion-hint" data-hint="' + i + '">' + escapeHtml(h.text) + '</button>',
+        ).join('') + '</div>'
+        : '';
+      const paywall = state.paywall
+        ? '<div class="site-ai-paywall">'
+          + '<p class="site-ai-paywall-text">' + escapeHtml(state.paywall) + '</p>'
+          + '<button type="button" class="btn btn-primary" id="site-ai-billing">Оформить подписку</button>'
+          + '</div>'
+        : '';
+
+      root.innerHTML = '<div class="site-emotion-panel site-ai-panel">'
+        + '<div class="site-emotion-toolbar">'
+        + '<button type="button" class="btn btn-secondary btn-small" id="site-ai-back">← Режимы</button>'
+        + '<span class="site-emotion-toolbar-title">AI-помощник</span>'
+        + '<button type="button" class="btn btn-secondary btn-small" id="site-ai-clear"'
+        + (state.messages.length ? '' : ' disabled') + '>Очистить</button>'
+        + '</div>'
+        + '<div class="site-emotion-chat" id="site-ai-chat">' + introBubble + renderMessagesHtml() + typing + '</div>'
+        + paywall
+        + '<div class="site-emotion-composer">'
+        + hints
+        + '<div class="site-emotion-input-row">'
+        + '<textarea class="site-ai-textarea" id="site-ai-input" rows="1" placeholder="Спросите про базу или попросите подбор…" autocomplete="off"></textarea>'
+        + '<button type="button" class="site-emotion-mic" id="site-ai-mic" aria-label="Голосом">🎤</button>'
+        + '<button type="button" class="site-emotion-send" id="site-ai-send" aria-label="Отправить">↑</button>'
+        + '</div></div></div>';
+
+      const chatEl = root.querySelector('#site-ai-chat');
+      if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+      root.querySelector('#site-ai-back')?.addEventListener('click', unmount);
+      root.querySelector('#site-ai-clear')?.addEventListener('click', () => { void clearChat(); });
+      root.querySelector('#site-ai-billing')?.addEventListener('click', openSiteBillingFromAi);
+      root.querySelectorAll('.site-emotion-hint').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const h = SITE_AI_HINTS[Number(btn.getAttribute('data-hint'))];
+          if (h) void sendMessage(h.send);
+        });
+      });
+      wireFilmCards();
+      root.querySelectorAll('.site-ai-anchor-pick').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (state.loading) return;
+          btn.classList.toggle('site-ai-anchor-pick--selected');
+          btn.setAttribute('aria-pressed', btn.classList.contains('site-ai-anchor-pick--selected') ? 'true' : 'false');
+          const wrap = btn.closest('.site-ai-anchors');
+          const submit = wrap && wrap.querySelector('.site-ai-anchor-submit');
+          if (submit) submit.disabled = !wrap.querySelectorAll('.site-ai-anchor-pick--selected').length;
+        });
+      });
+      root.querySelectorAll('.site-ai-anchor-submit').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (state.loading || btn.disabled) return;
+          const wrap = btn.closest('.site-ai-anchors');
+          const selected = wrap ? wrap.querySelectorAll('.site-ai-anchor-pick--selected') : [];
+          const titles = Array.from(selected).map((el) => (el.getAttribute('data-title') || '').trim()).filter(Boolean);
+          if (!titles.length) return;
+          const text = titles.length === 1
+            ? 'Похожее на «' + titles[0] + '»'
+            : 'Похожее на ' + titles.map((t) => '«' + t + '»').join(', ');
+          void sendMessage(text);
+        });
+      });
+
+      const inputEl = root.querySelector('#site-ai-input');
+      const sendBtn = root.querySelector('#site-ai-send');
+      const micBtn = root.querySelector('#site-ai-mic');
+      const resize = () => {
+        if (!inputEl) return;
+        inputEl.style.height = 'auto';
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+      };
+      const submitCurrent = () => {
+        const t = (inputEl && inputEl.value || '').trim();
+        if (!t || state.loading) return;
+        state.draft = '';
+        inputEl.value = '';
+        resize();
+        void sendMessage(t);
+      };
+      if (sendBtn) sendBtn.addEventListener('click', submitCurrent);
+      if (inputEl) {
+        inputEl.value = state.draft || '';
+        resize();
+        inputEl.addEventListener('input', () => {
+          state.draft = inputEl.value || '';
+          resize();
+          persist();
+        });
+        inputEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitCurrent();
+          }
+        });
+        try { inputEl.focus({ preventScroll: true }); } catch (_) {}
+      }
+      if (micBtn) {
+        micBtn.addEventListener('click', () => {
+          void toggleVoice(micBtn, (text) => {
+            if (!text || state.loading) return;
+            void sendMessage(text);
+          });
+        });
+      }
+      persist();
+    }
+
+    async function clearChat() {
+      if (state.loading) return;
+      state.messages = [];
+      state.draft = '';
+      state.showHints = true;
+      state.sessionCharged = false;
+      state.paywall = null;
+      try { sessionStorage.removeItem(AI_SESS_KEY); } catch (_) {}
+      paint();
+      try {
+        await api('/api/miniapp/ai-assistant', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'clear', clear_location: false }),
+          timeoutMs: 20000,
+        });
+      } catch (_) {}
+    }
+
+    async function sendMessage(text) {
+      const t = (text || '').trim();
+      if (!t || state.loading) return;
+      state.showHints = false;
+      state.paywall = null;
+      state.messages.push({ role: 'user', text: t });
+      state.loading = true;
+      startLoadingStatus();
+      paint();
+      try {
+        const data = await api('/api/miniapp/ai-assistant', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'message', message: t }),
+          timeoutMs: 120000,
+        });
+        stopLoadingStatus();
+        state.loading = false;
+        if (!data || data.success === false) {
+          if (data && (data.error === 'coins_required' || data.error === 'insufficient_coins')) {
+            state.messages.pop();
+            state.paywall = data.message || 'Недостаточно монеток для сессии AI-помощника.';
+            showToast(state.paywall);
+            paint();
+            return;
+          }
+          throw new Error((data && (data.message || data.error)) || 'error');
+        }
+        if (data.coins_spent > 0) {
+          state.sessionCharged = true;
+          showToast('Списано ' + data.coins_spent + ' монеток за сессию');
+        } else {
+          state.sessionCharged = !!data.session_charged;
+        }
+        if (Array.isArray(data.messages) && data.messages.length) {
+          state.messages = mapMessages(data.messages);
+        } else {
+          state.messages.push({
+            role: 'assistant',
+            text: data.reply || '',
+            films: data.films || [],
+            anchor_picks: data.anchor_picks || [],
+          });
+        }
+      } catch (e) {
+        stopLoadingStatus();
+        state.loading = false;
+        const msg = (e && e.message === 'timeout')
+          ? 'Сервер не успел ответить. Попробуйте ещё раз.'
+          : 'Не удалось получить ответ. Попробуйте ещё раз.';
+        state.messages.push({ role: 'assistant', text: msg });
+      }
+      persist();
+      paint();
+    }
+
+    function pickVoiceMime() {
+      if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+      return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
+    }
+
+    function releaseMic() {
+      if (!micStream) return;
+      try { micStream.getTracks().forEach((tr) => tr.stop()); } catch (_) {}
+      micStream = null;
+    }
+
+    async function toggleVoice(micBtn, onText) {
+      if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices) {
+        showToast('Голос недоступен в этом браузере');
+        return;
+      }
+      if (voiceSess) {
+        try { if (voiceSess.rec.state === 'recording') voiceSess.rec.stop(); } catch (_) {}
+        voiceSess = null;
+        return;
+      }
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) {
+        showToast('Нет доступа к микрофону');
+        return;
+      }
+      micStream = stream;
+      const mime = pickVoiceMime();
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        releaseMic();
+        micBtn.classList.remove('recording');
+        micBtn.textContent = '🎤';
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+        if (!blob.size) return;
+        try {
+          const fd = new FormData();
+          fd.append('audio', blob, 'voice.webm');
+          const headers = {};
+          const token = getToken();
+          if (token) headers.Authorization = 'Bearer ' + token;
+          const r = await fetch(API_BASE + '/api/miniapp/emotion/voice', { method: 'POST', body: fd, headers });
+          const data = await r.json().catch(() => ({}));
+          const v = (data && data.text || '').trim();
+          if (v && onText) onText(v);
+          else showToast('Не расслышали — попробуйте ещё раз');
+        } catch (_) {
+          showToast('Не удалось распознать голос');
+        }
+      };
+      voiceSess = { rec };
+      rec.start();
+      micBtn.classList.add('recording');
+      micBtn.textContent = '●';
+      setTimeout(() => {
+        if (voiceSess && voiceSess.rec === rec) {
+          try { if (rec.state === 'recording') rec.stop(); } catch (_) {}
+          voiceSess = null;
+        }
+      }, 30000);
+    }
+
+    function unmount() {
+      stopLoadingStatus();
+      releaseMic();
+      if (modesEl) modesEl.classList.remove('hidden');
+      if (scopeEl) scopeEl.classList.remove('hidden');
+      root.innerHTML = '';
+      siteAiUnmount = null;
+    }
+
+    siteAiUnmount = unmount;
+    paint();
+
+    (async () => {
+      try {
+        const hist = await api('/api/miniapp/ai-assistant', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'history' }),
+          timeoutMs: 20000,
+        });
+        if (hist && hist.success) {
+          state.sessionCharged = !!hist.session_charged;
+          const serverMsgs = mapMessages(hist.messages || []);
+          if (serverMsgs.length) {
+            state.messages = serverMsgs.length >= state.messages.length ? serverMsgs : state.messages;
+          }
+          state.showHints = hist.show_hints !== false && !state.messages.some((m) => m && m.role === 'user');
+        }
+      } catch (_) {}
+      paint();
+    })();
+  }
+
   function renderWhattowatchSection() {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
     if (typeof siteEmotionUnmount === 'function') {
       try { siteEmotionUnmount(); } catch (_) {}
       siteEmotionUnmount = null;
+    }
+    if (typeof siteAiUnmount === 'function') {
+      try { siteAiUnmount(); } catch (_) {}
+      siteAiUnmount = null;
     }
     try {
       const pathCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
