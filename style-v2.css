@@ -5862,36 +5862,88 @@ main.film-page .film-page-similar-section,
 }
 .add-search-person-status { color: rgba(255,255,255,0.62); font-size: 12px; font-weight: 700; }
 
-/* Buzz */
-.buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+/* News / buzz */
+.buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
 .buzz-days-select, .buzz-kind-select {
   padding: 7px 10px; border-radius: 10px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
   color: #fff; font-size: 13px;
 }
+.buzz-sort-pills {
+  display: inline-flex; gap: 4px; padding: 3px;
+  border-radius: 999px; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.buzz-sort-pill {
+  border: 0; background: transparent; color: rgba(255,255,255,0.62);
+  font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+  cursor: pointer; line-height: 1.2;
+}
+.buzz-sort-pill.is-active {
+  background: rgba(255,255,255,0.12); color: #fff;
+}
 .buzz-loading, .buzz-error, .buzz-empty { padding: 16px; color: var(--text-muted, #999); font-size: 14px; }
 .buzz-error { color: #ff6b6b; }
-.buzz-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.buzz-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .buzz-card {
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-.buzz-card-head {
-  width: 100%; text-align: left; cursor: pointer;
-  background: transparent; border: 0; color: inherit;
-  padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+.buzz-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
 }
-.buzz-card-title { font-weight: 600; font-size: 15px; }
-.buzz-card-meta { color: var(--text-muted, #999); font-size: 13px; }
-.buzz-card-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
-.buzz-card-body { padding: 0 14px 12px; }
-.buzz-posts, .buzz-chans { margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
-.buzz-post-link, .buzz-chan-link, .buzz-film-link { color: var(--accent, #7eb8ff); }
+.buzz-card-main {
+  display: flex; gap: 12px; align-items: stretch;
+  padding: 10px 12px; text-decoration: none; color: inherit;
+}
+.buzz-poster-wrap {
+  flex: 0 0 56px; width: 56px; height: 84px;
+  border-radius: 8px; overflow: hidden;
+  background: rgba(255,255,255,0.06);
+}
+.buzz-poster {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.buzz-card-info {
+  min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center;
+}
+.buzz-card-title {
+  font-weight: 650; font-size: 15px; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.buzz-card-meta { color: var(--text-muted, #999); font-size: 12px; }
+.buzz-card-kinds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.buzz-card-sources {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 12px 10px 80px;
+}
+.buzz-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; text-decoration: none !important;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.82);
+  line-height: 1.2;
+}
+.buzz-chip:hover {
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+}
+.buzz-chip--tg { border-color: rgba(126, 184, 255, 0.25); }
+.buzz-chip--post { color: rgba(255,255,255,0.7); font-weight: 500; }
+.buzz-more { color: var(--text-muted, #999); font-size: 12px; align-self: center; }
 .buzz-kind {
-  display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px;
-  background: rgba(255,255,255,0.08); color: var(--text-muted, #bbb); margin-left: 4px;
+  display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); color: var(--text-muted, #bbb);
+}
+@media (max-width: 520px) {
+  .buzz-card-sources { padding-left: 12px; }
+  .buzz-poster-wrap { flex-basis: 48px; width: 48px; height: 72px; }
 }
 .film-desc-reviews-title { margin: 14px 0 6px; font-weight: 600; font-size: 14px; }
 .film-desc-reviews-list { list-style: none; padding: 0; margin: 0 0 4px; }

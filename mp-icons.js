@@ -19,6 +19,8 @@
     library: { name: 'film-slate', weight: 'regular' },
     watch: { name: 'sparkle', weight: 'regular' },
     premieres: { name: 'mask-happy', weight: 'regular' },
+    news: { name: 'newspaper', weight: 'regular' },
+    newspaper: { name: 'newspaper', weight: 'regular' },
     tournament: { name: 'trophy', weight: 'regular' },
     inbox: { name: 'bell', weight: 'regular' },
     random: { name: 'shuffle', weight: 'duotone' },
