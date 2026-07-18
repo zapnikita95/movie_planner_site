@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260718headerfix1';
+  var BUILD = '20260718headerfix2';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -9,7 +9,7 @@
     '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>';
   var MIC_SVG =
-    '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<svg class="mp-icon-svg-fallback" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.83V232a8,8,0,0,1-16,0V207.83A80.09,80.09,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.09,80.09,0,0,1,136,207.83Z"/></svg>';
 
   if (!global.__mpMetrikaSite) {
@@ -56,8 +56,16 @@
     var mic = document.getElementById('header-search-mic');
     if (mic) {
       mic.classList.remove('hidden');
-      if (!mic.querySelector('i, svg')) mic.innerHTML = MIC_SVG;
+      mic.removeAttribute('hidden');
+      /* Always keep a visible SVG: Phosphor <i> alone can render blank if CDN font fails. */
+      if (!mic.querySelector('svg')) {
+        var ph = mic.querySelector('i');
+        if (ph) ph.insertAdjacentHTML('afterend', MIC_SVG);
+        else mic.innerHTML = MIC_SVG;
+      }
       mic.style.display = 'inline-flex';
+      mic.style.visibility = 'visible';
+      mic.style.opacity = '1';
     }
   }
 
