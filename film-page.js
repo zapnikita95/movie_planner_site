@@ -540,6 +540,22 @@
     updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
   }
 
+  function withReviewUtm(url, channelTitle) {
+    var raw = String(url || '').trim();
+    if (!/^https?:\/\//i.test(raw)) return raw;
+    try {
+      var u = new URL(raw);
+      if (!u.searchParams.get('utm_source')) u.searchParams.set('utm_source', 'movie_planner');
+      if (!u.searchParams.get('utm_medium')) u.searchParams.set('utm_medium', 'film_reviews');
+      if (!u.searchParams.get('utm_campaign')) u.searchParams.set('utm_campaign', 'news');
+      var content = String(channelTitle || 'youtube').replace(/[^\w.\-@]+/g, '_').slice(0, 80);
+      if (content && !u.searchParams.get('utm_content')) u.searchParams.set('utm_content', content);
+      return u.toString();
+    } catch (_) {
+      return raw;
+    }
+  }
+
   function filmDescReviewsInlineHtml(items) {
     if (!items || !items.length) return '';
     var ytSvg = '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
@@ -550,12 +566,13 @@
       if (!it || !it.url) return '';
       var title = escapeHtml(it.title || 'Видео');
       var ch = escapeHtml(it.channel_title || '');
-      var url = escapeHtml(it.url);
+      var url = escapeHtml(withReviewUtm(it.url, it.channel_title || ''));
       var chBit = ch
         ? ' <span class="film-review-channel">' + ch + '</span>'
         : '';
       return '<li class="film-review-item">' + ytSvg +
-        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
+        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-channel="' + ch + '">' +
         title + '</a>' + chBit + '</li>';
     }).filter(Boolean).join('');
     if (!lis) return '';
@@ -577,6 +594,19 @@
     }
     var list = Array.isArray(items) ? items : [];
     revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
+    revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        try {
+          if (typeof window.ym === 'function') {
+            window.ym(110038199, 'reachGoal', 'buzz_outbound', {
+              platform: 'youtube',
+              channel: a.getAttribute('data-review-channel') || '',
+              view: 'film_reviews',
+            });
+          }
+        } catch (_) {}
+      });
+    });
     var hasReviews = list.length > 0;
     wrap.setAttribute('data-has-reviews', hasReviews ? '1' : '0');
     var hasFacts = wrap.getAttribute('data-has-facts') === '1';
