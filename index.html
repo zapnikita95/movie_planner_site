@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260718news3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260718news3">
+    <link rel="preload" href="/style-v2.css?v=20260718news4" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260718news4">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1727,6 +1727,11 @@
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="news"></span><span class="section-title-text">Новости</span></h2>
+                    <p class="buzz-seo-lead">Что обсуждают в кино-Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
+                    <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
+                        <button type="button" class="plans-filter-tab active" data-buzz-view="films" role="tab" aria-selected="true">По фильмам</button>
+                        <button type="button" class="plans-filter-tab" data-buzz-view="feed" role="tab" aria-selected="false">Лента</button>
+                    </div>
                     <div class="plans-filter-tabs" id="buzz-sort-tabs" role="tablist" aria-label="Порядок">
                         <button type="button" class="plans-filter-tab active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
                         <button type="button" class="plans-filter-tab" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
@@ -2628,18 +2633,18 @@
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260718buzz1');
+          list.push('film-page.js?v=20260718news4');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260718buzz1');
+          list.push('film-page.js?v=20260718news4');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
           list.push('cabinet-app.js?v=20260718cabinetai1');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260718news3');
-          list.push('cabinet-app.js?v=20260718cabinetai1');
+          list.push('buzz-page.js?v=20260718news4');
+          list.push('cabinet-app.js?v=20260718news4');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');

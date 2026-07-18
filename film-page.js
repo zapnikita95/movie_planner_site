@@ -542,6 +542,10 @@
 
   function filmDescReviewsInlineHtml(items) {
     if (!items || !items.length) return '';
+    var ytSvg = '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+      '<path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/>' +
+      '</svg></span>';
     var lis = items.slice(0, 8).map(function (it) {
       if (!it || !it.url) return '';
       var title = escapeHtml(it.title || 'Видео');
@@ -550,7 +554,8 @@
       var chBit = ch
         ? ' <span class="film-review-channel">' + ch + '</span>'
         : '';
-      return '<li><a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
+      return '<li class="film-review-item">' + ytSvg +
+        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
         title + '</a>' + chBit + '</li>';
     }).filter(Boolean).join('');
     if (!lis) return '';
