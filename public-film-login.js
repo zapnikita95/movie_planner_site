@@ -526,6 +526,11 @@
   function finishLogin(data) {
     if (!data || !data.token) return;
     rememberOAuthReturn();
+    try {
+      if (global.MpUtm && typeof global.MpUtm.flush === 'function') {
+        global.MpUtm.flush(data.token, cfg.apiBase);
+      }
+    } catch (_utm) {}
     if (typeof global._mpApplySiteSessionLogin === 'function') {
       global._mpApplySiteSessionLogin(data, $('login-modal'), null);
       close();

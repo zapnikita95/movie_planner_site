@@ -3435,6 +3435,11 @@
     if (modalEl) modalEl.classList.add('hidden');
     document.body.classList.remove('login-only-overlay');
     try { updateGuestOnboardCtaVisibility(); } catch (_) {}
+    try {
+      if (window.MpUtm && typeof window.MpUtm.flush === 'function' && data.token) {
+        window.MpUtm.flush(data.token, typeof API_BASE !== 'undefined' ? API_BASE : undefined);
+      }
+    } catch (_utm) {}
     if (tryReturnAfterAuth()) return { ok: true };
     bootAuthenticatedCabinetShell();
     loadMeAndShowCabinet();
