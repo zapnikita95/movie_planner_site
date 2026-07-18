@@ -41,3 +41,9 @@
 - **`OPERA_EXTENSION_URL`** — ссылка на расширение в Opera Add-ons (пока можно указать ту же, что и для Chrome; после публикации в Opera — заменить).
 
 Пример: `CHROME_EXTENSION_URL=https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol`
+
+## Лицензия
+
+Все права защищены (All Rights Reserved). Copyright (c) 2026 Nikita Zaporozhets.
+
+Исходный код — proprietary: копирование, изменение, распространение и коммерческое использование без письменного разрешения запрещены. См. файл `LICENSE`.
