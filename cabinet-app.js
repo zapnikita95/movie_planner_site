@@ -1295,7 +1295,14 @@
       pageRoot.innerHTML = pageLoadingHtml();
     }
     return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) {
+          // One retry — intermittent 502 on public film must not leave a forever spinner.
+          return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+            .then(function (r2) { return r2.ok ? r2.json() : Promise.reject(new Error('film_' + r2.status)); });
+        }
+        return r.json();
+      })
       .then(function (data) {
         if (!data || !data.film) {
           showToast('Не удалось загрузить фильм', { type: 'error' });
@@ -1417,21 +1424,18 @@
         })
         .catch(function () {});
     }
+    // URL already updated above — never pushState again in nested openers (double Back).
+    const histDone = { skipHistory: true, replace: !!o.replace, action: o.action || '', kpId: kp };
     const inflight = api('/api/site/film-by-kp/' + kp, { timeoutMs: 15000 }).then(function (res) {
       if (_staffPageKpId) return null;
       if (res && res.success && res.film_id) {
-        return openFilmPage(Number(res.film_id), {
-          skipHistory: o.skipHistory,
-          replace: o.replace,
-          kpId: kp,
-          action: o.action || '',
-        });
+        return openFilmPage(Number(res.film_id), histDone);
       }
       if (hasHeroEarly) return null;
-      return openFilmHeroByKpPublic(kp, o);
+      return openFilmHeroByKpPublic(kp, histDone);
     }).catch(function () {
       if (hasHeroEarly) return null;
-      return openFilmHeroByKpPublic(kp, o);
+      return openFilmHeroByKpPublic(kp, histDone);
     }).finally(function () {
       if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
         _openFilmPageByKpInflight = null;
