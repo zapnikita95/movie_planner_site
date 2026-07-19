@@ -7,7 +7,7 @@
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
   var premCacheKey = "mp_landing_premieres_v5";
-  var seriesCacheKey = "mp_landing_series_v7";
+  var seriesCacheKey = "mp_landing_series_v8";
   var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
