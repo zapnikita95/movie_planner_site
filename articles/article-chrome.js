@@ -251,7 +251,9 @@
   }
 
   function ensureRuStoreInRow(row) {
-    if (!row || row.querySelector('[data-store="rustore"]')) return;
+    if (!row) return;
+    // Already has RuStore (by marker or href) — do not inject a duplicate badge.
+    if (row.querySelector('[data-store="rustore"], a[href*="rustore.ru"]')) return;
     row.insertAdjacentHTML('beforeend', rustoreBadgeHtml());
   }
 
