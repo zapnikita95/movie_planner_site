@@ -5051,8 +5051,11 @@
     if (sectionId === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
     if (sectionId === 'buzz') {
       try {
-        // Only dispatch — buzz-page.js listens and loads once (avoid double fetch).
-        document.dispatchEvent(new CustomEvent('mp:section-shown', { detail: { section: 'buzz' } }));
+        if (window.mpBuzzPage && typeof window.mpBuzzPage.load === 'function') {
+          window.mpBuzzPage.load();
+        } else {
+          document.dispatchEvent(new CustomEvent('mp:section-shown', { detail: { section: 'buzz' } }));
+        }
       } catch (_) {}
     }
     if (sectionId === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
