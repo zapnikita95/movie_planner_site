@@ -501,7 +501,7 @@
             }
             markSkipOnboardingUntilHome();
             digestStatus(res.d.confirm_sent
-              ? 'Проверьте почту и подтвердите подписку. Онбординг не запускаем.'
+              ? 'Проверьте почту и подтвердите подписку.'
               : 'Заявка принята. Подтвердите письмо, когда придёт.');
           })
           .catch(function () {
@@ -514,7 +514,7 @@
       tgBtn._mpBound = true;
       tgBtn.addEventListener('click', function () {
         markSkipOnboardingUntilHome();
-        digestStatus('Войдите через Telegram — подписка без онбординга, пока не зайдёте на Главную.');
+        digestStatus('Войдите через Telegram, чтобы подписаться.');
         try {
           if (typeof window.showLoginModalOverlay === 'function') {
             window.showLoginModalOverlay('login');
