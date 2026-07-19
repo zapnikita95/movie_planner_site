@@ -6,25 +6,42 @@
   "use strict";
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
-  var premCacheKey = "mp_landing_premieres_v4";
-  var seriesCacheKey = "mp_landing_series_v6";
+  var premCacheKey = "mp_landing_premieres_v5";
+  var seriesCacheKey = "mp_landing_series_v7";
   var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
 
   function apiBase() {
-    if (global.MpApiConfig && typeof global.MpApiConfig.apiOrigin === "function") {
-      return global.MpApiConfig.apiOrigin();
+    // Same-origin apex only — api.movie-planner.ru times out in RU without VPN.
+    if (global.MpApiConfig) {
+      if (typeof global.MpApiConfig.apiBase === "function") {
+        return global.MpApiConfig.apiBase();
+      }
+      if (typeof global.MpApiConfig.apiOrigin === "function") {
+        return global.MpApiConfig.apiOrigin();
+      }
+      if (global.MpApiConfig.API_ORIGIN) {
+        return String(global.MpApiConfig.API_ORIGIN);
+      }
     }
     try {
       var h = (global.location && global.location.hostname) || "";
       if (h === "movie-planner.ru" || h === "www.movie-planner.ru") {
-        return "https://api.movie-planner.ru";
+        return global.location.protocol + "//" + h;
       }
       return global.location.protocol + "//" + global.location.host;
     } catch (_e) {
-      return "https://api.movie-planner.ru";
+      return "https://movie-planner.ru";
     }
+  }
+
+  function mirrorTmdbPoster(url) {
+    var m = String(url || "").match(
+      /^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i
+    );
+    if (!m) return String(url || "");
+    return "/api/public/poster/tmdb/" + m[1] + "/" + m[2];
   }
 
   function esc(s) {
@@ -73,7 +90,7 @@
   }
 
   function posterForPremiere(it) {
-    var raw = String((it && it.poster) || "").trim();
+    var raw = mirrorTmdbPoster(String((it && it.poster) || "").trim());
     if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
     if (global.posterUrl && it && it.kp_id) return global.posterUrl(it.kp_id);
     var kp = String((it && it.kp_id) || "").replace(/\D/g, "");
@@ -82,8 +99,8 @@
   }
 
   function posterForSeries(it) {
-    var raw = String((it && it.poster) || "").trim();
-    if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
+    var raw = mirrorTmdbPoster(String((it && it.poster) || "").trim());
+    if (raw && /\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
     if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
     if (global.posterUrl && it && it.kp_id) return global.posterUrl(it.kp_id);
     return "";

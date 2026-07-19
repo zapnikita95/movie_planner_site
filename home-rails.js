@@ -11,10 +11,12 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 10;
+  var RAIL_CACHE_VERSION = 11;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+  // Always revalidate — stale session cache may still hold blocked image.tmdb.org URLs.
+  var ALWAYS_REFRESH_RAILS = { "series-mix": true, premieres: true };
 
   function esc(s) {
     if (s == null) return "";
@@ -23,6 +25,26 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function normalizeRailPoster(url) {
+    var u = String(url || "").trim();
+    if (!u) return "";
+    var m = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (m) return "/api/public/poster/tmdb/" + m[1] + "/" + m[2];
+    return u;
+  }
+
+  function normalizeRailItem(it) {
+    if (!it || typeof it !== "object") return it;
+    var poster = normalizeRailPoster(it.poster || it.poster_url || "");
+    if (!poster || poster === it.poster) return it;
+    var out = {};
+    for (var k in it) {
+      if (Object.prototype.hasOwnProperty.call(it, k)) out[k] = it[k];
+    }
+    out.poster = poster;
+    return out;
   }
 
   function fetchHomeRail(apiGet, railId, offset, limit, period) {
@@ -168,7 +190,7 @@
   function posterTileHtml(m, opts, tileIndex) {
     opts = opts || {};
     var posterFn = opts.posterUrl || function () { return ""; };
-    var poster = m.poster || posterFn(m.kp_id, "small");
+    var poster = normalizeRailPoster(m.poster || "") || posterFn(m.kp_id, "small");
     var idx = tileIndex == null ? 999 : tileIndex;
     var eager = idx < RAIL_IMAGE_EAGER_COUNT;
     var img = '<img src="' + esc(poster || PLACEHOLDER) + '" alt=""' +
@@ -206,7 +228,7 @@
     opts = opts || {};
     var hideNotify = opts.hideNotify;
     var posterFn = opts.posterUrl || function () { return ""; };
-    var poster = p.poster || posterFn(p.kp_id, "small");
+    var poster = normalizeRailPoster(p.poster || "") || posterFn(p.kp_id, "small");
     var idx = tileIndex == null ? 999 : tileIndex;
     var eager = idx < RAIL_IMAGE_EAGER_COUNT;
     var img = '<img class="home-pre-card-poster-img" src="' + esc(poster || PLACEHOLDER) + '" alt=""' +
@@ -278,7 +300,7 @@
 
     function applyCache(bag) {
       if (!bag || !bag.items || !bag.items.length) return false;
-      items = bag.items.slice();
+      items = bag.items.map(normalizeRailItem);
       offset = bag.offset || items.length;
       hasMore = bag.hasMore !== false;
       renderAppend(items, 0);
@@ -301,7 +323,7 @@
             bad.code = "RAIL_FAILED";
             throw bad;
           }
-          var batch = (page && page.items) || [];
+          var batch = ((page && page.items) || []).map(normalizeRailItem);
           if (isRefresh) {
             if (!batch.length && !items.length && config.emptyHtml) {
               container.outerHTML = config.emptyHtml;
@@ -358,7 +380,7 @@
 
     var cached = readRailCache(railId, period);
     if (applyCache(cached)) {
-      if (cached && cached.stale) void loadMore(true);
+      if ((cached && cached.stale) || ALWAYS_REFRESH_RAILS[railId]) void loadMore(true);
     } else {
       void loadMore(false);
     }
