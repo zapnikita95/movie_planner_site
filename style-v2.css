@@ -5956,25 +5956,45 @@ main.film-page .film-page-similar-section,
   .buzz-digest-email { max-width: none; }
   .buzz-digest-btn { flex: 1 1 120px; }
 }
-/* Одна полоса фильтров: вид + сортировка + период — без «двух меню» друг под другом */
+/* Одна полоса фильтров: вид + сортировка + период — без «двух меню» друг под другом.
+   Работает и с обёрткой .buzz-filters, и без неё (пока HTML в apex-кэше). */
+.buzz-filters,
+#section-buzz {
+  --buzz-filter-gap: 8px;
+}
 .buzz-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--buzz-filter-gap);
   margin: 0 0 16px;
 }
-.buzz-filters .plans-filter-tabs {
-  margin: 0;
-  display: contents;
-}
+.buzz-filters .plans-filter-tabs,
 .buzz-filters .buzz-toolbar {
   margin: 0;
   display: contents;
 }
+/* Fallback без .buzz-filters: табы/селекты в один поток */
+#section-buzz > #buzz-view-tabs,
+#section-buzz > #buzz-sort-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--buzz-filter-gap);
+  margin: 0 8px 8px 0;
+}
+#section-buzz > .buzz-toolbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--buzz-filter-gap);
+  margin: 0 0 16px;
+}
 /* display:contents — .hidden на обёртке сам по себе детей не прячет */
 .buzz-filters .plans-filter-tabs.hidden,
-.buzz-filters .plans-filter-tabs.hidden > * {
+.buzz-filters .plans-filter-tabs.hidden > *,
+#section-buzz > #buzz-sort-tabs.hidden,
+#section-buzz > #buzz-sort-tabs.hidden > * {
   display: none !important;
 }
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
