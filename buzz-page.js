@@ -334,13 +334,56 @@
     if (sortWrap) sortWrap.classList.toggle('hidden', state.view !== 'films');
   }
 
-  function paint() {
+  function skeletonHtml(n) {
+    var count = n || 8;
+    var tiles = '';
+    for (var i = 0; i < count; i++) {
+      tiles +=
+        '<div class="buzz-skel-tile" aria-hidden="true">' +
+        '<div class="buzz-skel-poster"></div>' +
+        '<div class="buzz-skel-body">' +
+        '<div class="buzz-skel-line"></div>' +
+        '<div class="buzz-skel-line buzz-skel-line--short"></div>' +
+        '<div class="buzz-skel-line buzz-skel-line--meta"></div>' +
+        '</div></div>';
+    }
+    return '<div class="buzz-skel-grid">' + tiles + '</div>';
+  }
+
+  function showSkeleton() {
+    var loading = document.getElementById('buzz-loading');
+    var empty = document.getElementById('buzz-empty');
+    var grid = document.getElementById('buzz-grid');
+    if (empty) {
+      empty.classList.add('hidden');
+      empty.textContent = '';
+    }
+    if (grid) {
+      grid.innerHTML = '';
+      grid.className = 'buzz-grid';
+    }
+    if (loading) {
+      loading.classList.remove('hidden');
+      loading.setAttribute('aria-busy', 'true');
+      loading.innerHTML = skeletonHtml(state.view === 'feed' ? 6 : 8);
+    }
+  }
+
+  function hideSkeleton() {
+    var loading = document.getElementById('buzz-loading');
+    if (!loading) return;
+    loading.classList.add('hidden');
+    loading.setAttribute('aria-busy', 'false');
+    loading.innerHTML = '';
+  }
+
+  function paint(opts) {
+    var animate = !(opts && opts.noAnimate);
     var grid = document.getElementById('buzz-grid');
     var empty = document.getElementById('buzz-empty');
-    var loading = document.getElementById('buzz-loading');
     var err = document.getElementById('buzz-error');
     if (!grid) return;
-    if (loading) loading.classList.add('hidden');
+    hideSkeleton();
     if (err) err.classList.add('hidden');
     syncTabs();
     var list = state.items || [];
@@ -356,7 +399,7 @@
       return;
     }
     if (empty) empty.classList.add('hidden');
-    grid.className = state.view === 'feed' ? 'buzz-feed' : 'buzz-grid';
+    grid.className = (state.view === 'feed' ? 'buzz-feed' : 'buzz-grid') + (animate ? ' buzz-grid--enter' : '');
     grid.innerHTML = list.map(function (it) {
       return state.view === 'feed' ? renderFeedItem(it) : renderFilmItem(it);
     }).filter(Boolean).join('');
@@ -405,55 +448,79 @@
     });
   }
 
-  function load(opts) {
-    var silent = opts && opts.silent;
-    var loading = document.getElementById('buzz-loading');
-    var err = document.getElementById('buzz-error');
-    if (err) err.classList.add('hidden');
-
-    /* Как у премьер/rails: сразу рисуем кэш текущего фильтра, без чужих данных. */
-    var cached = readClientCache();
-    if (cached && cached.length) {
-      state.items = cached;
-      state.loaded = true;
-      paint();
-      if (loading) loading.classList.add('hidden');
-    } else {
-      state.items = [];
-      state.loaded = false;
-      paint();
-      if (!silent && loading) loading.classList.remove('hidden');
-    }
-
+  function buzzQuery(limit) {
     var q = '/api/public/buzz?days=' + encodeURIComponent(state.days) +
-      '&limit=' + (state.view === 'feed' ? '50' : '40');
+      '&limit=' + encodeURIComponent(limit);
     if (state.view === 'feed') {
       q += '&view=feed';
     } else {
       q += '&sort=' + encodeURIComponent(state.sort);
     }
     if (state.kind) q += '&kind=' + encodeURIComponent(state.kind);
-    return fetch(API_BASE + q, { method: 'GET', mode: 'cors', credentials: 'omit' })
+    return q;
+  }
+
+  function fetchBuzz(limit) {
+    return fetch(API_BASE + buzzQuery(limit), { method: 'GET', mode: 'cors', credentials: 'omit' })
       .then(function (r) {
         if (!r.ok) throw new Error('api_' + r.status);
         return r.json();
       })
       .then(function (d) {
-        state.items = (d && d.items) || [];
+        return (d && d.items) || [];
+      });
+  }
+
+  function load(opts) {
+    var silent = opts && opts.silent;
+    var err = document.getElementById('buzz-error');
+    if (err) err.classList.add('hidden');
+    var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
+
+    /* Как у премьер/rails: сразу рисуем кэш текущего фильтра, без чужих данных. */
+    var cached = readClientCache();
+    if (cached && cached.length) {
+      state.items = cached;
+      state.loaded = true;
+      paint({ noAnimate: true });
+    } else if (!silent) {
+      state.items = [];
+      state.loaded = false;
+      showSkeleton();
+    }
+
+    var firstLimit = state.view === 'feed' ? 20 : 12;
+    var fullLimit = state.view === 'feed' ? 50 : 40;
+
+    return fetchBuzz(firstLimit)
+      .then(function (items) {
+        if (loadGen !== state._loadGen) return null;
+        state.items = items;
         state.loaded = true;
-        writeClientCache(state.items);
+        writeClientCache(items);
         paint();
+        if (items.length < firstLimit || firstLimit >= fullLimit) return null;
+        /* Догружаем полный список без скелетона — сетка уже на экране */
+        return fetchBuzz(fullLimit).then(function (more) {
+          if (loadGen !== state._loadGen) return;
+          if (!more || !more.length) return;
+          state.items = more;
+          state.loaded = true;
+          writeClientCache(more);
+          paint({ noAnimate: true });
+        });
       })
       .catch(function () {
+        if (loadGen !== state._loadGen) return;
         if (cached && cached.length) {
           state.items = cached;
           state.loaded = true;
-          paint();
+          paint({ noAnimate: true });
           return;
         }
         state.loaded = true;
         state.items = [];
-        if (loading) loading.classList.add('hidden');
+        hideSkeleton();
         if (err) {
           err.classList.remove('hidden');
           err.textContent = 'Не удалось загрузить «В тренде».';

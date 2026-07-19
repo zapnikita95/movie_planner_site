@@ -6570,11 +6570,7 @@
   function showFilmPageLayout() {
     const ro = document.getElementById('cabinet-readonly');
     if (!ro) return;
-    // Boot-CSS с /buzz форсит #section-buzz.hidden{display:block} — снимаем, иначе лента липнет под /f/
-    try {
-      const bootCss = document.getElementById('mp-cabinet-section-boot');
-      if (bootCss) bootCss.remove();
-    } catch (_) {}
+    clearCabinetSectionBootCss();
     if (ro.classList.contains('hidden')) {
       try { showScreen('cabinet-readonly'); } catch (_) {}
       ro.classList.remove('hidden');
@@ -6637,6 +6633,17 @@
     showSection('whattowatch', { replace: !!o.replace, skipPush: !!o.skipPush });
   }
 
+  /** Boot-CSS с deep-link (/buzz, /plans…) форсит display:block!important на секцию — снимать при КАЖДОЙ смене раздела. */
+  function clearCabinetSectionBootCss() {
+    try {
+      const bootCss = document.getElementById('mp-cabinet-section-boot');
+      if (bootCss) bootCss.remove();
+    } catch (_) {}
+    try {
+      document.documentElement.classList.remove('mp-section-boot');
+    } catch (_) {}
+  }
+
   function showSection(sectionId, opts) {
     const options = opts || {};
     if (isGuestCabinetPreview() && !guestMayOpenCabinetSection(sectionId)) {
@@ -6651,6 +6658,8 @@
     try { closeAccountDropdown(); } catch (_) {}
     try { closeHeaderInboxDropdown(); } catch (_) {}
     exitSearchToCabinet();
+    // Снимаем ДО toggle hidden — иначе прошлый /buzz остаётся снизу планов/главной
+    clearCabinetSectionBootCss();
     const prevSection = visibleCabinetSectionId();
     if (prevSection === 'settings' && sectionId !== 'settings') {
       _siteOnboardingResumeAfterImportLeave();
@@ -6666,6 +6675,11 @@
       readonly.querySelectorAll('.cabinet-section').forEach((el) => el.classList.add('hidden'));
       const t = readonly.querySelector('#section-' + sectionId);
       if (t) t.classList.remove('hidden');
+      // Повторно прячем buzz явно (на случай гонок с boot CSS / кэшем стилей)
+      try {
+        const buzzSec = readonly.querySelector('#section-buzz');
+        if (buzzSec && sectionId !== 'buzz') buzzSec.classList.add('hidden');
+      } catch (_) {}
       tShown = t;
       const activeNavSection = (sectionId === 'series' || sectionId === 'ratings' || sectionId === 'film-tag') ? 'unwatched'
         : sectionId === 'series-hub' ? 'home' : sectionId;
