@@ -14994,6 +14994,7 @@
     if (!s) return true;
     if (s.startsWith('откройте в movie planner')) return true;
     if (s.startsWith('откройте фильм в movie planner')) return true;
+    if (s.startsWith('open in movie planner')) return true;
     return false;
   }
 
