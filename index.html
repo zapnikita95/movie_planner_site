@@ -715,10 +715,7 @@
         {"@type": "Question", "name": "Какой трекер сериалов в Telegram лучше подходит для группы?", "acceptedAnswer": {"@type": "Answer", "text": "Movie Planner — трекер сериалов для Telegram с поддержкой групповых чатов. Добавьте бота в группу — все участники увидят общий список сериалов, смогут отмечать прогресс и планировать совместные просмотры."}},
         {"@type": "Question", "name": "Можно ли вести общий список сериалов с друзьями?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Создайте группу в Telegram, добавьте туда бота Movie Planner — список сериалов станет общим. Каждый может добавлять сериалы, видеть прогресс друг друга и планировать марафоны."}},
         {"@type": "Question", "name": "Как отмечать просмотренные эпизоды и смотреть прогресс?", "acceptedAnswer": {"@type": "Answer", "text": "Расширение для Chrome автоматически распознаёт сериал на странице стриминга — нажмите кнопку «Отметить серию». Или отметьте вручную в боте. Прогресс отображается в карточке сериала (например, S2 • E5)."}},
-        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления о новых сериях — бесплатен. Расширенные возможности (безлимитные подписки на сериалы, приоритетные уведомления) доступны по подписке."}},
-        {"@type": "Question", "name": "Как запустить фильм на Smart TV?", "acceptedAnswer": {"@type": "Answer", "text": "Подключите телевизор в Telegram-боте (меню 🔌 → Телевизор) или в кабинете на сайте. После этого в карточке фильма появится кнопка «📺 На ТВ» — она откроет страницу запуска с QR-кодом, кнопками Кинопоиск HD / Okko / ivi и Cast. Поддерживаются Android TV, Яндекс ТВ, Google TV, Samsung (Tizen), LG (WebOS) и другие Smart TV."}},
-        {"@type": "Question", "name": "Что такое TV-агент Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "TV-агент — это скрипт на Python, запускаемый на любом устройстве в домашней сети (компьютер, Raspberry Pi, NAS). Он получает команды от Movie Planner и сам запускает фильм на Android TV / Яндекс ТВ через ADB — без QR-кода и телефона. Токен агента выдаёт бот, установка занимает несколько минут."}},
-        {"@type": "Question", "name": "На каких телевизорах работает Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Android TV / Google TV / Яндекс ТВ — полноценно, с Cast и мгновенным запуском через агента. Samsung Smart TV (Tizen) — через Smart View, AirPlay и QR-код. LG Smart TV (WebOS) — через LG Connect Apps и QR. Любой Smart TV с браузером — через QR-страницу запуска."}}
+        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления о новых сериях — бесплатен. Расширенные возможности (безлимитные подписки на сериалы, приоритетные уведомления) доступны по подписке."}}
       ]
     }
     </script>
@@ -1175,24 +1172,17 @@
                     <div class="faq-head">Как планировать походы в кино с билетами?</div>
                     <div class="faq-body">Выберите «В кино» при планировании просмотра, укажите дату и время, прикрепите фото билетов. За 10 минут до сеанса бот пришлёт напоминание вместе с вашими билетами.</div>
                 </div>
-                <div class="faq-item">
-                    <div class="faq-head">Как запустить фильм на Smart TV?</div>
-                    <div class="faq-body">Подключите свой телевизор — в Telegram-боте откройте меню 🔌 → «Телевизор» или сделайте это в кабинете на сайте. После этого в карточке каждого фильма появится кнопка «📺 На ТВ»: она откроет страницу запуска с QR-кодом, кнопками Кинопоиск HD / Okko / ivi и Cast. Поддерживаются Android TV, Яндекс ТВ, Google TV, Samsung (Tizen), LG (WebOS) и другие Smart TV.</div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-head">Что такое TV-агент и зачем он нужен?</div>
-                    <div class="faq-body">TV-агент — это маленький скрипт на Python, который запускается на любом устройстве в вашей домашней сети (компьютер, Raspberry Pi, NAS). Он принимает команды от Movie Planner и сам запускает фильм на Android TV / Яндекс ТВ через ADB — без QR, без телефона, без Cast. Нажали «На ТВ» на сайте или в боте — фильм уже играет. Подключение занимает 5 минут, токен выдаёт бот.</div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-head">На каких телевизорах работает кнопка «На ТВ»?</div>
-                    <div class="faq-body">Android TV / Google TV / Яндекс ТВ — полноценно, с Cast и агентом (мгновенный запуск). Samsung Smart TV (Tizen) — через Smart View / AirPlay и QR-код. LG Smart TV (WebOS) — через LG Connect Apps и QR. Любой Smart TV с браузером — через QR-код на странице запуска (открывает Кинопоиск HD / Okko / ivi).</div>
-                </div>
         </div>
       </section>
 
       <section class="landing-articles-section" id="articles-guides">
         <h2 class="section-title">Статьи и гайды</h2>
         <div class="articles-grid landing-articles-grid" id="landing-articles-grid">
+                <a href="/articles/kak-razmestit-svoy-film-online.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
+                    <span class="article-card-title">Как разместить свой фильм онлайн</span>
+                    <span class="article-card-desc">Страница картины для режиссёров и короткометражек</span>
+                </a>
                 <a href="/articles/interesnye-fakty-o-filmah.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="library"></span>
                     <span class="article-card-title">Интересные факты о фильмах</span>
@@ -2585,7 +2575,6 @@
                 <div class="footer-info">
                     <h3>Авторам</h3>
                     <p><a href="/add-film">Добавить фильм</a></p>
-                    <p>Независимые фильмы и короткометражки на модерацию</p>
                 </div>
                 <div class="footer-info footer-editorial">
                     <h3>Публикации</h3>
@@ -2595,6 +2584,7 @@
                 </div>
                 <div class="footer-info footer-guides">
                     <h3>Трекер кино</h3>
+                    <p><a href="/articles/kak-razmestit-svoy-film-online.html">Как разместить свой фильм онлайн</a></p>
                     <p><a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Список просмотренных фильмов</a></p>
                     <p><a href="/articles/prilozhenie-treker-dlya-filmov.html">Трекер фильмов — приложение</a></p>
                     <p><a href="/articles/kino-dnevnik-prosmotrennyh-filmov.html">Дневник просмотров</a></p>
