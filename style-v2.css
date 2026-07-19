@@ -15817,11 +15817,24 @@ html {
   body.user-standalone-page .header-content,
   body.in-search-page .header-content {
     display: grid !important;
-    /* Equal side tracks → search dead-center (same axis as cabinet-nav). */
+    /* Guest: equal side tracks keep search centered. */
     grid-template-columns: minmax(0, 1fr) minmax(160px, min(560px, 42vw)) minmax(0, 1fr) !important;
     grid-template-rows: auto !important;
     align-items: center;
     gap: 10px 12px !important;
+  }
+  html.mp-session body.in-cabinet .header-content,
+  html.mp-session body.landing-root-page .header-content,
+  html.mp-session body.film-standalone-page .header-content,
+  html.mp-session body.article-standalone-page .header-content,
+  html.mp-session body.staff-standalone-page .header-content,
+  html.mp-session body.user-standalone-page .header-content,
+  html.mp-session body.in-search-page .header-content,
+  body.in-cabinet .header-content:has(#header-user-wrap:not(.hidden)),
+  body.film-standalone-page .header-content:has(#header-user-wrap:not(.hidden)),
+  body.article-standalone-page .header-content:has(#header-user-wrap:not(.hidden)) {
+    /* Logged-in: right track = profile chrome width (no overlap onto search). */
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
   }
   body.in-cabinet .logo,
   body.landing-root-page .logo,
@@ -15862,6 +15875,7 @@ html {
   body.in-cabinet .header-search:not(.hidden),
   body.landing-root-page .header-search:not(.hidden),
   body.film-standalone-page .header-search:not(.hidden),
+  body.article-standalone-page .header-search:not(.hidden),
   body.staff-standalone-page .header-search:not(.hidden),
   body.user-standalone-page .header-search:not(.hidden),
   body.in-search-page .header-search:not(.hidden) {
@@ -16056,11 +16070,13 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
     --hdr-grid-search-max: 40vw;
   }
 
+  /* Logged-in: side tracks size to chrome so profile never overlaps search */
   html.mp-session .header-content,
   body.in-cabinet .header-content,
   .header-content:has(#header-user-wrap:not(.hidden)) {
-    --hdr-grid-search-min: 200px;
-    --hdr-grid-search-max: 36vw;
+    --hdr-grid-search-min: 160px;
+    --hdr-grid-search-max: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
   }
 
   html.mp-session .header-buttons,
@@ -16069,6 +16085,27 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
     justify-self: end;
     flex-shrink: 0;
     min-width: max-content;
+  }
+
+  html.mp-session #header-search,
+  body.in-cabinet #header-search,
+  .header-content:has(#header-user-wrap:not(.hidden)) #header-search {
+    max-width: min(560px, 100%) !important;
+    justify-self: stretch;
+  }
+
+  html.mp-session body.film-standalone-page .header-settings-btn-text,
+  html.mp-session body.article-standalone-page .header-settings-btn-text,
+  html.mp-session body.staff-standalone-page .header-settings-btn-text,
+  html.mp-session body.user-standalone-page .header-settings-btn-text {
+    display: none;
+  }
+
+  html.mp-session body.film-standalone-page .header-profile-name,
+  html.mp-session body.article-standalone-page .header-profile-name,
+  html.mp-session body.staff-standalone-page .header-profile-name,
+  html.mp-session body.user-standalone-page .header-profile-name {
+    max-width: 96px;
   }
 }
 

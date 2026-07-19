@@ -19,8 +19,13 @@
   <meta name="twitter:description" content="Как рассказать о своём фильме: страница картины, режиссёра и актёров на Movie Planner.">
   <meta name="twitter:image" content="https://movie-planner.ru/api/og/home.jpg">
   <link rel="icon" href="/images/favicon.png">
-  <link rel="stylesheet" href="/style-v2.css?v=20260719addfilm3">
+  <script>document.documentElement.classList.add('mp-fouc');</script>
+  <link rel="preload" href="/style-v2.css?v=20260719headerfix3" as="style">
+  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260719headerfix3">
   <style id="mp-article-critical">
+    html, body { background: #0c0c12; color: #f6f1e8; }
+    html.mp-fouc body > .content-wrapper { visibility: hidden; }
+    html.mp-css-ready body > .content-wrapper { visibility: visible; }
     html.mp-session #site-header [data-action="login"],
     html.mp-session #site-header #login-btn,
     html.mp-session #site-header .header-login-btn { display: none !important; }
@@ -28,6 +33,20 @@
     html.mp-session #header-user-wrap.hidden { display: flex !important; }
     html.mp-session #header-profile-pill.hidden { display: inline-flex !important; }
   </style>
+  <script>
+    (function () {
+      var link = document.getElementById('mp-site-css');
+      function ready() {
+        document.documentElement.classList.add('mp-css-ready');
+        document.documentElement.classList.remove('mp-fouc');
+      }
+      if (!link) { ready(); return; }
+      if (link.sheet) { ready(); return; }
+      link.addEventListener('load', ready);
+      link.addEventListener('error', ready);
+      setTimeout(ready, 2500);
+    })();
+  </script>
   <script src="/articles/article-session-boot.js?v=20260702articlechrome1"></script>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script type="application/ld+json">
@@ -386,7 +405,7 @@
     }
   </style>
 </head>
-<body class="add-film-page article-standalone-page">
+<body class="add-film-page article-standalone-page film-standalone-page">
   <div class="content-wrapper subpage-wrapper page-shell">
     <header id="site-header">
       <div class="header-content">
@@ -637,7 +656,7 @@
 
   <script src="/public-film-login.js?v=20260602tgsafari1"></script>
   <script src="/film-page.js?v=20260602sitefix5"></script>
-  <script src="/articles/article-chrome.js?v=20260719footer1"></script>
+  <script src="/articles/article-chrome.js?v=20260719headerfix3"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   <script>
   (function () {
