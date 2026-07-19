@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260719buzzfix4" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260719buzzfix4">
+    <link rel="preload" href="/style-v2.css?v=20260719buzzfix5" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260719buzzfix5">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -406,12 +406,14 @@
             if (!sectionId || sectionId === 'home') return;
             var id = 'mp-cabinet-section-boot';
             if (document.getElementById(id)) return;
+            try { document.documentElement.classList.add('mp-section-boot'); } catch (_) {}
             var st = document.createElement('style');
             st.id = id;
+            /* Только пока html.mp-section-boot — cabinet-app снимает класс при смене раздела */
             st.textContent =
-              'html.mp-auth-boot #section-home,html.mp-guest-cabinet-boot #section-home{display:none!important}'
-              + '#section-' + sectionId + '{display:block!important}'
-              + '#section-' + sectionId + '.hidden{display:block!important}';
+              'html.mp-section-boot.mp-auth-boot #section-home,html.mp-section-boot.mp-guest-cabinet-boot #section-home{display:none!important}'
+              + 'html.mp-section-boot #section-' + sectionId + '{display:block!important}'
+              + 'html.mp-section-boot #section-' + sectionId + '.hidden{display:block!important}';
             document.head.appendChild(st);
           }
           function paintCabinetDeep(sectionId, guestPreview) {
@@ -1194,6 +1196,11 @@
                     <span class="article-card-title">Факты о съёмках</span>
                     <span class="article-card-desc">Где читать и сразу сохранить фильм в список</span>
                 </a>
+                <a href="/articles/v-trende-kino-telegram.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="trend"></span>
+                    <span class="article-card-title">В тренде: кино в Telegram</span>
+                    <span class="article-card-desc">Хайповые фильмы и новинки по упоминаниям каналов</span>
+                </a>
                 <a href="/articles/ai-pomoshchnik-podbor-filmov.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="robot"></span>
                     <span class="article-card-title">AI-помощник в кабинете</span>
@@ -1753,10 +1760,20 @@
                             <option value="festival">Фестивали</option>
                         </select>
                     </div>
-                    <div id="buzz-loading" class="buzz-loading hidden">Загружаем…</div>
+                    <div id="buzz-loading" class="buzz-loading hidden" aria-live="polite" aria-busy="true"></div>
                     <div id="buzz-error" class="buzz-error hidden"></div>
                     <div id="buzz-empty" class="buzz-empty hidden"></div>
                     <div id="buzz-grid" class="buzz-grid"></div>
+                    <div class="buzz-seo-footer" id="buzz-seo-footer">
+                        <h2>Топ обсуждаемых фильмов недели в Telegram и на YouTube</h2>
+                        <p>Раздел «В тренде» собирает упоминания новинок кино 2026 и хайповых фильмов из киноканалов: премьеры, рецензии блогеров, анонсы студий и кинотеатров. Смотрите сетку по числу упоминаний или ленту постов — и сразу открывайте карточку фильма в Movie Planner.</p>
+                        <ul>
+                            <li>хайповые фильмы Telegram и разборы на YouTube;</li>
+                            <li>новинки кино и сериалов, которые чаще всего обсуждают каналы;</li>
+                            <li>ссылки на исходные посты и переход к плану просмотра.</li>
+                        </ul>
+                        <p>Подробнее о разделе — в <a href="/articles/v-trende-kino-telegram.html">статье про «В тренде»</a>.</p>
+                    </div>
                     <div class="buzz-digest" id="buzz-digest">
                         <div class="buzz-digest-title">Подборка «В тренде»</div>
                         <p class="buzz-digest-sub">Короткий дайджест самых обсуждаемых фильмов — на почту или в Telegram</p>
@@ -2625,7 +2642,7 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260719buzzfix4',
+          'mp-icons.js?v=20260719buzzfix5',
           'mp-public-promo.js?v=20260717flow2'
         ];
         var cabinet = [
@@ -2643,28 +2660,28 @@
         if (isSearch) {
           list = [
             'mp-api-config.js?v=20260627apiams1',
-            'mp-icons.js?v=20260719buzzfix4',
+            'mp-icons.js?v=20260719buzzfix5',
             'page-loading.js?v=20260529mobileparity1',
             'avatar-crop.js?v=20260717flow2',
-            'cabinet-app.js?v=20260719buzzfix4'
+            'cabinet-app.js?v=20260719buzzfix5'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzzfix4');
+          list.push('film-page.js?v=20260719buzzfix5');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzzfix4');
+          list.push('film-page.js?v=20260719buzzfix5');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('cabinet-app.js?v=20260719buzzfix4');
+          list.push('cabinet-app.js?v=20260719buzzfix5');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260719buzzfix4');
-          list.push('cabinet-app.js?v=20260719buzzfix4');
+          list.push('buzz-page.js?v=20260719buzzfix5');
+          list.push('cabinet-app.js?v=20260719buzzfix5');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');
