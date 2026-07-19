@@ -3,186 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Добавить фильм — Movie Planner</title>
-  <meta name="description" content="Отправьте свой фильм или короткометражку на модерацию Movie Planner. Афиша, описание, ссылка для просмотра — после одобрения появится страница на сайте.">
+  <title>Разместить свой фильм онлайн — страница картины для режиссёров | Movie Planner</title>
+  <meta name="description" content="Как рассказать о своём фильме и разместить картину онлайн: страница фильма, режиссёра и актёров на Movie Planner. Для независимых режиссёров, короткометражек и дебютов — заявка на модерацию.">
+  <meta name="keywords" content="разместить свой фильм онлайн, как рассказать о своем фильме, страница фильма для режиссёра, опубликовать независимый фильм, продвижение короткометражки, разместить короткометражку, страница актёра фильмография, карточка фильма для авторов, дебютная картина, независимое кино">
   <link rel="canonical" href="https://movie-planner.ru/add-film">
-  <meta name="robots" content="index,follow">
-  <meta property="og:title" content="Добавить фильм — Movie Planner">
-  <meta property="og:description" content="Разместите независимый фильм на Movie Planner: заявка, модерация и своя страница.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+  <meta property="og:title" content="Разместить свой фильм онлайн — Movie Planner">
+  <meta property="og:description" content="Страница вашей картины на Movie Planner: SEO, фильмография режиссёра и актёров, ссылка для зрителей. Заявка для независимых авторов.">
   <meta property="og:url" content="https://movie-planner.ru/add-film">
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:image" content="https://movie-planner.ru/api/og/home.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Разместить свой фильм онлайн — Movie Planner">
+  <meta name="twitter:description" content="Как рассказать о своём фильме: страница картины, режиссёра и актёров на Movie Planner.">
+  <meta name="twitter:image" content="https://movie-planner.ru/api/og/home.jpg">
   <link rel="icon" href="/images/favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style-v2.css?v=20260719addfilm3">
+  <style id="mp-article-critical">
+    html.mp-session #site-header [data-action="login"],
+    html.mp-session #site-header #login-btn,
+    html.mp-session #site-header .header-login-btn { display: none !important; }
+    html.mp-session #header-user-wrap { display: flex !important; }
+    html.mp-session #header-user-wrap.hidden { display: flex !important; }
+    html.mp-session #header-profile-pill.hidden { display: inline-flex !important; }
+  </style>
+  <script src="/articles/article-session-boot.js?v=20260702articlechrome1"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Разместить свой фильм онлайн",
+    "url": "https://movie-planner.ru/add-film",
+    "description": "Заявка на размещение независимого фильма, короткометражки или мультфильма на Movie Planner: страница картины, режиссёра и актёров.",
+    "inLanguage": "ru-RU",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Movie Planner",
+      "url": "https://movie-planner.ru/"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Как рассказать о своём фильме онлайн?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Отправьте заявку на Movie Planner: загрузите афишу, укажите название, год, жанры, режиссёра, описание и ссылку, где можно посмотреть картину. После модерации появится страница фильма — её можно шарить зрителям и в соцсетях."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Где разместить независимый фильм или короткометражку?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "На Movie Planner авторы отправляют картину на модерацию. После одобрения создаётся страница фильма; для дебюта режиссёра и актёров появляются их страницы, а если фильмография уже есть — картина добавляется к ней."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Что нужно для страницы фильма на Movie Planner?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Афиша, название, год, тип, режиссёр, жанры, описание, рабочая ссылка на просмотр и email для подтверждения. Актёры и факты — по желанию. Ссылка должна открываться и позволять воспроизвести фильм."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Сколько занимает модерация заявки?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Обычно до пяти дней. Решение приходит на email: при одобрении — ссылка на страницу, при отклонении — что нужно исправить."
+        }
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
-      --bg0: #08080e;
-      --bg1: #12101a;
-      --ink: #f6f1e8;
-      --muted: rgba(246,241,232,.68);
-      --line: rgba(246,241,232,.12);
-      --field: rgba(0,0,0,.34);
-      --accent: #ff4d8d;
-      --accent2: #ffb347;
-      --ok: #6dffa8;
-      --err: #ff7b7b;
-      --radius: 18px;
+      --af-ink: #f6f1e8;
+      --af-muted: rgba(246,241,232,.68);
+      --af-line: rgba(246,241,232,.12);
+      --af-field: rgba(0,0,0,.34);
+      --af-accent: #ff4d8d;
+      --af-accent2: #ffb347;
+      --af-ok: #6dffa8;
+      --af-err: #ff7b7b;
     }
-    * { box-sizing: border-box; }
-    body.add-film-page {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--ink);
-      font-family: Manrope, system-ui, sans-serif;
-      background:
-        radial-gradient(900px 480px at 0% 0%, rgba(255,77,141,.2), transparent 55%),
-        radial-gradient(800px 420px at 100% 10%, rgba(255,179,71,.14), transparent 50%),
-        linear-gradient(165deg, var(--bg1), var(--bg0) 55%, #0a0a12);
-    }
-    .af-shell {
-      max-width: 720px;
+    body.add-film-page .af-main {
+      max-width: 760px;
       margin: 0 auto;
-      padding: 22px 16px 64px;
+      padding: 8px 0 48px;
     }
-    .af-brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      text-decoration: none;
+    body.add-film-page .af-hero h1 {
+      margin: 0 0 12px;
       font-family: Unbounded, sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-    .af-brand img { width: 32px; height: 32px; border-radius: 8px; }
-    .af-hero {
-      margin-bottom: 22px;
-    }
-    .af-hero h1 {
-      margin: 0 0 10px;
-      font-family: Unbounded, sans-serif;
-      font-size: clamp(26px, 6vw, 36px);
+      font-size: clamp(26px, 5vw, 36px);
       line-height: 1.15;
-      background: linear-gradient(100deg, #fff 10%, #ff8ab8 55%, var(--accent2));
+      background: linear-gradient(100deg, #fff 10%, #ff8ab8 55%, var(--af-accent2));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-    .af-hero p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.55;
-      max-width: 38em;
+    body.add-film-page .af-hero .lead {
+      margin: 0 0 8px;
+      color: var(--af-muted);
+      font-size: 16px;
+      line-height: 1.6;
+      max-width: 42em;
     }
-    .af-card {
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      padding: 22px 18px;
+    body.add-film-page .af-benefits,
+    body.add-film-page .af-seo,
+    body.add-film-page .af-rules,
+    body.add-film-page .af-card {
+      margin: 0 0 20px;
+      padding: 20px 18px;
+      border-radius: 22px;
+      border: 1px solid var(--af-line);
       background:
         linear-gradient(160deg, rgba(255,77,141,.1), rgba(255,255,255,.03) 40%, rgba(255,179,71,.05)),
-        rgba(10,10,16,.72);
-      box-shadow: 0 28px 70px rgba(0,0,0,.38);
-      backdrop-filter: blur(8px);
+        rgba(10,10,16,.55);
     }
-    .af-grid {
+    body.add-film-page .af-benefits {
+      border-color: rgba(255,179,71,.22);
+      background:
+        linear-gradient(145deg, rgba(255,179,71,.12), rgba(255,77,141,.08)),
+        rgba(0,0,0,.24);
+    }
+    body.add-film-page .af-benefits h2,
+    body.add-film-page .af-seo h2,
+    body.add-film-page .af-rules h2 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: 16px;
+      color: #fff;
+    }
+    body.add-film-page .af-benefits ul,
+    body.add-film-page .af-rules ul,
+    body.add-film-page .af-seo ul {
+      margin: 0;
+      padding-left: 1.15em;
+      color: var(--af-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    body.add-film-page .af-benefits li,
+    body.add-film-page .af-rules li,
+    body.add-film-page .af-seo li { margin-bottom: 8px; }
+    body.add-film-page .af-benefits li:last-child,
+    body.add-film-page .af-rules li:last-child,
+    body.add-film-page .af-seo li:last-child { margin-bottom: 0; }
+    body.add-film-page .af-benefits strong,
+    body.add-film-page .af-seo strong { color: #fff; font-weight: 700; }
+    body.add-film-page .af-seo p {
+      margin: 0 0 12px;
+      color: var(--af-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    body.add-film-page .af-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
-    .af-field { margin-bottom: 14px; }
-    .af-field.full { grid-column: 1 / -1; }
-    .af-field label {
+    body.add-film-page .af-field { margin-bottom: 14px; }
+    body.add-film-page .af-field.full { grid-column: 1 / -1; }
+    body.add-film-page .af-field label {
       display: block;
       margin-bottom: 6px;
       font-size: 13px;
-      color: var(--muted);
+      color: var(--af-muted);
       font-weight: 600;
     }
-    .af-field .hint {
+    body.add-film-page .af-field .hint {
       display: block;
       margin-top: 5px;
       font-size: 12px;
       color: rgba(246,241,232,.45);
       line-height: 1.4;
     }
-    .af-field input,
-    .af-field select,
-    .af-field textarea {
+    body.add-film-page .af-field input,
+    body.add-film-page .af-field select,
+    body.add-film-page .af-field textarea {
       width: 100%;
       border-radius: 14px;
-      border: 1px solid var(--line);
-      background: var(--field);
+      border: 1px solid var(--af-line);
+      background: var(--af-field);
       color: #fff;
       padding: 12px 14px;
       font: inherit;
       outline: none;
+      box-sizing: border-box;
     }
-    .af-field input:focus,
-    .af-field select:focus,
-    .af-field textarea:focus {
+    body.add-film-page .af-field input:focus,
+    body.add-film-page .af-field select:focus,
+    body.add-film-page .af-field textarea:focus {
       border-color: rgba(255,77,141,.55);
       box-shadow: 0 0 0 3px rgba(255,77,141,.15);
     }
-    .af-field textarea { min-height: 110px; resize: vertical; }
-    .af-poster {
+    body.add-film-page .af-field textarea { min-height: 110px; resize: vertical; }
+    body.add-film-page .af-poster {
       border: 1.5px dashed rgba(246,241,232,.22);
       border-radius: 20px;
       padding: 18px;
       text-align: center;
       background: rgba(0,0,0,.22);
       cursor: pointer;
-      transition: border-color .2s, background .2s;
     }
-    .af-poster:hover, .af-poster.is-drag {
+    body.add-film-page .af-poster:hover,
+    body.add-film-page .af-poster.is-drag {
       border-color: rgba(255,77,141,.55);
       background: rgba(255,77,141,.08);
     }
-    .af-poster input { display: none; }
-    .af-poster-preview {
+    body.add-film-page .af-poster input { display: none; }
+    body.add-film-page .af-poster-preview {
       width: min(180px, 46vw);
       aspect-ratio: 2/3;
       object-fit: cover;
       border-radius: 14px;
       margin: 0 auto 12px;
       display: none;
-      border: 1px solid var(--line);
+      border: 1px solid var(--af-line);
     }
-    .af-poster-preview.is-on { display: block; }
-    .af-poster-title {
+    body.add-film-page .af-poster-preview.is-on { display: block; }
+    body.add-film-page .af-poster-title {
       font-family: Unbounded, sans-serif;
       font-size: 14px;
       margin: 0 0 6px;
+      color: #fff;
     }
-    .af-poster-sub {
+    body.add-film-page .af-poster-sub {
       margin: 0;
       font-size: 13px;
-      color: var(--muted);
+      color: var(--af-muted);
     }
-    .af-check {
+    body.add-film-page .af-check {
       display: flex;
       gap: 10px;
       align-items: flex-start;
       margin: 8px 0 4px;
       font-size: 14px;
-      color: var(--muted);
+      color: var(--af-muted);
       line-height: 1.45;
     }
-    .af-check input {
+    body.add-film-page .af-check input {
       width: 18px;
       height: 18px;
       margin-top: 2px;
       flex: 0 0 auto;
-      accent-color: var(--accent);
+      accent-color: var(--af-accent);
     }
-    .af-check a { color: #ff8ab8; }
-    .af-actions {
+    body.add-film-page .af-check a { color: #ff8ab8; }
+    body.add-film-page .af-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 18px;
     }
-    .af-btn {
+    body.add-film-page .af-btn {
       flex: 1 1 180px;
       min-height: 50px;
       border: 0;
@@ -191,275 +275,337 @@
       font-size: 15px;
       cursor: pointer;
       font-family: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
-    .af-btn:disabled { opacity: .55; cursor: wait; }
-    .af-btn-primary {
-      background: linear-gradient(135deg, var(--accent), #7c3cff 72%);
+    body.add-film-page .af-btn:disabled { opacity: .55; cursor: wait; }
+    body.add-film-page .af-btn-primary {
+      background: linear-gradient(135deg, var(--af-accent), #7c3cff 72%);
       color: #fff;
     }
-    .af-btn-secondary {
+    body.add-film-page .af-btn-secondary {
       background: rgba(255,255,255,.08);
       color: #fff;
-      border: 1px solid var(--line);
+      border: 1px solid var(--af-line);
     }
-    .af-status {
+    body.add-film-page .af-status {
       min-height: 1.4em;
       margin: 14px 0 0;
       font-size: 14px;
-      color: var(--muted);
+      color: var(--af-muted);
       line-height: 1.45;
     }
-    .af-status.is-err { color: var(--err); }
-    .af-status.is-ok { color: var(--ok); }
-    .af-rules {
-      margin-top: 22px;
-      padding: 16px 16px 4px;
-      border-radius: 20px;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.22);
-    }
-    .af-rules h2 {
-      margin: 0 0 10px;
-      font-family: Unbounded, sans-serif;
-      font-size: 15px;
-    }
-    .af-rules ul {
-      margin: 0 0 12px;
-      padding-left: 1.15em;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-    .af-rules li { margin-bottom: 6px; }
-    .af-step { display: none; }
-    .af-step.is-on { display: block; }
-    .af-code-row {
-      display: flex;
-      gap: 10px;
-      align-items: stretch;
-    }
-    .af-code-row input {
-      flex: 1 1 auto;
+    body.add-film-page .af-status.is-err { color: var(--af-err); }
+    body.add-film-page .af-status.is-ok { color: var(--af-ok); }
+    body.add-film-page .af-step { display: none; }
+    body.add-film-page .af-step.is-on { display: block; }
+    body.add-film-page .af-code-row input {
+      width: 100%;
       letter-spacing: .28em;
       font-size: 22px;
       font-weight: 700;
       text-align: center;
       min-height: 56px;
+      border-radius: 14px;
+      border: 1px solid var(--af-line);
+      background: var(--af-field);
+      color: #fff;
+      box-sizing: border-box;
     }
-    .af-done-card {
-      text-align: center;
-      padding: 10px 4px 4px;
-    }
-    .af-done-card h2 {
+    body.add-film-page .af-done-card { text-align: center; padding: 10px 4px 4px; }
+    body.add-film-page .af-done-card h2 {
       margin: 0 0 10px;
       font-family: Unbounded, sans-serif;
       font-size: 22px;
-    }
-    .af-done-card p {
-      margin: 0 auto 14px;
-      max-width: 32em;
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 15px;
-    }
-    .af-foot {
-      margin-top: 18px;
-      font-size: 13px;
-      color: rgba(246,241,232,.45);
-    }
-    .af-foot a { color: #ff8ab8; }
-    .af-benefits {
-      margin: 0 0 22px;
-      padding: 18px 16px;
-      border-radius: 22px;
-      border: 1px solid rgba(255,179,71,.22);
-      background:
-        linear-gradient(145deg, rgba(255,179,71,.12), rgba(255,77,141,.08)),
-        rgba(0,0,0,.24);
-    }
-    .af-benefits h2 {
-      margin: 0 0 10px;
-      font-family: Unbounded, sans-serif;
-      font-size: 15px;
       color: #fff;
     }
-    .af-benefits ul {
-      margin: 0;
-      padding-left: 1.15em;
-      color: var(--muted);
-      font-size: 14px;
+    body.add-film-page .af-done-card p {
+      margin: 0 auto 14px;
+      max-width: 32em;
+      color: var(--af-muted);
       line-height: 1.55;
+      font-size: 15px;
     }
-    .af-benefits li { margin-bottom: 8px; }
-    .af-benefits li:last-child { margin-bottom: 0; }
-    .af-benefits strong { color: #fff; font-weight: 700; }
     @media (max-width: 640px) {
-      .af-grid { grid-template-columns: 1fr; }
-      .af-card { padding: 18px 14px; border-radius: 22px; }
-      .af-code-row { flex-direction: column; }
-      .af-btn { flex: 1 1 100%; }
+      body.add-film-page .af-grid { grid-template-columns: 1fr; }
+      body.add-film-page .af-btn { flex: 1 1 100%; }
+      body.add-film-page .af-main { padding: 4px 0 36px; }
     }
   </style>
 </head>
-<body class="add-film-page">
-  <div class="af-shell">
-    <a class="af-brand" href="/">
-      <img src="/images/icon48.png" alt="">
-      Movie Planner
-    </a>
-
-    <div class="af-hero">
-      <h1>Добавить фильм</h1>
-      <p>Отправьте независимый фильм, мультфильм или короткометражку на модерацию. После одобрения у фильма появится страница на Movie Planner — без Кинопоиска и TMDB.</p>
-    </div>
-
-    <section class="af-benefits" aria-label="Преимущества">
-      <h2>Зачем размещать фильм здесь</h2>
-      <ul>
-        <li><strong>SEO настраивается автоматически</strong> — у страницы сразу появляются корректный title, описание и превью для поиска и соцсетей.</li>
-        <li><strong>Упоминание в интернете</strong> — фильм появляется на Movie Planner, где тысячи людей ищут и планируют кино.</li>
-        <li><strong>Своя аудитория быстрее</strong> — страница помогает зрителям вас найти: по названию, жанру и ссылке на просмотр.</li>
-      </ul>
-    </section>
-
-    <div class="af-card">
-      <!-- Step 1: form -->
-      <div class="af-step is-on" id="step-form">
-        <form id="af-form" novalidate>
-          <div class="af-field full">
-            <label>Афиша</label>
-            <div class="af-poster" id="poster-drop" role="button" tabindex="0">
-              <img class="af-poster-preview" id="poster-preview" alt="Превью афиши">
-              <p class="af-poster-title">Загрузить афишу</p>
-              <p class="af-poster-sub">JPEG, PNG или WebP · минимум 300×420 · до 8 МБ</p>
-              <input type="file" id="poster" accept="image/jpeg,image/png,image/webp" required>
+<body class="add-film-page article-standalone-page">
+  <div class="content-wrapper subpage-wrapper page-shell">
+    <header id="site-header">
+      <div class="header-content">
+        <a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>
+        <div class="header-search" id="header-search" role="search">
+          <span class="header-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg></span>
+          <input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">
+          <button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"><svg class="mp-icon-svg-fallback" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.83V232a8,8,0,0,1-16,0V207.83A80.09,80.09,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.09,80.09,0,0,1,136,207.83Z"/></svg></button>
+          <button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>
+          <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
+        </div>
+        <div class="header-buttons">
+          <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
+          <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
+              <span class="header-profile-avatar" id="header-profile-avatar"></span>
+              <span class="header-profile-name" id="header-profile-name"></span>
+            </button>
+            <div class="header-util-row">
+              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                <span class="header-inbox-icon" aria-hidden="true">📥</span>
+              </button>
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
             </div>
-          </div>
-
-          <div class="af-grid">
-            <div class="af-field">
-              <label for="title">Название</label>
-              <input id="title" name="title" required maxlength="200" autocomplete="off" placeholder="Название фильма">
-            </div>
-            <div class="af-field">
-              <label for="year">Год</label>
-              <input id="year" name="year" type="number" required min="1888" max="2100" placeholder="2026">
-            </div>
-            <div class="af-field">
-              <label for="film_type">Тип</label>
-              <select id="film_type" name="film_type">
-                <option value="film">Полнометражный фильм</option>
-                <option value="short">Короткометражка</option>
-                <option value="animation">Мультфильм</option>
-                <option value="series">Сериал</option>
-                <option value="other">Другое</option>
-              </select>
-            </div>
-            <div class="af-field">
-              <label for="director">Режиссёр</label>
-              <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
-            </div>
-            <div class="af-field full">
-              <label for="genres">Жанры</label>
-              <input id="genres" name="genres" required maxlength="300" placeholder="Например: драма, комедия, анимация">
-            </div>
-            <div class="af-field full">
-              <label for="actors">Актёры <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
-              <input id="actors" name="actors" maxlength="1000" placeholder="Через запятую — для мультфильма можно не указывать">
-              <span class="hint">Для мультиков и анимации актёров указывать не обязательно.</span>
-            </div>
-            <div class="af-field full">
-              <label for="description">Описание</label>
-              <textarea id="description" name="description" required maxlength="4000" placeholder="О чём фильм — коротко и по делу"></textarea>
-            </div>
-            <div class="af-field full">
-              <label for="facts">Интересные факты <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
-              <textarea id="facts" name="facts" maxlength="4000" placeholder="Съёмки, премьеры, награды…"></textarea>
-            </div>
-            <div class="af-field full">
-              <label for="author_socials">Соцсети автора <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
-              <input id="author_socials" name="author_socials" maxlength="1000" placeholder="Telegram-канал, сайт, Instagram…">
-            </div>
-            <div class="af-field full">
-              <label for="watch_url">Где посмотреть фильм</label>
-              <input id="watch_url" name="watch_url" type="url" required maxlength="2000" placeholder="https://… Яндекс Диск, Google Drive или другой ресурс">
-              <span class="hint">Ссылка должна открываться и позволять воспроизвести фильм. Если файл не открывается — заявку не одобрим.</span>
-            </div>
-            <div class="af-field">
-              <label for="contact_email">Email</label>
-              <input id="contact_email" name="contact_email" type="email" required maxlength="200" autocomplete="email" placeholder="для кода и ответа по заявке">
-            </div>
-            <div class="af-field">
-              <label for="contact_phone">Телефон <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
-              <input id="contact_phone" name="contact_phone" type="tel" maxlength="32" autocomplete="tel" placeholder="+7 …">
-            </div>
-          </div>
-
-          <label class="af-check">
-            <input type="checkbox" id="privacy" name="privacy_accepted" required>
-            <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a> и обработкой контактных данных для связи по заявке</span>
-          </label>
-
-          <div class="af-actions">
-            <button type="submit" class="af-btn af-btn-primary" id="submit-btn">Отправить на модерацию</button>
-          </div>
-          <p class="af-status" id="form-status" aria-live="polite"></p>
-        </form>
-      </div>
-
-      <!-- Step 2: email code -->
-      <div class="af-step" id="step-code">
-        <h2 style="margin:0 0 8px;font-family:Unbounded,sans-serif;font-size:20px;">Код из письма</h2>
-        <p style="margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.5;">
-          Мы отправили код на <strong id="code-email"></strong>. Введите его, чтобы подтвердить заявку.
-        </p>
-        <div class="af-field">
-          <label for="verify-code">Код подтверждения</label>
-          <div class="af-code-row">
-            <input id="verify-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+            <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
+              <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
+            </button>
+            <div class="header-settings-dropdown account-dropdown hidden" id="header-settings-dropdown" role="menu"></div>
           </div>
         </div>
-        <div class="af-actions">
-          <button type="button" class="af-btn af-btn-primary" id="verify-btn">Подтвердить</button>
-          <button type="button" class="af-btn af-btn-secondary" id="resend-btn">Отправить код ещё раз</button>
-        </div>
-        <p class="af-status" id="code-status" aria-live="polite"></p>
       </div>
+    </header>
 
-      <!-- Step 3: done -->
-      <div class="af-step" id="step-done">
-        <div class="af-done-card">
-          <h2>Заявка на модерации</h2>
-          <p id="done-message">
-            Обычно это занимает до 5 дней. После решения мы напишем на ваши контактные данные:
-            при одобрении пришлём ссылку на страницу фильма, если что-то не так — сообщим, что именно нужно исправить.
+    <main class="container subpage-main">
+      <div class="af-main">
+        <div class="af-hero">
+          <h1>Разместить свой фильм онлайн</h1>
+          <p class="lead">Отправьте вашу картину на модерацию. После одобрения страницы на Movie Planner появятся как у фильма, так и у всех указанных актёров и режиссёра, если это их дебютная картина. Если актёры или режиссёр уже имеют фильмографию, новая картина будет добавлена к ней.</p>
+        </div>
+
+        <section class="af-benefits" aria-label="Преимущества">
+          <h2>Зачем размещать фильм здесь</h2>
+          <ul>
+            <li><strong>SEO настраивается автоматически</strong> — у страницы сразу появляются корректный title, описание и превью для поиска и соцсетей.</li>
+            <li><strong>Упоминание в интернете</strong> — фильм появляется на Movie Planner, где тысячи людей ищут и планируют кино.</li>
+            <li><strong>Своя аудитория быстрее</strong> — страница помогает зрителям вас найти: по названию, жанру и ссылке на просмотр.</li>
+          </ul>
+        </section>
+
+        <div class="af-card">
+          <div class="af-step is-on" id="step-form">
+            <form id="af-form" novalidate>
+              <div class="af-field full">
+                <label>Афиша</label>
+                <div class="af-poster" id="poster-drop" role="button" tabindex="0">
+                  <img class="af-poster-preview" id="poster-preview" alt="Превью афиши">
+                  <p class="af-poster-title">Загрузить афишу</p>
+                  <p class="af-poster-sub">JPEG, PNG или WebP · минимум 300×420 · до 8 МБ</p>
+                  <input type="file" id="poster" accept="image/jpeg,image/png,image/webp" required>
+                </div>
+              </div>
+
+              <div class="af-grid">
+                <div class="af-field">
+                  <label for="title">Название</label>
+                  <input id="title" name="title" required maxlength="200" autocomplete="off" placeholder="Название фильма">
+                </div>
+                <div class="af-field">
+                  <label for="year">Год</label>
+                  <input id="year" name="year" type="number" required min="1888" max="2100" placeholder="2026">
+                </div>
+                <div class="af-field">
+                  <label for="film_type">Тип</label>
+                  <select id="film_type" name="film_type">
+                    <option value="film">Полнометражный фильм</option>
+                    <option value="short">Короткометражка</option>
+                    <option value="animation">Мультфильм</option>
+                    <option value="series">Сериал</option>
+                    <option value="other">Другое</option>
+                  </select>
+                </div>
+                <div class="af-field">
+                  <label for="director">Режиссёр</label>
+                  <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
+                </div>
+                <div class="af-field full">
+                  <label for="genres">Жанры</label>
+                  <input id="genres" name="genres" required maxlength="300" placeholder="Например: драма, комедия, анимация">
+                </div>
+                <div class="af-field full">
+                  <label for="actors">Актёры <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+                  <input id="actors" name="actors" maxlength="1000" placeholder="Через запятую — для мультфильма можно не указывать">
+                  <span class="hint">Для мультиков и анимации актёров указывать не обязательно.</span>
+                </div>
+                <div class="af-field full">
+                  <label for="description">Описание</label>
+                  <textarea id="description" name="description" required maxlength="4000" placeholder="О чём фильм — коротко и по делу"></textarea>
+                </div>
+                <div class="af-field full">
+                  <label for="facts">Интересные факты <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+                  <textarea id="facts" name="facts" maxlength="4000" placeholder="Съёмки, премьеры, награды…"></textarea>
+                </div>
+                <div class="af-field full">
+                  <label for="author_socials">Соцсети автора <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+                  <input id="author_socials" name="author_socials" maxlength="1000" placeholder="Telegram-канал, сайт, Instagram…">
+                </div>
+                <div class="af-field full">
+                  <label for="watch_url">Где посмотреть фильм</label>
+                  <input id="watch_url" name="watch_url" type="url" required maxlength="2000" placeholder="https://… Яндекс Диск, Google Drive или другой ресурс">
+                  <span class="hint">Ссылка должна открываться и позволять воспроизвести фильм. Если файл не открывается — заявку не одобрим.</span>
+                </div>
+                <div class="af-field">
+                  <label for="contact_email">Email</label>
+                  <input id="contact_email" name="contact_email" type="email" required maxlength="200" autocomplete="email" placeholder="для кода и ответа по заявке">
+                </div>
+                <div class="af-field">
+                  <label for="contact_phone">Телефон <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+                  <input id="contact_phone" name="contact_phone" type="tel" maxlength="32" autocomplete="tel" placeholder="+7 …">
+                </div>
+              </div>
+
+              <label class="af-check">
+                <input type="checkbox" id="privacy" name="privacy_accepted" required>
+                <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a> и обработкой контактных данных для связи по заявке</span>
+              </label>
+
+              <div class="af-actions">
+                <button type="submit" class="af-btn af-btn-primary" id="submit-btn">Отправить на модерацию</button>
+              </div>
+              <p class="af-status" id="form-status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="af-step" id="step-code">
+            <h2 style="margin:0 0 8px;font-family:Unbounded,sans-serif;font-size:20px;color:#fff;">Код из письма</h2>
+            <p style="margin:0 0 16px;color:var(--af-muted);font-size:14px;line-height:1.5;">
+              Мы отправили код на <strong id="code-email"></strong>. Введите его, чтобы подтвердить заявку.
+            </p>
+            <div class="af-field">
+              <label for="verify-code">Код подтверждения</label>
+              <div class="af-code-row">
+                <input id="verify-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+              </div>
+            </div>
+            <div class="af-actions">
+              <button type="button" class="af-btn af-btn-primary" id="verify-btn">Подтвердить</button>
+              <button type="button" class="af-btn af-btn-secondary" id="resend-btn">Отправить код ещё раз</button>
+            </div>
+            <p class="af-status" id="code-status" aria-live="polite"></p>
+          </div>
+
+          <div class="af-step" id="step-done">
+            <div class="af-done-card">
+              <h2>Заявка на модерации</h2>
+              <p id="done-message">
+                Обычно это занимает до 5 дней. После решения мы напишем на ваши контактные данные:
+                при одобрении пришлём ссылку на страницу фильма, если что-то не так — сообщим, что именно нужно исправить.
+              </p>
+              <div class="af-actions" style="justify-content:center">
+                <a class="af-btn af-btn-primary" href="/?open_login=1">Войти в кабинет</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="af-seo" id="for-filmmakers">
+          <h2>Как рассказать о своём фильме и найти зрителей</h2>
+          <p>Независимым режиссёрам и авторам короткометражек нужна не только премьера, но и <strong>постоянная страница картины в сети</strong>: с афишей, описанием, жанрами и ссылкой на просмотр. На Movie Planner вы можете <strong>разместить свой фильм онлайн</strong> через модерацию — без сложного сайта и пресс-кита с нуля.</p>
+          <p>После одобрения у картины появляется карточка, которую удобно отправлять зрителям, фестивальным отборщикам и в соцсети. Если в заявке указаны режиссёр и актёры, для дебюта создаются их страницы; если фильмография уже есть — новая картина добавляется к ней.</p>
+          <ul>
+            <li>Подойдёт для полнометражного фильма, короткометражки, мультфильма и дебютной картины.</li>
+            <li>Важно дать рабочую ссылку на просмотр — зритель должен реально открыть и запустить фильм.</li>
+            <li>SEO-метаданные страницы собираются автоматически: title, описание и превью для поиска и шаринга.</li>
+          </ul>
+        </section>
+
+        <section class="af-rules" id="rules">
+          <h2>Правила размещения</h2>
+          <ul>
+            <li>Не размещайте порнографию и откровенный сексуальный контент на афише или в материалах фильма.</li>
+            <li>Без мата и оскорблений в названии, описании и фактах.</li>
+            <li>Ссылка «где посмотреть» должна реально открываться: если фильм не включается, заявку не одобрим.</li>
+            <li>Можно присылать полнометражные фильмы и короткометражки — главное, чтобы материал можно было воспроизвести по ссылке.</li>
+            <li>Вы подтверждаете, что имеете право размещать этот фильм и указываете корректные контактные данные.</li>
+            <li>Модерация обычно занимает до 5 дней. Решение придёт на email (и при необходимости мы свяжемся по телефону).</li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-apps-cabinet" id="cabinet-footer-apps">
+            <h2 class="footer-apps-title">Приложения</h2>
+            <div class="footer-store-row">
+              <a href="https://play.google.com/store/apps/details?id=com.movie_planner&amp;hl=ru" class="footer-store-badge" target="_blank" rel="noopener">
+                <img src="/images/google-play-badge.svg" alt="Скачать в Google Play" width="135" height="40" loading="lazy">
+              </a>
+              <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
+                <img src="/images/app-store-badge.svg?v=20260529apple1" alt="Скачать в App Store" width="120" height="40" loading="lazy">
+              </a>
+              <a href="https://www.rustore.ru/catalog/app/com.movie_planner" class="footer-store-badge" target="_blank" rel="noopener">
+                <img src="/images/rustore-badge.svg?v=20260529rustore1" alt="Скачать в RuStore" width="135" height="40" loading="lazy">
+              </a>
+            </div>
+            <div class="footer-apps-extra">
+              <a href="https://t.me/movie_planner_bot/app" class="footer-app-mini" target="_blank" rel="noopener">Telegram Mini App</a>
+              <span class="footer-apps-sep" aria-hidden="true">·</span>
+              <a href="https://t.me/movie_planner_bot" class="footer-app-mini" target="_blank" rel="noopener">Telegram-бот</a>
+              <span class="footer-apps-sep" aria-hidden="true">·</span>
+              <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol" class="footer-app-mini" target="_blank" rel="noopener">Расширение Chrome</a>
+            </div>
+          </div>
+          <div class="footer-info">
+            <h3>Контакты</h3>
+            <p>📍 Москва</p>
+            <p>📞 +7 (977) 613-45-08</p>
+            <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+            <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По вопросам сотрудничества: @zapnikita95</a></p>
+          </div>
+          <div class="footer-info">
+            <h3>Авторам</h3>
+            <p><a href="/add-film">Добавить фильм</a></p>
+            <p>Независимые фильмы и короткометражки на модерацию</p>
+          </div>
+          <div class="footer-info footer-editorial">
+            <h3>Публикации</h3>
+            <p><a href="https://habr.com/ru/articles/1053204/" target="_blank" rel="noopener">Хабр — ИИ в киносервисе</a></p>
+            <p><a href="https://habr.com/ru/users/zap_nikita/" target="_blank" rel="noopener">Профиль на Хабре</a></p>
+            <p><a href="https://dzen.ru/movie_planner" target="_blank" rel="noopener">Дзен — Movie Planner</a></p>
+          </div>
+          <div class="footer-info footer-guides">
+            <h3>Трекер кино</h3>
+            <p><a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Список просмотренных фильмов</a></p>
+            <p><a href="/articles/prilozhenie-treker-dlya-filmov.html">Трекер фильмов — приложение</a></p>
+            <p><a href="/articles/kino-dnevnik-prosmotrennyh-filmov.html">Дневник просмотров</a></p>
+            <p><a href="/articles/movie-planner-veb-kabinet-na-pk.html">Movie Planner на компьютере</a></p>
+          </div>
+          <div class="footer-social">
+            <h3>Мы в соцсетях</h3>
+            <div class="social-links">
+              <a href="https://t.me/movie_planner_channel" target="_blank" class="social-link" aria-label="Telegram канал" rel="noopener">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.84 8.68c-.135.608-.486.758-.984.472l-2.72-2.004-1.313 1.26c-.149.15-.275.275-.564.275l.2-2.83 5.033-4.547c.22-.196-.048-.305-.342-.11l-6.22 3.918-2.68-.84c-.584-.183-.598-.584.11-.88l10.46-4.03c.486-.18.91.112.75.7z"/></svg>
+              </a>
+              <a href="https://instagram.com/movie_planner_bot" target="_blank" class="social-link" aria-label="Instagram" rel="noopener">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. ·
+            <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a>
+            · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Политика конфиденциальности</a>
+            · <a href="/oferta-i-oplata.html" class="footer-link-muted">Оплата и оферта</a>
+            · <a href="/agents.html" class="footer-link-muted">API и нейросети</a>
+            · <a href="https://movie-planner.ru/developer" class="footer-link-muted">Документация API</a>
           </p>
-          <div class="af-actions" style="justify-content:center">
-            <a class="af-btn af-btn-primary" href="/" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">Открыть кабинет</a>
-          </div>
         </div>
       </div>
-    </div>
-
-    <section class="af-rules" id="rules">
-      <h2>Правила размещения</h2>
-      <ul>
-        <li>Не размещайте порнографию и откровенный сексуальный контент на афише или в материалах фильма.</li>
-        <li>Без мата и оскорблений в названии, описании и фактах.</li>
-        <li>Ссылка «где посмотреть» должна реально открываться: если фильм не включается, заявку не одобрим.</li>
-        <li>Можно присылать полнометражные фильмы и короткометражки — главное, чтобы материал можно было воспроизвести по ссылке.</li>
-        <li>Вы подтверждаете, что имеете право размещать этот фильм и указываете корректные контактные данные.</li>
-        <li>Модерация обычно занимает до 5 дней. Решение придёт на email (и при необходимости мы свяжемся по телефону).</li>
-      </ul>
-    </section>
-
-    <p class="af-foot">
-      <a href="/">На главную</a> ·
-      <a href="/politika-konfidentsialnosti.html">Политика конфиденциальности</a> ·
-      <a href="/usloviya-ispolzovaniya.html">Условия использования</a>
-    </p>
+    </footer>
   </div>
 
+  <script src="/public-film-login.js?v=20260602tgsafari1"></script>
+  <script src="/film-page.js?v=20260602sitefix5"></script>
+  <script src="/articles/article-chrome.js?v=20260718headerfix2"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   <script>
   (function () {
     var API = (window.location && window.location.origin) || 'https://movie-planner.ru';
