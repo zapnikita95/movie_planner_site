@@ -255,7 +255,8 @@
           (hasVideo ? '<span class="buzz-video-badge" aria-label="Есть видео">▶ видео</span>' : '') +
           '<a class="buzz-tile-link" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '" data-title="' + esc(title) + '" data-poster="' + esc(poster) + '">' +
             '<span class="buzz-tile-poster">' +
-              '<img src="' + esc(poster) + '" alt="' + esc(title) + '" loading="lazy">' +
+              '<img src="' + esc(poster) + '" alt="' + esc(title) + '" loading="lazy" ' +
+                'onerror="this.onerror=null;this.src=\'/images/film-poster-placeholder.png\';this.closest(\'.buzz-tile\')&&this.closest(\'.buzz-tile\').setAttribute(\'data-poster-fallback\',\'1\');">' +
             '</span>' +
           '</a>' +
         '</div>' +
