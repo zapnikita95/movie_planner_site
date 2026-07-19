@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рассылка «В тренде» — Movie Planner</title>
+  <meta name="description" content="Подпишитесь на расширенную рассылку Movie Planner: обсуждаемые фильмы и сериалы на почту или в Telegram. Выберите частоту — раз в неделю или чаще.">
+  <link rel="canonical" href="https://movie-planner.ru/digest">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="Рассылка «В тренде» — Movie Planner">
+  <meta property="og:description" content="Короткий дайджест обсуждаемых фильмов — на почту или в Telegram.">
+  <meta property="og:url" content="https://movie-planner.ru/digest">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/images/favicon.png">
+  <link rel="stylesheet" href="/style-v2.css?v=20260719digest1">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body.digest-page {
+      margin: 0;
+      min-height: 100vh;
+      background: #0b0b12;
+      color: #f4f6ff;
+      font-family: Inter, system-ui, sans-serif;
+    }
+    .digest-shell {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+    .digest-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      text-decoration: none;
+      font-family: Unbounded, sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 28px;
+    }
+    .digest-brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .digest-card {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 24px;
+      padding: 28px 22px;
+      background: linear-gradient(160deg, rgba(255,45,123,.12), rgba(255,255,255,.04));
+      box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    }
+    .digest-card h1 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: clamp(22px, 4vw, 28px);
+      line-height: 1.2;
+      background: linear-gradient(90deg, #ff2d7b, #7c3cff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .digest-card p.lead {
+      margin: 0 0 22px;
+      color: rgba(244,246,255,.72);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .digest-field { margin-bottom: 14px; }
+    .digest-field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: rgba(244,246,255,.65);
+    }
+    .digest-field select,
+    .digest-field input {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.28);
+      color: #fff;
+      padding: 0 14px;
+      font: inherit;
+    }
+    .digest-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .digest-actions .btn {
+      flex: 1 1 140px;
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .digest-actions .btn-primary {
+      background: linear-gradient(135deg, #ff2d7b, #7c3cff);
+      color: #fff;
+    }
+    .digest-actions .btn-secondary {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.14);
+    }
+    .digest-status {
+      min-height: 1.4em;
+      margin: 14px 0 0;
+      font-size: 14px;
+      color: rgba(244,246,255,.75);
+    }
+    .digest-status.is-err { color: #ff6b6b; }
+    .digest-foot {
+      margin-top: 18px;
+      font-size: 13px;
+      color: rgba(244,246,255,.5);
+    }
+    .digest-foot a { color: #ff8ab8; }
+  </style>
+</head>
+<body class="digest-page">
+  <div class="digest-shell">
+    <a class="digest-brand" href="/">
+      <img src="/images/icon48.png" alt="">
+      Movie Planner
+    </a>
+    <div class="digest-card">
+      <h1>Рассылка «В тренде»</h1>
+      <p class="lead">Короткий дайджест обсуждаемых фильмов и сериалов — на почту или в Telegram. Выберите, как часто получать подборку.</p>
+
+      <div class="digest-field">
+        <label for="digest-freq">Как часто</label>
+        <select id="digest-freq" aria-label="Как часто">
+          <option value="3d">Раз в 3 дня</option>
+          <option value="week" selected>Раз в неделю</option>
+          <option value="2weeks">Раз в 2 недели</option>
+          <option value="month">Раз в месяц</option>
+        </select>
+      </div>
+      <div class="digest-field">
+        <label for="digest-email">Email</label>
+        <input type="email" id="digest-email" placeholder="email@example.com" autocomplete="email" inputmode="email">
+      </div>
+      <div class="digest-actions">
+        <button type="button" class="btn btn-primary" id="digest-email-btn">На почту</button>
+        <button type="button" class="btn btn-secondary" id="digest-tg-btn">В Telegram</button>
+      </div>
+      <p class="digest-status" id="digest-status" aria-live="polite"></p>
+      <p class="digest-foot">Уже смотрите тренды? <a href="/buzz">Открыть «В тренде»</a> · <a href="/?open_login=1&from=digest">Войти в кабинет</a></p>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var API = (window.location && window.location.origin) || 'https://movie-planner.ru';
+    var statusEl = document.getElementById('digest-status');
+    var freqEl = document.getElementById('digest-freq');
+    var emailEl = document.getElementById('digest-email');
+    var emailBtn = document.getElementById('digest-email-btn');
+    var tgBtn = document.getElementById('digest-tg-btn');
+
+    try {
+      var params = new URLSearchParams(location.search || '');
+      var freq = params.get('freq') || '';
+      if (freq && freqEl.querySelector('option[value="' + freq + '"]')) {
+        freqEl.value = freq;
+      }
+      if (params.get('digest') === 'confirmed') setStatus('Подписка подтверждена.');
+      if (params.get('digest') === 'error') setStatus('Ссылка подтверждения недействительна.', true);
+    } catch (_) {}
+
+    function setStatus(msg, isErr) {
+      if (!statusEl) return;
+      statusEl.textContent = msg || '';
+      statusEl.classList.toggle('is-err', !!isErr);
+    }
+
+    if (emailBtn) {
+      emailBtn.addEventListener('click', function () {
+        var email = String((emailEl && emailEl.value) || '').trim();
+        var frequency = (freqEl && freqEl.value) || 'week';
+        if (!email || email.indexOf('@') < 0) {
+          setStatus('Укажите email', true);
+          return;
+        }
+        setStatus('Отправляем письмо…');
+        emailBtn.disabled = true;
+        fetch(API + '/api/public/buzz/digest/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channel: 'email',
+            email: email,
+            frequency: frequency,
+            days_window: frequency === '3d' ? 3 : 7
+          })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            emailBtn.disabled = false;
+            if (!res.ok || !(res.d && res.d.success)) {
+              setStatus((res.d && res.d.error) === 'bad_email' ? 'Некорректный email' : 'Не удалось подписаться', true);
+              return;
+            }
+            setStatus(res.d.confirm_sent
+              ? 'Проверьте почту и подтвердите подписку.'
+              : 'Заявка принята. Подтвердите письмо, когда придёт.');
+          })
+          .catch(function () {
+            emailBtn.disabled = false;
+            setStatus('Сеть недоступна', true);
+          });
+      });
+    }
+
+    if (tgBtn) {
+      tgBtn.addEventListener('click', function () {
+        setStatus('Войдите через Telegram, чтобы подписаться.');
+        window.location.href = '/?open_login=1&from=digest_tg&freq=' + encodeURIComponent((freqEl && freqEl.value) || 'week');
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
