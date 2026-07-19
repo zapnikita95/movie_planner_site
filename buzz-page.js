@@ -21,6 +21,7 @@
     kind: '',
     sort: 'mentions',
     view: 'films',
+    videoOnly: false,
     items: [],
     loaded: false,
     expanded: {},
@@ -132,7 +133,8 @@
   }
 
   function cacheKey() {
-    return 'mp_buzz_v2:' + state.view + ':' + state.days + ':' + state.sort + ':' + (state.kind || '');
+    return 'mp_buzz_v3:' + state.view + ':' + state.days + ':' + state.sort + ':' +
+      (state.kind || '') + ':' + (state.videoOnly ? 'yt' : '');
   }
 
   function readClientCache() {
@@ -183,6 +185,8 @@
 
     chans.forEach(function (c) {
       if (state.kind && String(c.channel_kind || '') !== state.kind) return;
+      var plat0 = c.platform || ((String(c.url || c.post_url || '').indexOf('youtube') >= 0) ? 'youtube' : 'telegram');
+      if (state.videoOnly && plat0 !== 'youtube') return;
       var key = String(c.username || c.label || '').toLowerCase();
       if (!key || seen[key]) return;
       seen[key] = 1;
@@ -235,6 +239,12 @@
     var chans = Array.isArray(item.channels) ? item.channels.slice() : [];
     if (state.kind) {
       chans = chans.filter(function (c) { return String(c.channel_kind || '') === state.kind; });
+    }
+    if (state.videoOnly) {
+      chans = chans.filter(function (c) {
+        var p = c.platform || ((String(c.url || c.post_url || '').indexOf('youtube') >= 0) ? 'youtube' : 'telegram');
+        return p === 'youtube';
+      });
     }
     chans.sort(function (a, b) {
       var ay = (a.platform === 'youtube') ? 0 : 1;
@@ -330,6 +340,11 @@
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    var ytBtn = document.getElementById('buzz-yt-only');
+    if (ytBtn) {
+      ytBtn.classList.toggle('active', !!state.videoOnly);
+      ytBtn.setAttribute('aria-pressed', state.videoOnly ? 'true' : 'false');
+    }
     var sortWrap = document.getElementById('buzz-sort-tabs');
     if (sortWrap) sortWrap.classList.toggle('hidden', state.view !== 'films');
   }
@@ -457,6 +472,7 @@
       q += '&sort=' + encodeURIComponent(state.sort);
     }
     if (state.kind) q += '&kind=' + encodeURIComponent(state.kind);
+    if (state.videoOnly) q += '&platform=youtube';
     return q;
   }
 
@@ -638,6 +654,14 @@
     var viewTabs = document.getElementById('buzz-view-tabs');
     if (viewTabs) {
       viewTabs.addEventListener('click', function (e) {
+        var ytToggle = e.target.closest('#buzz-yt-only');
+        if (ytToggle && viewTabs.contains(ytToggle)) {
+          state.videoOnly = !state.videoOnly;
+          state.loaded = false;
+          syncTabs();
+          load();
+          return;
+        }
         var btn = e.target.closest('[data-buzz-view]');
         if (!btn || !viewTabs.contains(btn)) return;
         var view = btn.getAttribute('data-buzz-view') || 'films';
