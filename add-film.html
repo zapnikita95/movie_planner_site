@@ -268,6 +268,31 @@
       color: rgba(246,241,232,.45);
     }
     .af-foot a { color: #ff8ab8; }
+    .af-benefits {
+      margin: 0 0 22px;
+      padding: 18px 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,179,71,.22);
+      background:
+        linear-gradient(145deg, rgba(255,179,71,.12), rgba(255,77,141,.08)),
+        rgba(0,0,0,.24);
+    }
+    .af-benefits h2 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: 15px;
+      color: #fff;
+    }
+    .af-benefits ul {
+      margin: 0;
+      padding-left: 1.15em;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .af-benefits li { margin-bottom: 8px; }
+    .af-benefits li:last-child { margin-bottom: 0; }
+    .af-benefits strong { color: #fff; font-weight: 700; }
     @media (max-width: 640px) {
       .af-grid { grid-template-columns: 1fr; }
       .af-card { padding: 18px 14px; border-radius: 22px; }
@@ -285,8 +310,17 @@
 
     <div class="af-hero">
       <h1>Добавить фильм</h1>
-      <p>Отправьте независимый фильм или короткометражку на модерацию. После одобрения у фильма появится страница на Movie Planner — без Кинопоиска и TMDB.</p>
+      <p>Отправьте независимый фильм, мультфильм или короткометражку на модерацию. После одобрения у фильма появится страница на Movie Planner — без Кинопоиска и TMDB.</p>
     </div>
+
+    <section class="af-benefits" aria-label="Преимущества">
+      <h2>Зачем размещать фильм здесь</h2>
+      <ul>
+        <li><strong>SEO настраивается автоматически</strong> — у страницы сразу появляются корректный title, описание и превью для поиска и соцсетей.</li>
+        <li><strong>Упоминание в интернете</strong> — фильм появляется на Movie Planner, где тысячи людей ищут и планируют кино.</li>
+        <li><strong>Своя аудитория быстрее</strong> — страница помогает зрителям вас найти: по названию, жанру и ссылке на просмотр.</li>
+      </ul>
+    </section>
 
     <div class="af-card">
       <!-- Step 1: form -->
@@ -316,6 +350,7 @@
               <select id="film_type" name="film_type">
                 <option value="film">Полнометражный фильм</option>
                 <option value="short">Короткометражка</option>
+                <option value="animation">Мультфильм</option>
                 <option value="series">Сериал</option>
                 <option value="other">Другое</option>
               </select>
@@ -325,8 +360,13 @@
               <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
             </div>
             <div class="af-field full">
-              <label for="actors">Актёры</label>
-              <input id="actors" name="actors" required maxlength="1000" placeholder="Через запятую">
+              <label for="genres">Жанры</label>
+              <input id="genres" name="genres" required maxlength="300" placeholder="Например: драма, комедия, анимация">
+            </div>
+            <div class="af-field full">
+              <label for="actors">Актёры <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+              <input id="actors" name="actors" maxlength="1000" placeholder="Через запятую — для мультфильма можно не указывать">
+              <span class="hint">Для мультиков и анимации актёров указывать не обязательно.</span>
             </div>
             <div class="af-field full">
               <label for="description">Описание</label>
@@ -508,7 +548,7 @@
         }
         var fd = new FormData();
         fd.append('poster', posterFile, posterFile.name || 'poster.jpg');
-        ['title', 'year', 'film_type', 'director', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
+        ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
           var el = document.getElementById(name);
           fd.append(name, el ? String(el.value || '').trim() : '');
         });
