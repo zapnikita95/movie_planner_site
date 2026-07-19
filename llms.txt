@@ -5,6 +5,8 @@
 ## Основные URL
 
 - [Главная и веб-кабинет](https://movie-planner.ru/)
+- [Добавить фильм — заявка авторов](https://movie-planner.ru/add-film)
+- [Как разместить свой фильм онлайн (статья)](https://movie-planner.ru/articles/kak-razmestit-svoy-film-online.html)
 - [База / watchlist — трекер фильмов](https://movie-planner.ru/watchlist)
 - [Приложение-трекер для фильмов (статья)](https://movie-planner.ru/articles/prilozhenie-treker-dlya-filmov.html)
 - [Составить список кино (статья)](https://movie-planner.ru/articles/prilozhenie-sostavit-spisok-kino.html)
