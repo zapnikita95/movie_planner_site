@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260719buzz3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260719buzz3">
+    <link rel="preload" href="/style-v2.css?v=20260719buzz4" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260719buzz4">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -1736,34 +1736,36 @@
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
                     <p class="buzz-seo-lead">Что обсуждают киноканалы в Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
-                    <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
-                        <button type="button" class="plans-filter-tab active" data-buzz-view="films" role="tab" aria-selected="true">По фильмам</button>
-                        <button type="button" class="plans-filter-tab" data-buzz-view="feed" role="tab" aria-selected="false">Лента</button>
-                        <button type="button" class="plans-filter-tab buzz-yt-only-toggle" id="buzz-yt-only" aria-pressed="false" title="Только видео" aria-label="Только видео">
-                            <span class="buzz-platform-icon buzz-platform-icon--yt" aria-hidden="true">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/></svg>
-                            </span>
-                        </button>
-                    </div>
-                    <div class="plans-filter-tabs" id="buzz-sort-tabs" role="tablist" aria-label="Порядок">
-                        <button type="button" class="plans-filter-tab active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
-                        <button type="button" class="plans-filter-tab" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
-                    </div>
-                    <div class="buzz-toolbar">
-                        <select id="buzz-days" class="buzz-days-select" aria-label="Период">
-                            <option value="3">3 дня</option>
-                            <option value="7" selected>7 дней</option>
-                            <option value="14">14 дней</option>
-                        </select>
-                        <select id="buzz-kind" class="buzz-kind-select" aria-label="Тип канала">
-                            <option value="">Все источники</option>
-                            <option value="media">Медиа</option>
-                            <option value="blogger">Блогеры</option>
-                            <option value="cinema">Кинотеатры</option>
-                            <option value="studio">Студии</option>
-                            <option value="culture">Культура</option>
-                            <option value="festival">Фестивали</option>
-                        </select>
+                    <div class="buzz-filters" id="buzz-filters">
+                        <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
+                            <button type="button" class="plans-filter-tab active" data-buzz-view="films" role="tab" aria-selected="true">По фильмам</button>
+                            <button type="button" class="plans-filter-tab" data-buzz-view="feed" role="tab" aria-selected="false">Лента</button>
+                            <button type="button" class="plans-filter-tab buzz-yt-only-toggle" id="buzz-yt-only" aria-pressed="false" title="Только видео" aria-label="Только видео">
+                                <span class="buzz-platform-icon buzz-platform-icon--yt" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/></svg>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="plans-filter-tabs" id="buzz-sort-tabs" role="tablist" aria-label="Порядок">
+                            <button type="button" class="plans-filter-tab active" data-buzz-sort="mentions" role="tab" aria-selected="true">По упоминаниям</button>
+                            <button type="button" class="plans-filter-tab" data-buzz-sort="newest" role="tab" aria-selected="false">По новизне</button>
+                        </div>
+                        <div class="buzz-toolbar">
+                            <select id="buzz-days" class="buzz-days-select" aria-label="Период">
+                                <option value="3">3 дня</option>
+                                <option value="7" selected>7 дней</option>
+                                <option value="14">14 дней</option>
+                            </select>
+                            <select id="buzz-kind" class="buzz-kind-select" aria-label="Тип канала">
+                                <option value="">Все источники</option>
+                                <option value="media">Медиа</option>
+                                <option value="blogger">Блогеры</option>
+                                <option value="cinema">Кинотеатры</option>
+                                <option value="studio">Студии</option>
+                                <option value="culture">Культура</option>
+                                <option value="festival">Фестивали</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="buzz-loading" class="buzz-loading hidden" aria-live="polite" aria-busy="true"></div>
                     <div id="buzz-error" class="buzz-error hidden"></div>
@@ -2647,7 +2649,7 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260719buzz3',
+          'mp-icons.js?v=20260719buzz4',
           'mp-public-promo.js?v=20260717flow2'
         ];
         var cabinet = [
@@ -2665,28 +2667,28 @@
         if (isSearch) {
           list = [
             'mp-api-config.js?v=20260627apiams1',
-            'mp-icons.js?v=20260719buzz3',
+            'mp-icons.js?v=20260719buzz4',
             'page-loading.js?v=20260529mobileparity1',
             'avatar-crop.js?v=20260717flow2',
-            'cabinet-app.js?v=20260719buzz3'
+            'cabinet-app.js?v=20260719buzz4'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzz3');
+          list.push('film-page.js?v=20260719buzz4');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzz3');
+          list.push('film-page.js?v=20260719buzz4');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('cabinet-app.js?v=20260719buzz3');
+          list.push('cabinet-app.js?v=20260719buzz4');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260719buzz3');
-          list.push('cabinet-app.js?v=20260719buzz3');
+          list.push('buzz-page.js?v=20260719buzz4');
+          list.push('cabinet-app.js?v=20260719buzz4');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');
