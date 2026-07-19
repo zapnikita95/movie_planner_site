@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260719buzz5" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260719buzz5">
+    <link rel="preload" href="/style-v2.css?v=20260719buzz6" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260719buzz6">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -154,6 +154,8 @@
       html.mp-guest-cabinet-boot #landing{display:none!important}
       html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
       html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important}
+      html:not(.mp-session) #landing-root-nav .mp-nav-tournament,html:not(.mp-session) #landing-root-nav a[href="/tournament"]{display:none!important}
+      #section-buzz.buzz-is-loading #buzz-seo-footer,#section-buzz.buzz-is-loading #buzz-digest,#buzz-seo-footer[hidden],#buzz-digest[hidden]{display:none!important}
       html.mp-auth-boot body.in-cabinet #header-search{display:block!important}
       html.mp-guest-cabinet-boot body.in-cabinet #header-search{display:block!important}
       html.mp-session #site-header [data-action="login"]{display:none!important}
@@ -272,6 +274,11 @@
             document.body.classList.add('landing-root-page', 'film-standalone-page');
             var nav = document.getElementById('landing-root-nav');
             if (nav) nav.classList.remove('hidden');
+            /* Гость на /: Турнир не показываем */
+            document.querySelectorAll('#landing-root-nav .mp-nav-tournament, #landing-root-nav .cabinet-nav-btn[href="/tournament"]').forEach(function (el) {
+              el.classList.add('hidden');
+              el.setAttribute('hidden', '');
+            });
             var hs = document.getElementById('header-search');
             if (hs) {
               hs.classList.remove('hidden');
@@ -911,7 +918,7 @@
       <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
       <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
       <a class="cabinet-nav-btn" href="/buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="trend"></span><span class="cabinet-nav-btn-text">В тренде</span></a>
-      <a class="cabinet-nav-btn" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
+      <a class="cabinet-nav-btn mp-nav-tournament" href="/tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></a>
     </nav>
 
     <!-- Login Modal -->
@@ -1428,7 +1435,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="trend"></span><span class="cabinet-nav-btn-text">В тренде</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
+                <button type="button" class="cabinet-nav-btn mp-nav-tournament" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
                 <span class="inbox-fab-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
@@ -1733,7 +1740,7 @@
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
-                <section id="section-buzz" class="cabinet-section hidden cabinet-buzz">
+                <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading" data-buzz-boot="1">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
                     <p class="buzz-seo-lead">Что обсуждают киноканалы в Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
                     <div class="buzz-filters" id="buzz-filters">
@@ -1767,11 +1774,25 @@
                             </select>
                         </div>
                     </div>
-                    <div id="buzz-loading" class="buzz-loading hidden" aria-live="polite" aria-busy="true"></div>
+                    <div id="buzz-loading" class="buzz-loading" aria-live="polite" aria-busy="true">
+                        <div class="buzz-loading-label">Загружаем тренды…</div>
+                    </div>
                     <div id="buzz-error" class="buzz-error hidden"></div>
                     <div id="buzz-empty" class="buzz-empty hidden"></div>
-                    <div id="buzz-grid" class="buzz-grid"></div>
-                    <div class="buzz-seo-footer" id="buzz-seo-footer">
+                    <!-- Скелетон в HTML: виден до buzz-page.js (иначе 2с SEO без анимации) -->
+                    <div id="buzz-grid" class="buzz-grid buzz-grid--skel" aria-busy="true">
+                        <div class="buzz-skel-grid">
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                            <div class="buzz-skel-tile" aria-hidden="true"><div class="buzz-skel-poster"></div><div class="buzz-skel-body"><div class="buzz-skel-line"></div><div class="buzz-skel-line buzz-skel-line--short"></div><div class="buzz-skel-line buzz-skel-line--meta"></div></div></div>
+                        </div>
+                    </div>
+                    <div class="buzz-seo-footer hidden" id="buzz-seo-footer" hidden>
                         <h2>Топ обсуждаемых фильмов недели в Telegram и на YouTube</h2>
                         <p>Раздел «В тренде» собирает упоминания новинок кино 2026 и хайповых фильмов из киноканалов: премьеры, рецензии блогеров, анонсы студий и кинотеатров. Смотрите сетку по числу упоминаний или ленту постов — и сразу открывайте карточку фильма в Movie Planner.</p>
                         <ul>
@@ -1781,7 +1802,7 @@
                         </ul>
                         <p>Подробнее о разделе — в <a href="/articles/v-trende-kino-telegram.html">статье про «В тренде»</a>.</p>
                     </div>
-                    <div class="buzz-digest" id="buzz-digest">
+                    <div class="buzz-digest hidden" id="buzz-digest" hidden>
                         <div class="buzz-digest-title">Подборка «В тренде»</div>
                         <p class="buzz-digest-sub">Короткий дайджест самых обсуждаемых фильмов — на почту или в Telegram</p>
                         <div class="buzz-digest-row">
@@ -2640,55 +2661,72 @@
         var isFilm = /^\/f\/\d+$/.test(path);
         var isStaff = /^\/s\/\d+$/.test(path);
         var isSearch = path === '/search';
+        var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
+        var V = '20260719buzz6';
         var core = [
-          'mp-api-config.js?v=20260627apiams1',
+          'mp-api-config.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',
-          'film-friends-social.js?v=20260603filmfix1',
-          'public-film-login.js?v=20260718kpalt1',
-          'page-loading.js?v=20260529mobileparity1',
-          'plan-modal.js?v=202607052140fix4',
-          'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260719buzz5',
-          'mp-public-promo.js?v=20260717flow2'
+          'film-friends-social.js?v=' + V,
+          'public-film-login.js?v=' + V,
+          'page-loading.js?v=' + V,
+          'plan-modal.js?v=' + V,
+          'film-user-tags.js?v=' + V,
+          'mp-icons.js?v=' + V,
+          'mp-public-promo.js?v=' + V
         ];
         var cabinet = [
           'user-profile-page.js?v=20260629profilefix6',
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
-          'onboarding-flow.js?v=20260717flow2',
+          'onboarding-flow.js?v=' + V,
           'collections-page.js?v=20260628tournfix2',
-          'home-rails.js?v=20260705premcarddiv1',
+          'home-rails.js?v=' + V,
           'landing-articles.js?v=20260627articles1',
           'landing-features-carousel.js?v=20260703landing1'
         ];
         var list;
         if (isSearch) {
           list = [
-            'mp-api-config.js?v=20260627apiams1',
-            'mp-icons.js?v=20260719buzz5',
-            'page-loading.js?v=20260529mobileparity1',
-            'avatar-crop.js?v=20260717flow2',
-            'cabinet-app.js?v=20260719buzz5'
+            'mp-api-config.js?v=' + V,
+            'mp-icons.js?v=' + V,
+            'page-loading.js?v=' + V,
+            'avatar-crop.js?v=' + V,
+            'cabinet-app.js?v=' + V
+          ];
+        } else if (isBuzz) {
+          /* /buzz: сначала API+buzz-page — скелетон уже в HTML, данные не ждут 2с лендинг-скриптов */
+          list = [
+            'mp-api-config.js?v=' + V,
+            'mp-icons.js?v=' + V,
+            'buzz-page.js?v=' + V,
+            'telegram-open.js?v=20260602tgsafari1',
+            'public-film-login.js?v=' + V,
+            'page-loading.js?v=' + V,
+            'plan-modal.js?v=' + V,
+            'film-user-tags.js?v=' + V,
+            'mp-public-promo.js?v=' + V,
+            'avatar-crop.js?v=' + V,
+            'cabinet-app.js?v=' + V
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
-          list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzz5');
-          list.push('cabinet-film-route.js?v=20260718cabinetai1');
+          list.push('onboarding-flow.js?v=' + V);
+          list.push('film-page.js?v=' + V);
+          list.push('cabinet-film-route.js?v=' + V);
         } else if (isStaff) {
-          list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzz5');
-          list.push('staff-page.js?v=20260717flow2');
-          list.push('avatar-crop.js?v=20260717flow2');
-          list.push('cabinet-app.js?v=20260719buzz5');
-        } else {
-          list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260719buzz5');
-          list.push('cabinet-app.js?v=20260719buzz5');
+          list.push('onboarding-flow.js?v=' + V);
+          list.push('film-page.js?v=' + V);
+          list.push('staff-page.js?v=' + V);
+          list.push('avatar-crop.js?v=' + V);
+          list.push('cabinet-app.js?v=' + V);
+        } else if (!isBuzz && !isSearch) {
+          list.push('avatar-crop.js?v=' + V);
+          list.push('buzz-page.js?v=' + V);
+          list.push('cabinet-app.js?v=' + V);
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');

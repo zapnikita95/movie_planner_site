@@ -6070,8 +6070,15 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   color: rgba(244, 246, 255, 0.78);
   letter-spacing: 0.01em;
 }
+/* SEO/digest только после карточек — иначе на /buzz 2с виден SEO-текст вместо скелетона */
 #section-buzz.buzz-is-loading #buzz-seo-footer,
-#section-buzz.buzz-is-loading #buzz-digest {
+#section-buzz.buzz-is-loading #buzz-digest,
+#section-buzz:not(.buzz-has-content) #buzz-seo-footer,
+#section-buzz:not(.buzz-has-content) #buzz-digest,
+#buzz-seo-footer.hidden,
+#buzz-digest.hidden,
+#buzz-seo-footer[hidden],
+#buzz-digest[hidden] {
   display: none !important;
 }
 .buzz-grid--skel .buzz-skel-grid {
@@ -16499,8 +16506,16 @@ body.in-cabinet .inbox-fab { display: none !important; }
   display: flex;
   flex-direction: column;
 }
+/* Гость / не залогинен: Турнир скрыт везде в шапке (/, /buzz, desktop+mobile) */
+html:not(.mp-session) #landing-root-nav .cabinet-nav-btn[href="/tournament"],
+html:not(.mp-session) #landing-root-nav .mp-nav-tournament,
+html:not(.mp-session) .cabinet-nav-btn[data-section="tournament"],
+html:not(.mp-session) .cabinet-nav-btn.mp-nav-tournament,
+body.landing-root-page #landing-root-nav .cabinet-nav-btn[href="/tournament"],
+body.landing-root-page #landing-root-nav .mp-nav-tournament,
 body.guest-cabinet-preview .cabinet-nav-btn[data-section="tournament"],
-body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"] {
+body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"],
+body.guest-cabinet-preview .mp-nav-tournament {
   display: none !important;
 }
 /* Гость на /buzz|/premieres|…: одно меню — #landing-root-nav, не дублировать .cabinet-nav */

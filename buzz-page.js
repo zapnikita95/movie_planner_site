@@ -95,7 +95,9 @@
   function posterUrl(item) {
     var p = String((item && (item.poster || item.poster_url)) || '').trim();
     if (/^https?:\/\//i.test(p) || (p && p.charAt(0) === '/')) return p;
-    return '';
+    var kid = item && item.kp_id;
+    if (kid) return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + String(kid).replace(/\D/g, '') + '.jpg';
+    return PLACEHOLDER;
   }
 
   function channelLabel(c) {
@@ -264,8 +266,7 @@
     });
     var cc = chans.length || item.channel_count || 0;
     var href = '/f/' + encodeURIComponent(kid);
-    var poster = posterUrl(item);
-    if (!poster) return '';
+    var poster = posterUrl(item) || PLACEHOLDER;
     var hasVideo = !!item.has_video || chans.some(function (c) { return c.platform === 'youtube'; });
     var itemForChips = Object.assign({}, item, { channels: chans });
 
@@ -295,8 +296,7 @@
   function renderFeedItem(item) {
     var kid = item.kp_id;
     var filmTitle = item.film_title || item.title || ('film ' + kid);
-    var poster = posterUrl(item);
-    if (!poster) return '';
+    var poster = posterUrl(item) || PLACEHOLDER;
     var href = '/f/' + encodeURIComponent(kid);
     var plat = item.platform || 'telegram';
     var chLabel = item.channel_label || item.channel_title || '@канал';
@@ -376,20 +376,37 @@
     return '<div class="buzz-skel-grid">' + tiles + '</div>';
   }
 
+  function setSeoVisible(on) {
+    var seo = document.getElementById('buzz-seo-footer');
+    var digest = document.getElementById('buzz-digest');
+    [seo, digest].forEach(function (el) {
+      if (!el) return;
+      if (on) {
+        el.classList.remove('hidden');
+        el.removeAttribute('hidden');
+      } else {
+        el.classList.add('hidden');
+        el.setAttribute('hidden', '');
+      }
+    });
+  }
+
   function showSkeleton() {
     var loading = document.getElementById('buzz-loading');
     var empty = document.getElementById('buzz-empty');
     var grid = document.getElementById('buzz-grid');
-    var seo = document.getElementById('buzz-seo-footer');
     var sec = document.getElementById('section-buzz');
     var skel = skeletonHtml(state.view === 'feed' ? 6 : 8);
     if (empty) {
       empty.classList.add('hidden');
       empty.textContent = '';
     }
-    if (seo) seo.classList.add('hidden');
-    if (sec) sec.classList.add('buzz-is-loading');
-    /* Skeleton lives in the grid — SEO footer used to sit on a blank page. */
+    /* SEO/digest никогда не показываем во время загрузки */
+    setSeoVisible(false);
+    if (sec) {
+      sec.classList.add('buzz-is-loading');
+      sec.classList.remove('buzz-has-content');
+    }
     if (grid) {
       grid.className = (state.view === 'feed' ? 'buzz-feed' : 'buzz-grid') + ' buzz-grid--skel';
       grid.innerHTML = skel;
@@ -405,10 +422,8 @@
   function hideSkeleton() {
     var loading = document.getElementById('buzz-loading');
     var grid = document.getElementById('buzz-grid');
-    var seo = document.getElementById('buzz-seo-footer');
     var sec = document.getElementById('section-buzz');
     if (sec) sec.classList.remove('buzz-is-loading');
-    if (seo) seo.classList.remove('hidden');
     if (grid) grid.removeAttribute('aria-busy');
     if (!loading) return;
     loading.classList.add('hidden');
@@ -421,14 +436,20 @@
     var grid = document.getElementById('buzz-grid');
     var empty = document.getElementById('buzz-empty');
     var err = document.getElementById('buzz-error');
+    var sec = document.getElementById('section-buzz');
     if (!grid) return;
     hideSkeleton();
     if (err) err.classList.add('hidden');
     syncTabs();
     var list = state.items || [];
-    if (!list.length) {
+    var html = list.map(function (it) {
+      return state.view === 'feed' ? renderFeedItem(it) : renderFilmItem(it);
+    }).filter(Boolean).join('');
+    if (!list.length || !html) {
       grid.innerHTML = '';
       grid.className = state.view === 'feed' ? 'buzz-feed' : 'buzz-grid';
+      setSeoVisible(false);
+      if (sec) sec.classList.remove('buzz-has-content');
       if (empty) {
         empty.classList.remove('hidden');
         empty.textContent = state.loaded
@@ -439,9 +460,10 @@
     }
     if (empty) empty.classList.add('hidden');
     grid.className = (state.view === 'feed' ? 'buzz-feed' : 'buzz-grid') + (animate ? ' buzz-grid--enter' : '');
-    grid.innerHTML = list.map(function (it) {
-      return state.view === 'feed' ? renderFeedItem(it) : renderFilmItem(it);
-    }).filter(Boolean).join('');
+    grid.innerHTML = html;
+    if (sec) sec.classList.add('buzz-has-content');
+    /* SEO только после реальных карточек — не вместо них */
+    setSeoVisible(true);
 
     try {
       if (window.MPIcons && typeof window.MPIcons.hydrate === 'function') {
@@ -561,6 +583,7 @@
         state.loaded = true;
         state.items = [];
         hideSkeleton();
+        setSeoVisible(false);
         if (err) {
           err.classList.remove('hidden');
           err.textContent = 'Не удалось загрузить «В тренде».';
