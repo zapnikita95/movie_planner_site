@@ -1,5 +1,10 @@
 /* Yandex.Metrika — сайт movie-planner.ru (счётчик 110038199) */
 (function () {
+  try {
+    // e2e / headless не должны портить отказы и «цели формы»
+    if (/[?&]e2e=/.test(String(location.search || ""))) return;
+    if (/HeadlessChrome/i.test(String(navigator.userAgent || ""))) return;
+  } catch (_) {}
   if (window.__mpMetrikaSite) return;
   window.__mpMetrikaSite = true;
   (function (m, e, t, r, i, k, a) {

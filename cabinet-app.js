@@ -461,15 +461,67 @@
 
   const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true };
 
+  const LOGIN_ERROR_MESSAGES = {
+    yandex: 'Не удалось войти через Яндекс. Попробуйте ещё раз или войдите по email.',
+    email: 'Яндекс не вернул email. Разрешите доступ к почте или войдите по email / через Telegram.',
+    csrf: 'Сессия входа устарела. Нажмите «Войти с Яндекс» ещё раз.',
+    code: 'Не удалось завершить вход. Попробуйте ещё раз.',
+    no_oauth: 'Вход через Яндекс временно недоступен. Войдите по email или через Telegram.',
+    account: 'Не удалось привязать аккаунт. Попробуйте другой способ входа.',
+    session: 'Не удалось создать сессию. Обновите страницу и попробуйте снова.',
+    disabled: 'Этот способ входа отключён.',
+  };
+
   function guestMayOpenCabinetSection(sectionId) {
     if (!isGuestCabinetPreview()) return true;
     if (sectionId === 'tournament') return false;
     return !!GUEST_CABINET_SECTIONS[sectionId];
   }
 
+  /** Раздел, который гостю нельзя открыть без входа (База / сериалы / турнир…). */
+  function sectionNeedsAuthForGuest(sectionId) {
+    if (!sectionId) return false;
+    if (sectionId === 'tournament') return true;
+    return !GUEST_CABINET_SECTIONS[sectionId];
+  }
+
+  function rememberPostLoginPath(pathname) {
+    try {
+      const path = (pathname || '').replace(/\/$/, '') || '/';
+      if (
+        /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api)$/.test(path)
+        || path.indexOf('/settings/') === 0
+      ) {
+        sessionStorage.setItem('mp_post_login_path', path);
+      }
+    } catch (_) {}
+  }
+
+  function consumePostLoginPath() {
+    try {
+      const dest = sessionStorage.getItem('mp_post_login_path');
+      if (!dest) return false;
+      sessionStorage.removeItem('mp_post_login_path');
+      const pathOnly = (dest.split('?')[0] || '').replace(/\/$/, '') || '/';
+      if (!/^\/[A-Za-z0-9_\/-]+$/.test(pathOnly) || pathOnly === '/') return false;
+      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (pathOnly !== cur) {
+        window.location.replace(pathOnly);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function requireAuthForAction(hint) {
     if (getToken()) return true;
+    rememberPostLoginPath(window.location.pathname);
     showLoginModalOverlay();
+    if (hint) {
+      try { showToast(String(hint), { duration: 3600 }); } catch (_) {}
+    }
     try {
       const modal = document.getElementById('login-modal');
       if (modal) modal.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -536,10 +588,12 @@
   function redirectAuthedFromMarketingRoot() {
     if (!getToken() || !isMarketingRootPath(window.location.pathname)) return false;
     if (marketingRootHasAuthedDeepLink()) return false;
+    if (consumePostLoginPath()) return true;
     try {
       const params = new URLSearchParams(window.location.search);
       params.delete('open_login');
       params.delete('register');
+      params.delete('error');
       const rest = params.toString();
       window.location.replace('/home' + (rest ? '?' + rest : ''));
     } catch (_) {
@@ -648,12 +702,30 @@
     try {
       const params = new URLSearchParams(window.location.search);
       const openLogin = (params.get('open_login') || '').toLowerCase();
-      if (!openLogin || openLogin === '0' || getToken()) return;
-      if (openLogin === '1' || openLogin === 'register') {
-        showLoginModalOverlay();
-        if (openLogin === 'register') {
-          params.delete('open_login');
-          params.delete('register');
+      const errCode = (params.get('error') || '').trim().toLowerCase();
+      let strippedError = false;
+      if (errCode) {
+        showLoginModalOverlay(openLogin === 'register' ? 'register' : 'login');
+        const msg = LOGIN_ERROR_MESSAGES[errCode] || ('Не удалось войти (' + errCode + '). Попробуйте ещё раз.');
+        try { showToast(msg, { type: 'error', duration: 6200 }); } catch (_) {}
+        params.delete('error');
+        strippedError = true;
+      }
+      if ((!openLogin || openLogin === '0' || getToken()) && !strippedError) return;
+      if (getToken()) {
+        if (strippedError) {
+          const restTok = params.toString();
+          history.replaceState({}, '', window.location.pathname + (restTok ? '?' + restTok : '') + window.location.hash);
+        }
+        return;
+      }
+      if (openLogin === '1' || openLogin === 'register' || strippedError) {
+        if (!errCode) showLoginModalOverlay(openLogin === 'register' ? 'register' : undefined);
+        if (openLogin === 'register' || strippedError) {
+          if (openLogin === 'register') {
+            params.delete('open_login');
+            params.delete('register');
+          }
           const rest = params.toString();
           history.replaceState({}, '', window.location.pathname + (rest ? '?' + rest : '') + window.location.hash);
         }
@@ -3501,19 +3573,20 @@
   function tryReturnAfterAuth() {
     try {
       const dest = sessionStorage.getItem('mp_oauth_return');
-      if (!dest) return false;
-      const pathOnly = (dest.split('?')[0] || '').replace(/\/$/, '') || '/';
-      if (!/^\/(f\/\d+|s\/\d+|u\/-?\d+)$/.test(pathOnly)) return false;
-      sessionStorage.removeItem('mp_oauth_return');
-      const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (pathOnly !== cur) {
-        window.location.replace(dest);
-        return true;
+      if (dest) {
+        const pathOnly = (dest.split('?')[0] || '').replace(/\/$/, '') || '/';
+        if (/^\/(f\/\d+|s\/\d+|u\/-?\d+)$/.test(pathOnly)) {
+          sessionStorage.removeItem('mp_oauth_return');
+          const cur = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (pathOnly !== cur) {
+            window.location.replace(dest);
+            return true;
+          }
+          return false;
+        }
       }
-      return false;
-    } catch (_) {
-      return false;
-    }
+    } catch (_) {}
+    return consumePostLoginPath();
   }
 
   function tryReturnToPublicFilmAfterAuth() {
@@ -3563,12 +3636,10 @@
       bootGuestCabinetPreview(sec);
       return true;
     }
-    if (sec && guestMayOpenCabinetSection(sec)) {
-      showScreen('cabinet-readonly');
-      renderHeader(null);
-      showSection(sec, { skipPush: true, replace: true });
-      syncGuestCabinetBottomNav(sec);
-      afterCabinetSectionShown(sec);
+    if (sec && sectionNeedsAuthForGuest(sec)) {
+      rememberPostLoginPath(path);
+      try { history.replaceState(null, '', '/home'); } catch (_) {}
+      bootGuestCabinetPreview('home');
       return true;
     }
     return false;
@@ -22109,11 +22180,11 @@
       try { restoreDocumentTitle(); } catch (e) {}
       const sec = sectionFromPath(window.location.pathname);
       if (sec) {
-        if (!getToken() && !guestMayOpenCabinetSection(sec)) {
+        if (!getToken() && sectionNeedsAuthForGuest(sec)) {
           requireAuthForAction('Войдите, чтобы открыть этот раздел');
           try {
-            if (isGuestCabinetPreview()) {
-              history.replaceState(null, '', '/home');
+            history.replaceState(null, '', '/home');
+            if (!bootGuestCabinetPreview('home') && isGuestCabinetPreview()) {
               showSection('home', { skipPush: true });
             }
           } catch (_) {}
@@ -22345,25 +22416,41 @@
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
-      if (guestDeep === 'home' || guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'whattowatch') {
+      if (guestDeep === 'home' || guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch') {
         if (bootGuestCabinetPreview(guestDeep)) {
           handleAuthEntryDeepLinks();
           return;
         }
       }
-      if (guestDeep && guestMayOpenCabinetSection(guestDeep)) {
-        showScreen('cabinet-readonly');
-        renderHeader(null);
-        showSection(guestDeep, { skipPush: true });
-        afterCabinetSectionShown(guestDeep);
-        if (guestDeep === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
-        if (guestDeep === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
+      if (guestDeep && sectionNeedsAuthForGuest(guestDeep)) {
+        rememberPostLoginPath(window.location.pathname);
+        try { history.replaceState(null, '', '/home'); } catch (_) {}
+        bootGuestCabinetPreview('home');
+        requireAuthForAction('Войдите, чтобы открыть этот раздел');
         handleAuthEntryDeepLinks();
         return;
       }
       showGuestLandingScreen();
     }
     }
+
+    try {
+      const rootNav = document.getElementById('landing-root-nav');
+      if (rootNav && !rootNav.dataset.mpGuestAuthBound) {
+        rootNav.dataset.mpGuestAuthBound = '1';
+        rootNav.addEventListener('click', function (ev) {
+          if (getToken()) return;
+          const a = ev.target && ev.target.closest ? ev.target.closest('a.cabinet-nav-btn') : null;
+          if (!a) return;
+          const href = (a.getAttribute('href') || '').replace(/\/$/, '') || '/';
+          const sec = sectionFromPath(href);
+          if (!sec || !sectionNeedsAuthForGuest(sec)) return;
+          ev.preventDefault();
+          rememberPostLoginPath(href);
+          requireAuthForAction('Войдите, чтобы открыть этот раздел');
+        });
+      }
+    } catch (_) {}
 
     try { renderGuestOnboardCta(); } catch (_) {}
 
