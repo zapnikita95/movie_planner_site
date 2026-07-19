@@ -369,23 +369,36 @@
     var loading = document.getElementById('buzz-loading');
     var empty = document.getElementById('buzz-empty');
     var grid = document.getElementById('buzz-grid');
+    var seo = document.getElementById('buzz-seo-footer');
+    var sec = document.getElementById('section-buzz');
+    var skel = skeletonHtml(state.view === 'feed' ? 6 : 8);
     if (empty) {
       empty.classList.add('hidden');
       empty.textContent = '';
     }
+    if (seo) seo.classList.add('hidden');
+    if (sec) sec.classList.add('buzz-is-loading');
+    /* Skeleton lives in the grid — SEO footer used to sit on a blank page. */
     if (grid) {
-      grid.innerHTML = '';
-      grid.className = 'buzz-grid';
+      grid.className = (state.view === 'feed' ? 'buzz-feed' : 'buzz-grid') + ' buzz-grid--skel';
+      grid.innerHTML = skel;
+      grid.setAttribute('aria-busy', 'true');
     }
     if (loading) {
       loading.classList.remove('hidden');
       loading.setAttribute('aria-busy', 'true');
-      loading.innerHTML = skeletonHtml(state.view === 'feed' ? 6 : 8);
+      loading.innerHTML = '<div class="buzz-loading-label">Загружаем тренды…</div>';
     }
   }
 
   function hideSkeleton() {
     var loading = document.getElementById('buzz-loading');
+    var grid = document.getElementById('buzz-grid');
+    var seo = document.getElementById('buzz-seo-footer');
+    var sec = document.getElementById('section-buzz');
+    if (sec) sec.classList.remove('buzz-is-loading');
+    if (seo) seo.classList.remove('hidden');
+    if (grid) grid.removeAttribute('aria-busy');
     if (!loading) return;
     loading.classList.add('hidden');
     loading.setAttribute('aria-busy', 'false');
@@ -492,30 +505,20 @@
     var err = document.getElementById('buzz-error');
     if (err) err.classList.add('hidden');
     var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
+    var fullLimit = state.view === 'feed' ? 50 : 40;
+    var qKey = buzzQuery(fullLimit);
 
     /* Dedup overlapping loads (cabinet + section-shown + filter clicks). */
-    if (state._inflight && state._inflightKey === buzzQuery(40) && !(opts && opts.force)) {
+    if (state._inflight && state._inflightKey === qKey && !(opts && opts.force)) {
       showSkeleton();
       return state._inflight;
     }
 
-    /* Как у премьер/rails: сразу рисуем кэш текущего фильтра, без чужих данных. */
-    var cached = readClientCache();
-    if (cached && cached.length) {
-      state.items = cached;
-      state.loaded = true;
-      paint({ noAnimate: true });
-    } else if (!silent) {
-      state.items = [];
-      state.loaded = false;
-      showSkeleton();
-    } else {
-      showSkeleton();
-    }
+    /* Always show skeleton first — never leave a blank SEO-only page. */
+    state.loaded = false;
+    if (!silent) showSkeleton();
 
-    /* One request — API caches full 40 and slices; progressive 12→40 doubled cold cost. */
-    var fullLimit = state.view === 'feed' ? 50 : 40;
-    var qKey = buzzQuery(fullLimit);
+    var cached = readClientCache();
     state._inflightKey = qKey;
     var p = fetchBuzz(fullLimit)
       .then(function (items) {
