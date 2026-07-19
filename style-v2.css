@@ -6010,10 +6010,19 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 .buzz-loading {
   display: none;
   padding: 0;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 .buzz-loading:not(.hidden) {
   display: block;
+}
+.buzz-loading:not(.hidden)::before {
+  content: "Загружаем тренды…";
+  display: block;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(244, 246, 255, 0.72);
+  letter-spacing: 0.01em;
 }
 .buzz-skel-grid {
   display: grid;
@@ -6036,7 +6045,7 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 .buzz-skel-poster {
   aspect-ratio: 2 / 3;
   border-radius: 12px 12px 0 0;
-  background: rgba(255,255,255,0.08);
+  background: linear-gradient(145deg, rgba(255,45,123,0.12), rgba(124,60,255,0.1), rgba(255,255,255,0.06));
   position: relative;
   overflow: hidden;
 }
@@ -6046,8 +6055,8 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
-  animation: buzz-shimmer 1.15s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,138,184,0.28), transparent);
+  animation: buzz-shimmer 1.05s ease-in-out infinite;
 }
 .buzz-skel-body { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .buzz-skel-line {

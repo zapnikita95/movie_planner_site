@@ -493,6 +493,12 @@
     if (err) err.classList.add('hidden');
     var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
 
+    /* Dedup overlapping loads (cabinet + section-shown + filter clicks). */
+    if (state._inflight && state._inflightKey === buzzQuery(40) && !(opts && opts.force)) {
+      showSkeleton();
+      return state._inflight;
+    }
+
     /* Как у премьер/rails: сразу рисуем кэш текущего фильтра, без чужих данных. */
     var cached = readClientCache();
     if (cached && cached.length) {
@@ -503,28 +509,22 @@
       state.items = [];
       state.loaded = false;
       showSkeleton();
+    } else {
+      showSkeleton();
     }
 
-    var firstLimit = state.view === 'feed' ? 20 : 12;
+    /* One request — API caches full 40 and slices; progressive 12→40 doubled cold cost. */
     var fullLimit = state.view === 'feed' ? 50 : 40;
-
-    return fetchBuzz(firstLimit)
+    var qKey = buzzQuery(fullLimit);
+    state._inflightKey = qKey;
+    var p = fetchBuzz(fullLimit)
       .then(function (items) {
         if (loadGen !== state._loadGen) return null;
-        state.items = items;
+        state.items = items || [];
         state.loaded = true;
-        writeClientCache(items);
+        writeClientCache(state.items);
         paint();
-        if (items.length < firstLimit || firstLimit >= fullLimit) return null;
-        /* Догружаем полный список без скелетона — сетка уже на экране */
-        return fetchBuzz(fullLimit).then(function (more) {
-          if (loadGen !== state._loadGen) return;
-          if (!more || !more.length) return;
-          state.items = more;
-          state.loaded = true;
-          writeClientCache(more);
-          paint({ noAnimate: true });
-        });
+        return state.items;
       })
       .catch(function () {
         if (loadGen !== state._loadGen) return;
@@ -541,7 +541,16 @@
           err.classList.remove('hidden');
           err.textContent = 'Не удалось загрузить «В тренде».';
         }
+      })
+      .then(function (res) {
+        if (state._inflightKey === qKey) {
+          state._inflight = null;
+          state._inflightKey = '';
+        }
+        return res;
       });
+    state._inflight = p;
+    return p;
   }
 
   function digestStatus(msg, isErr) {
