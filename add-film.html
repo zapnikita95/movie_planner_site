@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Добавить фильм — Movie Planner</title>
+  <meta name="description" content="Отправьте свой фильм или короткометражку на модерацию Movie Planner. Афиша, описание, ссылка для просмотра — после одобрения появится страница на сайте.">
+  <link rel="canonical" href="https://movie-planner.ru/add-film">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="Добавить фильм — Movie Planner">
+  <meta property="og:description" content="Разместите независимый фильм на Movie Planner: заявка, модерация и своя страница.">
+  <meta property="og:url" content="https://movie-planner.ru/add-film">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/images/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg0: #08080e;
+      --bg1: #12101a;
+      --ink: #f6f1e8;
+      --muted: rgba(246,241,232,.68);
+      --line: rgba(246,241,232,.12);
+      --field: rgba(0,0,0,.34);
+      --accent: #ff4d8d;
+      --accent2: #ffb347;
+      --ok: #6dffa8;
+      --err: #ff7b7b;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body.add-film-page {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Manrope, system-ui, sans-serif;
+      background:
+        radial-gradient(900px 480px at 0% 0%, rgba(255,77,141,.2), transparent 55%),
+        radial-gradient(800px 420px at 100% 10%, rgba(255,179,71,.14), transparent 50%),
+        linear-gradient(165deg, var(--bg1), var(--bg0) 55%, #0a0a12);
+    }
+    .af-shell {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 22px 16px 64px;
+    }
+    .af-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      text-decoration: none;
+      font-family: Unbounded, sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .af-brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .af-hero {
+      margin-bottom: 22px;
+    }
+    .af-hero h1 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: clamp(26px, 6vw, 36px);
+      line-height: 1.15;
+      background: linear-gradient(100deg, #fff 10%, #ff8ab8 55%, var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .af-hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 38em;
+    }
+    .af-card {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 22px 18px;
+      background:
+        linear-gradient(160deg, rgba(255,77,141,.1), rgba(255,255,255,.03) 40%, rgba(255,179,71,.05)),
+        rgba(10,10,16,.72);
+      box-shadow: 0 28px 70px rgba(0,0,0,.38);
+      backdrop-filter: blur(8px);
+    }
+    .af-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .af-field { margin-bottom: 14px; }
+    .af-field.full { grid-column: 1 / -1; }
+    .af-field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .af-field .hint {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: rgba(246,241,232,.45);
+      line-height: 1.4;
+    }
+    .af-field input,
+    .af-field select,
+    .af-field textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--field);
+      color: #fff;
+      padding: 12px 14px;
+      font: inherit;
+      outline: none;
+    }
+    .af-field input:focus,
+    .af-field select:focus,
+    .af-field textarea:focus {
+      border-color: rgba(255,77,141,.55);
+      box-shadow: 0 0 0 3px rgba(255,77,141,.15);
+    }
+    .af-field textarea { min-height: 110px; resize: vertical; }
+    .af-poster {
+      border: 1.5px dashed rgba(246,241,232,.22);
+      border-radius: 20px;
+      padding: 18px;
+      text-align: center;
+      background: rgba(0,0,0,.22);
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .af-poster:hover, .af-poster.is-drag {
+      border-color: rgba(255,77,141,.55);
+      background: rgba(255,77,141,.08);
+    }
+    .af-poster input { display: none; }
+    .af-poster-preview {
+      width: min(180px, 46vw);
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      border-radius: 14px;
+      margin: 0 auto 12px;
+      display: none;
+      border: 1px solid var(--line);
+    }
+    .af-poster-preview.is-on { display: block; }
+    .af-poster-title {
+      font-family: Unbounded, sans-serif;
+      font-size: 14px;
+      margin: 0 0 6px;
+    }
+    .af-poster-sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .af-check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 8px 0 4px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .af-check input {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+    .af-check a { color: #ff8ab8; }
+    .af-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .af-btn {
+      flex: 1 1 180px;
+      min-height: 50px;
+      border: 0;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .af-btn:disabled { opacity: .55; cursor: wait; }
+    .af-btn-primary {
+      background: linear-gradient(135deg, var(--accent), #7c3cff 72%);
+      color: #fff;
+    }
+    .af-btn-secondary {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border: 1px solid var(--line);
+    }
+    .af-status {
+      min-height: 1.4em;
+      margin: 14px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .af-status.is-err { color: var(--err); }
+    .af-status.is-ok { color: var(--ok); }
+    .af-rules {
+      margin-top: 22px;
+      padding: 16px 16px 4px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.22);
+    }
+    .af-rules h2 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: 15px;
+    }
+    .af-rules ul {
+      margin: 0 0 12px;
+      padding-left: 1.15em;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .af-rules li { margin-bottom: 6px; }
+    .af-step { display: none; }
+    .af-step.is-on { display: block; }
+    .af-code-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .af-code-row input {
+      flex: 1 1 auto;
+      letter-spacing: .28em;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      min-height: 56px;
+    }
+    .af-done-card {
+      text-align: center;
+      padding: 10px 4px 4px;
+    }
+    .af-done-card h2 {
+      margin: 0 0 10px;
+      font-family: Unbounded, sans-serif;
+      font-size: 22px;
+    }
+    .af-done-card p {
+      margin: 0 auto 14px;
+      max-width: 32em;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .af-foot {
+      margin-top: 18px;
+      font-size: 13px;
+      color: rgba(246,241,232,.45);
+    }
+    .af-foot a { color: #ff8ab8; }
+    @media (max-width: 640px) {
+      .af-grid { grid-template-columns: 1fr; }
+      .af-card { padding: 18px 14px; border-radius: 22px; }
+      .af-code-row { flex-direction: column; }
+      .af-btn { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body class="add-film-page">
+  <div class="af-shell">
+    <a class="af-brand" href="/">
+      <img src="/images/icon48.png" alt="">
+      Movie Planner
+    </a>
+
+    <div class="af-hero">
+      <h1>Добавить фильм</h1>
+      <p>Отправьте независимый фильм или короткометражку на модерацию. После одобрения у фильма появится страница на Movie Planner — без Кинопоиска и TMDB.</p>
+    </div>
+
+    <div class="af-card">
+      <!-- Step 1: form -->
+      <div class="af-step is-on" id="step-form">
+        <form id="af-form" novalidate>
+          <div class="af-field full">
+            <label>Афиша</label>
+            <div class="af-poster" id="poster-drop" role="button" tabindex="0">
+              <img class="af-poster-preview" id="poster-preview" alt="Превью афиши">
+              <p class="af-poster-title">Загрузить афишу</p>
+              <p class="af-poster-sub">JPEG, PNG или WebP · минимум 300×420 · до 8 МБ</p>
+              <input type="file" id="poster" accept="image/jpeg,image/png,image/webp" required>
+            </div>
+          </div>
+
+          <div class="af-grid">
+            <div class="af-field">
+              <label for="title">Название</label>
+              <input id="title" name="title" required maxlength="200" autocomplete="off" placeholder="Название фильма">
+            </div>
+            <div class="af-field">
+              <label for="year">Год</label>
+              <input id="year" name="year" type="number" required min="1888" max="2100" placeholder="2026">
+            </div>
+            <div class="af-field">
+              <label for="film_type">Тип</label>
+              <select id="film_type" name="film_type">
+                <option value="film">Полнометражный фильм</option>
+                <option value="short">Короткометражка</option>
+                <option value="series">Сериал</option>
+                <option value="other">Другое</option>
+              </select>
+            </div>
+            <div class="af-field">
+              <label for="director">Режиссёр</label>
+              <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
+            </div>
+            <div class="af-field full">
+              <label for="actors">Актёры</label>
+              <input id="actors" name="actors" required maxlength="1000" placeholder="Через запятую">
+            </div>
+            <div class="af-field full">
+              <label for="description">Описание</label>
+              <textarea id="description" name="description" required maxlength="4000" placeholder="О чём фильм — коротко и по делу"></textarea>
+            </div>
+            <div class="af-field full">
+              <label for="facts">Интересные факты <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+              <textarea id="facts" name="facts" maxlength="4000" placeholder="Съёмки, премьеры, награды…"></textarea>
+            </div>
+            <div class="af-field full">
+              <label for="author_socials">Соцсети автора <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+              <input id="author_socials" name="author_socials" maxlength="1000" placeholder="Telegram-канал, сайт, Instagram…">
+            </div>
+            <div class="af-field full">
+              <label for="watch_url">Где посмотреть фильм</label>
+              <input id="watch_url" name="watch_url" type="url" required maxlength="2000" placeholder="https://… Яндекс Диск, Google Drive или другой ресурс">
+              <span class="hint">Ссылка должна открываться и позволять воспроизвести фильм. Если файл не открывается — заявку не одобрим.</span>
+            </div>
+            <div class="af-field">
+              <label for="contact_email">Email</label>
+              <input id="contact_email" name="contact_email" type="email" required maxlength="200" autocomplete="email" placeholder="для кода и ответа по заявке">
+            </div>
+            <div class="af-field">
+              <label for="contact_phone">Телефон <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+              <input id="contact_phone" name="contact_phone" type="tel" maxlength="32" autocomplete="tel" placeholder="+7 …">
+            </div>
+          </div>
+
+          <label class="af-check">
+            <input type="checkbox" id="privacy" name="privacy_accepted" required>
+            <span>Согласен с <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой конфиденциальности</a> и обработкой контактных данных для связи по заявке</span>
+          </label>
+
+          <div class="af-actions">
+            <button type="submit" class="af-btn af-btn-primary" id="submit-btn">Отправить на модерацию</button>
+          </div>
+          <p class="af-status" id="form-status" aria-live="polite"></p>
+        </form>
+      </div>
+
+      <!-- Step 2: email code -->
+      <div class="af-step" id="step-code">
+        <h2 style="margin:0 0 8px;font-family:Unbounded,sans-serif;font-size:20px;">Код из письма</h2>
+        <p style="margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.5;">
+          Мы отправили код на <strong id="code-email"></strong>. Введите его, чтобы подтвердить заявку.
+        </p>
+        <div class="af-field">
+          <label for="verify-code">Код подтверждения</label>
+          <div class="af-code-row">
+            <input id="verify-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+          </div>
+        </div>
+        <div class="af-actions">
+          <button type="button" class="af-btn af-btn-primary" id="verify-btn">Подтвердить</button>
+          <button type="button" class="af-btn af-btn-secondary" id="resend-btn">Отправить код ещё раз</button>
+        </div>
+        <p class="af-status" id="code-status" aria-live="polite"></p>
+      </div>
+
+      <!-- Step 3: done -->
+      <div class="af-step" id="step-done">
+        <div class="af-done-card">
+          <h2>Заявка на модерации</h2>
+          <p id="done-message">
+            Обычно это занимает до 5 дней. После решения мы напишем на ваши контактные данные:
+            при одобрении пришлём ссылку на страницу фильма, если что-то не так — сообщим, что именно нужно исправить.
+          </p>
+          <div class="af-actions" style="justify-content:center">
+            <a class="af-btn af-btn-primary" href="/" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">Открыть кабинет</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="af-rules" id="rules">
+      <h2>Правила размещения</h2>
+      <ul>
+        <li>Не размещайте порнографию и откровенный сексуальный контент на афише или в материалах фильма.</li>
+        <li>Без мата и оскорблений в названии, описании и фактах.</li>
+        <li>Ссылка «где посмотреть» должна реально открываться: если фильм не включается, заявку не одобрим.</li>
+        <li>Можно присылать полнометражные фильмы и короткометражки — главное, чтобы материал можно было воспроизвести по ссылке.</li>
+        <li>Вы подтверждаете, что имеете право размещать этот фильм и указываете корректные контактные данные.</li>
+        <li>Модерация обычно занимает до 5 дней. Решение придёт на email (и при необходимости мы свяжемся по телефону).</li>
+      </ul>
+    </section>
+
+    <p class="af-foot">
+      <a href="/">На главную</a> ·
+      <a href="/politika-konfidentsialnosti.html">Политика конфиденциальности</a> ·
+      <a href="/usloviya-ispolzovaniya.html">Условия использования</a>
+    </p>
+  </div>
+
+  <script>
+  (function () {
+    var API = (window.location && window.location.origin) || 'https://movie-planner.ru';
+    var token = '';
+    var posterFile = null;
+
+    var form = document.getElementById('af-form');
+    var posterDrop = document.getElementById('poster-drop');
+    var posterInput = document.getElementById('poster');
+    var posterPreview = document.getElementById('poster-preview');
+    var formStatus = document.getElementById('form-status');
+    var codeStatus = document.getElementById('code-status');
+    var submitBtn = document.getElementById('submit-btn');
+    var verifyBtn = document.getElementById('verify-btn');
+    var resendBtn = document.getElementById('resend-btn');
+    var codeEmail = document.getElementById('code-email');
+    var verifyCode = document.getElementById('verify-code');
+
+    function showStep(id) {
+      ['step-form', 'step-code', 'step-done'].forEach(function (sid) {
+        var el = document.getElementById(sid);
+        if (el) el.classList.toggle('is-on', sid === id);
+      });
+    }
+
+    function setStatus(el, msg, kind) {
+      if (!el) return;
+      el.textContent = msg || '';
+      el.classList.remove('is-err', 'is-ok');
+      if (kind === 'err') el.classList.add('is-err');
+      if (kind === 'ok') el.classList.add('is-ok');
+    }
+
+    function setPoster(file) {
+      if (!file) return;
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type || '')) {
+        setStatus(formStatus, 'Афиша: нужен JPEG, PNG или WebP', 'err');
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        setStatus(formStatus, 'Афиша больше 8 МБ', 'err');
+        return;
+      }
+      posterFile = file;
+      var url = URL.createObjectURL(file);
+      posterPreview.src = url;
+      posterPreview.classList.add('is-on');
+      setStatus(formStatus, '');
+    }
+
+    if (posterDrop && posterInput) {
+      posterDrop.addEventListener('click', function () { posterInput.click(); });
+      posterDrop.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); posterInput.click(); }
+      });
+      posterInput.addEventListener('change', function () {
+        if (posterInput.files && posterInput.files[0]) setPoster(posterInput.files[0]);
+      });
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        posterDrop.addEventListener(ev, function (e) {
+          e.preventDefault();
+          posterDrop.classList.add('is-drag');
+        });
+      });
+      ['dragleave', 'drop'].forEach(function (ev) {
+        posterDrop.addEventListener(ev, function (e) {
+          e.preventDefault();
+          posterDrop.classList.remove('is-drag');
+          if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            setPoster(e.dataTransfer.files[0]);
+          }
+        });
+      });
+    }
+
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!posterFile) {
+          setStatus(formStatus, 'Загрузите афишу', 'err');
+          return;
+        }
+        if (!document.getElementById('privacy').checked) {
+          setStatus(formStatus, 'Нужно согласие с политикой конфиденциальности', 'err');
+          return;
+        }
+        var fd = new FormData();
+        fd.append('poster', posterFile, posterFile.name || 'poster.jpg');
+        ['title', 'year', 'film_type', 'director', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
+          var el = document.getElementById(name);
+          fd.append(name, el ? String(el.value || '').trim() : '');
+        });
+        fd.append('privacy_accepted', '1');
+
+        setStatus(formStatus, 'Отправляем…');
+        submitBtn.disabled = true;
+        fetch(API + '/api/public/film-submit', { method: 'POST', body: fd })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            submitBtn.disabled = false;
+            if (!res.ok || !(res.d && res.d.success)) {
+              setStatus(formStatus, (res.d && res.d.message) || 'Не удалось отправить заявку', 'err');
+              return;
+            }
+            token = res.d.token || '';
+            if (codeEmail) codeEmail.textContent = res.d.email || '';
+            setStatus(codeStatus, res.d.email_sent ? 'Письмо отправлено' : (res.d.message || ''), res.d.email_sent ? 'ok' : 'err');
+            showStep('step-code');
+            if (verifyCode) verifyCode.focus();
+          })
+          .catch(function () {
+            submitBtn.disabled = false;
+            setStatus(formStatus, 'Сеть недоступна', 'err');
+          });
+      });
+    }
+
+    if (verifyBtn) {
+      verifyBtn.addEventListener('click', function () {
+        var code = String((verifyCode && verifyCode.value) || '').replace(/\D/g, '');
+        if (code.length !== 6) {
+          setStatus(codeStatus, 'Введите 6-значный код', 'err');
+          return;
+        }
+        verifyBtn.disabled = true;
+        setStatus(codeStatus, 'Проверяем…');
+        fetch(API + '/api/public/film-submit/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, code: code })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            verifyBtn.disabled = false;
+            if (!res.ok || !(res.d && res.d.success)) {
+              setStatus(codeStatus, (res.d && res.d.message) || 'Неверный код', 'err');
+              return;
+            }
+            var doneMsg = document.getElementById('done-message');
+            if (doneMsg && res.d.message) doneMsg.textContent = res.d.message;
+            showStep('step-done');
+          })
+          .catch(function () {
+            verifyBtn.disabled = false;
+            setStatus(codeStatus, 'Сеть недоступна', 'err');
+          });
+      });
+    }
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', function () {
+        if (!token) return;
+        resendBtn.disabled = true;
+        setStatus(codeStatus, 'Отправляем код…');
+        fetch(API + '/api/public/film-submit/resend-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            resendBtn.disabled = false;
+            if (!res.ok || !(res.d && res.d.success)) {
+              setStatus(codeStatus, (res.d && res.d.message) || 'Не удалось отправить', 'err');
+              return;
+            }
+            setStatus(codeStatus, res.d.message || 'Код отправлен', 'ok');
+          })
+          .catch(function () {
+            resendBtn.disabled = false;
+            setStatus(codeStatus, 'Сеть недоступна', 'err');
+          });
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
