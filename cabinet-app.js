@@ -5051,7 +5051,7 @@
     if (sectionId === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
     if (sectionId === 'buzz') {
       try {
-        if (window.mpBuzzPage && typeof window.mpBuzzPage.load === 'function') window.mpBuzzPage.load();
+        // Only dispatch — buzz-page.js listens and loads once (avoid double fetch).
         document.dispatchEvent(new CustomEvent('mp:section-shown', { detail: { section: 'buzz' } }));
       } catch (_) {}
     }

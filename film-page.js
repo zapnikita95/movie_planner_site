@@ -379,8 +379,8 @@
     if (!plotEl) {
       plotEl = document.createElement('span');
       plotEl.className = 'film-desc-plot';
-      fullEl.textContent = '';
-      fullEl.appendChild(plotEl);
+      /* Never wipe facts/reviews via textContent on the full block. */
+      fullEl.insertBefore(plotEl, fullEl.firstChild);
     }
     plotEl.textContent = plotText;
     var factsEl = fullEl.querySelector('.film-desc-facts-inline');
@@ -433,13 +433,15 @@
     var plotEl = wrap.querySelector('.film-desc-plot');
     var btn = wrap.querySelector('.film-desc-more-btn');
     if (!descEl || !shortEl || !fullEl || !plotEl || !btn) return;
-    if (!text) {
+    var hasReviews = wrap.getAttribute('data-has-reviews') === '1';
+    var extras = !!hasFacts || hasReviews;
+    if (!text && !extras) {
       wrap.classList.add('hidden');
       return;
     }
     wrap.classList.remove('hidden');
     var expanded = btn.getAttribute('aria-expanded') === 'true';
-    var needsMore = text.length > FILM_DESC_PREVIEW_LEN || !!hasFacts;
+    var needsMore = text.length > FILM_DESC_PREVIEW_LEN || extras;
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       var cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
@@ -576,7 +578,7 @@
         title + '</a>' + chBit + '</li>';
     }).filter(Boolean).join('');
     if (!lis) return '';
-    return '<div class="film-desc-reviews-title">Разборы</div>' +
+    return '<div class="film-desc-reviews-title">Разборы на YouTube</div>' +
       '<ul class="film-desc-reviews-list">' + lis + '</ul>';
   }
 
@@ -671,14 +673,18 @@
     }
     if (!s || isFilmDescPlaceholder(s)) {
       if (lastFilmDescription) {
-        updateFilmDescCollapseState(wrap, lastFilmDescription, wrap.getAttribute('data-has-facts') === '1');
+        var extras0 = wrap.getAttribute('data-has-facts') === '1' ||
+          wrap.getAttribute('data-has-reviews') === '1';
+        updateFilmDescCollapseState(wrap, lastFilmDescription, extras0);
         return;
       }
       wrap.classList.add('hidden');
       return;
     }
     lastFilmDescription = s;
-    updateFilmDescCollapseState(wrap, s, wrap.getAttribute('data-has-facts') === '1');
+    var extras1 = wrap.getAttribute('data-has-facts') === '1' ||
+      wrap.getAttribute('data-has-reviews') === '1';
+    updateFilmDescCollapseState(wrap, s, extras1);
   }
 
   function buildRatingStars(current) {
