@@ -2774,7 +2774,11 @@
           } catch (_e) {}
         })
         .catch(function () {
-          setFilmDescription('');
+          /* Keep boot/SSR description if public card fetch fails — do not wipe the plot. */
+          if (!String(lastFilmDescription || '').trim()) {
+            var bootKeep = readMpRouteBoot();
+            if (bootKeep && bootKeep.description) setFilmDescription(bootKeep.description);
+          }
         });
 
       function ensureFilm() {

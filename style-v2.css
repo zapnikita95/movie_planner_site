@@ -5987,7 +5987,7 @@ main.film-page .film-page-similar-section,
     padding: 0 8px 6px;
   }
   .buzz-tile-link--text {
-    min-height: 4em;
+    min-height: 0;
   }
 }
 @media (min-width: 900px) {
@@ -6159,17 +6159,18 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   display: block;
 }
 .buzz-tile-link--text {
-  flex: 1 1 auto;
+  /* Title/meta must sit flush under the poster — never float mid-card. */
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* title+meta sit on the same baseline above sources */
-  min-height: 4.6em;
+  justify-content: flex-start;
+  min-height: 0;
 }
 .buzz-tile-title {
   font-weight: 650;
   font-size: 15px;
   line-height: 1.3;
-  min-height: 2.6em; /* always 2 lines → strip under meta aligns across the row */
+  min-height: 2.6em; /* always 2 lines → titles align across the row */
   height: 2.6em;
   padding: 10px 12px 2px;
   display: -webkit-box;
@@ -6202,10 +6203,10 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   padding: 0 12px 12px;
   border-top: 1px solid rgba(255,255,255,0.06);
   padding-top: 8px;
-  margin-top: 0; /* strip aligns: text block flex-end + fixed title height */
+  margin-top: auto; /* chips share a bottom baseline; title stays under poster */
   min-height: 2.5em;
   align-content: flex-start;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
 }
 .buzz-source-chip {
   display: inline-flex;
@@ -11224,13 +11225,13 @@ body.film-standalone-page .page-shell > main.film-page > section.hero {
 #section-film .film-hero,
 main.film-page .hero {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
   display: grid;
   grid-template-columns: minmax(230px, 330px) minmax(0, 1fr);
   gap: clamp(22px, 4vw, 46px);
-  align-items: center;
-  min-height: 560px;
+  align-items: start;
+  min-height: 0;
   padding: clamp(18px, 4vw, 38px);
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 34px;
@@ -13680,7 +13681,7 @@ body.film-standalone-page {
     }
     body.film-standalone-page .header-content {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) auto;
+      grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) minmax(0, 1fr);
       align-items: center;
       gap: clamp(12px, 2vw, 20px);
       max-width: 1180px;
@@ -14308,7 +14309,7 @@ body.film-standalone-page {
         padding-right: 16px;
       }
       body.film-standalone-page .header-content {
-        grid-template-columns: minmax(0, 1fr) minmax(180px, min(560px, 36vw)) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, min(560px, 36vw)) minmax(0, 1fr);
         gap: 10px;
       }
       body.film-standalone-page .logo span {
@@ -15745,7 +15746,8 @@ html {
   body.user-standalone-page .header-content,
   body.in-search-page .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(160px, min(560px, 32vw)) auto !important;
+    /* Equal side tracks → search dead-center (same axis as cabinet-nav). */
+    grid-template-columns: minmax(0, 1fr) minmax(160px, min(560px, 42vw)) minmax(0, 1fr) !important;
     grid-template-rows: auto !important;
     align-items: center;
     gap: 10px 12px !important;
@@ -15875,7 +15877,8 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   body.user-standalone-page .header-content,
   body.in-search-page .header-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) auto !important;
+    /* 1fr | search | 1fr — true center under cabinet-nav, not skewed by profile width */
+    grid-template-columns: minmax(0, 1fr) minmax(var(--hdr-grid-search-min, 200px), min(560px, var(--hdr-grid-search-max, 40vw))) minmax(0, 1fr) !important;
     align-items: center;
     gap: clamp(12px, 2vw, 20px);
   }
