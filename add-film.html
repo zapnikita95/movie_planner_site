@@ -333,6 +333,57 @@
       body.add-film-page .af-btn { flex: 1 1 100%; }
       body.add-film-page .af-main { padding: 4px 0 36px; }
     }
+    /* Compact footer for this page only */
+    body.add-film-page footer.footer {
+      margin-top: 28px;
+      padding: 22px 0 12px;
+    }
+    body.add-film-page footer.footer .footer-content {
+      grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+      gap: 18px 24px;
+      align-items: start;
+    }
+    body.add-film-page footer.footer .footer-info h3,
+    body.add-film-page footer.footer .footer-social h3,
+    body.add-film-page .footer-apps-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+    }
+    body.add-film-page footer.footer .footer-info p {
+      margin: 3px 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    body.add-film-page .footer-store-row { gap: 8px; }
+    body.add-film-page .footer-store-badge img { height: 34px; }
+    body.add-film-page .footer-apps-extra { max-width: none; margin-top: 8px; }
+    body.add-film-page footer.footer .footer-bottom {
+      margin-top: 16px;
+      padding-top: 12px;
+      font-size: 12px;
+    }
+    body.add-film-page footer.footer .social-link {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+    @media (max-width: 900px) {
+      body.add-film-page footer.footer .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+    }
+    @media (max-width: 640px) {
+      body.add-film-page footer.footer .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      body.add-film-page .footer-store-row,
+      body.add-film-page .footer-apps-extra,
+      body.add-film-page footer.footer .social-links {
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body class="add-film-page article-standalone-page">
@@ -540,7 +591,7 @@
               <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" class="footer-store-badge" target="_blank" rel="noopener">
                 <img src="/images/app-store-badge.svg?v=20260529apple1" alt="Скачать в App Store" width="120" height="40" loading="lazy">
               </a>
-              <a href="https://www.rustore.ru/catalog/app/com.movie_planner" class="footer-store-badge" target="_blank" rel="noopener">
+              <a href="https://www.rustore.ru/catalog/app/com.movie_planner" class="footer-store-badge" data-store="rustore" target="_blank" rel="noopener">
                 <img src="/images/rustore-badge.svg?v=20260529rustore1" alt="Скачать в RuStore" width="135" height="40" loading="lazy">
               </a>
             </div>
@@ -554,28 +605,12 @@
           </div>
           <div class="footer-info">
             <h3>Контакты</h3>
-            <p>📍 Москва</p>
-            <p>📞 +7 (977) 613-45-08</p>
-            <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
-            <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По вопросам сотрудничества: @zapnikita95</a></p>
+            <p><a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+            <p><a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
           </div>
           <div class="footer-info">
             <h3>Авторам</h3>
             <p><a href="/add-film">Добавить фильм</a></p>
-            <p>Независимые фильмы и короткометражки на модерацию</p>
-          </div>
-          <div class="footer-info footer-editorial">
-            <h3>Публикации</h3>
-            <p><a href="https://habr.com/ru/articles/1053204/" target="_blank" rel="noopener">Хабр — ИИ в киносервисе</a></p>
-            <p><a href="https://habr.com/ru/users/zap_nikita/" target="_blank" rel="noopener">Профиль на Хабре</a></p>
-            <p><a href="https://dzen.ru/movie_planner" target="_blank" rel="noopener">Дзен — Movie Planner</a></p>
-          </div>
-          <div class="footer-info footer-guides">
-            <h3>Трекер кино</h3>
-            <p><a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Список просмотренных фильмов</a></p>
-            <p><a href="/articles/prilozhenie-treker-dlya-filmov.html">Трекер фильмов — приложение</a></p>
-            <p><a href="/articles/kino-dnevnik-prosmotrennyh-filmov.html">Дневник просмотров</a></p>
-            <p><a href="/articles/movie-planner-veb-kabinet-na-pk.html">Movie Planner на компьютере</a></p>
           </div>
           <div class="footer-social">
             <h3>Мы в соцсетях</h3>
@@ -590,12 +625,10 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; <span id="footer-year"></span> Movie Planner. Все права защищены. ·
-            <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия использования</a>
-            · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Политика конфиденциальности</a>
-            · <a href="/oferta-i-oplata.html" class="footer-link-muted">Оплата и оферта</a>
-            · <a href="/agents.html" class="footer-link-muted">API и нейросети</a>
-            · <a href="https://movie-planner.ru/developer" class="footer-link-muted">Документация API</a>
+          <p>&copy; <span id="footer-year"></span> Movie Planner ·
+            <a href="/usloviya-ispolzovaniya.html" class="footer-link-muted">Условия</a>
+            · <a href="/politika-konfidentsialnosti.html" class="footer-link-muted">Конфиденциальность</a>
+            · <a href="/oferta-i-oplata.html" class="footer-link-muted">Оферта</a>
           </p>
         </div>
       </div>
@@ -604,7 +637,7 @@
 
   <script src="/public-film-login.js?v=20260602tgsafari1"></script>
   <script src="/film-page.js?v=20260602sitefix5"></script>
-  <script src="/articles/article-chrome.js?v=20260718headerfix2"></script>
+  <script src="/articles/article-chrome.js?v=20260719footer1"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   <script>
   (function () {
