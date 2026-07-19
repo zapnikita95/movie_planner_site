@@ -5956,6 +5956,27 @@ main.film-page .film-page-similar-section,
   .buzz-digest-email { max-width: none; }
   .buzz-digest-btn { flex: 1 1 120px; }
 }
+/* Одна полоса фильтров: вид + сортировка + период — без «двух меню» друг под другом */
+.buzz-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.buzz-filters .plans-filter-tabs {
+  margin: 0;
+  display: contents;
+}
+.buzz-filters .buzz-toolbar {
+  margin: 0;
+  display: contents;
+}
+/* display:contents — .hidden на обёртке сам по себе детей не прячет */
+.buzz-filters .plans-filter-tabs.hidden,
+.buzz-filters .plans-filter-tabs.hidden > * {
+  display: none !important;
+}
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
 .buzz-days-select, .buzz-kind-select {
   padding: 10px 14px; border-radius: 999px;
@@ -5970,6 +5991,13 @@ main.film-page .film-page-similar-section,
   gap: 12px;
   margin-top: 4px;
   align-items: stretch;
+  width: 100%;
+}
+/* Скелетон — вложенный .buzz-skel-grid; внешний .buzz-grid не должен сжимать его в одну колонку 148px */
+.buzz-grid.buzz-grid--skel,
+.buzz-feed.buzz-grid--skel {
+  display: block;
+  width: 100%;
 }
 /* Mobile: 2 колонки как film-card, не одна гигантская афиша на весь экран */
 @media (max-width: 640px) {
@@ -6028,11 +6056,13 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 }
 .buzz-grid--skel .buzz-skel-grid {
   width: 100%;
+  max-width: none;
 }
 .buzz-skel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 12px;
+  width: 100%;
 }
 @media (max-width: 640px) {
   .buzz-skel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -16451,6 +16481,13 @@ body.in-cabinet .inbox-fab { display: none !important; }
 }
 body.guest-cabinet-preview .cabinet-nav-btn[data-section="tournament"],
 body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href="/tournament"] {
+  display: none !important;
+}
+/* Гость на /buzz|/premieres|…: одно меню — #landing-root-nav, не дублировать .cabinet-nav */
+body.guest-cabinet-preview #cabinet-readonly > .cabinet-nav,
+body.guest-cabinet-preview #cabinet-readonly > .container > .cabinet-nav,
+html.mp-guest-cabinet-boot #cabinet-readonly > .cabinet-nav,
+html.mp-guest-cabinet-boot #cabinet-readonly > .container > .cabinet-nav {
   display: none !important;
 }
 .home-poster-tile-img,

@@ -4,9 +4,20 @@
 (function () {
   'use strict';
 
-  var API_BASE = (typeof window.MP_API_BASE === 'string' && window.MP_API_BASE)
-    ? window.MP_API_BASE.replace(/\/$/, '')
-    : ((typeof window.location !== 'undefined' && window.location.origin) || 'https://movie-planner.ru');
+  var API_BASE = (function () {
+    try {
+      if (typeof window.MP_API_BASE === 'string' && window.MP_API_BASE) {
+        return window.MP_API_BASE.replace(/\/$/, '');
+      }
+      if (window.MpApiConfig && typeof window.MpApiConfig.apiBase === 'function') {
+        return String(window.MpApiConfig.apiBase() || '').replace(/\/$/, '');
+      }
+      if (window.MpApiConfig && window.MpApiConfig.API_ORIGIN) {
+        return String(window.MpApiConfig.API_ORIGIN).replace(/\/$/, '');
+      }
+    } catch (_) {}
+    return (typeof window.location !== 'undefined' && window.location.origin) || 'https://movie-planner.ru';
+  })();
 
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
@@ -504,21 +515,31 @@
     var silent = opts && opts.silent;
     var err = document.getElementById('buzz-error');
     if (err) err.classList.add('hidden');
-    var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
     var fullLimit = state.view === 'feed' ? 50 : 40;
     var qKey = buzzQuery(fullLimit);
 
-    /* Dedup overlapping loads (cabinet + section-shown + filter clicks). */
+    /* Dedup overlapping loads (cabinet + section-shown + filter clicks).
+       Важно: loadGen увеличиваем ТОЛЬКО когда реально стартуем новый fetch —
+       иначе второй load() до ответа первого убивает paint (вечный скелетон). */
     if (state._inflight && state._inflightKey === qKey && !(opts && opts.force)) {
-      showSkeleton();
+      if (!silent) showSkeleton();
       return state._inflight;
     }
+
+    var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
 
     /* Always show skeleton first — never leave a blank SEO-only page. */
     state.loaded = false;
     if (!silent) showSkeleton();
 
     var cached = readClientCache();
+    /* Мгновенный paint из кэша текущего фильтра — не ждать сеть. */
+    if (cached && cached.length) {
+      state.items = cached;
+      state.loaded = true;
+      paint({ noAnimate: true });
+    }
+
     state._inflightKey = qKey;
     var p = fetchBuzz(fullLimit)
       .then(function (items) {
