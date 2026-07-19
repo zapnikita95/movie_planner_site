@@ -5885,46 +5885,76 @@ main.film-page .film-page-similar-section,
   opacity: 0.85;
 }
 .buzz-digest {
-  margin: 22px 0 8px;
-  padding: 16px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  margin: 28px auto 16px;
+  padding: 20px 22px 18px;
+  max-width: 420px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  background: linear-gradient(165deg, rgba(255,45,123,0.10), rgba(255,255,255,0.03) 42%);
+  border: 1px solid rgba(255,45,123,0.22);
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.22);
 }
 .buzz-digest-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   color: var(--text-primary, #fff);
+  letter-spacing: -0.01em;
+}
+.buzz-digest-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted, #999);
 }
 .buzz-digest-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+  justify-content: center;
 }
 .buzz-digest-email {
-  flex: 1 1 180px;
-  min-width: 160px;
-  padding: 10px 14px;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 280px;
+  padding: 11px 14px;
   border-radius: 999px;
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--border-color, rgba(255,255,255,0.08));
   color: var(--text-primary, #fff);
   font-size: 14px;
   font-family: inherit;
+  text-align: left;
 }
 .buzz-digest-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
-.buzz-digest-btn { min-height: 42px; }
+.buzz-digest-btn {
+  min-height: 42px;
+  min-width: 132px;
+  border-radius: 999px;
+}
 .buzz-digest-status {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   font-size: 13px;
   color: var(--text-muted, #999);
   min-height: 1.2em;
+}
+@media (max-width: 640px) {
+  .buzz-digest {
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 16px 14px;
+  }
+  .buzz-digest-email { max-width: none; }
+  .buzz-digest-btn { flex: 1 1 120px; }
 }
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
 .buzz-days-select, .buzz-kind-select {
