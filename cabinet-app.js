@@ -214,8 +214,11 @@
   }
 
   function cleanPosterUrl(src) {
-    const s = rewriteApexMediaUrl(String(src || '').trim());
+    let s = rewriteApexMediaUrl(String(src || '').trim());
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
+    // image.tmdb.org is blocked in RU — always use our apex mirror.
+    const tmdb = s.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (tmdb) s = '/api/public/poster/tmdb/' + tmdb[1] + '/' + tmdb[2];
     if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
     return s;
   }
@@ -223,7 +226,7 @@
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function isKpIphonePosterUrl(src, kpId) {
