@@ -87,8 +87,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260719buzzfix2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260719buzzfix2">
+    <link rel="preload" href="/style-v2.css?v=20260719buzzfix3" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260719buzzfix3">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2535,7 +2535,7 @@
                     <p>📍 Москва</p>
                     <p>📞 +7 (977) 613-45-08</p>
                     <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
-                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По всем вопросам: @zapnikita95</a></p>
+                    <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">По вопросам сотрудничества: @zapnikita95</a></p>
                 </div>
                 <div class="footer-info footer-editorial">
                     <h3>Публикации</h3>
@@ -2625,7 +2625,7 @@
           'page-loading.js?v=20260529mobileparity1',
           'plan-modal.js?v=202607052140fix4',
           'film-user-tags.js?v=20260617tags3',
-          'mp-icons.js?v=20260719buzzfix2',
+          'mp-icons.js?v=20260719buzzfix3',
           'mp-public-promo.js?v=20260717flow2'
         ];
         var cabinet = [
@@ -2643,28 +2643,28 @@
         if (isSearch) {
           list = [
             'mp-api-config.js?v=20260627apiams1',
-            'mp-icons.js?v=20260719buzzfix2',
+            'mp-icons.js?v=20260719buzzfix3',
             'page-loading.js?v=20260529mobileparity1',
             'avatar-crop.js?v=20260717flow2',
-            'cabinet-app.js?v=20260719buzzfix2'
+            'cabinet-app.js?v=20260719buzzfix3'
           ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
         if (isFilm) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzzfix2');
+          list.push('film-page.js?v=20260719buzzfix3');
           list.push('cabinet-film-route.js?v=20260718cabinetai1');
         } else if (isStaff) {
           list.push('onboarding-flow.js?v=20260717flow2');
-          list.push('film-page.js?v=20260719buzzfix2');
+          list.push('film-page.js?v=20260719buzzfix3');
           list.push('staff-page.js?v=20260717flow2');
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('cabinet-app.js?v=20260719buzzfix2');
+          list.push('cabinet-app.js?v=20260719buzzfix3');
         } else {
           list.push('avatar-crop.js?v=20260717flow2');
-          list.push('buzz-page.js?v=20260719buzzfix2');
-          list.push('cabinet-app.js?v=20260719buzzfix2');
+          list.push('buzz-page.js?v=20260719buzzfix3');
+          list.push('cabinet-app.js?v=20260719buzzfix3');
           if (!isRoute) {
             list.push('landing-premiere-carousel.js?v=20260702vitrine4');
             list.push('landing-vitrine.js?v=20260703block5407222');

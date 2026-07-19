@@ -7623,8 +7623,8 @@ footer.footer .footer-social h3 {
   margin: 0 0 14px;
   font-weight: 600;
 }
-footer.footer .footer-info p { margin: 6px 0; font-size: 14px; color: #ddd; }
-footer.footer .footer-info a { color: #ffd67a; text-decoration: none; transition: color .15s ease; }
+footer.footer .footer-info p { margin: 6px 0; font-size: 14px; color: #ddd; line-height: 1.45; }
+footer.footer .footer-info a { color: #ffd67a; text-decoration: none; transition: color .15s ease; overflow-wrap: anywhere; }
 footer.footer .footer-info a:hover { color: #fff; }
 footer.footer .social-links { display: flex; gap: 10px; margin-top: 2px; }
 footer.footer .social-link {
