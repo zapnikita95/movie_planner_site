@@ -13,6 +13,36 @@
     return (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
   })();
 
+  /** Parse /f/123 or /f/movie-123 / /f/tv-123 — KP ids stay bare numbers; TMDB uses prefix. */
+  function parseFilmRoute(pathname) {
+    var path = String(pathname || (global.location && global.location.pathname) || '');
+    var m = path.match(/^\/f\/(movie|tv)-(\d+)\/?$/i);
+    if (m) {
+      var mt = String(m[1] || 'movie').toLowerCase();
+      var tid = String(m[2] || '');
+      return {
+        mode: 'tmdb',
+        mediaType: mt,
+        tmdbId: tid,
+        catalogId: mt + '-' + tid,
+        kpId: '',
+        pathKey: mt + '-' + tid,
+      };
+    }
+    m = path.match(/^\/f\/(\d+)\/?$/);
+    if (m) {
+      return {
+        mode: 'kp',
+        mediaType: '',
+        tmdbId: '',
+        catalogId: '',
+        kpId: m[1],
+        pathKey: m[1],
+      };
+    }
+    return null;
+  }
+
   function appOpenBannerHtml() {
     if (global.MpAppOpenBanner && MpAppOpenBanner.appOpenBannerHtml) {
       return MpAppOpenBanner.appOpenBannerHtml();
@@ -73,7 +103,7 @@
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
   function currentFilmPosterFromDom() {
@@ -1973,17 +2003,34 @@
     return /^(фильм|сериал|film|series)\s+\d+$/i.test(t);
   }
 
-  function paintCabinetRouteBoot(kpId, pageRoot, poster) {
+  function paintCabinetRouteBoot(routeKey, pageRoot, poster, routeMeta) {
     var boot = readMpRouteBoot();
     if (!boot || boot.type !== 'film') return false;
-    if (String(boot.kp_id || '').replace(/\D/g, '') !== String(kpId || '').replace(/\D/g, '')) return false;
+    var meta = routeMeta || {};
+    var bootKp = String(boot.kp_id || '').replace(/\D/g, '');
+    var bootCatalog = String(boot.catalog_id || '').toLowerCase();
+    var bootTmdb = String(boot.tmdb_id || '').replace(/\D/g, '');
+    var key = String(routeKey || '');
+    var keyDigits = key.replace(/\D/g, '');
+    var match = false;
+    if (meta.mode === 'tmdb') {
+      var wantCatalog = String(meta.catalogId || '').toLowerCase();
+      var wantTmdb = String(meta.tmdbId || '').replace(/\D/g, '');
+      match = (bootCatalog && wantCatalog && bootCatalog === wantCatalog)
+        || (bootTmdb && wantTmdb && bootTmdb === wantTmdb)
+        || (key && bootCatalog && bootCatalog === key.toLowerCase());
+    } else {
+      match = bootKp && keyDigits && bootKp === keyDigits;
+    }
+    if (!match) return false;
     if (isGenericFilmTitle(boot.title)) return false;
     var title = boot.title || 'Фильм';
     var bootPoster = boot.poster_url || poster;
     var year = boot.year ? ' (' + boot.year + ')' : '';
+    var heroKey = meta.mode === 'tmdb' ? (meta.catalogId || key) : (bootKp || keyDigits);
     pageRoot.className = 'movie-page';
-    pageRoot.innerHTML = buildFilmMainInnerHtml(kpId, bootPoster);
-    setFilmHeroBackdrop(bootPoster, kpId);
+    pageRoot.innerHTML = buildFilmMainInnerHtml(heroKey, bootPoster);
+    setFilmHeroBackdrop(bootPoster, heroKey);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
@@ -2014,9 +2061,9 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
-    if (descWrapBoot) {
+    if (descWrapBoot && meta.mode !== 'tmdb' && (boot.kp_id || keyDigits)) {
       try {
-        loadFilmDescFacts(String(boot.kp_id || kpId), pageRoot);
+        loadFilmDescFacts(String(boot.kp_id || keyDigits), pageRoot);
       } catch (_facts) {}
     }
     try {
@@ -2032,8 +2079,32 @@
   function renderFilmPage(opts) {
     opts = opts || {};
     var cabinetMode = !!opts.cabinetMode;
-    var kpId = String(opts.kpId || '').replace(/\D/g, '');
-    if (!kpId) return;
+    var routeFromPath = parseFilmRoute();
+    var tmdbId = String(opts.tmdbId || (routeFromPath && routeFromPath.tmdbId) || '').replace(/\D/g, '');
+    var mediaType = String(opts.mediaType || (routeFromPath && routeFromPath.mediaType) || '').toLowerCase();
+    if (mediaType !== 'tv') mediaType = mediaType === 'movie' ? 'movie' : (tmdbId ? 'movie' : '');
+    var catalogId = String(opts.catalogId || (routeFromPath && routeFromPath.catalogId) || '');
+    if (!catalogId && tmdbId && mediaType) catalogId = mediaType + '-' + tmdbId;
+    var kpId = String(opts.kpId || (routeFromPath && routeFromPath.kpId) || '').replace(/\D/g, '');
+    var isTmdbOnly = !kpId && !!tmdbId;
+    if (isTmdbOnly && !mediaType) mediaType = 'movie';
+    if (isTmdbOnly && !catalogId) catalogId = mediaType + '-' + tmdbId;
+    var pathKey = isTmdbOnly ? catalogId : kpId;
+    if (!pathKey) return;
+    var routeMeta = {
+      mode: isTmdbOnly ? 'tmdb' : 'kp',
+      kpId: kpId,
+      tmdbId: tmdbId,
+      mediaType: mediaType,
+      catalogId: catalogId,
+      pathKey: pathKey,
+    };
+    var publicFilmApi = isTmdbOnly
+      ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId)
+      : '/api/public/film/' + encodeURIComponent(kpId);
+    var publicCastApi = isTmdbOnly
+      ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId) + '/cast'
+      : '/api/public/film/' + encodeURIComponent(kpId) + '/cast';
 
       function sessionsEarly() {
         try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
@@ -2048,7 +2119,7 @@
       var forcePublic = false;
       try {
         var forceKp = sessionStorage.getItem('mp_public_film_force');
-        if (forceKp && String(forceKp) === String(kpId)) {
+        if (forceKp && String(forceKp) === String(pathKey)) {
           sessionStorage.removeItem('mp_public_film_force');
           forcePublic = true;
           localStorage.removeItem('mp_site_active_chat_id');
@@ -2057,9 +2128,11 @@
         }
       } catch (_e) {}
       var poster = MP_POSTER_PLACEHOLDER;
-      var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent('film_' + kpId);
+      var tgMini = 'https://t.me/movie_planner_bot/app?startapp=' + encodeURIComponent(
+        isTmdbOnly ? ('tmdb_' + mediaType + '_' + tmdbId) : ('film_' + kpId)
+      );
       var apiBase = opts.apiBase || API_BASE;
-      var pageUrl = (opts.pageUrl || (window.location.origin + '/f/' + kpId));
+      var pageUrl = (opts.pageUrl || (window.location.origin + '/f/' + pathKey));
       var fallbackFacts = [
         'Добавьте фильм в базу, чтобы он появился в вашем Movie Planner.',
         'Оценка сохранится в профиле и поможет рекомендациям.',
@@ -2076,7 +2149,7 @@
       if (cabinetMode) {
         var pageRoot = document.getElementById('film-page-content');
         if (!pageRoot) return;
-        if (!paintCabinetRouteBoot(kpId, pageRoot, poster)) {
+        if (!paintCabinetRouteBoot(pathKey, pageRoot, poster, routeMeta)) {
           pageRoot.className = 'movie-page loading';
           pageRoot.innerHTML = (global.MpPageLoading && MpPageLoading.html())
             ? MpPageLoading.html()
@@ -2362,7 +2435,7 @@
         showPublicToast('Не удалось открыть вход');
       }
       function rememberAction(action) {
-        try { sessionStorage.setItem('mp_public_film_action', action + ':' + kpId); } catch (_e) {}
+        try { sessionStorage.setItem('mp_public_film_action', action + ':' + pathKey); } catch (_e) {}
       }
       function apiGet(path) {
         return fetch(apiBase + path, { method: 'GET', mode: 'cors' }).then(function (r) {
@@ -2589,7 +2662,8 @@
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root) return;
-        if (root.getAttribute('data-mp-cast-loaded') === kpId && root.querySelector('.staff-cast-link, .film-cast-row')) {
+        var castKey = pathKey;
+        if (root.getAttribute('data-mp-cast-loaded') === castKey && root.querySelector('.staff-cast-link, .film-cast-row')) {
           return;
         }
         if (root.getAttribute('data-mp-cast-pending') === '1') return;
@@ -2597,13 +2671,13 @@
           root.innerHTML = buildPublicCastSkeletonHtml();
         }
         root.setAttribute('data-mp-cast-pending', '1');
-        apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/cast')
+        apiGet(publicCastApi)
           .then(function (d) {
             root.removeAttribute('data-mp-cast-pending');
             if (!d || !d.success) { return; }
             if (d.director || (d.actors && d.actors.length)) {
               applyPublicCastPayload(d);
-              root.setAttribute('data-mp-cast-loaded', kpId);
+              root.setAttribute('data-mp-cast-loaded', castKey);
             } else if (!root.querySelector('.staff-cast-link, .film-cast-row')) {
               root.innerHTML = '';
             }
@@ -2679,7 +2753,7 @@
       function rememberPendingGuestPlan(planPayload) {
         try {
           sessionStorage.setItem('mp_pending_guest_plan', JSON.stringify({
-            kpId: kpId,
+            kpId: pathKey,
             mode: planPayload.mode || 'home',
             body: planPayload.body || {},
           }));
@@ -2692,7 +2766,7 @@
         if (!raw || !token()) return;
         var pending;
         try { pending = JSON.parse(raw); } catch (_e) { return; }
-        if (String(pending.kpId) !== String(kpId)) return;
+        if (String(pending.kpId) !== String(pathKey)) return;
         sessionStorage.removeItem('mp_pending_guest_plan');
         var endpoint = pending.mode === 'cinema' ? '/api/miniapp/plans/cinema' : '/api/miniapp/plans/home';
         var body = pending.body || {};
@@ -2719,7 +2793,13 @@
             showPublicToast((d && d.error) || 'Не удалось добавить фильм');
             return;
           }
-          return postPlan({ film_id: d.film_id, kp_id: Number(kpId) });
+          var planBody = { film_id: d.film_id };
+          if (!isTmdbOnly) planBody.kp_id = Number(kpId);
+          else {
+            planBody.tmdb_id = Number(tmdbId);
+            planBody.media_type = mediaType || 'movie';
+          }
+          return postPlan(planBody);
         });
       }
 
@@ -2727,7 +2807,9 @@
         place = place === 'cinema' ? 'cinema' : 'home';
         if (!token()) {
           openStandalonePlanModal(
-            { kp_id: kpId, title: filmTitleForPlan() },
+            isTmdbOnly
+              ? { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId, title: filmTitleForPlan() }
+              : { kp_id: kpId, title: filmTitleForPlan() },
             place,
             {
               guestMode: true,
@@ -2738,6 +2820,20 @@
             }
           );
           return;
+        }
+        if (isTmdbOnly) {
+          return ensureFilm().then(function (d) {
+            if (!d || !d.success) {
+              if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм';
+              return;
+            }
+            openStandalonePlanModal({
+              film_id: d.film_id,
+              tmdb_id: Number(tmdbId),
+              media_type: mediaType,
+              title: filmTitleForPlan(),
+            }, place);
+          });
         }
         fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
           .then(function (r) { return r.json(); })
@@ -2762,9 +2858,13 @@
       }
 
       loadPublicCast();
-      scheduleLoadFacts();
-      apiGet('/api/public/film/' + encodeURIComponent(kpId))
+      if (!isTmdbOnly) scheduleLoadFacts();
+      apiGet(publicFilmApi)
         .then(function (data) {
+          if (data && data.redirect && data.film && data.film.kp_id) {
+            try { window.location.replace('/f/' + encodeURIComponent(String(data.film.kp_id))); } catch (_r) {}
+            return;
+          }
           if (!data || !data.success || !data.film) {
             return;
           }
@@ -2796,7 +2896,7 @@
           setFilmDescription(pickFilmDescription(f));
           renderGenreChips(f.genres, f.is_series, f.series_stats, f.country);
           if (f.is_series) {
-            try { global.__mpFilmPageSeriesKp = kpId; } catch (_e) {}
+            try { global.__mpFilmPageSeriesKp = pathKey; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');
             if (heroSec) heroSec.setAttribute('data-is-series', '1');
           }
@@ -2805,7 +2905,7 @@
           if (boot && boot.poster_url && (!cleanPosterUrl(posterToApply) || !isGoodFilmPosterUrl(posterToApply))) {
             posterToApply = boot.poster_url;
           }
-          applyFilmPosterEl(posterToApply, kpId);
+          applyFilmPosterEl(posterToApply, pathKey);
           setOgFromFilm(f, title);
           setFilmJsonLd(f);
           if (f.seo_body_html) {
@@ -2852,10 +2952,13 @@
         });
 
       function ensureFilm() {
+        var body = isTmdbOnly
+          ? { tmdb_id: Number(tmdbId), media_type: mediaType || 'movie', catalog_id: catalogId }
+          : { kp_id: Number(kpId) };
         return fetch(apiBase + '/api/site/add-film', {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ kp_id: Number(kpId) })
+          body: JSON.stringify(body)
         }).then(function (r) {
           if (r.status === 401) { loginNow(); return null; }
           return r.json();
@@ -2863,9 +2966,9 @@
       }
       function goCabinet(action) {
         if (action) {
-          try { sessionStorage.setItem('mp_public_film_action', String(action) + ':' + kpId); } catch (_) {}
+          try { sessionStorage.setItem('mp_public_film_action', String(action) + ':' + pathKey); } catch (_) {}
         }
-        window.location.href = '/f/' + encodeURIComponent(kpId);
+        window.location.href = '/f/' + encodeURIComponent(pathKey);
       }
       function addCurrentFilm() {
         if (!token()) { rememberAction('add'); loginNow('add'); return; }
@@ -2950,7 +3053,7 @@
       function consumePendingAction() {
         try {
           var pending = sessionStorage.getItem('mp_public_film_action') || '';
-          if (!pending || pending.split(':')[1] !== kpId || !token()) return;
+          if (!pending || pending.split(':')[1] !== pathKey || !token()) return;
           sessionStorage.removeItem('mp_public_film_action');
           if (pending.indexOf('plan:') === 0) {
             if (sessionStorage.getItem('mp_pending_guest_plan')) submitPendingGuestPlan();
@@ -3043,7 +3146,7 @@
           });
         }
       }
-      setupAppOpenBanner({ id: kpId, kind: 'film' });
+      setupAppOpenBanner({ id: pathKey, kind: 'film' });
       bindPublicFilmToolbar();
 
       function applyAuthToolbar(filmState) {
@@ -3200,6 +3303,15 @@
 
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
+        if (isTmdbOnly) {
+          // TMDB-only: library state via add-film idempotent lookup path is not exposed;
+          // keep toolbar authenticated without KP film-by-kp.
+          applyAuthToolbar({
+            film: { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId },
+            toolbarOpts: { inBase: false, authenticated: true },
+          });
+          return;
+        }
         fetchJsonAuth('/api/site/film-by-kp/' + encodeURIComponent(kpId), 15000)
           .then(function (lookup) {
             if (!lookup || !lookup.in_library || !lookup.film_id) {
@@ -3263,8 +3375,8 @@
       initStandaloneSiteChrome({
         apiBase: apiBase,
         mainSelector: cabinetMode ? '#film-page-content' : 'main.film-page',
-        spaReturnPath: '/f/' + kpId,
-        kpId: kpId,
+        spaReturnPath: '/f/' + pathKey,
+        kpId: kpId || pathKey,
         forcePublic: forcePublic,
         cabinetMode: cabinetMode,
         bindLogin: !cabinetMode,
@@ -3291,7 +3403,7 @@
       var similarRoot = cabinetMode
         ? document.getElementById('film-page-content')
         : document.querySelector('main.film-page');
-      mountFilmPageSimilarBlock(kpId, similarRoot);
+      if (!isTmdbOnly) mountFilmPageSimilarBlock(kpId, similarRoot);
       try {
         if (!token() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function' && similarRoot) {
           global.MpPublicPromo.mountAfterHero(similarRoot);
@@ -3312,6 +3424,7 @@
   global.MpFilmPage = {
     bootstrap: bootstrap,
     renderFilmPage: renderFilmPage,
+    parseFilmRoute: parseFilmRoute,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
     standaloneNavHtml: standaloneNavHtml,
