@@ -2546,12 +2546,13 @@
         var links = (actors || []).map(castPersonLink).filter(Boolean);
         if (!links.length) return parts.join('');
         var collapsed = links.slice(0, CAST_VISIBLE);
-        var hiddenLinks = links.slice(CAST_VISIBLE);
+        var hasMore = links.length > CAST_VISIBLE;
         var row = '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
-        if (hiddenLinks.length) {
+        if (hasMore) {
+          // Expanded view must list ALL actors — not "tail-only" with a leading comma
+          // (that produced ", Patrick Criado, …" after «ещё»).
           row += '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>';
-          row += '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
-            hiddenLinks.join('<span class="film-cast-sep">, </span>') + '</span>';
+          row += '<span class="film-actors-full hidden">' + links.join('<span class="film-cast-sep">, </span>') + '</span>';
           row += ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
         } else {
           row += links.join('<span class="film-cast-sep">, </span>');
