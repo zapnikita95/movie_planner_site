@@ -2945,7 +2945,24 @@
               genresForChips = painted;
             }
           } catch (_gKeep) {}
-          renderGenreChips(genresForChips, f.is_series, f.series_stats, f.country);
+          var countryForChips = String(f.country || publicFilmCountry || '').trim();
+          if (!countryForChips) {
+            try {
+              var bootC = readMpRouteBoot();
+              if (bootC && bootC.country) countryForChips = String(bootC.country || '').trim();
+            } catch (_bc) {}
+          }
+          if (!countryForChips) {
+            var existingCountryChips = document.querySelectorAll('#chips .chip-country');
+            var kept = [];
+            existingCountryChips.forEach(function (el) {
+              var ct = String(el.textContent || '').trim();
+              if (ct) kept.push(ct);
+            });
+            if (kept.length) countryForChips = kept.join(', ');
+          }
+          publicFilmCountry = countryForChips || publicFilmCountry || '';
+          renderGenreChips(genresForChips, f.is_series, f.series_stats, countryForChips);
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = pathKey; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');
