@@ -341,10 +341,10 @@
           '<span class="film-desc-full hidden">' +
             '<span class="film-desc-plot"></span>' +
             '<span class="film-desc-facts-inline"></span>' +
-            '<span class="film-desc-reviews-inline"></span>' +
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
+        '<div class="film-desc-reviews-inline"></div>' +
       '</div>'
     );
   }
@@ -390,11 +390,19 @@
       factsEl.className = 'film-desc-facts-inline';
       fullEl.appendChild(factsEl);
     }
-    var reviewsEl = fullEl.querySelector('.film-desc-reviews-inline');
+    var reviewsEl = wrap.querySelector('.film-desc-reviews-inline');
     if (!reviewsEl) {
-      reviewsEl = document.createElement('span');
+      reviewsEl = document.createElement('div');
       reviewsEl.className = 'film-desc-reviews-inline';
-      fullEl.appendChild(reviewsEl);
+      wrap.appendChild(reviewsEl);
+    }
+    /* Move legacy reviews out of collapsed full block so they stay visible. */
+    var nestedReviews = fullEl.querySelector('.film-desc-reviews-inline');
+    if (nestedReviews && nestedReviews !== reviewsEl) {
+      if (nestedReviews.innerHTML.trim() && !reviewsEl.innerHTML.trim()) {
+        reviewsEl.innerHTML = nestedReviews.innerHTML;
+      }
+      nestedReviews.remove();
     }
     var legacyList = wrap.querySelector('#film-desc-facts-list');
     if (legacyList && legacyList.innerHTML.trim() && !factsEl.innerHTML.trim()) {
@@ -587,13 +595,11 @@
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
     migrateFilmDescWrap(wrap);
-    var fullEl = wrap.querySelector('.film-desc-full');
-    if (!fullEl) return;
-    var revEl = fullEl.querySelector('.film-desc-reviews-inline');
+    var revEl = wrap.querySelector('.film-desc-reviews-inline');
     if (!revEl) {
-      revEl = document.createElement('span');
+      revEl = document.createElement('div');
       revEl.className = 'film-desc-reviews-inline';
-      fullEl.appendChild(revEl);
+      wrap.appendChild(revEl);
     }
     var list = Array.isArray(items) ? items : [];
     revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
@@ -623,6 +629,8 @@
     var wrap = scope.querySelector('#film-desc-wrap');
     if (!wrap) return Promise.resolve();
     if (wrap.getAttribute('data-reviews-loaded') === kp) return Promise.resolve();
+    if (wrap.getAttribute('data-reviews-loading') === kp) return Promise.resolve();
+    wrap.setAttribute('data-reviews-loading', kp);
     return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', {
       method: 'GET',
       mode: 'cors',
@@ -635,7 +643,8 @@
         wrap.setAttribute('data-reviews-loaded', kp);
         paintFilmDescReviews(wrap, (d && d.items) || []);
       })
-      .catch(function () {});
+      .catch(function () {})
+      .then(function () { wrap.removeAttribute('data-reviews-loading'); });
   }
 
   function loadFilmDescFacts(kpId, root) {
@@ -647,6 +656,10 @@
     if (wrap.getAttribute('data-facts-loaded') === kp) {
       return loadFilmDescReviews(kp, root);
     }
+    if (wrap.getAttribute('data-facts-loading') === kp) {
+      return Promise.resolve();
+    }
+    wrap.setAttribute('data-facts-loading', kp);
     return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/facts', {
       method: 'GET',
       mode: 'cors',
@@ -660,7 +673,10 @@
         paintFilmDescFacts(wrap, d);
       })
       .catch(function () {})
-      .then(function () { return loadFilmDescReviews(kp, root); });
+      .then(function () {
+        wrap.removeAttribute('data-facts-loading');
+        return loadFilmDescReviews(kp, root);
+      });
   }
 
   function setFilmDescription(text) {
@@ -2726,7 +2742,23 @@
           if (data.cast && (data.cast.director || (data.cast.actors && data.cast.actors.length))) {
             applyPublicCastPayload(data.cast);
           }
-          var title = (f.title || 'Фильм') + (f.year ? ' (' + f.year + ')' : '');
+          var bootTitleKeep = '';
+          try {
+            var bootT = readMpRouteBoot();
+            if (bootT && bootT.type === 'film' && bootT.title) bootTitleKeep = String(bootT.title).trim();
+          } catch (_bt) {}
+          var apiTitle = String(f.title || '').trim();
+          var titleBase = apiTitle || 'Фильм';
+          if (bootTitleKeep && /[а-яА-ЯёЁ]/.test(bootTitleKeep) && apiTitle && !/[а-яА-ЯёЁ]/.test(apiTitle)) {
+            titleBase = bootTitleKeep;
+          } else {
+            var tEl0 = document.getElementById('film-title');
+            var curTitle = tEl0 ? String(tEl0.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim() : '';
+            if (curTitle && /[а-яА-ЯёЁ]/.test(curTitle) && apiTitle && !/[а-яА-ЯёЁ]/.test(apiTitle)) {
+              titleBase = curTitle;
+            }
+          }
+          var title = titleBase + (f.year ? ' (' + f.year + ')' : '');
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
