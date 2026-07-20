@@ -386,8 +386,30 @@
     var html = opts.map(function (o) {
       return '<option value="' + o[0] + '"' + (o[0] === state.days ? ' selected' : '') + '>' + o[1] + '</option>';
     }).join('');
+    /* Replacing <option>s can fire change in some browsers — suppress. */
+    state._suppressDaysChange = true;
     daysSel.innerHTML = html;
     daysSel.value = String(state.days);
+    state._suppressDaysChange = false;
+  }
+
+  function gridHasRealContent() {
+    var grid = document.getElementById('buzz-grid');
+    if (!grid || grid.classList.contains('buzz-grid--skel')) return false;
+    return !!grid.querySelector('.buzz-tile, .buzz-feed-row');
+  }
+
+  function markGridBusy(on) {
+    var grid = document.getElementById('buzz-grid');
+    var sec = document.getElementById('section-buzz');
+    if (grid) {
+      if (on) grid.setAttribute('aria-busy', 'true');
+      else grid.removeAttribute('aria-busy');
+    }
+    if (sec) {
+      if (on) sec.classList.add('buzz-is-loading');
+      else sec.classList.remove('buzz-is-loading');
+    }
   }
 
   function filteredChannelsForItem(item) {
@@ -619,32 +641,45 @@
   }
 
   function load(opts) {
-    var silent = opts && opts.silent;
+    var o = opts || {};
+    var silent = !!o.silent;
+    var force = !!o.force;
     var err = document.getElementById('buzz-error');
     if (err) err.classList.add('hidden');
     var fullLimit = state.view === 'feed' ? 50 : 40;
     var qKey = buzzQuery(fullLimit);
 
-    /* Dedup overlapping loads (cabinet + section-shown + filter clicks).
-       Важно: loadGen увеличиваем ТОЛЬКО когда реально стартуем новый fetch —
-       иначе второй load() до ответа первого убивает paint (вечный скелетон). */
-    if (state._inflight && state._inflightKey === qKey && !(opts && opts.force)) {
-      if (!silent) showSkeleton();
+    /* Dedup overlapping loads (cabinet boot + section-shown + filter).
+       Never re-show skeleton — that strobes the grid 2–3×. */
+    if (state._inflight && state._inflightKey === qKey && !force) {
       return state._inflight;
     }
 
+    /* Same query already on screen — quiet background refresh only. */
+    if (!force && state.loaded && state._lastPaintedKey === qKey && gridHasRealContent()) {
+      silent = true;
+    }
+
     var loadGen = (state._loadGen = (state._loadGen || 0) + 1);
-
-    /* Always show skeleton first — never leave a blank SEO-only page. */
-    state.loaded = false;
-    if (!silent) showSkeleton();
-
     var cached = readClientCache();
-    /* Мгновенный paint из кэша текущего фильтра — не ждать сеть. */
-    if (cached && cached.length) {
-      state.items = cached;
-      state.loaded = true;
-      paint({ noAnimate: true });
+    var hadContent = gridHasRealContent();
+
+    if (!silent) {
+      if (cached && cached.length) {
+        /* Instant paint from cache — no skeleton wipe. */
+        state.items = cached;
+        state.loaded = true;
+        state._lastPaintedKey = qKey;
+        paint({ noAnimate: true });
+        hadContent = true;
+      } else if (hadContent) {
+        /* Keep current tiles while fetching (YouTube toggle / days) — no strobe. */
+        markGridBusy(true);
+        setSeoVisible(false);
+      } else {
+        state.loaded = false;
+        showSkeleton();
+      }
     }
 
     state._inflightKey = qKey;
@@ -653,16 +688,25 @@
         if (loadGen !== state._loadGen) return null;
         state.items = items || [];
         state.loaded = true;
+        state._lastPaintedKey = qKey;
         writeClientCache(state.items);
-        paint();
+        /* No enter-animation if grid already had content or came from cache. */
+        paint({ noAnimate: hadContent || !!(cached && cached.length) });
         return state.items;
       })
       .catch(function () {
         if (loadGen !== state._loadGen) return;
+        markGridBusy(false);
         if (cached && cached.length) {
           state.items = cached;
           state.loaded = true;
+          state._lastPaintedKey = qKey;
           paint({ noAnimate: true });
+          return;
+        }
+        if (hadContent) {
+          /* Keep previous tiles on network error. */
+          state.loaded = true;
           return;
         }
         state.loaded = true;
@@ -766,6 +810,7 @@
     var kindSel = document.getElementById('buzz-kind');
     if (daysSel) {
       daysSel.addEventListener('change', function () {
+        if (state._suppressDaysChange) return;
         state.days = parseInt(daysSel.value, 10) || 7;
         state.loaded = false;
         load();
@@ -846,7 +891,8 @@
   document.addEventListener('mp:section-shown', function (ev) {
     if (ev && ev.detail && ev.detail.section === 'buzz') {
       bindToolbar();
-      load();
+      /* Silent if boot already painted — cabinet re-entry must not skeleton-strobe. */
+      load({ silent: gridHasRealContent() });
     }
   });
 })();

@@ -5214,7 +5214,13 @@
     if (sectionId === 'buzz') {
       try {
         if (window.mpBuzzPage && typeof window.mpBuzzPage.load === 'function') {
-          window.mpBuzzPage.load();
+          var buzzGrid = document.getElementById('buzz-grid');
+          var buzzReady = !!(
+            buzzGrid &&
+            !buzzGrid.classList.contains('buzz-grid--skel') &&
+            buzzGrid.querySelector('.buzz-tile, .buzz-feed-row')
+          );
+          window.mpBuzzPage.load({ silent: buzzReady });
         } else {
           document.dispatchEvent(new CustomEvent('mp:section-shown', { detail: { section: 'buzz' } }));
         }
