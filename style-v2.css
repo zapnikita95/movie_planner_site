@@ -11401,6 +11401,19 @@ main.film-page .poster-wrap {
   border-color: rgba(255,45,123,.45);
   color: #f9a8d4;
 }
+.chip.chip-country,
+#section-film .chip.chip-country,
+.film-page .chip.chip-country {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+.chip.chip-country.chip-link:hover,
+.chip.chip-country.chip-link:focus-visible,
+#section-film .chip.chip-country.chip-link:hover,
+#section-film .chip.chip-country.chip-link:focus-visible {
+  border-color: rgba(148, 163, 184, 0.65);
+  color: #e2e8f0;
+}
 .film-hero h2,
 #section-film .hero h1 {
   margin: 0;
