@@ -324,21 +324,27 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
-    var candidates = [
+    // Prefer RU/Cyrillic for apex catalog pages — never pick a longer EN synopsis over RU.
+    var ordered = [
+      film.overview_ru,
       film.description,
       film.plot,
-      film.overview_ru,
-      film.overview_en,
       film.shortDescription,
+      film.overview_en,
     ];
-    var best = '';
-    candidates.forEach(function (raw) {
+    var cyrBest = '';
+    var anyBest = '';
+    ordered.forEach(function (raw) {
       var s = String(raw || '').trim();
       if (!s || isFilmDescPlaceholder(s)) return;
-      if (!best || s.length > best.length) best = s;
-      else if (best.endsWith('…') && s.length >= best.length - 1 && !s.endsWith('…')) best = s;
+      if (!anyBest) anyBest = s;
+      else if (anyBest.endsWith('…') && s.length >= anyBest.length - 1 && !s.endsWith('…')) anyBest = s;
+      if (/[а-яА-ЯёЁ]/.test(s)) {
+        if (!cyrBest || s.length > cyrBest.length) cyrBest = s;
+        else if (cyrBest.endsWith('…') && s.length >= cyrBest.length - 1 && !s.endsWith('…')) cyrBest = s;
+      }
     });
-    return best;
+    return cyrBest || anyBest;
   }
 
   function trimMetaText(text, maxLen) {
@@ -2509,7 +2515,8 @@
       var CAST_VISIBLE = 4;
       function castPersonLink(entry) {
         if (!entry) return '';
-        var nm = String(entry.name_ru || entry.name_en || '').replace(/[&<>"']/g, function (c) {
+        // KP cast uses name_ru/name_en; TMDB catalog cast uses `name`.
+        var nm = String(entry.name_ru || entry.name_en || entry.name || '').replace(/[&<>"']/g, function (c) {
           return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
         if (!nm) return '';
