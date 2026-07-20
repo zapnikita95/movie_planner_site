@@ -1425,21 +1425,75 @@
     return true;
   }
 
+
+  function readCountryFromFilmChips(chipsEl) {
+    if (!chipsEl) return '';
+    return Array.from(chipsEl.querySelectorAll('[data-chip-country], .chip-country'))
+      .map(function (el) {
+        return String(el.getAttribute('data-chip-country') || el.textContent || '').trim();
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  function readCountryFromCastRoot(root) {
+    if (!root) return '';
+    const rows = root.querySelectorAll('.film-cast-row');
+    for (let i = 0; i < rows.length; i++) {
+      const label = rows[i].querySelector('.film-cast-label');
+      if (!label || !/Страна/i.test(String(label.textContent || ''))) continue;
+      const raw = String(rows[i].textContent || '').replace(/^[\s\S]*Страна:\s*/i, '').trim();
+      if (raw) return raw;
+    }
+    return '';
+  }
+
+  /** Keep country once painted — empty later API payloads must not wipe chips/cast. */
+  function stickyFilmCountry(film, pageRoot) {
+    if (!film) return film;
+    if (String(film.country || '').trim()) return film;
+    const chips = pageRoot && pageRoot.querySelector('.film-hero-with-tag .eyebrow, #chips');
+    const fromChips = readCountryFromFilmChips(chips);
+    if (fromChips) {
+      film.country = fromChips;
+      return film;
+    }
+    const fromCast = readCountryFromCastRoot(pageRoot);
+    if (fromCast) film.country = fromCast;
+    return film;
+  }
+
+  function syncFilmGenreChips(pageRoot, film) {
+    if (!pageRoot || !film) return;
+    stickyFilmCountry(film, pageRoot);
+    const chips = pageRoot.querySelector('.film-hero-with-tag .eyebrow, #chips');
+    if (!chips) return;
+    if (!(film.genres || film.country || film.is_series)) return;
+    const hadCountry = !!chips.querySelector('[data-chip-country], .chip-country');
+    const willHave = !!String(film.country || '').trim();
+    if (hadCountry && !willHave) {
+      film.country = readCountryFromFilmChips(chips);
+    }
+    const missingCountry = !!String(film.country || '').trim() && !chips.querySelector('[data-chip-country], .chip-country');
+    if (!chips.querySelector('.chip') || missingCountry) {
+      chips.innerHTML = buildFilmGenreChipsHtml(film);
+      try { delete chips.dataset.mpChipNavBound; } catch (_) { chips.dataset.mpChipNavBound = ''; }
+      bindFilmGenreCountryChips(chips);
+    }
+  }
+
   function patchFilmHeroInPlace(pageRoot, film) {
     if (!pageRoot || !film) return false;
     const kp = String(film.kp_id || '').replace(/\D/g, '');
     if (!kp || !shouldPatchFilmHeroInPlace(pageRoot, film)) return false;
+    stickyFilmCountry(film, pageRoot);
     const titleEl = pageRoot.querySelector('#film-title') || pageRoot.querySelector('.film-hero-with-tag h1');
     if (titleEl && film.title && !isGenericFilmTitle(film.title)) {
       const keep = preferDisplayTitle(titleEl.textContent, film.title);
       const yearSuffix = film.year ? ' (' + film.year + ')' : '';
       titleEl.textContent = keep + yearSuffix;
     }
-    const chips = pageRoot.querySelector('.film-hero-with-tag .eyebrow');
-    if (chips && (film.genres || film.country) && !chips.querySelector('.chip')) {
-      chips.innerHTML = buildFilmGenreChipsHtml(film);
-      bindFilmGenreCountryChips(chips);
-    }
+    syncFilmGenreChips(pageRoot, film);
     mergeBootPoster(film, kp);
     applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
     ensureFilmHeroDescription(pageRoot, film);
@@ -13877,6 +13931,8 @@
         mergeBootPoster(detail.film, kpNorm);
         applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(detail.film, pageRoot));
         if (shouldPatchFilmHeroInPlace(pageRoot, detail.film)) {
+          stickyFilmCountry(detail.film, pageRoot);
+          syncFilmGenreChips(pageRoot, detail.film);
           replaceFilmPageToolbarInHero(
             pageRoot,
             detail.film,
@@ -15230,6 +15286,8 @@
           } else if (isGenericFilmTitle(data.film.title) && heroTitleOk) {
             /* оставляем хороший title с shell/buzz */
           }
+          stickyFilmCountry(data.film, pageRoot);
+          syncFilmGenreChips(pageRoot, data.film);
           mergeBootPoster(data.film, data.film.kp_id);
           mergeBootDescription(data.film, data.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
@@ -15446,6 +15504,7 @@
 
   function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {
     const ho = heroOpts || {};
+    if (film && content) stickyFilmCountry(film, content);
     /* Same kp already on screen — patch only. Full innerHTML wipe = visible strobe. */
     if (content && film && shouldPatchFilmHeroInPlace(content, film)) {
       applyPreferredFilmTitle(film, film.kp_id);
@@ -15587,7 +15646,10 @@
         root.removeAttribute('data-mp-cast-pending');
         const director = cast && cast.director;
         const actors = (cast && cast.actors) || [];
-        const html = buildFilmCastHtml(director, actors, filmFallback && filmFallback.country);
+        if (filmFallback) stickyFilmCountry(filmFallback, root.closest('.movie-page') || document.getElementById('film-page-content'));
+        let country = String((filmFallback && filmFallback.country) || '').trim();
+        if (!country) country = readCountryFromCastRoot(root);
+        const html = buildFilmCastHtml(director, actors, country);
         if (!html) {
           root.innerHTML = buildFilmCrewFallback(filmFallback);
           return;
