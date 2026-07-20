@@ -13801,8 +13801,8 @@
           premiereBtn +
           '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
         '</div>' +
-        friendsBlockHtml +
         panelsHtml +
+        friendsBlockHtml +
       '</div>'
     );
   }
