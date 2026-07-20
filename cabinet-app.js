@@ -1137,9 +1137,14 @@
       ensureLoggedInHeader();
 
       const pageRoot = document.getElementById('film-page-content');
-      if (pageRoot && !paintFilmRouteBoot(pathKp, {})) {
-        pageRoot.className = 'movie-page loading';
-        pageRoot.innerHTML = pageLoadingHtml();
+      if (pageRoot) {
+        const ready =
+          isFilmPageContentReady(pathKp) ||
+          shouldPatchFilmHeroInPlace(pageRoot, { kp_id: pathKp });
+        if (!ready && !paintFilmRouteBoot(pathKp, {})) {
+          pageRoot.className = 'movie-page loading';
+          pageRoot.innerHTML = pageLoadingHtml();
+        }
       }
       return true;
     } catch (_) {
@@ -1231,14 +1236,38 @@
 
   function stashFilmShellFromCard(card) {
     if (!card) return;
-    const kp = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').replace(/\D/g, '');
-    const title = card.getAttribute('data-title');
-    if (!kp || !title) return;
+    const kp = String(
+      card.getAttribute('data-kp-id') ||
+      card.getAttribute('data-kp') ||
+      (card.getAttribute('href') || '').replace(/^\/f\//, '')
+    ).replace(/\D/g, '');
+    if (!kp) return;
+    let title = card.getAttribute('data-title') || '';
+    let poster = card.getAttribute('data-poster') || '';
+    if (!title) {
+      const tile = card.closest(
+        '.buzz-tile, .buzz-feed-row, .home-poster-tile, .film-card-v2, [data-kp-id], [data-kp]'
+      );
+      if (tile) {
+        const titleEl = tile.querySelector(
+          '.buzz-tile-title, .buzz-feed-film, .home-poster-title, .film-card-title, h3, .title'
+        );
+        if (titleEl) title = String(titleEl.textContent || '').trim();
+        if (!poster) {
+          const img = tile.querySelector('img');
+          if (img) poster = img.getAttribute('src') || '';
+        }
+      }
+    }
+    if (!title && card.textContent) {
+      title = String(card.textContent || '').trim().slice(0, 120);
+    }
+    if (!title || isGenericFilmTitle(title)) return;
     try {
       sessionStorage.setItem('mp_film_shell_kp_' + kp, JSON.stringify({
         kp_id: kp,
         title: title,
-        poster: card.getAttribute('data-poster') || '',
+        poster: poster,
         year: card.getAttribute('data-year') || '',
         is_series: card.getAttribute('data-is-series') === '1',
       }));
@@ -1547,6 +1576,7 @@
     if (!heroReadyNow()) {
       try { window.scrollTo(0, 0); } catch (_) {}
     }
+    /* After first paint: only patch in place — never a 2nd/3rd full hero rebuild. */
     if (!hasHeroEarly) {
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
         .then(function (lite) {
@@ -1555,7 +1585,7 @@
             mergeBootDescription(mapLiteFilmForHero(lite, kp), kp),
             kp
           );
-          if (shouldPatchFilmHeroInPlace(pageRootEarly, liteFilm) || heroReadyNow()) {
+          if (heroReadyNow() || shouldPatchFilmHeroInPlace(pageRootEarly, liteFilm)) {
             patchFilmHeroInPlace(pageRootEarly, liteFilm);
             return;
           }
@@ -1576,11 +1606,12 @@
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), histDone);
       }
-      /* Re-check AFTER shell/lite paint — stale hasHeroEarly caused 2nd/3rd full rebuild. */
-      if (heroReadyNow()) return null;
+      if (heroReadyNow()) {
+        return refreshFilmPageAuthFromLiteRoute(kp);
+      }
       return openFilmHeroByKpPublic(kp, histDone);
     }).catch(function () {
-      if (heroReadyNow()) return null;
+      if (heroReadyNow()) return refreshFilmPageAuthFromLiteRoute(kp);
       return openFilmHeroByKpPublic(kp, histDone);
     }).finally(function () {
       if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
@@ -2650,27 +2681,13 @@
       }, onHome ? 2800 : 1500);
     }
 
-    if (filmKp && window.__MP_FILM_RENDERED) {
+    if (filmKp && (window.__MP_FILM_RENDERED || window.__MP_FILM_ROUTE_LITE_READY || isFilmPageContentReady(filmKp))) {
       try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
       syncSessionHtmlClass();
-      showScreen('cabinet-readonly');
-      showFilmPageLayout();
+      /* Do not re-toggle screens/sections — that strobes #section-film. */
       if (getToken()) {
         ensureLoggedInHeader();
-      }
-      deferCabinetLists();
-      writeOnboardReturnFromPath('/f/' + filmKp);
-      scheduleContentPagePostAuthOffer();
-      return Promise.resolve();
-    }
-
-    if (filmKp && window.__MP_FILM_ROUTE_LITE_READY) {
-      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
-      syncSessionHtmlClass();
-      showScreen('cabinet-readonly');
-      showFilmPageLayout();
-      if (getToken()) {
-        ensureLoggedInHeader();
+        try { refreshFilmPageAuthFromLiteRoute(filmKp); } catch (_) {}
       }
       deferCabinetLists();
       writeOnboardReturnFromPath('/f/' + filmKp);
@@ -6827,6 +6844,19 @@
   function showFilmPageLayout() {
     const ro = document.getElementById('cabinet-readonly');
     if (!ro) return;
+    const filmSec = ro.querySelector('#section-film');
+    const pageRoot = document.getElementById('film-page-content');
+    const alreadyFilm =
+      ro.classList.contains('film-page-mode') &&
+      !ro.classList.contains('hidden') &&
+      filmSec &&
+      !filmSec.classList.contains('hidden') &&
+      pageRoot &&
+      !pageRoot.classList.contains('hidden');
+    if (alreadyFilm) {
+      clearCabinetSectionBootCss();
+      return;
+    }
     clearCabinetSectionBootCss();
     if (ro.classList.contains('hidden')) {
       try { showScreen('cabinet-readonly'); } catch (_) {}
@@ -6838,7 +6868,6 @@
     });
     const buzzSec = document.getElementById('section-buzz');
     if (buzzSec) buzzSec.classList.add('hidden');
-    const pageRoot = document.getElementById('film-page-content');
     if (pageRoot) pageRoot.classList.remove('hidden');
     ro.querySelectorAll('.cabinet-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
     document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach((b) => b.classList.remove('active'));
@@ -14624,6 +14653,7 @@
       e.stopPropagation();
       const kp = String(filmLinkEarly.getAttribute('href') || '').replace(/^\/f\//, '').replace(/\D/g, '');
       if (kp) {
+        try { stashFilmShellFromCard(filmLinkEarly); } catch (_) {}
         if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
           openFilmFromStaffNav(kp, null);
         } else {
@@ -15259,6 +15289,23 @@
 
   function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {
     const ho = heroOpts || {};
+    /* Same kp already on screen — patch only. Full innerHTML wipe = visible strobe. */
+    if (content && film && shouldPatchFilmHeroInPlace(content, film)) {
+      applyPreferredFilmTitle(film, film.kp_id);
+      patchFilmHeroInPlace(content, film);
+      if (ratings && ratings.length) {
+        replaceFilmPageToolbarInHero(
+          content,
+          film,
+          ratings,
+          me,
+          filmToolbarOptsFromDetail(film, ratings, me)
+        );
+      }
+      ensureFilmHeroDescription(content, film);
+      ensureFilmHeroCastLoaded(film, content);
+      return;
+    }
     const inBase = ho.inBase !== false;
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
