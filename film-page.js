@@ -3018,8 +3018,6 @@
       function applyAuthToolbar(filmState) {
         var hero = filmHeroContentRoot(cabinetMode);
         if (!hero) return;
-        var old = hero.querySelector('.film-page-toolbar');
-        if (old) old.remove();
         var stub = filmState.film || { kp_id: kpId };
         if (!stub.is_series) {
           if (global.__mpFilmPageSeriesKp === kpId) stub.is_series = true;
@@ -3029,14 +3027,33 @@
           }
         }
         if (!stub.kp_id) stub.kp_id = kpId;
-        var toolbarHtml = buildFilmPageToolbar(stub, filmState.toolbarOpts || {});
+        var opts = filmState.toolbarOpts || {};
+        var sig = [
+          String(stub.kp_id || ''),
+          String(stub.film_id || ''),
+          opts.inBase ? '1' : '0',
+          opts.watched ? '1' : '0',
+          String(opts.myRating || 0),
+          stub.is_series ? '1' : '0',
+        ].join('|');
+        var old = hero.querySelector('.film-page-toolbar');
+        if (old && old.getAttribute('data-mp-toolbar-sig') === sig) {
+          loadFilmFriendsSocialBlock();
+          return;
+        }
+        if (old) old.remove();
+        var toolbarHtml = buildFilmPageToolbar(stub, opts);
         hero.insertAdjacentHTML('beforeend', toolbarHtml);
         var newToolbar = hero.querySelector('.film-page-toolbar');
+        if (newToolbar) newToolbar.setAttribute('data-mp-toolbar-sig', sig);
         bindAuthToolbar(stub, filmState);
         bindPublicFilmToolbar(newToolbar, stub);
-        loadPublicCast();
+        var castRoot = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
+        if (!castRoot || !castRoot.querySelector('.staff-cast-link, .film-cast-row')) {
+          loadPublicCast();
+        }
         loadFilmFriendsSocialBlock();
-        if (!(filmState.toolbarOpts && filmState.toolbarOpts.inBase)) rebindGuestToolbarActions();
+        if (!(opts && opts.inBase)) rebindGuestToolbarActions();
       }
 
       function bindAuthToolbar(film, filmState) {
