@@ -11766,52 +11766,72 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
   font-weight: 900;
   color: #fff;
 }
+/* Rating 1–10: segmented single-row scale (variant C) */
 .film-toolbar-rating-grid,
 .film-toolbar-rating-grid.rating-grid {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 6px;
-  width: 100%;
-  max-width: min(100%, 500px);
-  margin: 0 auto;
+  display: flex;
   flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  max-width: min(100%, 520px);
+  margin: 0 auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.04);
 }
 .film-toolbar-rating-grid .rating-stars {
   display: contents;
 }
 .film-toolbar-rating-grid .rating-current {
-  grid-column: 1 / -1;
+  flex: 0 0 100%;
+  width: 100%;
   margin: 6px 0 0;
   text-align: center;
 }
 .film-toolbar-rating-grid .rate-btn,
 .film-toolbar-rating-grid .rating-stars button {
+  flex: 1 1 0;
   min-width: 0;
+  width: auto;
+  height: 42px;
   min-height: 42px;
-  width: 100%;
-  padding: 0 4px;
-  font-size: clamp(12px, 1.6vw, 14px);
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 14px;
-  background: rgba(255,255,255,.1);
+  padding: 0 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-size: clamp(11px, 3.1vw, 14px);
+  border: 0;
+  border-right: 1px solid rgba(255,255,255,.12);
+  border-radius: 0;
+  background: transparent;
   color: #fff;
   font-weight: 800;
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, transform .12s ease;
+  box-sizing: border-box;
+  transition: background .15s ease, color .15s ease;
+}
+.film-toolbar-rating-grid .rate-btn:last-child,
+.film-toolbar-rating-grid .rating-stars button:last-child {
+  border-right: 0;
 }
 .film-toolbar-rating-grid .rate-btn:hover,
 .film-toolbar-rating-grid .rating-stars button:hover {
-  background: rgba(255,255,255,.18);
-  border-color: rgba(255,255,255,.28);
+  background: rgba(255,255,255,.12);
 }
 .film-toolbar-rating-grid .rate-btn:active,
 .film-toolbar-rating-grid .rating-stars button:active {
-  transform: scale(0.96);
+  background: rgba(255,255,255,.16);
 }
 .film-toolbar-rating-grid .rate-btn.is-selected,
 .film-toolbar-rating-grid .rating-stars button.is-selected {
-  background: rgba(236, 72, 153, 0.35);
-  border-color: rgba(236, 72, 153, 0.65);
+  background: linear-gradient(180deg, rgba(236,72,153,.48), rgba(168,85,247,.36));
   color: #fff;
 }
 .film-toolbar-expand.hidden {
@@ -14246,21 +14266,47 @@ body.film-standalone-page {
       .status { margin-top: 6px; }
     }
     .rating-grid {
-      display: grid;
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 6px;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      gap: 0;
       margin: 0 auto;
-      max-width: min(100%, 500px);
+      max-width: min(100%, 520px);
       width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,.04);
     }
     .rate-btn {
-      min-height: 44px;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 14px;
-      background: rgba(255,255,255,.06);
+      flex: 1 1 0;
+      min-width: 0;
+      width: auto;
+      height: 42px;
+      min-height: 42px;
+      padding: 0 1px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      font-size: clamp(11px, 3.1vw, 14px);
+      border: 0;
+      border-right: 1px solid rgba(255,255,255,.12);
+      border-radius: 0;
+      background: transparent;
       color: #fff;
       font-weight: 800;
       cursor: pointer;
+      box-sizing: border-box;
+    }
+    .rate-btn:last-child { border-right: 0; }
+    .rate-btn.is-selected {
+      background: linear-gradient(180deg, rgba(236,72,153,.48), rgba(168,85,247,.36));
+      color: #fff;
     }
     .status {
       margin-top: 12px;
@@ -14600,8 +14646,28 @@ body.film-standalone-page {
       .icon-action:focus-visible {
         flex-basis: 190px;
       }
-      .rating-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
-      .rate-btn { min-width: 0; }
+      .rating-grid {
+        gap: 0;
+        border-radius: 11px;
+      }
+      .rate-btn {
+        min-width: 0;
+        height: 40px;
+        min-height: 40px;
+        font-size: 12px;
+        border-radius: 0;
+      }
+      .film-toolbar-rating-grid,
+      .film-toolbar-rating-grid.rating-grid {
+        gap: 0;
+        border-radius: 11px;
+      }
+      .film-toolbar-rating-grid .rate-btn,
+      .film-toolbar-rating-grid .rating-stars button {
+        height: 40px;
+        min-height: 40px;
+        font-size: 12px;
+      }
       body.film-standalone-page .hero h1,
       main.film-page .hero h1,
       #section-film .hero h1 {
