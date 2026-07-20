@@ -2563,6 +2563,9 @@
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root) return;
+        if (root.getAttribute('data-mp-cast-loaded') === kpId && root.querySelector('.staff-cast-link, .film-cast-row')) {
+          return;
+        }
         if (root.getAttribute('data-mp-cast-pending') === '1') return;
         if (!root.innerHTML.trim() || root.querySelector('.film-cast-skeleton')) {
           root.innerHTML = buildPublicCastSkeletonHtml();
@@ -2572,13 +2575,19 @@
           .then(function (d) {
             root.removeAttribute('data-mp-cast-pending');
             if (!d || !d.success) { return; }
-            if (d.director || (d.actors && d.actors.length)) applyPublicCastPayload(d);
-            else root.innerHTML = '';
+            if (d.director || (d.actors && d.actors.length)) {
+              applyPublicCastPayload(d);
+              root.setAttribute('data-mp-cast-loaded', kpId);
+            } else if (!root.querySelector('.staff-cast-link, .film-cast-row')) {
+              root.innerHTML = '';
+            }
           })
           .catch(function () {
             root.removeAttribute('data-mp-cast-pending');
             var root2 = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
-            if (root2) root2.innerHTML = '';
+            if (root2 && !root2.querySelector('.staff-cast-link, .film-cast-row')) {
+              root2.innerHTML = '';
+            }
           });
       }
       function showPublicToast(message) {
@@ -2728,10 +2737,6 @@
 
       loadPublicCast();
       scheduleLoadFacts();
-      document.addEventListener('mp:cabinet-full-ready', function onCabinetReady() {
-        document.removeEventListener('mp:cabinet-full-ready', onCabinetReady);
-        loadPublicCast();
-      });
       apiGet('/api/public/film/' + encodeURIComponent(kpId))
         .then(function (data) {
           if (!data || !data.success || !data.film) {

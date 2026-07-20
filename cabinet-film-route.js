@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260720filmfix2';
+  var BUILD = '20260720filmfix3';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -34,13 +34,18 @@
 
   function showScreen(screenId) {
     var inCabinet = screenId === 'cabinet-readonly' || screenId === 'cabinet-onboarding';
+    var target = document.getElementById(screenId);
+    /* Already on this screen — do not hide/show (causes section strobe). */
+    if (target && !target.classList.contains('hidden')) {
+      if (inCabinet) document.body.classList.add('in-cabinet');
+      return;
+    }
     ['landing', 'site-search-root', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
     var header = document.getElementById('site-header');
     if (header) header.classList.remove('hidden');
-    var target = document.getElementById(screenId);
     if (target) target.classList.remove('hidden');
     document.body.classList.toggle('in-cabinet', inCabinet);
     var hs = document.getElementById('header-search');
@@ -54,6 +59,14 @@
   function showFilmPageLayout() {
     var ro = document.getElementById('cabinet-readonly');
     if (!ro || ro.classList.contains('hidden')) return;
+    var filmSec = ro.querySelector('#section-film');
+    if (
+      ro.classList.contains('film-page-mode') &&
+      filmSec &&
+      !filmSec.classList.contains('hidden')
+    ) {
+      return;
+    }
     ro.classList.add('film-page-mode');
     ro.querySelectorAll('.cabinet-section').forEach(function (el) {
       el.classList.toggle('hidden', el.id !== 'section-film');
