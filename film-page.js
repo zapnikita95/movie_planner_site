@@ -13,6 +13,36 @@
     return (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
   })();
 
+  // TMDB en-US genre names → RU pills (never paint Drama/Comedy on apex).
+  var TMDB_GENRE_EN_RU = {
+    Action: 'боевик', Adventure: 'приключения', Animation: 'мультфильм',
+    Comedy: 'комедия', Crime: 'криминал', Documentary: 'документальный',
+    Drama: 'драма', Family: 'семейный', Fantasy: 'фэнтези', History: 'история',
+    Horror: 'ужасы', Music: 'музыка', Mystery: 'детектив', Romance: 'мелодрама',
+    'Science Fiction': 'фантастика', 'TV Movie': 'телевизионный фильм',
+    Thriller: 'триллер', War: 'военный', Western: 'вестерн'
+  };
+  function localizeGenreLabel(label) {
+    var raw = String(label || '').trim();
+    if (!raw) return '';
+    if (/[а-яА-ЯёЁ]/.test(raw)) return raw;
+    if (TMDB_GENRE_EN_RU[raw]) return TMDB_GENRE_EN_RU[raw];
+    var titled = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    if (TMDB_GENRE_EN_RU[titled]) return TMDB_GENRE_EN_RU[titled];
+    var keys = Object.keys(TMDB_GENRE_EN_RU);
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].toLowerCase() === raw.toLowerCase()) return TMDB_GENRE_EN_RU[keys[i]];
+    }
+    return raw;
+  }
+  function localizeGenresStr(genresStr) {
+    return String(genresStr || '')
+      .split(/[,;/|]+/)
+      .map(function (s) { return localizeGenreLabel(s); })
+      .filter(Boolean)
+      .join(', ');
+  }
+
   /** Parse /f/123 or /f/movie-123 / /f/tv-123 — KP ids stay bare numbers; TMDB uses prefix. */
   function parseFilmRoute(pathname) {
     var path = String(pathname || (global.location && global.location.pathname) || '');
@@ -2041,7 +2071,7 @@
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
     if (chips && (boot.genres || boot.country)) {
-      String(boot.genres || '').split(/[,;/|]+/).slice(0, 8).forEach(function (label) {
+      String(localizeGenresStr(boot.genres) || '').split(/[,;/|]+/).slice(0, 8).forEach(function (label) {
         var chip = document.createElement('span');
         chip.className = 'chip';
         chip.textContent = String(label || '').trim();
@@ -2461,7 +2491,7 @@
             container.appendChild(statChip);
           });
         }
-        var parts = String(genresStr || '')
+        var parts = String(localizeGenresStr(genresStr) || '')
           .split(/[,;/|]+/)
           .map(function (s) { return s.trim(); })
           .filter(Boolean);
@@ -2902,7 +2932,20 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
-          renderGenreChips(f.genres, f.is_series, f.series_stats, f.country);
+          var genresForChips = localizeGenresStr(f.genres || '');
+          // Never let an EN locale API overwrite already-painted RU pills.
+          try {
+            var chipsEl0 = document.getElementById('chips');
+            var painted = chipsEl0
+              ? Array.prototype.map.call(chipsEl0.querySelectorAll('.chip, .chip-link'), function (el) {
+                  return String(el.textContent || '').trim();
+                }).filter(function (t) { return t && !/сериал|фильм/i.test(t); }).join(', ')
+              : '';
+            if (painted && /[а-яА-ЯёЁ]/.test(painted) && genresForChips && !/[а-яА-ЯёЁ]/.test(genresForChips)) {
+              genresForChips = painted;
+            }
+          } catch (_gKeep) {}
+          renderGenreChips(genresForChips, f.is_series, f.series_stats, f.country);
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = pathKey; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');

@@ -15355,6 +15355,32 @@
       .catch(() => filmObj);
   }
 
+  const TMDB_GENRE_EN_RU = {
+    Action: 'боевик', Adventure: 'приключения', Animation: 'мультфильм',
+    Comedy: 'комедия', Crime: 'криминал', Documentary: 'документальный',
+    Drama: 'драма', Family: 'семейный', Fantasy: 'фэнтези', History: 'история',
+    Horror: 'ужасы', Music: 'музыка', Mystery: 'детектив', Romance: 'мелодрама',
+    'Science Fiction': 'фантастика', 'TV Movie': 'телевизионный фильм',
+    Thriller: 'триллер', War: 'военный', Western: 'вестерн',
+  };
+  function localizeGenreLabel(label) {
+    const raw = String(label || '').trim();
+    if (!raw) return '';
+    if (/[а-яА-ЯёЁ]/.test(raw)) return raw;
+    if (TMDB_GENRE_EN_RU[raw]) return TMDB_GENRE_EN_RU[raw];
+    const titled = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    if (TMDB_GENRE_EN_RU[titled]) return TMDB_GENRE_EN_RU[titled];
+    const hit = Object.keys(TMDB_GENRE_EN_RU).find((k) => k.toLowerCase() === raw.toLowerCase());
+    return hit ? TMDB_GENRE_EN_RU[hit] : raw;
+  }
+  function localizeGenresStr(genresStr) {
+    return String(genresStr || '')
+      .split(/[,;/|]+/)
+      .map((s) => localizeGenreLabel(s))
+      .filter(Boolean)
+      .join(', ');
+  }
+
   function buildFilmGenreChipsHtml(film) {
     const chips = [];
     if (film && film.is_series) {
@@ -15363,7 +15389,7 @@
         chips.push('<span class="chip">' + escapeHtml(label) + '</span>');
       });
     }
-    const parts = String((film && film.genres) || '')
+    const parts = String(localizeGenresStr((film && film.genres) || '') || '')
       .split(/[,;/|]+/)
       .map((s) => s.trim())
       .filter(Boolean);
