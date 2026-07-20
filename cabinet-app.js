@@ -194,9 +194,24 @@
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
+  function toPublicShareUrl(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    try {
+      const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(s) ? s : ('https://' + s);
+      const u = new URL(withScheme);
+      if ((u.hostname || '').toLowerCase() === 'api.movie-planner.ru') {
+        u.hostname = 'movie-planner.ru';
+        let out = u.toString();
+        if (u.pathname === '/' && !u.search && !u.hash) out = out.replace(/\/$/, '');
+        return out;
+      }
+    } catch (_e) { /* fall through */ }
+    return s.replace(/^https?:\/\/api\.movie-planner\.ru(?=\/|$)/i, 'https://movie-planner.ru');
+  }
   function buildFilmShareUrl(kpId) {
     const k = String(kpId || '').replace(/\D/g, '');
-    return k ? FILM_SHARE_SITE + '/f/' + k : '';
+    return k ? toPublicShareUrl(FILM_SHARE_SITE + '/f/' + k) : '';
   }
 
   function rewriteApexMediaUrl(url) {
@@ -10926,7 +10941,7 @@
           showToast(err, { type: 'error' });
           return;
         }
-        const url = res.share_url;
+        const url = toPublicShareUrl(res.share_url);
         const line = '🎬 Событие в Movie Planner — присоединяйтесь к просмотру';
         if (navigator.share) {
           navigator.share({ title: line, text: line + '\n' + url, url: url }).catch(function () {
