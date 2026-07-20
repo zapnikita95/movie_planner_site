@@ -281,9 +281,9 @@
 
   function renderFeedItem(item) {
     var kid = item.kp_id;
-    var filmTitle = item.film_title || item.title || ('film ' + kid);
+    var noFilm = !kid || item.no_film || item.feed_only;
+    var filmTitle = item.film_title || item.title || (noFilm ? 'YouTube' : ('film ' + kid));
     var poster = posterUrl(item) || PLACEHOLDER;
-    var href = '/f/' + encodeURIComponent(kid);
     var plat = item.platform || 'telegram';
     var chLabel = item.channel_label || item.channel_title || '@канал';
     var chKey = String(item.channel_username || chLabel).replace(/^@/, '');
@@ -293,14 +293,20 @@
     var postUrl = withBuzzUtm(item.post_url || item.channel_url || '#', {
       platform: plat, channel: chKey, kpId: kid, view: 'feed',
     });
+    /* Actor roundups: headline = video title, links go to YouTube — not /f/{wrong film}. */
+    var href = noFilm ? postUrl : ('/f/' + encodeURIComponent(kid));
     var teaser = String(item.teaser || item.excerpt || '').trim();
     if (teaser && normTitle(teaser) === normTitle(filmTitle)) teaser = '';
     var outAttrs = ' data-buzz-out="1" data-buzz-platform="' + esc(plat) +
-      '" data-buzz-channel="' + esc(chKey) + '" data-buzz-kp="' + esc(kid) + '"';
+      '" data-buzz-channel="' + esc(chKey) + '" data-buzz-kp="' + esc(kid || '') + '"';
+    var filmLinkAttrs = noFilm
+      ? (' href="' + esc(href) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs)
+      : (' href="' + esc(href) + '" data-kp-id="' + esc(kid) + '"');
 
     return (
-      '<article class="buzz-feed-row' + (plat === 'youtube' ? ' buzz-feed-row--yt' : '') + '">' +
-        '<a class="buzz-feed-poster" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '" data-title="' + esc(filmTitle) + '">' +
+      '<article class="buzz-feed-row' + (plat === 'youtube' ? ' buzz-feed-row--yt' : '') +
+        (noFilm ? ' buzz-feed-row--nofilm' : '') + '">' +
+        '<a class="buzz-feed-poster"' + filmLinkAttrs + ' data-title="' + esc(filmTitle) + '">' +
           '<img src="' + esc(poster) + '" alt="" loading="lazy">' +
         '</a>' +
         '<div class="buzz-feed-body">' +
@@ -310,9 +316,9 @@
             '</a>' +
             (plat === 'youtube' ? '<span class="buzz-feed-yt-pill">видео</span>' : '') +
             (item.posted_at ? '<time class="buzz-feed-date">' + esc(item.posted_at) + '</time>' : '') +
-            premiereBellHtml(item) +
+            (noFilm ? '' : premiereBellHtml(item)) +
           '</div>' +
-          '<a class="buzz-feed-film" href="' + esc(href) + '" data-kp-id="' + esc(kid) + '">' + esc(filmTitle) + '</a>' +
+          '<a class="buzz-feed-film"' + filmLinkAttrs + '>' + esc(filmTitle) + '</a>' +
           (teaser
             ? ('<a class="buzz-feed-excerpt" href="' + esc(postUrl) + '" target="_blank" rel="noopener nofollow" data-buzz-stop="1"' + outAttrs + '>' +
                 esc(teaser) +
