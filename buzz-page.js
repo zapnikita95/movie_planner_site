@@ -360,6 +360,34 @@
         if (state.kind) state.kind = '';
       }
     }
+    syncDaysOptions();
+  }
+
+  function syncDaysOptions() {
+    var daysSel = document.getElementById('buzz-days');
+    if (!daysSel) return;
+    var opts = state.videoOnly
+      ? [
+          [7, '7 дней'],
+          [14, '14 дней'],
+          [30, '30 дней'],
+          [365, 'Этот год'],
+          [4000, 'Всё время'],
+        ]
+      : [
+          [3, '3 дня'],
+          [7, '7 дней'],
+          [14, '14 дней'],
+        ];
+    var allowed = opts.map(function (o) { return o[0]; });
+    if (allowed.indexOf(state.days) < 0) {
+      state.days = state.videoOnly ? 30 : 14;
+    }
+    var html = opts.map(function (o) {
+      return '<option value="' + o[0] + '"' + (o[0] === state.days ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+    daysSel.innerHTML = html;
+    daysSel.value = String(state.days);
   }
 
   function filteredChannelsForItem(item) {
@@ -775,6 +803,10 @@
             state.kind = '';
             var kindSelYt = document.getElementById('buzz-kind');
             if (kindSelYt) kindSelYt.value = '';
+            if ([3, 7].indexOf(state.days) >= 0) state.days = 30;
+          } else {
+            /* Без видео — разумное окно трендов по умолчанию. */
+            state.days = 14;
           }
           state.loaded = false;
           syncTabs();
