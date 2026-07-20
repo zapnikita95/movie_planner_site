@@ -2200,9 +2200,6 @@
                     '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
                     '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
                   '</div>' +
-                  '<div class="film-toolbar-friends-wrap">' +
-                    '<div id="film-friends-social-block" class="hidden"></div>' +
-                  '</div>' +
                   '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
                     '<div class="public-rating-title">Ваша оценка</div>' +
                     '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
@@ -2210,6 +2207,9 @@
                         return '<button class="rate-btn" data-rate="' + n + '" type="button">' + n + '</button>';
                       }).join('') +
                     '</div>' +
+                  '</div>' +
+                  '<div class="film-toolbar-friends-wrap">' +
+                    '<div id="film-friends-social-block" class="hidden"></div>' +
                   '</div>' +
                 '</div>' +
                 '<p class="status" id="hint"></p>' +
