@@ -1987,10 +1987,16 @@
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title + year;
     var chips = document.getElementById('chips');
-    if (chips && boot.genres) {
-      String(boot.genres).split(/[,;/|]+/).slice(0, 8).forEach(function (label) {
+    if (chips && (boot.genres || boot.country)) {
+      String(boot.genres || '').split(/[,;/|]+/).slice(0, 8).forEach(function (label) {
         var chip = document.createElement('span');
         chip.className = 'chip';
+        chip.textContent = String(label || '').trim();
+        if (chip.textContent) chips.appendChild(chip);
+      });
+      String(boot.country || '').split(/[,;/|]+/).slice(0, 3).forEach(function (label) {
+        var chip = document.createElement('span');
+        chip.className = 'chip chip-country';
         chip.textContent = String(label || '').trim();
         if (chip.textContent) chips.appendChild(chip);
       });
@@ -2364,7 +2370,7 @@
           return r.json();
         });
       }
-      function renderGenreChips(genresStr, isSeries, seriesStats) {
+      function renderGenreChips(genresStr, isSeries, seriesStats, countryStr) {
         var container = document.getElementById('chips');
         if (!container) return;
         container.innerHTML = '';
@@ -2397,6 +2403,26 @@
           });
           container.appendChild(chip);
         });
+        String(countryStr || '')
+          .split(/[,;/|]+/)
+          .map(function (s) { return s.trim(); })
+          .filter(Boolean)
+          .slice(0, 3)
+          .forEach(function (label) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'chip chip-link chip-country';
+            chip.textContent = label;
+            chip.addEventListener('click', function () {
+              var q = encodeURIComponent(label);
+              if (global.MpCabinetNav && typeof global.MpCabinetNav.openSearch === 'function') {
+                global.MpCabinetNav.openSearch({ country: label });
+                return;
+              }
+              global.location.href = '/search?country=' + q;
+            });
+            container.appendChild(chip);
+          });
       }
       function scheduleLoadFacts() {
         var run = function () { loadFilmDescFacts(kpId, document); };
@@ -2768,7 +2794,7 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
-          renderGenreChips(f.genres, f.is_series, f.series_stats);
+          renderGenreChips(f.genres, f.is_series, f.series_stats, f.country);
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = kpId; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');

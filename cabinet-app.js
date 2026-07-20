@@ -1436,8 +1436,9 @@
       titleEl.textContent = keep + yearSuffix;
     }
     const chips = pageRoot.querySelector('.film-hero-with-tag .eyebrow');
-    if (chips && film.genres && !chips.querySelector('.chip')) {
+    if (chips && (film.genres || film.country) && !chips.querySelector('.chip')) {
       chips.innerHTML = buildFilmGenreChipsHtml(film);
+      bindFilmGenreCountryChips(chips);
     }
     mergeBootPoster(film, kp);
     applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
@@ -6832,15 +6833,24 @@
   function isSearchPath(pathname) {
     return _searchPathRe.test((pathname || '').replace(/\/$/, '') || '/');
   }
-  function searchQueryFromLocation() {
+  function searchParamsFromLocation() {
     try {
       const params = new URLSearchParams(window.location.search);
       const spa = params.get('__spa') || '';
       if (spa) {
         const spaUrl = new URL(decodeURIComponent(spa), window.location.origin);
-        if (isSearchPath(spaUrl.pathname)) return new URLSearchParams(spaUrl.search).get('q') || '';
+        if (isSearchPath(spaUrl.pathname)) {
+          return new URLSearchParams(spaUrl.search);
+        }
       }
-      return params.get('q') || '';
+      return params;
+    } catch (_) {
+      return new URLSearchParams();
+    }
+  }
+  function searchQueryFromLocation() {
+    try {
+      return searchParamsFromLocation().get('q') || '';
     } catch (_) {
       return '';
     }
@@ -15303,9 +15313,53 @@
       .filter(Boolean);
     if (!parts.length) parts.push(film && film.is_series ? 'сериал' : 'фильм');
     parts.slice(0, 8).forEach((label) => {
-      chips.push('<span class="chip">' + escapeHtml(label) + '</span>');
+      chips.push(
+        '<button type="button" class="chip chip-link" data-chip-genre="' +
+          escapeHtml(label) + '">' + escapeHtml(label) + '</button>'
+      );
     });
+    String((film && film.country) || '')
+      .split(/[,;/|]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 3)
+      .forEach((label) => {
+        chips.push(
+          '<button type="button" class="chip chip-link chip-country" data-chip-country="' +
+            escapeHtml(label) + '">' + escapeHtml(label) + '</button>'
+        );
+      });
     return chips.join('');
+  }
+
+  function bindFilmGenreCountryChips(root) {
+    if (!root || root.dataset.mpChipNavBound === '1') return;
+    root.dataset.mpChipNavBound = '1';
+    root.addEventListener('click', (e) => {
+      const genreBtn = e.target.closest('[data-chip-genre]');
+      if (genreBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const g = genreBtn.getAttribute('data-chip-genre') || '';
+        if (g && window.MpCabinetNav && typeof MpCabinetNav.openSearch === 'function') {
+          MpCabinetNav.openSearch({ genre: g });
+        } else if (g) {
+          window.location.href = '/search?genre=' + encodeURIComponent(g);
+        }
+        return;
+      }
+      const countryBtn = e.target.closest('[data-chip-country]');
+      if (countryBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const c = countryBtn.getAttribute('data-chip-country') || '';
+        if (c && window.MpCabinetNav && typeof MpCabinetNav.openSearch === 'function') {
+          MpCabinetNav.openSearch({ country: c });
+        } else if (c) {
+          window.location.href = '/search?country=' + encodeURIComponent(c);
+        }
+      }
+    });
   }
 
   function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {
@@ -15382,6 +15436,11 @@
         '</div>' +
       '</section>' +
       similarHtml;
+
+    try {
+      const chipRoot = content.querySelector('.eyebrow');
+      if (chipRoot) bindFilmGenreCountryChips(chipRoot);
+    } catch (_) {}
 
     try {
       if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAfterHero === 'function') {
@@ -16416,6 +16475,10 @@
       _siteSearchFilterState.genre = opts.genre;
       _siteSearchFilterState.type = _headerSearchHubType || 'any';
     }
+    if (opts.country) {
+      _siteSearchFilterState.country = opts.country;
+      _siteSearchFilterState.type = _headerSearchHubType || 'any';
+    }
     if (input) input.value = query;
     if (clearBtn) clearBtn.classList.remove('hidden');
     hideHeaderSearchDropdown();
@@ -16630,9 +16693,14 @@
     'драма', 'комедия', 'триллер', 'фантастика', 'боевик', 'ужасы',
     'детектив', 'мелодрама', 'семейный', 'анимация',
   ];
+  const SITE_SEARCH_COUNTRY_QUICK = [
+    'США', 'Россия', 'Великобритания', 'Франция', 'Германия',
+    'Южная Корея', 'Япония', 'Италия', 'Испания', 'Индия', 'Канада', 'Китай',
+  ];
   let _siteSearchFilterState = {
     type: 'any',
     genre: '',
+    country: '',
     yearMin: SITE_SEARCH_YEAR_MIN,
     yearMax: SITE_SEARCH_YEAR_MAX,
   };
@@ -16864,6 +16932,43 @@
       }
       return;
     }
+    if (key === 'country') {
+      const countryChips = SITE_SEARCH_COUNTRY_QUICK.map((c) =>
+        '<button type="button" class="search-genre-quick-chip' +
+          ((_siteSearchFilterState.country || '').toLowerCase() === c.toLowerCase() ? ' active' : '') +
+          '" data-site-country="' + escapeHtml(c) + '">' + escapeHtml(c) + '</button>'
+      ).join('');
+      panel.innerHTML =
+        '<div class="search-genre-quick" id="site-sf-country-quick">' + countryChips + '</div>' +
+        '<input id="site-sf-country" class="site-search-filter-input" type="text" value="' +
+          escapeHtml(_siteSearchFilterState.country || '') +
+          '" placeholder="Или введите свою…" autocomplete="off">';
+      const countryQuick = document.getElementById('site-sf-country-quick');
+      const countryInput = document.getElementById('site-sf-country');
+      const applyCountry = (val) => {
+        _siteSearchFilterState.country = val || '';
+        siteSearchRefreshFilterChipLabels();
+        siteSearchCloseExpandPanel();
+        runSiteSearchPage();
+      };
+      if (countryQuick) {
+        countryQuick.addEventListener('click', (e) => {
+          const chip = e.target.closest('[data-site-country]');
+          if (!chip) return;
+          applyCountry(chip.getAttribute('data-site-country') || '');
+        });
+      }
+      if (countryInput) {
+        countryInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            applyCountry(countryInput.value.trim());
+          }
+        });
+        countryInput.addEventListener('change', () => applyCountry(countryInput.value.trim()));
+      }
+      return;
+    }
     if (key === 'sort') {
       const sortLab = {
         relevance: 'По релевантности',
@@ -16892,6 +16997,7 @@
     return (
       st.type !== 'any' ||
       !!(st.genre && String(st.genre).trim()) ||
+      !!(st.country && String(st.country).trim()) ||
       st.yearMin > SITE_SEARCH_YEAR_MIN ||
       st.yearMax < SITE_SEARCH_YEAR_MAX
     );
@@ -16902,6 +17008,7 @@
     const tv = document.getElementById('site-sf-chip-type-val');
     const yv = document.getElementById('site-sf-chip-year-val');
     const gv = document.getElementById('site-sf-chip-genre-val');
+    const cv = document.getElementById('site-sf-chip-country-val');
     if (tv) tv.textContent = typeLab[_siteSearchFilterState.type] || 'Все';
     if (yv) {
       const lo = _siteSearchFilterState.yearMin;
@@ -16911,6 +17018,10 @@
     if (gv) {
       const g = (_siteSearchFilterState.genre || '').trim();
       gv.textContent = g ? (g.length > 22 ? g.slice(0, 20) + '…' : g) : 'Любой';
+    }
+    if (cv) {
+      const c = (_siteSearchFilterState.country || '').trim();
+      cv.textContent = c ? (c.length > 22 ? c.slice(0, 20) + '…' : c) : 'Любая';
     }
   }
 
@@ -16948,6 +17059,10 @@
             '<button type="button" class="search-filter-chip" id="site-sf-chip-genre" data-sf-expand="genre" aria-expanded="false">' +
               '<span class="search-filter-chip-k">Жанр</span>' +
               '<span class="search-filter-chip-v" id="site-sf-chip-genre-val">Любой</span>' +
+            '</button>' +
+            '<button type="button" class="search-filter-chip" id="site-sf-chip-country" data-sf-expand="country" aria-expanded="false">' +
+              '<span class="search-filter-chip-k">Страна</span>' +
+              '<span class="search-filter-chip-v" id="site-sf-chip-country-val">Любая</span>' +
             '</button>' +
           '</div>' +
           '<button type="button" class="search-sort-icon-btn" id="site-search-sort-btn" data-sf-expand="sort" aria-label="Сортировка" aria-expanded="false">' +
@@ -17037,7 +17152,12 @@
     if (!root) return;
     showSiteSearchScreen();
     try { document.title = 'Поиск · Movie Planner'; } catch (_) {}
-    const q = String((initial && initial.q) || '').trim();
+    const locParams = searchParamsFromLocation();
+    const q = String((initial && initial.q != null ? initial.q : locParams.get('q')) || '').trim();
+    const genreFrom = String((initial && initial.genre != null ? initial.genre : locParams.get('genre')) || '').trim();
+    const countryFrom = String((initial && initial.country != null ? initial.country : locParams.get('country')) || '').trim();
+    if (genreFrom) _siteSearchFilterState.genre = genreFrom;
+    if (countryFrom) _siteSearchFilterState.country = countryFrom;
     root.innerHTML = `
       <div id="site-search-nav-wrap" class="site-search-nav-wrap"></div>
       <section class="site-search-page" id="site-search-page">
@@ -17161,6 +17281,8 @@
     if (st.type && st.type !== 'any') params.set('type', st.type);
     const genreTrim = (st.genre || '').trim();
     if (genreTrim) params.set('genre', genreTrim);
+    const countryTrim = (st.country || '').trim();
+    if (countryTrim) params.set('country', countryTrim);
     if (st.yearMin > SITE_SEARCH_YEAR_MIN || st.yearMax < SITE_SEARCH_YEAR_MAX) {
       params.set('year_from', String(st.yearMin));
       params.set('year_to', String(st.yearMax));
@@ -22862,12 +22984,17 @@
         var params = [];
         if (opts.q) params.push('q=' + encodeURIComponent(String(opts.q)));
         if (opts.genre) params.push('genre=' + encodeURIComponent(String(opts.genre)));
+        if (opts.country) params.push('country=' + encodeURIComponent(String(opts.country)));
         var url = '/search' + (params.length ? '?' + params.join('&') : '');
         try {
           if (getToken() && typeof showSection === 'function') {
             showSection('search', { skipPush: true });
             if (typeof renderSiteSearchPage === 'function') {
-              renderSiteSearchPage({ q: opts.q || '', genre: opts.genre || '' });
+              renderSiteSearchPage({
+                q: opts.q || '',
+                genre: opts.genre || '',
+                country: opts.country || '',
+              });
             }
             history.pushState({ section: 'search' }, '', url);
             return;
