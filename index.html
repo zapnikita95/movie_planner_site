@@ -550,7 +550,7 @@
       (function () {
         try {
           var path = (location.pathname || '/').replace(/\/$/, '') || '/';
-          var filmMatch = path.match(/^\/f\/(\d+)$/);
+          var filmMatch = path.match(/^\/f\/(?:(movie|tv)-\d+|\d+)$/i);
           var staffMatch = path.match(/^\/s\/(\d+)$/);
           if (!filmMatch && !staffMatch) return;
           function hasRouteToken() {
