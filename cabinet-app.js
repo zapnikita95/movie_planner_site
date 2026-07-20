@@ -2654,6 +2654,7 @@
     let pathUserBoot = null;
     const params = new URLSearchParams(window.location.search);
     const pathKp = kpIdFromPathname(window.location.pathname);
+    const catalogFilm = catalogFilmFromPathname(window.location.pathname);
     const queryKp = params.get('kp_open');
     let pendingKp = null;
     let pendingAction = '';
@@ -2670,6 +2671,47 @@
     const filmKp = (pathKp && /^\d+$/.test(pathKp) ? pathKp : null)
       || (queryKp && /^\d+$/.test(queryKp) ? queryKp : null)
       || pendingKp;
+
+    if (catalogFilm && !filmKp) {
+      document.body.classList.remove('login-only-overlay');
+      document.body.classList.add('in-cabinet');
+      syncSessionHtmlClass();
+      try { document.documentElement.classList.remove('mp-auth-boot'); } catch (_) {}
+      if (me) renderHeader(me);
+      showScreen('cabinet-readonly');
+      showFilmPageLayout();
+      if (window.__MP_FILM_RENDERED || window.__MP_FILM_ROUTE_LITE_READY || isFilmLiteRouteActive()) {
+        if (getToken()) {
+          ensureLoggedInHeader();
+          try {
+            if (window.MpFilmPage && typeof window.MpFilmPage.refreshStandaloneAuthChrome === 'function') {
+              window.MpFilmPage.refreshStandaloneAuthChrome({
+                catalogId: catalogFilm.catalogId,
+                tmdbId: catalogFilm.tmdbId,
+                mediaType: catalogFilm.mediaType,
+                mainSelector: '#film-page-content',
+              });
+            }
+          } catch (_) {}
+        }
+        writeOnboardReturnFromPath('/f/' + catalogFilm.pathKey);
+        scheduleContentPagePostAuthOffer();
+        return Promise.resolve();
+      }
+      if (window.MpFilmPage && typeof window.MpFilmPage.bootstrap === 'function') {
+        window.MpFilmPage.bootstrap({
+          tmdbId: catalogFilm.tmdbId,
+          mediaType: catalogFilm.mediaType,
+          catalogId: catalogFilm.catalogId,
+          pageUrl: window.location.origin + '/f/' + catalogFilm.pathKey,
+          cabinetMode: true,
+          onReady: function () { window.__MP_FILM_RENDERED = true; },
+        });
+        writeOnboardReturnFromPath('/f/' + catalogFilm.pathKey);
+        scheduleContentPagePostAuthOffer();
+        return Promise.resolve();
+      }
+    }
 
     function isHomeSectionVisible() {
       const secHome = document.getElementById('section-home');
@@ -5264,6 +5306,7 @@
 
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
+  const _filmCatalogPathRe = /^\/f\/(movie|tv)-(\d+)(?:\/?)?$/i;
   const _filmTagPathRe = /^\/tags\/(\d+)(?:\/?)?$/;
   const _userPathRe = /^\/(?:u|user)\/(-?\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
@@ -5276,9 +5319,22 @@
     const m = p.match(_filmKpPathRe);
     return m ? m[1] : null;
   }
+  /** TMDB-only public cards: /f/movie-123, /f/tv-456 (no Kinopoisk id). */
+  function catalogFilmFromPathname(pathname) {
+    if (!pathname) return null;
+    const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const m = p.match(_filmCatalogPathRe);
+    if (!m) return null;
+    const mt = String(m[1] || 'movie').toLowerCase();
+    const tid = String(m[2] || '');
+    if (!tid) return null;
+    return { mediaType: mt, tmdbId: tid, catalogId: mt + '-' + tid, pathKey: mt + '-' + tid };
+  }
   function filmCanonicalPath(filmId, kpId) {
     const kp = String(kpId || '').replace(/\D/g, '');
     if (kp) return '/f/' + kp;
+    const cat = catalogFilmFromPathname(window.location.pathname);
+    if (cat) return '/f/' + cat.pathKey;
     return '/';
   }
 
@@ -22840,6 +22896,23 @@
       const pathKpGuest = kpIdFromPathname(window.location.pathname);
       if (pathKpGuest && /^\d+$/.test(pathKpGuest)) {
         bootGuestFilmPage(pathKpGuest);
+        handleAuthEntryDeepLinks();
+        return;
+      }
+      const catalogGuest = catalogFilmFromPathname(window.location.pathname);
+      if (catalogGuest) {
+        showScreen('cabinet-readonly');
+        showFilmPageLayout();
+        if (window.MpFilmPage && typeof window.MpFilmPage.bootstrap === 'function') {
+          window.MpFilmPage.bootstrap({
+            tmdbId: catalogGuest.tmdbId,
+            mediaType: catalogGuest.mediaType,
+            catalogId: catalogGuest.catalogId,
+            pageUrl: window.location.origin + '/f/' + catalogGuest.pathKey,
+            cabinetMode: true,
+            onReady: function () { window.__MP_FILM_RENDERED = true; },
+          });
+        }
         handleAuthEntryDeepLinks();
         return;
       }
