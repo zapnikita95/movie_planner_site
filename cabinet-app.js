@@ -1300,6 +1300,42 @@
     return /^(фильм|сериал|film|series)\s+\d+$/i.test(t);
   }
 
+  function titleHasCyrillic(title) {
+    return /[а-яА-ЯёЁ]/.test(String(title || ''));
+  }
+
+  function stripFilmTitleYear(title) {
+    return String(title || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+  }
+
+  /** Keep buzz/shell RU title; never flash Latin (Mother Father Pasha) over Cyrillic. */
+  function preferDisplayTitle(current, incoming) {
+    const cur = stripFilmTitleYear(current);
+    const inc = stripFilmTitleYear(incoming);
+    if (!inc || isGenericFilmTitle(inc)) return cur || inc;
+    if (!cur || isGenericFilmTitle(cur)) return inc;
+    if (titleHasCyrillic(cur) && !titleHasCyrillic(inc)) return cur;
+    if (!titleHasCyrillic(cur) && titleHasCyrillic(inc)) return inc;
+    // Both Cyrillic: keep already-painted shell/buzz title (Паша) — no flash.
+    return cur;
+  }
+
+  function applyPreferredFilmTitle(film, kpHint) {
+    if (!film) return film;
+    const kp = String(kpHint || film.kp_id || '').replace(/\D/g, '');
+    const shell = peekFilmShellSeed(kp);
+    if (shell && shell.title && !isGenericFilmTitle(shell.title)) {
+      film.title = preferDisplayTitle(shell.title, film.title);
+      if (shell.year && !film.year) film.year = shell.year;
+    } else if (film.title && !titleHasCyrillic(film.title)) {
+      const boot = filmFromRouteBoot(kp);
+      if (boot && boot.title && titleHasCyrillic(boot.title)) {
+        film.title = boot.title;
+      }
+    }
+    return film;
+  }
+
   function readMpRouteBoot() {
     try {
       const el = document.getElementById('mp-route-boot');
@@ -1460,36 +1496,44 @@
     if (!hasHeroEarly) {
       try { window.scrollTo(0, 0); } catch (_) {}
     }
+    const shellSeed = peekFilmShellSeed(kp);
     if (pageRootEarly && !hasHeroEarly) {
-      if (!paintFilmRouteBoot(kp, o)) {
+      if (paintFilmRouteBoot(kp, o)) {
+        /* SSR boot — one paint */
+      } else if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title)) {
+        pageRootEarly.className = 'movie-page';
+        const shellFilm = mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp);
+        renderFilmDetailHero(shellFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
+          inBase: false,
+          pendingAction: o.action || '',
+        });
+        ensureFilmHeroDescription(pageRootEarly, shellFilm);
+      } else {
         pageRootEarly.className = 'movie-page loading';
         pageRootEarly.innerHTML = pageLoadingHtml();
       }
     }
-    const shellSeed = peekFilmShellSeed(kp);
-    if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title) && pageRootEarly && !hasHeroEarly && !paintFilmRouteBoot(kp, o)) {
-      pageRootEarly.className = 'movie-page';
-      const shellFilm = mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp);
-      renderFilmDetailHero(shellFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
-        inBase: false,
-        pendingAction: o.action || '',
-      });
-      ensureFilmHeroDescription(pageRootEarly, shellFilm);
-    }
     if (!hasHeroEarly) {
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
         .then(function (lite) {
-          if (!lite || !lite.title || !pageRootEarly) return;
-          if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title)) return;
-          if (paintFilmRouteBoot(kp, o)) return;
-          if (isGenericFilmTitle(lite.title)) return;
-          const liteFilm = mergeBootDescription(mapLiteFilmForHero(lite, kp), kp);
-          if (heroKpIdFromRoot(pageRootEarly) === kp && pageRootEarly.querySelector('.film-hero-with-tag')) {
+          if (!lite || !pageRootEarly) return;
+          const liteFilm = applyPreferredFilmTitle(
+            mergeBootDescription(mapLiteFilmForHero(lite, kp), kp),
+            kp
+          );
+          if (shouldPatchFilmHeroInPlace(pageRootEarly, liteFilm)) {
+            const titleEl = pageRootEarly.querySelector('#film-title') || pageRootEarly.querySelector('h1');
+            if (titleEl && liteFilm.title && !isGenericFilmTitle(liteFilm.title)) {
+              const keep = preferDisplayTitle(titleEl.textContent, liteFilm.title);
+              const yearSuffix = liteFilm.year ? ' (' + liteFilm.year + ')' : '';
+              titleEl.textContent = keep + yearSuffix;
+            }
             mergeBootPoster(liteFilm, kp);
             applyFilmPosterToHero(pageRootEarly, pickFilmPosterUrl(liteFilm, pageRootEarly));
             ensureFilmHeroDescription(pageRootEarly, liteFilm);
             return;
           }
+          if (isGenericFilmTitle(liteFilm.title)) return;
           pageRootEarly.className = 'movie-page';
           renderFilmDetailHero(liteFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
             inBase: !!lite.in_library,
@@ -5625,6 +5669,7 @@
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
+        '<div class="film-desc-reviews-inline"></div>' +
       '</div>'
     );
   }
@@ -5654,7 +5699,6 @@
     const plotText = normalizeFilmDescriptionText(
       wrap.getAttribute('data-plot-text') ||
       fullEl.querySelector('.film-desc-plot')?.textContent ||
-      fullEl.textContent ||
       wrap.querySelector('.film-desc-short')?.textContent ||
       ''
     );
@@ -5663,8 +5707,8 @@
     if (!plotEl) {
       plotEl = document.createElement('span');
       plotEl.className = 'film-desc-plot';
-      fullEl.textContent = '';
-      fullEl.appendChild(plotEl);
+      /* Never wipe facts via textContent on the full block. */
+      fullEl.insertBefore(plotEl, fullEl.firstChild);
     }
     plotEl.textContent = plotText;
     let factsEl = fullEl.querySelector('.film-desc-facts-inline');
@@ -5672,6 +5716,12 @@
       factsEl = document.createElement('span');
       factsEl.className = 'film-desc-facts-inline';
       fullEl.appendChild(factsEl);
+    }
+    let reviewsEl = wrap.querySelector('.film-desc-reviews-inline');
+    if (!reviewsEl) {
+      reviewsEl = document.createElement('div');
+      reviewsEl.className = 'film-desc-reviews-inline';
+      wrap.appendChild(reviewsEl);
     }
     const legacyList = wrap.querySelector('#film-desc-facts-list');
     if (legacyList && legacyList.innerHTML.trim() && !factsEl.innerHTML.trim()) {
@@ -5711,13 +5761,15 @@
     const plotEl = wrap.querySelector('.film-desc-plot');
     const btn = wrap.querySelector('.film-desc-more-btn');
     if (!descEl || !shortEl || !fullEl || !plotEl || !btn) return;
-    if (!text) {
+    const hasReviews = wrap.getAttribute('data-has-reviews') === '1';
+    const extras = !!hasFacts || hasReviews || wrap.getAttribute('data-has-facts') === '1';
+    if (!text && !extras) {
       wrap.classList.add('hidden');
       return;
     }
     wrap.classList.remove('hidden');
     const expanded = btn.getAttribute('aria-expanded') === 'true';
-    const needsMore = text.length > FILM_DESC_PREVIEW_LEN || !!hasFacts;
+    const needsMore = text.length > FILM_DESC_PREVIEW_LEN || extras;
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       const cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
@@ -5772,7 +5824,98 @@
     factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
     const hasFacts = items.length > 0;
     wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts);
+    const hasReviews = wrap.getAttribute('data-has-reviews') === '1';
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+  }
+
+  function withFilmReviewUtm(url, channelTitle) {
+    const raw = String(url || '').trim();
+    if (!/^https?:\/\//i.test(raw)) return raw;
+    try {
+      const u = new URL(raw);
+      if (!u.searchParams.get('utm_source')) u.searchParams.set('utm_source', 'movie_planner');
+      if (!u.searchParams.get('utm_medium')) u.searchParams.set('utm_medium', 'film_reviews');
+      if (!u.searchParams.get('utm_campaign')) u.searchParams.set('utm_campaign', 'news');
+      const content = String(channelTitle || 'youtube').replace(/[^\w.\-@]+/g, '_').slice(0, 80);
+      if (content && !u.searchParams.get('utm_content')) u.searchParams.set('utm_content', content);
+      return u.toString();
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  function filmDescReviewsInlineHtml(items) {
+    if (!items || !items.length) return '';
+    const ytSvg = '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+      '<path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/>' +
+      '</svg></span>';
+    const lis = items.slice(0, 8).map(function (it) {
+      if (!it || !it.url) return '';
+      const title = escapeHtml(it.title || 'Видео');
+      const ch = escapeHtml(it.channel_title || '');
+      const url = escapeHtml(withFilmReviewUtm(it.url, it.channel_title || ''));
+      const chBit = ch ? ' <span class="film-review-channel">' + ch + '</span>' : '';
+      return '<li class="film-review-item">' + ytSvg +
+        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-channel="' + ch + '">' +
+        title + '</a>' + chBit + '</li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-desc-reviews-title">Разборы на YouTube</div>' +
+      '<ul class="film-desc-reviews-list">' + lis + '</ul>';
+  }
+
+  function paintFilmDescReviews(wrap, items) {
+    if (!wrap) wrap = document.getElementById('film-desc-wrap');
+    if (!wrap) return;
+    migrateFilmDescWrap(wrap);
+    let revEl = wrap.querySelector('.film-desc-reviews-inline');
+    if (!revEl) {
+      revEl = document.createElement('div');
+      revEl.className = 'film-desc-reviews-inline';
+      wrap.appendChild(revEl);
+    }
+    const list = Array.isArray(items) ? items : [];
+    revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
+    revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        try {
+          if (typeof window.ym === 'function') {
+            window.ym(110038199, 'reachGoal', 'buzz_outbound', {
+              platform: 'youtube',
+              channel: a.getAttribute('data-review-channel') || '',
+              view: 'film_reviews',
+            });
+          }
+        } catch (_) {}
+      });
+    });
+    wrap.setAttribute('data-has-reviews', list.length ? '1' : '0');
+    const hasFacts = wrap.getAttribute('data-has-facts') === '1';
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || list.length > 0);
+  }
+
+  function loadFilmDescReviews(kpId, root) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve();
+    const scope = root || document;
+    const wrap = scope.querySelector('#film-desc-wrap');
+    if (!wrap) return Promise.resolve();
+    if (wrap.getAttribute('data-reviews-loaded') === kp) return Promise.resolve();
+    if (wrap.getAttribute('data-reviews-loading') === kp) return Promise.resolve();
+    wrap.setAttribute('data-reviews-loading', kp);
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', { method: 'GET', mode: 'cors' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('api_' + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        wrap.setAttribute('data-reviews-loaded', kp);
+        paintFilmDescReviews(wrap, (d && d.items) || []);
+      })
+      .catch(function () {})
+      .then(function () { wrap.removeAttribute('data-reviews-loading'); });
   }
 
   function paintBootFilmDescFacts(kp, root) {
@@ -5794,14 +5937,24 @@
     const scope = root || document;
     const wrap = scope.querySelector('#film-desc-wrap');
     if (!wrap) return Promise.resolve();
-    if (wrap.getAttribute('data-facts-loaded') === kp) return Promise.resolve();
+    if (wrap.getAttribute('data-facts-loaded') === kp) {
+      return loadFilmDescReviews(kp, root);
+    }
+    if (wrap.getAttribute('data-facts-loading') === kp) {
+      return Promise.resolve();
+    }
+    wrap.setAttribute('data-facts-loading', kp);
     return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/facts', { method: 'GET', mode: 'cors' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         wrap.setAttribute('data-facts-loaded', kp);
         paintFilmDescFacts(wrap, d);
       })
-      .catch(function () {});
+      .catch(function () {})
+      .then(function () {
+        wrap.removeAttribute('data-facts-loading');
+        return loadFilmDescReviews(kp, root);
+      });
   }
 
   function bindFilmActorsExpand(root) {
@@ -14882,6 +15035,7 @@
       }
       if (_filmModalCurrentId !== filmId) return;
       upgradeGenericFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
+      applyPreferredFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
       const myRating = filmMyRating(detail.ratings || [], detail.me);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
@@ -14900,14 +15054,16 @@
             history.replaceState({ view: 'film', filmId, kpId: data.film.kp_id }, '', filmCanonicalPath(filmId, data.film.kp_id));
           } catch (_) {}
         }
-        const heroTitleEl = pageRoot.querySelector('#film-title');
-        const heroTitleOk = heroTitleEl && !isGenericFilmTitle(String(heroTitleEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim());
+        const heroTitleEl = pageRoot.querySelector('#film-title') || pageRoot.querySelector('.film-hero-with-tag h1');
+        const heroTitleOk = heroTitleEl && !isGenericFilmTitle(stripFilmTitleYear(heroTitleEl.textContent));
         if (shouldPatchFilmHeroInPlace(pageRoot, data.film) && (heroTitleOk || !isGenericFilmTitle(data.film.title))) {
-          if (isGenericFilmTitle(data.film.title) && heroTitleOk) {
-            /* оставляем хороший title с shell/buzz, не затираем «Фильм N» */
-          } else if (heroTitleEl && data.film.title && !isGenericFilmTitle(data.film.title)) {
+          if (heroTitleEl && data.film.title && !isGenericFilmTitle(data.film.title)) {
+            const keep = preferDisplayTitle(heroTitleEl.textContent, data.film.title);
             const yearSuffix = data.film.year ? ' (' + data.film.year + ')' : '';
-            heroTitleEl.textContent = data.film.title + yearSuffix;
+            heroTitleEl.textContent = keep + yearSuffix;
+            data.film.title = keep;
+          } else if (isGenericFilmTitle(data.film.title) && heroTitleOk) {
+            /* оставляем хороший title с shell/buzz */
           }
           mergeBootPoster(data.film, data.film.kp_id);
           mergeBootDescription(data.film, data.film.kp_id);
@@ -15062,6 +15218,7 @@
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = pickFilmPosterUrl(film, content);
+    applyPreferredFilmTitle(film, film.kp_id);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
     const crew = '<div class="film-hero-crew" id="film-hero-cast-root">' + buildFilmCastSkeletonHtml() + '</div>';
     const toolbarHtml = buildFilmPageToolbar({
@@ -15101,7 +15258,7 @@
           '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>' +
         '</div>' +
         '<div class="hero-content">' +
-          '<h1>' + escapeHtml(titleText) + '</h1>' +
+          '<h1 id="film-title">' + escapeHtml(titleText) + '</h1>' +
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
           crew +
           buildFilmDescWrapHtml() +

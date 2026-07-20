@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260718cabinetai1';
+  var BUILD = '20260720filmfix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -187,7 +187,8 @@
     global.ensureFullCabinet = ensureFullCabinet;
     global.__MP_FILM_ROUTE_LITE_READY = true;
     showCabinetFilmShell();
-    ensureFullCabinet();
+    /* Do NOT load cabinet-app.js before first film paint — that caused triple blink. */
+    scheduleIdleFullCabinet();
 
     if (global.MpPublicFilmLogin) {
       global.MpPublicFilmLogin.init({
@@ -245,8 +246,9 @@
       onReady: function () {
         global.__MP_FILM_RENDERED = true;
         bindNavPrefetch();
+        /* Authed: load full cabinet after first paint, not before. */
         if (getToken()) {
-          ensureFullCabinet();
+          setTimeout(function () { ensureFullCabinet(); }, 400);
         }
       },
     });
