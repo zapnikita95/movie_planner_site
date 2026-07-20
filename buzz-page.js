@@ -249,21 +249,7 @@
     var kid = item.kp_id;
     var title = item.title || ('film ' + kid);
     var n = item.mention_count || 0;
-    var chans = Array.isArray(item.channels) ? item.channels.slice() : [];
-    if (state.kind) {
-      chans = chans.filter(function (c) { return String(c.channel_kind || '') === state.kind; });
-    }
-    if (state.videoOnly) {
-      chans = chans.filter(function (c) {
-        var p = c.platform || ((String(c.url || c.post_url || '').indexOf('youtube') >= 0) ? 'youtube' : 'telegram');
-        return p === 'youtube';
-      });
-    }
-    chans.sort(function (a, b) {
-      var ay = (a.platform === 'youtube') ? 0 : 1;
-      var by = (b.platform === 'youtube') ? 0 : 1;
-      return ay - by;
-    });
+    var chans = filteredChannelsForItem(item);
     var cc = chans.length || item.channel_count || 0;
     var href = '/f/' + encodeURIComponent(kid);
     var poster = posterUrl(item) || PLACEHOLDER;
@@ -271,7 +257,7 @@
     var itemForChips = Object.assign({}, item, { channels: chans });
 
     return (
-      '<article class="buzz-tile' + (hasVideo ? ' buzz-tile--video' : '') + '">' +
+      '<article class="buzz-tile' + (hasVideo ? ' buzz-tile--video' : '') + '" data-buzz-kp="' + esc(kid) + '">' +
         '<div class="buzz-tile-poster-wrap">' +
           premiereBellHtml(item) +
           (hasVideo ? '<span class="buzz-video-badge" aria-label="Есть видео">▶ видео</span>' : '') +
@@ -358,6 +344,86 @@
     }
     var sortWrap = document.getElementById('buzz-sort-tabs');
     if (sortWrap) sortWrap.classList.toggle('hidden', state.view !== 'films');
+    /* Тип канала (кинотеатры и т.п.) несовместим с «только видео». */
+    var kindSel = document.getElementById('buzz-kind');
+    if (kindSel) {
+      kindSel.classList.toggle('hidden', !!state.videoOnly);
+      kindSel.disabled = !!state.videoOnly;
+      if (state.videoOnly) {
+        if (kindSel.value) kindSel.value = '';
+        if (state.kind) state.kind = '';
+      }
+    }
+  }
+
+  function filteredChannelsForItem(item) {
+    var chans = Array.isArray(item && item.channels) ? item.channels.slice() : [];
+    if (state.kind) {
+      chans = chans.filter(function (c) { return String(c.channel_kind || '') === state.kind; });
+    }
+    if (state.videoOnly) {
+      chans = chans.filter(function (c) {
+        var p = c.platform || ((String(c.url || c.post_url || '').indexOf('youtube') >= 0) ? 'youtube' : 'telegram');
+        return p === 'youtube';
+      });
+    }
+    chans.sort(function (a, b) {
+      var ay = (a.platform === 'youtube') ? 0 : 1;
+      var by = (b.platform === 'youtube') ? 0 : 1;
+      return ay - by;
+    });
+    return chans;
+  }
+
+  /** Expand/collapse chips for one card — no full grid re-render (no poster flash). */
+  function refreshCardChips(kid, expand) {
+    kid = String(kid || '').replace(/\D/g, '');
+    if (!kid) return;
+    if (expand) state.expanded[kid] = true;
+    else delete state.expanded[kid];
+    var grid = document.getElementById('buzz-grid');
+    var tile = grid && grid.querySelector('.buzz-tile[data-buzz-kp="' + kid + '"]');
+    var item = null;
+    for (var i = 0; i < (state.items || []).length; i++) {
+      if (String(state.items[i].kp_id || '') === kid) {
+        item = state.items[i];
+        break;
+      }
+    }
+    if (!tile || !item) {
+      paint({ noAnimate: true });
+      return;
+    }
+    var chans = filteredChannelsForItem(item);
+    var html = sourceChipsHtml(Object.assign({}, item, { channels: chans }));
+    var sources = tile.querySelector('.buzz-card-sources');
+    if (sources) {
+      if (html) sources.outerHTML = html;
+      else sources.remove();
+    } else if (html) {
+      tile.insertAdjacentHTML('beforeend', html);
+    }
+  }
+
+  function ensureGridDelegation() {
+    var grid = document.getElementById('buzz-grid');
+    if (!grid || grid._mpBuzzChipsBound) return;
+    grid._mpBuzzChipsBound = true;
+    grid.addEventListener('click', function (e) {
+      var expandBtn = e.target.closest('[data-buzz-expand]');
+      if (expandBtn && grid.contains(expandBtn)) {
+        e.preventDefault();
+        e.stopPropagation();
+        refreshCardChips(expandBtn.getAttribute('data-buzz-expand'), true);
+        return;
+      }
+      var collapseBtn = e.target.closest('[data-buzz-collapse]');
+      if (collapseBtn && grid.contains(collapseBtn)) {
+        e.preventDefault();
+        e.stopPropagation();
+        refreshCardChips(collapseBtn.getAttribute('data-buzz-collapse'), false);
+      }
+    });
   }
 
   function skeletonHtml(n) {
@@ -461,6 +527,7 @@
     if (empty) empty.classList.add('hidden');
     grid.className = (state.view === 'feed' ? 'buzz-feed' : 'buzz-grid') + (animate ? ' buzz-grid--enter' : '');
     grid.innerHTML = html;
+    ensureGridDelegation();
     if (sec) sec.classList.add('buzz-has-content');
     /* SEO только после реальных карточек — не вместо них */
     setSeoVisible(true);
@@ -471,22 +538,6 @@
       }
     } catch (_) {}
 
-    grid.querySelectorAll('[data-buzz-expand]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        state.expanded[btn.getAttribute('data-buzz-expand')] = true;
-        paint();
-      });
-    });
-    grid.querySelectorAll('[data-buzz-collapse]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        delete state.expanded[btn.getAttribute('data-buzz-collapse')];
-        paint();
-      });
-    });
     grid.querySelectorAll('a[href^="/f/"]').forEach(function (a) {
       a.addEventListener('click', function (e) {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
@@ -713,6 +764,12 @@
         var ytToggle = e.target.closest('#buzz-yt-only');
         if (ytToggle && viewTabs.contains(ytToggle)) {
           state.videoOnly = !state.videoOnly;
+          /* С видео-фильтром тип канала сбрасываем и прячем. */
+          if (state.videoOnly) {
+            state.kind = '';
+            var kindSelYt = document.getElementById('buzz-kind');
+            if (kindSelYt) kindSelYt.value = '';
+          }
           state.loaded = false;
           syncTabs();
           load();
