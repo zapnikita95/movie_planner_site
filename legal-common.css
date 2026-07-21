@@ -3,7 +3,7 @@
   --mp-muted: #5c5c5c;
   --mp-bg: #fafafa;
   --mp-card: #fff;
-  --mp-accent: #667eea;
+  --mp-accent: #4f46e5;
   --mp-border: #e8e8e8;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,7 +13,7 @@ body {
   color: var(--mp-text);
   background: var(--mp-bg);
 }
-a { color: var(--mp-accent); text-decoration: none; }
+a { color: var(--mp-accent); text-decoration: underline; text-underline-offset: 2px; }
 a:hover { text-decoration: underline; }
 .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
 .site-header {
@@ -73,7 +73,7 @@ a:hover { text-decoration: underline; }
 .deletion-callout {
   background: #f3f5ff;
   border: 1px solid var(--mp-border);
-  border-left: 4px solid #5c6bc0;
+  border-left: 4px solid #4f46e5;
   border-radius: 10px;
   padding: 20px 20px 8px;
   margin: 20px 0 24px;
