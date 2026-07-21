@@ -8937,6 +8937,9 @@
     clearTimeout(_homeRailMountTimer);
     _homeRailMountTimer = setTimeout(function () {
       try { mountHomeDashboardRails(); } catch (_) {}
+      try {
+        bindHomePosterRailDragScroll(document.getElementById('home-dashboard-root') || document);
+      } catch (_) {}
     }, 140);
   }
 
@@ -9356,10 +9359,71 @@
     });
   }
 
+  /** Desktop: grab+drag home rails (mouse). Touch keeps native swipe. Click still opens film if not dragged. */
+  function bindHomePosterRailDragScroll(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.home-poster-rail, .home-prem-rail, .similar-rail.home-rail--draggable').forEach((rail) => {
+      if (rail._mpDragScrollBound) return;
+      rail._mpDragScrollBound = true;
+      rail.classList.add('home-rail--draggable');
+      let active = false;
+      let dragging = false;
+      let startX = 0;
+      let startScroll = 0;
+      const THRESH = 6;
+
+      rail.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch') return;
+        if (e.button != null && e.button !== 0) return;
+        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-next')) return;
+        active = true;
+        dragging = false;
+        startX = e.clientX;
+        startScroll = rail.scrollLeft;
+        try { rail.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+      rail.addEventListener('pointermove', (e) => {
+        if (!active) return;
+        const dx = e.clientX - startX;
+        if (!dragging && Math.abs(dx) > THRESH) {
+          dragging = true;
+          rail.classList.add('is-dragging');
+        }
+        if (!dragging) return;
+        e.preventDefault();
+        rail.scrollLeft = startScroll - dx;
+      });
+      function endDrag(e) {
+        if (!active) return;
+        active = false;
+        rail.classList.remove('is-dragging');
+        try {
+          if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        // Keep `dragging` until click capture so the open-film handler can ignore it.
+        if (dragging) {
+          setTimeout(function () { dragging = false; }, 0);
+        }
+      }
+      rail.addEventListener('pointerup', endDrag);
+      rail.addEventListener('pointercancel', endDrag);
+      rail.addEventListener('lostpointercapture', endDrag);
+      rail.addEventListener('click', (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        dragging = false;
+      }, true);
+    });
+  }
+
   function mountHomeDashboardRails() {
+    const root = document.getElementById('home-dashboard-root');
+    if (root) {
+      try { bindHomePosterRailDragScroll(root); } catch (_) {}
+    }
     if (isGuestCabinetPreview()) return;
     if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
-    const root = document.getElementById('home-dashboard-root');
     if (!root) return;
     const containers = Array.from(root.querySelectorAll('[data-home-rail]')).filter((container) => {
       return container.getAttribute('data-rail-mounted') !== '1';
@@ -9378,7 +9442,10 @@
           apiGet: homeRailApiGet,
           posterUrl: (kp) => posterUrl(kp),
           emptyHtml: homeRailEmptyHtml(blockId),
-          onBatch: () => { decorateHomePosterPreviews(container); },
+          onBatch: () => {
+            decorateHomePosterPreviews(container);
+            try { bindHomePosterRailDragScroll(container); } catch (_) {}
+          },
           onMeta: (meta) => {
             if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
               blockEl.classList.add('hidden');
@@ -9393,6 +9460,7 @@
             metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
           },
         });
+        try { bindHomePosterRailDragScroll(container); } catch (_) {}
       }, idx * 380);
     });
     decorateHomePosterPreviews(root);
