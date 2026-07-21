@@ -7720,6 +7720,23 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   line-height: 1.2;
   margin-bottom: 6px;
 }
+.site-inbox-headline .site-inbox-film-title-link {
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: left;
+  color: #f9a8d4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.site-inbox-headline .site-inbox-film-title-link:hover {
+  color: #ff7eb6;
+}
 .site-inbox-title { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.35; }
 .site-inbox-body {
   margin-top: 4px;
