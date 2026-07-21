@@ -5321,6 +5321,8 @@
   }
 
   function afterCabinetSectionShown(sectionId) {
+    // Sections already painted inside showSection (plans/settings/inbox/stats/wtw/home)
+    // must NOT re-render here — that was a double flash on every nav click / popstate.
     if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
     if (sectionId === 'premieres') { try { renderPremieresSection && renderPremieresSection(); } catch (_) {} }
     if (sectionId === 'buzz') {
@@ -5339,13 +5341,9 @@
       } catch (_) {}
     }
     if (sectionId === 'groups') { try { renderGroupsSection && renderGroupsSection(); } catch (_) {} }
-    if (sectionId === 'whattowatch') { try { renderWhattowatchSection && renderWhattowatchSection(); } catch (_) {} }
-    if (sectionId === 'settings') { try { renderSettingsSection && renderSettingsSection(); } catch (_) {} }
-    if (sectionId === 'inbox') { try { renderInboxSection && renderInboxSection(); } catch (_) {} }
     if (sectionId === 'plans') {
-      try { syncPlansFilterTabsVisibility(); renderPlansList && renderPlansList(); } catch (_) {}
+      try { syncPlansFilterTabsVisibility(); } catch (_) {}
     }
-    if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
     if (sectionId === 'unwatched' || sectionId === 'series' || sectionId === 'ratings') {
       try { refreshBaseUserTagPills(); } catch (_) {}
     }
@@ -5353,7 +5351,7 @@
     if (sectionId === 'series') { try { loadSeries(); } catch (_) {} }
     if (sectionId === 'ratings') { try { loadRatings(); } catch (_) {} }
     if (sectionId === 'home') {
-      try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      // Home refresh is owned by showSection('home') — do not schedule again here.
       try { scheduleSiteOnboardingAfterCabinet(); } catch (_) {}
     }
   }
@@ -9860,11 +9858,7 @@
     root.innerHTML = html;
     renderHomeMoreLinks(hidden);
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
-    if (!isGuestCabinetPreview()) {
-      setTimeout(function () {
-        try { mountHomeDashboardRails(); } catch (_) {}
-      }, 40);
-    }
+    // Rails mount once from renderHomeDashboardFromCache.finally — not here.
   }
 
   function bindHomePosterPreviewEnrichOnce(scope) {
@@ -10053,24 +10047,42 @@
       ? Promise.resolve(null)
       : api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null);
 
+    // One paint path: merge network data, then patch+mount rails once in finally.
+    // (Previously dash.then AND finally both patched — rails wiped 2–3 times.)
     _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
             fetchHomePremierePreview(),
             fetchPublicSeriesForDisplay().catch(() => ({ items: [] })),
+            Promise.resolve(null),
           ]
         : [
-            // Capacity: tournament leaderboard is deferred (idle) — do not compete with dashboard+rails.
             fetchHomePremierePreview(),
+            Promise.resolve(null),
+            dashboardPromise,
           ]
     )
-      .then((pair) => {
-        const prem = pair[0];
+      .then((tuple) => {
+        const prem = tuple[0] || {};
         _homePremierePreview = prem.items || [];
         _homePremiereRollover = !!prem.rollover;
         if (isGuestCabinetPreview()) {
-          _homeSeriesPreview = (pair[1] && pair[1].items) ? pair[1].items : [];
+          _homeSeriesPreview = (tuple[1] && tuple[1].items) ? tuple[1].items : [];
         } else {
+          const dashData = tuple[2];
+          if (dashData && dashData.success) {
+            _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, dashData);
+            writeHomeDashboardBrowserCache(_homeDashboardCache);
+            _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
+            if (dashData.tournament_leaderboard) {
+              _siteTournamentLiveCache = dashData.tournament_leaderboard;
+            }
+            updateInboxFabBadge(dashData.inbox_unread || 0);
+            try { updateCabinetHomeStats(dashData); } catch (_) {}
+            if (dashData.show_tournament_intro) {
+              setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
+            }
+          }
           const paintTournamentSeed = function (seedData) {
             if (!seedData) return;
             _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, seedData);
@@ -10088,40 +10100,6 @@
             setTimeout(function () {
               fetchLoggedHomeSeed().then(paintTournamentSeed).catch(function () {});
             }, 2500);
-          }
-        }
-        if (!isGuestCabinetPreview()) {
-          dashboardPromise.then((dashData) => {
-            if (!dashData || !dashData.success) return null;
-            _homeDashboardCache = Object.assign({}, _homeDashboardCache || {}, dashData);
-            writeHomeDashboardBrowserCache(_homeDashboardCache);
-            _homeTournamentPreview = dashData.tournament_preview || _homeTournamentPreview;
-            updateInboxFabBadge(dashData.inbox_unread || 0);
-            try { updateCabinetHomeStats(dashData); } catch (_) {}
-            if (dashData.show_tournament_intro) {
-              setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
-            }
-            _patchHomeDashboardStaticBlocks();
-            paintHomeTournamentBlock();
-            _scheduleMountHomeDashboardRails();
-            return dashData;
-          }).catch(() => {});
-          return _homeDashboardCache;
-        }
-        return _homeDashboardCache;
-      })
-      .then((dashResolved) => {
-        if (dashResolved && !isGuestCabinetPreview()) {
-          _homeDashboardCache = dashResolved;
-          writeHomeDashboardBrowserCache(_homeDashboardCache);
-          _homeTournamentPreview = dashResolved.tournament_preview || _homeTournamentPreview;
-          if (dashResolved.tournament_leaderboard) {
-            _siteTournamentLiveCache = dashResolved.tournament_leaderboard;
-          }
-          if (dashResolved.inbox_unread != null) updateInboxFabBadge(dashResolved.inbox_unread || 0);
-          try { updateCabinetHomeStats(dashResolved); } catch (_) {}
-          if (dashResolved.show_tournament_intro) {
-            setTimeout(function () { maybeShowSiteTournamentIntroPopup(); }, 160);
           }
         }
       })
@@ -10150,6 +10128,11 @@
         return;
       }
       if (existing) {
+        // Never wipe a live rail — outerHTML remount was the 2nd/3rd home flicker.
+        const liveRail = existing.querySelector('[data-home-rail][data-rail-mounted="1"]');
+        if (liveRail && liveRail.childElementCount > 0) {
+          return;
+        }
         existing.outerHTML = html;
       } else {
         root.insertAdjacentHTML('beforeend', html);
@@ -22778,18 +22761,19 @@
           }
         }
         showSection(sec, { skipPush: true });
-        if (sec === 'home') { try { scheduleHomeDashboardRefresh(); } catch (_) {} }
-        if (sec === 'tv' && typeof renderTvSection === 'function') renderTvSection();
-        if (sec === 'premieres' && typeof renderPremieresSection === 'function') renderPremieresSection();
-        if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
-        if (sec === 'whattowatch' && typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
-        if (sec === 'settings' && typeof renderSettingsSection === 'function') renderSettingsSection();
-        if (sec === 'inbox' && typeof renderInboxSection === 'function') renderInboxSection();
-        if (sec === 'plans') { try { renderPlansList && renderPlansList(); } catch (_) {} }
-        if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
-        if (sec === 'series-hub') { try { renderSeriesHubSection(); } catch (_) {} }
+        // Section data load once via afterCabinetSectionShown — do not re-render here.
+        if (sec === 'whattowatch') {
+          const navPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (navPath === '/whattowatch') {
+            siteWtwScope = 'library';
+            siteWtwCollectionCode = null;
+            try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
+          }
+        }
         if (sec === 'collections') {
           openSiteWhattowatch({ scope: 'collections', skipPush: true });
+        } else {
+          afterCabinetSectionShown(sec);
         }
       }
     });
@@ -22806,16 +22790,6 @@
           return;
         }
         markCabinetUserNav(sectionId);
-        showSection(sectionId);
-        if (sectionId === 'tv') {
-          renderTvSection();
-        }
-        if (sectionId === 'premieres') {
-          renderPremieresSection();
-        }
-        if (sectionId === 'groups') {
-          renderGroupsSection();
-        }
         if (sectionId === 'whattowatch') {
           const navPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
           if (navPath === '/whattowatch') {
@@ -22823,21 +22797,9 @@
             siteWtwCollectionCode = null;
             try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
           }
-          if (typeof renderWhattowatchSection === 'function') renderWhattowatchSection();
         }
-        if (sectionId === 'settings' && typeof renderSettingsSection === 'function') {
-          renderSettingsSection();
-        }
-        if (sectionId === 'inbox' && typeof renderInboxSection === 'function') {
-          renderInboxSection();
-        }
-        if (sectionId === 'plans') {
-          try { renderPlansList && renderPlansList(); } catch (_) {}
-        }
-        if (sectionId === 'stats') { try { mountStatsSection(); } catch (_) {} }
-        if (sectionId === 'home') {
-          try { scheduleHomeDashboardRefresh(); } catch (_) {}
-        }
+        showSection(sectionId);
+        // Single load path — showSection already paints home/plans/…; afterCabinet fills lists.
         afterCabinetSectionShown(sectionId);
       });
     });
