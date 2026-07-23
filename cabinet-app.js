@@ -290,8 +290,13 @@
 
   function pickFilmPosterUrl(film, root) {
     const fromFilm = cleanPosterUrl(film && (film.poster_url || film.poster));
-    if (fromFilm) return fromFilm;
     const cur = currentFilmPosterFromDom(root);
+    const kp = film && (film.kp_id || film.kp);
+    // Keep MP branded — do not overwrite with KP CDN template (gray «K» loads as 200).
+    if (cur && /film-poster-placeholder/i.test(cur) && isKpIphonePosterUrl(fromFilm, kp)) {
+      return cur;
+    }
+    if (fromFilm) return fromFilm;
     if (cur) return cur;
     const boot = filmFromRouteBoot(film && film.kp_id);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
@@ -303,6 +308,9 @@
     if (!root) return;
     const next = cleanPosterUrl(posterUrl);
     const cur = currentFilmPosterFromDom(root);
+    if (cur && /film-poster-placeholder/i.test(cur) && next && /iphone360_|\/film_iphone\//i.test(next)) {
+      return;
+    }
     if (!next) {
       if (isGoodFilmPosterUrl(cur)) return;
     } else if (isGoodFilmPosterUrl(cur) && !isGoodFilmPosterUrl(next)) {
@@ -328,7 +336,12 @@
     const boot = filmFromRouteBoot(kp);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
     const apiPoster = cleanPosterUrl(film && film.poster_url);
-    if (bootPoster && (!apiPoster || /film-poster-placeholder/i.test(String(film.poster_url || '')))) {
+    if (
+      bootPoster &&
+      (!apiPoster ||
+        /film-poster-placeholder/i.test(String(film.poster_url || '')) ||
+        (/film-poster-placeholder/i.test(bootPoster) && isKpIphonePosterUrl(apiPoster, kp)))
+    ) {
       film.poster_url = bootPoster;
     }
     return film;
