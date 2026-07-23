@@ -130,6 +130,22 @@
     return s;
   }
 
+  /** KP CDN template path — often redirects to gray «K» (HTTP 200), so onerror never fires. */
+  function isKpFilmCdnTemplateUrl(src, kpId) {
+    var s = String(src || '').trim().toLowerCase();
+    if (!s || s.indexOf('st.kp.yandex.net') < 0) return false;
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (kp && s.indexOf('iphone360_' + kp + '.jpg') >= 0) return true;
+    if (kp && s.indexOf('/film_big/' + kp + '.jpg') >= 0) return true;
+    if (/\/film_iphone\/iphone360_\d+\.jpg/.test(s)) return true;
+    if (/\/images\/film_big\/\d+\.jpg/.test(s)) return true;
+    return false;
+  }
+
+  function isMpBrandedFilmPoster(src) {
+    return String(src || '').toLowerCase().indexOf('film-poster-placeholder') >= 0;
+  }
+
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
@@ -309,8 +325,17 @@
       }
     }
     var display = next || defaultPosterForKp(kpId) || MP_POSTER_PLACEHOLDER;
+    // Never replace our branded stub with KP CDN template (→ no-poster.gif / gray «K»).
+    if (
+      isMpBrandedFilmPoster(cur) &&
+      isKpFilmCdnTemplateUrl(display, kpId) &&
+      !isMpBrandedFilmPoster(display)
+    ) {
+      setFilmHeroBackdrop(cur, kpId);
+      return;
+    }
     var pEl = document.getElementById('poster');
-    if (pEl && isGoodFilmPosterUrl(cur) && display === MP_POSTER_PLACEHOLDER) {
+    if (pEl && isGoodFilmPosterUrl(cur) && !isMpBrandedFilmPoster(cur) && display === MP_POSTER_PLACEHOLDER) {
       setFilmHeroBackdrop(cur, kpId);
       return;
     }
@@ -2971,6 +2996,14 @@
           var boot = readMpRouteBoot();
           var posterToApply = f.poster_url;
           if (boot && boot.poster_url && (!cleanPosterUrl(posterToApply) || !isGoodFilmPosterUrl(posterToApply))) {
+            posterToApply = boot.poster_url;
+          }
+          // API iphone360 stub must not overwrite boot/MP branded.
+          if (
+            isKpFilmCdnTemplateUrl(posterToApply, pathKey) &&
+            boot &&
+            isMpBrandedFilmPoster(boot.poster_url)
+          ) {
             posterToApply = boot.poster_url;
           }
           applyFilmPosterEl(posterToApply, pathKey);
