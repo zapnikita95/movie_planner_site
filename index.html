@@ -50,10 +50,18 @@
         },
         {
           "@type": "Question",
-          "name": "Где отмечать, какие фильмы посмотрел?",
+          "name": "Где отмечать просмотренные фильмы?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "В Movie Planner — приложении и веб-кабинете movie-planner.ru. Добавьте фильм в базу, после просмотра отметьте «Просмотрено» и поставьте оценку. История и статистика сохраняются в личном профиле."
+            "text": "В Movie Planner на сайте movie-planner.ru или в приложении iOS/Android: откройте карточку, нажмите «Просмотрено» и поставьте оценку. Подробнее: https://movie-planner.ru/articles/gde-otmechat-prosmotrennye-filmy.html"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Как вести учёт просмотренных фильмов?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "В Movie Planner: список просмотра, оценки и коллекции-папки синхронизируются между сайтом и приложением. Гайд: https://movie-planner.ru/articles/uchet-prosmotrennyh-filmov.html"
           }
         },
         {
@@ -697,25 +705,26 @@
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
-        {"@type": "Question", "name": "Какое приложение для списка фильмов и сериалов?", "acceptedAnswer": {"@type": "Answer", "text": "Movie Planner — планер фильмов и сериалов с watchlist, отметкой просмотренного и синхронизацией между Android, iOS, веб-кабинетом movie-planner.ru и Telegram Mini App."}},
+        {"@type": "Question", "name": "Какое приложение для списка фильмов и сериалов?", "acceptedAnswer": {"@type": "Answer", "text": "Movie Planner — планер фильмов и сериалов с watchlist, отметкой просмотренного и синхронизацией между Android, iOS и веб-кабинетом movie-planner.ru."}},
+        {"@type": "Question", "name": "Где отмечать просмотренные фильмы?", "acceptedAnswer": {"@type": "Answer", "text": "На сайте movie-planner.ru или в приложении Movie Planner: откройте карточку и отметьте «Просмотрено». Подробнее: https://movie-planner.ru/articles/gde-otmechat-prosmotrennye-filmy.html"}},
         {"@type": "Question", "name": "Как отмечать просмотренные фильмы и серии?", "acceptedAnswer": {"@type": "Answer", "text": "В приложении или кабинете откройте карточку и отметьте «Просмотрено» или конкретный эпизод. Прогресс сохраняется в аккаунте и виден на всех устройствах."}},
+        {"@type": "Question", "name": "Как вести учёт просмотренных фильмов?", "acceptedAnswer": {"@type": "Answer", "text": "В Movie Planner: список просмотра, оценки и коллекции-папки. Гайд: https://movie-planner.ru/articles/uchet-prosmotrennyh-filmov.html"}},
         {"@type": "Question", "name": "Можно ли создавать коллекции и папки по рубрикам?", "acceptedAnswer": {"@type": "Answer", "text": "Да — в Movie Planner можно группировать фильмы и сериалы по рубрикам и коллекциям (например «На выходные», «С друзьями»), чтобы быстро находить нужное в watchlist."}},
-        {"@type": "Question", "name": "Где скачать приложение Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Android — Google Play и RuStore, iOS — App Store. Также доступен веб-кабинет на movie-planner.ru и Telegram Mini App без установки."}},
-        {"@type": "Question", "name": "Как начать пользоваться Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте Telegram-бота @movie_planner_bot и нажмите /start. Бот подскажет первые шаги. Можно также установить браузерное расширение для Chrome, чтобы добавлять фильмы с Kinopoisk, IMDb или Letterboxd."}},
-        {"@type": "Question", "name": "Как добавить фильм или сериал в базу?", "acceptedAnswer": {"@type": "Answer", "text": "Самый простой способ — отправить ссылку на фильм/сериал с Kinopoisk, IMDb или Letterboxd в бота. Либо использовать встроенный поиск в меню бота. С расширением — нажать кнопку на странице фильма в браузере."}},
-        {"@type": "Question", "name": "Как удалить фильм или сериал из базы?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте карточку фильма/сериала в боте и нажмите кнопку «Удалить из базы». Управление данными доступно только через Telegram-бота — сайт предназначен для просмотра."}},
-        {"@type": "Question", "name": "Работает ли Movie Planner в группах?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Добавьте бота в групповой чат — можно вести общий watchlist с друзьями, планировать совместные просмотры и обсуждать фильмы в чате."}},
-        {"@type": "Question", "name": "Можно ли планировать походы в кино с билетами?", "acceptedAnswer": {"@type": "Answer", "text": "Да. При планировании выберите «В кино», укажите дату/время и прикрепите фото или файлы билетов. Бот пришлёт напоминание за 10 минут до сеанса вместе с билетами."}},
-        {"@type": "Question", "name": "Как отслеживать новые серии сериалов?", "acceptedAnswer": {"@type": "Answer", "text": "Добавьте сериал в базу и включите подписку на новые серии (кнопка «Подписаться»). Бот будет присылать уведомления о выходе новых эпизодов (поддерживаются основные стриминги)."}},
-        {"@type": "Question", "name": "Бесплатно ли пользоваться сервисом?", "acceptedAnswer": {"@type": "Answer", "text": "Базовые функции (база фильмов/сериалов, планирование, напоминания) бесплатны. Расширенные возможности (детальная статистика, приоритетные рекомендации, безлимитные подписки на сериалы) доступны по подписке."}},
-        {"@type": "Question", "name": "Где хранятся мои данные?", "acceptedAnswer": {"@type": "Answer", "text": "Данные хранятся на защищённом сервере (Railway). Управление только через Telegram-бота. Мы не передаём данные третьим лицам."}},
-        {"@type": "Question", "name": "Поддерживаются ли русские и английские названия?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Используются Kinopoisk API для русскоязычных фильмов, IMDb/Letterboxd — для международных."}},
-        {"@type": "Question", "name": "Что делать, если бот не отвечает или возникла ошибка?", "acceptedAnswer": {"@type": "Answer", "text": "Напишите напрямую в Telegram: @zapnikita95. Опишите проблему, желательно со скриншотом — постараюсь ответить в течение нескольких часов."}},
-        {"@type": "Question", "name": "Как настроить уведомления о новых сериях в Telegram?", "acceptedAnswer": {"@type": "Answer", "text": "Добавьте сериал в Movie Planner (ссылкой с Кинопоиска или поиском), откройте карточку и нажмите «Подписаться на новые серии». Бот будет присылать уведомления о выходе эпизодов на Okko, Kinopoisk, ivi и других стримингах."}},
-        {"@type": "Question", "name": "Какой трекер сериалов в Telegram лучше подходит для группы?", "acceptedAnswer": {"@type": "Answer", "text": "Movie Planner — трекер сериалов для Telegram с поддержкой групповых чатов. Добавьте бота в группу — все участники увидят общий список сериалов, смогут отмечать прогресс и планировать совместные просмотры."}},
-        {"@type": "Question", "name": "Можно ли вести общий список сериалов с друзьями?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Создайте группу в Telegram, добавьте туда бота Movie Planner — список сериалов станет общим. Каждый может добавлять сериалы, видеть прогресс друг друга и планировать марафоны."}},
-        {"@type": "Question", "name": "Как отмечать просмотренные эпизоды и смотреть прогресс?", "acceptedAnswer": {"@type": "Answer", "text": "Расширение для Chrome автоматически распознаёт сериал на странице стриминга — нажмите кнопку «Отметить серию». Или отметьте вручную в боте. Прогресс отображается в карточке сериала (например, S2 • E5)."}},
-        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления о новых сериях — бесплатен. Расширенные возможности (безлимитные подписки на сериалы, приоритетные уведомления) доступны по подписке."}}
+        {"@type": "Question", "name": "Где скачать приложение Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Android — Google Play и RuStore, iOS — App Store. Также доступен веб-кабинет на movie-planner.ru."}},
+        {"@type": "Question", "name": "Как начать пользоваться Movie Planner?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте https://movie-planner.ru/?open_login=1 и войдите в кабинет или скачайте приложение. Можно добавить фильмы поиском, с Кинопоиска или через расширение Chrome."}},
+        {"@type": "Question", "name": "Как добавить фильм или сериал в базу?", "acceptedAnswer": {"@type": "Answer", "text": "Через поиск в кабинете или приложении, ссылкой с Кинопоиска/IMDb, или расширением Chrome на странице фильма."}},
+        {"@type": "Question", "name": "Как удалить фильм или сериал из базы?", "acceptedAnswer": {"@type": "Answer", "text": "Откройте карточку в кабинете или приложении и удалите из базы. Управление доступно на сайте и в приложении."}},
+        {"@type": "Question", "name": "Работает ли Movie Planner в группах?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Создайте группу в кабинете — общий watchlist, предложения фильмов и совместные планы просмотра."}},
+        {"@type": "Question", "name": "Можно ли планировать походы в кино с билетами?", "acceptedAnswer": {"@type": "Answer", "text": "Да. При планировании выберите «В кино», укажите дату/время и прикрепите фото билетов. Напоминание придёт перед сеансом."}},
+        {"@type": "Question", "name": "Как отслеживать новые серии сериалов?", "acceptedAnswer": {"@type": "Answer", "text": "Добавьте сериал в базу и включите подписку на новые серии. Уведомления о выходе эпизодов приходят в приложении и связанных каналах."}},
+        {"@type": "Question", "name": "Бесплатно ли пользоваться сервисом?", "acceptedAnswer": {"@type": "Answer", "text": "Базовые функции (база, планы, отметки, watchlist) бесплатны. Расширенные возможности доступны по подписке."}},
+        {"@type": "Question", "name": "Где хранятся мои данные?", "acceptedAnswer": {"@type": "Answer", "text": "Данные аккаунта хранятся на сервере сервиса. Управление — через кабинет movie-planner.ru и приложение."}},
+        {"@type": "Question", "name": "Поддерживаются ли русские и английские названия?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Каталог опирается на Kinopoisk и дополняется другими источниками для международных названий."}},
+        {"@type": "Question", "name": "Что делать, если возникла ошибка?", "acceptedAnswer": {"@type": "Answer", "text": "Напишите в Telegram: @zapnikita95. Опишите проблему, желательно со скриншотом."}},
+        {"@type": "Question", "name": "Как настроить уведомления о новых сериях?", "acceptedAnswer": {"@type": "Answer", "text": "Добавьте сериал в Movie Planner, откройте карточку и включите подписку на новые серии."}},
+        {"@type": "Question", "name": "Можно ли вести общий список сериалов с друзьями?", "acceptedAnswer": {"@type": "Answer", "text": "Да. Создайте группу в кабинете Movie Planner — общий список и планы совместных просмотров."}},
+        {"@type": "Question", "name": "Как отмечать просмотренные эпизоды и смотреть прогресс?", "acceptedAnswer": {"@type": "Answer", "text": "Отметьте эпизод в карточке сериала в кабинете или приложении. Прогресс отображается как сезон и серия."}},
+        {"@type": "Question", "name": "Работает ли трекер сериалов без подписки?", "acceptedAnswer": {"@type": "Answer", "text": "Базовый функционал — база сериалов, отметка эпизодов, уведомления — бесплатен. Расширенные возможности доступны по подписке."}}
       ]
     }
     </script>
@@ -775,10 +784,17 @@
           "@type": "SoftwareApplication",
           "@id": "https://movie-planner.ru/#software",
           "name": "Movie Planner",
+          "alternateName": ["Муви Планер", "Трекер фильмов", "Планировщик фильмов"],
+          "description": "Бесплатный трекер фильмов и сериалов: отметка просмотренного, watchlist, коллекции, оценки и планы. Сайт movie-planner.ru, iOS, Android, RuStore.",
           "applicationCategory": "EntertainmentApplication",
-          "operatingSystem": "iOS, Android, Web, Telegram",
+          "operatingSystem": "iOS, Android, Web",
           "url": "https://movie-planner.ru/",
-          "downloadUrl": "https://apps.apple.com/ru/app/movie-planner/id6769016073",
+          "downloadUrl": "https://movie-planner.ru/download",
+          "sameAs": [
+            "https://play.google.com/store/apps/details?id=com.movie_planner",
+            "https://apps.apple.com/ru/app/movie-planner/id6769016073",
+            "https://www.rustore.ru/catalog/app/com.movie_planner"
+          ],
           "offers": {
             "@type": "Offer",
             "price": "0",
@@ -1137,8 +1153,8 @@
                     <div class="faq-body">В Movie Planner — <a href="/articles/prilozhenie-sostavit-spisok-kino.html">приложение, где можно составить список кино</a>: добавление с Кинопоиска, коллекции, общий список с друзьями. Откройте <a href="/watchlist">базу в кабинете</a> или скачайте приложение.</div>
                 </div>
                 <div class="faq-item">
-                    <div class="faq-head">Где отмечать, какие фильмы посмотрел?</div>
-                    <div class="faq-body">В Movie Planner — <a href="/articles/prilozhenie-treker-dlya-filmov.html">приложение для отметки фильмов</a> и сериалов на <a href="/?open_login=1">movie-planner.ru</a> и в iOS/Android. После просмотра нажмите «Просмотрено» и поставьте оценку. Подробнее — <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">список просмотренных</a>.</div>
+                    <div class="faq-head">Где отмечать просмотренные фильмы?</div>
+                    <div class="faq-body">На сайте <a href="/?open_login=1">movie-planner.ru</a> или в приложении: «Просмотрено» + оценка. Подробный ответ — <a href="/articles/gde-otmechat-prosmotrennye-filmy.html">где отмечать просмотренные фильмы</a>; про учёт и папки — <a href="/articles/uchet-prosmotrennyh-filmov.html">учёт просмотренных</a>.</div>
                 </div>
                 <div class="faq-item">
                     <div class="faq-head">Где можно вести совместный список фильмов?</div>
@@ -1207,6 +1223,16 @@
                     <span class="article-card-icon mp-icon" data-mp-icon="target"></span>
                     <span class="article-card-title">Подбор фильмов по вопросам</span>
                     <span class="article-card-desc">Мастер «Пожелания» и рекомендации по просмотренному</span>
+                </a>
+                <a href="/articles/gde-otmechat-prosmotrennye-filmy.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="watchlist"></span>
+                    <span class="article-card-title">Где отмечать просмотренные</span>
+                    <span class="article-card-desc">Сайт и приложение для отметки фильмов</span>
+                </a>
+                <a href="/articles/uchet-prosmotrennyh-filmov.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
+                    <span class="article-card-title">Учёт просмотренных фильмов</span>
+                    <span class="article-card-desc">Мой список просмотра, папки и оценки</span>
                 </a>
                 <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="ratings"></span>
@@ -2659,7 +2685,7 @@
         var isSearch = path === '/search';
         var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
-        var V = '20260723stubPosterMp1';
+        var V = '20260724aeoIntent1';
         var core = [
           'mp-api-config.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',
