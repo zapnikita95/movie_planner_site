@@ -2058,6 +2058,36 @@
     );
   }
 
+  function paintFilmPublicLoadFail(message) {
+    var msg = String(message || 'Не удалось загрузить карточку фильма').trim();
+    var tEl = document.getElementById('film-title');
+    if (tEl) {
+      var loading = tEl.querySelector('.mp-film-title-loading');
+      if (loading || !String(tEl.textContent || '').trim() || /загрузка/i.test(tEl.textContent || '')) {
+        var boot = null;
+        try { boot = readMpRouteBoot(); } catch (_b) {}
+        var bootTitle = boot && boot.title ? String(boot.title).trim() : '';
+        if (bootTitle && !isGenericFilmTitle(bootTitle)) {
+          tEl.textContent = bootTitle + (boot.year ? ' (' + boot.year + ')' : '');
+        } else {
+          tEl.textContent = 'Фильм';
+        }
+      }
+    }
+    if (!String(lastFilmDescription || '').trim()) {
+      try {
+        var bootKeep = readMpRouteBoot();
+        if (bootKeep && bootKeep.description) setFilmDescription(bootKeep.description);
+      } catch (_d) {}
+    }
+    var hint = document.getElementById('hint');
+    if (hint) hint.textContent = msg;
+    try {
+      document.documentElement.classList.add('mp-route-ready');
+      document.documentElement.classList.remove('mp-route-pending');
+    } catch (_r) {}
+  }
+
   function isGenericFilmTitle(title) {
     var t = String(title || '').trim();
     if (!t || t === 'Фильм' || t === 'Film' || t === 'Сериал' || t === 'Series') return true;
@@ -2929,6 +2959,7 @@
             return;
           }
           if (!data || !data.success || !data.film) {
+            paintFilmPublicLoadFail((data && data.error) || 'Фильм не найден или временно недоступен');
             return;
           }
           var f = data.film;
@@ -3045,11 +3076,7 @@
           } catch (_e) {}
         })
         .catch(function () {
-          /* Keep boot/SSR description if public card fetch fails — do not wipe the plot. */
-          if (!String(lastFilmDescription || '').trim()) {
-            var bootKeep = readMpRouteBoot();
-            if (bootKeep && bootKeep.description) setFilmDescription(bootKeep.description);
-          }
+          paintFilmPublicLoadFail('Ошибка сети. Обновите страницу');
         });
 
       function ensureFilm() {
