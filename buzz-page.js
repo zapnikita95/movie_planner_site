@@ -768,6 +768,10 @@
               return;
             }
             markSkipOnboardingUntilHome();
+            if (res.d.already_subscribed) {
+              digestStatus('Эта почта уже подписана на дайджест.');
+              return;
+            }
             digestStatus(res.d.confirm_sent
               ? 'Проверьте почту и подтвердите подписку.'
               : 'Заявка принята. Подтвердите письмо, когда придёт.');
