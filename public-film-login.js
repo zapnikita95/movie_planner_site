@@ -899,4 +899,29 @@
     }
     hideLoginModal();
   };
+
+  /* Deep-link /?open_login=1: open modal ASAP (public-film-login is early in the
+     script waterfall). Waiting for cabinet-app.js left PC bots + slow mobiles on a
+     blank landing for seconds; Metrika showed ~0.5s PC bounces on open_login. */
+  (function openLoginFromQueryEarly() {
+    try {
+      var params = new URLSearchParams(global.location.search || '');
+      var ol = String(params.get('open_login') || '').toLowerCase();
+      if (ol !== '1' && ol !== 'register') return;
+      var path = (global.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (/^\/f\//i.test(path) || /^\/s\//i.test(path)) return;
+      function go() {
+        try {
+          ensureLoginModal();
+          showLoginModal();
+          if (ol === 'register') {
+            var regTab = document.querySelector('[data-login-tab="register"], #login-tab-register, .login-tab[data-tab="register"]');
+            if (regTab) regTab.click();
+          }
+        } catch (_e) {}
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+      else go();
+    } catch (_e) {}
+  })();
 })(window);
