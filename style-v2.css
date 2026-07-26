@@ -2795,11 +2795,17 @@ body.in-public-stats .footer-extension-cabinet {
     padding: 0 !important;
     min-height: 0 !important;
   }
+  /* Fixed bottom tab bar (~64px + pad) — keep © / legal links above it */
   body.in-cabinet footer.footer,
   body.landing-root-page footer.footer,
-  body.guest-cabinet-preview footer.footer {
+  body.guest-cabinet-preview footer.footer,
+  body.film-standalone-page footer.footer,
+  body.staff-standalone-page footer.footer,
+  body.user-standalone-page footer.footer,
+  body.in-search-page footer.footer {
     margin-top: 20px;
     padding-top: 12px;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
   body.in-cabinet .footer-apps-cabinet,
   footer.footer .footer-apps-cabinet {
@@ -7943,6 +7949,16 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   footer.footer .footer-content { grid-template-columns: 1fr; gap: 16px; text-align: center; }
   footer.footer .social-links { justify-content: center; }
   footer.footer .footer-extension-cabinet { display: none !important; }
+  /* Shorthand above resets padding-bottom; re-assert clearance under fixed tab bar */
+  body.in-cabinet footer.footer,
+  body.landing-root-page footer.footer,
+  body.guest-cabinet-preview footer.footer,
+  body.film-standalone-page footer.footer,
+  body.staff-standalone-page footer.footer,
+  body.user-standalone-page footer.footer,
+  body.in-search-page footer.footer {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* =====================================================================
