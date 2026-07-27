@@ -419,7 +419,18 @@
     const previewBlockCount = countFriendPreviewBlocks(data);
     const denseFill = previewBlockCount <= 1;
 
+    const plansHtml = (data.upcoming_plans || []).length
+      ? filmPreviewBlockHtml('Планы', data.upcoming_plans, hooks, {
+          action: 'plans-all',
+          limit: 8,
+          denseFill: denseFill,
+          denseLimit: 14,
+          planField: 'plan_type',
+        })
+      : '';
+    const activityHtml = activityPreviewBlockHtml(data.recent_activity, hooks);
     const rightHtml =
+      plansHtml +
       tasteHtml +
       filmPreviewBlockHtml('Последние оценки', data.recent_ratings, hooks, {
         action: 'ratings-all',
@@ -441,19 +452,11 @@
         denseFill: denseFill,
         denseLimit: 14,
       }) +
-      activityPreviewBlockHtml(data.recent_activity, hooks) +
       filmPreviewBlockHtml('Сериалы в очереди', data.series_waiting, hooks, {
         action: 'unwatched-all',
         limit: 8,
         denseFill: denseFill,
         denseLimit: 14,
-      }) +
-      filmPreviewBlockHtml('Планы', data.upcoming_plans, hooks, {
-        action: 'plans-all',
-        limit: 8,
-        denseFill: denseFill,
-        denseLimit: 14,
-        planField: 'plan_type',
       }) +
       filmPreviewBlockHtml('Премьеры', data.premiere_subscriptions, hooks, {
         limit: 8,
@@ -479,6 +482,7 @@
             statsHtml +
           '</div>' +
           achPreviewHtml(allAchievements, achTotal) +
+          activityHtml +
           leftActionsHtml +
         '</div>' +
         '<div class="profile-hub-right">' + rightHtml + '</div>' +

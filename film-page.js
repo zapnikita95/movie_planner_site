@@ -1841,6 +1841,9 @@
     if (!photo && me && me.chat_id) {
       photo = apiBase + '/api/avatar/' + encodeURIComponent(String(me.chat_id)) + '.jpg';
     }
+    try {
+      document.documentElement.classList.add('mp-session');
+    } catch (_sess) {}
     var loginBtn = document.getElementById('login-btn') || document.querySelector('#site-header [data-action="login"]');
     if (loginBtn) loginBtn.classList.add('hidden');
     var wrap = document.getElementById('header-user-wrap');
@@ -1849,8 +1852,13 @@
     if (pill) pill.classList.remove('hidden');
     var nameEl = document.getElementById('header-profile-name');
     if (nameEl) nameEl.textContent = name;
+    /* Thin /f/|/s/ shell: cabinet-app.js is not loaded — unhide coins/inbox ourselves. */
+    var coinsBtn = document.getElementById('header-coins-btn');
+    if (coinsBtn) coinsBtn.classList.remove('hidden');
     var coinsEl = document.getElementById('header-coins-val');
     if (coinsEl) coinsEl.textContent = coinsVal;
+    var inboxWrap = document.getElementById('header-inbox-wrap');
+    if (inboxWrap) inboxWrap.classList.remove('hidden');
     setStandaloneHeaderAvatar(document.getElementById('header-profile-avatar'), photo, name, apiBase);
     bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
     var inboxBtn = document.getElementById('header-inbox-btn');
@@ -1862,19 +1870,21 @@
         global.location.href = '/inbox';
       });
     }
-    var shell = document.querySelector('.page-shell');
-    var main = shell && shell.querySelector(mainSelector);
-    var nav = document.getElementById('film-standalone-nav');
-    if (nav) nav.remove();
-    if (shell && main) {
-      var navWrap = document.createElement('div');
-      navWrap.innerHTML = standaloneNavHtml();
-      var navEl = navWrap.firstElementChild;
-      shell.insertBefore(navEl, main);
-      bindStandaloneNavLinks(navEl);
-      try {
-        if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
-      } catch (_e) {}
+    if (!opts.skipStandaloneNav) {
+      var shell = document.querySelector('.page-shell');
+      var main = shell && shell.querySelector(mainSelector);
+      var nav = document.getElementById('film-standalone-nav');
+      if (nav) nav.remove();
+      if (shell && main) {
+        var navWrap = document.createElement('div');
+        navWrap.innerHTML = standaloneNavHtml();
+        var navEl = navWrap.firstElementChild;
+        shell.insertBefore(navEl, main);
+        bindStandaloneNavLinks(navEl);
+        try {
+          if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
+        } catch (_e) {}
+      }
     }
     bindStandaloneSearch(apiBase, opts.loginNow);
     bindStandaloneVoiceMic(apiBase, opts.loginNow);
@@ -1887,13 +1897,9 @@
     var mainSelector = opts.mainSelector || 'main.film-page';
     var header = document.getElementById('site-header');
     if (!header) return;
-    if (opts.cabinetMode) {
-      bindStandaloneHeaderChrome(me, Object.assign({}, opts, { kpId: opts.kpId || '' }));
-      bindStandaloneLogoHome();
-      return;
-    }
-    if (standaloneHeaderHasAuthShell()) {
-      patchStandaloneAuthHeader(me, opts);
+    // Thin /f/ shell + cabinetMode: still paint name/avatar/coins/inbox (do NOT wait for cabinet-app.js).
+    if (opts.cabinetMode || standaloneHeaderHasAuthShell()) {
+      patchStandaloneAuthHeader(me, Object.assign({}, opts, { skipStandaloneNav: !!opts.cabinetMode }));
       return;
     }
     var name = (me && me.name) || 'Профиль';

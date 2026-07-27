@@ -854,6 +854,23 @@
         if (_staffLoginNow) _staffLoginNow('');
       });
     });
+    if (global.MpFilmPage && typeof MpFilmPage.initStandaloneSiteChrome === 'function') {
+      MpFilmPage.initStandaloneSiteChrome({
+        apiBase: API_BASE,
+        kpId: personId,
+        mainSelector: '#film-page-content',
+        spaReturnPath: '/s/' + personId,
+        cabinetMode: true,
+        bindLogin: false,
+        onLoginSuccess: function () {
+          if (_staffPendingFriendsFilter) {
+            _staffPendingFriendsFilter = false;
+            _staffFilterState.friendsRatedOnly = true;
+          }
+          loadStaff(personId);
+        },
+      });
+    }
   }
 
   function guestCabinetNavHtml() {
