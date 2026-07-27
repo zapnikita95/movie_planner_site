@@ -1490,8 +1490,6 @@
     const missingCountry = !!String(film.country || '').trim() && !chips.querySelector('[data-chip-country], .chip-country');
     if (!chips.querySelector('.chip') || missingCountry) {
       chips.innerHTML = buildFilmGenreChipsHtml(film);
-      try { delete chips.dataset.mpChipNavBound; } catch (_) { chips.dataset.mpChipNavBound = ''; }
-      bindFilmGenreCountryChips(chips);
     }
   }
 
@@ -15520,11 +15518,9 @@
       .map((s) => s.trim())
       .filter(Boolean);
     if (!parts.length) parts.push(film && film.is_series ? 'сериал' : 'фильм');
+    // Decorative only — no click→search (broken overlay on /f/ and film SPA).
     parts.slice(0, 8).forEach((label) => {
-      chips.push(
-        '<button type="button" class="chip chip-link" data-chip-genre="' +
-          escapeHtml(label) + '">' + escapeHtml(label) + '</button>'
-      );
+      chips.push('<span class="chip">' + escapeHtml(label) + '</span>');
     });
     String((film && film.country) || '')
       .split(/[,;/|]+/)
@@ -15533,41 +15529,11 @@
       .slice(0, 3)
       .forEach((label) => {
         chips.push(
-          '<button type="button" class="chip chip-link chip-country" data-chip-country="' +
-            escapeHtml(label) + '">' + escapeHtml(label) + '</button>'
+          '<span class="chip chip-country" data-chip-country="' +
+            escapeHtml(label) + '">' + escapeHtml(label) + '</span>'
         );
       });
     return chips.join('');
-  }
-
-  function bindFilmGenreCountryChips(root) {
-    if (!root || root.dataset.mpChipNavBound === '1') return;
-    root.dataset.mpChipNavBound = '1';
-    root.addEventListener('click', (e) => {
-      const genreBtn = e.target.closest('[data-chip-genre]');
-      if (genreBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const g = genreBtn.getAttribute('data-chip-genre') || '';
-        if (g && window.MpCabinetNav && typeof MpCabinetNav.openSearch === 'function') {
-          MpCabinetNav.openSearch({ genre: g });
-        } else if (g) {
-          window.location.href = '/search?genre=' + encodeURIComponent(g);
-        }
-        return;
-      }
-      const countryBtn = e.target.closest('[data-chip-country]');
-      if (countryBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const c = countryBtn.getAttribute('data-chip-country') || '';
-        if (c && window.MpCabinetNav && typeof MpCabinetNav.openSearch === 'function') {
-          MpCabinetNav.openSearch({ country: c });
-        } else if (c) {
-          window.location.href = '/search?country=' + encodeURIComponent(c);
-        }
-      }
-    });
   }
 
   function renderFilmDetailHero(film, ratings, similar, me, content, heroOpts) {
@@ -15648,7 +15614,7 @@
 
     try {
       const chipRoot = content.querySelector('.eyebrow');
-      if (chipRoot) bindFilmGenreCountryChips(chipRoot);
+      /* genre/country chips are decorative */
     } catch (_) {}
 
     try {
