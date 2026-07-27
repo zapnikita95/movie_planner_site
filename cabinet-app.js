@@ -778,7 +778,10 @@
   }
 
   function filmNavHref(kpId) {
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const raw = String(kpId || '').trim();
+    const cat = raw.match(/^(movie|tv)-(\d+)$/i);
+    if (cat) return '/f/' + cat[1].toLowerCase() + '-' + cat[2];
+    const kp = raw.replace(/\D/g, '');
     return kp ? '/f/' + kp : '';
   }
 
@@ -9556,7 +9559,18 @@
     if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
       return openFilmFromStaffNav(kpId, filmId);
     }
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const raw = String(kpId || '').trim();
+    const cat = raw.match(/^(movie|tv)-(\d+)$/i);
+    if (cat) {
+      const path = '/f/' + cat[1].toLowerCase() + '-' + cat[2];
+      try {
+        window.location.href = path;
+      } catch (_) {
+        window.location.assign(path);
+      }
+      return;
+    }
+    const kp = raw.replace(/\D/g, '');
     if (kp) {
       openFilmPageByKp(kp);
       return;
