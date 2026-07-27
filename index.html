@@ -2687,7 +2687,7 @@
         var isSearch = path === '/search';
         var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
-        var V = '20260727thinShell1';
+        var V = '20260727authChrome1';
         var core = [
           'mp-api-config.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',
@@ -2700,7 +2700,7 @@
           'mp-public-promo.js?v=' + V
         ];
         var cabinet = [
-          'user-profile-page.js?v=20260629profilefix6',
+          'user-profile-page.js?v=' + V,
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260531appstore1',
           'app-download.js?v=20260619store1',
@@ -2742,11 +2742,11 @@
           list.push('film-page.js?v=' + V);
           list.push('cabinet-film-route.js?v=' + V);
         } else if (isStaff) {
+          /* Same thin path as /f/: no cabinet-app on first paint; auth chrome via film-page. */
           list.push('onboarding-flow.js?v=' + V);
           list.push('film-page.js?v=' + V);
           list.push('staff-page.js?v=' + V);
-          list.push('avatar-crop.js?v=' + V);
-          list.push('cabinet-app.js?v=' + V);
+          list.push('cabinet-film-route.js?v=' + V);
         } else if (!isBuzz && !isSearch) {
           list.push('avatar-crop.js?v=' + V);
           list.push('buzz-page.js?v=' + V);

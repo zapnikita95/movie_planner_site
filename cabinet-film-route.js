@@ -1,11 +1,11 @@
 /**
- * Lightweight /f/:kp boot for index.html — film-page.js instead of cabinet-app.js on first paint.
- * Full cabinet-app.js loads on idle or when user opens another section.
+ * Lightweight /f/:kp and /s/:id boot — film-page/staff-page instead of cabinet-app.js on first paint.
+ * Full cabinet-app.js loads on idle or when user opens another section (never on thin shell).
  */
 (function (global) {
   'use strict';
 
-  var BUILD = '20260727thinShell1';
+  var BUILD = '20260727authChrome1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -47,9 +47,9 @@
     return null;
   }
 
-  function kpFromPath() {
-    var r = filmRouteFromPath();
-    return r && r.mode === 'kp' ? r.kpId : '';
+  function staffPersonIdFromPath() {
+    var m = (global.location.pathname || '').match(/^\/s\/(\d+)\/?$/);
+    return m ? m[1] : '';
   }
 
   function getToken() {
@@ -79,12 +79,12 @@
     }
     ['landing', 'site-search-root', 'cabinet-readonly', 'cabinet-onboarding', 'public-stats'].forEach(function (id) {
       var el = document.getElementById(id);
-      if (el) el.classList.add('hidden');
+      if (!el) return;
+      if (id === screenId) el.classList.remove('hidden');
+      else el.classList.add('hidden');
     });
-    var header = document.getElementById('site-header');
-    if (header) header.classList.remove('hidden');
-    if (target) target.classList.remove('hidden');
-    document.body.classList.toggle('in-cabinet', inCabinet);
+    if (inCabinet) document.body.classList.add('in-cabinet');
+    else document.body.classList.remove('in-cabinet');
     var hs = document.getElementById('header-search');
     if (hs) {
       hs.classList.toggle('hidden', !(screenId === 'landing' || inCabinet || screenId === 'public-stats'));
@@ -132,7 +132,7 @@
   }
 
   function ensureFullCabinet(cb) {
-    /* Thin /f/ HTML has no other cabinet sections — never inject cabinet-app.js into it. */
+    /* Thin /f/|/s/ HTML has no other cabinet sections — never inject cabinet-app.js into it. */
     if (isThinPublicShell()) {
       if (cb) cb();
       return;
@@ -174,7 +174,15 @@
     var section = el.getAttribute('data-section');
     if (section && section !== 'film') return true;
     var href = el.getAttribute('href');
-    if (href && href !== '/' && href !== '/index.html' && !/^\/f\/(?:\d+|(?:movie|tv)-\d+)/i.test(href)) return true;
+    if (
+      href &&
+      href !== '/' &&
+      href !== '/index.html' &&
+      !/^\/f\/(?:\d+|(?:movie|tv)-\d+)/i.test(href) &&
+      !/^\/s\/\d+/i.test(href)
+    ) {
+      return true;
+    }
     var action = el.getAttribute('data-action');
     if (action === 'login') return true;
     return false;
@@ -212,7 +220,9 @@
     var sec = el.getAttribute('data-section') || '';
     if (sec && THIN_NAV_SECTIONS[sec]) return THIN_NAV_SECTIONS[sec];
     var href = el.getAttribute('href') || '';
-    if (href && href.charAt(0) === '/' && href.indexOf('/f/') !== 0) return href;
+    if (href && href.charAt(0) === '/' && href.indexOf('/f/') !== 0 && href.indexOf('/s/') !== 0) {
+      return href;
+    }
     return '/home';
   }
 
@@ -282,14 +292,27 @@
     }
   }
 
-  function init() {
+  function refreshAuthChrome(opts) {
+    opts = opts || {};
+    if (global.MpFilmPage && typeof global.MpFilmPage.refreshStandaloneAuthChrome === 'function') {
+      try {
+        global.MpFilmPage.refreshStandaloneAuthChrome({
+          kpId: opts.kpId || '',
+          catalogId: opts.catalogId || '',
+          mainSelector: '#film-page-content',
+          cabinetMode: true,
+        });
+      } catch (_e) {}
+    }
+  }
+
+  function initFilm() {
     var route = filmRouteFromPath();
-    if (!route || !global.MpFilmPage) return;
+    if (!route || !global.MpFilmPage) return false;
 
     global.ensureFullCabinet = ensureFullCabinet;
     global.__MP_FILM_ROUTE_LITE_READY = true;
     showCabinetFilmShell();
-    /* Do NOT load cabinet-app.js before first film paint — that caused triple blink. */
     scheduleIdleFullCabinet();
 
     if (global.MpPublicFilmLogin) {
@@ -300,15 +323,7 @@
           try {
             document.dispatchEvent(new CustomEvent('mp:film-refresh-auth'));
           } catch (_e) {}
-          if (global.MpFilmPage && typeof global.MpFilmPage.refreshStandaloneAuthChrome === 'function') {
-            try {
-              global.MpFilmPage.refreshStandaloneAuthChrome({
-                kpId: route.kpId || '',
-                catalogId: route.catalogId || '',
-                mainSelector: '#film-page-content',
-              });
-            } catch (_e2) {}
-          }
+          refreshAuthChrome(route);
           ensureFullCabinet(function () {
             if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
               global.__mpScheduleContentPagePostAuthOffer();
@@ -357,12 +372,68 @@
       onReady: function () {
         global.__MP_FILM_RENDERED = true;
         bindNavPrefetch();
-        /* Authed: load full cabinet after first paint, not before. */
         if (getToken()) {
           setTimeout(function () { ensureFullCabinet(); }, 400);
         }
       },
     });
+    return true;
+  }
+
+  function initStaff() {
+    var personId = staffPersonIdFromPath();
+    if (!personId || !global.MpStaffPage) return false;
+
+    global.ensureFullCabinet = ensureFullCabinet;
+    global.__MP_STAFF_ROUTE_LITE_READY = true;
+    showCabinetFilmShell();
+    scheduleIdleFullCabinet();
+
+    if (global.MpPublicFilmLogin) {
+      global.MpPublicFilmLogin.init({
+        kpId: personId,
+        onSuccess: function () {
+          refreshAuthChrome({ kpId: personId });
+          try {
+            if (global.MpStaffPage && typeof global.MpStaffPage.bootstrap === 'function') {
+              global.MpStaffPage.bootstrap({ personId: personId });
+            }
+          } catch (_e) {}
+          ensureFullCabinet(function () {
+            if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
+              global.__mpScheduleContentPagePostAuthOffer();
+            }
+          });
+        },
+      });
+    }
+
+    document.querySelectorAll('[data-action="login"]').forEach(function (btn) {
+      if (btn.dataset.mpLiteLoginBound) return;
+      btn.dataset.mpLiteLoginBound = '1';
+      btn.addEventListener('click', function (e) {
+        if (getToken()) return;
+        e.preventDefault();
+        if (global.MpPublicFilmLogin) {
+          global.MpPublicFilmLogin.open('');
+        } else {
+          ensureFullCabinet();
+        }
+      });
+    });
+
+    global.MpStaffPage.bootstrap({ personId: personId });
+    bindNavPrefetch();
+    if (getToken()) {
+      refreshAuthChrome({ kpId: personId });
+      setTimeout(function () { ensureFullCabinet(); }, 400);
+    }
+    return true;
+  }
+
+  function init() {
+    if (initFilm()) return;
+    initStaff();
   }
 
   if (document.readyState === 'loading') {
