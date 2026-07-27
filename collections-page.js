@@ -191,9 +191,12 @@
         var kp = f.kp_id != null ? String(f.kp_id) : "";
         var fid = f.id || f.already_in_base_film_id || f.film_id || "";
         var poster = f.poster || posterUrl(kp);
+        var path = f.film_path || (kp ? ("/f/" + kp) : "");
         return (
-          '<button type="button" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '">'
-          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
+          '<button type="button" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
+          + (path ? ' data-film-path="' + esc(path) + '"' : "")
+          + '>'
+          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
           + "</button>"
@@ -201,6 +204,66 @@
       }).join("")
       + "</div>"
     );
+  }
+
+  function guestWhatIsHtml() {
+    try {
+      if (global.MpPublicPromo && typeof global.MpPublicPromo.buildHtml === "function") {
+        return global.MpPublicPromo.buildHtml();
+      }
+    } catch (_) {}
+    return (
+      '<section class="mp-public-promo" aria-label="О Movie Planner">'
+      + '<div class="what-is-v2 what-is-v2--public-page">'
+      + '<div class="what-is-v2-label">Что такое Movie Planner</div>'
+      + '<div class="what-is-v2-title">Трекер фильмов и сериалов<br>с <span class="gradient-text">планированием просмотров</span></div>'
+      + '<div class="what-is-v2-text">Собирайте личную базу, отмечайте просмотренное и планируйте кино с друзьями.</div>'
+      + '<div class="what-is-v2-cta">'
+      + '<button type="button" class="header-login-btn what-is-v2-register-btn" data-mp-register-cta="1">Зарегистрироваться</button>'
+      + "</div></div></section>"
+    );
+  }
+
+  function openGuestRegister() {
+    try {
+      sessionStorage.setItem("mp_oauth_return", (window.location.pathname || "/") + (window.location.search || ""));
+    } catch (_) {}
+    try {
+      if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.open === "function") {
+        global.MpPublicFilmLogin.open("");
+      } else if (typeof global.showLoginModalOverlay === "function") {
+        global.showLoginModalOverlay("register");
+      }
+      document.querySelectorAll('[data-login-tab="register"]').forEach(function (btn) {
+        btn.click();
+      });
+    } catch (_) {}
+  }
+
+  function applyDetailSeo(coll) {
+    if (!coll) return;
+    var name = stripHtml(coll.name || "Подборка");
+    var count = Number(coll.films_count || 0);
+    var code = coll.short_code || "";
+    var title = name + " — коллекция фильмов | Movie Planner";
+    var desc = "Подборка «" + name + "»: " + count + " фильмов. Откройте список в Movie Planner и добавьте в свою базу.";
+    if (code === "venice-2026") {
+      title = "Венецианский кинофестиваль 2026 — программа и фильмы конкурса | Movie Planner";
+      desc = "Подборка фильмов 83-го Венецианского кинофестиваля (2–12 сентября 2026): основной конкурс, фильм открытия и закрытия.";
+    }
+    try { document.title = title; } catch (_) {}
+    setMeta("description", desc);
+    setOg("og:title", title);
+    setOg("og:description", desc);
+    var canonUrl = "https://movie-planner.ru/features/collections/" + encodeURIComponent(code);
+    setOg("og:url", canonUrl);
+    var canon = document.querySelector('link[rel="canonical"]');
+    if (!canon) {
+      canon = document.createElement("link");
+      canon.rel = "canonical";
+      document.head.appendChild(canon);
+    }
+    canon.href = canonUrl;
   }
 
   function hubSkeleton() {
@@ -637,7 +700,7 @@
     if (typeof global.apiPublic === "function") {
       return global.apiPublic(path);
     }
-    var base = global.API_BASE || "https://api.movie-planner.ru";
+    var base = global.API_BASE || global.SITE_ORIGIN || "https://movie-planner.ru";
     return fetch(base + path, { headers: { Accept: "application/json" } })
       .then(function (r) { return r.json().catch(function () { return {}; }); });
   }
@@ -655,6 +718,12 @@
     if (!root || root._wtwCollBound) return;
     root._wtwCollBound = true;
     root.addEventListener("click", function (e) {
+      var reg = e.target.closest("[data-mp-register-cta], [data-coll-action='guest-import'], [data-coll-action='guest-login']");
+      if (reg && root.contains(reg)) {
+        e.preventDefault();
+        openGuestRegister();
+        return;
+      }
       var btn = e.target.closest("[data-coll-action]");
       if (!btn || !root.contains(btn)) return;
       e.preventDefault();
@@ -669,6 +738,14 @@
           global.__mpWtwOpenCollectionCode(code);
         }
       }
+      if (action === "import-public") {
+        if (!hasSiteAuth()) {
+          openGuestRegister();
+          return;
+        }
+        var tid = btn.getAttribute("data-coll-id");
+        if (tid) importPublicCollection(parseInt(tid, 10), btn);
+      }
     });
   }
 
@@ -678,8 +755,15 @@
       '<div class="collections-page collections-page--discovery">'
       + '<p class="cabinet-hint collections-intro">Готовые подборки Movie Planner — откройте список и добавьте понравившиеся в базу.</p>'
       + '<div class="collections-list-host" id="wtw-collections-discovery-list"><div class="settings-loading">Загружаем…</div></div>'
+      + (hasSiteAuth() ? "" : guestWhatIsHtml())
       + "</div>";
     bindWtwCollectionsPanel(root);
+    try {
+      if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
+        global.MpPublicPromo.bindRegister(root);
+      }
+    } catch (_) {}
+    hydrateIcons(root);
     apiPublicGet("/api/public/collections?limit=80").then(function (data) {
       var listEl = root.querySelector("#wtw-collections-discovery-list");
       if (!listEl) return;
@@ -724,12 +808,35 @@
       }
       var c = data.collection;
       var films = data.films || [];
+      applyDetailSeo(c);
       var titleEl = root.querySelector(".collections-detail-title");
       var hintEl = root.querySelector(".collections-detail-hint");
       if (titleEl) titleEl.textContent = stripHtml(c.name || "");
-      if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
+      if (hintEl) {
+        var hint = (c.films_count || films.length || 0) + " фильмов";
+        if (shortCode === "venice-2026") {
+          hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
+        }
+        hintEl.textContent = hint;
+      }
       var body = root.querySelector("#collections-detail-body");
-      if (body) body.innerHTML = filmsGridHtml(films);
+      if (body) {
+        var cta;
+        if (hasSiteAuth()) {
+          cta = '<button type="button" class="btn btn-primary btn-full" data-coll-action="import-public" data-coll-id="'
+            + esc(String(c.id || "")) + '">Добавить все в базу</button>';
+        } else {
+          cta = '<button type="button" class="btn btn-primary btn-full" data-coll-action="guest-import">'
+            + "Добавить все в базу</button>";
+        }
+        body.innerHTML = filmsGridHtml(films) + cta + (hasSiteAuth() ? "" : guestWhatIsHtml());
+        try {
+          if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
+            global.MpPublicPromo.bindRegister(body);
+          }
+        } catch (_) {}
+        hydrateIcons(body);
+      }
     }).catch(function () {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
     });

@@ -19408,10 +19408,14 @@ img.mp-poster-placeholder,
 .collections-detail-hint {
   margin: 6px 0 0;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-muted);
 }
 .collections-films-grid {
   margin: 12px 0 16px;
+}
+.collections-page--detail .mp-public-promo,
+.collections-page--discovery .mp-public-promo {
+  margin-top: 28px;
 }
 .collections-delete-btn {
   margin-top: 8px;
