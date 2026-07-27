@@ -1,6 +1,8 @@
 /**
  * Phosphor Icons helper for Movie Planner web.
  * Requires @phosphor-icons/web CSS (regular + duotone) in index.html.
+ * NOTE: Phosphor *fill* CSS is intentionally NOT loaded (thin /f/|/s/ weight).
+ * Any icon with weight "fill" MUST use inline SVG fallback below — never bare ph-fill.
  */
 (function (global) {
   'use strict';
@@ -10,6 +12,16 @@
     duotone: 'ph-duotone',
     bold: 'ph-bold',
     fill: 'ph-fill',
+  };
+
+  /** Inline SVG for fill weights (fill webfont CSS not shipped). */
+  var FILL_SVG = {
+    bookmark:
+      '<svg class="mp-icon-svg-fallback" width="22" height="22" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+      '<path d="M184,32H72A16,16,0,0,0,56,48V224a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48A16,16,0,0,0,184,32Z"/></svg>',
+    play:
+      '<svg class="mp-icon-svg-fallback" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+      '<path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/></svg>',
   };
 
   /** @type {Record<string, {name: string, weight?: string}>} */
@@ -61,7 +73,6 @@
     telegram: { name: 'paper-plane-tilt', weight: 'regular' },
     folder: { name: 'folder', weight: 'regular' },
     play: { name: 'play', weight: 'fill' },
-    fire: { name: 'fire', weight: 'regular' },
     coin: { name: 'coins', weight: 'regular' },
     medal: { name: 'medal', weight: 'regular' },
     crown: { name: 'crown', weight: 'regular' },
@@ -102,9 +113,15 @@
 
   function html(key, opts) {
     var o = opts || {};
-    var cls = iconClass(key, o);
+    var def = ICONS[key] || { name: String(key || 'question').replace(/^ph-/, ''), weight: 'regular' };
+    var weight = o.weight || def.weight || 'regular';
     var size = o.size ? (' mp-icon--' + o.size) : '';
     var extra = o.className ? (' ' + o.className) : '';
+    /* fill webfont CSS not loaded — use SVG or thin shell #film-user-tag-btn goes blank */
+    if (weight === 'fill' && FILL_SVG[key]) {
+      return '<span class="mp-icon' + size + extra + '" aria-hidden="true">' + FILL_SVG[key] + '</span>';
+    }
+    var cls = iconClass(key, o);
     return '<span class="mp-icon' + size + extra + '" aria-hidden="true"><i class="' + cls + '"></i></span>';
   }
 
@@ -120,6 +137,7 @@
     var cls = iconClass(key, { weight: weight });
     var inline = el.getAttribute('data-mp-icon-inline') === '1';
     var isMic = el.classList.contains('header-search-mic') || key === 'voice';
+    var effectiveWeight = weight || (ICONS[key] && ICONS[key].weight) || 'regular';
     if (inline) {
       var label = (el.textContent || '').trim();
       el.textContent = '';
@@ -127,6 +145,8 @@
     } else if (isMic) {
       /* Inline SVG only — Phosphor webfont CDN is flaky and left an empty mic button. */
       if (!el.querySelector('svg')) el.innerHTML = MIC_SVG_FALLBACK;
+    } else if (effectiveWeight === 'fill' && FILL_SVG[key]) {
+      el.innerHTML = FILL_SVG[key];
     } else {
       el.innerHTML = '<i class="' + cls + '"></i>';
     }
@@ -170,6 +190,7 @@
     className: iconClass,
     hydrate: hydrate,
     ICONS: ICONS,
+    FILL_SVG: FILL_SVG,
     statsTitle: statsTitle,
     ratingInline: ratingInline,
     actionLabel: actionLabel,
@@ -181,4 +202,4 @@
   } else {
     hydrate();
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof window !== 'undefined' ? window : this);
