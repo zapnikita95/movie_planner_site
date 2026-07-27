@@ -2135,8 +2135,12 @@
       String(boot.country || '').split(/[,;/|]+/).slice(0, 3).forEach(function (label) {
         var chip = document.createElement('span');
         chip.className = 'chip chip-country';
-        chip.textContent = String(label || '').trim();
-        if (chip.textContent) chips.appendChild(chip);
+        var txt = String(label || '').trim();
+        chip.textContent = txt;
+        if (txt) {
+          chip.setAttribute('data-chip-country', txt);
+          chips.appendChild(chip);
+        }
       });
     }
     if (boot.description) setFilmDescription(boot.description);
@@ -2552,19 +2556,11 @@
           .filter(Boolean);
         if (!parts.length && !isSeries) parts = ['фильм'];
         else if (!parts.length && isSeries) parts = ['сериал'];
+        // Decorative meta chips only — click→search was broken on /f/ (overlay search, URL stuck).
         parts.slice(0, 8).forEach(function (label) {
-          var chip = document.createElement('button');
-          chip.type = 'button';
-          chip.className = 'chip chip-link';
+          var chip = document.createElement('span');
+          chip.className = 'chip';
           chip.textContent = label;
-          chip.addEventListener('click', function () {
-            var q = encodeURIComponent(label);
-            if (global.MpCabinetNav && typeof global.MpCabinetNav.openSearch === 'function') {
-              global.MpCabinetNav.openSearch({ genre: label });
-              return;
-            }
-            global.location.href = '/search?genre=' + q;
-          });
           container.appendChild(chip);
         });
         String(countryStr || '')
@@ -2573,18 +2569,10 @@
           .filter(Boolean)
           .slice(0, 3)
           .forEach(function (label) {
-            var chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'chip chip-link chip-country';
+            var chip = document.createElement('span');
+            chip.className = 'chip chip-country';
+            chip.setAttribute('data-chip-country', label);
             chip.textContent = label;
-            chip.addEventListener('click', function () {
-              var q = encodeURIComponent(label);
-              if (global.MpCabinetNav && typeof global.MpCabinetNav.openSearch === 'function') {
-                global.MpCabinetNav.openSearch({ country: label });
-                return;
-              }
-              global.location.href = '/search?country=' + q;
-            });
             container.appendChild(chip);
           });
       }
