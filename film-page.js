@@ -2988,6 +2988,18 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
+          if (isTmdbOnly) {
+            var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
+              ? data.web_facts
+              : (Array.isArray(f.web_facts) ? f.web_facts : []);
+            if (wf.length) {
+              var descWrapFacts = document.getElementById('film-desc-wrap');
+              if (descWrapFacts) {
+                bindFilmDescExpand(descWrapFacts);
+                paintFilmDescFacts(descWrapFacts, { web_facts: wf });
+              }
+            }
+          }
           var genresForChips = localizeGenresStr(f.genres || '');
           // Never let an EN locale API overwrite already-painted RU pills.
           try {
