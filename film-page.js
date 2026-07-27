@@ -43,7 +43,7 @@
       .join(', ');
   }
 
-  /** Parse /f/123 or /f/movie-123 / /f/tv-123 — KP ids stay bare numbers; TMDB uses prefix. */
+  /** Parse /f/123 or /f/movie-123 / /f/tv-123 / /f/fest-slug — KP ids stay bare numbers; TMDB uses prefix. */
   function parseFilmRoute(pathname) {
     var path = String(pathname || (global.location && global.location.pathname) || '');
     var m = path.match(/^\/f\/(movie|tv)-(\d+)\/?$/i);
@@ -56,7 +56,21 @@
         tmdbId: tid,
         catalogId: mt + '-' + tid,
         kpId: '',
+        festSlug: '',
         pathKey: mt + '-' + tid,
+      };
+    }
+    m = path.match(/^\/f\/fest-([a-z0-9\-]+)\/?$/i);
+    if (m) {
+      var slug = String(m[1] || '').toLowerCase();
+      return {
+        mode: 'fest',
+        mediaType: 'movie',
+        tmdbId: '',
+        catalogId: 'fest-' + slug,
+        kpId: '',
+        festSlug: slug,
+        pathKey: 'fest-' + slug,
       };
     }
     m = path.match(/^\/f\/(\d+)\/?$/);
@@ -67,6 +81,7 @@
         tmdbId: '',
         catalogId: '',
         kpId: m[1],
+        festSlug: '',
         pathKey: m[1],
       };
     }
@@ -2116,6 +2131,12 @@
       match = (bootCatalog && wantCatalog && bootCatalog === wantCatalog)
         || (bootTmdb && wantTmdb && bootTmdb === wantTmdb)
         || (key && bootCatalog && bootCatalog === key.toLowerCase());
+    } else if (meta.mode === 'fest') {
+      var wantFest = String(meta.festSlug || '').toLowerCase();
+      var bootFest = String(boot.fest_slug || '').toLowerCase();
+      match = (bootFest && wantFest && bootFest === wantFest)
+        || (bootCatalog && key && bootCatalog === key.toLowerCase())
+        || (bootCatalog && bootCatalog.indexOf('fest-') === 0 && key && bootCatalog === ('fest-' + wantFest));
     } else {
       match = bootKp && keyDigits && bootKp === keyDigits;
     }
@@ -2124,7 +2145,9 @@
     var title = boot.title || 'Фильм';
     var bootPoster = boot.poster_url || poster;
     var year = boot.year ? ' (' + boot.year + ')' : '';
-    var heroKey = meta.mode === 'tmdb' ? (meta.catalogId || key) : (bootKp || keyDigits);
+    var heroKey = (meta.mode === 'tmdb' || meta.mode === 'fest')
+      ? (meta.catalogId || key)
+      : (bootKp || keyDigits);
     pageRoot.className = 'movie-page';
     pageRoot.innerHTML = buildFilmMainInnerHtml(heroKey, bootPoster);
     setFilmHeroBackdrop(bootPoster, heroKey);
@@ -2187,25 +2210,33 @@
     var catalogId = String(opts.catalogId || (routeFromPath && routeFromPath.catalogId) || '');
     if (!catalogId && tmdbId && mediaType) catalogId = mediaType + '-' + tmdbId;
     var kpId = String(opts.kpId || (routeFromPath && routeFromPath.kpId) || '').replace(/\D/g, '');
-    var isTmdbOnly = !kpId && !!tmdbId;
+    var festSlug = String(opts.festSlug || (routeFromPath && routeFromPath.festSlug) || '').trim();
+    var isFest = !kpId && !tmdbId && !!festSlug;
+    var isTmdbOnly = !kpId && !!tmdbId && !isFest;
     if (isTmdbOnly && !mediaType) mediaType = 'movie';
     if (isTmdbOnly && !catalogId) catalogId = mediaType + '-' + tmdbId;
-    var pathKey = isTmdbOnly ? catalogId : kpId;
+    if (isFest && !catalogId) catalogId = 'fest-' + festSlug;
+    var pathKey = isFest ? ('fest-' + festSlug) : (isTmdbOnly ? catalogId : kpId);
     if (!pathKey) return;
     var routeMeta = {
-      mode: isTmdbOnly ? 'tmdb' : 'kp',
+      mode: isFest ? 'fest' : (isTmdbOnly ? 'tmdb' : 'kp'),
       kpId: kpId,
       tmdbId: tmdbId,
       mediaType: mediaType,
       catalogId: catalogId,
+      festSlug: festSlug,
       pathKey: pathKey,
     };
-    var publicFilmApi = isTmdbOnly
+    var publicFilmApi = isFest
+      ? '/api/public/film/fest/' + encodeURIComponent(festSlug)
+      : (isTmdbOnly
       ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId)
-      : '/api/public/film/' + encodeURIComponent(kpId);
-    var publicCastApi = isTmdbOnly
+      : '/api/public/film/' + encodeURIComponent(kpId));
+    var publicCastApi = isFest
+      ? '/api/public/film/fest/' + encodeURIComponent(festSlug) + '/cast'
+      : (isTmdbOnly
       ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId) + '/cast'
-      : '/api/public/film/' + encodeURIComponent(kpId) + '/cast';
+      : '/api/public/film/' + encodeURIComponent(kpId) + '/cast');
 
       function sessionsEarly() {
         try { return JSON.parse(localStorage.getItem('mp_site_sessions') || '[]'); } catch (_e) { return []; }
