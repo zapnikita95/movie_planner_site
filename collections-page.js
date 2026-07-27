@@ -69,7 +69,12 @@
 
   function posterUrl(kpId) {
     if (!kpId) return "/images/film-poster-placeholder.png";
-    return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kpId + ".jpg";
+    var s = String(kpId);
+    // TMDB catalog keys — never invent Kinopoisk iphone360 stubs (gray "K").
+    if (/^(movie|tv)-\d+$/i.test(s) || !/^\d+$/.test(s)) {
+      return "/images/film-poster-placeholder.png";
+    }
+    return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + s + ".jpg";
   }
 
   function lockScroll() {
