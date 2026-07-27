@@ -5,10 +5,18 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260727genreChips1';
+  var BUILD = '20260727thinShell1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
+
+  function isThinPublicShell() {
+    try {
+      return document.documentElement.classList.contains('mp-thin-public-shell');
+    } catch (_e) {
+      return false;
+    }
+  }
 
   function filmRouteFromPath() {
     var path = global.location.pathname || '';
@@ -124,6 +132,11 @@
   }
 
   function ensureFullCabinet(cb) {
+    /* Thin /f/ HTML has no other cabinet sections — never inject cabinet-app.js into it. */
+    if (isThinPublicShell()) {
+      if (cb) cb();
+      return;
+    }
     if (_fullReady) {
       if (cb) cb();
       return;
@@ -175,6 +188,34 @@
     whattowatch: '/whattowatch',
   };
 
+  var THIN_NAV_SECTIONS = {
+    home: '/home',
+    plans: '/plans',
+    premieres: '/premieres',
+    buzz: '/buzz',
+    whattowatch: '/whattowatch',
+    tournament: '/tournament',
+    collections: '/collections',
+    settings: '/settings',
+    groups: '/groups',
+    unwatched: '/unwatched',
+    series: '/series',
+    ratings: '/ratings',
+    stats: '/stats',
+    inbox: '/home',
+  };
+
+  function pathForThinNav(el) {
+    if (!el) return '/home';
+    if (el.id === 'header-settings-btn') return '/settings';
+    if (el.id === 'header-inbox-btn' || el.id === 'inbox-fab') return '/home';
+    var sec = el.getAttribute('data-section') || '';
+    if (sec && THIN_NAV_SECTIONS[sec]) return THIN_NAV_SECTIONS[sec];
+    var href = el.getAttribute('href') || '';
+    if (href && href.charAt(0) === '/' && href.indexOf('/f/') !== 0) return href;
+    return '/home';
+  }
+
   function bindGuestCabinetNavLite() {
     document.addEventListener('click', function (e) {
       if (getToken()) return;
@@ -184,11 +225,15 @@
       if (!sec || sec === 'film') return;
       var guestPath = GUEST_NAV_SECTIONS_LITE[sec];
       if (guestPath) {
-        if (_fullReady) return;
+        if (_fullReady && !isThinPublicShell()) return;
         e.preventDefault();
         e.stopPropagation();
+        if (isThinPublicShell()) {
+          try { global.location.assign(guestPath); } catch (_e) {}
+          return;
+        }
         ensureFullCabinet(function () {
-          try { global.location.href = guestPath; } catch (_e) {}
+          try { global.location.href = guestPath; } catch (_e2) {}
         });
         return;
       }
@@ -205,15 +250,30 @@
   function bindNavPrefetch() {
     bindGuestCabinetNavLite();
     document.addEventListener('click', function (e) {
-      if (_fullReady) return;
-      var el = e.target.closest('.cabinet-nav-btn, [data-section], #header-settings-btn, #header-inbox-btn, [data-action="login"]');
+      if (_fullReady && !isThinPublicShell()) return;
+      var el = e.target.closest('.cabinet-nav-btn, [data-section], #header-settings-btn, #header-inbox-btn, #inbox-fab, [data-action="login"]');
       if (!el || !needsFullCabinet(el)) return;
       if (el.closest('#section-film .film-page-toolbar')) return;
+      if (el.getAttribute('data-action') === 'login') {
+        if (getToken()) return;
+        if (global.MpPublicFilmLogin) {
+          e.preventDefault();
+          global.MpPublicFilmLogin.open('');
+          return;
+        }
+      }
+      if (isThinPublicShell()) {
+        e.preventDefault();
+        e.stopPropagation();
+        try { global.location.assign(pathForThinNav(el)); } catch (_e) {}
+        return;
+      }
       ensureFullCabinet();
     }, true);
   }
 
   function scheduleIdleFullCabinet() {
+    if (isThinPublicShell()) return;
     var run = function () { ensureFullCabinet(); };
     if ('requestIdleCallback' in global) {
       global.requestIdleCallback(run, { timeout: 12000 });
