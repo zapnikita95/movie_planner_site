@@ -9675,6 +9675,49 @@
     }).join('') + '</div>';
   }
 
+  /** Same large poster tiles as unwatched/series — date + place under title. */
+  function renderHomePlansRailHtml(plans) {
+    if (!plans || !plans.length) return '';
+    return '<div class="home-poster-rail home-rail--draggable" role="list">' + plans.map((p) => {
+      const poster = p.poster || (p.kp_id ? posterUrl(p.kp_id) : '');
+      const img = poster
+        ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>'
+        : '<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
+      const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
+      const dateLine = dt && !Number.isNaN(dt.getTime())
+        ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+        : '';
+      const timeLine = dt && !Number.isNaN(dt.getTime())
+        ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const when = [dateLine, timeLine].filter(Boolean).join(' · ');
+      const placeShort = p.is_premiere_reminder
+        ? 'Премьера'
+        : (p.plan_type === 'cinema' ? 'В кино' : 'Дома');
+      const sub = [when, placeShort].filter(Boolean).join(' · ') || '—';
+      const badge = '<span class="home-rated-badge home-plan-badge">' + escapeHtml(placeShort) + '</span>';
+      const attrs = homeDashNavAttrs(p)
+        + (p.title ? (' data-title="' + escapeHtml(p.title) + '"') : '')
+        + (p.year ? (' data-year="' + escapeHtml(String(p.year)) + '"') : '')
+        + (poster ? (' data-poster="' + escapeHtml(poster) + '"') : '');
+      const previewMeta = {
+        title: p.title || '',
+        year: p.year || '',
+        poster: poster,
+        description: p.description || '',
+        genres: p.genres || '',
+        rating_kp: p.rating_kp,
+      };
+      const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
+      return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
+        + '<button type="button" class="home-poster-tile home-poster-tile--plan" role="listitem"' + attrs + '>'
+        + '<div class="home-poster-tile-img">' + img + badge + '</div>'
+        + '<div class="home-poster-tile-title">' + escapeHtml(p.title || '') + '</div>'
+        + '<div class="home-poster-tile-year">' + escapeHtml(sub) + '</div>'
+        + '</button>' + preview + '</div>';
+    }).join('') + '</div>';
+  }
+
   function renderHomePremiereRailHtml(items) {
     if (!items || !items.length) return '';
     return '<div class="home-prem-rail home-rail--draggable" role="list">' + items.slice(0, 12).map((it) => {
@@ -9823,29 +9866,10 @@
       + escapeHtml(meta.moreLabel) + '</button></div>';
 
     if (blockId === 'plans') {
-      const plans = _mergePlansForHomePreview().slice(0, 5);
+      const plans = _mergePlansForHomePreview().slice(0, 12);
       if (!plans.length) return '';
-      const rows = plans.map((p) => {
-        const dt = p.plan_datetime ? new Date(p.plan_datetime) : null;
-        const dateLine = dt ? dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
-        const timeLine = dt ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-        const poster = posterUrl(p.kp_id);
-        const metaLine = escapeHtml((dateLine + ' ' + timeLine).trim()) + ' · ' + escapeHtml(_planTypeLabel(p));
-        const preview = renderHomeHoverPreview({
-          title: p.title || '',
-          poster: poster,
-          metaHtml: metaLine,
-          description: p.description || '',
-          emoji: '🎬',
-        });
-        return '<div class="home-dash-row film-card-v2"' + homeDashNavAttrs(p) + '><div class="home-dash-row-text">'
-          + '<div class="home-dash-row-poster">' + filmCardPosterHtml(p.kp_id, poster) + '</div>'
-          + '<div class="home-dash-row-main">'
-          + '<div class="home-dash-row-title">' + escapeHtml(p.title || '') + '</div>'
-          + '<div class="home-dash-row-meta">' + metaLine + '</div>'
-          + '</div></div>' + preview + '</div>';
-      }).join('');
-      return '<section class="home-dash-block" data-home-block="plans">' + head + '<div class="home-dash-rows">' + rows + '</div></section>';
+      return '<section class="home-dash-block" data-home-block="plans">' + head
+        + '<div class="home-section-body">' + renderHomePlansRailHtml(plans) + '</div></section>';
     }
 
     if (blockId === 'unwatched') {
@@ -10238,6 +10262,8 @@
     paintHomeTournamentBlock();
     renderHomeMoreLinks(loadHomeSectionsHidden());
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
+    try { decorateHomePosterPreviews(root); } catch (_) {}
+    try { bindHomePosterRailDragScroll(root); } catch (_) {}
   }
 
   function renderHomeMoreLinks(hidden) {

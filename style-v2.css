@@ -16844,6 +16844,22 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   line-height: 17px;
   text-align: center;
 }
+.home-plan-badge {
+  right: 6px;
+  bottom: 6px;
+  left: auto;
+  top: auto;
+  min-width: 0;
+  height: auto;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(194, 24, 91, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
 
 .mp-list {
   display: flex;
