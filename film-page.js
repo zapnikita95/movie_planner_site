@@ -2630,14 +2630,24 @@
           return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
         if (!nm) return '';
-        var kpRaw = entry.kp_person_id;
-        if (kpRaw == null || kpRaw === '') {
-          return '<span class="staff-cast-plain">' + nm + '</span>';
+        var path = String(entry.person_path || '').trim();
+        if (!path) {
+          var fest = String(entry.fest_person_slug || '').trim();
+          if (fest) path = '/s/fest-' + fest;
         }
-        var kp = String(kpRaw).replace(/\D/g, '');
-        if (!kp) return '<span class="staff-cast-plain">' + nm + '</span>';
+        if (!path) {
+          var kpRaw = entry.kp_person_id;
+          if (kpRaw != null && kpRaw !== '') {
+            var kp = String(kpRaw).replace(/\D/g, '');
+            if (kp) path = '/s/' + kp;
+          }
+        }
+        if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
-        return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + kp + '" data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
+        var kpAttr = '';
+        var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
+        if (kpOnly) kpAttr = ' data-staff-kp="' + kpOnly + '"';
+        return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + ' data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
