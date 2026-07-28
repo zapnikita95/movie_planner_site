@@ -20049,6 +20049,11 @@
       + '<div id="settings-import-kp" class="settings-import-pane">'
       + '<form class="settings-import-form" id="profile-import-form">'
       + '<input type="text" id="profile-import-kp" placeholder="Ссылка на профиль Кинопоиска или ID" autocomplete="off">'
+      + '<p class="settings-panel-lead settings-import-kp-hint" style="margin:8px 0 0;line-height:1.4">'
+      + 'Если профиль скрыт — добавьте наш '
+      + '<a href="https://www.kinopoisk.ru/user/217527213/" target="_blank" rel="noopener noreferrer" '
+      + 'style="color:#f9a8d4;text-decoration:underline;text-underline-offset:2px">технический аккаунт</a>'
+      + ' в друзья, чтобы мы могли импортировать оценки.</p>'
       + '<div class="settings-import-counts" id="profile-import-counts">'
       + [50, 100, 300, 500, 1000, 1500, 'all'].map(function (n) {
         const label = n === 'all' ? 'Всё' : String(n);
@@ -20455,7 +20460,7 @@
       return;
     }
     const helper = (probe.helper && typeof probe.helper === 'object') ? probe.helper : {};
-    const helperUrl = (helper.profile_url || '').trim();
+    const helperUrl = (helper.profile_url || 'https://www.kinopoisk.ru/user/217527213/').trim();
     const helperLabel = (helper.label || 'Movie Planner').trim();
     const countLbl = kpImportRatingCountLabel(probe);
     const agreeOnly = ui.friendExhausted || ui.friendRetries >= 3;
@@ -20615,7 +20620,9 @@
       helperBtn._wired = true;
       helperBtn.addEventListener('click', () => {
         const ui = getKpImportUiState(root);
-        const url = (ui.kpProbe && ui.kpProbe.helper && ui.kpProbe.helper.profile_url) || '';
+        const url =
+          (ui.kpProbe && ui.kpProbe.helper && ui.kpProbe.helper.profile_url) ||
+          'https://www.kinopoisk.ru/user/217527213/';
         if (url) window.open(url, '_blank', 'noopener');
       });
     }

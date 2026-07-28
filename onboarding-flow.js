@@ -1005,10 +1005,21 @@
         return " (" + n + " оценок)";
       }
 
+      function kpHiddenProfileHintHtml() {
+        return (
+          '<p class="muted small" style="margin:0 0 10px;line-height:1.4">' +
+          "Если профиль скрыт — добавьте наш " +
+          '<a href="https://www.kinopoisk.ru/user/217527213/" target="_blank" rel="noopener noreferrer" ' +
+          'style="color:#f9a8d4;text-decoration:underline;text-underline-offset:2px">технический аккаунт</a>' +
+          " в друзья, чтобы мы могли импортировать оценки." +
+          "</p>"
+        );
+      }
+
       function kpFriendPanelHtml() {
         if (!kpProbe || kpProbe.status !== "api_only") return "";
         const helper = (kpProbe.helper && typeof kpProbe.helper === "object") ? kpProbe.helper : {};
-        const helperUrl = (helper.profile_url || "").trim();
+        const helperUrl = (helper.profile_url || "https://www.kinopoisk.ru/user/217527213/").trim();
         const helperLabel = (helper.label || "Movie Planner").trim();
         const countLbl = kpImportRatingLabel(kpProbe);
         const linkBlock = helperUrl
@@ -1046,9 +1057,10 @@
               '<div class="mp-onboard-title">Кинопоиск</div>' +
               '<p class="mp-onboard-text muted small">ID или ссылка на профиль Кинопоиска.</p>' +
               '<input type="text" class="input-like" id="ob-kp-input" placeholder="https://www.kinopoisk.ru/user/1234567/" ' +
-              'style="width:100%;box-sizing:border-box;margin:10px 0;padding:12px;border-radius:12px;border:1px solid #333;background:#111;color:#eee" value="' +
+              'style="width:100%;box-sizing:border-box;margin:10px 0 6px;padding:12px;border-radius:12px;border:1px solid #333;background:#111;color:#eee" value="' +
               deps.escapeHtml(kpInput) +
               '" />' +
+              kpHiddenProfileHintHtml() +
               (statusText
                 ? '<p class="muted small" style="margin:8px 0;line-height:1.45">' +
                   deps.escapeHtml(statusText) +
@@ -1448,7 +1460,9 @@
           if (ev.target.closest("[data-ob-kp-helper-link]")) {
             ev.preventDefault();
             const helper = (kpProbe && kpProbe.helper) || {};
-            const url = (helper.profile_url || "").trim();
+            const url =
+              ((helper.profile_url || "").trim()) ||
+              "https://www.kinopoisk.ru/user/217527213/";
             if (url) {
               try {
                 window.open(url, "_blank", "noopener");
