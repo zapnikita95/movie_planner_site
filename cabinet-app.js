@@ -22924,8 +22924,20 @@
       profilePill.addEventListener('click', (e) => {
         e.preventDefault();
         closeAccountDropdown();
-        markCabinetUserNav('settings');
-        showSection('settings');
+        let uid = cabinetUserId;
+        if (!uid) {
+          try {
+            const me = _cabinetMeCache || cabinetMeFromStoredSession();
+            uid = me && (me.user_id || me.chat_id);
+          } catch (_) {}
+        }
+        if (uid) {
+          openUserProfile(uid);
+          return;
+        }
+        try {
+          window.location.href = '/u/';
+        } catch (_) {}
       });
     }
     window.addEventListener('mp:logout', () => {
