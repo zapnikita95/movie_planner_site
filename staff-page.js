@@ -80,7 +80,10 @@
     var genreL = String(st.genre || '').trim().toLowerCase();
     var yearExact = st.year != null && st.year !== '' ? parseInt(st.year, 10) : null;
     return (films || []).filter(function (f) {
-      if (!f || !f.kp_id) return false;
+      if (!f) return false;
+      var hasKp = !!(f.kp_id && String(f.kp_id).replace(/\D/g, ''));
+      var hasFest = !!(f.film_url || f.catalog_id || f.fest_slug || f.tmdb_id);
+      if (!hasKp && !hasFest) return false;
       var yr = f.year != null ? parseInt(f.year, 10) : null;
       if (yearExact != null && yr !== yearExact) return false;
       if (genreL) {
@@ -97,6 +100,25 @@
       }
       return true;
     });
+  }
+
+  function isFestPersonId(personId) {
+    return /^fest-[a-z0-9\-]+$/i.test(String(personId || ''));
+  }
+
+  function festPersonSlug(personId) {
+    var s = String(personId || '');
+    return s.indexOf('fest-') === 0 ? s.slice(5) : '';
+  }
+
+  function staffFilmHref(f) {
+    if (!f) return '';
+    if (f.film_url) return String(f.film_url);
+    if (f.catalog_id) return '/f/' + String(f.catalog_id).replace(/^\/?f\//, '');
+    if (f.fest_slug) return '/f/fest-' + String(f.fest_slug);
+    if (f.tmdb_id) return '/f/movie-' + String(f.tmdb_id).replace(/\D/g, '');
+    var kp = String(f.kp_id || '').replace(/\D/g, '');
+    return kp ? ('/f/' + kp) : '';
   }
 
   function sortRolesForDisplay(roles) {
@@ -262,6 +284,7 @@
   }
 
   function loadStaffPersonFacts(personId) {
+    if (isFestPersonId(personId)) return Promise.resolve();
     return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/facts', {
       method: 'GET',
       mode: 'cors',
@@ -534,14 +557,15 @@
     var expanded = !!_staffExpandedRoles[roleKey];
     var chunk = expanded ? all : all.slice(0, previewLimit);
     var grid = '<div class="staff-film-grid">' + chunk.map(function (f) {
+      var href = staffFilmHref(f);
+      if (!href) return '';
       var kp = String(f.kp_id || '').replace(/\D/g, '');
-      if (!kp) return '';
-      var poster = staffFilmPosterHtml(f.poster, kp);
+      var poster = staffFilmPosterHtml(f.poster || f.poster_url, kp);
       var rating = f.rating != null && !isNaN(Number(f.rating))
         ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
         : '';
       return (
-        '<a class="staff-film-card" href="/f/' + encodeURIComponent(kp) + '">' +
+        '<a class="staff-film-card" href="' + escapeHtml(href) + '">' +
           '<div class="staff-film-media">' + poster + rating + '</div>' +
           '<div class="staff-film-title">' + escapeHtml(f.title || '—') + '</div>' +
           (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
@@ -1095,8 +1119,10 @@
         name: name,
         url: pageUrl,
         image: photo || undefined,
-        sameAs: 'https://www.kinopoisk.ru/name/' + personId + '/',
       };
+      if (!isFestPersonId(personId)) {
+        payload.sameAs = 'https://www.kinopoisk.ru/name/' + personId + '/';
+      }
       if (person && person.birth_year) payload.birthDate = String(person.birth_year) + '-01-01';
       if (person && person.death_year) payload.deathDate = String(person.death_year) + '-01-01';
       if (person && person.country) {
@@ -1270,8 +1296,10 @@
     var off = Math.max(0, parseInt(offset, 10) || 0);
     var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
     if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
-    var url = API_BASE + '/api/public/person/' + encodeURIComponent(personId) +
-      '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + lim;
+    var base = isFestPersonId(personId)
+      ? (API_BASE + '/api/public/person/fest/' + encodeURIComponent(festPersonSlug(personId)))
+      : (API_BASE + '/api/public/person/' + encodeURIComponent(personId));
+    var url = base + '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + lim;
     return fetch(url, { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
@@ -1326,6 +1354,22 @@
   }
 
   function loadStaffProgressive(personId) {
+    if (isFestPersonId(personId)) {
+      var slug = festPersonSlug(personId);
+      return fetch(API_BASE + '/api/public/person/fest/' + encodeURIComponent(slug), { method: 'GET', mode: 'cors' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('http_' + r.status);
+          return r.json();
+        })
+        .then(function (d) {
+          if (d && d.redirect) {
+            try { global.location.replace(d.redirect); } catch (_e) {}
+            return;
+          }
+          if (!d || !d.success) throw new Error('fest_person');
+          renderStaffData(d, personId);
+        });
+    }
     return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/head', { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
@@ -1384,6 +1428,7 @@
     var loadPromise = loadStaffProgressive(personId);
     return loadPromise
       .then(function () {
+        if (isFestPersonId(personId)) return;
         fetch(API_BASE + '/api/public/staff/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (seo) { applyStaffSeoFromApi(seo); })
@@ -1408,7 +1453,8 @@
 
   function bootstrap(opts) {
     opts = opts || {};
-    var personId = String(opts.personId || '').replace(/\D/g, '');
+    var raw = String(opts.personId || '');
+    var personId = isFestPersonId(raw) ? raw : raw.replace(/\D/g, '');
     if (!personId) {
       markRouteReady();
       return;

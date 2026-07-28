@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260728kpHint1';
+  var BUILD = '20260728festPerson1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -20,7 +20,20 @@
 
   function filmRouteFromPath() {
     var path = global.location.pathname || '';
-    var m = path.match(/^\/f\/(movie|tv)-(\d+)\/?$/i);
+    var m = path.match(/^\/f\/fest-([a-z0-9\-]+)\/?$/i);
+    if (m) {
+      var slug = String(m[1] || '');
+      return {
+        mode: 'fest',
+        mediaType: '',
+        tmdbId: '',
+        festSlug: slug,
+        catalogId: 'fest-' + slug,
+        kpId: '',
+        pathKey: 'fest-' + slug,
+      };
+    }
+    m = path.match(/^\/f\/(movie|tv)-(\d+)\/?$/i);
     if (m) {
       var mt = String(m[1] || 'movie').toLowerCase();
       var tid = String(m[2] || '');
@@ -48,7 +61,10 @@
   }
 
   function staffPersonIdFromPath() {
-    var m = (global.location.pathname || '').match(/^\/s\/(\d+)\/?$/);
+    var path = global.location.pathname || '';
+    var m = path.match(/^\/s\/fest-([a-z0-9\-]+)\/?$/i);
+    if (m) return 'fest-' + String(m[1] || '');
+    m = path.match(/^\/s\/(\d+)\/?$/);
     return m ? m[1] : '';
   }
 
