@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260728profilePill1';
+  var BUILD = '20260728festSpa2';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -383,6 +383,7 @@
       tmdbId: route.tmdbId || '',
       mediaType: route.mediaType || '',
       catalogId: route.catalogId || '',
+      festSlug: route.festSlug || '',
       pageUrl: global.location.origin + '/f/' + route.pathKey,
       cabinetMode: true,
       onReady: function () {

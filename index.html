@@ -556,8 +556,9 @@
       (function () {
         try {
           var path = (location.pathname || '/').replace(/\/$/, '') || '/';
-          var filmMatch = path.match(/^\/f\/(?:(movie|tv)-\d+|\d+)$/i);
-          var staffMatch = path.match(/^\/s\/(\d+)$/);
+          /* KP / TMDB catalog / fest leads — all must paint film shell (hide landing). */
+          var filmMatch = path.match(/^\/f\/(?:fest-[a-z0-9\-]+|(?:movie|tv)-\d+|\d+)$/i);
+          var staffMatch = path.match(/^\/s\/(?:fest-[a-z0-9\-]+|\d+)$/i);
           if (!filmMatch && !staffMatch) return;
           function hasRouteToken() {
             try {
@@ -2687,7 +2688,7 @@
         var isSearch = path === '/search';
         var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
-        var V = '20260728profilePill1';
+        var V = '20260728festSpa2';
         var core = [
           'mp-api-config.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',

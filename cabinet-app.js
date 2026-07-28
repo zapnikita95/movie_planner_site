@@ -5373,6 +5373,7 @@
   const _filmPathRe = /^\/film\/(\d+)(?:\/?)?$/;
   const _filmKpPathRe = /^\/f\/(\d+)(?:\/?)?$/;
   const _filmCatalogPathRe = /^\/f\/(movie|tv)-(\d+)(?:\/?)?$/i;
+  const _filmFestPathRe = /^\/f\/fest-([a-z0-9\-]+)(?:\/?)?$/i;
   const _filmTagPathRe = /^\/tags\/(\d+)(?:\/?)?$/;
   const _userPathRe = /^\/(?:u|user)\/(-?\d+)(?:\/?)?$/;
   const _searchPathRe = /^\/search(?:\/?)?$/;
@@ -5389,6 +5390,18 @@
   function catalogFilmFromPathname(pathname) {
     if (!pathname) return null;
     const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
+    const fest = p.match(_filmFestPathRe);
+    if (fest) {
+      const slug = String(fest[1] || '');
+      if (!slug) return null;
+      return {
+        mediaType: '',
+        tmdbId: '',
+        festSlug: slug,
+        catalogId: 'fest-' + slug,
+        pathKey: 'fest-' + slug,
+      };
+    }
     const m = p.match(_filmCatalogPathRe);
     if (!m) return null;
     const mt = String(m[1] || 'movie').toLowerCase();
@@ -5431,7 +5444,7 @@
     const m = p.match(_filmPathRe);
     return m ? parseInt(m[1], 10) : null;
   }
-  const _staffPathRe = /^\/s\/(\d+)(?:\/?)?$/;
+  const _staffPathRe = /^\/s\/(fest-[a-z0-9\-]+|\d+)(?:\/?)?$/i;
   let _staffPageKpId = null;
   let _staffPageRepaint = null;
   let _staffPageFilterState = null;
