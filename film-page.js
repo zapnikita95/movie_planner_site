@@ -2708,6 +2708,9 @@
         root.querySelectorAll('.staff-cast-link').forEach(function (link) {
           link.addEventListener('click', function (e) {
             hidePreview();
+            var href = String(link.getAttribute('href') || '');
+            /* Fest person pages are full navigations — do not hijack into KP-only SPA. */
+            if (/\/s\/fest-/i.test(href)) return;
             var kp = link.getAttribute('data-staff-kp');
             if (!kp) return;
             if (global.MpCabinetNav && typeof global.MpCabinetNav.openStaffPage === 'function') {
