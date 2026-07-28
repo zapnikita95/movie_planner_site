@@ -158,14 +158,18 @@
 
   function filmPreviewBlockHtml(title, films, hooks, opts) {
     opts = opts || {};
-    var denseFill = !!opts.denseFill;
-    var limit = denseFill ? (opts.denseLimit || 14) : (opts.limit || 8);
+    var limit = opts.limit || 8;
     const list = (films || []).slice(0, limit);
     if (!list.length) return '';
+    // Dense 7-col grid only when there are enough posters to fill a row —
+    // otherwise one card floats in a giant empty track.
+    var denseFill = !!opts.denseFill && list.length >= 4;
     const action = opts.action
       ? '<button type="button" class="link-inline home-dash-more profile-film-block-more" data-action="' + escapeHtml(opts.action) + '">Весь список →</button>'
       : '';
-    const railClass = denseFill ? 'profile-film-rail profile-film-rail--dense-grid' : 'profile-film-rail';
+    const railClass = denseFill
+      ? 'profile-film-rail profile-film-rail--dense-grid'
+      : 'profile-film-rail profile-film-rail--pack';
     return (
       '<section class="profile-film-block' + (denseFill ? ' profile-film-block--dense' : '') + '">' +
         '<div class="profile-film-block-head">' +
@@ -417,6 +421,7 @@
       : '';
 
     const previewBlockCount = countFriendPreviewBlocks(data);
+    // Dense fill only when the right column has almost nothing else to show.
     const denseFill = previewBlockCount <= 1;
 
     const plansHtml = (data.upcoming_plans || []).length
@@ -424,7 +429,6 @@
           action: 'plans-all',
           limit: 8,
           denseFill: denseFill,
-          denseLimit: 14,
           planField: 'plan_type',
         })
       : '';
@@ -436,33 +440,31 @@
         action: 'ratings-all',
         limit: 8,
         denseFill: denseFill && (data.recent_ratings || []).length && !(data.recent_watched || []).length,
-        denseLimit: 14,
         ratingField: 'rating',
       }) +
       filmPreviewBlockHtml('Сериалы сейчас', data.series_in_progress, hooks, {
         action: 'watched-all',
         limit: 8,
         denseFill: denseFill,
-        denseLimit: 14,
         progressField: 'progress_label',
       }) +
       filmPreviewBlockHtml('Недавно просмотренные', data.recent_watched, hooks, {
         action: 'watched-all',
         limit: 8,
         denseFill: denseFill,
-        denseLimit: 14,
       }) +
       filmPreviewBlockHtml('Сериалы в очереди', data.series_waiting, hooks, {
         action: 'unwatched-all',
         limit: 8,
         denseFill: denseFill,
-        denseLimit: 14,
       }) +
       filmPreviewBlockHtml('Премьеры', data.premiere_subscriptions, hooks, {
         limit: 8,
         denseFill: denseFill,
-        denseLimit: 14,
-      });
+      }) +
+      // Activity under films on the right — fills the column instead of
+      // leaving a tall black void next to a long left-column feed.
+      activityHtml;
 
     const unfriendBtn = isFriend && !isSelf
       ? '<button type="button" class="btn btn-logout btn-full" data-action="unfriend">Удалить из друзей</button>'
@@ -482,7 +484,6 @@
             statsHtml +
           '</div>' +
           achPreviewHtml(allAchievements, achTotal) +
-          activityHtml +
           leftActionsHtml +
         '</div>' +
         '<div class="profile-hub-right">' + rightHtml + '</div>' +
