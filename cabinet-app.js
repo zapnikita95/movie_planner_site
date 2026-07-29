@@ -14056,7 +14056,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     const watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="remove-from-base" aria-label="Удалить из базы" title="Удалить из базы"><span class="film-icon-ico">✓</span><span class="film-icon-label">В базе</span></button>'
       : '';
     const rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     const rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
@@ -16218,6 +16218,14 @@
       });
     }
 
+    const removeBaseBtn = content.querySelector('[data-action="remove-from-base"]');
+    if (removeBaseBtn) {
+      removeBaseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        removeFilmFromBase(film.film_id);
+      });
+    }
+
     const watchedBtn = content.querySelector('[data-action="toggle-watched"]');
     if (watchedBtn) {
       watchedBtn.addEventListener('click', (e) => {
@@ -16296,13 +16304,19 @@
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
+      const equal = !!o.equalButtons;
+      const okClass = equal ? 'btn btn-secondary' : 'btn btn-primary';
+      const closeHtml = o.showClose
+        ? '<button type="button" class="mp-dialog-close" id="mp-confirm-close" aria-label="Закрыть">×</button>'
+        : '';
       overlay.innerHTML =
         '<div class="mp-dialog-card">' +
+          closeHtml +
           '<div class="modal-title">' + escapeHtml(title || 'Подтверждение') + '</div>' +
           '<p class="cabinet-hint">' + escapeHtml(message || '') + '</p>' +
-          '<div style="display:flex;gap:10px;margin-top:16px">' +
-            '<button type="button" class="btn btn-secondary" id="mp-confirm-cancel">' + escapeHtml(o.cancelLabel || 'Отмена') + '</button>' +
-            '<button type="button" class="btn btn-primary" id="mp-confirm-ok">' + escapeHtml(o.confirmLabel || 'Да') + '</button>' +
+          '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center">' +
+            '<button type="button" class="btn btn-secondary" id="mp-confirm-cancel">' + escapeHtml(o.cancelLabel || 'Нет') + '</button>' +
+            '<button type="button" class="' + okClass + '" id="mp-confirm-ok">' + escapeHtml(o.confirmLabel || 'Да') + '</button>' +
           '</div>' +
         '</div>';
       function close(result) {
@@ -16313,9 +16327,50 @@
       overlay.addEventListener('click', function (e) {
         if (e.target === overlay) close(false);
       });
+      const closeBtn = overlay.querySelector('#mp-confirm-close');
+      if (closeBtn) closeBtn.addEventListener('click', function () { close(false); });
       overlay.querySelector('#mp-confirm-cancel').addEventListener('click', function () { close(false); });
       overlay.querySelector('#mp-confirm-ok').addEventListener('click', function () { close(true); });
       document.body.appendChild(overlay);
+    });
+  }
+
+  function removeFilmFromBase(filmId) {
+    const cache = _filmModalCache[filmId];
+    const film = cache && cache.film;
+    const myRating = (function () {
+      if (!cache || !cache.ratings) return 0;
+      const myUserId = (cache.me && cache.me.user_id) || cabinetUserId;
+      const mine = cache.ratings.find(function (r) {
+        return myUserId && String(r.user_id) === String(myUserId);
+      });
+      return mine ? Number(mine.rating) || 0 : 0;
+    })();
+    const msg = myRating >= 1
+      ? 'Вы действительно хотите удалить фильм из базы? Ваша оценка тоже будет удалена.'
+      : 'Вы действительно хотите удалить фильм из базы?';
+    showMpConfirmDialog('Удалить из базы?', msg, {
+      confirmLabel: 'Да',
+      cancelLabel: 'Нет',
+      equalButtons: true,
+      showClose: true,
+    }).then(function (ok) {
+      if (!ok) return;
+      api('/api/site/film/' + filmId, { method: 'DELETE' }).then(function (res) {
+        if (!res || !res.success) {
+          showToast((res && (res.message || res.error)) || 'Не удалось удалить из базы', { type: 'error' });
+          return;
+        }
+        showToast('Удалено из базы');
+        if (cache && cache.film) {
+          const kp = cache.film.kp_id;
+          delete _filmModalCache[filmId];
+          if (kp) openFilmPageByKp(String(kp));
+          else if (typeof navigateTo === 'function') navigateTo('library');
+        }
+      }).catch(function () {
+        showToast('Сервер не отвечает', { type: 'error' });
+      });
     });
   }
 
