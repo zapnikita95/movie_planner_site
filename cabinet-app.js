@@ -403,9 +403,7 @@
     const bootDesc = pickFilmDescription(filmFromRouteBoot(kp));
     if (!bootDesc || isTruncatedFilmDescription(bootDesc)) return film;
     const cur = pickFilmDescription(film);
-    if (!cur || cur.length < bootDesc.length) {
-      film.description = bootDesc;
-    }
+    film.description = preferRuDescription(cur, bootDesc);
     return film;
   }
 
@@ -438,8 +436,13 @@
       wrap.querySelector('.film-desc-short')?.textContent || ''
     );
     if (cur === next) return false;
-    if (cur && !isTruncatedFilmDescription(cur) && (isTruncatedFilmDescription(next) || next.length < cur.length)) {
-      return false;
+    // Never keep Latin-only hero text when incoming is Cyrillic (Bye Sweet Carole case).
+    if (descriptionLooksLatinOnly(cur) && titleHasCyrillic(next)) {
+      /* replace */
+    } else if (cur && !isTruncatedFilmDescription(cur) && (isTruncatedFilmDescription(next) || next.length < cur.length)) {
+      if (!(titleHasCyrillic(next) && descriptionLooksLatinOnly(cur))) {
+        return false;
+      }
     }
     const hasFacts = wrap.getAttribute('data-has-facts') === '1';
     updateFilmDescCollapseState(wrap, next, hasFacts);
@@ -453,10 +456,18 @@
 
     mergeBootDescription(film, kp);
     rememberFilmHeroDescription(kp, pickFilmDescription(film));
-    rememberFilmHeroDescription(kp, currentFilmDescriptionFromDom(root));
+    // Do not lock Latin-only DOM/cache forever — allow public RU/MT to replace it.
+    const fromDom = currentFilmDescriptionFromDom(root);
+    if (fromDom && !descriptionLooksLatinOnly(fromDom)) {
+      rememberFilmHeroDescription(kp, fromDom);
+    }
 
     const settled = _filmHeroDescCache.get(kp) || '';
-    if (settled && !isTruncatedFilmDescription(settled)) {
+    if (
+      settled &&
+      !isTruncatedFilmDescription(settled) &&
+      !descriptionLooksLatinOnly(settled)
+    ) {
       applyFilmDescriptionToHero(root, film);
       return Promise.resolve(film);
     }
@@ -1364,11 +1375,29 @@
     return /[а-яА-ЯёЁ]/.test(String(title || ''));
   }
 
+  function descriptionLooksLatinOnly(text) {
+    const t = normalizeFilmDescriptionText(text || '');
+    if (!t) return false;
+    if (titleHasCyrillic(t)) return false;
+    return /[A-Za-z]{4,}/.test(t);
+  }
+
+  function preferRuDescription(current, incoming) {
+    const cur = normalizeFilmDescriptionText(current || '');
+    const inc = normalizeFilmDescriptionText(incoming || '');
+    if (!inc) return cur;
+    if (!cur) return inc;
+    if (titleHasCyrillic(cur) && !titleHasCyrillic(inc)) return cur;
+    if (!titleHasCyrillic(cur) && titleHasCyrillic(inc)) return inc;
+    if (isTruncatedFilmDescription(cur) && !isTruncatedFilmDescription(inc)) return inc;
+    return cur.length >= inc.length ? cur : inc;
+  }
+
   function stripFilmTitleYear(title) {
     return String(title || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
   }
 
-  /** Keep buzz/shell RU title; never flash Latin (Mother Father Pasha) over Cyrillic. */
+  /** Prefer Cyrillic display title; never keep Latin shell over RU API. */
   function preferDisplayTitle(current, incoming) {
     const cur = stripFilmTitleYear(current);
     const inc = stripFilmTitleYear(incoming);
@@ -1376,7 +1405,8 @@
     if (!cur || isGenericFilmTitle(cur)) return inc;
     if (titleHasCyrillic(cur) && !titleHasCyrillic(inc)) return cur;
     if (!titleHasCyrillic(cur) && titleHasCyrillic(inc)) return inc;
-    // Both Cyrillic: keep already-painted shell/buzz title (Паша) — no flash.
+    // Both Cyrillic: prefer incoming when it differs (fresh API over stale shell).
+    if (titleHasCyrillic(cur) && titleHasCyrillic(inc) && cur !== inc) return inc;
     return cur;
   }
 
@@ -1384,6 +1414,14 @@
     if (!film) return film;
     const kp = String(kpHint || film.kp_id || '').replace(/\D/g, '');
     const shell = peekFilmShellSeed(kp);
+    // API/TMDB RU always wins over Latin shell from «Похожие».
+    if (titleHasCyrillic(film.title)) {
+      if (shell && shell.title && titleHasCyrillic(shell.title)) {
+        film.title = preferDisplayTitle(shell.title, film.title);
+      }
+      if (shell && shell.year && !film.year) film.year = shell.year;
+      return film;
+    }
     if (shell && shell.title && !isGenericFilmTitle(shell.title)) {
       film.title = preferDisplayTitle(shell.title, film.title);
       if (shell.year && !film.year) film.year = shell.year;
