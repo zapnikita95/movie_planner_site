@@ -1258,13 +1258,19 @@
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
+      var equal = !!opts.equalButtons;
+      var okClass = equal ? 'btn btn-secondary' : 'btn btn-primary';
+      var closeHtml = opts.showClose
+        ? '<button type="button" class="mp-dialog-close" id="mp-confirm-close" aria-label="Закрыть">×</button>'
+        : '';
       overlay.innerHTML =
         '<div class="mp-dialog-card">' +
+          closeHtml +
           '<div class="modal-title">' + escapeHtml(title || 'Подтверждение') + '</div>' +
           '<p class="cabinet-hint">' + escapeHtml(message || '') + '</p>' +
-          '<div style="display:flex;gap:10px;margin-top:16px">' +
-            '<button type="button" class="btn btn-secondary" id="mp-confirm-cancel">' + escapeHtml(opts.cancelLabel || 'Отмена') + '</button>' +
-            '<button type="button" class="btn btn-primary" id="mp-confirm-ok">' + escapeHtml(opts.confirmLabel || 'Да') + '</button>' +
+          '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center">' +
+            '<button type="button" class="btn btn-secondary" id="mp-confirm-cancel">' + escapeHtml(opts.cancelLabel || 'Нет') + '</button>' +
+            '<button type="button" class="' + okClass + '" id="mp-confirm-ok">' + escapeHtml(opts.confirmLabel || 'Да') + '</button>' +
           '</div>' +
         '</div>';
       function close(result) {
@@ -1275,6 +1281,8 @@
       overlay.addEventListener('click', function (e) {
         if (e.target === overlay) close(false);
       });
+      var closeBtn = overlay.querySelector('#mp-confirm-close');
+      if (closeBtn) closeBtn.addEventListener('click', function () { close(false); });
       overlay.querySelector('#mp-confirm-cancel').addEventListener('click', function () { close(false); });
       overlay.querySelector('#mp-confirm-ok').addEventListener('click', function () { close(true); });
       document.body.appendChild(overlay);
@@ -1397,7 +1405,7 @@
       ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
       : '';
     var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="toggle-watched" aria-label="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '" title="' + (watched ? 'Просмотрен' : 'Отметить просмотренным') + '"><span class="film-icon-ico">✓</span><span class="film-icon-label">' + (watched ? 'Просмотрен' : 'Просмотрен') + '</span></button>'
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="remove-from-base" aria-label="Удалить из базы" title="Удалить из базы"><span class="film-icon-ico">✓</span><span class="film-icon-label">В базе</span></button>'
       : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     var rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
@@ -3463,35 +3471,46 @@
         var root = document.querySelector('.film-page-toolbar');
         if (!root) return;
         if (toolbarOpts.inBase && film.film_id) {
-          var watchedBtn = root.querySelector('[data-action="toggle-watched"]');
-          if (watchedBtn) {
-            watchedBtn.addEventListener('click', function () {
-              var nextWatched = !film.watched;
-              function doToggle() {
-                fetch(apiBase + '/api/site/film/' + film.film_id + '/watched', {
-                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ watched: nextWatched }),
+          var removeBaseBtn = root.querySelector('[data-action="remove-from-base"]');
+          if (removeBaseBtn) {
+            removeBaseBtn.addEventListener('click', function () {
+              var hasRating = !!(Number(toolbarOpts.myRating) >= 1);
+              var msg = hasRating
+                ? 'Вы действительно хотите удалить фильм из базы? Ваша оценка тоже будет удалена.'
+                : 'Вы действительно хотите удалить фильм из базы?';
+              filmPageConfirmDialog('Удалить из базы?', msg, {
+                confirmLabel: 'Да',
+                cancelLabel: 'Нет',
+                equalButtons: true,
+                showClose: true,
+              }).then(function (ok) {
+                if (!ok) return;
+                fetch(apiBase + '/api/site/film/' + film.film_id, {
+                  method: 'DELETE',
+                  headers: authHeaders(),
                 }).then(function (r) { return r.json(); }).then(function (d) {
-                  if (!d || !d.success) return;
-                  film.watched = nextWatched;
-                  if (film.is_series && !nextWatched) {
-                    film.series_progress = { seasons: [], last_watched: null, next_unwatched: null, catalog_available: true };
-                    film.next_episode = null;
-                    var tb = document.querySelector('.film-page-toolbar');
-                    if (tb) tb._mpSeriesToolbarState = null;
+                  if (!d || !d.success) {
+                    showPublicToast('Не удалось удалить из базы');
+                    return;
                   }
-                  applyAuthToolbar({ film: film, toolbarOpts: filmState.toolbarOpts });
+                  film.film_id = null;
+                  film.watched = false;
+                  film.series_progress = null;
+                  film.next_episode = null;
+                  var tb = document.querySelector('.film-page-toolbar');
+                  if (tb) tb._mpSeriesToolbarState = null;
+                  if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
+                  filmState.toolbarOpts.inBase = false;
+                  filmState.toolbarOpts.watched = false;
+                  filmState.toolbarOpts.myRating = 0;
+                  filmState.toolbarOpts.authenticated = true;
+                  filmState.film = film;
+                  applyAuthToolbar(filmState);
+                  showPublicToast('Удалено из базы');
+                }).catch(function () {
+                  showPublicToast('Не удалось удалить из базы');
                 });
-              }
-              if (film.watched && !nextWatched) {
-                var msg = film.is_series
-                  ? 'Снять отметку «просмотрен»? Весь прогресс по сериям будет сброшен. Сериал останется в базе.'
-                  : 'Снять отметку «просмотрен»?';
-                filmPageConfirmDialog('Снять просмотрен?', msg, { confirmLabel: 'Да, снять' }).then(function (ok) {
-                  if (ok) doToggle();
-                });
-                return;
-              }
-              doToggle();
+              });
             });
           }
           var starsWrap = root.querySelector('[data-rating-stars="1"]');
