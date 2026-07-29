@@ -2743,12 +2743,8 @@
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
-        var ctry = String(country || '').trim();
-        if (ctry) {
-          parts.push('<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + ctry.replace(/[&<>"']/g, function (c) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-          }) + '</div>');
-        }
+        // Country lives only in genre/country chips — not duplicated in cast.
+        void country;
         if (director) {
           var dirHtml = castPersonLink(director);
           if (dirHtml) {

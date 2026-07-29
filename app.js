@@ -3246,12 +3246,8 @@
 
   function buildFilmCastHtml(director, actors, country) {
     const parts = [];
-    const ctry = String(country || '').trim();
-    if (ctry) {
-      parts.push(
-        '<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>'
-      );
-    }
+    // Country lives only in genre/country chips — not duplicated in cast.
+    void country;
     if (director) {
       const dirHtml = staffCastLink(director);
       if (dirHtml) {
@@ -10253,10 +10249,6 @@
   function buildFilmCrewFallback(film) {
     if (!film) return '';
     const parts = [];
-  const ctry = String((film && film.country) || '').trim();
-  if (ctry) {
-    parts.push('<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>');
-  }
     if (film.director && film.director !== 'Не указан') {
       parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + escapeHtml(film.director) + '</div>');
     }
