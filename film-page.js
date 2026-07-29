@@ -213,6 +213,24 @@
     return s;
   }
 
+  /** Absolute URL for CSS url() — relative /api/ resolves against jsDelivr stylesheet and 404s. */
+  function absoluteCssPosterUrl(src) {
+    var s = cleanPosterUrl(src) || String(src || '').trim();
+    if (!s || /film-poster-placeholder/i.test(s)) return '';
+    if (/^https?:\/\//i.test(s)) {
+      return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+    }
+    if (s.indexOf('//') === 0) return 'https:' + s;
+    if (s.charAt(0) === '/') return SITE_ORIGIN + s;
+    return s;
+  }
+
+  function filmBackdropCssValue(src) {
+    var abs = absoluteCssPosterUrl(src);
+    if (!abs) return '';
+    return 'url("' + abs.replace(/"/g, '\\"') + '")';
+  }
+
   /** KP CDN template path — often redirects to gray «K» (HTTP 200), so onerror never fires. */
   function isKpFilmCdnTemplateUrl(src, kpId) {
     var s = String(src || '').trim().toLowerCase();
@@ -393,8 +411,12 @@
     if (display === MP_POSTER_PLACEHOLDER && isGoodFilmPosterUrl(currentFilmPosterFromDom())) {
       display = currentFilmPosterFromDom();
     }
+    var backdrop = filmBackdropCssValue(display);
+    if (!backdrop) return;
     try {
-      document.documentElement.style.setProperty('--film-backdrop', 'url("' + display.replace(/"/g, '\\"') + '")');
+      var hero = document.querySelector('.film-hero-with-tag, main.film-page .hero, #section-film .hero');
+      if (hero) hero.style.setProperty('--film-backdrop', backdrop);
+      document.documentElement.style.setProperty('--film-backdrop', backdrop);
     } catch (_e) {}
   }
 
