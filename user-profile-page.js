@@ -149,6 +149,7 @@
     if ((data.recent_ratings || []).length) n++;
     if ((data.recent_watched || []).length) n++;
     if ((data.recent_activity || []).length) n++;
+    if ((data.series_mutual_watching || []).length) n++;
     if ((data.series_in_progress || []).length) n++;
     if ((data.series_waiting || []).length) n++;
     if ((data.upcoming_plans || []).length) n++;
@@ -441,6 +442,11 @@
         limit: 8,
         denseFill: denseFill && (data.recent_ratings || []).length && !(data.recent_watched || []).length,
         ratingField: 'rating',
+      }) +
+      filmPreviewBlockHtml('Смотрите оба', data.series_mutual_watching, hooks, {
+        limit: 8,
+        denseFill: denseFill,
+        progressField: 'progress_label',
       }) +
       filmPreviewBlockHtml('Сериалы сейчас', data.series_in_progress, hooks, {
         action: 'watched-all',

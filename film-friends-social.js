@@ -1,5 +1,5 @@
 /**
- * Блок «друзья высоко оценили» на странице фильма (кабинет и /f/).
+ * Блок друзей на странице фильма: «высоко оценили» + «смотрит» (серии).
  */
 (function (global) {
   'use strict';
@@ -36,10 +36,39 @@
     );
   }
 
-  function renderFilmFriendsSocialHtml(social) {
-    var high = pickHighWatchers((social && social.watchers) || []);
-    if (!high.length) return '';
+  function watchingChipHtml(w) {
+    var uid = Number(w.user_id);
+    var initial = String(w.name || '?').trim().charAt(0).toUpperCase() || '?';
+    var progress = w.progress_code || (w.last_watched && w.last_watched.code) || '';
+    return (
+      '<button type="button" class="film-friend-rating-chip film-friend-watching-chip" data-friend-profile="' + uid + '">' +
+        '<span class="film-friend-rating-avatar" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+        '<span class="film-friend-rating-name">' + escapeHtml(w.name || '') + ' смотрит</span>' +
+        (progress
+          ? '<span class="film-friend-rating-score film-friend-watching-progress">' + escapeHtml(String(progress)) + '</span>'
+          : '') +
+      '</button>'
+    );
+  }
 
+  function renderWatchingSection(watching) {
+    var list = (watching || []).slice(0, PREVIEW);
+    if (!list.length) return '';
+    return (
+      '<section class="film-friends-social film-friends-social--watching' +
+        (list.length === 1 ? ' film-friends-social--compact' : '') +
+        '" aria-label="Друзья смотрят">' +
+        '<div class="film-friends-social-head">' +
+          '<span class="film-friends-social-title">Смотрят</span>' +
+          '<span class="film-friends-social-badge">' + list.length + '</span>' +
+        '</div>' +
+        '<div class="film-friends-social-list">' + list.map(watchingChipHtml).join('') + '</div>' +
+      '</section>'
+    );
+  }
+
+  function renderRatedSection(high) {
+    if (!high.length) return '';
     var preview = high.slice(0, PREVIEW);
     var rest = high.slice(PREVIEW);
     var moreBtn = rest.length
@@ -62,6 +91,15 @@
         moreBtn +
       '</section>'
     );
+  }
+
+  function renderFilmFriendsSocialHtml(social) {
+    var high = pickHighWatchers((social && social.watchers) || []);
+    var watching = (social && social.watching_friends) || [];
+    var ratedHtml = renderRatedSection(high);
+    var watchingHtml = renderWatchingSection(watching);
+    if (!ratedHtml && !watchingHtml) return '';
+    return watchingHtml + ratedHtml;
   }
 
   function bindFriendProfileClicks(root, onFriendClick) {
