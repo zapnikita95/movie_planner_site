@@ -14265,6 +14265,8 @@
 
   function bindFilmPageToolbar(root, film, opts) {
     if (!root) return;
+    if (root.getAttribute('data-mp-toolbar-bound') === '1') return;
+    root.setAttribute('data-mp-toolbar-bound', '1');
     opts = opts || {};
     const rateToggle = root.querySelector('[data-rate-toggle]');
     const shareBtn = root.querySelector('[data-share-film]');
@@ -14352,12 +14354,17 @@
       });
     }
     const rateGrid = root.querySelector('#rate-grid');
-    if (rateGrid && !opts.inBase) {
+    if (rateGrid) {
       rateGrid.querySelectorAll('[data-rate]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           const v = Number(btn.getAttribute('data-rate'));
           if (!(v >= 1 && v <= 10)) return;
           if (!getToken()) { showLoginModalOverlay(); return; }
+          const existingId = Number((film && film.film_id) || 0);
+          if (opts.inBase && existingId > 0) {
+            setRating(existingId, v, btn);
+            return;
+          }
           api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kpNorm) }) })
             .then(function (addRes) {
               if (!addRes || !addRes.success || !addRes.film_id) throw new Error((addRes && addRes.error) || 'Не удалось подготовить фильм');
