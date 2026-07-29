@@ -3502,7 +3502,43 @@
                 fetch(apiBase + '/api/site/film/' + film.film_id + '/rating', {
                   method: 'POST', headers: authHeaders(), body: JSON.stringify({ rating: v }),
                 }).then(function (r) { return r.json(); }).then(function (d) {
-                  if (d && d.success) { showPublicToast('Оценка сохранена'); filmState.toolbarOpts.myRating = v; applyAuthToolbar(film, filmState); }
+                  if (d && d.success) {
+                    showPublicToast('Оценка сохранена');
+                    if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
+                    filmState.toolbarOpts.myRating = v;
+                    filmState.toolbarOpts.inBase = true;
+                    filmState.toolbarOpts.authenticated = true;
+                    filmState.film = film;
+                    applyAuthToolbar(filmState);
+                  }
+                });
+              });
+            });
+          }
+          var rateGrid = root.querySelector('#rate-grid');
+          if (rateGrid) {
+            rateGrid.querySelectorAll('[data-rate]').forEach(function (btn) {
+              btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var v = Number(btn.getAttribute('data-rate'));
+                if (!(v >= 1 && v <= 10)) return;
+                fetch(apiBase + '/api/site/film/' + film.film_id + '/rating', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ rating: v }),
+                }).then(function (r) { return r.json(); }).then(function (d) {
+                  if (d && d.success) {
+                    showPublicToast('Оценка ' + v + '/10 сохранена');
+                    if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
+                    filmState.toolbarOpts.myRating = v;
+                    filmState.toolbarOpts.inBase = true;
+                    filmState.toolbarOpts.authenticated = true;
+                    filmState.film = film;
+                    applyAuthToolbar(filmState);
+                  } else {
+                    showPublicToast((d && d.error) || 'Не удалось поставить оценку');
+                  }
+                }).catch(function () {
+                  showPublicToast('Ошибка сети');
                 });
               });
             });
@@ -3512,7 +3548,12 @@
             rem.addEventListener('click', function () {
               fetch(apiBase + '/api/site/film/' + film.film_id + '/rating', { method: 'DELETE', headers: authHeaders() })
                 .then(function (r) { return r.json(); }).then(function () {
-                  filmState.toolbarOpts.myRating = 0; applyAuthToolbar(film, filmState);
+                  if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
+                  filmState.toolbarOpts.myRating = 0;
+                  filmState.toolbarOpts.inBase = true;
+                  filmState.toolbarOpts.authenticated = true;
+                  filmState.film = film;
+                  applyAuthToolbar(filmState);
                 });
             });
           }
