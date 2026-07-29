@@ -5394,16 +5394,25 @@ body.in-public-stats .header-search {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 12px 0;
+  margin: 0 0 12px;
+  padding-top: 14px; /* padding — no margin-collapse with chips */
   position: relative;
   z-index: 1;
 }
 #section-film .film-ext-ratings,
 .film-page .film-ext-ratings,
 #film-page-content .film-ext-ratings,
-main.film-page .film-ext-ratings {
-  margin-top: 12px;
+main.film-page .film-ext-ratings,
+.movie-page .film-ext-ratings {
+  margin-top: 0;
   margin-bottom: 12px;
+  padding-top: 14px;
+}
+#section-film .eyebrow + .film-ext-ratings,
+#film-page-content .eyebrow + .film-ext-ratings,
+.movie-page .eyebrow + .film-ext-ratings,
+main.film-page .eyebrow + .film-ext-ratings {
+  padding-top: 14px;
 }
 .film-ext-ratings[hidden] { display: none !important; }
 .film-ext-ratings .film-ext-rating-votes {

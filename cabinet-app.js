@@ -238,6 +238,24 @@
     return s;
   }
 
+  /** Absolute URL for CSS url() — relative /api/ resolves against jsDelivr stylesheet and 404s. */
+  function absoluteCssPosterUrl(src) {
+    const s = cleanPosterUrl(src) || String(src || '').trim();
+    if (!s || /film-poster-placeholder/i.test(s)) return '';
+    if (/^https?:\/\//i.test(s)) {
+      return s.replace(/^https?:\/\/api\.movie-planner\.ru/i, SITE_ORIGIN);
+    }
+    if (s.startsWith('//')) return 'https:' + s;
+    if (s.startsWith('/')) return SITE_ORIGIN + s;
+    return s;
+  }
+
+  function filmBackdropCssValue(src) {
+    const abs = absoluteCssPosterUrl(src);
+    if (!abs) return '';
+    return "url('" + abs.replace(/'/g, "\\'") + "')";
+  }
+
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
@@ -328,7 +346,8 @@
       }
     }
     if (hero && display !== MP_POSTER_PLACEHOLDER) {
-      hero.style.setProperty('--film-backdrop', 'url(\'' + display.replace(/'/g, '\\\'') + '\')');
+      const backdrop = filmBackdropCssValue(display);
+      if (backdrop) hero.style.setProperty('--film-backdrop', backdrop);
     }
   }
 
@@ -15775,8 +15794,10 @@
     if (descText) rememberFilmHeroDescription(film.kp_id, descText);
 
     content.className = 'movie-page';
+    const backdropCss = filmBackdropCssValue(poster);
     content.innerHTML =
-      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(String(film.kp_id || '')) + '" style="--film-backdrop:url(\'' + escapeHtml(poster || '') + '\')">' +
+      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(String(film.kp_id || '')) + '"' +
+        (backdropCss ? ' style="--film-backdrop:' + backdropCss + '"' : '') + '>' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (window.MPIcons ? window.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
