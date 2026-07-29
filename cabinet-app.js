@@ -1595,6 +1595,9 @@
     const o = opts || {};
     const kp = String(kpId || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve();
+    // Tear down /search boot CSS before any showScreen — otherwise URL becomes /f/:kp
+    // while html.mp-search-boot still forces the search grid on top of a hidden cabinet.
+    try { hideSiteSearchScreen(); } catch (_) {}
     if (_staffPageKpId || staffIdFromPathname(window.location.pathname)) {
       return openFilmFromStaffNav(kp, null);
     }
@@ -4901,6 +4904,13 @@
       if (screenId === 'cabinet-readonly') {
         const roEarly = document.getElementById('cabinet-readonly');
         if (document.body.classList.contains('in-cabinet') && roEarly && !roEarly.classList.contains('hidden')) {
+          // Search boot CSS can still pin #site-search-root over cabinet after URL → /f/.
+          if (
+            document.documentElement.classList.contains('mp-search-boot') ||
+            document.body.classList.contains('in-search-page')
+          ) {
+            try { hideSiteSearchScreen(); } catch (_) {}
+          }
           setHeaderSearchVisible(screenId);
           return;
         }
@@ -4926,6 +4936,11 @@
     }
     document.body.classList.toggle('in-public-stats', screenId === 'public-stats');
     document.body.classList.toggle('in-search-page', !inCabinet && isSearchLocation());
+    // Leaving search via showScreen('cabinet-readonly') used to drop in-search-page but leave
+    // html.mp-search-boot — CSS then keeps search visible and cabinet display:none.
+    if (screenId !== 'site-search-root') {
+      try { document.documentElement.classList.remove('mp-search-boot'); } catch (_) {}
+    }
     const onMarketingRoot = screenId === 'landing' && isMarketingRootPath(window.location.pathname);
     const onGuestCabinetDeep = screenId === 'cabinet-readonly' && !getToken() && guestCabinetBottomNavPath();
     setLandingRootNavVisible(onMarketingRoot || onGuestCabinetDeep);
@@ -4986,9 +5001,13 @@
 
   /** Снять оверлей поиска и показать контейнер фильма перед открытием /f/:kp из шапки или /search. */
   function prepareFilmOpenFromOverlay() {
-    if (document.body.classList.contains('in-search-page') || isDedicatedSearchScreen()) {
+    const searchBoot = document.documentElement.classList.contains('mp-search-boot');
+    if (
+      searchBoot ||
+      document.body.classList.contains('in-search-page') ||
+      isDedicatedSearchScreen()
+    ) {
       hideSiteSearchScreen();
-      return;
     }
     const pageRoot = document.getElementById('film-page-content');
     if (pageRoot) pageRoot.classList.remove('hidden');
