@@ -11510,7 +11510,7 @@ main.film-page .poster-wrap {
   font-size: 13px;
   font-weight: 800;
 }
-/* Genre/country chips: decorative meta, hover highlight only (not clickable). */
+/* Genre/country chips: decorative meta — subtle white hover only (not “active button”). */
 #section-film .chip,
 .film-page .chip,
 #chips .chip {
@@ -11520,9 +11520,13 @@ main.film-page .poster-wrap {
 }
 #section-film .chip:hover,
 .film-page .chip:hover,
-#chips .chip:hover {
-  border-color: rgba(255,45,123,.45);
-  color: #f9a8d4;
+#chips .chip:hover,
+#section-film .chip:active,
+.film-page .chip:active,
+#chips .chip:active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: rgba(244, 246, 255, 0.94);
 }
 .chip.chip-country,
 #section-film .chip.chip-country,
@@ -11534,9 +11538,14 @@ main.film-page .poster-wrap {
 .chip.chip-country:hover,
 #section-film .chip.chip-country:hover,
 .film-page .chip.chip-country:hover,
-#chips .chip.chip-country:hover {
-  border-color: rgba(148, 163, 184, 0.65);
-  color: #e2e8f0;
+#chips .chip.chip-country:hover,
+.chip.chip-country:active,
+#section-film .chip.chip-country:active,
+.film-page .chip.chip-country:active,
+#chips .chip.chip-country:active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: rgba(244, 246, 255, 0.94);
 }
 .film-hero h2,
 #section-film .hero h1 {
