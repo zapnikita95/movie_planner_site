@@ -398,20 +398,56 @@
     return best;
   }
 
+  function filmDescriptionsConflict(a, b) {
+    const x = normalizeFilmDescriptionText(a);
+    const y = normalizeFilmDescriptionText(b);
+    if (!x || !y || x === y) return false;
+    const aHead = x.slice(0, 48);
+    const bHead = y.slice(0, 48);
+    if (aHead === bHead) return false;
+    if (x.includes(y.slice(0, 28)) || y.includes(x.slice(0, 28))) return false;
+    return true;
+  }
+
   function rememberFilmHeroDescription(kp, text) {
     const key = String(kp || '').replace(/\D/g, '');
     if (!key) return '';
-    const merged = pickBestFilmDescriptionText(_filmHeroDescCache.get(key) || '', text);
+    const next = normalizeFilmDescriptionText(text);
+    if (!next || isFilmDescPlaceholder(next)) return _filmHeroDescCache.get(key) || '';
+    const prev = _filmHeroDescCache.get(key) || '';
+    // Wrong TMDB once cached a longer synopsis for the same kp_id (Matrix→Fight Club).
+    // Do not keep the longer text forever when openings clearly differ.
+    if (
+      prev &&
+      titleHasCyrillic(prev) &&
+      titleHasCyrillic(next) &&
+      !isTruncatedFilmDescription(next) &&
+      filmDescriptionsConflict(prev, next)
+    ) {
+      _filmHeroDescCache.set(key, next);
+      return next;
+    }
+    const merged = pickBestFilmDescriptionText(prev, next);
     if (merged) _filmHeroDescCache.set(key, merged);
     return merged;
   }
 
   function resolveFilmHeroDescription(film, root) {
     const kp = String((film && film.kp_id) || '').replace(/\D/g, '');
+    const fromFilm = pickFilmDescription(film);
+    // Fresh API/KP description wins over sticky DOM/cache of another film.
+    if (
+      fromFilm &&
+      titleHasCyrillic(fromFilm) &&
+      !isTruncatedFilmDescription(fromFilm)
+    ) {
+      rememberFilmHeroDescription(kp, fromFilm);
+      return fromFilm;
+    }
     const bootDesc = kp ? pickFilmDescription(filmFromRouteBoot(kp)) : '';
     const bootOk = bootDesc && !isTruncatedFilmDescription(bootDesc) ? bootDesc : '';
     return pickBestFilmDescriptionText(
-      pickFilmDescription(film),
+      fromFilm,
       root ? currentFilmDescriptionFromDom(root) : '',
       kp ? (_filmHeroDescCache.get(kp) || '') : '',
       bootOk
@@ -458,6 +494,14 @@
     // Never keep Latin-only hero text when incoming is Cyrillic (Bye Sweet Carole case).
     if (descriptionLooksLatinOnly(cur) && titleHasCyrillic(next)) {
       /* replace */
+    } else if (
+      cur &&
+      titleHasCyrillic(cur) &&
+      titleHasCyrillic(next) &&
+      !isTruncatedFilmDescription(next) &&
+      filmDescriptionsConflict(cur, next)
+    ) {
+      /* replace — API corrected a wrong-film synopsis */
     } else if (cur && !isTruncatedFilmDescription(cur) && (isTruncatedFilmDescription(next) || next.length < cur.length)) {
       if (!(titleHasCyrillic(next) && descriptionLooksLatinOnly(cur))) {
         return false;
@@ -6480,12 +6524,8 @@
 
   function buildFilmCastHtml(director, actors, country) {
     const parts = [];
-    const ctry = String(country || '').trim();
-    if (ctry) {
-      parts.push(
-        '<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>'
-      );
-    }
+    // Country lives only in genre/country chips — not duplicated in cast.
+    void country;
     if (director) {
       const dirHtml = staffCastLink(director);
       if (dirHtml) {
@@ -15923,10 +15963,6 @@
   function buildFilmCrewFallback(film) {
     if (!film) return '';
     const parts = [];
-  const ctry = String((film && film.country) || '').trim();
-  if (ctry) {
-    parts.push('<div class="film-cast-row"><span class="film-cast-label">Страна:</span> ' + escapeHtml(ctry) + '</div>');
-  }
     if (film.director && film.director !== 'Не указан') {
       parts.push('<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> ' + escapeHtml(film.director) + '</div>');
     }
