@@ -1361,6 +1361,10 @@
       poster_url: f.poster_url || f.poster || '',
       is_series: !!f.is_series,
       watched: false,
+      rating_kp: f.rating_kp != null ? f.rating_kp : null,
+      rating_imdb: f.rating_imdb != null ? f.rating_imdb : null,
+      rating_kp_votes: f.rating_kp_votes != null ? f.rating_kp_votes : null,
+      rating_imdb_votes: f.rating_imdb_votes != null ? f.rating_imdb_votes : null,
     };
   }
 
@@ -1546,6 +1550,7 @@
       titleEl.textContent = keep + yearSuffix;
     }
     syncFilmGenreChips(pageRoot, film);
+    syncFilmExtRatings(pageRoot, film);
     mergeBootPoster(film, kp);
     applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
     ensureFilmHeroDescription(pageRoot, film);
@@ -15615,6 +15620,72 @@
       .join(', ');
   }
 
+  function formatExtRatingVotes(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v) || v <= 0) return '';
+    if (v < 1000) return String(Math.round(v));
+    if (v < 1000000) {
+      const k = v / 1000;
+      const s = k >= 100 ? String(Math.round(k)) : (k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace(/\.0$/, ''));
+      return s + ' тыс.';
+    }
+    const m = v / 1000000;
+    return (m >= 10 ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '')) + ' млн';
+  }
+
+  function buildFilmExtRatingsHtml(film) {
+    if (!film) return '';
+    const parts = [];
+    const kp = film.rating_kp != null ? Number(film.rating_kp) : NaN;
+    const imdb = film.rating_imdb != null ? Number(film.rating_imdb) : NaN;
+    if (Number.isFinite(kp) && kp > 0) {
+      const votes = formatExtRatingVotes(film.rating_kp_votes);
+      parts.push(
+        '<span class="film-modal-rkp">КП ' +
+          kp.toFixed(1) +
+          (votes ? '<span class="film-ext-rating-votes"> · ' + escapeHtml(votes) + '</span>' : '') +
+          '</span>'
+      );
+    }
+    if (Number.isFinite(imdb) && imdb > 0) {
+      const votes = formatExtRatingVotes(film.rating_imdb_votes);
+      parts.push(
+        '<span class="film-modal-rkp">IMDb ' +
+          imdb.toFixed(1) +
+          (votes ? '<span class="film-ext-rating-votes"> · ' + escapeHtml(votes) + '</span>' : '') +
+          '</span>'
+      );
+    }
+    if (!parts.length) return '';
+    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + parts.join('') + '</div>';
+  }
+
+  function syncFilmExtRatings(pageRoot, film) {
+    if (!pageRoot || !film) return;
+    const hero = pageRoot.querySelector('.film-hero-with-tag, section.hero') || pageRoot;
+    const eyebrow = hero.querySelector('.eyebrow, #chips');
+    let row = hero.querySelector('.film-ext-ratings');
+    const html = buildFilmExtRatingsHtml(film);
+    if (!html) {
+      if (row) row.remove();
+      return;
+    }
+    if (row) {
+      row.outerHTML = html;
+      return;
+    }
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const node = tmp.firstElementChild;
+    if (!node) return;
+    if (eyebrow && eyebrow.parentNode) {
+      eyebrow.insertAdjacentElement('afterend', node);
+    } else {
+      const title = hero.querySelector('#film-title, h1');
+      if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
+    }
+  }
+
   function buildFilmGenreChipsHtml(film) {
     const chips = [];
     if (film && film.is_series) {
@@ -15715,6 +15786,7 @@
         '<div class="hero-content">' +
           '<h1 id="film-title">' + escapeHtml(titleText) + '</h1>' +
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
+          buildFilmExtRatingsHtml(film) +
           crew +
           buildFilmDescWrapHtml() +
           toolbarHtml +
