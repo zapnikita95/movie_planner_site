@@ -10909,6 +10909,13 @@ a.header-settings-nav-item {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(8px);
 }
+.film-friends-social--watching {
+  margin-bottom: 10px;
+}
+.film-friend-watching-progress {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
 .film-friends-social-head {
   display: flex;
   align-items: center;
