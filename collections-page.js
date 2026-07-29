@@ -198,13 +198,13 @@
         var poster = f.poster || posterUrl(kp);
         var path = f.film_path || (kp ? ("/f/" + kp) : "");
         return (
-          '<button type="button" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
+          '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
           + '>'
           + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
-          + "</button>"
+          + "</a>"
         );
       }).join("")
       + "</div>"

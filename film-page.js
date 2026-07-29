@@ -276,11 +276,12 @@
         : '';
       var inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
       var em = s.is_series ? '📺 ' : '🎬 ';
+      var href = s.kp_id ? ('/f/' + encodeURIComponent(String(s.kp_id))) : '#';
       return (
-        '<button type="button" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id)) + '" title="' + filmSimilarEscape(s.title || '') + '" role="listitem">' +
+        '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(s.title || '') + '" role="listitem">' +
           '<div class="similar-rail-poster">' + img + inBase + '</div>' +
           '<div class="similar-rail-title">' + em + filmSimilarEscape(s.title || '') + '</div>' +
-        '</button>'
+        '</a>'
       );
     }).join('');
     return (
@@ -350,9 +351,11 @@
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     section.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
-      card.addEventListener('click', function () {
+      card.addEventListener('click', function (e) {
         var kp = card.getAttribute('data-similar-kp');
-        if (kp) global.location.href = '/f/' + encodeURIComponent(kp);
+        if (!kp) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        global.location.href = '/f/' + encodeURIComponent(kp);
       });
     });
     bindFilmPageSimilarRailNav(section);
