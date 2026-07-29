@@ -117,6 +117,74 @@
     });
   }
 
+  function formatExtRatingVotes(n) {
+    var v = Number(n);
+    if (!isFinite(v) || v <= 0) return '';
+    if (v < 1000) return String(Math.round(v));
+    if (v < 1000000) {
+      var k = v / 1000;
+      var s = k >= 10 ? String(Math.round(k)) : k.toFixed(1).replace(/\.0$/, '');
+      return s + ' тыс.';
+    }
+    var m = v / 1000000;
+    return (m >= 10 ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '')) + ' млн';
+  }
+
+  function buildFilmExtRatingsHtml(film) {
+    if (!film) return '';
+    var parts = [];
+    var kp = film.rating_kp != null ? Number(film.rating_kp) : NaN;
+    var imdb = film.rating_imdb != null ? Number(film.rating_imdb) : NaN;
+    if (isFinite(kp) && kp > 0) {
+      var kv = formatExtRatingVotes(film.rating_kp_votes);
+      parts.push(
+        '<span class="film-modal-rkp">КП ' +
+          kp.toFixed(1) +
+          (kv ? '<span class="film-ext-rating-votes"> · ' + escapeHtml(kv) + '</span>' : '') +
+          '</span>'
+      );
+    }
+    if (isFinite(imdb) && imdb > 0) {
+      var iv = formatExtRatingVotes(film.rating_imdb_votes);
+      parts.push(
+        '<span class="film-modal-rkp">IMDb ' +
+          imdb.toFixed(1) +
+          (iv ? '<span class="film-ext-rating-votes"> · ' + escapeHtml(iv) + '</span>' : '') +
+          '</span>'
+      );
+    }
+    if (!parts.length) return '';
+    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + parts.join('') + '</div>';
+  }
+
+  function syncFilmExtRatings(root, film) {
+    var scope = root || document;
+    var hero = scope.querySelector
+      ? (scope.querySelector('.film-hero-with-tag, section.hero') || scope)
+      : document;
+    if (!hero || !hero.querySelector) hero = document;
+    var eyebrow = hero.querySelector('.eyebrow, #chips');
+    var row = hero.querySelector('.film-ext-ratings');
+    var html = buildFilmExtRatingsHtml(film);
+    if (!html) {
+      if (row) row.remove();
+      return;
+    }
+    if (row) {
+      row.outerHTML = html;
+      return;
+    }
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    var node = tmp.firstElementChild;
+    if (!node) return;
+    if (eyebrow && eyebrow.parentNode) eyebrow.insertAdjacentElement('afterend', node);
+    else {
+      var title = hero.querySelector('#film-title, h1');
+      if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
+    }
+  }
+
   function ruPlural(n, one, few, many) {
     var num = Math.abs(Number(n) || 0);
     var mod10 = num % 10;
@@ -2070,6 +2138,7 @@
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="eyebrow" id="chips"></div>' +
+          '<div class="film-ext-ratings" id="film-ext-ratings" hidden></div>' +
           '<div class="film-hero-crew" id="film-cast-root"></div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
@@ -2315,6 +2384,7 @@
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
+                '<div class="film-ext-ratings" id="film-ext-ratings" hidden></div>' +
                 '<div class="film-hero-crew" id="film-cast-root"></div>' +
                 buildFilmDescWrapHtml() +
                 '<div class="film-page-toolbar">' +
@@ -3069,6 +3139,7 @@
           }
           publicFilmCountry = countryForChips || publicFilmCountry || '';
           renderGenreChips(genresForChips, f.is_series, f.series_stats, countryForChips);
+          syncFilmExtRatings(document, f);
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = pathKey; } catch (_e) {}
             var heroSec = document.querySelector('.film-hero-with-tag');
