@@ -5394,9 +5394,16 @@ body.in-public-stats .header-search {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 0 0 12px;
+  margin: 12px 0;
   position: relative;
   z-index: 1;
+}
+#section-film .film-ext-ratings,
+.film-page .film-ext-ratings,
+#film-page-content .film-ext-ratings,
+main.film-page .film-ext-ratings {
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 .film-ext-ratings[hidden] { display: none !important; }
 .film-ext-ratings .film-ext-rating-votes {
