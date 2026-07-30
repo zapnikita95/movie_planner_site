@@ -203,6 +203,7 @@
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
         '<div class="film-page-similar-rail-wrap">' +
+          '<button type="button" class="film-page-similar-prev" aria-label="Назад по похожим">‹</button>' +
           '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' + cards + '</div>' +
           '<button type="button" class="film-page-similar-next" aria-label="Листать похожие">›</button>' +
         '</div>' +
@@ -210,12 +211,71 @@
     );
   }
 
+  function bindFilmPageSimilarRailDrag(rail) {
+    if (!rail || rail._mpDragScrollBound) return;
+    rail._mpDragScrollBound = true;
+    rail.classList.add('home-rail--draggable');
+    var active = false;
+    var dragging = false;
+    var startX = 0;
+    var startScroll = 0;
+    var THRESH = 6;
+    rail.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest('a, input, select, textarea, .film-page-similar-prev, .film-page-similar-next')) return;
+      active = true;
+      dragging = false;
+      startX = e.clientX;
+      startScroll = rail.scrollLeft;
+      try { rail.setPointerCapture(e.pointerId); } catch (_c) {}
+    });
+    rail.addEventListener('pointermove', function (e) {
+      if (!active) return;
+      var dx = e.clientX - startX;
+      if (!dragging && Math.abs(dx) > THRESH) {
+        dragging = true;
+        rail.classList.add('is-dragging');
+      }
+      if (!dragging) return;
+      e.preventDefault();
+      rail.scrollLeft = startScroll - dx;
+    });
+    function endDrag(e) {
+      if (!active) return;
+      active = false;
+      rail.classList.remove('is-dragging');
+      try {
+        if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+      } catch (_r) {}
+      if (dragging) {
+        setTimeout(function () { dragging = false; }, 0);
+      }
+    }
+    rail.addEventListener('pointerup', endDrag);
+    rail.addEventListener('pointercancel', endDrag);
+    rail.addEventListener('click', function (e) {
+      if (!dragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    rail.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (rail.scrollWidth <= rail.clientWidth + 8) return;
+      e.preventDefault();
+      rail.scrollLeft += e.deltaY;
+    }, { passive: false });
+  }
+
   function bindFilmPageSimilarRailNav(section) {
     if (!section) return;
     var rail = section.querySelector('.film-page-similar-rail');
-    var btn = section.querySelector('.film-page-similar-next');
-    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
-    btn.dataset.mpSimilarNavBound = '1';
+    var prev = section.querySelector('.film-page-similar-prev');
+    var next = section.querySelector('.film-page-similar-next');
+    if (!rail || !next) return;
+    bindFilmPageSimilarRailDrag(rail);
+    if (next.dataset.mpSimilarNavBound === '1') return;
+    next.dataset.mpSimilarNavBound = '1';
     function cardStep() {
       var card = rail.querySelector('.similar-rail-card');
       if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
@@ -229,19 +289,36 @@
     function syncNav() {
       var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
       var canScroll = max > 8;
-      btn.hidden = !canScroll;
-      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
-      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      next.hidden = !canScroll;
+      next.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
+      next.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      if (prev) {
+        prev.hidden = !canScroll;
+        prev.classList.toggle('is-at-start', canScroll && rail.scrollLeft <= 4);
+        prev.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      }
     }
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    function scrollByCards(dir) {
       var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
       if (max <= 8) return;
-      var next = rail.scrollLeft + cardStep() * 2;
-      if (next >= max - 4) next = 0;
-      rail.scrollTo({ left: next, behavior: 'smooth' });
+      var step = cardStep() * 2;
+      var nextLeft = rail.scrollLeft + dir * step;
+      if (dir > 0 && nextLeft >= max - 4) nextLeft = 0;
+      if (dir < 0 && nextLeft <= 4) nextLeft = max;
+      rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    }
+    next.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollByCards(1);
     });
+    if (prev) {
+      prev.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        scrollByCards(-1);
+      });
+    }
     rail.addEventListener('scroll', syncNav, { passive: true });
     try {
       if (typeof ResizeObserver !== 'undefined') {
