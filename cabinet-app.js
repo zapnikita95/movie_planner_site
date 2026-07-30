@@ -117,10 +117,6 @@
     } catch (_) {}
   }
 
-  function mpPosterOnErrorAttr() {
-    return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';
-  }
-
   function mpPosterOnError(img) {
     if (!img || img.dataset.mpPosterFailed === '1') return;
     img.onerror = null;
@@ -131,6 +127,27 @@
     if (wrap) wrap.classList.add('film-poster-has-placeholder');
   }
   try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
+
+  /** KP stub often 302→no-poster.gif with HTTP 200 — onerror never fires; catch after load. */
+  function mpPosterGuardLoaded(img) {
+    if (!img || img.dataset.mpPosterFailed === '1') return;
+    var src = String(img.currentSrc || img.src || '');
+    if (/no-poster/i.test(src)) {
+      mpPosterOnError(img);
+      return;
+    }
+    // Tiny gray «K» / gif stubs
+    try {
+      if (img.naturalWidth > 0 && img.naturalWidth <= 48 && img.naturalHeight <= 48) {
+        mpPosterOnError(img);
+      }
+    } catch (_) {}
+  }
+  try { window.mpPosterGuardLoaded = mpPosterGuardLoaded; } catch (_) {}
+
+  function mpPosterOnErrorAttr() {
+    return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)" onload="if(window.mpPosterGuardLoaded)window.mpPosterGuardLoaded(this)"';
+  }
 
   function mpPersonOnError(img) {
     if (!img || img.dataset.mpPersonFailed === '1') return;
@@ -355,12 +372,17 @@
     const display = next || (isGoodFilmPosterUrl(cur) ? cur : MP_POSTER_PLACEHOLDER);
     const img = root.querySelector('.poster-wrap .poster, .poster-wrap img');
     const hero = root.querySelector('.film-hero-with-tag, .hero');
+    const kp = root && (root.getAttribute('data-kp') || (root.dataset && root.dataset.kp));
+    const curIsKpCdnStub = isKpFilmCdnTemplateUrl(cur, kp) || /no-poster/i.test(String(cur || ''));
     if (img) {
-      if (display !== MP_POSTER_PLACEHOLDER || !isGoodFilmPosterUrl(cur)) {
+      // Branded MUST replace KP CDN templates (gray «K» / no-poster.gif HTTP 200).
+      if (display !== MP_POSTER_PLACEHOLDER || !isGoodFilmPosterUrl(cur) || curIsKpCdnStub) {
         img.src = display;
         img.classList.toggle('mp-poster-placeholder', display === MP_POSTER_PLACEHOLDER);
         const wrap = img.closest('.poster-wrap');
         if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display === MP_POSTER_PLACEHOLDER);
+        img.onerror = function () { if (window.mpPosterOnError) window.mpPosterOnError(this); };
+        img.onload = function () { if (window.mpPosterGuardLoaded) window.mpPosterGuardLoaded(this); };
       }
     }
     if (hero && display !== MP_POSTER_PLACEHOLDER) {

@@ -575,7 +575,15 @@
       return;
     }
     var pEl = document.getElementById('poster');
-    if (pEl && isGoodFilmPosterUrl(cur) && !isMpBrandedFilmPoster(cur) && display === MP_POSTER_PLACEHOLDER) {
+    // Gray «K» CDN is "good" URL but must lose to branded when API says so.
+    if (
+      pEl &&
+      isGoodFilmPosterUrl(cur) &&
+      !isMpBrandedFilmPoster(cur) &&
+      !isKpFilmCdnTemplateUrl(cur, kpId) &&
+      !/no-poster/i.test(String(cur || '')) &&
+      display === MP_POSTER_PLACEHOLDER
+    ) {
       setFilmHeroBackdrop(cur, kpId);
       return;
     }
@@ -586,6 +594,9 @@
       pEl.onerror = function () {
         if (global.mpPosterOnError) global.mpPosterOnError(this);
         else { this.onerror = null; this.src = MP_POSTER_PLACEHOLDER; this.classList.add('mp-poster-placeholder'); }
+      };
+      pEl.onload = function () {
+        if (global.mpPosterGuardLoaded) global.mpPosterGuardLoaded(this);
       };
       var wrap = pEl.closest('.poster-wrap');
       if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display.indexOf('film-poster-placeholder') >= 0);
@@ -606,6 +617,19 @@
         setFilmHeroBackdrop('');
       };
     }
+    global.mpPosterGuardLoaded = function (img) {
+      if (!img || img.dataset.mpPosterFailed === '1') return;
+      var src = String(img.currentSrc || img.src || '');
+      if (/no-poster/i.test(src)) {
+        global.mpPosterOnError(img);
+        return;
+      }
+      try {
+        if (img.naturalWidth > 0 && img.naturalWidth <= 48 && img.naturalHeight <= 48) {
+          global.mpPosterOnError(img);
+        }
+      } catch (_w) {}
+    };
   } catch (_mpPh) {}
 
   function isFilmDescPlaceholder(text) {
