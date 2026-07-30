@@ -267,20 +267,44 @@
     });
   }
 
+  function similarRailDisplayTitle(s) {
+    var t = String((s && s.title) || '').trim();
+    var y = parseInt((s && s.year), 10);
+    if (!t || !y || y < 1000) return t;
+    if (/\(\d{4}\)\s*$/.test(t)) return t;
+    // Unreleased / current-year upcoming: show year so empty poster is explained.
+    if (y >= new Date().getFullYear()) return t + ' (' + y + ')';
+    return t;
+  }
+
+  function similarRailPosterUrl(s) {
+    var p = cleanPosterUrl((s && (s.poster || s.poster_thumb)) || '');
+    var y = parseInt((s && s.year), 10);
+    var upcoming = Number.isFinite(y) && y >= new Date().getFullYear();
+    // Upcoming + KP CDN template → gray «K» with HTTP 200; use MP branded instead.
+    if (upcoming && (!p || isKpFilmCdnTemplateUrl(p, s && s.kp_id))) {
+      return MP_POSTER_PLACEHOLDER;
+    }
+    if (!p) return MP_POSTER_PLACEHOLDER;
+    return p;
+  }
+
   function buildFilmPageSimilarSectionLite(similar) {
     if (!similar || !similar.length) return '';
     var cards = similar.map(function (s) {
-      var p = s.poster || s.poster_thumb || '';
-      var img = p
-        ? '<img src="' + filmSimilarEscape(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
-        : '';
+      var title = similarRailDisplayTitle(s);
+      var p = similarRailPosterUrl(s);
+      var ph = isMpBrandedFilmPoster(p);
+      var img = '<img src="' + filmSimilarEscape(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' +
+        (ph ? ' class="mp-poster-placeholder"' : '') +
+        ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this); else { this.onerror=null; this.src=\'' + MP_POSTER_PLACEHOLDER + '\'; }">';
       var inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
       var em = s.is_series ? '📺 ' : '🎬 ';
       var href = s.kp_id ? ('/f/' + encodeURIComponent(String(s.kp_id))) : '#';
       return (
-        '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(s.title || '') + '" role="listitem">' +
+        '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(title) + '" role="listitem">' +
           '<div class="similar-rail-poster">' + img + inBase + '</div>' +
-          '<div class="similar-rail-title">' + em + filmSimilarEscape(s.title || '') + '</div>' +
+          '<div class="similar-rail-title">' + em + filmSimilarEscape(title) + '</div>' +
         '</a>'
       );
     }).join('');
@@ -390,8 +414,9 @@
       if (max <= 8) return;
       var step = cardStep() * 2;
       var nextLeft = rail.scrollLeft + dir * step;
-      if (dir > 0 && nextLeft >= max - 4) nextLeft = 0;
-      if (dir < 0 && nextLeft <= 4) nextLeft = max;
+      // Clamp — never wrap (wrap made › feel like ‹ near the end).
+      if (dir > 0) nextLeft = Math.min(max, nextLeft);
+      else nextLeft = Math.max(0, nextLeft);
       rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
     }
     next.addEventListener('click', function (e) {
