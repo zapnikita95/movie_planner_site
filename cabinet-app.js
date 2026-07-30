@@ -15278,18 +15278,35 @@
   }
 
   function buildSimilarRailCardHtml(s) {
-    const p = s.poster || s.poster_thumb || posterUrl(s.kp_id) || '';
-    const img = p
-      ? '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
-      : '';
+    const title = (function () {
+      const t = String(s.title || '').trim();
+      const y = parseInt(s.year, 10);
+      if (!t || !y || y < 1000) return t;
+      if (/\(\d{4}\)\s*$/.test(t)) return t;
+      if (y >= new Date().getFullYear()) return t + ' (' + y + ')';
+      return t;
+    })();
+    let p = s.poster || s.poster_thumb || '';
+    const y = parseInt(s.year, 10);
+    const upcoming = Number.isFinite(y) && y >= new Date().getFullYear();
+    const kpCdn = /st\.kp\.yandex\.net/i.test(String(p)) && /iphone360_|\/film_big\//i.test(String(p));
+    if (upcoming && (!p || kpCdn)) {
+      p = '/images/film-poster-placeholder.png';
+    } else if (!p) {
+      p = posterUrl(s.kp_id) || '/images/film-poster-placeholder.png';
+    }
+    const ph = String(p).indexOf('film-poster-placeholder') >= 0;
+    const img = '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' +
+      (ph ? ' class="mp-poster-placeholder"' : '') +
+      mpPosterOnErrorAttr() + '>';
     const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
     const clickAttr = 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
     const em = s.is_series ? '📺 ' : '🎬 ';
     return (
       '<button type="button" class="similar-rail-card" ' + clickAttr +
-      ' title="' + escapeHtml(s.title || '') + '" role="listitem">' +
+      ' title="' + escapeHtml(title) + '" role="listitem">' +
         '<div class="similar-rail-poster">' + img + inBase + '</div>' +
-        '<div class="similar-rail-title">' + em + escapeHtml(s.title || '') + '</div>' +
+        '<div class="similar-rail-title">' + em + escapeHtml(title) + '</div>' +
       '</button>'
     );
   }
@@ -15360,8 +15377,9 @@
       if (max <= 8) return;
       const step = cardStep() * 2;
       let nextLeft = rail.scrollLeft + dir * step;
-      if (dir > 0 && nextLeft >= max - 4) nextLeft = 0;
-      if (dir < 0 && nextLeft <= 4) nextLeft = max;
+      // Clamp — never wrap (wrap made › feel like ‹ near the end).
+      if (dir > 0) nextLeft = Math.min(max, nextLeft);
+      else nextLeft = Math.max(0, nextLeft);
       rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
     }
     next.addEventListener('click', function (e) {
