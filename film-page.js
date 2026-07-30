@@ -250,7 +250,8 @@
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
+    if (isKpFilmCdnTemplateUrl(s)) return false;
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
   function currentFilmPosterFromDom() {

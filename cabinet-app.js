@@ -187,10 +187,19 @@
   }
 
   function posterUrl(kpId) {
-    if (!kpId) return MP_POSTER_PLACEHOLDER;
-    const kp = String(kpId).replace(/\D/g, '');
-    if (!kp) return MP_POSTER_PLACEHOLDER;
-    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
+    // Never KP CDN iphone360 — missing art is gray «K» with HTTP 200 (onerror never fires).
+    return MP_POSTER_PLACEHOLDER;
+  }
+
+  function isKpFilmCdnTemplateUrl(src, kpId) {
+    const s = String(src || '').trim().toLowerCase();
+    if (!s || s.indexOf('st.kp.yandex.net') < 0) return false;
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (kp && s.indexOf('iphone360_' + kp + '.jpg') >= 0) return true;
+    if (kp && s.indexOf('/film_big/' + kp + '.jpg') >= 0) return true;
+    if (/\/film_iphone\/iphone360_\d+\.jpg/.test(s)) return true;
+    if (/\/images\/film_big\/\d+\.jpg/.test(s)) return true;
+    return false;
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
@@ -259,25 +268,30 @@
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
+    if (isKpFilmCdnTemplateUrl(s) || isKpIphonePosterUrl(s, (s.match(/iphone360_(\d+)/) || [])[1])) {
+      return false;
+    }
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|\/images\/posters\//i.test(s);
   }
 
   function isKpIphonePosterUrl(src, kpId) {
     const s = String(src || '').trim();
-    if (!s || !kpId) return false;
+    if (!s) return false;
+    if (/\/film_iphone\/iphone360_\d+\.jpg/i.test(s) || /\/images\/film_big\/\d+\.jpg/i.test(s)) {
+      return true;
+    }
+    if (!kpId) return false;
     const kp = String(kpId).replace(/\D/g, '');
     if (!kp) return false;
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
-  /** Series vitrine: real posters; confirmed KP stubs fall back to branded via onerror. */
+  /** Series vitrine: real posters; KP CDN templates → MP branded (never gray «K»). */
   function seriesShowcasePosterSrc(item) {
     const kp = item && (item.kp_id || item.kp);
     const raw = cleanPosterUrl(item && item.poster);
-    if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
-    if (raw && isGoodFilmPosterUrl(raw) && !isKpIphonePosterUrl(raw, kp)) return raw;
-    if (raw && isKpIphonePosterUrl(raw, kp)) return raw;
-    if (kp) return posterUrl(kp);
+    if (raw && /image\.tmdb\.org|\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
+    if (raw && isGoodFilmPosterUrl(raw) && !isKpFilmCdnTemplateUrl(raw, kp)) return raw;
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -311,14 +325,18 @@
     const cur = currentFilmPosterFromDom(root);
     const kp = film && (film.kp_id || film.kp);
     // Keep MP branded — do not overwrite with KP CDN template (gray «K» loads as 200).
-    if (cur && /film-poster-placeholder/i.test(cur) && isKpIphonePosterUrl(fromFilm, kp)) {
+    if (cur && /film-poster-placeholder/i.test(cur) && isKpFilmCdnTemplateUrl(fromFilm, kp)) {
       return cur;
     }
-    if (fromFilm) return fromFilm;
-    if (cur) return cur;
+    if (fromFilm && !isKpFilmCdnTemplateUrl(fromFilm, kp) && isGoodFilmPosterUrl(fromFilm)) {
+      return fromFilm;
+    }
+    if (cur && !isKpFilmCdnTemplateUrl(cur, kp) && isGoodFilmPosterUrl(cur)) return cur;
     const boot = filmFromRouteBoot(film && film.kp_id);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
-    if (bootPoster) return bootPoster;
+    if (bootPoster && !isKpFilmCdnTemplateUrl(bootPoster, kp) && isGoodFilmPosterUrl(bootPoster)) {
+      return bootPoster;
+    }
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -444,6 +462,11 @@
       rememberFilmHeroDescription(kp, fromFilm);
       return fromFilm;
     }
+    // Shell/API settled with empty plot — do not revive sticky remake glue / boot SEO text.
+    if (film && film.__descSettled && !fromFilm) {
+      if (kp) _filmHeroDescCache.delete(kp);
+      return '';
+    }
     const bootDesc = kp ? pickFilmDescription(filmFromRouteBoot(kp)) : '';
     const bootOk = bootDesc && !isTruncatedFilmDescription(bootDesc) ? bootDesc : '';
     return pickBestFilmDescriptionText(
@@ -458,6 +481,8 @@
     const bootDesc = pickFilmDescription(filmFromRouteBoot(kp));
     if (!bootDesc || isTruncatedFilmDescription(bootDesc)) return film;
     const cur = pickFilmDescription(film);
+    // API/shell explicitly empty — do not glue wrong SEO overview onto silent remakes.
+    if (film && film.__descSettled && !cur) return film;
     film.description = preferRuDescription(cur, bootDesc);
     return film;
   }
@@ -479,7 +504,21 @@
   function applyFilmDescriptionToHero(root, film) {
     if (!root || !film) return false;
     const kp = String(film.kp_id || '').replace(/\D/g, '');
-    const next = rememberFilmHeroDescription(kp, resolveFilmHeroDescription(film, root));
+    const resolved = resolveFilmHeroDescription(film, root);
+    if (!resolved) {
+      // API settled empty — wipe sticky remake synopsis from DOM/cache.
+      if (film.__descSettled) {
+        if (kp) _filmHeroDescCache.delete(kp);
+        const heroContent = root.querySelector('.hero-content');
+        if (!heroContent) return false;
+        const wrap = ensureFilmDescWrap(heroContent);
+        if (!wrap) return false;
+        updateFilmDescCollapseState(wrap, '', wrap.getAttribute('data-has-facts') === '1');
+        return true;
+      }
+      return false;
+    }
+    const next = rememberFilmHeroDescription(kp, resolved);
     if (!next) return false;
     if (isTruncatedFilmDescription(next) && _filmHeroDescInflight.has(kp)) return false;
     const heroContent = root.querySelector('.hero-content');
@@ -516,6 +555,13 @@
     if (!root || !film) return Promise.resolve(film);
     const kp = String(film.kp_id || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve(film);
+
+    // Lite/API settled with no plot — clear sticky remake glue, skip boot/DOM revive.
+    if (film.__descSettled && !pickFilmDescription(film)) {
+      _filmHeroDescCache.delete(kp);
+      applyFilmDescriptionToHero(root, film);
+      return Promise.resolve(film);
+    }
 
     mergeBootDescription(film, kp);
     rememberFilmHeroDescription(kp, pickFilmDescription(film));
@@ -1336,6 +1382,7 @@
       is_series: !!d.is_series,
       watched: !!d.watched,
       in_library: !!d.in_library,
+      __descSettled: true,
     };
   }
 
