@@ -9527,7 +9527,7 @@
       rail.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'touch') return;
         if (e.button != null && e.button !== 0) return;
-        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-next')) return;
+        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-prev, .film-page-similar-next')) return;
         active = true;
         dragging = false;
         startX = e.clientX;
@@ -15302,6 +15302,7 @@
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
         '<div class="film-page-similar-rail-wrap">' +
+          '<button type="button" class="film-page-similar-prev" aria-label="Назад по похожим">‹</button>' +
           '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' +
           similar.map(function (s) { return buildSimilarRailCardHtml(s); }).join('') +
           '</div>' +
@@ -15326,9 +15327,12 @@
   function bindFilmPageSimilarRailNav(section) {
     if (!section) return;
     const rail = section.querySelector('.film-page-similar-rail');
-    const btn = section.querySelector('.film-page-similar-next');
-    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
-    btn.dataset.mpSimilarNavBound = '1';
+    const prev = section.querySelector('.film-page-similar-prev');
+    const next = section.querySelector('.film-page-similar-next');
+    if (!rail || !next) return;
+    bindHomePosterRailDragScroll(section);
+    if (next.dataset.mpSimilarNavBound === '1') return;
+    next.dataset.mpSimilarNavBound = '1';
     function cardStep() {
       const card = rail.querySelector('.similar-rail-card');
       if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
@@ -15342,20 +15346,43 @@
     function syncNav() {
       const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
       const canScroll = max > 8;
-      btn.hidden = !canScroll;
-      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
-      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      next.hidden = !canScroll;
+      next.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
+      next.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      if (prev) {
+        prev.hidden = !canScroll;
+        prev.classList.toggle('is-at-start', canScroll && rail.scrollLeft <= 4);
+        prev.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      }
     }
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    function scrollByCards(dir) {
       const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
       if (max <= 8) return;
-      let next = rail.scrollLeft + cardStep() * 2;
-      if (next >= max - 4) next = 0;
-      rail.scrollTo({ left: next, behavior: 'smooth' });
+      const step = cardStep() * 2;
+      let nextLeft = rail.scrollLeft + dir * step;
+      if (dir > 0 && nextLeft >= max - 4) nextLeft = 0;
+      if (dir < 0 && nextLeft <= 4) nextLeft = max;
+      rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    }
+    next.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollByCards(1);
     });
+    if (prev) {
+      prev.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        scrollByCards(-1);
+      });
+    }
     rail.addEventListener('scroll', syncNav, { passive: true });
+    rail.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (rail.scrollWidth <= rail.clientWidth + 8) return;
+      e.preventDefault();
+      rail.scrollLeft += e.deltaY;
+    }, { passive: false });
     try {
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(syncNav).observe(rail);
