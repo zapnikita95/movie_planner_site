@@ -401,13 +401,16 @@
     function syncNav() {
       var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
       var canScroll = max > 8;
-      next.hidden = !canScroll;
-      next.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
-      next.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      var atStart = rail.scrollLeft <= 4;
+      var atEnd = rail.scrollLeft >= max - 4;
+      // Hide at edges — never overlay posters with a useless arrow.
+      next.hidden = !canScroll || atEnd;
+      next.classList.toggle('is-at-end', atEnd);
+      next.setAttribute('aria-hidden', next.hidden ? 'true' : 'false');
       if (prev) {
-        prev.hidden = !canScroll;
-        prev.classList.toggle('is-at-start', canScroll && rail.scrollLeft <= 4);
-        prev.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+        prev.hidden = !canScroll || atStart;
+        prev.classList.toggle('is-at-start', atStart);
+        prev.setAttribute('aria-hidden', prev.hidden ? 'true' : 'false');
       }
     }
     function scrollByCards(dir) {
