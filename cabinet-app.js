@@ -15402,8 +15402,23 @@
     return out;
   }
 
+  function similarHasCyrillic(title) {
+    return /[А-Яа-яЁё]/.test(String(title || ''));
+  }
+
+  function filterSimilarQuality(items) {
+    return (items || []).filter(function (s) {
+      const title = String((s && s.title) || '').trim();
+      if (!title || /^(film|фильм|сериал|series)\s*\d+$/i.test(title)) return false;
+      if (!similarHasCyrillic(title)) return false;
+      const p = cleanPosterUrl(s && (s.poster || s.poster_thumb)) || '';
+      if (!p || /film-poster-placeholder/i.test(p)) return false;
+      return true;
+    });
+  }
+
   function buildFilmPageSimilarSectionHtml(similar) {
-    similar = dedupeSimilarByTitle(similar);
+    similar = filterSimilarQuality(dedupeSimilarByTitle(similar));
     if (!similar || !similar.length) return '';
     return (
       '<section class="film-page-similar-section" aria-label="Похожие">' +

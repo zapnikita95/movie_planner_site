@@ -311,8 +311,24 @@
     return out;
   }
 
+  function similarHasCyrillic(title) {
+    return /[А-Яа-яЁё]/.test(String(title || ''));
+  }
+
+  function filterSimilarQuality(items) {
+    // Drop short-collision junk: Latin-only titles / Film NNN / branded popcorn only.
+    return (items || []).filter(function (s) {
+      var title = similarRailDisplayTitle(s) || String((s && s.title) || '').trim();
+      if (!title || /^(film|фильм|сериал|series)\s*\d+$/i.test(title)) return false;
+      if (!similarHasCyrillic(title)) return false;
+      var p = similarRailPosterUrl(s);
+      if (!p || isMpBrandedFilmPoster(p)) return false;
+      return true;
+    });
+  }
+
   function buildFilmPageSimilarSectionLite(similar) {
-    similar = dedupeSimilarByTitle(similar);
+    similar = filterSimilarQuality(dedupeSimilarByTitle(similar));
     if (!similar || !similar.length) return '';
     var cards = similar.map(function (s) {
       var title = similarRailDisplayTitle(s);
