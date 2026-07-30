@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260721socials1';
+  var BUILD = '20260730seoOps1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -303,7 +303,7 @@
     document.querySelectorAll('.footer-store-row a[href="' + IOS_URL_RU + '"], .footer-store-row a[href="' + IOS_URL_EN + '"], .footer-store-row a[href*="apps.apple.com"]').forEach(function (a) {
       a.href = iosUrl;
     });
-    fetch('https://api.movie-planner.ru/api/app/release', { cache: 'no-store' })
+    fetch('https://movie-planner.ru/api/app/release', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rel) {
         if (!rel || !rel.url) return;
@@ -334,6 +334,41 @@
     ensureSearchChromeIcons();
   }
 
+  function mountRelatedArticles() {
+    var main = document.querySelector('.article-content');
+    if (!main || main.querySelector('.article-related')) return;
+    var path = (global.location.pathname || '').split('/').pop() || '';
+    var RELATED = {
+      'fakty-o-semkah-filmov.html': [
+        { href: '/articles/interesnye-fakty-o-filmah.html', title: 'Интересные факты о фильмах' },
+        { href: '/f/789914', title: 'Физрук — актёры и факты' },
+        { href: '/f/1331277', title: 'Милый дом' }
+      ],
+      'interesnye-fakty-o-filmah.html': [
+        { href: '/articles/fakty-o-semkah-filmov.html', title: 'Факты о съёмках' },
+        { href: '/f/789914', title: 'Физрук' },
+        { href: '/s/551325', title: 'Дмитрий Нагиев' }
+      ],
+      'top-10-serialov.html': [
+        { href: '/f/1331277', title: 'Милый дом' },
+        { href: '/f/789914', title: 'Физрук' },
+        { href: '/articles/treker-serialov-telegram.html', title: 'Трекер сериалов' }
+      ]
+    };
+    var items = RELATED[path];
+    if (!items || !items.length) return;
+    var html = '<aside class="article-related" aria-label="Читать также"><h2>Читать также</h2><ul>';
+    items.forEach(function (it) {
+      html += '<li><a href="' + it.href + '">' + it.title + '</a></li>';
+    });
+    html += '</ul></aside>';
+    var faq = main.querySelector('.article-faq');
+    var cta = main.querySelector('.article-cta');
+    if (faq) faq.insertAdjacentHTML('beforebegin', html);
+    else if (cta) cta.insertAdjacentHTML('beforebegin', html);
+    else main.insertAdjacentHTML('beforeend', html);
+  }
+
   function initArticleChrome() {
     try {
       document.body.classList.add('film-standalone-page');
@@ -346,6 +381,7 @@
     upgradeHeader();
     ensureSearchChromeIcons();
     mountArticleNav();
+    mountRelatedArticles();
     upgradeStoreBadges();
     upgradeFooter();
     ensureFooterSocials();
