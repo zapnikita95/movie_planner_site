@@ -187,8 +187,11 @@
   }
 
   function posterUrl(kpId) {
-    // Never KP CDN iphone360 — missing art is gray «K» with HTTP 200 (onerror never fires).
-    return MP_POSTER_PLACEHOLDER;
+    if (!kpId) return MP_POSTER_PLACEHOLDER;
+    const kp = String(kpId).replace(/\D/g, '');
+    if (!kp) return MP_POSTER_PLACEHOLDER;
+    // Real KP art for most titles; API sends branded only when stub confirmed.
+    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
   }
 
   function isKpFilmCdnTemplateUrl(src, kpId) {
@@ -268,10 +271,9 @@
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
-    if (isKpFilmCdnTemplateUrl(s) || isKpIphonePosterUrl(s, (s.match(/iphone360_(\d+)/) || [])[1])) {
-      return false;
-    }
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|\/images\/posters\//i.test(s);
+    // Real KP art often lives on iphone360 CDN; only reject empty/no-poster.
+    if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function isKpIphonePosterUrl(src, kpId) {
@@ -286,12 +288,13 @@
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
-  /** Series vitrine: real posters; KP CDN templates → MP branded (never gray «K»). */
+  /** Series vitrine: real posters; confirmed stubs use branded via API. */
   function seriesShowcasePosterSrc(item) {
     const kp = item && (item.kp_id || item.kp);
     const raw = cleanPosterUrl(item && item.poster);
     if (raw && /image\.tmdb\.org|\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
-    if (raw && isGoodFilmPosterUrl(raw) && !isKpFilmCdnTemplateUrl(raw, kp)) return raw;
+    if (raw && isGoodFilmPosterUrl(raw)) return raw;
+    if (kp) return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + String(kp).replace(/\D/g, '') + '.jpg';
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -324,19 +327,16 @@
     const fromFilm = cleanPosterUrl(film && (film.poster_url || film.poster));
     const cur = currentFilmPosterFromDom(root);
     const kp = film && (film.kp_id || film.kp);
-    // Keep MP branded — do not overwrite with KP CDN template (gray «K» loads as 200).
+    // Keep MP branded — do not overwrite with KP CDN when API already chose branded
+    // (confirmed gray «K» / no art). Real KP CDN from API is fine.
     if (cur && /film-poster-placeholder/i.test(cur) && isKpFilmCdnTemplateUrl(fromFilm, kp)) {
       return cur;
     }
-    if (fromFilm && !isKpFilmCdnTemplateUrl(fromFilm, kp) && isGoodFilmPosterUrl(fromFilm)) {
-      return fromFilm;
-    }
-    if (cur && !isKpFilmCdnTemplateUrl(cur, kp) && isGoodFilmPosterUrl(cur)) return cur;
+    if (fromFilm && isGoodFilmPosterUrl(fromFilm)) return fromFilm;
+    if (cur && isGoodFilmPosterUrl(cur)) return cur;
     const boot = filmFromRouteBoot(film && film.kp_id);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
-    if (bootPoster && !isKpFilmCdnTemplateUrl(bootPoster, kp) && isGoodFilmPosterUrl(bootPoster)) {
-      return bootPoster;
-    }
+    if (bootPoster && isGoodFilmPosterUrl(bootPoster)) return bootPoster;
     return MP_POSTER_PLACEHOLDER;
   }
 
