@@ -5650,15 +5650,30 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   color: rgba(255, 255, 255, 0.95);
   background: rgba(8, 6, 20, 0.78);
 }
-/* Keep flex gutter when arrow is inactive — rapid clicks must not hit a card under a vanished arrow. */
-.film-page-similar-prev[hidden],
-.film-page-similar-next[hidden],
+/* Keep flex gutter when arrow is inactive at an edge — rapid clicks must not hit a card. */
+.film-page-similar-prev[hidden].is-edge-hidden,
+.film-page-similar-next[hidden].is-edge-hidden,
 .film-page-similar-prev.is-edge-hidden,
 .film-page-similar-next.is-edge-hidden {
   visibility: hidden !important;
   pointer-events: none !important;
   opacity: 0 !important;
   display: inline-flex !important;
+}
+/* ≤10 / no real overflow — collapse gutters completely (no 1px “scroll” arrows). */
+.film-page-similar-prev.is-nav-off,
+.film-page-similar-next.is-nav-off,
+.film-page-similar-prev[hidden].is-nav-off,
+.film-page-similar-next[hidden].is-nav-off {
+  display: none !important;
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 /* Edge fades only over the rail, not over side arrows. */
 .film-page-similar-rail-wrap::before,

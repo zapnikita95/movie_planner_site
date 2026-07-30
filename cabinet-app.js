@@ -15453,27 +15453,31 @@
       return card.offsetWidth + gap;
     }
     function syncNav() {
+      const n = rail.querySelectorAll('.similar-rail-card').length;
       const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      const canScroll = max > 8;
+      // ≤10 fit in one row — no arrows (ignore 1px overflow).
+      const canScroll = n > 10 && max > 24;
       const atStart = rail.scrollLeft <= 4;
       const atEnd = rail.scrollLeft >= max - 4;
-      // Keep flex gutter — rapid › clicks must not land on a card when arrow vanishes.
       const hideNext = !canScroll || atEnd;
+      const hidePrev = !canScroll || atStart;
       next.hidden = hideNext;
-      next.classList.toggle('is-edge-hidden', hideNext);
+      next.classList.toggle('is-nav-off', !canScroll);
+      next.classList.toggle('is-edge-hidden', canScroll && hideNext);
       next.classList.toggle('is-at-end', atEnd);
       next.setAttribute('aria-hidden', hideNext ? 'true' : 'false');
       if (prev) {
-        const hidePrev = !canScroll || atStart;
         prev.hidden = hidePrev;
-        prev.classList.toggle('is-edge-hidden', hidePrev);
+        prev.classList.toggle('is-nav-off', !canScroll);
+        prev.classList.toggle('is-edge-hidden', canScroll && hidePrev);
         prev.classList.toggle('is-at-start', atStart);
         prev.setAttribute('aria-hidden', hidePrev ? 'true' : 'false');
       }
     }
     function scrollByCards(dir) {
+      const n = rail.querySelectorAll('.similar-rail-card').length;
       const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      if (max <= 8) return;
+      if (n <= 10 || max <= 24) return;
       const step = cardStep() * 2;
       let nextLeft = rail.scrollLeft + dir * step;
       // Clamp — never wrap (wrap made › feel like ‹ near the end).
