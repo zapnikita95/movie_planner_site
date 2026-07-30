@@ -1048,7 +1048,7 @@
     if (!root) return '';
     const hero = root.querySelector('.film-hero-with-tag');
     if (!hero) return '';
-    return String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+    return numericKpFilmId(hero.getAttribute('data-kp-id'));
   }
 
   /** Закрыть модалку входа без перезагрузки страницы под ней. */
@@ -6209,6 +6209,11 @@
     });
   }
 
+  function numericKpFilmId(id) {
+    const s = String(id == null ? '' : id).trim();
+    return /^\d+$/.test(s) ? s : '';
+  }
+
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
@@ -6216,11 +6221,23 @@
     const factsEl = wrap.querySelector('.film-desc-facts-inline');
     if (!factsEl) return;
     const items = filmFactsItemsFromPayload(payload);
-    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
-    const hasFacts = items.length > 0;
-    wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    const hasReviews = wrap.getAttribute('data-has-reviews') === '1';
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+    // Empty /facts must not erase boot/editorial facts already on the page.
+    if (!items.length) {
+      if (wrap.getAttribute('data-has-facts') === '1' && factsEl.innerHTML.trim()) {
+        return;
+      }
+      factsEl.innerHTML = '';
+      wrap.setAttribute('data-has-facts', '0');
+      updateFilmDescCollapseState(
+        wrap,
+        filmDescPlotText(wrap),
+        wrap.getAttribute('data-has-reviews') === '1'
+      );
+      return;
+    }
+    factsEl.innerHTML = filmDescFactsInlineHtml(payload);
+    wrap.setAttribute('data-has-facts', '1');
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), true);
   }
 
   function withFilmReviewUtm(url, channelTitle) {
@@ -6292,7 +6309,7 @@
   }
 
   function loadFilmDescReviews(kpId, root) {
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     const scope = root || document;
     const wrap = scope.querySelector('#film-desc-wrap');
@@ -6327,7 +6344,7 @@
   }
 
   function loadFilmDescFacts(kpId, root) {
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     const scope = root || document;
     const wrap = scope.querySelector('#film-desc-wrap');
@@ -14205,7 +14222,7 @@
 
   function filmToolbarKpFromRoot(root) {
     const share = root && root.querySelector('[data-share-film]');
-    const fromShare = share ? String(share.getAttribute('data-kp') || '').replace(/\D/g, '') : '';
+    const fromShare = share ? numericKpFilmId(share.getAttribute('data-kp')) : '';
     if (fromShare) return fromShare;
     return heroKpIdFromRoot(root);
   }
@@ -14364,7 +14381,7 @@
       });
     }
     const heroRoot = root.closest('#film-page-content, #section-film, .movie-page') || document.getElementById('film-page-content');
-    const kpForFacts = (film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot);
+    const kpForFacts = numericKpFilmId((film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot));
     if (kpForFacts) loadFilmDescFacts(kpForFacts, heroRoot);
     if (seriesToggle && seriesPanel && film && film.is_series) {
       seriesToggle.addEventListener('click', function (e) {
