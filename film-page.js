@@ -290,7 +290,29 @@
     return p;
   }
 
+  function similarTitleDedupeKey(title) {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/[\(\[\{]\s*\d{4}\s*[\)\]\}]\s*$/g, '')
+      .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function dedupeSimilarByTitle(items) {
+    var seen = Object.create(null);
+    var out = [];
+    (items || []).forEach(function (s) {
+      var key = similarTitleDedupeKey(similarRailDisplayTitle(s) || (s && s.title) || '');
+      if (key && seen[key]) return;
+      if (key) seen[key] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
   function buildFilmPageSimilarSectionLite(similar) {
+    similar = dedupeSimilarByTitle(similar);
     if (!similar || !similar.length) return '';
     var cards = similar.map(function (s) {
       var title = similarRailDisplayTitle(s);
@@ -403,14 +425,18 @@
       var canScroll = max > 8;
       var atStart = rail.scrollLeft <= 4;
       var atEnd = rail.scrollLeft >= max - 4;
-      // Hide at edges — never overlay posters with a useless arrow.
-      next.hidden = !canScroll || atEnd;
+      // Keep arrow flex slot (visibility) — never collapse so rapid clicks don't hit a card.
+      var hideNext = !canScroll || atEnd;
+      next.hidden = hideNext;
+      next.classList.toggle('is-edge-hidden', hideNext);
       next.classList.toggle('is-at-end', atEnd);
-      next.setAttribute('aria-hidden', next.hidden ? 'true' : 'false');
+      next.setAttribute('aria-hidden', hideNext ? 'true' : 'false');
       if (prev) {
-        prev.hidden = !canScroll || atStart;
+        var hidePrev = !canScroll || atStart;
+        prev.hidden = hidePrev;
+        prev.classList.toggle('is-edge-hidden', hidePrev);
         prev.classList.toggle('is-at-start', atStart);
-        prev.setAttribute('aria-hidden', prev.hidden ? 'true' : 'false');
+        prev.setAttribute('aria-hidden', hidePrev ? 'true' : 'false');
       }
     }
     function scrollByCards(dir) {

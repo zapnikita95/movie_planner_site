@@ -5588,7 +5588,9 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .film-page-similar-rail {
   flex: 1 1 auto;
@@ -5597,6 +5599,9 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   /* Desktop: keep a usable scroll affordance even with grab-drag. */
   cursor: grab;
   scrollbar-width: thin;
+  /* Never draw under side arrows — cards stay between arrow gutters. */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .film-page-similar-rail::-webkit-scrollbar {
   height: 6px;
@@ -5612,14 +5617,19 @@ a.collections-film-card { color: inherit; text-decoration: none; }
 .film-page-similar-next {
   appearance: none;
   -webkit-appearance: none;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  position: static;
-  flex: 0 0 36px;
+  /* Outside the rail — never absolute overlay on posters (2026-07-30 incident). */
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  inset: auto !important;
+  transform: none !important;
+  flex: 0 0 40px;
   align-self: flex-start;
   z-index: 2;
-  width: 36px;
+  width: 40px;
   height: calc(92px * 3 / 2);
   margin: 0;
   padding: 0;
@@ -5631,7 +5641,7 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   font-weight: 400;
   line-height: 1;
   cursor: pointer;
-  transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease, visibility 0.15s ease;
 }
 .film-page-similar-prev:hover,
 .film-page-similar-next:hover,
@@ -5640,9 +5650,15 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   color: rgba(255, 255, 255, 0.95);
   background: rgba(8, 6, 20, 0.78);
 }
+/* Keep flex gutter when arrow is inactive — rapid clicks must not hit a card under a vanished arrow. */
 .film-page-similar-prev[hidden],
-.film-page-similar-next[hidden] {
-  display: none !important;
+.film-page-similar-next[hidden],
+.film-page-similar-prev.is-edge-hidden,
+.film-page-similar-next.is-edge-hidden {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  display: inline-flex !important;
 }
 /* Edge fades only over the rail, not over side arrows. */
 .film-page-similar-rail-wrap::before,
@@ -5655,8 +5671,8 @@ a.collections-film-card { color: inherit; text-decoration: none; }
 }
 main.film-page .film-page-similar-section,
 #film-page-content .film-page-similar-section {
-  padding-left: clamp(12px, 3vw, 24px);
-  padding-right: clamp(12px, 3vw, 24px);
+  padding-left: clamp(8px, 2vw, 16px);
+  padding-right: clamp(8px, 2vw, 16px);
 }
 @media (max-width: 768px) {
   .film-page-similar-section {
@@ -5666,7 +5682,7 @@ main.film-page .film-page-similar-section,
     font-size: 1.2rem;
   }
   .film-page-similar-rail-wrap {
-    gap: 4px;
+    gap: 6px;
   }
   .film-page-similar-rail {
     padding-left: 0;
@@ -5678,8 +5694,8 @@ main.film-page .film-page-similar-section,
   }
   .film-page-similar-prev,
   .film-page-similar-next {
-    flex-basis: 28px;
-    width: 28px;
+    flex-basis: 32px;
+    width: 32px;
     background: transparent;
     border-color: rgba(196, 181, 253, 0.28);
     font-size: 22px;

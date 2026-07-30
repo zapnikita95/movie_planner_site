@@ -15358,7 +15358,30 @@
     );
   }
 
+  function similarTitleDedupeKey(title) {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/[\(\[\{]\s*\d{4}\s*[\)\]\}]\s*$/g, '')
+      .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function dedupeSimilarByTitle(items) {
+    const seen = Object.create(null);
+    const out = [];
+    (items || []).forEach(function (s) {
+      const t = String((s && s.title) || '').trim().replace(/\s*\(\d{4}\)\s*$/, '');
+      const key = similarTitleDedupeKey(t);
+      if (key && seen[key]) return;
+      if (key) seen[key] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
   function buildFilmPageSimilarSectionHtml(similar) {
+    similar = dedupeSimilarByTitle(similar);
     if (!similar || !similar.length) return '';
     return (
       '<section class="film-page-similar-section" aria-label="Похожие">' +
@@ -15412,14 +15435,18 @@
       const canScroll = max > 8;
       const atStart = rail.scrollLeft <= 4;
       const atEnd = rail.scrollLeft >= max - 4;
-      // Hide at edges — never overlay posters with a useless arrow.
-      next.hidden = !canScroll || atEnd;
+      // Keep flex gutter — rapid › clicks must not land on a card when arrow vanishes.
+      const hideNext = !canScroll || atEnd;
+      next.hidden = hideNext;
+      next.classList.toggle('is-edge-hidden', hideNext);
       next.classList.toggle('is-at-end', atEnd);
-      next.setAttribute('aria-hidden', next.hidden ? 'true' : 'false');
+      next.setAttribute('aria-hidden', hideNext ? 'true' : 'false');
       if (prev) {
-        prev.hidden = !canScroll || atStart;
+        const hidePrev = !canScroll || atStart;
+        prev.hidden = hidePrev;
+        prev.classList.toggle('is-edge-hidden', hidePrev);
         prev.classList.toggle('is-at-start', atStart);
-        prev.setAttribute('aria-hidden', prev.hidden ? 'true' : 'false');
+        prev.setAttribute('aria-hidden', hidePrev ? 'true' : 'false');
       }
     }
     function scrollByCards(dir) {
