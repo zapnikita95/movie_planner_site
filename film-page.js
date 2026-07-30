@@ -912,6 +912,12 @@
     return arr;
   }
 
+  /** Real Kinopoisk film id only — never digits from fest-/movie-/tv- catalog keys (year → /f/2025/facts wipe). */
+  function numericKpFilmId(id) {
+    var s = String(id == null ? '' : id).trim();
+    return /^\d+$/.test(s) ? s : '';
+  }
+
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
@@ -919,11 +925,27 @@
     var factsEl = wrap.querySelector('.film-desc-facts-inline');
     if (!factsEl) return;
     var items = filmFactsItemsFromPayload(payload);
-    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
-    var hasFacts = items.length > 0;
-    var hasReviews = wrap.getAttribute('data-has-reviews') === '1';
-    wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+    // Empty KP/facts response must not erase SSR/boot/editorial facts already painted.
+    if (!items.length) {
+      if (wrap.getAttribute('data-has-facts') === '1' && factsEl.innerHTML.trim()) {
+        return;
+      }
+      factsEl.innerHTML = '';
+      wrap.setAttribute('data-has-facts', '0');
+      updateFilmDescCollapseState(
+        wrap,
+        filmDescPlotText(wrap),
+        wrap.getAttribute('data-has-reviews') === '1'
+      );
+      return;
+    }
+    factsEl.innerHTML = filmDescFactsInlineHtml(payload);
+    wrap.setAttribute('data-has-facts', '1');
+    updateFilmDescCollapseState(
+      wrap,
+      filmDescPlotText(wrap),
+      true
+    );
   }
 
   function withReviewUtm(url, channelTitle) {
@@ -998,7 +1020,7 @@
   }
 
   function loadFilmDescReviews(kpId, root) {
-    var kp = String(kpId || '').replace(/\D/g, '');
+    var kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     var scope = root || document;
     var wrap = scope.querySelector('#film-desc-wrap');
@@ -1023,7 +1045,7 @@
   }
 
   function loadFilmDescFacts(kpId, root) {
-    var kp = String(kpId || '').replace(/\D/g, '');
+    var kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     var scope = root || document;
     var wrap = scope.querySelector('#film-desc-wrap');
@@ -2335,11 +2357,12 @@
   }
 
   function buildFilmMainInnerHtml(kpId, poster) {
-    var posterSrc = resolveFilmPosterDisplay(poster, kpId);
+    var kpNumeric = numericKpFilmId(kpId);
+    var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
-    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpId }, { inBase: false, authenticated: !!mpToken(), canRate: true });
+    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: !!mpToken(), canRate: true });
     return (
-      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(String(kpId || '')) + '">' +
+      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
@@ -2463,9 +2486,11 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
-    if (descWrapBoot && meta.mode !== 'tmdb' && (boot.kp_id || keyDigits)) {
+    // fest-/movie- keys contain years (…-2025); never treat those digits as kp_id → empty /facts wipe.
+    if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest') {
       try {
-        loadFilmDescFacts(String(boot.kp_id || keyDigits), pageRoot);
+        var bootFactsKp = numericKpFilmId(boot.kp_id);
+        if (bootFactsKp) loadFilmDescFacts(bootFactsKp, pageRoot);
       } catch (_facts) {}
     }
     try {
@@ -2893,6 +2918,7 @@
           });
       }
       function scheduleLoadFacts() {
+        if (isFest || isTmdbOnly || !numericKpFilmId(kpId)) return;
         var run = function () { loadFilmDescFacts(kpId, document); };
         run();
         if (typeof requestIdleCallback === 'function') {
@@ -3301,7 +3327,7 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
-          if (isTmdbOnly) {
+          if (isTmdbOnly || isFest) {
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
               ? data.web_facts
               : (Array.isArray(f.web_facts) ? f.web_facts : []);
@@ -3559,7 +3585,7 @@
             togglePanel(rateToggle, ratingPanel);
           });
         }
-        loadFilmDescFacts(kpId, document);
+        if (numericKpFilmId(kpId)) loadFilmDescFacts(kpId, document);
         if (seriesToggle && seriesPanel) {
           seriesToggle.addEventListener('click', function (e) {
             e.preventDefault();
