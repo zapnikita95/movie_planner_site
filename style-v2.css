@@ -1272,7 +1272,7 @@ header {
 }
 
 .logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   font-family: 'Unbounded', sans-serif;
@@ -1280,12 +1280,23 @@ header {
   font-weight: 700;
   text-decoration: none;
   color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .logo img {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.logo-text,
+.logo > span {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .header-buttons {
@@ -5797,7 +5808,7 @@ main.film-page .film-page-similar-section,
   }
 }
 
-/* ≤374: keep logo + coins/bell/avatar on ONE row (search stays row 2). */
+/* ≤374: keep logo + actions on ONE row. Same logo size as ≥375 mobile (no guest shrink). */
 @media (max-width: 374px) {
   body.film-standalone-page .header-content,
   body.staff-standalone-page .header-content,
@@ -5807,31 +5818,58 @@ main.film-page .film-page-similar-section,
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
     gap: 6px 8px !important;
   }
+  html.mp-landing-boot .logo,
   body.film-standalone-page .logo,
   body.staff-standalone-page .logo,
   body.user-standalone-page .logo,
   body.in-cabinet .logo,
   body.landing-root-page .logo,
   .logo {
-    flex: 0 1 auto !important;
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
     min-width: 0;
-    max-width: none;
-    gap: 6px;
-    font-size: 13px !important;
-    letter-spacing: -0.02em;
+    max-width: none !important;
+    gap: 8px !important;
+    font-size: 14px !important;
+    letter-spacing: normal;
+    white-space: nowrap !important;
   }
+  html.mp-landing-boot .logo .logo-text,
+  html.mp-landing-boot .logo > span,
+  body.film-standalone-page .logo .logo-text,
+  body.film-standalone-page .logo > span,
+  body.staff-standalone-page .logo .logo-text,
+  body.staff-standalone-page .logo > span,
+  body.user-standalone-page .logo .logo-text,
+  body.user-standalone-page .logo > span,
+  body.in-cabinet .logo .logo-text,
+  body.in-cabinet .logo > span,
+  body.landing-root-page .logo .logo-text,
+  body.landing-root-page .logo > span,
+  .logo .logo-text,
+  .logo > span {
+    display: inline !important;
+    font-size: inherit !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+  html.mp-landing-boot .logo img,
   body.film-standalone-page .logo img,
   body.staff-standalone-page .logo img,
   body.user-standalone-page .logo img,
   body.in-cabinet .logo img,
+  body.landing-root-page .logo img,
   .logo img {
-    width: 22px !important;
-    height: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
+    flex-shrink: 0 !important;
   }
   body.film-standalone-page .header-buttons,
   body.staff-standalone-page .header-buttons,
   body.user-standalone-page .header-buttons,
-  body.in-cabinet .header-buttons {
+  body.in-cabinet .header-buttons,
+  body.landing-root-page .header-buttons {
     flex: 0 0 auto !important;
     width: auto !important;
     min-width: 0 !important;
@@ -13190,12 +13228,15 @@ body.landing-root-page .page-shell > #site-header {
 body.landing-root-page #header-search:not(.hidden) {
   visibility: visible;
 }
-body.landing-root-page #site-header .header-content {
+body.landing-root-page #site-header .header-content,
+body.in-cabinet #site-header .header-content {
   min-height: 52px;
 }
+/* Mobile: natural height (logo row + search) — do NOT inflate guest header to 96px. */
 @media (max-width: 860px) {
-  body.landing-root-page #site-header .header-content {
-    min-height: 96px;
+  body.landing-root-page #site-header .header-content,
+  body.in-cabinet #site-header .header-content {
+    min-height: 0;
   }
 }
 body.landing-root-page .header-search.hidden {
@@ -15168,45 +15209,59 @@ body.film-standalone-page {
     justify-self: unset !important;
   }
 
-  /* ≤374: logo + coins/bell/avatar MUST stay one row (375+ already ok). */
+  /* ≤374: same logo for guest + logged-in (do not shrink / truncate text). */
   @media (max-width: 374px) {
     body.film-standalone-page .header-content,
     body.staff-standalone-page .header-content,
     body.user-standalone-page .header-content,
-    body.in-cabinet .header-content {
-      gap: 6px !important;
+    body.in-cabinet .header-content,
+    body.landing-root-page .header-content {
+      gap: 6px 8px !important;
       flex-wrap: wrap;
     }
     body.film-standalone-page .logo,
     body.staff-standalone-page .logo,
     body.user-standalone-page .logo,
-    body.in-cabinet .logo {
-      flex: 0 1 auto !important;
+    body.in-cabinet .logo,
+    body.landing-root-page .logo {
+      display: inline-flex !important;
+      flex: 0 0 auto !important;
       min-width: 0 !important;
-      max-width: calc(100% - 118px) !important;
-      gap: 5px !important;
-      font-size: 12.5px !important;
+      max-width: none !important;
+      gap: 8px !important;
+      font-size: 14px !important;
+      white-space: nowrap !important;
     }
-    body.film-standalone-page .logo span,
-    body.staff-standalone-page .logo span,
-    body.user-standalone-page .logo span,
-    body.in-cabinet .logo span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    body.film-standalone-page .logo .logo-text,
+    body.film-standalone-page .logo > span,
+    body.staff-standalone-page .logo .logo-text,
+    body.staff-standalone-page .logo > span,
+    body.user-standalone-page .logo .logo-text,
+    body.user-standalone-page .logo > span,
+    body.in-cabinet .logo .logo-text,
+    body.in-cabinet .logo > span,
+    body.landing-root-page .logo .logo-text,
+    body.landing-root-page .logo > span {
+      display: inline !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      white-space: nowrap !important;
+      max-width: none !important;
     }
     body.film-standalone-page .logo img,
     body.staff-standalone-page .logo img,
     body.user-standalone-page .logo img,
-    body.in-cabinet .logo img {
-      width: 22px !important;
-      height: 22px !important;
+    body.in-cabinet .logo img,
+    body.landing-root-page .logo img {
+      width: 24px !important;
+      height: 24px !important;
       flex-shrink: 0;
     }
     body.film-standalone-page .header-buttons,
     body.staff-standalone-page .header-buttons,
     body.user-standalone-page .header-buttons,
-    body.in-cabinet .header-buttons {
+    body.in-cabinet .header-buttons,
+    body.landing-root-page .header-buttons {
       flex: 0 0 auto !important;
       width: auto !important;
       min-width: 0 !important;
@@ -20423,19 +20478,40 @@ img.mp-poster-placeholder,
     padding-bottom: 8px;
   }
 
-  /* Шапка: отступ от края + прячется при скролле вниз */
+  /* Same header chrome as logged-in — do not grow guest logo via extra pad. */
   body.landing-root-page #site-header,
   body.landing-root-page.film-standalone-page #site-header,
-  body.landing-root-page.film-standalone-page header#site-header {
+  body.landing-root-page.film-standalone-page header#site-header,
+  body.in-cabinet #site-header {
     top: 0 !important;
     margin-top: 0 !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 0 !important;
     background: #0c0c12 !important;
-    padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 12px)) !important;
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 12px !important;
     padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
     padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  body.landing-root-page .logo,
+  body.in-cabinet .logo {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 14px !important;
+    white-space: nowrap !important;
+  }
+  body.landing-root-page .logo img,
+  body.in-cabinet .logo img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  body.landing-root-page .logo .logo-text,
+  body.landing-root-page .logo > span,
+  body.in-cabinet .logo .logo-text,
+  body.in-cabinet .logo > span {
+    display: inline !important;
+    white-space: nowrap !important;
   }
 
   body.header-search-input-focused #site-header,
