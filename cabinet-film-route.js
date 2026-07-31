@@ -5,11 +5,7 @@
 (function (global) {
   'use strict';
 
-<<<<<<< Updated upstream
   var BUILD = '20260731narrow320fix1';
-=======
-  var BUILD = '20260731narrow320fix1';
->>>>>>> Stashed changes
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
