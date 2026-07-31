@@ -14137,13 +14137,15 @@
       : '';
     const toggle = opts.dropdownToggle ? ' data-dropdown-toggle="1"' : '';
     return (
-      '<button type="button" class="glass-cta' + extra + '"' + idAttr + toggle + dataAttrs +
-        ' aria-label="' + escapeHtml(opts.label || '') + '">' +
-        glassCtaLayersHtml() +
-        glassCtaIconHtml(opts.icon || 'watchlist') +
-        '<span class="glass-cta__label">' + escapeHtml(opts.label || '') + '</span>' +
-        caret +
-      '</button>'
+      '<div class="glass-cta-stage">' +
+        '<button type="button" class="glass-cta' + extra + '"' + idAttr + toggle + dataAttrs +
+          ' aria-label="' + escapeHtml(opts.label || '') + '">' +
+          glassCtaLayersHtml() +
+          glassCtaIconHtml(opts.icon || 'watchlist') +
+          '<span class="glass-cta__label">' + escapeHtml(opts.label || '') + '</span>' +
+          caret +
+        '</button>' +
+      '</div>'
     );
   }
 
