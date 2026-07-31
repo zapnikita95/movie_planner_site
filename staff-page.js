@@ -780,7 +780,7 @@
     var boot = readMpRouteBoot();
     var text = String(label || '').trim();
     if (!text && bootMatchesPerson(boot)) {
-      text = boot.title || boot.display_name || boot.name_ru || 'Загрузка…';
+      text = boot.name_ru || boot.title || boot.display_name || 'Загрузка…';
     }
     if (!text) text = 'Загрузка…';
     return (
@@ -794,7 +794,9 @@
   function staffBootHeroHtml() {
     var boot = readMpRouteBoot();
     if (!bootMatchesPerson(boot)) return staffLoadingHtml();
-    var title = boot.display_name || boot.name_ru || 'Персона';
+    // RU primary — boot.display_name may be «EN (RU)» from SEO; prefer name_ru.
+    var title = boot.name_ru || boot.display_name || 'Персона';
+    if (title.indexOf(' (') > 0 && boot.name_ru) title = boot.name_ru;
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
     var pid = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
     var photoHtml = staffHeroPhotoImgHtml({ photo: boot.photo_url }, pid);
@@ -1144,9 +1146,11 @@
     _staffRoleHasMore = {};
     _staffPrimaryRoleKey = resolvePrimaryRoleKey(data.films_by_role || []);
     _staffGlobalFilters = data.filters || { years: [], genres: [] };
-    var titleName = person.display_name || person.name_ru || person.name_en || 'Персона';
-    var secondaryName = person.secondary_name || (
-      person.name_en && person.name_en !== person.name_ru ? person.name_en : ''
+    var titleName = person.name_ru || person.display_name || person.name_en || 'Персона';
+    var secondaryName = (
+      person.name_en && person.name_en !== person.name_ru
+        ? person.name_en
+        : (person.secondary_name || '')
     );
     document.title = titleName + ' · Movie Planner';
     setStaffOg(person, personId);
