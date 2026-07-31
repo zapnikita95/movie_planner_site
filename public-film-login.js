@@ -324,14 +324,15 @@
     document.body.style.overflow = 'hidden';
     var landing = document.getElementById('landing');
     var cabinet = document.getElementById('cabinet-readonly');
+    // Always hide landing CTAs under the modal — Metrika: users abandon
+    // open_login and click Telegram/stores on the hero behind the dialog.
+    try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
     if (isPublicFilmOrStaffRoute()) {
-      try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
       if (landing) landing.classList.add('hidden');
       if (cabinet) cabinet.classList.remove('hidden');
     } else if (isMarketingLanding()) {
-      document.body.classList.remove('login-only-overlay');
+      if (landing) landing.classList.add('hidden');
     } else {
-      try { document.body.classList.add('login-only-overlay'); } catch (_e) {}
       if (landing) landing.classList.add('hidden');
       if (cabinet) cabinet.classList.remove('hidden');
     }

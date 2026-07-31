@@ -1523,7 +1523,26 @@ body.in-cabinet .mp-lang-toggle {
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+}
+
+.hero-alt-channels {
+  margin: 0 auto 24px;
+  max-width: 640px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.hero-alt-channels a {
+  color: #f9a8d4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hero-alt-channels a:hover {
+  color: #ff7eb6;
 }
 
 .hero-subtext {
