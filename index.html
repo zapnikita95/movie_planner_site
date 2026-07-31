@@ -819,7 +819,7 @@
       ]
     }
     </script>
-    <script src="/yandex-metrika.js?v=20260719auth1"></script>
+    <script src="/yandex-metrika.js?v=20260731landingAuth1"></script>
     <script src="/utm-capture.js?v=20260718kpalt1"></script>
 </head>
 <body>
@@ -1011,11 +1011,15 @@
         <p class="hero-subtitle">Отмечайте просмотренное, ведите личную базу и совместный список фильмов — с партнёром, друзьями или киноклубом</p>
         <p hidden id="hero-product-matrix">Movie Planner: планер фильмов и сериалов, watchlist, отметка просмотренных, уведомления о новых сериях, коллекции и папки по рубрикам, оценки с друзьями. Android, iOS, веб-кабинет movie-planner.ru, Telegram Mini App, расширение Chrome.</p>
         <div class="hero-buttons">
-          <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
-          <button type="button" class="btn-secondary" data-action="login">Веб кабинет</button>
-          <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть в Telegram</a>
-          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
+          <button type="button" class="btn-primary" data-action="login">Войти в кабинет</button>
+          <a href="/download" class="btn-secondary mp-app-download">Скачать приложение</a>
         </div>
+        <p class="hero-alt-channels">
+          Также:
+          <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">Telegram Mini App</a>
+          ·
+          <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" target="_blank" rel="noopener">Расширение Chrome</a>
+        </p>
       </section>
 
       <section id="guest-onboard-cta" class="guest-onboard-cta landing-guest-onboard-cta" aria-label="Начать вести базу просмотров">
@@ -1132,11 +1136,15 @@
         <div class="cta-section landing-cta-section">
           <h2 class="section-title landing-section-title--center">Начните использовать прямо сейчас бесплатно</h2>
           <div class="hero-buttons">
-            <a href="/download" class="btn-primary mp-app-download">Скачать приложение</a>
-            <button type="button" class="btn-secondary" data-action="login">Веб кабинет</button>
-            <a href="https://t.me/movie_planner_bot/app" class="btn-secondary" target="_blank" rel="noopener">Открыть в Telegram</a>
-            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" class="btn-secondary" target="_blank" rel="noopener"><span class="ext-btn-text">Расширение Chrome</span></a>
+            <button type="button" class="btn-primary" data-action="login">Войти в кабинет</button>
+            <a href="/download" class="btn-secondary mp-app-download">Скачать приложение</a>
           </div>
+          <p class="hero-alt-channels">
+            Также:
+            <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">Telegram Mini App</a>
+            ·
+            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru" target="_blank" rel="noopener">Расширение Chrome</a>
+          </p>
         </div>
       </section>
 
@@ -2711,7 +2719,7 @@
           || path === '/series' || path === '/series-hub' || path === '/settings'
           || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile';
-        var V = '20260731tgBounce1';
+        var V = '20260731landingAuth1';
         var core = [
           'mp-api-config.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',

@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260730seoOps1';
+  var BUILD = '20260731landingAuth1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -14,7 +14,7 @@
 
   if (!global.__mpMetrikaSite) {
     var ms = document.createElement('script');
-    ms.src = '/yandex-metrika.js?v=20260621';
+    ms.src = '/yandex-metrika.js?v=20260731landingAuth1';
     ms.async = true;
     (document.head || document.documentElement).appendChild(ms);
   }

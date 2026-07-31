@@ -654,9 +654,9 @@
     </footer>
   </div>
 
-  <script src="/public-film-login.js?v=20260602tgsafari1"></script>
-  <script src="/film-page.js?v=20260602sitefix5"></script>
-  <script src="/articles/article-chrome.js?v=20260719headerfix3"></script>
+  <script src="/public-film-login.js?v=20260731landingAuth1"></script>
+  <script src="/film-page.js?v=20260731landingAuth1"></script>
+  <script src="/articles/article-chrome.js?v=20260731landingAuth1"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   <script>
   (function () {
@@ -764,9 +764,12 @@
             }
             token = res.d.token || '';
             if (codeEmail) codeEmail.textContent = res.d.email || '';
-            setStatus(codeStatus, res.d.email_sent ? 'Письмо отправлено' : (res.d.message || ''), res.d.email_sent ? 'ok' : 'err');
+            setStatus(codeStatus, res.d.email_sent ? 'Письмо отправлено' : (res.d.message || 'Письмо не ушло — нажмите «Отправить код ещё раз»'), res.d.email_sent ? 'ok' : 'err');
             showStep('step-code');
             if (verifyCode) verifyCode.focus();
+            if (!res.d.email_sent && resendBtn) {
+              resendBtn.disabled = false;
+            }
           })
           .catch(function () {
             submitBtn.disabled = false;

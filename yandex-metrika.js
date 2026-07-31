@@ -1,9 +1,20 @@
 /* Yandex.Metrika — сайт movie-planner.ru (счётчик 110038199) */
 (function () {
   try {
-    // e2e / headless не должны портить отказы и «цели формы»
-    if (/[?&]e2e=/.test(String(location.search || ""))) return;
-    if (/HeadlessChrome/i.test(String(navigator.userAgent || ""))) return;
+    // e2e / headless не должны портить отказы и «цели формы».
+    // sessionStorage: SPA может снять ?e2e= при навигации на /home — skip сохраняем.
+    var q = String(location.search || "");
+    if (/[?&]e2e=/.test(q)) {
+      try {
+        sessionStorage.setItem("mp_metrika_skip_e2e", "1");
+      } catch (_) {}
+      return;
+    }
+    try {
+      if (sessionStorage.getItem("mp_metrika_skip_e2e") === "1") return;
+    } catch (_) {}
+    var ua = String(navigator.userAgent || "");
+    if (/HeadlessChrome|Playwright|Puppeteer/i.test(ua)) return;
   } catch (_) {}
   if (window.__mpMetrikaSite) return;
   window.__mpMetrikaSite = true;
