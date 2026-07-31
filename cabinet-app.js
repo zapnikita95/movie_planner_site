@@ -9173,12 +9173,13 @@
 
   function _scheduleMountHomeDashboardRails() {
     clearTimeout(_homeRailMountTimer);
+    // Immediate mount — 140ms delay stacked with per-rail stagger made home feel empty.
     _homeRailMountTimer = setTimeout(function () {
       try { mountHomeDashboardRails(); } catch (_) {}
       try {
         bindHomePosterRailDragScroll(document.getElementById('home-dashboard-root') || document);
       } catch (_) {}
-    }, 140);
+    }, 0);
   }
 
   function scheduleHomeDashboardRefresh() {
@@ -9699,7 +9700,7 @@
           },
         });
         try { bindHomePosterRailDragScroll(container); } catch (_) {}
-      }, idx * 380);
+      }, idx * 40);
     });
     decorateHomePosterPreviews(root);
   }
@@ -10384,12 +10385,16 @@
     }
     applyHomeEmojiVisibility();
 
+    // Paint shell + mount rails immediately — do NOT wait for premieres/dashboard
+    // (HAR: Promise.all delayed unwatched/series until ~7s; user stares at empty home).
+    _patchHomeDashboardStaticBlocks();
+    paintHomeTournamentBlock();
+    _scheduleMountHomeDashboardRails();
+
     const dashboardPromise = isGuestCabinetPreview()
       ? Promise.resolve(null)
       : api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null);
 
-    // One paint path: merge network data, then patch+mount rails once in finally.
-    // (Previously dash.then AND finally both patched — rails wiped 2–3 times.)
     _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
@@ -10450,6 +10455,7 @@
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
         paintHomeTournamentBlock();
+        // Rails already mounted on first paint; only mount any still-unmounted containers.
         _scheduleMountHomeDashboardRails();
       });
     return _homeDashInflight;
