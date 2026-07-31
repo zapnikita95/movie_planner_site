@@ -6,8 +6,8 @@
   "use strict";
 
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
-  var premCacheKey = "mp_landing_premieres_v5";
-  var seriesCacheKey = "mp_landing_series_v8";
+  var premCacheKey = "mp_landing_premieres_v6";
+  var seriesCacheKey = "mp_landing_series_v9";
   var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
@@ -42,6 +42,15 @@
     );
     if (!m) return String(url || "");
     return "/api/public/poster/tmdb/" + m[1] + "/" + m[2];
+  }
+
+  function isBadPosterUrl(url) {
+    var u = String(url || "").toLowerCase();
+    if (!u) return true;
+    if (/film-poster-placeholder/i.test(u)) return true;
+    if (/no-poster/i.test(u)) return true;
+    if (/kinopoiskapiunofficial\.tech/i.test(u)) return true;
+    return false;
   }
 
   function esc(s) {
@@ -91,9 +100,12 @@
 
   function posterForPremiere(it) {
     var raw = mirrorTmdbPoster(String((it && it.poster) || "").trim());
-    if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
-    if (global.posterUrl && it && it.kp_id) return global.posterUrl(it.kp_id);
+    if (raw && !isBadPosterUrl(raw)) return raw;
     var kp = String((it && it.kp_id) || "").replace(/\D/g, "");
+    if (global.posterUrl && kp) {
+      var via = global.posterUrl(kp);
+      if (via && !isBadPosterUrl(via)) return via;
+    }
     if (kp) return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kp + ".jpg";
     return MP_POSTER_PLACEHOLDER;
   }
@@ -101,8 +113,13 @@
   function posterForSeries(it) {
     var raw = mirrorTmdbPoster(String((it && it.poster) || "").trim());
     if (raw && /\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
-    if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
-    if (global.posterUrl && it && it.kp_id) return global.posterUrl(it.kp_id);
+    if (raw && !isBadPosterUrl(raw)) return raw;
+    if (global.posterUrl && it && it.kp_id) {
+      var via = global.posterUrl(it.kp_id);
+      if (via && !isBadPosterUrl(via)) return via;
+    }
+    var kp = String((it && it.kp_id) || "").replace(/\D/g, "");
+    if (kp) return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kp + ".jpg";
     return "";
   }
 
@@ -113,7 +130,7 @@
       var kp = String((m && m.kp_id) || "").replace(/\D/g, "");
       if (kp && VITRINE_SERIES_KP_BLOCKLIST[kp]) return;
       var src = posterForSeries(m);
-      if (!src || /film-poster-placeholder/i.test(src)) return;
+      if (!src || isBadPosterUrl(src)) return;
       out.push(Object.assign({}, m, { poster: src }));
     });
     return out.slice(0, lim);
@@ -160,7 +177,16 @@
 
   function paintTrack(track, html) {
     if (!track || !html) return;
+    var viewport = track.parentElement;
+    var prevScroll = viewport && typeof viewport.scrollLeft === "number" ? viewport.scrollLeft : 0;
+    var hadCards = !!track.querySelector(".landing-pre-card");
     track.innerHTML = html;
+    if (hadCards && viewport && prevScroll > 0) {
+      // Keep user scroll position across cache→network re-paint.
+      try {
+        viewport.scrollLeft = Math.min(prevScroll, Math.max(0, track.scrollWidth - viewport.clientWidth));
+      } catch (_e) {}
+    }
   }
 
   function loadPremieres() {
@@ -220,4 +246,4 @@
   } else {
     global.addEventListener("load", init);
   }
-})(window);
+})(typeof window !== "undefined" ? window : this);
