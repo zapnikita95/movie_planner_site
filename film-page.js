@@ -1214,19 +1214,60 @@
       watchItems.push('<button type="button" class="action-dropdown-item" data-tickets="1" data-kp="' + kp + '" data-title="' + titleAttr + '" data-year="' + yearAttr + '">🎫 В кино (билет)</button>');
     }
     var menuItems = planItems + watchItems.join('');
-    var planIcon = (global.MPIcons && global.MPIcons.html)
-      ? global.MPIcons.html('calendar', { size: 'sm', className: 'action-dropdown-btn-ico' })
-      : '';
     return '<div class="action-dropdown" data-dropdown-root="plan">' +
-      '<button type="button" class="action-dropdown-btn film-toolbar-plan" data-dropdown-toggle="1">' +
-      '<span class="action-dropdown-btn-label">' + planIcon + '<span class="action-dropdown-btn-text">Запланировать просмотр</span></span>' +
-      '<span class="action-dropdown-caret">▾</span></button>' +
+      buildGlassCtaButtonHtml({
+        className: 'action-dropdown-btn film-toolbar-plan',
+        icon: 'calendar',
+        label: 'Запланировать просмотр',
+        caret: true,
+        dropdownToggle: true,
+      }) +
       '<div class="action-dropdown-menu">' + menuItems + '</div></div>';
   }
 
   function mpToolbarIcon(name, opts) {
     if (global.MPIcons && global.MPIcons.html) return global.MPIcons.html(name, opts || { size: 'sm' });
     return name === 'bellOff' ? '🔕' : '🔔';
+  }
+
+  /** Liquid glass layers from glass-cta-button.html (no «Войти»). */
+  function glassCtaLayersHtml() {
+    return (
+      '<span class="glass-cta__bloom" aria-hidden="true"></span>' +
+      '<span class="glass-cta__body" aria-hidden="true"></span>' +
+      '<span class="glass-cta__tint" aria-hidden="true"></span>' +
+      '<span class="glass-cta__ring" aria-hidden="true"></span>' +
+      '<span class="glass-cta__flare" aria-hidden="true"></span>'
+    );
+  }
+  function glassCtaIconHtml(iconKey) {
+    var inner = mpToolbarIcon(iconKey, { size: 'sm' });
+    if (!inner && iconKey === 'calendar') {
+      inner = '<i class="ph ph-calendar" aria-hidden="true"></i>';
+    }
+    if (!inner && iconKey === 'watchlist') {
+      inner = '<i class="ph ph-bookmark-simple" aria-hidden="true"></i>';
+    }
+    return '<span class="glass-cta__icon" aria-hidden="true">' + inner + '</span>';
+  }
+  function buildGlassCtaButtonHtml(opts) {
+    opts = opts || {};
+    var idAttr = opts.id ? (' id="' + escapeHtml(opts.id) + '"') : '';
+    var extra = opts.className ? (' ' + opts.className) : '';
+    var dataAttrs = opts.dataAttrs || '';
+    var caret = opts.caret
+      ? '<span class="action-dropdown-caret glass-cta__caret" aria-hidden="true">▾</span>'
+      : '';
+    var toggle = opts.dropdownToggle ? ' data-dropdown-toggle="1"' : '';
+    return (
+      '<button type="button" class="glass-cta' + extra + '"' + idAttr + toggle + dataAttrs +
+        ' aria-label="' + escapeHtml(opts.label || '') + '">' +
+        glassCtaLayersHtml() +
+        glassCtaIconHtml(opts.icon || 'watchlist') +
+        '<span class="glass-cta__label">' + escapeHtml(opts.label || '') + '</span>' +
+        caret +
+      '</button>'
+    );
   }
 
   function renderFilmToolbarPremiereBtn(item) {
@@ -1683,15 +1724,6 @@
       ratingInner = '<div class="film-toolbar-rating-grid"><div class="rating-stars" data-rating-stars="1">' + buildRatingStars(myRating) + '</div></div>' +
         (myRating ? '<div class="film-rating-share-row"><button type="button" class="rating-remove-btn" data-action="remove-rating">Убрать оценку</button></div>' : '');
     }
-    var planBlock = (authenticated && inBase)
-      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
-      : '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="action-dropdown-btn-ico mp-icon mp-icon--sm" aria-hidden="true"><i class="ph ph-calendar"></i></span><span>Запланировать просмотр</span></button>';
-    var addIconBtn = !inBase
-      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
-      : '';
-    var watchIconBtn = inBase
-      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="remove-from-base" aria-label="Удалить из базы" title="Удалить из базы"><span class="film-icon-ico">✓</span><span class="film-icon-label">В базе</span></button>'
-      : '';
     var rateIco = (myRating >= 1 && myRating <= 10) ? String(myRating) : '★';
     var rateAria = myRating ? ('Оценка ' + myRating) : 'Оценить';
     var rateBtnClass = 'film-icon-btn' + (myRating ? ' film-icon-btn--rated' : '');
@@ -1702,9 +1734,56 @@
     var rateBtnOnly = canRate && !ratingLocked
       ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
+    var shareBtn =
+      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' +
+      escapeHtml(String(item.kp_id || '')) +
+      '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>';
+
+    /* Guest: glass «В список просмотра» + Просмотрено / ★ / Поделиться (без ярлыка в углу) */
+    if (!authenticated) {
+      var eyeIco = mpToolbarIcon('eye', { size: 'sm', className: 'film-icon-ico' }) ||
+        '<span class="film-icon-ico" aria-hidden="true"><i class="ph ph-eye"></i></span>';
+      return (
+        '<div class="film-page-toolbar film-page-toolbar--guest">' +
+          '<div class="film-toolbar-plan-wrap">' +
+            buildGlassCtaButtonHtml({
+              id: 'guest-watchlist-cta',
+              icon: 'watchlist',
+              label: 'В список просмотра',
+              dataAttrs: ' data-guest-watchlist="1"',
+            }) +
+          '</div>' +
+          '<div class="film-toolbar-icons">' +
+            '<button type="button" class="film-icon-btn" id="guest-watched-btn" data-guest-watched="1" aria-label="Просмотрено" title="Просмотрено">' +
+              eyeIco + '<span class="film-icon-label">Просмотрено</span>' +
+            '</button>' +
+            rateBtnOnly +
+            shareBtn +
+          '</div>' +
+          '<div class="film-toolbar-panels">' + ratePanelHtml + '</div>' +
+        '</div>'
+      );
+    }
+
+    var planBlock = inBase
+      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
+      : '<div class="film-toolbar-plan-wrap">' +
+          buildGlassCtaButtonHtml({
+            id: 'plan-watch-btn',
+            className: 'film-toolbar-plan',
+            icon: 'calendar',
+            label: 'Запланировать просмотр',
+          }) +
+        '</div>';
+    var addIconBtn = !inBase
+      ? '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>'
+      : '';
+    var watchIconBtn = inBase
+      ? '<button type="button" class="film-icon-btn film-icon-btn--watched' + (watched ? ' on' : '') + '" data-action="remove-from-base" aria-label="Удалить из базы" title="Удалить из базы"><span class="film-icon-ico">✓</span><span class="film-icon-label">В базе</span></button>'
+      : '';
     var premiereBtn = renderFilmToolbarPremiereBtn(item);
     var showSeriesToolbar = !!(
-      item.is_series && opts.authenticated && (
+      item.is_series && (
         (opts.inBase && item.film_id) || (!opts.inBase && item.kp_id)
       )
     );
@@ -1720,7 +1799,7 @@
     var panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + seriesPanelHtml + '</div>';
     return '<div class="film-page-toolbar">' + planBlock +
       '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + seriesBtn + rateBtnOnly + premiereBtn +
-      '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button></div>' +
+      shareBtn + '</div>' +
       panelsHtml + '</div>';
   }
 
@@ -2444,12 +2523,16 @@
     var kpNumeric = numericKpFilmId(kpId);
     var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
-    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: !!mpToken(), canRate: true });
-    return (
-      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
-        '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
+    var isAuthed = !!mpToken();
+    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: isAuthed, canRate: true });
+    var tagBtn = isAuthed
+      ? ('<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
-        '</button>' +
+        '</button>')
+      : '';
+    return (
+      '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
+        tagBtn +
         '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
@@ -2696,9 +2779,6 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
-                (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
-              '</button>' +
               '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
@@ -2706,24 +2786,7 @@
                 buildFilmExtRatingsSlotHtml(null) +
                 '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
                 buildFilmDescWrapHtml() +
-                '<div class="film-page-toolbar">' +
-                  '<div class="film-toolbar-plan-wrap">' +
-                    '<button type="button" class="film-toolbar-plan" id="plan-watch-btn"><span class="action-dropdown-btn-ico mp-icon mp-icon--sm" aria-hidden="true"><i class="ph ph-calendar"></i></span><span>Запланировать просмотр</span></button>' +
-                  '</div>' +
-                  '<div class="film-toolbar-icons">' +
-                    '<button type="button" class="film-icon-btn" id="add-btn" aria-label="Добавить в базу" title="Добавить в базу"><span class="film-icon-ico">+</span><span class="film-icon-label">В базу</span></button>' +
-                    '<button type="button" class="film-icon-btn" id="rate-toggle-btn" aria-label="Оценить" title="Оценить"><span class="film-icon-ico">★</span><span class="film-icon-label">Оценить</span></button>' +
-                    '<button type="button" class="film-icon-btn" id="share-film-btn" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>' +
-                  '</div>' +
-                  '<div class="film-toolbar-expand hidden" id="rating-expand-panel">' +
-                    '<div class="public-rating-title">Ваша оценка</div>' +
-                    '<div class="film-toolbar-rating-grid rating-grid" id="rate-grid">' +
-                      [1,2,3,4,5,6,7,8,9,10].map(function (n) {
-                        return '<button class="rate-btn" data-rate="' + n + '" type="button">' + n + '</button>';
-                      }).join('') +
-                    '</div>' +
-                  '</div>' +
-                '</div>' +
+                buildFilmPageToolbar({ kp_id: '' }, { inBase: false, authenticated: false, canRate: true }) +
                 buildFilmReviewsSlotHtml() +
                 '<div id="film-friends-social-block" class="hidden"></div>' +
                 '<p class="status" id="hint"></p>' +
@@ -3552,6 +3615,34 @@
           })
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
+      function markWatchedCurrentFilm() {
+        if (!token()) { rememberAction('watched'); loginNow('watched'); return; }
+        ensureFilm()
+          .then(function (d) {
+            if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
+            return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(d.film_id)) + '/watched', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({ watched: true }),
+            });
+          })
+          .then(function (r) {
+            if (!r) return null;
+            if (r.status === 401) { loginNow(); return null; }
+            return r.json();
+          })
+          .then(function (d) {
+            if (!d) return;
+            if (d.success) {
+              if (hint) hint.textContent = 'Отмечено как просмотренное';
+              showPublicToast('Отмечено как просмотренное');
+              loadAuthFilmState();
+            } else if (hint) hint.textContent = d.error || 'Не удалось отметить';
+          })
+          .catch(function (e) {
+            if (hint) hint.textContent = (e && e.message) || 'Ошибка';
+          });
+      }
       function planCurrentFilm() {
         startPlanFlow('home');
       }
@@ -3597,6 +3688,19 @@
           e.stopPropagation();
           planCurrentFilm();
         });
+        var guestWatchlist = document.getElementById('guest-watchlist-cta');
+        if (guestWatchlist) guestWatchlist.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          try { sessionStorage.setItem('mp_public_film_action', 'add:' + pathKey); } catch (_e) {}
+          addCurrentFilm();
+        });
+        var guestWatched = document.getElementById('guest-watched-btn');
+        if (guestWatched) guestWatched.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          markWatchedCurrentFilm();
+        });
         var rg = document.getElementById('rate-grid');
         if (!rg) return;
         rg.querySelectorAll('[data-rate]').forEach(function (btn) {
@@ -3608,11 +3712,6 @@
             setCurrentRating(v, btn);
           });
         });
-        var tagBtn = document.getElementById('film-user-tag-btn');
-        if (tagBtn && !token()) {
-          tagBtn.setAttribute('title', 'добавить в список');
-          tagBtn.addEventListener('click', function () { loginNow('tag'); });
-        }
       }
       rebindGuestToolbarActions();
       var loginBtn = document.getElementById('login-btn');
@@ -3628,6 +3727,7 @@
             else startPlanFlow('home');
           }
           else if (pending.indexOf('add:') === 0) addCurrentFilm();
+          else if (pending.indexOf('watched:') === 0) markWatchedCurrentFilm();
           else if (pending.indexOf('rate') === 0) {
             var rating = Number((pending.split(':')[0] || '').replace('rate', ''));
             var rateToggle = document.getElementById('rate-toggle-btn');
@@ -3713,9 +3813,30 @@
             handleFilmPremiereNotify(premiereBtn, loginNow);
           });
         }
+        var guestWl = root.querySelector('#guest-watchlist-cta,[data-guest-watchlist]');
+        if (guestWl && !guestWl.getAttribute('data-mp-guest-bound')) {
+          guestWl.setAttribute('data-mp-guest-bound', '1');
+          guestWl.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            addCurrentFilm();
+          });
+        }
+        var guestWd = root.querySelector('#guest-watched-btn,[data-guest-watched]');
+        if (guestWd && !guestWd.getAttribute('data-mp-guest-bound')) {
+          guestWd.setAttribute('data-mp-guest-bound', '1');
+          guestWd.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            markWatchedCurrentFilm();
+          });
+        }
       }
       setupAppOpenBanner({ id: pathKey, kind: 'film' });
       bindPublicFilmToolbar();
+      try {
+        document.body.classList.toggle('mp-authed', !!token());
+      } catch (_ba) {}
 
       function applyAuthToolbar(filmState) {
         var hero = filmHeroContentRoot(cabinetMode);

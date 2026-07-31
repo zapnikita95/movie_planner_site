@@ -102,6 +102,7 @@
     basket: { name: 'basket', weight: 'regular' },
     sparkle: { name: 'sparkle', weight: 'regular' },
     history: { name: 'clock-counter-clockwise', weight: 'regular' },
+    eye: { name: 'eye', weight: 'regular' },
   };
 
   function iconClass(key, opts) {

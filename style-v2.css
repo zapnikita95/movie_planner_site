@@ -11641,8 +11641,9 @@ body.staff-standalone-page .film-standalone-nav {
     font-size: 15px;
   }
 }
+/* visible — иначе обрезается bloom/свечение glass-cta */
 body.film-standalone-page main.film-page .hero {
-  overflow: hidden;
+  overflow: visible;
 }
 body.film-standalone-page main.film-page .hero-content {
   min-height: 280px;
@@ -21243,4 +21244,214 @@ img.mp-poster-placeholder,
   body.in-cabinet #section-whattowatch .site-ai-results {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* ===== Liquid glass CTA (film card) — from .local/glass-cta-button.html ===== */
+.film-toolbar-plan-wrap {
+  overflow: visible;
+}
+.film-page-toolbar--guest {
+  overflow: visible;
+}
+.glass-cta {
+  --r: 20px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  max-width: 392px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 16px 0 8px;
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  isolation: isolate;
+  overflow: visible;
+  background: #0a0a0c;
+  font-family: Inter, system-ui, sans-serif;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.65),
+    -6px -4px 28px -10px rgba(100, 120, 255, 0.35),
+    8px 6px 30px -10px rgba(255, 50, 140, 0.3),
+    4px -6px 22px -10px rgba(255, 160, 60, 0.18);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.glass-cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.7),
+    -7px -5px 32px -10px rgba(100, 120, 255, 0.42),
+    9px 7px 34px -10px rgba(255, 50, 140, 0.36),
+    5px -7px 26px -10px rgba(255, 160, 60, 0.22);
+}
+.glass-cta:focus-visible {
+  outline: 2px solid rgba(170, 150, 255, 0.65);
+  outline-offset: 3px;
+}
+.glass-cta__body {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(22, 22, 28, 0.98) 0%, rgba(10, 10, 13, 1) 55%, rgba(8, 8, 11, 1) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.35);
+  z-index: 0;
+  pointer-events: none;
+}
+.glass-cta__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    125deg,
+    #7a5cff 0%,
+    #5a8cff 8%,
+    #c8ecff 14%,
+    #6a9aff 20%,
+    rgba(50, 50, 65, 0.45) 32%,
+    rgba(255, 170, 70, 0.55) 48%,
+    #ff9a3a 56%,
+    rgba(255, 140, 50, 0.35) 62%,
+    rgba(30, 28, 38, 0.35) 72%,
+    #ff2d9a 86%,
+    #ff5ec8 92%,
+    #a050ff 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.92;
+}
+.glass-cta__flare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background:
+    radial-gradient(90px 14px at 18% 0%, rgba(240, 250, 255, 1) 0%, rgba(140, 200, 255, 0.7) 35%, transparent 72%),
+    radial-gradient(50px 12px at 4% 8%, rgba(160, 110, 255, 0.85) 0%, transparent 70%),
+    radial-gradient(70px 12px at 74% 0%, rgba(255, 185, 80, 0.95) 0%, rgba(255, 130, 40, 0.4) 45%, transparent 75%),
+    radial-gradient(70px 16px at 90% 100%, rgba(255, 70, 180, 1) 0%, rgba(255, 40, 140, 0.85) 30%, transparent 68%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.glass-cta__bloom {
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(var(--r) + 1px);
+  background:
+    radial-gradient(70px 18px at 18% 0%, rgba(150, 200, 255, 0.45), transparent 70%),
+    radial-gradient(60px 16px at 74% 0%, rgba(255, 160, 60, 0.35), transparent 70%),
+    radial-gradient(60px 20px at 90% 100%, rgba(255, 50, 150, 0.5), transparent 70%),
+    radial-gradient(50px 16px at 6% 20%, rgba(130, 100, 255, 0.3), transparent 70%);
+  filter: blur(5px);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.glass-cta__tint {
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--r) - 1px);
+  background: linear-gradient(
+    110deg,
+    rgba(120, 100, 255, 0.07) 0%,
+    rgba(160, 210, 255, 0.06) 16%,
+    transparent 30%,
+    transparent 58%,
+    rgba(255, 150, 50, 0.05) 72%,
+    transparent 88%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+.glass-cta__icon {
+  position: relative;
+  z-index: 4;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: #e6e6ea;
+}
+.glass-cta__icon .mp-icon,
+.glass-cta__icon i,
+.glass-cta__icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  font-size: 17px;
+  line-height: 1;
+  color: #e6e6ea;
+}
+.glass-cta__label {
+  position: relative;
+  z-index: 4;
+  flex: 1;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: #ffffff;
+  white-space: nowrap;
+  text-align: left;
+}
+.glass-cta__caret {
+  position: relative;
+  z-index: 4;
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+/* override solid pink plan button when glass */
+.film-toolbar-plan.glass-cta,
+.film-toolbar-plan-wrap .action-dropdown-btn.glass-cta {
+  background: #0a0a0c !important;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.65),
+    -6px -4px 28px -10px rgba(100, 120, 255, 0.35),
+    8px 6px 30px -10px rgba(255, 50, 140, 0.3),
+    4px -6px 22px -10px rgba(255, 160, 60, 0.18) !important;
+  font-weight: 500;
+  justify-content: flex-start;
+  padding: 0 16px 0 8px;
+  max-width: 392px;
+  width: 100%;
+}
+.film-toolbar-plan-wrap .action-dropdown:has(.glass-cta) {
+  width: min(100%, 392px);
+  max-width: 392px;
+  overflow: visible;
+}
+.film-page-toolbar--guest .film-toolbar-plan-wrap {
+  justify-content: center;
+}
+.film-page-toolbar--guest .glass-cta {
+  margin: 0 auto;
+}
+/* Guest: no corner tag */
+.film-hero-with-tag:not(.film-hero--authed) > .film-hero-tag-btn,
+body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
+  display: none !important;
 }
