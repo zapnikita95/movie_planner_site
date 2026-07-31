@@ -20658,12 +20658,14 @@ img.mp-poster-placeholder,
     margin-bottom: 16px;
   }
 
-  /* Карусель возможностей */
+  /* Карусель возможностей: JS card-step only (no native snap fight / wrap jump). */
   body.landing-root-page .landing-feats-viewport {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    scroll-snap-type: none;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: auto;
+    touch-action: pan-y;
   }
 
   body.landing-root-page .landing-feats-viewport::-webkit-scrollbar {
@@ -20680,8 +20682,11 @@ img.mp-poster-placeholder,
   }
 
   body.landing-root-page .landing-feat-card {
-    flex: 0 0 calc(100% - 4px);
-    scroll-snap-align: center;
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    scroll-snap-align: unset;
     scroll-snap-stop: normal;
     text-align: center;
     padding: 24px 18px 20px;
