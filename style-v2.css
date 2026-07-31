@@ -5753,6 +5753,122 @@ main.film-page .film-page-similar-section,
   }
 }
 
+/* iPhone SE / 320: exactly two full similar posters between arrows (no clip under ›). */
+@media (max-width: 374px) {
+  .film-page-similar-section {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  main.film-page .film-page-similar-section,
+  #film-page-content .film-page-similar-section {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .film-page-similar-rail-wrap {
+    gap: 4px;
+  }
+  .film-page-similar-prev,
+  .film-page-similar-next {
+    flex: 0 0 26px;
+    flex-basis: 26px;
+    width: 26px;
+    height: 117px; /* ~2:3 of ~78px card width at 320 */
+    font-size: 18px;
+  }
+  .film-page-similar-rail.similar-rail {
+    gap: 10px !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .film-page-similar-rail .similar-rail-card {
+    /* Two cards + one gap fill the rail viewport exactly — never under ›. */
+    flex: 0 0 calc((100% - 10px) / 2) !important;
+    min-width: calc((100% - 10px) / 2) !important;
+    max-width: calc((100% - 10px) / 2) !important;
+    width: calc((100% - 10px) / 2) !important;
+  }
+}
+
+/* ≤374: keep logo + coins/bell/avatar on ONE row (search stays row 2). */
+@media (max-width: 374px) {
+  body.film-standalone-page .header-content,
+  body.staff-standalone-page .header-content,
+  body.user-standalone-page .header-content,
+  body.in-cabinet .header-content,
+  body.landing-root-page .header-content,
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
+    gap: 6px 8px !important;
+  }
+  body.film-standalone-page .logo,
+  body.staff-standalone-page .logo,
+  body.user-standalone-page .logo,
+  body.in-cabinet .logo,
+  body.landing-root-page .logo,
+  .logo {
+    flex: 0 1 auto !important;
+    min-width: 0;
+    max-width: none;
+    gap: 6px;
+    font-size: 13px !important;
+    letter-spacing: -0.02em;
+  }
+  body.film-standalone-page .logo img,
+  body.staff-standalone-page .logo img,
+  body.user-standalone-page .logo img,
+  body.in-cabinet .logo img,
+  .logo img {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  body.film-standalone-page .header-buttons,
+  body.staff-standalone-page .header-buttons,
+  body.user-standalone-page .header-buttons,
+  body.in-cabinet .header-buttons {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  body.film-standalone-page .header-user-wrap,
+  body.staff-standalone-page .header-user-wrap,
+  body.user-standalone-page .header-user-wrap,
+  body.in-cabinet .header-user-wrap {
+    width: auto !important;
+    max-width: none !important;
+    gap: 4px !important;
+  }
+  .header-util-row {
+    gap: 4px;
+    height: 28px;
+  }
+  .header-coins-btn {
+    font-size: 12px;
+    gap: 3px;
+    margin-right: 0;
+  }
+  .header-coins-sprite {
+    width: 16px;
+    height: 16px;
+    background-size: calc(8 * 16px) 16px;
+  }
+  .header-inbox-btn {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px;
+  }
+  .header-profile-pill {
+    min-width: 0;
+    padding: 0 !important;
+  }
+  .header-profile-avatar {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .header-profile-name {
+    display: none !important;
+  }
+}
+
 /* Страница фильма /f/:kp (в кабинете) */
 #section-film.film-page { padding: 0; margin-bottom: 0; }
 #section-film .film-page-outer {
@@ -15028,6 +15144,83 @@ body.film-standalone-page {
     justify-content: flex-end;
     gap: 8px;
     justify-self: unset !important;
+  }
+
+  /* ≤374: logo + coins/bell/avatar MUST stay one row (375+ already ok). */
+  @media (max-width: 374px) {
+    body.film-standalone-page .header-content,
+    body.staff-standalone-page .header-content,
+    body.user-standalone-page .header-content,
+    body.in-cabinet .header-content {
+      gap: 6px !important;
+      flex-wrap: wrap;
+    }
+    body.film-standalone-page .logo,
+    body.staff-standalone-page .logo,
+    body.user-standalone-page .logo,
+    body.in-cabinet .logo {
+      flex: 0 1 auto !important;
+      min-width: 0 !important;
+      max-width: calc(100% - 118px) !important;
+      gap: 5px !important;
+      font-size: 12.5px !important;
+    }
+    body.film-standalone-page .logo span,
+    body.staff-standalone-page .logo span,
+    body.user-standalone-page .logo span,
+    body.in-cabinet .logo span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    body.film-standalone-page .logo img,
+    body.staff-standalone-page .logo img,
+    body.user-standalone-page .logo img,
+    body.in-cabinet .logo img {
+      width: 22px !important;
+      height: 22px !important;
+      flex-shrink: 0;
+    }
+    body.film-standalone-page .header-buttons,
+    body.staff-standalone-page .header-buttons,
+    body.user-standalone-page .header-buttons,
+    body.in-cabinet .header-buttons {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
+    body.film-standalone-page .header-user-wrap,
+    body.staff-standalone-page .header-user-wrap,
+    body.user-standalone-page .header-user-wrap,
+    body.in-cabinet .header-user-wrap {
+      width: auto !important;
+      max-width: none !important;
+      gap: 4px !important;
+      flex-wrap: nowrap !important;
+    }
+    .header-util-row {
+      gap: 4px !important;
+      height: 28px;
+      flex-wrap: nowrap !important;
+    }
+    .header-coins-btn {
+      font-size: 12px;
+      gap: 2px;
+      padding-left: 2px;
+      padding-right: 2px;
+    }
+    .header-inbox-btn {
+      width: 28px !important;
+      height: 28px !important;
+    }
+    .header-profile-avatar {
+      width: 28px !important;
+      height: 28px !important;
+    }
+    .header-profile-name {
+      display: none !important;
+    }
   }
 
   body.film-standalone-page .header-util-row,
