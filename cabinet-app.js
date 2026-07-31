@@ -5913,8 +5913,9 @@
       return list.sort(function (a, b) {
         const ra = parseFloat(a.rating);
         const rb = parseFloat(b.rating);
-        const na = isNaN(ra) ? 0 : ra;
-        const nb = isNaN(rb) ? 0 : rb;
+        // Rating 0 / missing must sink — not compete with real scores.
+        const na = (!isNaN(ra) && ra > 0) ? ra : -1;
+        const nb = (!isNaN(rb) && rb > 0) ? rb : -1;
         if (nb !== na) return nb - na;
         return (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0);
       });
@@ -6916,9 +6917,12 @@
       return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
     }
     const toggleAvail = staffToggleAvailabilitySite(roles, filterState);
-    const titleName = person.display_name || person.name_ru || person.name_en || '—';
-    const secondaryName = person.secondary_name || (
-      person.name_en && person.name_ru && person.name_en !== person.name_ru ? person.name_en : ''
+    // RU primary always — never trust display_name flipped by Accept-Language:en.
+    const titleName = person.name_ru || person.display_name || person.name_en || '—';
+    const secondaryName = (
+      person.name_en && person.name_ru && person.name_en !== person.name_ru
+        ? person.name_en
+        : (person.secondary_name || '')
     );
     const photo = staffHeroPhotoImgHtml(person, person.kp_person_id || _staffPageKpId);
     root.innerHTML =
