@@ -67,6 +67,12 @@
     return 'film/' + id;
   }
 
+  function isTelegramInApp() {
+    var ua = navigator.userAgent || '';
+    if (/TelegramBot/i.test(ua)) return false;
+    return /Telegram/i.test(ua) || !!(global.Telegram && global.Telegram.WebApp);
+  }
+
   function pickAndroidStoreUrl() {
     var u = String(MP_APP_STORE_URL_ANDROID || '').trim();
     if (u && (u.indexOf('play.google.com') >= 0 || u.indexOf('rustore.ru') >= 0)) return u;
@@ -124,7 +130,11 @@
 
     var deepLink = deepLinkFor(kind, entityId, opts);
     var intentPath = intentPathFor(kind, entityId, opts);
-    var storeUrl = isAndroid ? pickAndroidStoreUrl() : String(MP_APP_STORE_URL_IOS || '').trim();
+    var inTelegram = isTelegramInApp();
+    // В Telegram не уводим в Play Store — иначе снова браузер вместо приложения.
+    var storeUrl = inTelegram
+      ? ''
+      : (isAndroid ? pickAndroidStoreUrl() : String(MP_APP_STORE_URL_IOS || '').trim());
     var opened = false;
     var fallbackTimer = null;
 
@@ -152,7 +162,7 @@
 
     document.addEventListener('visibilitychange', onPageHide);
     window.addEventListener('pagehide', onPageHide);
-    fallbackTimer = setTimeout(onFallback, 2200);
+    if (storeUrl) fallbackTimer = setTimeout(onFallback, 2200);
 
     if (isAndroid) {
       var intent = 'intent://' + intentPath
@@ -189,8 +199,15 @@
       try { dismissed = sessionStorage.getItem('mp_app_banner_dismiss') === '1'; } catch (_e) {}
       var ua = navigator.userAgent || '';
       var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+      var inTelegram = isTelegramInApp();
       if (!isMobile || dismissed) return;
       banner.classList.remove('hidden');
+      if (inTelegram) {
+        var textEl = banner.querySelector('.app-open-text');
+        if (textEl) textEl.textContent = 'Открыть фильм в приложении Movie Planner';
+        var openLabel = banner.querySelector('#app-open-btn');
+        if (openLabel) openLabel.textContent = 'Открыть приложение';
+      }
 
       var openBtn = document.getElementById('app-open-btn');
       var dismissBtn = document.getElementById('app-dismiss-btn');
@@ -215,6 +232,20 @@
       }
       if (dismissBtn) {
         dismissBtn.onclick = dismissBanner;
+      }
+
+      // Telegram всегда открывает https во встроенном браузере — сразу пробуем native.
+      // Ключ совпадает с SSR bounce в film_crawler.render_telegram_native_bounce_script.
+      if (inTelegram && opts.autoOpen !== false) {
+        var bounceKey = kind === 'film'
+          ? ('mp_tg_app_bounce_f' + entityId)
+          : (kind === 'person' ? ('mp_tg_app_bounce_s' + entityId) : ('mp_tg_app_bounce_' + kind + entityId));
+        var already = false;
+        try { already = sessionStorage.getItem(bounceKey) === '1'; } catch (_e) {}
+        if (!already) {
+          try { sessionStorage.setItem(bounceKey, '1'); } catch (_e2) {}
+          tryOpenNativeApp({ id: entityId, kind: kind, month: opts.month, year: opts.year });
+        }
       }
     });
   }
