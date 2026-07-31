@@ -20859,7 +20859,7 @@
     const target = Number(job.target || 0);
     if (job.status === 'running') {
       if (job.phase === 'waiting_local' && processed === 0) {
-        return (job.user_hint || 'Импорт в очереди — можно закрыть страницу, пришлём уведомление').trim();
+        return (job.user_hint || 'Импорт идёт в фоне. Сообщим, когда оценки появятся в профиле.').trim();
       }
       if (job.phase === 'scraping') {
         const pg = Number(job.page || 0);
@@ -20922,9 +20922,7 @@
         + '<div class="profile-import-progress-fill' + (indeterminate ? ' indeterminate' : '') + '" style="width:' + (indeterminate ? '35' : pct) + '%"></div>'
         + '</div>'
         + (label ? '<p class="profile-import-progress-label">' + escapeHtml(label) + '</p>' : '')
-        + (showHint ? '<p class="profile-import-progress-hint">' + escapeHtml(hint) + '</p>' : '')
-        + (running ? '<button type="button" class="btn btn-ghost btn-full profile-import-cancel" id="profile-import-cancel">Отменить импорт</button>' : '');
-      wireProfileImportCancel(root);
+        + (showHint ? '<p class="profile-import-progress-hint">' + escapeHtml(hint) + '</p>' : '');
     }
     if (importStatus) {
       importStatus.textContent = '';
@@ -21034,29 +21032,6 @@
       renderProfileImportProgress(root, s.job);
       startProfileImportPoll(root);
     }).catch(() => {});
-  }
-
-  function wireProfileImportCancel(root) {
-    const cancelBtn = root.querySelector('#profile-import-cancel');
-    if (!cancelBtn || cancelBtn._wired) return;
-    cancelBtn._wired = true;
-    cancelBtn.addEventListener('click', () => {
-      cancelBtn.disabled = true;
-      api('/api/miniapp/ratings/import-cancel', { method: 'POST', timeoutMs: 30000 })
-        .then(() => {
-          stopProfileImportPoll();
-          renderProfileImportProgress(root, null);
-          const importStatus = root.querySelector('#profile-import-status');
-          if (importStatus) {
-            importStatus.textContent = 'Импорт отменён';
-            importStatus.className = 'profile-settings-status';
-          }
-        })
-        .catch(() => {
-          cancelBtn.disabled = false;
-          showToast('Не удалось отменить импорт', { type: 'error' });
-        });
-    });
   }
 
   function startKpImportFromWeb(root, setStatus, extraBody, profileKpMaxCount, profileKpImportAll) {
