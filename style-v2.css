@@ -6595,6 +6595,11 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 @media (max-width: 520px) {
   .buzz-feed-poster { flex-basis: 52px; width: 52px; }
 }
+#film-desc-reviews-slot,
+.film-desc-reviews-inline {
+  margin-top: 16px;
+  max-width: 720px;
+}
 .film-desc-reviews-title { margin: 14px 0 6px; font-weight: 600; font-size: 14px; }
 .film-desc-reviews-list { list-style: none; padding: 0; margin: 0 0 4px; }
 .film-desc-reviews-list li,

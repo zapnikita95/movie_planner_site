@@ -704,29 +704,52 @@
     return false;
   }
 
+  function normalizeFilmDescriptionText(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function isTruncatedFilmDescription(text) {
+    return /…$|\.\.\.$/.test(normalizeFilmDescriptionText(text));
+  }
+
+  function filmDescriptionsConflict(a, b) {
+    var x = normalizeFilmDescriptionText(a);
+    var y = normalizeFilmDescriptionText(b);
+    if (!x || !y || x === y) return false;
+    if (x.slice(0, 48) === y.slice(0, 48)) return false;
+    if (x.indexOf(y.slice(0, 28)) >= 0 || y.indexOf(x.slice(0, 28)) >= 0) return false;
+    return true;
+  }
+
   function pickFilmDescription(film) {
     if (!film) return '';
-    // Prefer RU/Cyrillic for apex catalog pages — never pick a longer EN synopsis over RU.
+    // Same order as SSR boot (`description`/`plot` first). Do NOT prefer a longer
+    // TMDB overview_ru — that swapped the plot under the user's eyes after paint.
     var ordered = [
-      film.overview_ru,
       film.description,
       film.plot,
+      film.overview_ru,
       film.shortDescription,
       film.overview_en,
     ];
-    var cyrBest = '';
-    var anyBest = '';
-    ordered.forEach(function (raw) {
-      var s = String(raw || '').trim();
-      if (!s || isFilmDescPlaceholder(s)) return;
-      if (!anyBest) anyBest = s;
-      else if (anyBest.endsWith('…') && s.length >= anyBest.length - 1 && !s.endsWith('…')) anyBest = s;
+    var cyrFirst = '';
+    var anyFirst = '';
+    for (var i = 0; i < ordered.length; i++) {
+      var s = normalizeFilmDescriptionText(ordered[i]);
+      if (!s || isFilmDescPlaceholder(s)) continue;
+      if (!anyFirst) anyFirst = s;
       if (/[а-яА-ЯёЁ]/.test(s)) {
-        if (!cyrBest || s.length > cyrBest.length) cyrBest = s;
-        else if (cyrBest.endsWith('…') && s.length >= cyrBest.length - 1 && !s.endsWith('…')) cyrBest = s;
+        // Upgrade truncated → full only when same opening.
+        if (!cyrFirst) {
+          cyrFirst = s;
+          continue;
+        }
+        if (isTruncatedFilmDescription(cyrFirst) && !isTruncatedFilmDescription(s) && !filmDescriptionsConflict(cyrFirst, s)) {
+          cyrFirst = s;
+        }
       }
-    });
-    return cyrBest || anyBest;
+    }
+    return cyrFirst || anyFirst;
   }
 
   function trimMetaText(text, maxLen) {
@@ -762,9 +785,12 @@
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
-        '<div class="film-desc-reviews-inline"></div>' +
       '</div>'
     );
+  }
+
+  function buildFilmReviewsSlotHtml() {
+    return '<div id="film-desc-reviews-slot" class="film-desc-reviews-inline" aria-live="polite"></div>';
   }
 
   function filmDescPlotText(wrap) {
@@ -808,17 +834,13 @@
       factsEl.className = 'film-desc-facts-inline';
       fullEl.appendChild(factsEl);
     }
-    var reviewsEl = wrap.querySelector('.film-desc-reviews-inline');
-    if (!reviewsEl) {
-      reviewsEl = document.createElement('div');
-      reviewsEl.className = 'film-desc-reviews-inline';
-      wrap.appendChild(reviewsEl);
-    }
-    /* Move legacy reviews out of collapsed full block so they stay visible. */
-    var nestedReviews = fullEl.querySelector('.film-desc-reviews-inline');
-    if (nestedReviews && nestedReviews !== reviewsEl) {
-      if (nestedReviews.innerHTML.trim() && !reviewsEl.innerHTML.trim()) {
-        reviewsEl.innerHTML = nestedReviews.innerHTML;
+    /* Reviews live AFTER the toolbar (#film-desc-reviews-slot) — never inside desc wrap. */
+    var nestedReviews = wrap.querySelector('.film-desc-reviews-inline');
+    if (nestedReviews && nestedReviews.id !== 'film-desc-reviews-slot') {
+      var hero = wrap.closest('.hero-content');
+      var slot = ensureFilmReviewsSlot(hero);
+      if (slot && nestedReviews.innerHTML.trim() && !slot.innerHTML.trim()) {
+        slot.innerHTML = nestedReviews.innerHTML;
       }
       nestedReviews.remove();
     }
@@ -830,6 +852,27 @@
     var legacyFacts = wrap.querySelector('#film-desc-facts');
     if (legacyFacts) legacyFacts.remove();
     bindFilmDescExpand(wrap);
+  }
+
+  function ensureFilmReviewsSlot(heroContent) {
+    if (!heroContent) {
+      heroContent = document.querySelector('#film-page-content .hero-content, .film-page .hero-content, .movie-page .hero-content');
+    }
+    if (!heroContent) return null;
+    var slot = heroContent.querySelector('#film-desc-reviews-slot');
+    if (slot) return slot;
+    slot = document.createElement('div');
+    slot.id = 'film-desc-reviews-slot';
+    slot.className = 'film-desc-reviews-inline';
+    slot.setAttribute('aria-live', 'polite');
+    var toolbar = heroContent.querySelector('.film-page-toolbar');
+    if (toolbar && toolbar.parentNode) {
+      if (toolbar.nextSibling) toolbar.parentNode.insertBefore(slot, toolbar.nextSibling);
+      else toolbar.parentNode.appendChild(slot);
+    } else {
+      heroContent.appendChild(slot);
+    }
+    return slot;
   }
 
   function ensureFilmDescWrap(heroContent) {
@@ -860,8 +903,7 @@
     var plotEl = wrap.querySelector('.film-desc-plot');
     var btn = wrap.querySelector('.film-desc-more-btn');
     if (!descEl || !shortEl || !fullEl || !plotEl || !btn) return;
-    var hasReviews = wrap.getAttribute('data-has-reviews') === '1';
-    var extras = !!hasFacts || hasReviews;
+    var extras = !!hasFacts || wrap.getAttribute('data-has-facts') === '1';
     if (!text && !extras) {
       wrap.classList.add('hidden');
       return;
@@ -978,7 +1020,7 @@
       updateFilmDescCollapseState(
         wrap,
         filmDescPlotText(wrap),
-        wrap.getAttribute('data-has-reviews') === '1'
+        false
       );
       return;
     }
@@ -1033,14 +1075,10 @@
 
   function paintFilmDescReviews(wrap, items) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
-    if (!wrap) return;
-    migrateFilmDescWrap(wrap);
-    var revEl = wrap.querySelector('.film-desc-reviews-inline');
-    if (!revEl) {
-      revEl = document.createElement('div');
-      revEl.className = 'film-desc-reviews-inline';
-      wrap.appendChild(revEl);
-    }
+    var hero = (wrap && wrap.closest('.hero-content')) ||
+      document.querySelector('#film-page-content .hero-content, .film-page .hero-content, .movie-page .hero-content');
+    var revEl = ensureFilmReviewsSlot(hero);
+    if (!revEl) return;
     var list = Array.isArray(items) ? items : [];
     revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
     revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
@@ -1056,10 +1094,7 @@
         } catch (_) {}
       });
     });
-    var hasReviews = list.length > 0;
-    wrap.setAttribute('data-has-reviews', hasReviews ? '1' : '0');
-    var hasFacts = wrap.getAttribute('data-has-facts') === '1';
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+    /* Reviews are below the toolbar — do not toggle plot «ещё» / push plan button. */
   }
 
   function loadFilmDescReviews(kpId, root) {
@@ -1123,15 +1158,22 @@
     var heroContent = document.querySelector('#film-page-content .hero-content, .film-page .hero-content');
     var wrap = ensureFilmDescWrap(heroContent);
     if (!wrap) return;
-    var s = String(text || '').trim();
-    var prev = String(lastFilmDescription || wrap.getAttribute('data-plot-text') || '').trim();
-    if (prev && s && s.length < prev.length && (prev.length > s.length + 24 || prev.endsWith('…'))) {
+    var s = normalizeFilmDescriptionText(text);
+    var prev = normalizeFilmDescriptionText(
+      lastFilmDescription || wrap.getAttribute('data-plot-text') || ''
+    );
+    // Keep first painted plot — API must not swap KP boot text for a different TMDB overview.
+    if (prev && s && filmDescriptionsConflict(prev, s)) {
+      if (!isTruncatedFilmDescription(prev) || isTruncatedFilmDescription(s)) {
+        s = prev;
+      }
+    }
+    if (prev && s && s.length < prev.length && (prev.length > s.length + 24 || isTruncatedFilmDescription(prev))) {
       s = prev;
     }
     if (!s || isFilmDescPlaceholder(s)) {
       if (lastFilmDescription) {
-        var extras0 = wrap.getAttribute('data-has-facts') === '1' ||
-          wrap.getAttribute('data-has-reviews') === '1';
+        var extras0 = wrap.getAttribute('data-has-facts') === '1';
         updateFilmDescCollapseState(wrap, lastFilmDescription, extras0);
         return;
       }
@@ -1139,8 +1181,7 @@
       return;
     }
     lastFilmDescription = s;
-    var extras1 = wrap.getAttribute('data-has-facts') === '1' ||
-      wrap.getAttribute('data-has-reviews') === '1';
+    var extras1 = wrap.getAttribute('data-has-facts') === '1';
     updateFilmDescCollapseState(wrap, s, extras1);
   }
 
@@ -2417,6 +2458,7 @@
           '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
+          buildFilmReviewsSlotHtml() +
           '<p class="status" id="hint"></p>' +
         '</div>' +
       '</section>'
@@ -2681,10 +2723,9 @@
                       }).join('') +
                     '</div>' +
                   '</div>' +
-                  '<div class="film-toolbar-friends-wrap">' +
-                    '<div id="film-friends-social-block" class="hidden"></div>' +
-                  '</div>' +
                 '</div>' +
+                buildFilmReviewsSlotHtml() +
+                '<div id="film-friends-social-block" class="hidden"></div>' +
                 '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
@@ -3702,11 +3743,22 @@
           loadFilmFriendsSocialBlock();
           return;
         }
-        if (old) old.remove();
         var toolbarHtml = buildFilmPageToolbar(stub, opts);
-        hero.insertAdjacentHTML('beforeend', toolbarHtml);
+        if (old) {
+          // Replace in place so reviews/friends below the toolbar keep their spot
+          // and «Запланировать» does not jump when auth state patches.
+          old.outerHTML = toolbarHtml;
+        } else {
+          var descWrap = hero.querySelector('#film-desc-wrap');
+          if (descWrap && descWrap.parentNode) {
+            descWrap.insertAdjacentHTML('afterend', toolbarHtml);
+          } else {
+            hero.insertAdjacentHTML('beforeend', toolbarHtml);
+          }
+        }
         var newToolbar = hero.querySelector('.film-page-toolbar');
         if (newToolbar) newToolbar.setAttribute('data-mp-toolbar-sig', sig);
+        ensureFilmReviewsSlot(hero);
         bindAuthToolbar(stub, filmState);
         bindPublicFilmToolbar(newToolbar, stub);
         var castRoot = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
