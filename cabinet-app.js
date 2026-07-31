@@ -15887,7 +15887,7 @@
     return (m >= 10 ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '')) + ' млн';
   }
 
-  function buildFilmExtRatingsHtml(film) {
+  function buildFilmExtRatingsInnerHtml(film) {
     if (!film) return '';
     const parts = [];
     const kp = film.rating_kp != null ? Number(film.rating_kp) : NaN;
@@ -15910,8 +15910,32 @@
           '</span>'
       );
     }
-    if (!parts.length) return '';
-    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + parts.join('') + '</div>';
+    return parts.join('');
+  }
+
+  function buildFilmExtRatingsSkeletonInnerHtml() {
+    return (
+      '<span class="film-modal-rkp film-ext-rating-skel" aria-hidden="true">КП 0.0</span>' +
+      '<span class="film-modal-rkp film-ext-rating-skel" aria-hidden="true">IMDb 0.0</span>'
+    );
+  }
+
+  function buildFilmExtRatingsSlotHtml(film) {
+    const inner = buildFilmExtRatingsInnerHtml(film);
+    if (inner) {
+      return '<div class="film-ext-ratings" aria-label="Рейтинги">' + inner + '</div>';
+    }
+    return (
+      '<div class="film-ext-ratings is-loading" aria-hidden="true">' +
+        buildFilmExtRatingsSkeletonInnerHtml() +
+      '</div>'
+    );
+  }
+
+  function buildFilmExtRatingsHtml(film) {
+    const inner = buildFilmExtRatingsInnerHtml(film);
+    if (!inner) return '';
+    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + inner + '</div>';
   }
 
   function syncFilmExtRatings(pageRoot, film) {
@@ -15919,25 +15943,33 @@
     const hero = pageRoot.querySelector('.film-hero-with-tag, section.hero') || pageRoot;
     const eyebrow = hero.querySelector('.eyebrow, #chips');
     let row = hero.querySelector('.film-ext-ratings');
-    const html = buildFilmExtRatingsHtml(film);
-    if (!html) {
-      if (row) row.remove();
+    const inner = buildFilmExtRatingsInnerHtml(film);
+    if (!row) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = buildFilmExtRatingsSlotHtml(film);
+      const node = tmp.firstElementChild;
+      if (!node) return;
+      if (eyebrow && eyebrow.parentNode) {
+        eyebrow.insertAdjacentElement('afterend', node);
+      } else {
+        const title = hero.querySelector('#film-title, h1');
+        if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
+      }
       return;
     }
-    if (row) {
-      row.outerHTML = html;
+    row.classList.remove('is-loading');
+    row.removeAttribute('hidden');
+    if (!inner) {
+      row.innerHTML = '';
+      row.classList.add('is-empty');
+      row.setAttribute('aria-hidden', 'true');
+      row.removeAttribute('aria-label');
       return;
     }
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    const node = tmp.firstElementChild;
-    if (!node) return;
-    if (eyebrow && eyebrow.parentNode) {
-      eyebrow.insertAdjacentElement('afterend', node);
-    } else {
-      const title = hero.querySelector('#film-title, h1');
-      if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
-    }
+    row.classList.remove('is-empty');
+    row.removeAttribute('aria-hidden');
+    row.setAttribute('aria-label', 'Рейтинги');
+    row.innerHTML = inner;
   }
 
   function buildFilmGenreChipsHtml(film) {
@@ -16000,7 +16032,7 @@
     const poster = pickFilmPosterUrl(film, content);
     applyPreferredFilmTitle(film, film.kp_id);
     const titleText = (film.title || 'Фильм') + (film.year ? ' (' + film.year + ')' : '');
-    const crew = '<div class="film-hero-crew" id="film-hero-cast-root">' + buildFilmCastSkeletonHtml() + '</div>';
+    const crew = '<div class="film-hero-crew is-loading" id="film-hero-cast-root">' + buildFilmCastSkeletonHtml() + '</div>';
     const toolbarHtml = buildFilmPageToolbar({
       kp_id: film.kp_id,
       film_id: film.film_id,
@@ -16042,7 +16074,7 @@
         '<div class="hero-content">' +
           '<h1 id="film-title">' + escapeHtml(titleText) + '</h1>' +
           '<div class="eyebrow">' + buildFilmGenreChipsHtml(film) + '</div>' +
-          buildFilmExtRatingsHtml(film) +
+          buildFilmExtRatingsSlotHtml(film) +
           crew +
           buildFilmDescWrapHtml() +
           toolbarHtml +
@@ -16094,8 +16126,14 @@
   function loadFilmCastSection(kpId, root, filmFallback) {
     if (!root) return;
     const kp = String(kpId || '').replace(/\D/g, '');
+    function markCastResolved(hasContent) {
+      root.classList.remove('is-loading');
+      if (hasContent) root.classList.remove('is-empty');
+      else root.classList.add('is-empty');
+    }
     if (!kp) {
       root.innerHTML = buildFilmCrewFallback(filmFallback);
+      markCastResolved(!!root.innerHTML.trim());
       return;
     }
     if (root.getAttribute('data-mp-cast-loaded') === kp && root.querySelector('.staff-cast-link, .film-cast-row')) {
@@ -16106,8 +16144,12 @@
     }
     if (!root.innerHTML.trim()) {
       root.innerHTML = buildFilmCastSkeletonHtml();
+      root.classList.add('is-loading');
+      root.classList.remove('is-empty');
     } else if (root.querySelector('.film-cast-skeleton') && root.getAttribute('data-mp-cast-kp') !== kp) {
       root.innerHTML = buildFilmCastSkeletonHtml();
+      root.classList.add('is-loading');
+      root.classList.remove('is-empty');
     }
     root.setAttribute('data-mp-cast-pending', '1');
     root.setAttribute('data-mp-cast-kp', kp);
@@ -16124,9 +16166,11 @@
         const html = buildFilmCastHtml(director, actors, country);
         if (!html) {
           root.innerHTML = buildFilmCrewFallback(filmFallback);
+          markCastResolved(!!root.innerHTML.trim());
           return;
         }
         root.innerHTML = html;
+        markCastResolved(true);
         root.setAttribute('data-mp-cast-loaded', kp);
         bindStaffCastLinks(root, { guestPreview: true });
         bindFilmActorsExpand(root);
@@ -16134,6 +16178,7 @@
         if (root.getAttribute('data-mp-cast-kp') !== kp) return;
         root.removeAttribute('data-mp-cast-pending');
         root.innerHTML = buildFilmCrewFallback(filmFallback);
+        markCastResolved(!!root.innerHTML.trim());
         bindFilmActorsExpand(root);
       });
   }
