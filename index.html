@@ -95,8 +95,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260729rateFix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260729rateFix1">
+    <link rel="preload" href="/style-v2.css?v=20260730similarQuality1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260730similarQuality1">
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -2688,6 +2688,29 @@
         var isSearch = path === '/search';
         var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
+        var hasSiteSession = false;
+        try {
+          var _active = localStorage.getItem('mp_site_active_chat_id');
+          var _sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+          if (Array.isArray(_sessions)) {
+            for (var _si = 0; _si < _sessions.length; _si++) {
+              if (_sessions[_si] && _sessions[_si].token &&
+                  (!_active || String(_sessions[_si].chat_id) === String(_active))) {
+                hasSiteSession = true; break;
+              }
+            }
+            if (!hasSiteSession) {
+              for (var _sj = 0; _sj < _sessions.length; _sj++) {
+                if (_sessions[_sj] && _sessions[_sj].token) { hasSiteSession = true; break; }
+              }
+            }
+          }
+          if (!hasSiteSession && localStorage.getItem('mp_site_token')) hasSiteSession = true;
+        } catch (_e) {}
+        var isCabinetHome = path === '/home' || path === '/plans' || path === '/watchlist'
+          || path === '/series' || path === '/series-hub' || path === '/settings'
+          || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
+          || path === '/stats' || path === '/inbox' || path === '/profile';
         var V = '20260731tgBounce1';
         var core = [
           'mp-api-config.js?v=' + V,
@@ -2735,6 +2758,29 @@
             'avatar-crop.js?v=' + V,
             'cabinet-app.js?v=' + V
           ];
+        } else if (hasSiteSession && (isCabinetHome || path === '/')) {
+          /* Logged-in: cabinet-app first — HAR showed ~4s script waterfall before any home API */
+          list = [
+            'mp-api-config.js?v=' + V,
+            'mp-icons.js?v=' + V,
+            'page-loading.js?v=' + V,
+            'home-rails.js?v=' + V,
+            'avatar-crop.js?v=' + V,
+            'cabinet-app.js?v=' + V,
+            'plan-modal.js?v=' + V,
+            'film-user-tags.js?v=' + V,
+            'onboarding-flow.js?v=' + V,
+            'collections-page.js?v=' + V,
+            'user-profile-page.js?v=' + V,
+            'user-page.js?v=20260618profile1',
+            'app-open-banner.js?v=20260531appstore1',
+            'app-download.js?v=20260619store1',
+            'telegram-open.js?v=20260602tgsafari1',
+            'public-film-login.js?v=' + V,
+            'film-friends-social.js?v=' + V,
+            'mp-public-promo.js?v=' + V,
+            'buzz-page.js?v=' + V
+          ];
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
@@ -2748,7 +2794,7 @@
           list.push('film-page.js?v=' + V);
           list.push('staff-page.js?v=' + V);
           list.push('cabinet-film-route.js?v=' + V);
-        } else if (!isBuzz && !isSearch) {
+        } else if (!isBuzz && !isSearch && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
           list.push('buzz-page.js?v=' + V);
           list.push('cabinet-app.js?v=' + V);

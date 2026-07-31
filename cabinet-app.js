@@ -117,10 +117,6 @@
     } catch (_) {}
   }
 
-  function mpPosterOnErrorAttr() {
-    return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"';
-  }
-
   function mpPosterOnError(img) {
     if (!img || img.dataset.mpPosterFailed === '1') return;
     img.onerror = null;
@@ -131,6 +127,27 @@
     if (wrap) wrap.classList.add('film-poster-has-placeholder');
   }
   try { window.mpPosterOnError = mpPosterOnError; } catch (_) {}
+
+  /** KP stub often 302→no-poster.gif with HTTP 200 — onerror never fires; catch after load. */
+  function mpPosterGuardLoaded(img) {
+    if (!img || img.dataset.mpPosterFailed === '1') return;
+    var src = String(img.currentSrc || img.src || '');
+    if (/no-poster/i.test(src)) {
+      mpPosterOnError(img);
+      return;
+    }
+    // Tiny gray «K» / gif stubs
+    try {
+      if (img.naturalWidth > 0 && img.naturalWidth <= 48 && img.naturalHeight <= 48) {
+        mpPosterOnError(img);
+      }
+    } catch (_) {}
+  }
+  try { window.mpPosterGuardLoaded = mpPosterGuardLoaded; } catch (_) {}
+
+  function mpPosterOnErrorAttr() {
+    return ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)" onload="if(window.mpPosterGuardLoaded)window.mpPosterGuardLoaded(this)"';
+  }
 
   function mpPersonOnError(img) {
     if (!img || img.dataset.mpPersonFailed === '1') return;
@@ -190,7 +207,19 @@
     if (!kpId) return MP_POSTER_PLACEHOLDER;
     const kp = String(kpId).replace(/\D/g, '');
     if (!kp) return MP_POSTER_PLACEHOLDER;
+    // Real KP art for most titles; API sends branded only when stub confirmed.
     return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
+  }
+
+  function isKpFilmCdnTemplateUrl(src, kpId) {
+    const s = String(src || '').trim().toLowerCase();
+    if (!s || s.indexOf('st.kp.yandex.net') < 0) return false;
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (kp && s.indexOf('iphone360_' + kp + '.jpg') >= 0) return true;
+    if (kp && s.indexOf('/film_big/' + kp + '.jpg') >= 0) return true;
+    if (/\/film_iphone\/iphone360_\d+\.jpg/.test(s)) return true;
+    if (/\/images\/film_big\/\d+\.jpg/.test(s)) return true;
+    return false;
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
@@ -259,25 +288,30 @@
   function isGoodFilmPosterUrl(src) {
     const s = cleanPosterUrl(src);
     if (!s) return false;
+    // Real KP art often lives on iphone360 CDN; only reject empty/no-poster.
+    if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
     return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function isKpIphonePosterUrl(src, kpId) {
     const s = String(src || '').trim();
-    if (!s || !kpId) return false;
+    if (!s) return false;
+    if (/\/film_iphone\/iphone360_\d+\.jpg/i.test(s) || /\/images\/film_big\/\d+\.jpg/i.test(s)) {
+      return true;
+    }
+    if (!kpId) return false;
     const kp = String(kpId).replace(/\D/g, '');
     if (!kp) return false;
     return s.indexOf('iphone360_' + kp) >= 0 || s.indexOf('/film_iphone/iphone360_') >= 0;
   }
 
-  /** Series vitrine: real posters; confirmed KP stubs fall back to branded via onerror. */
+  /** Series vitrine: real posters; confirmed stubs use branded via API. */
   function seriesShowcasePosterSrc(item) {
     const kp = item && (item.kp_id || item.kp);
     const raw = cleanPosterUrl(item && item.poster);
-    if (raw && /image\.tmdb\.org/i.test(raw)) return raw;
-    if (raw && isGoodFilmPosterUrl(raw) && !isKpIphonePosterUrl(raw, kp)) return raw;
-    if (raw && isKpIphonePosterUrl(raw, kp)) return raw;
-    if (kp) return posterUrl(kp);
+    if (raw && /image\.tmdb\.org|\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
+    if (raw && isGoodFilmPosterUrl(raw)) return raw;
+    if (kp) return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + String(kp).replace(/\D/g, '') + '.jpg';
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -310,15 +344,16 @@
     const fromFilm = cleanPosterUrl(film && (film.poster_url || film.poster));
     const cur = currentFilmPosterFromDom(root);
     const kp = film && (film.kp_id || film.kp);
-    // Keep MP branded — do not overwrite with KP CDN template (gray «K» loads as 200).
-    if (cur && /film-poster-placeholder/i.test(cur) && isKpIphonePosterUrl(fromFilm, kp)) {
+    // Keep MP branded — do not overwrite with KP CDN when API already chose branded
+    // (confirmed gray «K» / no art). Real KP CDN from API is fine.
+    if (cur && /film-poster-placeholder/i.test(cur) && isKpFilmCdnTemplateUrl(fromFilm, kp)) {
       return cur;
     }
-    if (fromFilm) return fromFilm;
-    if (cur) return cur;
+    if (fromFilm && isGoodFilmPosterUrl(fromFilm)) return fromFilm;
+    if (cur && isGoodFilmPosterUrl(cur)) return cur;
     const boot = filmFromRouteBoot(film && film.kp_id);
     const bootPoster = boot && cleanPosterUrl(boot.poster_url);
-    if (bootPoster) return bootPoster;
+    if (bootPoster && isGoodFilmPosterUrl(bootPoster)) return bootPoster;
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -337,12 +372,17 @@
     const display = next || (isGoodFilmPosterUrl(cur) ? cur : MP_POSTER_PLACEHOLDER);
     const img = root.querySelector('.poster-wrap .poster, .poster-wrap img');
     const hero = root.querySelector('.film-hero-with-tag, .hero');
+    const kp = root && (root.getAttribute('data-kp') || (root.dataset && root.dataset.kp));
+    const curIsKpCdnStub = isKpFilmCdnTemplateUrl(cur, kp) || /no-poster/i.test(String(cur || ''));
     if (img) {
-      if (display !== MP_POSTER_PLACEHOLDER || !isGoodFilmPosterUrl(cur)) {
+      // Branded MUST replace KP CDN templates (gray «K» / no-poster.gif HTTP 200).
+      if (display !== MP_POSTER_PLACEHOLDER || !isGoodFilmPosterUrl(cur) || curIsKpCdnStub) {
         img.src = display;
         img.classList.toggle('mp-poster-placeholder', display === MP_POSTER_PLACEHOLDER);
         const wrap = img.closest('.poster-wrap');
         if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display === MP_POSTER_PLACEHOLDER);
+        img.onerror = function () { if (window.mpPosterOnError) window.mpPosterOnError(this); };
+        img.onload = function () { if (window.mpPosterGuardLoaded) window.mpPosterGuardLoaded(this); };
       }
     }
     if (hero && display !== MP_POSTER_PLACEHOLDER) {
@@ -444,6 +484,11 @@
       rememberFilmHeroDescription(kp, fromFilm);
       return fromFilm;
     }
+    // Shell/API settled with empty plot — do not revive sticky remake glue / boot SEO text.
+    if (film && film.__descSettled && !fromFilm) {
+      if (kp) _filmHeroDescCache.delete(kp);
+      return '';
+    }
     const bootDesc = kp ? pickFilmDescription(filmFromRouteBoot(kp)) : '';
     const bootOk = bootDesc && !isTruncatedFilmDescription(bootDesc) ? bootDesc : '';
     return pickBestFilmDescriptionText(
@@ -458,6 +503,8 @@
     const bootDesc = pickFilmDescription(filmFromRouteBoot(kp));
     if (!bootDesc || isTruncatedFilmDescription(bootDesc)) return film;
     const cur = pickFilmDescription(film);
+    // API/shell explicitly empty — do not glue wrong SEO overview onto silent remakes.
+    if (film && film.__descSettled && !cur) return film;
     film.description = preferRuDescription(cur, bootDesc);
     return film;
   }
@@ -479,7 +526,21 @@
   function applyFilmDescriptionToHero(root, film) {
     if (!root || !film) return false;
     const kp = String(film.kp_id || '').replace(/\D/g, '');
-    const next = rememberFilmHeroDescription(kp, resolveFilmHeroDescription(film, root));
+    const resolved = resolveFilmHeroDescription(film, root);
+    if (!resolved) {
+      // API settled empty — wipe sticky remake synopsis from DOM/cache.
+      if (film.__descSettled) {
+        if (kp) _filmHeroDescCache.delete(kp);
+        const heroContent = root.querySelector('.hero-content');
+        if (!heroContent) return false;
+        const wrap = ensureFilmDescWrap(heroContent);
+        if (!wrap) return false;
+        updateFilmDescCollapseState(wrap, '', wrap.getAttribute('data-has-facts') === '1');
+        return true;
+      }
+      return false;
+    }
+    const next = rememberFilmHeroDescription(kp, resolved);
     if (!next) return false;
     if (isTruncatedFilmDescription(next) && _filmHeroDescInflight.has(kp)) return false;
     const heroContent = root.querySelector('.hero-content');
@@ -516,6 +577,13 @@
     if (!root || !film) return Promise.resolve(film);
     const kp = String(film.kp_id || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve(film);
+
+    // Lite/API settled with no plot — clear sticky remake glue, skip boot/DOM revive.
+    if (film.__descSettled && !pickFilmDescription(film)) {
+      _filmHeroDescCache.delete(kp);
+      applyFilmDescriptionToHero(root, film);
+      return Promise.resolve(film);
+    }
 
     mergeBootDescription(film, kp);
     rememberFilmHeroDescription(kp, pickFilmDescription(film));
@@ -980,7 +1048,7 @@
     if (!root) return '';
     const hero = root.querySelector('.film-hero-with-tag');
     if (!hero) return '';
-    return String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+    return numericKpFilmId(hero.getAttribute('data-kp-id'));
   }
 
   /** Закрыть модалку входа без перезагрузки страницы под ней. */
@@ -1325,17 +1393,20 @@
 
   function mapLiteFilmForHero(lite, kp) {
     const d = lite || {};
+    const desc = String(d.description || '').trim();
     return {
       kp_id: String(kp || d.kp_id || '').replace(/\D/g, ''),
       title: d.title || 'Фильм',
       year: d.year,
       country: d.country,
       genres: Array.isArray(d.genres) ? d.genres.join(', ') : (d.genres || ''),
-      description: d.description || '',
+      description: desc,
       poster_url: d.poster || d.poster_url || '',
       is_series: !!d.is_series,
       watched: !!d.watched,
       in_library: !!d.in_library,
+      // null/empty lite description is NOT "settled empty" — still fetch public plot.
+      __descSettled: !!desc,
     };
   }
 
@@ -6140,6 +6211,11 @@
     });
   }
 
+  function numericKpFilmId(id) {
+    const s = String(id == null ? '' : id).trim();
+    return /^\d+$/.test(s) ? s : '';
+  }
+
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
@@ -6147,11 +6223,23 @@
     const factsEl = wrap.querySelector('.film-desc-facts-inline');
     if (!factsEl) return;
     const items = filmFactsItemsFromPayload(payload);
-    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
-    const hasFacts = items.length > 0;
-    wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    const hasReviews = wrap.getAttribute('data-has-reviews') === '1';
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+    // Empty /facts must not erase boot/editorial facts already on the page.
+    if (!items.length) {
+      if (wrap.getAttribute('data-has-facts') === '1' && factsEl.innerHTML.trim()) {
+        return;
+      }
+      factsEl.innerHTML = '';
+      wrap.setAttribute('data-has-facts', '0');
+      updateFilmDescCollapseState(
+        wrap,
+        filmDescPlotText(wrap),
+        wrap.getAttribute('data-has-reviews') === '1'
+      );
+      return;
+    }
+    factsEl.innerHTML = filmDescFactsInlineHtml(payload);
+    wrap.setAttribute('data-has-facts', '1');
+    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), true);
   }
 
   function withFilmReviewUtm(url, channelTitle) {
@@ -6223,7 +6311,7 @@
   }
 
   function loadFilmDescReviews(kpId, root) {
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     const scope = root || document;
     const wrap = scope.querySelector('#film-desc-wrap');
@@ -6258,7 +6346,7 @@
   }
 
   function loadFilmDescFacts(kpId, root) {
-    const kp = String(kpId || '').replace(/\D/g, '');
+    const kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     const scope = root || document;
     const wrap = scope.querySelector('#film-desc-wrap');
@@ -9087,12 +9175,13 @@
 
   function _scheduleMountHomeDashboardRails() {
     clearTimeout(_homeRailMountTimer);
+    // Immediate mount — 140ms delay stacked with per-rail stagger made home feel empty.
     _homeRailMountTimer = setTimeout(function () {
       try { mountHomeDashboardRails(); } catch (_) {}
       try {
         bindHomePosterRailDragScroll(document.getElementById('home-dashboard-root') || document);
       } catch (_) {}
-    }, 140);
+    }, 0);
   }
 
   function scheduleHomeDashboardRefresh() {
@@ -9527,7 +9616,7 @@
       rail.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'touch') return;
         if (e.button != null && e.button !== 0) return;
-        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-next')) return;
+        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-prev, .film-page-similar-next')) return;
         active = true;
         dragging = false;
         startX = e.clientX;
@@ -9613,7 +9702,7 @@
           },
         });
         try { bindHomePosterRailDragScroll(container); } catch (_) {}
-      }, idx * 380);
+      }, idx * 40);
     });
     decorateHomePosterPreviews(root);
   }
@@ -10298,12 +10387,16 @@
     }
     applyHomeEmojiVisibility();
 
+    // Paint shell + mount rails immediately — do NOT wait for premieres/dashboard
+    // (HAR: Promise.all delayed unwatched/series until ~7s; user stares at empty home).
+    _patchHomeDashboardStaticBlocks();
+    paintHomeTournamentBlock();
+    _scheduleMountHomeDashboardRails();
+
     const dashboardPromise = isGuestCabinetPreview()
       ? Promise.resolve(null)
       : api('/api/miniapp/dashboard?lite=1', { timeoutMs: 12000 }).catch(() => null);
 
-    // One paint path: merge network data, then patch+mount rails once in finally.
-    // (Previously dash.then AND finally both patched — rails wiped 2–3 times.)
     _homeDashInflight = Promise.all(
       isGuestCabinetPreview()
         ? [
@@ -10364,6 +10457,7 @@
         applyHomeEmojiVisibility();
         _patchHomeDashboardStaticBlocks();
         paintHomeTournamentBlock();
+        // Rails already mounted on first paint; only mount any still-unmounted containers.
         _scheduleMountHomeDashboardRails();
       });
     return _homeDashInflight;
@@ -14136,7 +14230,7 @@
 
   function filmToolbarKpFromRoot(root) {
     const share = root && root.querySelector('[data-share-film]');
-    const fromShare = share ? String(share.getAttribute('data-kp') || '').replace(/\D/g, '') : '';
+    const fromShare = share ? numericKpFilmId(share.getAttribute('data-kp')) : '';
     if (fromShare) return fromShare;
     return heroKpIdFromRoot(root);
   }
@@ -14295,7 +14389,7 @@
       });
     }
     const heroRoot = root.closest('#film-page-content, #section-film, .movie-page') || document.getElementById('film-page-content');
-    const kpForFacts = (film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot);
+    const kpForFacts = numericKpFilmId((film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot));
     if (kpForFacts) loadFilmDescFacts(kpForFacts, heroRoot);
     if (seriesToggle && seriesPanel && film && film.is_series) {
       seriesToggle.addEventListener('click', function (e) {
@@ -15278,23 +15372,78 @@
   }
 
   function buildSimilarRailCardHtml(s) {
-    const p = s.poster || s.poster_thumb || posterUrl(s.kp_id) || '';
-    const img = p
-      ? '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
-      : '';
+    const title = (function () {
+      const t = String(s.title || '').trim();
+      const y = parseInt(s.year, 10);
+      if (!t || !y || y < 1000) return t;
+      if (/\(\d{4}\)\s*$/.test(t)) return t;
+      if (y >= new Date().getFullYear()) return t + ' (' + y + ')';
+      return t;
+    })();
+    let p = s.poster || s.poster_thumb || '';
+    const y = parseInt(s.year, 10);
+    const upcoming = Number.isFinite(y) && y >= new Date().getFullYear();
+    const kpCdn = /st\.kp\.yandex\.net/i.test(String(p)) && /iphone360_|\/film_big\//i.test(String(p));
+    if (upcoming && (!p || kpCdn)) {
+      p = '/images/film-poster-placeholder.png';
+    } else if (!p) {
+      p = posterUrl(s.kp_id) || '/images/film-poster-placeholder.png';
+    }
+    const ph = String(p).indexOf('film-poster-placeholder') >= 0;
+    const img = '<img src="' + escapeHtml(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' +
+      (ph ? ' class="mp-poster-placeholder"' : '') +
+      mpPosterOnErrorAttr() + '>';
     const inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
     const clickAttr = 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
     const em = s.is_series ? '📺 ' : '🎬 ';
     return (
       '<button type="button" class="similar-rail-card" ' + clickAttr +
-      ' title="' + escapeHtml(s.title || '') + '" role="listitem">' +
+      ' title="' + escapeHtml(title) + '" role="listitem">' +
         '<div class="similar-rail-poster">' + img + inBase + '</div>' +
-        '<div class="similar-rail-title">' + em + escapeHtml(s.title || '') + '</div>' +
+        '<div class="similar-rail-title">' + em + escapeHtml(title) + '</div>' +
       '</button>'
     );
   }
 
+  function similarTitleDedupeKey(title) {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/[\(\[\{]\s*\d{4}\s*[\)\]\}]\s*$/g, '')
+      .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function dedupeSimilarByTitle(items) {
+    const seen = Object.create(null);
+    const out = [];
+    (items || []).forEach(function (s) {
+      const t = String((s && s.title) || '').trim().replace(/\s*\(\d{4}\)\s*$/, '');
+      const key = similarTitleDedupeKey(t);
+      if (key && seen[key]) return;
+      if (key) seen[key] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
+  function similarHasCyrillic(title) {
+    return /[А-Яа-яЁё]/.test(String(title || ''));
+  }
+
+  function filterSimilarQuality(items) {
+    return (items || []).filter(function (s) {
+      const title = String((s && s.title) || '').trim();
+      if (!title || /^(film|фильм|сериал|series)\s*\d+$/i.test(title)) return false;
+      if (!similarHasCyrillic(title)) return false;
+      const p = cleanPosterUrl(s && (s.poster || s.poster_thumb)) || '';
+      if (!p || /film-poster-placeholder/i.test(p)) return false;
+      return true;
+    });
+  }
+
   function buildFilmPageSimilarSectionHtml(similar) {
+    similar = filterSimilarQuality(dedupeSimilarByTitle(similar));
     if (!similar || !similar.length) return '';
     return (
       '<section class="film-page-similar-section" aria-label="Похожие">' +
@@ -15302,6 +15451,7 @@
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
         '<div class="film-page-similar-rail-wrap">' +
+          '<button type="button" class="film-page-similar-prev" aria-label="Назад по похожим">‹</button>' +
           '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' +
           similar.map(function (s) { return buildSimilarRailCardHtml(s); }).join('') +
           '</div>' +
@@ -15326,9 +15476,12 @@
   function bindFilmPageSimilarRailNav(section) {
     if (!section) return;
     const rail = section.querySelector('.film-page-similar-rail');
-    const btn = section.querySelector('.film-page-similar-next');
-    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
-    btn.dataset.mpSimilarNavBound = '1';
+    const prev = section.querySelector('.film-page-similar-prev');
+    const next = section.querySelector('.film-page-similar-next');
+    if (!rail || !next) return;
+    bindHomePosterRailDragScroll(section);
+    if (next.dataset.mpSimilarNavBound === '1') return;
+    next.dataset.mpSimilarNavBound = '1';
     function cardStep() {
       const card = rail.querySelector('.similar-rail-card');
       if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
@@ -15340,22 +15493,57 @@
       return card.offsetWidth + gap;
     }
     function syncNav() {
+      const n = rail.querySelectorAll('.similar-rail-card').length;
       const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      const canScroll = max > 8;
-      btn.hidden = !canScroll;
-      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
-      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      // ≤10 fit in one row — no arrows (ignore 1px overflow).
+      const canScroll = n > 10 && max > 24;
+      const atStart = rail.scrollLeft <= 4;
+      const atEnd = rail.scrollLeft >= max - 4;
+      const hideNext = !canScroll || atEnd;
+      const hidePrev = !canScroll || atStart;
+      next.hidden = hideNext;
+      next.classList.toggle('is-nav-off', !canScroll);
+      next.classList.toggle('is-edge-hidden', canScroll && hideNext);
+      next.classList.toggle('is-at-end', atEnd);
+      next.setAttribute('aria-hidden', hideNext ? 'true' : 'false');
+      if (prev) {
+        prev.hidden = hidePrev;
+        prev.classList.toggle('is-nav-off', !canScroll);
+        prev.classList.toggle('is-edge-hidden', canScroll && hidePrev);
+        prev.classList.toggle('is-at-start', atStart);
+        prev.setAttribute('aria-hidden', hidePrev ? 'true' : 'false');
+      }
     }
-    btn.addEventListener('click', function (e) {
+    function scrollByCards(dir) {
+      const n = rail.querySelectorAll('.similar-rail-card').length;
+      const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      if (n <= 10 || max <= 24) return;
+      const step = cardStep() * 2;
+      let nextLeft = rail.scrollLeft + dir * step;
+      // Clamp — never wrap (wrap made › feel like ‹ near the end).
+      if (dir > 0) nextLeft = Math.min(max, nextLeft);
+      else nextLeft = Math.max(0, nextLeft);
+      rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    }
+    next.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      if (max <= 8) return;
-      let next = rail.scrollLeft + cardStep() * 2;
-      if (next >= max - 4) next = 0;
-      rail.scrollTo({ left: next, behavior: 'smooth' });
+      scrollByCards(1);
     });
+    if (prev) {
+      prev.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        scrollByCards(-1);
+      });
+    }
     rail.addEventListener('scroll', syncNav, { passive: true });
+    rail.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (rail.scrollWidth <= rail.clientWidth + 8) return;
+      e.preventDefault();
+      rail.scrollLeft += e.deltaY;
+    }, { passive: false });
     try {
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(syncNav).observe(rail);

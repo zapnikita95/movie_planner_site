@@ -250,6 +250,7 @@
   function isGoodFilmPosterUrl(src) {
     var s = cleanPosterUrl(src);
     if (!s) return false;
+    if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
     return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
@@ -267,20 +268,83 @@
     });
   }
 
+  function similarRailDisplayTitle(s) {
+    var t = String((s && s.title) || '').trim();
+    var y = parseInt((s && s.year), 10);
+    if (!t || !y || y < 1000) return t;
+    if (/\(\d{4}\)\s*$/.test(t)) return t;
+    // Unreleased / current-year upcoming: show year so empty poster is explained.
+    if (y >= new Date().getFullYear()) return t + ' (' + y + ')';
+    return t;
+  }
+
+  function similarRailPosterUrl(s) {
+    var p = cleanPosterUrl((s && (s.poster || s.poster_thumb)) || '');
+    var y = parseInt((s && s.year), 10);
+    var upcoming = Number.isFinite(y) && y >= new Date().getFullYear();
+    // Upcoming + KP CDN template → gray «K» with HTTP 200; use MP branded instead.
+    if (upcoming && (!p || isKpFilmCdnTemplateUrl(p, s && s.kp_id))) {
+      return MP_POSTER_PLACEHOLDER;
+    }
+    if (!p) return MP_POSTER_PLACEHOLDER;
+    return p;
+  }
+
+  function similarTitleDedupeKey(title) {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/[\(\[\{]\s*\d{4}\s*[\)\]\}]\s*$/g, '')
+      .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function dedupeSimilarByTitle(items) {
+    var seen = Object.create(null);
+    var out = [];
+    (items || []).forEach(function (s) {
+      var key = similarTitleDedupeKey(similarRailDisplayTitle(s) || (s && s.title) || '');
+      if (key && seen[key]) return;
+      if (key) seen[key] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
+  function similarHasCyrillic(title) {
+    return /[А-Яа-яЁё]/.test(String(title || ''));
+  }
+
+  function filterSimilarQuality(items) {
+    // Drop short-collision junk: Latin-only titles / Film NNN / branded popcorn only.
+    return (items || []).filter(function (s) {
+      var title = similarRailDisplayTitle(s) || String((s && s.title) || '').trim();
+      if (!title || /^(film|фильм|сериал|series)\s*\d+$/i.test(title)) return false;
+      if (!similarHasCyrillic(title)) return false;
+      var p = similarRailPosterUrl(s);
+      if (!p || isMpBrandedFilmPoster(p)) return false;
+      return true;
+    });
+  }
+
   function buildFilmPageSimilarSectionLite(similar) {
+    similar = filterSimilarQuality(dedupeSimilarByTitle(similar));
     if (!similar || !similar.length) return '';
     var cards = similar.map(function (s) {
-      var p = s.poster || s.poster_thumb || '';
-      var img = p
-        ? '<img src="' + filmSimilarEscape(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
-        : '';
+      var title = similarRailDisplayTitle(s);
+      var p = similarRailPosterUrl(s);
+      var ph = isMpBrandedFilmPoster(p);
+      var img = '<img src="' + filmSimilarEscape(p) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' +
+        (ph ? ' class="mp-poster-placeholder"' : '') +
+        ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this); else { this.onerror=null; this.src=\'' + MP_POSTER_PLACEHOLDER + '\'; }">';
       var inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
       var em = s.is_series ? '📺 ' : '🎬 ';
+      var href = s.kp_id ? ('/f/' + encodeURIComponent(String(s.kp_id))) : '#';
       return (
-        '<button type="button" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id)) + '" title="' + filmSimilarEscape(s.title || '') + '" role="listitem">' +
+        '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(title) + '" role="listitem">' +
           '<div class="similar-rail-poster">' + img + inBase + '</div>' +
-          '<div class="similar-rail-title">' + em + filmSimilarEscape(s.title || '') + '</div>' +
-        '</button>'
+          '<div class="similar-rail-title">' + em + filmSimilarEscape(title) + '</div>' +
+        '</a>'
       );
     }).join('');
     return (
@@ -289,6 +353,7 @@
           '<span class="section-title-text gradient">Похожие</span>' +
         '</h2>' +
         '<div class="film-page-similar-rail-wrap">' +
+          '<button type="button" class="film-page-similar-prev" aria-label="Назад по похожим">‹</button>' +
           '<div class="similar-rail home-rail--draggable film-page-similar-rail" role="list">' + cards + '</div>' +
           '<button type="button" class="film-page-similar-next" aria-label="Листать похожие">›</button>' +
         '</div>' +
@@ -296,12 +361,71 @@
     );
   }
 
+  function bindFilmPageSimilarRailDrag(rail) {
+    if (!rail || rail._mpDragScrollBound) return;
+    rail._mpDragScrollBound = true;
+    rail.classList.add('home-rail--draggable');
+    var active = false;
+    var dragging = false;
+    var startX = 0;
+    var startScroll = 0;
+    var THRESH = 6;
+    rail.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest('a, input, select, textarea, .film-page-similar-prev, .film-page-similar-next')) return;
+      active = true;
+      dragging = false;
+      startX = e.clientX;
+      startScroll = rail.scrollLeft;
+      try { rail.setPointerCapture(e.pointerId); } catch (_c) {}
+    });
+    rail.addEventListener('pointermove', function (e) {
+      if (!active) return;
+      var dx = e.clientX - startX;
+      if (!dragging && Math.abs(dx) > THRESH) {
+        dragging = true;
+        rail.classList.add('is-dragging');
+      }
+      if (!dragging) return;
+      e.preventDefault();
+      rail.scrollLeft = startScroll - dx;
+    });
+    function endDrag(e) {
+      if (!active) return;
+      active = false;
+      rail.classList.remove('is-dragging');
+      try {
+        if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+      } catch (_r) {}
+      if (dragging) {
+        setTimeout(function () { dragging = false; }, 0);
+      }
+    }
+    rail.addEventListener('pointerup', endDrag);
+    rail.addEventListener('pointercancel', endDrag);
+    rail.addEventListener('click', function (e) {
+      if (!dragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    rail.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (rail.scrollWidth <= rail.clientWidth + 8) return;
+      e.preventDefault();
+      rail.scrollLeft += e.deltaY;
+    }, { passive: false });
+  }
+
   function bindFilmPageSimilarRailNav(section) {
     if (!section) return;
     var rail = section.querySelector('.film-page-similar-rail');
-    var btn = section.querySelector('.film-page-similar-next');
-    if (!rail || !btn || btn.dataset.mpSimilarNavBound === '1') return;
-    btn.dataset.mpSimilarNavBound = '1';
+    var prev = section.querySelector('.film-page-similar-prev');
+    var next = section.querySelector('.film-page-similar-next');
+    if (!rail || !next) return;
+    bindFilmPageSimilarRailDrag(rail);
+    if (next.dataset.mpSimilarNavBound === '1') return;
+    next.dataset.mpSimilarNavBound = '1';
     function cardStep() {
       var card = rail.querySelector('.similar-rail-card');
       if (!card) return Math.max(160, Math.floor(rail.clientWidth * 0.72));
@@ -313,21 +437,50 @@
       return card.offsetWidth + gap;
     }
     function syncNav() {
+      var n = rail.querySelectorAll('.similar-rail-card').length;
       var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      var canScroll = max > 8;
-      btn.hidden = !canScroll;
-      btn.classList.toggle('is-at-end', canScroll && rail.scrollLeft >= max - 4);
-      btn.setAttribute('aria-hidden', canScroll ? 'false' : 'true');
+      // ≤10 fit in one row — no arrows (ignore 1px overflow). Need real overflow to scroll.
+      var canScroll = n > 10 && max > 24;
+      var atStart = rail.scrollLeft <= 4;
+      var atEnd = rail.scrollLeft >= max - 4;
+      var hideNext = !canScroll || atEnd;
+      var hidePrev = !canScroll || atStart;
+      next.hidden = hideNext;
+      next.classList.toggle('is-nav-off', !canScroll);
+      next.classList.toggle('is-edge-hidden', canScroll && hideNext);
+      next.classList.toggle('is-at-end', atEnd);
+      next.setAttribute('aria-hidden', hideNext ? 'true' : 'false');
+      if (prev) {
+        prev.hidden = hidePrev;
+        prev.classList.toggle('is-nav-off', !canScroll);
+        prev.classList.toggle('is-edge-hidden', canScroll && hidePrev);
+        prev.classList.toggle('is-at-start', atStart);
+        prev.setAttribute('aria-hidden', hidePrev ? 'true' : 'false');
+      }
     }
-    btn.addEventListener('click', function (e) {
+    function scrollByCards(dir) {
+      var n = rail.querySelectorAll('.similar-rail-card').length;
+      var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      if (n <= 10 || max <= 24) return;
+      var step = cardStep() * 2;
+      var nextLeft = rail.scrollLeft + dir * step;
+      // Clamp — never wrap (wrap made › feel like ‹ near the end).
+      if (dir > 0) nextLeft = Math.min(max, nextLeft);
+      else nextLeft = Math.max(0, nextLeft);
+      rail.scrollTo({ left: nextLeft, behavior: 'smooth' });
+    }
+    next.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      var max = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      if (max <= 8) return;
-      var next = rail.scrollLeft + cardStep() * 2;
-      if (next >= max - 4) next = 0;
-      rail.scrollTo({ left: next, behavior: 'smooth' });
+      scrollByCards(1);
     });
+    if (prev) {
+      prev.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        scrollByCards(-1);
+      });
+    }
     rail.addEventListener('scroll', syncNav, { passive: true });
     try {
       if (typeof ResizeObserver !== 'undefined') {
@@ -350,9 +503,11 @@
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     section.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
-      card.addEventListener('click', function () {
+      card.addEventListener('click', function (e) {
         var kp = card.getAttribute('data-similar-kp');
-        if (kp) global.location.href = '/f/' + encodeURIComponent(kp);
+        if (!kp) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        global.location.href = '/f/' + encodeURIComponent(kp);
       });
     });
     bindFilmPageSimilarRailNav(section);
@@ -440,7 +595,15 @@
       return;
     }
     var pEl = document.getElementById('poster');
-    if (pEl && isGoodFilmPosterUrl(cur) && !isMpBrandedFilmPoster(cur) && display === MP_POSTER_PLACEHOLDER) {
+    // Gray «K» CDN is "good" URL but must lose to branded when API says so.
+    if (
+      pEl &&
+      isGoodFilmPosterUrl(cur) &&
+      !isMpBrandedFilmPoster(cur) &&
+      !isKpFilmCdnTemplateUrl(cur, kpId) &&
+      !/no-poster/i.test(String(cur || '')) &&
+      display === MP_POSTER_PLACEHOLDER
+    ) {
       setFilmHeroBackdrop(cur, kpId);
       return;
     }
@@ -451,6 +614,9 @@
       pEl.onerror = function () {
         if (global.mpPosterOnError) global.mpPosterOnError(this);
         else { this.onerror = null; this.src = MP_POSTER_PLACEHOLDER; this.classList.add('mp-poster-placeholder'); }
+      };
+      pEl.onload = function () {
+        if (global.mpPosterGuardLoaded) global.mpPosterGuardLoaded(this);
       };
       var wrap = pEl.closest('.poster-wrap');
       if (wrap) wrap.classList.toggle('film-poster-has-placeholder', display.indexOf('film-poster-placeholder') >= 0);
@@ -471,6 +637,19 @@
         setFilmHeroBackdrop('');
       };
     }
+    global.mpPosterGuardLoaded = function (img) {
+      if (!img || img.dataset.mpPosterFailed === '1') return;
+      var src = String(img.currentSrc || img.src || '');
+      if (/no-poster/i.test(src)) {
+        global.mpPosterOnError(img);
+        return;
+      }
+      try {
+        if (img.naturalWidth > 0 && img.naturalWidth <= 48 && img.naturalHeight <= 48) {
+          global.mpPosterOnError(img);
+        }
+      } catch (_w) {}
+    };
   } catch (_mpPh) {}
 
   function isFilmDescPlaceholder(text) {
@@ -733,6 +912,12 @@
     return arr;
   }
 
+  /** Real Kinopoisk film id only — never digits from fest-/movie-/tv- catalog keys (year → /f/2025/facts wipe). */
+  function numericKpFilmId(id) {
+    var s = String(id == null ? '' : id).trim();
+    return /^\d+$/.test(s) ? s : '';
+  }
+
   function paintFilmDescFacts(wrap, payload) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     if (!wrap) return;
@@ -740,11 +925,27 @@
     var factsEl = wrap.querySelector('.film-desc-facts-inline');
     if (!factsEl) return;
     var items = filmFactsItemsFromPayload(payload);
-    factsEl.innerHTML = items.length ? filmDescFactsInlineHtml(payload) : '';
-    var hasFacts = items.length > 0;
-    var hasReviews = wrap.getAttribute('data-has-reviews') === '1';
-    wrap.setAttribute('data-has-facts', hasFacts ? '1' : '0');
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), hasFacts || hasReviews);
+    // Empty KP/facts response must not erase SSR/boot/editorial facts already painted.
+    if (!items.length) {
+      if (wrap.getAttribute('data-has-facts') === '1' && factsEl.innerHTML.trim()) {
+        return;
+      }
+      factsEl.innerHTML = '';
+      wrap.setAttribute('data-has-facts', '0');
+      updateFilmDescCollapseState(
+        wrap,
+        filmDescPlotText(wrap),
+        wrap.getAttribute('data-has-reviews') === '1'
+      );
+      return;
+    }
+    factsEl.innerHTML = filmDescFactsInlineHtml(payload);
+    wrap.setAttribute('data-has-facts', '1');
+    updateFilmDescCollapseState(
+      wrap,
+      filmDescPlotText(wrap),
+      true
+    );
   }
 
   function withReviewUtm(url, channelTitle) {
@@ -819,7 +1020,7 @@
   }
 
   function loadFilmDescReviews(kpId, root) {
-    var kp = String(kpId || '').replace(/\D/g, '');
+    var kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     var scope = root || document;
     var wrap = scope.querySelector('#film-desc-wrap');
@@ -844,7 +1045,7 @@
   }
 
   function loadFilmDescFacts(kpId, root) {
-    var kp = String(kpId || '').replace(/\D/g, '');
+    var kp = numericKpFilmId(kpId);
     if (!kp) return Promise.resolve();
     var scope = root || document;
     var wrap = scope.querySelector('#film-desc-wrap');
@@ -2156,11 +2357,12 @@
   }
 
   function buildFilmMainInnerHtml(kpId, poster) {
-    var posterSrc = resolveFilmPosterDisplay(poster, kpId);
+    var kpNumeric = numericKpFilmId(kpId);
+    var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
-    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpId }, { inBase: false, authenticated: !!mpToken(), canRate: true });
+    var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: !!mpToken(), canRate: true });
     return (
-      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(String(kpId || '')) + '">' +
+      '<section class="hero film-hero-with-tag" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         '<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>' +
@@ -2284,9 +2486,11 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
-    if (descWrapBoot && meta.mode !== 'tmdb' && (boot.kp_id || keyDigits)) {
+    // fest-/movie- keys contain years (…-2025); never treat those digits as kp_id → empty /facts wipe.
+    if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest') {
       try {
-        loadFilmDescFacts(String(boot.kp_id || keyDigits), pageRoot);
+        var bootFactsKp = numericKpFilmId(boot.kp_id);
+        if (bootFactsKp) loadFilmDescFacts(bootFactsKp, pageRoot);
       } catch (_facts) {}
     }
     try {
@@ -2714,6 +2918,7 @@
           });
       }
       function scheduleLoadFacts() {
+        if (isFest || isTmdbOnly || !numericKpFilmId(kpId)) return;
         var run = function () { loadFilmDescFacts(kpId, document); };
         run();
         if (typeof requestIdleCallback === 'function') {
@@ -3122,7 +3327,7 @@
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
           setFilmDescription(pickFilmDescription(f));
-          if (isTmdbOnly) {
+          if (isTmdbOnly || isFest) {
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
               ? data.web_facts
               : (Array.isArray(f.web_facts) ? f.web_facts : []);
@@ -3380,7 +3585,7 @@
             togglePanel(rateToggle, ratingPanel);
           });
         }
-        loadFilmDescFacts(kpId, document);
+        if (numericKpFilmId(kpId)) loadFilmDescFacts(kpId, document);
         if (seriesToggle && seriesPanel) {
           seriesToggle.addEventListener('click', function (e) {
             e.preventDefault();

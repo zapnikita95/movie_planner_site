@@ -5535,7 +5535,12 @@ main.film-page .eyebrow + .film-ext-ratings {
   padding: 0;
   text-align: left;
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  display: block;
 }
+a.similar-rail-card:hover { color: inherit; text-decoration: none; }
+a.collections-film-card { color: inherit; text-decoration: none; }
 .similar-rail-poster {
   position: relative;
   aspect-ratio: 2 / 3;
@@ -5581,17 +5586,108 @@ main.film-page .eyebrow + .film-ext-ratings {
 }
 .film-page-similar-rail-wrap {
   position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .film-page-similar-rail {
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: flex-start;
+  /* Desktop: keep a usable scroll affordance even with grab-drag. */
+  cursor: grab;
+  scrollbar-width: thin;
+  /* Never draw under side arrows — cards stay between arrow gutters. */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
+.film-page-similar-rail::-webkit-scrollbar {
+  height: 6px;
+}
+.film-page-similar-rail::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+.film-page-similar-rail.is-dragging {
+  cursor: grabbing;
+}
+.film-page-similar-prev,
 .film-page-similar-next {
-  display: none;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  /* Outside the rail — never absolute overlay on posters (2026-07-30 incident). */
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  inset: auto !important;
+  transform: none !important;
+  flex: 0 0 40px;
+  align-self: flex-start;
+  z-index: 2;
+  width: 40px;
+  height: calc(92px * 3 / 2);
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(196, 181, 253, 0.35);
+  border-radius: 999px;
+  background: rgba(8, 6, 20, 0.55);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease, visibility 0.15s ease;
+}
+.film-page-similar-prev:hover,
+.film-page-similar-next:hover,
+.film-page-similar-prev:active,
+.film-page-similar-next:active {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(8, 6, 20, 0.78);
+}
+/* Keep flex gutter when arrow is inactive at an edge — rapid clicks must not hit a card. */
+.film-page-similar-prev[hidden].is-edge-hidden,
+.film-page-similar-next[hidden].is-edge-hidden,
+.film-page-similar-prev.is-edge-hidden,
+.film-page-similar-next.is-edge-hidden {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  display: inline-flex !important;
+}
+/* ≤10 / no real overflow — collapse gutters completely (no 1px “scroll” arrows). */
+.film-page-similar-prev.is-nav-off,
+.film-page-similar-next.is-nav-off,
+.film-page-similar-prev[hidden].is-nav-off,
+.film-page-similar-next[hidden].is-nav-off {
+  display: none !important;
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* Edge fades only over the rail, not over side arrows. */
+.film-page-similar-rail-wrap::before,
+.film-page-similar-rail-wrap::after {
+  content: none;
+}
+.film-page-similar-rail {
+  padding-left: 0;
+  padding-right: 0;
 }
 main.film-page .film-page-similar-section,
 #film-page-content .film-page-similar-section {
-  padding-left: clamp(12px, 3vw, 24px);
-  padding-right: clamp(12px, 3vw, 24px);
+  padding-left: clamp(8px, 2vw, 16px);
+  padding-right: clamp(8px, 2vw, 16px);
 }
 @media (max-width: 768px) {
   .film-page-similar-section {
@@ -5600,59 +5696,24 @@ main.film-page .film-page-similar-section,
   .film-page-similar-title .section-title-text {
     font-size: 1.2rem;
   }
+  .film-page-similar-rail-wrap {
+    gap: 6px;
+  }
   .film-page-similar-rail {
-    padding-right: 30px;
+    padding-left: 0;
+    padding-right: 0;
     scrollbar-width: none;
   }
   .film-page-similar-rail::-webkit-scrollbar {
     display: none;
   }
-  .film-page-similar-rail-wrap::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 34px;
-    height: calc(92px * 3 / 2);
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.72) 55%, rgba(0, 0, 0, 0.92));
-    pointer-events: none;
-    z-index: 1;
-  }
-  .film-page-similar-rail-wrap:has(.film-page-similar-next[hidden])::after {
-    display: none;
-  }
+  .film-page-similar-prev,
   .film-page-similar-next {
-    appearance: none;
-    -webkit-appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 2;
-    width: 28px;
-    height: calc(92px * 3 / 2);
-    margin: 0;
-    padding: 0;
-    border: none;
+    flex-basis: 32px;
+    width: 32px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(196, 181, 253, 0.28);
     font-size: 22px;
-    font-weight: 400;
-    line-height: 1;
-    cursor: pointer;
-    transition: color 0.15s ease, opacity 0.15s ease;
-  }
-  .film-page-similar-next:hover,
-  .film-page-similar-next:active {
-    color: rgba(255, 255, 255, 0.88);
-  }
-  .film-page-similar-next.is-at-end {
-    opacity: 0.42;
-  }
-  .film-page-similar-next[hidden] {
-    display: none !important;
   }
 }
 
@@ -10908,6 +10969,13 @@ a.header-settings-nav-item {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(8px);
+}
+.film-friends-social--watching {
+  margin-bottom: 10px;
+}
+.film-friend-watching-progress {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 .film-friends-social-head {
   display: flex;
