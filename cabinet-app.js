@@ -1393,18 +1393,20 @@
 
   function mapLiteFilmForHero(lite, kp) {
     const d = lite || {};
+    const desc = String(d.description || '').trim();
     return {
       kp_id: String(kp || d.kp_id || '').replace(/\D/g, ''),
       title: d.title || 'Фильм',
       year: d.year,
       country: d.country,
       genres: Array.isArray(d.genres) ? d.genres.join(', ') : (d.genres || ''),
-      description: d.description || '',
+      description: desc,
       poster_url: d.poster || d.poster_url || '',
       is_series: !!d.is_series,
       watched: !!d.watched,
       in_library: !!d.in_library,
-      __descSettled: true,
+      // null/empty lite description is NOT "settled empty" — still fetch public plot.
+      __descSettled: !!desc,
     };
   }
 
