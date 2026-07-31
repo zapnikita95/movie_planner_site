@@ -434,7 +434,9 @@
         })
       : '';
     const activityHtml = activityPreviewBlockHtml(data.recent_activity, hooks);
+    // Mobile: activity first (after achievements). Desktop CSS moves activity last.
     const rightHtml =
+      activityHtml +
       plansHtml +
       tasteHtml +
       filmPreviewBlockHtml('Последние оценки', data.recent_ratings, hooks, {
@@ -467,13 +469,13 @@
       filmPreviewBlockHtml('Премьеры', data.premiere_subscriptions, hooks, {
         limit: 8,
         denseFill: denseFill,
-      }) +
-      // Activity under films on the right — fills the column instead of
-      // leaving a tall black void next to a long left-column feed.
-      activityHtml;
+      });
 
     const unfriendBtn = isFriend && !isSelf
       ? '<button type="button" class="btn btn-logout btn-full" data-action="unfriend">Удалить из друзей</button>'
+      : '';
+    const logoutBtn = isSelf
+      ? '<button type="button" class="profile-hub-logout" data-action="logout" aria-label="Выйти">Выйти</button>'
       : '';
 
     root.innerHTML =
@@ -483,7 +485,10 @@
             '<div class="profile-hub-header-top">' +
               '<div class="profile-hub-avatar" id="user-friend-avatar"></div>' +
               '<div class="profile-hub-info">' +
-                '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
+                '<div class="profile-hub-name-row">' +
+                  '<div class="profile-hub-name">' + escapeHtml(data.name || '') + '</div>' +
+                  logoutBtn +
+                '</div>' +
                 metaHtml +
               '</div>' +
             '</div>' +
@@ -501,6 +506,15 @@
     bindActivityRows(root, hooks);
     bindRatingRows(root, hooks);
 
+    root.querySelector('[data-action="logout"]')?.addEventListener('click', function () {
+      if (typeof hooks.onLogout === 'function') {
+        hooks.onLogout();
+        return;
+      }
+      try {
+        window.dispatchEvent(new CustomEvent('mp:logout'));
+      } catch (_e) {}
+    });
     root.querySelector('[data-action="taste"]')?.addEventListener('click', function () {
       if (hooks.onTaste) hooks.onTaste(uid);
     });

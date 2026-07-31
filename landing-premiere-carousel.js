@@ -1,38 +1,41 @@
 /**
  * Автопрокрутка каруселей премьер и сериалов на лендинге (без дублирования карточек).
+ * После взаимодействия пользователя автопрокрутка останавливается — без прыжка в начало.
  */
 (function () {
   "use strict";
 
   var SCROLL_PX_PER_FRAME = 0.45;
-  var RESUME_DELAY_MS = 2200;
 
   function bindCarousel(viewportId, trackId) {
     var viewport = document.getElementById(viewportId);
     var track = document.getElementById(trackId);
     if (!viewport || !track) return;
 
+    var userTookOver = false;
     var paused = false;
-    var resumeTimer = null;
 
-    function pauseAuto() {
+    function stopAuto() {
+      userTookOver = true;
       paused = true;
-      if (resumeTimer) clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(function () {
-        paused = false;
-      }, RESUME_DELAY_MS);
     }
 
-    ["pointerenter", "touchstart", "wheel"].forEach(function (ev) {
-      viewport.addEventListener(ev, pauseAuto, { passive: true });
+    ["pointerdown", "touchstart", "wheel"].forEach(function (ev) {
+      viewport.addEventListener(ev, stopAuto, { passive: true });
     });
-    viewport.addEventListener("scroll", pauseAuto, { passive: true });
+    viewport.addEventListener("scroll", function () {
+      // Manual scroll or momentum — freeze auto so list doesn't jump to start.
+      if (!userTookOver) stopAuto();
+    }, { passive: true });
 
     function tick() {
-      if (!paused && track.scrollWidth > viewport.clientWidth + 4) {
-        viewport.scrollLeft += SCROLL_PX_PER_FRAME;
-        if (viewport.scrollLeft + viewport.clientWidth >= track.scrollWidth - 2) {
-          viewport.scrollLeft = 0;
+      if (!userTookOver && !paused && track.scrollWidth > viewport.clientWidth + 4) {
+        var maxScroll = track.scrollWidth - viewport.clientWidth;
+        if (viewport.scrollLeft >= maxScroll - 2) {
+          // Soft stop at the end — never snap back to 0 while visible.
+          paused = true;
+        } else {
+          viewport.scrollLeft += SCROLL_PX_PER_FRAME;
         }
       }
       requestAnimationFrame(tick);

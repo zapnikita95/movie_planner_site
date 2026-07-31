@@ -5833,6 +5833,9 @@
       onTitle: function (name) {
         try { document.title = (name || 'Профиль') + ' · Movie Planner'; } catch (_) {}
       },
+      onLogout: function () {
+        logoutAllSessions();
+      },
     };
   }
 
@@ -20557,10 +20560,15 @@
         + '<div class="profile-hub-header-top">'
         + '<div class="profile-hub-avatar" id="profile-hub-avatar"></div>'
         + '<div class="profile-hub-info">'
+        + '<div class="profile-hub-name-row">'
         + '<div class="profile-hub-name">' + escapeHtml(name) + (isPro ? ' <span class="settings-pro-chip">PRO</span>' : '') + '</div>'
+        + '<span class="profile-hub-name-actions">'
+        + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
+        + '<button type="button" class="profile-hub-logout" data-profile-logout aria-label="Выйти">Выйти</button>'
+        + '</span>'
+        + '</div>'
         + (u.username ? '<div class="profile-hub-meta">@' + escapeHtml(u.username) + '</div>' : '')
         + '</div>'
-        + '<button type="button" class="profile-hub-edit" data-profile-sub="profile" aria-label="Редактировать профиль">' + mpIcon('pencil', { size: 'sm' }) + '</button>'
         + '</div>'
         + statsHtml
         + '</div>'
@@ -20576,7 +20584,6 @@
         + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
         + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
         + '</div>'
-        + '<button type="button" class="btn btn-logout btn-full" data-profile-logout>Выйти из аккаунта</button>'
         + '</div>';
 
       setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name, u.chat_id || u.user_id || u.id);
@@ -23470,6 +23477,7 @@
       _cabinetNavBootstrapped = false;
       _cabinetPendingSection = null;
       _cabinetNavLockUntil = 0;
+      _currentUserProfileId = null;
       try {
         document.documentElement.classList.remove('mp-session');
         document.documentElement.classList.remove('mp-auth-boot');
@@ -23485,6 +23493,13 @@
         redirectToPublicStaffPage(pathStaffLogout);
         return;
       }
+      // Profile / cabinet logout → marketing home (not stuck on /u/{id}).
+      try {
+        const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (p.indexOf('/u/') === 0 || p === '/settings' || p === '/profile') {
+          window.history.replaceState({}, '', '/');
+        }
+      } catch (_) {}
       showGuestLandingScreen();
     });
 
