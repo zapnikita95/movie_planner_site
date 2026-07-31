@@ -130,7 +130,7 @@
     return (m >= 10 ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '')) + ' млн';
   }
 
-  function buildFilmExtRatingsHtml(film) {
+  function buildFilmExtRatingsInnerHtml(film) {
     if (!film) return '';
     var parts = [];
     var kp = film.rating_kp != null ? Number(film.rating_kp) : NaN;
@@ -153,8 +153,43 @@
           '</span>'
       );
     }
-    if (!parts.length) return '';
-    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + parts.join('') + '</div>';
+    return parts.join('');
+  }
+
+  function buildFilmExtRatingsSkeletonInnerHtml() {
+    return (
+      '<span class="film-modal-rkp film-ext-rating-skel" aria-hidden="true">КП 0.0</span>' +
+      '<span class="film-modal-rkp film-ext-rating-skel" aria-hidden="true">IMDb 0.0</span>'
+    );
+  }
+
+  function buildFilmExtRatingsSlotHtml(film) {
+    var inner = buildFilmExtRatingsInnerHtml(film);
+    if (inner) {
+      return '<div class="film-ext-ratings" id="film-ext-ratings" aria-label="Рейтинги">' + inner + '</div>';
+    }
+    // Reserve CLS space until API resolves — never start with [hidden]/display:none].
+    return (
+      '<div class="film-ext-ratings is-loading" id="film-ext-ratings" aria-hidden="true">' +
+        buildFilmExtRatingsSkeletonInnerHtml() +
+      '</div>'
+    );
+  }
+
+  function buildFilmExtRatingsHtml(film) {
+    var inner = buildFilmExtRatingsInnerHtml(film);
+    if (!inner) return '';
+    return '<div class="film-ext-ratings" aria-label="Рейтинги">' + inner + '</div>';
+  }
+
+  function buildFilmCastSkeletonHtml() {
+    // Match final height: director + actors row (collapsed cast ≈ 1–2 lines).
+    return (
+      '<div class="film-cast-skeleton">' +
+        '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
+        '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> <span class="film-cast-skel-line film-cast-skel-line-wide"></span></div>' +
+      '</div>'
+    );
   }
 
   function syncFilmExtRatings(root, film) {
@@ -165,24 +200,32 @@
     if (!hero || !hero.querySelector) hero = document;
     var eyebrow = hero.querySelector('.eyebrow, #chips');
     var row = hero.querySelector('.film-ext-ratings');
-    var html = buildFilmExtRatingsHtml(film);
-    if (!html) {
-      if (row) row.remove();
+    var inner = buildFilmExtRatingsInnerHtml(film);
+    if (!row) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = buildFilmExtRatingsSlotHtml(film);
+      var node = tmp.firstElementChild;
+      if (!node) return;
+      if (eyebrow && eyebrow.parentNode) eyebrow.insertAdjacentElement('afterend', node);
+      else {
+        var title = hero.querySelector('#film-title, h1');
+        if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
+      }
       return;
     }
-    if (row) {
-      row.outerHTML = html;
+    row.classList.remove('is-loading');
+    row.removeAttribute('hidden');
+    if (!inner) {
+      row.innerHTML = '';
+      row.classList.add('is-empty');
+      row.setAttribute('aria-hidden', 'true');
+      row.removeAttribute('aria-label');
       return;
     }
-    var tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    var node = tmp.firstElementChild;
-    if (!node) return;
-    if (eyebrow && eyebrow.parentNode) eyebrow.insertAdjacentElement('afterend', node);
-    else {
-      var title = hero.querySelector('#film-title, h1');
-      if (title && title.parentNode) title.insertAdjacentElement('afterend', node);
-    }
+    row.classList.remove('is-empty');
+    row.removeAttribute('aria-hidden');
+    row.setAttribute('aria-label', 'Рейтинги');
+    row.innerHTML = inner;
   }
 
   function ruPlural(n, one, few, many) {
@@ -2370,8 +2413,8 @@
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="eyebrow" id="chips"></div>' +
-          '<div class="film-ext-ratings" id="film-ext-ratings" hidden></div>' +
-          '<div class="film-hero-crew" id="film-cast-root"></div>' +
+          buildFilmExtRatingsSlotHtml(null) +
+          '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
           '<p class="status" id="hint"></p>' +
@@ -2618,8 +2661,8 @@
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="eyebrow" id="chips"></div>' +
-                '<div class="film-ext-ratings" id="film-ext-ratings" hidden></div>' +
-                '<div class="film-hero-crew" id="film-cast-root"></div>' +
+                buildFilmExtRatingsSlotHtml(null) +
+                '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
                 buildFilmDescWrapHtml() +
                 '<div class="film-page-toolbar">' +
                   '<div class="film-toolbar-plan-wrap">' +
@@ -3077,18 +3120,18 @@
         }
       }
       var publicFilmCountry = '';
-      function buildPublicCastSkeletonHtml() {
-        // Только режиссёр в скелете — строку «Актёры» не рисуем, пока API не подтвердил состав
-        // (анимация и т.п. часто без актёров).
-        return '<div class="film-cast-skeleton">' +
-          '<div class="film-cast-row"><span class="film-cast-label">Режиссёр:</span> <span class="film-cast-skel-line"></span></div>' +
-        '</div>';
+      function markCastRootResolved(root, hasContent) {
+        if (!root) return;
+        root.classList.remove('is-loading');
+        if (hasContent) root.classList.remove('is-empty');
+        else root.classList.add('is-empty');
       }
       function applyPublicCastPayload(d) {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root || !d) return;
         var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
         root.innerHTML = html || '';
+        markCastRootResolved(root, !!html);
         if (html) bindPublicCastLinks(root);
       }
       function loadPublicCast() {
@@ -3100,7 +3143,9 @@
         }
         if (root.getAttribute('data-mp-cast-pending') === '1') return;
         if (!root.innerHTML.trim() || root.querySelector('.film-cast-skeleton')) {
-          root.innerHTML = buildPublicCastSkeletonHtml();
+          root.innerHTML = buildFilmCastSkeletonHtml();
+          root.classList.add('is-loading');
+          root.classList.remove('is-empty');
         }
         root.setAttribute('data-mp-cast-pending', '1');
         apiGet(publicCastApi)
@@ -3112,6 +3157,7 @@
               root.setAttribute('data-mp-cast-loaded', castKey);
             } else if (!root.querySelector('.staff-cast-link, .film-cast-row')) {
               root.innerHTML = '';
+              markCastRootResolved(root, false);
             }
           })
           .catch(function () {
@@ -3119,6 +3165,7 @@
             var root2 = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
             if (root2 && !root2.querySelector('.staff-cast-link, .film-cast-row')) {
               root2.innerHTML = '';
+              markCastRootResolved(root2, false);
             }
           });
       }
