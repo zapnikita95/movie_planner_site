@@ -552,48 +552,314 @@
     } catch (_e) {}
   }
 
-  function importStaffPickIds(ids, personId) {
+  function staffToast(message, opts) {
+    opts = opts || {};
+    if (typeof global.showToast === 'function') {
+      try { global.showToast(message, opts); return; } catch (_e) {}
+    }
+    try {
+      var el = document.getElementById('mp-global-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'mp-global-toast';
+        el.style.cssText = [
+          'position:fixed', 'left:50%', 'bottom:28px', 'transform:translateX(-50%) translateY(20px)',
+          'background:rgba(20,20,28,0.95)', 'color:#fff', 'font-size:14px', 'font-weight:500',
+          'padding:12px 20px', 'border-radius:14px', 'border:1px solid rgba(255,255,255,0.08)',
+          'box-shadow:0 8px 32px rgba(0,0,0,0.45)', 'opacity:0', 'pointer-events:none',
+          'z-index:99999', 'transition:opacity 200ms ease, transform 200ms ease',
+          'max-width:88vw', 'text-align:center',
+        ].join(';');
+        document.body.appendChild(el);
+      }
+      el.textContent = message || '';
+      el.style.background = opts.type === 'error' ? 'rgba(120,30,30,0.95)' : 'rgba(20,20,28,0.95)';
+      requestAnimationFrame(function () {
+        el.style.opacity = '1';
+        el.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(20px)';
+      }, opts.duration || 3200);
+    } catch (_e2) {}
+  }
+
+  function staffFilmsWord(n) {
+    return ruCountWord(n, 'фильм', 'фильма', 'фильмов');
+  }
+
+  function staffPickResultToast(res, selectedCount) {
+    if (!res || !res.success) {
+      staffToast((res && res.error) || 'Не удалось добавить', { type: 'error' });
+      return;
+    }
+    var added = res.added != null ? Number(res.added) : 0;
+    var linked = res.linked != null ? Number(res.linked) : 0;
+    var skipped = res.skipped != null ? Number(res.skipped) : 0;
+    var n = selectedCount || Number(res.total) || added || linked;
+    if (res.destination === 'collection' && res.collection_name) {
+      var into = linked > 0 ? linked : n;
+      staffToast(
+        'Добавлено ' + into + ' ' + staffFilmsWord(into) + ' в список «' + res.collection_name + '»',
+        { duration: 4200 }
+      );
+      return;
+    }
+    if (added > 0) {
+      var msg = 'Добавлено ' + added + ' ' + staffFilmsWord(added) + ' в базу (непросмотренные)';
+      if (skipped > 0) msg += ' · уже были: ' + skipped;
+      staffToast(msg, { duration: 4200 });
+      return;
+    }
+    if (skipped > 0) {
+      staffToast('Все выбранные фильмы уже в базе', { duration: 3200 });
+      return;
+    }
+    staffToast('Готово', { duration: 2400 });
+  }
+
+  function importStaffPickIds(ids, personId, opts) {
+    opts = opts || {};
     var list = (ids || []).map(function (x) { return String(x || '').replace(/\D/g, ''); }).filter(Boolean);
     if (!list.length || !mpToken()) return Promise.resolve(null);
     var pid = String(personId || _staffPersonId || '').replace(/\D/g, '');
     if (!pid) return Promise.resolve(null);
     var roleKey = String(_staffPrimaryRoleKey || 'ACTOR').trim().toUpperCase() || 'ACTOR';
     var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mpToken() };
+    var body = { role_key: roleKey, film_kp_ids: list };
+    if (opts.collectionId) body.collection_id = Number(opts.collectionId);
     return fetch(API_BASE + '/api/site/persons/' + encodeURIComponent(pid) + '/import', {
       method: 'POST',
       mode: 'cors',
       headers: headers,
-      body: JSON.stringify({ role_key: roleKey, film_kp_ids: list }),
+      body: JSON.stringify(body),
     }).then(function (r) { return r.json(); });
+  }
+
+  function fetchStaffUserCollections() {
+    if (!mpToken()) return Promise.resolve([]);
+    return fetch(API_BASE + '/api/miniapp/collections', {
+      method: 'GET',
+      mode: 'cors',
+      headers: { 'Authorization': 'Bearer ' + mpToken() },
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var mine = (d && (d.mine || d.mine_collections || d.collections)) || [];
+        return Array.isArray(mine) ? mine : [];
+      })
+      .catch(function () { return []; });
+  }
+
+  function createStaffUserCollection(name) {
+    var title = String(name || '').trim();
+    if (!title || !mpToken()) return Promise.resolve(null);
+    return fetch(API_BASE + '/api/miniapp/collections', {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + mpToken(),
+      },
+      body: JSON.stringify({ name: title, is_public: false }),
+    }).then(function (r) { return r.json(); });
+  }
+
+  function closeStaffPickDestDialog() {
+    var ov = document.getElementById('staff-pick-dest-overlay');
+    if (ov) ov.remove();
+    try { document.body.style.overflow = ''; } catch (_e) {}
+  }
+
+  function openStaffPickDestDialog(payload) {
+    if (!payload || !payload.ids || !payload.ids.length) return;
+    closeStaffPickDestDialog();
+    var n = payload.ids.length;
+    var selectedId = 'library';
+    var ov = document.createElement('div');
+    ov.id = 'staff-pick-dest-overlay';
+    ov.className = 'mp-dialog-overlay staff-pick-dest-overlay';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-labelledby', 'staff-pick-dest-title');
+    ov.innerHTML =
+      '<div class="mp-dialog-card staff-pick-dest-card">' +
+        '<button type="button" class="mp-dialog-close" data-pick-dest-close="1" aria-label="Закрыть">×</button>' +
+        '<h3 class="mp-dialog-title" id="staff-pick-dest-title">Куда добавить?</h3>' +
+        '<p class="staff-pick-dest-lead">Выбрано: <strong>' + n + ' ' + staffFilmsWord(n) + '</strong></p>' +
+        '<div class="staff-pick-dest-options" role="radiogroup" aria-label="Куда добавить">' +
+          '<button type="button" class="staff-pick-dest-opt is-active" data-dest="library" aria-pressed="true">' +
+            '<span class="staff-pick-dest-opt__title">В базу</span>' +
+            '<span class="staff-pick-dest-opt__hint">Непросмотренные</span>' +
+          '</button>' +
+          '<button type="button" class="staff-pick-dest-opt" data-dest="list" aria-pressed="false">' +
+            '<span class="staff-pick-dest-opt__title">В список</span>' +
+            '<span class="staff-pick-dest-opt__hint">Ваши подборки</span>' +
+          '</button>' +
+        '</div>' +
+        '<div class="staff-pick-dest-lists hidden" id="staff-pick-dest-lists">' +
+          '<p class="staff-pick-dest-lists-loading">Загружаем списки…</p>' +
+        '</div>' +
+        '<div class="staff-pick-dest-create hidden" id="staff-pick-dest-create">' +
+          '<input type="text" class="input-primary staff-pick-dest-create-input" id="staff-pick-dest-new-name" ' +
+            'placeholder="Название списка" maxlength="80" autocomplete="off" />' +
+          '<button type="button" class="staff-pick-dest-create-btn" id="staff-pick-dest-create-btn">Создать</button>' +
+        '</div>' +
+        '<button type="button" class="btn-primary btn-full staff-pick-dest-submit" id="staff-pick-dest-submit">Добавить</button>' +
+      '</div>';
+
+    function setMode(mode) {
+      var listMode = mode === 'list';
+      ov.querySelectorAll('.staff-pick-dest-opt').forEach(function (btn) {
+        var on = btn.getAttribute('data-dest') === mode;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      var lists = ov.querySelector('#staff-pick-dest-lists');
+      var create = ov.querySelector('#staff-pick-dest-create');
+      if (lists) lists.classList.toggle('hidden', !listMode);
+      if (create) create.classList.toggle('hidden', !listMode);
+      if (!listMode) selectedId = 'library';
+    }
+
+    function renderLists(items) {
+      var box = ov.querySelector('#staff-pick-dest-lists');
+      if (!box) return;
+      if (!items.length) {
+        box.innerHTML = '<p class="staff-pick-dest-empty">Пока нет списков — создайте новый ниже</p>';
+        selectedId = '';
+        return;
+      }
+      box.innerHTML = items.map(function (c, i) {
+        var id = String(c.id || '');
+        var name = escapeHtml(c.name || 'Список');
+        var emoji = escapeHtml(c.emoji || '📁');
+        var count = c.films_count != null ? Number(c.films_count) : null;
+        var meta = count != null ? (' · ' + count) : '';
+        var on = i === 0;
+        if (on) selectedId = id;
+        return (
+          '<button type="button" class="staff-pick-dest-list' + (on ? ' is-active' : '') + '" data-collection-id="' +
+          escapeHtml(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+            '<span class="staff-pick-dest-list__emoji">' + emoji + '</span>' +
+            '<span class="staff-pick-dest-list__name">' + name + '</span>' +
+            (meta ? '<span class="staff-pick-dest-list__meta">' + escapeHtml(String(count)) + '</span>' : '') +
+          '</button>'
+        );
+      }).join('');
+    }
+
+    function runImport(collectionId) {
+      var submit = ov.querySelector('#staff-pick-dest-submit');
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = 'Добавляем…';
+      }
+      importStaffPickIds(payload.ids, payload.personId || _staffPersonId, {
+        collectionId: collectionId || null,
+      }).then(function (res) {
+        clearPendingStaffPick();
+        closeStaffPickDestDialog();
+        staffPickResultToast(res, n);
+        if (res && res.success) {
+          setStaffPickMode(false);
+          if (_staffPersonId) loadStaff(_staffPersonId);
+        }
+      }).catch(function () {
+        staffToast('Ошибка сети', { type: 'error' });
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = 'Добавить';
+        }
+      });
+    }
+
+    ov.querySelectorAll('[data-pick-dest-close]').forEach(function (btn) {
+      btn.addEventListener('click', closeStaffPickDestDialog);
+    });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) closeStaffPickDestDialog();
+    });
+    ov.querySelectorAll('.staff-pick-dest-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setMode(btn.getAttribute('data-dest'));
+      });
+    });
+    ov.querySelector('#staff-pick-dest-lists').addEventListener('click', function (e) {
+      var btn = e.target.closest('.staff-pick-dest-list');
+      if (!btn) return;
+      selectedId = btn.getAttribute('data-collection-id') || '';
+      ov.querySelectorAll('.staff-pick-dest-list').forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+    ov.querySelector('#staff-pick-dest-create-btn').addEventListener('click', function () {
+      var input = ov.querySelector('#staff-pick-dest-new-name');
+      var name = input && input.value ? input.value.trim() : '';
+      if (!name) {
+        staffToast('Введите название списка', { type: 'error' });
+        return;
+      }
+      var btn = ov.querySelector('#staff-pick-dest-create-btn');
+      if (btn) btn.disabled = true;
+      createStaffUserCollection(name).then(function (res) {
+        if (!res || !res.success || !res.collection) {
+          staffToast((res && (res.message || res.error)) || 'Не удалось создать список', { type: 'error' });
+          if (btn) btn.disabled = false;
+          return;
+        }
+        var c = res.collection;
+        selectedId = String(c.id || '');
+        fetchStaffUserCollections().then(function (items) {
+          renderLists(items);
+          if (selectedId) {
+            ov.querySelectorAll('.staff-pick-dest-list').forEach(function (b) {
+              var on = b.getAttribute('data-collection-id') === selectedId;
+              b.classList.toggle('is-active', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+          }
+        });
+        if (input) input.value = '';
+        staffToast('Список «' + (c.name || name) + '» создан');
+        if (btn) btn.disabled = false;
+      }).catch(function () {
+        staffToast('Ошибка сети', { type: 'error' });
+        if (btn) btn.disabled = false;
+      });
+    });
+    ov.querySelector('#staff-pick-dest-submit').addEventListener('click', function () {
+      var listMode = ov.querySelector('.staff-pick-dest-opt[data-dest="list"].is-active');
+      if (listMode) {
+        if (!selectedId || selectedId === 'library') {
+          staffToast('Выберите список или создайте новый', { type: 'error' });
+          return;
+        }
+        runImport(selectedId);
+        return;
+      }
+      runImport(null);
+    });
+
+    try { document.body.style.overflow = 'hidden'; } catch (_e) {}
+    document.body.appendChild(ov);
+    fetchStaffUserCollections().then(renderLists);
   }
 
   function flushPendingStaffPickImport() {
     if (!mpToken()) return Promise.resolve(false);
-    if (flushPendingStaffPickImport._busy) return flushPendingStaffPickImport._busy;
     var pending = readPendingStaffPick();
     if (!pending || !pending.ids || !pending.ids.length) return Promise.resolve(false);
-    flushPendingStaffPickImport._busy = importStaffPickIds(pending.ids, pending.personId)
-      .then(function (res) {
-        clearPendingStaffPick();
-        if (res && res.success) {
-          if (global.showToast) {
-            global.showToast('Добавлено: ' + (res.added != null ? res.added : pending.ids.length));
-          }
-          setStaffPickMode(false);
-          if (_staffPersonId) loadStaff(_staffPersonId);
-          return true;
-        }
-        if (global.showToast) global.showToast((res && res.error) || 'Не удалось добавить фильмы');
-        return false;
-      })
-      .catch(function () {
-        if (global.showToast) global.showToast('Ошибка сети');
-        return false;
-      })
-      .finally(function () {
-        flushPendingStaffPickImport._busy = null;
-      });
-    return flushPendingStaffPickImport._busy;
+    openStaffPickDestDialog({
+      ids: pending.ids,
+      items: pending.items || [],
+      personId: pending.personId || _staffPersonId,
+    });
+    return Promise.resolve(true);
   }
 
   function openStaffPickAuth(payload) {
@@ -603,7 +869,7 @@
       var pending = readPendingStaffPick();
       if (pending && pending.items && pending.items.length) chips = pending.items;
     }
-    var cta = 'Фильмы готовы к добавлению в вашу базу. Завершите регистрацию и запланируйте просмотр интересных картин.';
+    var cta = 'Фильмы готовы к добавлению. Войдите — и выберите базу или список.';
     if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.open === 'function') {
       global.MpPublicFilmLogin.open('staff_pick', {
         tab: 'register',
@@ -620,23 +886,13 @@
     if (!n) return;
     var payload = staffPickPayloadFromSelection();
     if (!payload.ids.length) return;
+    payload.personId = String(_staffPersonId || '');
     persistStaffPickPayload(payload);
     if (!mpToken()) {
       openStaffPickAuth(payload);
       return;
     }
-    importStaffPickIds(payload.ids, _staffPersonId).then(function (res) {
-      clearPendingStaffPick();
-      if (res && res.success) {
-        if (global.showToast) global.showToast('Добавлено: ' + (res.added != null ? res.added : n));
-        setStaffPickMode(false);
-        if (_staffPersonId) loadStaff(_staffPersonId);
-      } else if (global.showToast) {
-        global.showToast((res && res.error) || 'Не удалось добавить');
-      }
-    }).catch(function () {
-      if (global.showToast) global.showToast('Ошибка сети');
-    });
+    openStaffPickDestDialog(payload);
   }
 
   function staffTabsHtml() {
