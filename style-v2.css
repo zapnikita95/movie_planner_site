@@ -22340,11 +22340,12 @@ body.staff-standalone-page .staff-proto-aside {
   padding-bottom: 8px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 300px;
+  /* max-width only on desktop — mobile was stuck at 300px (photo left + empty void) */
+  max-width: none;
 }
 body.staff-standalone-page .staff-proto-aside-inner {
   width: 100%;
-  max-width: 300px;
+  max-width: none;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -22733,6 +22734,8 @@ body.in-cabinet .mp-pick-done {
     overflow: visible !important;
     height: auto !important;
     padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
   }
   body.staff-standalone-page .staff-proto-aside-inner {
     max-width: none !important;
@@ -22740,7 +22743,7 @@ body.in-cabinet .mp-pick-done {
     padding-bottom: 0 !important;
   }
 
-  /* Full-bleed edge-to-edge (proto): small air under header, top radius only */
+  /* Full-bleed photo; height capped so name stays in first viewport */
   body.staff-standalone-page .staff-hero,
   body.staff-standalone-page .staff-hero--poster {
     display: flex !important;
@@ -22760,16 +22763,28 @@ body.in-cabinet .mp-pick-done {
   body.staff-standalone-page .staff-hero-photo,
   body.staff-standalone-page .staff-hero-ph {
     width: 100% !important;
-    height: min(62vh, 560px) !important;
-    min-height: 400px !important;
     max-width: none !important;
+    height: min(42vh, 320px) !important;
+    min-height: 200px !important;
+    max-height: 320px !important;
+    aspect-ratio: auto !important;
     border-radius: 20px 20px 0 0 !important;
     object-fit: cover !important;
-    object-position: center 28% !important;
+    object-position: center 22% !important;
     box-shadow: none !important;
     margin: 0 !important;
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 90%, rgba(0, 0, 0, 0.35) 97%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 90%, rgba(0, 0, 0, 0.35) 97%, transparent 100%);
+    display: block !important;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
+  }
+  /* Tablet: full-bleed but taller so wide crop doesn’t chop the face */
+  @media (min-width: 600px) {
+    body.staff-standalone-page .staff-hero-photo,
+    body.staff-standalone-page .staff-hero-ph {
+      height: min(46vh, 400px) !important;
+      max-height: 400px !important;
+      object-position: center 18% !important;
+    }
   }
   body.staff-standalone-page .staff-hero-ph {
     font-size: 72px;
@@ -23649,6 +23664,14 @@ body.staff-standalone-page .staff-awards-loading {
   /* Desktop: reserve left column from first paint (proto grid already in HTML boot) */
   body.staff-standalone-page .staff-page-proto-layout {
     min-height: 420px;
+  }
+  body.staff-standalone-page .staff-proto-aside {
+    max-width: 300px !important;
+    width: 100% !important;
+  }
+  body.staff-standalone-page .staff-proto-aside-inner {
+    max-width: 300px !important;
+    width: 100% !important;
   }
   body.staff-standalone-page .staff-proto-aside .staff-hero-photo,
   body.staff-standalone-page .staff-proto-aside .staff-hero-ph {
