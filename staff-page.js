@@ -851,8 +851,17 @@
     applyStaffMainPane();
     if (_staffMainPane === 'awards') {
       var awardsRoot = ensureStaffAwardsRoot();
-      if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
-      else if (awardsRoot._awardsItems) paintStaffAwards(awardsRoot);
+      if (awardsRoot.getAttribute('data-loaded') === '1') {
+        if (awardsRoot._awardsItems && !awardsRoot.querySelector('.staff-awards')) {
+          paintStaffAwards(awardsRoot);
+        }
+      } else if (awardsRoot._awardsLoading) {
+        if (!awardsRoot.querySelector('.staff-awards-loading')) {
+          awardsRoot.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
+        }
+      } else {
+        loadStaffAwards(awardsRoot);
+      }
     }
   }
 
@@ -876,9 +885,19 @@
       });
     }
     applyStaffMainPane();
-    if (t === 'awards' || (isStaffDesktopLayout() && _staffMainPane === 'awards')) {
+    if (t === 'awards') {
       var awardsRoot = ensureStaffAwardsRoot();
-      if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
+      if (awardsRoot.getAttribute('data-loaded') === '1') {
+        if (awardsRoot._awardsItems && !awardsRoot.querySelector('.staff-awards')) {
+          paintStaffAwards(awardsRoot);
+        }
+      } else if (awardsRoot._awardsLoading) {
+        if (!awardsRoot.querySelector('.staff-awards-loading')) {
+          awardsRoot.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
+        }
+      } else {
+        loadStaffAwards(awardsRoot);
+      }
     }
   }
 
@@ -896,16 +915,33 @@
     return u;
   }
 
-  function loadStaffAwards(root) {
+  function staffAwardsRootIsVisible(root) {
+    return !!(root && !root.classList.contains('hidden') && root.offsetParent !== null);
+  }
+
+  function prefetchStaffAwards() {
+    var awardsRoot = ensureStaffAwardsRoot();
+    if (!awardsRoot) return;
+    if (awardsRoot.getAttribute('data-loaded') === '1' || awardsRoot._awardsLoading) return;
+    loadStaffAwards(awardsRoot, { silent: true });
+  }
+
+  function loadStaffAwards(root, opts) {
     if (!root) return;
     if (root._awardsLoading) return;
+    opts = opts || {};
     var pid = root.getAttribute('data-person-id') || String(_staffPersonId || '') || (window.__MP_STAFF_PERSON_ID || '');
     if (!pid) {
-      root.innerHTML = '<p class="staff-awards-empty">Номинации пока не загружены</p>';
+      if (!opts.silent || staffAwardsRootIsVisible(root)) {
+        root.innerHTML = '<p class="staff-awards-empty">Номинации пока не загружены</p>';
+      }
       return;
     }
     root._awardsLoading = true;
-    root.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
+    // Prefetch quietly while filmography is shown — no second "Загружаем…" flash on tab switch.
+    if (!opts.silent || staffAwardsRootIsVisible(root)) {
+      root.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
+    }
     fetch(staffAwardsApiBase() + '/api/public/person/' + encodeURIComponent(pid) + '/awards?limit=200', {
       method: 'GET',
       mode: 'cors',
@@ -1133,6 +1169,17 @@
     return html;
   }
 
+  function toggleStaffAwardsGroup(group) {
+    if (!group) return;
+    var btn = group.querySelector('.staff-awards-acc');
+    var panel = group.querySelector('.staff-awards-panel');
+    if (!btn || !panel) return;
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    btn.classList.toggle('is-open', !open);
+    panel.classList.toggle('hidden', open);
+  }
+
   function bindStaffAwardsUi(root) {
     if (!root) return;
     var toggle = root.querySelector('#staff-awards-wins-only');
@@ -1143,18 +1190,31 @@
         paintStaffAwards(root);
       });
     }
-    root.querySelectorAll('.staff-awards-acc').forEach(function (btn) {
-      if (btn._bound) return;
-      btn._bound = true;
-      btn.addEventListener('click', function () {
-        var open = btn.getAttribute('aria-expanded') === 'true';
-        var panelId = btn.getAttribute('aria-controls');
-        var panel = panelId ? document.getElementById(panelId) : null;
-        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
-        btn.classList.toggle('is-open', !open);
-        if (panel) panel.classList.toggle('hidden', open);
+    // Whole collapsed/expanded group toggles — not only the chevron.
+    root.querySelectorAll('.staff-awards-group').forEach(function (group) {
+      if (group._bound) return;
+      group._bound = true;
+      group.addEventListener('click', function (e) {
+        if (e.target.closest('a.staff-awards-link, label.staff-awards-switch, input, .staff-film-check')) {
+          return;
+        }
+        e.preventDefault();
+        toggleStaffAwardsGroup(group);
       });
     });
+  }
+
+  function ensureStaffProtoAwardsTab(scope) {
+    var nav = (scope && scope.querySelector('.staff-proto-tabs'))
+      || document.getElementById('staff-proto-tabs')
+      || document.querySelector('.staff-proto-tabs');
+    if (!nav || nav.querySelector('[data-staff-tab="awards"]')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'staff-proto-tab';
+    btn.setAttribute('data-staff-tab', 'awards');
+    btn.textContent = 'Награды';
+    nav.appendChild(btn);
   }
 
   function bindStaffDeskPaneTabs(root) {
@@ -1170,6 +1230,7 @@
 
   function bindStaffTabs(root) {
     if (!root) return;
+    ensureStaffProtoAwardsTab(root);
     root.querySelectorAll('.staff-proto-tab').forEach(function (btn) {
       btn.onclick = function () {
         setStaffTab(btn.getAttribute('data-staff-tab'));
@@ -1178,14 +1239,11 @@
     bindStaffDeskPaneTabs(root);
     _staffMainPane = 'films';
     setStaffTab('films');
+    prefetchStaffAwards();
     if (!bindStaffTabs._resizeBound) {
       bindStaffTabs._resizeBound = true;
       window.addEventListener('resize', function () {
         applyStaffMainPane();
-        if (isStaffDesktopLayout() && _staffMainPane === 'awards') {
-          var awardsRoot = ensureStaffAwardsRoot();
-          if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
-        }
       });
     }
   }
@@ -2499,8 +2557,10 @@
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
       bindStaffFilmNavTitles(root);
+      ensureStaffProtoAwardsTab(article);
       ensureStaffAwardsRoot();
       applyStaffMainPane();
+      prefetchStaffAwards();
       try {
         if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.suppressRetract === 'function') {
           global.MpHeaderSearchScroll.suppressRetract(1400);

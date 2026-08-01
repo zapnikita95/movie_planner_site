@@ -22901,24 +22901,28 @@ body.in-cabinet .mp-pick-done {
     accent-color: #2563eb;
   }
   body.staff-standalone-page .staff-awards-group {
-    margin: 0 0 8px;
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+    max-width: none !important;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
   }
   body.staff-standalone-page .staff-awards-acc {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 12px;
+    gap: 8px;
+    padding: 8px 10px;
     margin: 0;
     border: 0;
     background: transparent;
     color: inherit;
     text-align: left;
     cursor: pointer;
+    box-sizing: border-box;
   }
   body.staff-standalone-page .staff-awards-acc:focus-visible {
     outline: 2px solid var(--focus-ring, #a78bfa);
@@ -23373,8 +23377,8 @@ body.staff-standalone-page .staff-awards-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
+  gap: 10px;
+  margin: 0 0 8px;
   flex-wrap: wrap;
 }
 body.staff-standalone-page .staff-awards-summary {
@@ -23436,11 +23440,15 @@ body.staff-standalone-page .staff-awards-switch input:focus-visible + .staff-awa
   outline-offset: 2px;
 }
 body.staff-standalone-page .staff-awards-group {
-  margin: 0 0 4px;
+  /* Global `section { padding: 60px 24px }` must not apply here */
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  max-width: none !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
 }
 body.staff-standalone-page .staff-awards-acc {
   width: 100%;
@@ -23454,6 +23462,7 @@ body.staff-standalone-page .staff-awards-acc {
   color: inherit;
   text-align: left;
   cursor: pointer;
+  box-sizing: border-box;
 }
 body.staff-standalone-page .staff-awards-acc:focus-visible {
   outline: 2px solid var(--focus-ring, #a78bfa);
@@ -23463,6 +23472,8 @@ body.staff-standalone-page .staff-awards-group-icon,
 body.staff-standalone-page .staff-awards-group-fallback {
   width: 32px;
   height: 32px;
+  max-width: 32px;
+  max-height: 32px;
   object-fit: contain;
   border-radius: 8px;
   flex-shrink: 0;
