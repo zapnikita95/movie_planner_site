@@ -372,6 +372,7 @@
             if (!p || p === '/') return null;
             if (p.indexOf('/settings') === 0) return 'settings';
             if (p.indexOf('/features/collections') === 0) return 'whattowatch';
+            if (p === '/whattowatch' || p.indexOf('/whattowatch/') === 0) return 'whattowatch';
             var map = {
               '/home': 'home',
               '/plans': 'plans',
@@ -489,11 +490,13 @@
           else paintGuestDeep();
         } catch (_) {}
       })();
-      // /features/collections — открыть «Смотреть» → вкладка «Коллекции»
+      // /whattowatch/* и legacy /features/collections — «Смотреть»
       (function () {
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/features/collections' && !path.match(/^\/features\/collections\/[A-Za-z0-9_-]+$/)) return;
+          var isWtw = path === '/whattowatch' || path.indexOf('/whattowatch/') === 0
+            || path === '/features/collections' || !!path.match(/^\/features\/collections\/[A-Za-z0-9_-]+$/);
+          if (!isWtw) return;
           function paintCollectionsDeep() {
             var home = document.getElementById('section-home');
             var wtw = document.getElementById('section-whattowatch');
@@ -765,13 +768,13 @@
       (function () {
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
-          if (path !== '/features/collections') return;
+          if (path !== '/features/collections' && path !== '/whattowatch/collections') return;
           document.title = 'Коллекции фильмов — Movie Planner';
           var desc = 'Личные коллекции, теги и редакционные подборки в Movie Planner: группируйте фильмы и сериалы по рубрикам.';
           var md = document.querySelector('meta[name="description"]');
           if (md) md.setAttribute('content', desc);
           var canon = document.querySelector('link[rel="canonical"]');
-          if (canon) canon.href = 'https://movie-planner.ru/features/collections';
+          if (canon) canon.href = 'https://movie-planner.ru/whattowatch/collections';
         } catch (_) {}
       })();
     </script>
@@ -923,6 +926,7 @@
         if (!p || p === '/') return null;
         if (p.indexOf('/settings') === 0) return 'settings';
         if (p.indexOf('/features/collections') === 0) return 'whattowatch';
+        if (p === '/whattowatch' || p.indexOf('/whattowatch/') === 0) return 'whattowatch';
         var map = {
           '/home': 1, '/plans': 1, '/watchlist': 1, '/series': 1, '/series-hub': 1,
           '/whattowatch': 1, '/shazam': 1, '/ratings': 1, '/stats': 1, '/premieres': 1, '/buzz': 1,
@@ -2774,9 +2778,11 @@
         } catch (_e) {}
         var isCabinetHome = path === '/home' || path === '/plans' || path === '/watchlist'
           || path === '/series' || path === '/series-hub' || path === '/settings'
-          || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
-          || path === '/stats' || path === '/inbox' || path === '/profile';
-        var V = '20260801chromeSearch2';
+          || path === '/whattowatch' || path.indexOf('/whattowatch/') === 0
+          || path === '/premieres' || path === '/tournament'
+          || path === '/stats' || path === '/inbox' || path === '/profile'
+          || path.indexOf('/features/collections') === 0;
+        var V = '20260801wtwCollUrls1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

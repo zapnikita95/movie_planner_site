@@ -847,19 +847,18 @@
 
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       let sec = sectionId || sectionFromPath(bootPath) || 'home';
-      const collCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
-        ? window.MpCollectionsPage.collectionCodeFromPath(bootPath)
-        : null;
-      if (collCode || bootPath.indexOf('/features/collections') === 0) {
+      const wtwState = typeof wtwStateFromPath === 'function' ? wtwStateFromPath(bootPath) : null;
+      if (wtwState) {
         sec = 'whattowatch';
-        siteWtwScope = 'collections';
-        siteWtwCollectionCode = collCode || null;
-        try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+        siteWtwScope = wtwState.scope;
+        siteWtwCollectionCode = wtwState.code;
+        try { sessionStorage.setItem('mp_wtw_scope', wtwState.scope); } catch (_) {}
       } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
         sec = 'whattowatch';
       }
       if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch') return false;
-      const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz' || bootPath === '/whattowatch'
+      const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
+        || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath.indexOf('/features/collections') === 0;
       if (!guestPathOk) return false;
 
@@ -5411,13 +5410,56 @@
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
   PATH_TO_SECTION['/whattowatch'] = 'whattowatch';
 
+  function wtwPathForScope(scope, collectionCode) {
+    if (scope === 'world') return '/whattowatch/overtheworld';
+    if (scope === 'collections') {
+      const code = collectionCode ? String(collectionCode) : '';
+      return code
+        ? '/whattowatch/collections/' + encodeURIComponent(code)
+        : '/whattowatch/collections';
+    }
+    return '/whattowatch/unwatched';
+  }
+
+  function wtwStateFromPath(pathname) {
+    const p = (pathname || '/').replace(/\/$/, '') || '/';
+    if (p === '/whattowatch/overtheworld') return { scope: 'world', code: null };
+    if (p === '/whattowatch/collections' || p === '/features/collections') {
+      return { scope: 'collections', code: null };
+    }
+    let m = p.match(/^\/whattowatch\/collections\/([A-Za-z0-9_-]{2,64})$/);
+    if (m) return { scope: 'collections', code: m[1] };
+    m = p.match(/^\/features\/collections\/([A-Za-z0-9_-]{2,64})$/);
+    if (m) return { scope: 'collections', code: m[1] };
+    if (p === '/whattowatch/unwatched' || p === '/whattowatch') {
+      return { scope: 'library', code: null };
+    }
+    return null;
+  }
+
+  function pushWtwUrl(opts) {
+    const o = opts || {};
+    try {
+      const path = wtwPathForScope(
+        o.scope != null ? o.scope : siteWtwScope,
+        o.code !== undefined ? o.code : siteWtwCollectionCode
+      );
+      const url = path + window.location.search + window.location.hash;
+      const st = { section: 'whattowatch', wtwScope: o.scope != null ? o.scope : siteWtwScope };
+      if (o.code) st.collectionCode = o.code;
+      if (o.replace) window.history.replaceState(st, '', url);
+      else if (window.location.pathname !== path) window.history.pushState(st, '', url);
+    } catch (_) {}
+  }
+
+
   function sectionFromPath(pathname) {
     if (!pathname) return null;
     let normalized = pathname.replace(/\/$/, '') || '/';
     if (normalized === '/index.html') normalized = '/';
     if (normalized === '/') return null;
     if (normalized.startsWith('/settings')) return 'settings';
-    if (normalized === '/whattowatch') return 'whattowatch';
+    if (normalized === '/whattowatch' || normalized.startsWith('/whattowatch/')) return 'whattowatch';
     if (normalized.startsWith('/features/collections/')) return 'whattowatch';
     if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
@@ -7420,6 +7462,10 @@
 
   function pushSectionUrl(sectionId, replace) {
     try {
+      if (sectionId === 'whattowatch') {
+        pushWtwUrl({ replace: !!replace });
+        return;
+      }
       let path = SECTION_TO_PATH[sectionId] || '/';
       if (sectionId === 'settings') {
         path = PROFILE_SUB_TO_PATH[_profileSubView] || '/settings';
@@ -19943,18 +19989,17 @@
       siteAiUnmount = null;
     }
     try {
-      const pathCode = (window.MpCollectionsPage && typeof window.MpCollectionsPage.collectionCodeFromPath === 'function')
-        ? window.MpCollectionsPage.collectionCodeFromPath(window.location.pathname)
+      const fromPath = typeof wtwStateFromPath === 'function'
+        ? wtwStateFromPath(window.location.pathname)
         : null;
-      const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (pathCode) {
-        siteWtwScope = 'collections';
-        siteWtwCollectionCode = pathCode;
-      } else if (bootPath.indexOf('/features/collections') === 0) {
-        siteWtwScope = 'collections';
-      } else if (bootPath === '/whattowatch') {
-        const saved = sessionStorage.getItem('mp_wtw_scope');
-        siteWtwScope = (saved === 'world' || saved === 'library') ? saved : 'library';
+      if (fromPath) {
+        siteWtwScope = fromPath.scope;
+        siteWtwCollectionCode = fromPath.code;
+        // Canonicalize legacy /features/collections* and bare /whattowatch
+        const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (bootPath === '/whattowatch' || bootPath.indexOf('/features/collections') === 0) {
+          pushWtwUrl({ scope: siteWtwScope, code: siteWtwCollectionCode, replace: true });
+        }
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
         if (saved === 'world' || saved === 'library' || saved === 'collections') siteWtwScope = saved;
@@ -19994,8 +20039,10 @@
         const sc = btn.getAttribute('data-site-wtw-scope');
         if (sc !== 'library' && sc !== 'world' && sc !== 'collections') return;
         siteWtwScope = sc;
-        if (sc !== 'collections') siteWtwCollectionCode = null;
+        // «Коллекции» always returns to hub list (not stuck on detail).
+        siteWtwCollectionCode = null;
         try { sessionStorage.setItem('mp_wtw_scope', sc); } catch (_) {}
+        pushWtwUrl({ scope: sc, code: null, replace: false });
         root.querySelectorAll('[data-site-wtw-scope]').forEach((b) => {
           b.classList.toggle('active', b.getAttribute('data-site-wtw-scope') === sc);
         });
@@ -20008,7 +20055,10 @@
           if (!isColl) modesEl.innerHTML = renderSiteWtwModesList(sc);
           if (!isColl) bindSiteWtwModeRows(modesEl);
         }
-        if (resultEl) resultEl.classList.toggle('hidden', isColl);
+        if (resultEl) {
+          resultEl.classList.toggle('hidden', isColl);
+          if (isColl) resultEl.innerHTML = '';
+        }
         if (collPanel) {
           collPanel.classList.toggle('hidden', !isColl);
           if (isColl) paintWtwCollectionsPanel();
@@ -20020,11 +20070,10 @@
   }
 
   window.__mpWtwCollectionsBack = function () {
+    siteWtwScope = 'collections';
     siteWtwCollectionCode = null;
-    try {
-      const url = '/whattowatch' + window.location.search + window.location.hash;
-      window.history.replaceState({ section: 'whattowatch' }, '', url);
-    } catch (_) {}
+    try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+    pushWtwUrl({ scope: 'collections', code: null, replace: true });
     renderWhattowatchSection();
   };
 
@@ -20033,10 +20082,7 @@
     siteWtwScope = 'collections';
     siteWtwCollectionCode = String(code);
     try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
-    try {
-      const url = '/features/collections/' + encodeURIComponent(code) + window.location.search + window.location.hash;
-      window.history.pushState({ section: 'whattowatch', collectionCode: code }, '', url);
-    } catch (_) {}
+    pushWtwUrl({ scope: 'collections', code: siteWtwCollectionCode, replace: false });
     const cur = visibleCabinetSectionId();
     if (cur !== 'whattowatch') {
       showSection('whattowatch', { skipPush: true });
@@ -23740,11 +23786,13 @@
         showSection(sec, { skipPush: true });
         // Section data load once via afterCabinetSectionShown — do not re-render here.
         if (sec === 'whattowatch') {
-          const navPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-          if (navPath === '/whattowatch') {
-            siteWtwScope = 'library';
-            siteWtwCollectionCode = null;
-            try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
+          const fromPath = typeof wtwStateFromPath === 'function'
+            ? wtwStateFromPath(window.location.pathname)
+            : null;
+          if (fromPath) {
+            siteWtwScope = fromPath.scope;
+            siteWtwCollectionCode = fromPath.code;
+            try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
           }
         }
         if (sec === 'collections') {
@@ -23768,8 +23816,14 @@
         }
         markCabinetUserNav(sectionId);
         if (sectionId === 'whattowatch') {
-          const navPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-          if (navPath === '/whattowatch') {
+          const fromPath = typeof wtwStateFromPath === 'function'
+            ? wtwStateFromPath(window.location.pathname)
+            : null;
+          if (fromPath) {
+            siteWtwScope = fromPath.scope;
+            siteWtwCollectionCode = fromPath.code;
+            try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
+          } else {
             siteWtwScope = 'library';
             siteWtwCollectionCode = null;
             try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
