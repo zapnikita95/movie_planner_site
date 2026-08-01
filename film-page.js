@@ -64,6 +64,11 @@
     var t = String(name || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
     el.textContent = t;
     el.title = t;
+    try {
+      if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
+        global.MpHeaderSearchScroll.refresh();
+      }
+    } catch (_e) {}
   }
 
   /** Parse /f/123 or /f/movie-123 / /f/tv-123 / /f/fest-slug — KP ids stay bare numbers; TMDB uses prefix. */
@@ -4541,12 +4546,27 @@
     try {
       document.documentElement.classList.remove('mp-route-pending');
       document.documentElement.classList.add('mp-route-ready');
-      if (!opts.cabinetMode) document.body.classList.add('film-standalone-page');
+      /* Thin /f/ shell uses cabinetMode but still needs film-standalone sticky chrome */
+      document.body.classList.add('film-standalone-page');
+      document.body.classList.remove('staff-standalone-page', 'landing-root-page');
+      document.body.classList.remove(
+        'staff-header-title-on',
+        'staff-header-title-only',
+        'staff-header-search-with-title'
+      );
+      var staffTitleEl = document.getElementById('header-staff-title');
+      if (staffTitleEl) {
+        staffTitleEl.textContent = '';
+        staffTitleEl.removeAttribute('title');
+      }
     } catch (_e) {}
     renderFilmPage(opts);
     try {
       if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.bind === 'function') {
         global.MpHeaderSearchScroll.bind();
+      }
+      if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
+        global.MpHeaderSearchScroll.refresh();
       }
     } catch (_scroll) {}
   }

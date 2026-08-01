@@ -1369,7 +1369,18 @@
     _staffPersonId = personId;
     try {
       document.body.classList.add('in-cabinet', 'staff-standalone-page');
+      document.body.classList.remove('film-standalone-page', 'landing-root-page');
+      document.body.classList.remove(
+        'film-header-title-on',
+        'film-header-title-only',
+        'film-header-search-with-title'
+      );
       document.documentElement.classList.add('mp-staff-boot');
+      var filmTitleEl = document.getElementById('header-film-title');
+      if (filmTitleEl) {
+        filmTitleEl.textContent = '';
+        filmTitleEl.removeAttribute('title');
+      }
       var landing = document.getElementById('landing');
       if (landing) landing.classList.add('hidden');
       var cabinet = document.getElementById('cabinet-readonly');
@@ -1389,7 +1400,17 @@
     var pageRoot = document.getElementById('film-page-content');
     if (pageRoot) {
       pageRoot.className = 'container film-page-container staff-page-content';
-      pageRoot.innerHTML = '<div id="staff-root" class="staff-page-content-inner">' + staffBootHeroHtml() + '</div>';
+      /* Keep early index.html grid shell — do not wipe into spinner (layout jump). */
+      var existingBoot = pageRoot.querySelector('#staff-root .staff-page--boot, .staff-page--boot');
+      if (!existingBoot) {
+        pageRoot.innerHTML = '<div id="staff-root" class="staff-page-content-inner">' + staffBootHeroHtml() + '</div>';
+      } else {
+        var bootEarly = readMpRouteBoot();
+        if (bootMatchesPerson(bootEarly, personId)) {
+          var t = bootEarly.name_ru || bootEarly.display_name || bootEarly.title || '';
+          if (t) setStaffHeaderTitle(t);
+        }
+      }
       var boot = readMpRouteBoot();
       if (bootMatchesPerson(boot, personId)) {
         var earlyFacts = staffFactsItemsFromPayload({
@@ -1399,6 +1420,11 @@
         if (earlyFacts.length) renderStaffPersonFacts(earlyFacts);
       }
       prefetchStaffPersonFacts(personId);
+      try {
+        if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
+          global.MpHeaderSearchScroll.refresh();
+        }
+      } catch (_scr) {}
     }
 
     if (global.MpPublicFilmLogin) {
