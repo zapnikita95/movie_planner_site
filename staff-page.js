@@ -984,9 +984,27 @@
 
   function paintStaffAwards(root) {
     if (!root) return;
+    var openNames = {};
+    root.querySelectorAll('.staff-awards-group').forEach(function (g) {
+      var btn = g.querySelector('.staff-awards-acc[aria-expanded="true"]');
+      var nameEl = g.querySelector('.staff-awards-acc-name');
+      var name = nameEl ? String(nameEl.textContent || '').trim() : '';
+      if (btn && name) openNames[name] = true;
+    });
     var items = filterStaffAwardItems(root._awardsItems || []);
     var winsOnly = !!root._awardsWinsOnly;
     root.innerHTML = renderStaffAwardsHtml(items, { winsOnly: winsOnly });
+    root.querySelectorAll('.staff-awards-group').forEach(function (g) {
+      var nameEl = g.querySelector('.staff-awards-acc-name');
+      var name = nameEl ? String(nameEl.textContent || '').trim() : '';
+      if (!name || !openNames[name]) return;
+      var btn = g.querySelector('.staff-awards-acc');
+      var panel = g.querySelector('.staff-awards-panel');
+      if (!btn || !panel) return;
+      btn.setAttribute('aria-expanded', 'true');
+      btn.classList.add('is-open');
+      panel.classList.remove('hidden');
+    });
     bindStaffAwardsUi(root);
   }
 
