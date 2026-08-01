@@ -21564,7 +21564,7 @@ main.film-page .hero-content,
   letter-spacing: -0.015em;
   color: #ffffff;
   white-space: nowrap;
-  text-align: left;
+  text-align: center;
 }
 /* Guest «В список» + «Войти»: two-line label, never overlap login hint */
 .glass-cta.glass-cta--login-hint {
@@ -21576,9 +21576,20 @@ main.film-page .hero-content,
   white-space: normal;
   line-height: 1.2;
   overflow: visible;
+  text-align: center;
 }
 .glass-cta__br {
   display: none;
+}
+/* Desktop: keep label text centered in its flex slot (between icon and Войти/▾) */
+@media (min-width: 861px) {
+  .glass-cta__label,
+  .film-toolbar-plan.glass-cta .glass-cta__label,
+  #guest-watchlist-cta .glass-cta__label,
+  #plan-watch-btn .glass-cta__label {
+    text-align: center;
+    justify-self: stretch;
+  }
 }
 .glass-cta__login {
   position: relative;
@@ -21613,13 +21624,25 @@ main.film-page .hero-content,
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
-  margin: 0 0 4px;
+  margin: 10px 0 4px;
 }
 .film-hero-meta-stack > .film-title-en,
 .film-hero-meta-stack > .film-genres-line,
 .film-hero-meta-stack > .film-meta-line,
 .film-hero-meta-stack > .film-ext-ratings {
   margin: 0 !important;
+}
+/* Breathing room when RU title wraps to 2+ lines above EN */
+#film-title,
+#film-page-content .hero-content > h1,
+#section-film .hero-content > h1,
+main.film-page .hero-content > h1 {
+  margin: 0 0 2px;
+  line-height: 1.18;
+}
+#film-title + .film-hero-meta-stack,
+.hero-content > h1 + .film-hero-meta-stack {
+  margin-top: 12px;
 }
 .film-title-en {
   margin: 0;
