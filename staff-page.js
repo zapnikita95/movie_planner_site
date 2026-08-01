@@ -11,6 +11,8 @@
   var PERSON_FILMS_PREVIEW_OTHER = 14;
   var PERSON_FILM_BATCH_PRIMARY = 21;
   var PERSON_FILM_BATCH_OTHER = 14;
+  /** Full-role fetch when sorting/filtering so «Развернуть» does not reshuffle the top. */
+  var PERSON_FILM_BATCH_FULL = 120;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   var _staffLastData = null;
@@ -348,12 +350,80 @@
     return primary && rk === primary ? PERSON_FILMS_PREVIEW_PRIMARY : PERSON_FILMS_PREVIEW_OTHER;
   }
 
+  function staffServerListQueryActive() {
+    return _staffSortMode === 'rating_desc' ||
+      _staffSortMode === 'year_desc' ||
+      _staffSortMode === 'year_asc' ||
+      staffFilterActive();
+  }
+
+  function staffNeedsFullRoleLoad() {
+    return staffServerListQueryActive() ||
+      !!_staffFilterState.mainRolesOnly ||
+      !!_staffFilterState.friendsRatedOnly;
+  }
+
   function personFilmBatchLimit(roleKey) {
+    if (staffNeedsFullRoleLoad()) return PERSON_FILM_BATCH_FULL;
     var rk = String(roleKey || '').toUpperCase();
     var primary = _staffPrimaryRoleKey || resolvePrimaryRoleKey(
       (_staffLastData && _staffLastData.films_by_role) || []
     );
     return primary && rk === primary ? PERSON_FILM_BATCH_PRIMARY : PERSON_FILM_BATCH_OTHER;
+  }
+
+  function staffFilmsQueryParams(roleKey, offset, limit) {
+    var parts = [
+      'role=' + encodeURIComponent(roleKey || ''),
+      'offset=' + Math.max(0, parseInt(offset, 10) || 0),
+      'limit=' + Math.max(1, parseInt(limit, 10) || PERSON_FILM_BATCH_PRIMARY),
+    ];
+    if (_staffSortMode === 'rating_desc' || _staffSortMode === 'year_desc' || _staffSortMode === 'year_asc') {
+      parts.push('sort=' + encodeURIComponent(_staffSortMode));
+    }
+    if (staffFilterActive()) {
+      var bounds = staffYearBounds();
+      var yf = parseInt(_staffFilterState.yearFrom, 10);
+      var yt = parseInt(_staffFilterState.yearTo, 10);
+      var yExact = parseInt(_staffFilterState.year, 10);
+      if (!isNaN(yExact) && yExact > 0) {
+        parts.push('year_from=' + yExact);
+        parts.push('year_to=' + yExact);
+      } else {
+        if (!isNaN(yf) && bounds && yf > bounds.min) parts.push('year_from=' + yf);
+        if (!isNaN(yt) && bounds && yt < bounds.max) parts.push('year_to=' + yt);
+      }
+      if (_staffFilterState.genre) {
+        parts.push('genre=' + encodeURIComponent(_staffFilterState.genre));
+      }
+      var rmin = parseFloat(_staffFilterState.ratingMin);
+      if (!isNaN(rmin) && rmin > 0) parts.push('rating_min=' + rmin);
+    }
+    return parts.join('&');
+  }
+
+  function staffRolesMetaForReload() {
+    return ((_staffLastData && _staffLastData.films_by_role) || []).map(function (b) {
+      return {
+        role_key: b.role_key,
+        role_name: b.role_name,
+        total: b.total != null ? b.total : ((b.films || []).length),
+      };
+    }).filter(function (rm) { return rm.role_key && (rm.total > 0); });
+  }
+
+  function reloadStaffFilmographyForListQuery() {
+    if (!_staffPersonId || !_staffLastData) {
+      paintStaffRoles();
+      return Promise.resolve();
+    }
+    (_staffLastData.films_by_role || []).forEach(function (b) {
+      b.films = [];
+    });
+    _staffRoleHasMore = {};
+    _staffExpandedRoles = {};
+    paintStaffRoles();
+    return loadStaffRolesProgressive(_staffPersonId, staffRolesMetaForReload()).catch(function () {});
   }
 
   function sortRolesByFilmCount(roles) {
@@ -2160,12 +2230,16 @@
       var filtered = filterPersonFilmsClient(block.films || [], _staffFilterState, roleKey);
       if (!filtered.length) return '';
       var importable = filtered.filter(function (f) { return f.importable !== false; }).map(function (f) { return String(f.kp_id || ''); });
+      // Prefer API list_total (after server filter/sort); else loaded+role total.
+      var roleTotal = block.list_total != null
+        ? block.list_total
+        : Math.max(filtered.length, parseInt(block.total, 10) || 0);
       return (
         '<section class="staff-role-block">' +
           '<div class="staff-role-head"><h2>' + escapeHtml(roleTitle) + '</h2>' +
           '<button type="button" class="link-inline staff-import-btn" data-role-key="' + escapeHtml(roleKey) + '">В базу →' +
           (importable.length ? (' (' + importable.length + ')') : '') + '</button></div>' +
-          filmGridHtml(filtered, roleKey, block.total || filtered.length) +
+          filmGridHtml(filtered, roleKey, roleTotal) +
         '</section>'
       );
     }).join('');
@@ -2234,6 +2308,7 @@
       _staffFilterState.yearTo = full ? '' : String(r.to);
       _staffFilterState.year = '';
       syncFilterActiveBtn();
+      // Never refetch on every slider tick — Apply / desk change / sort reload.
       if (paint) paintStaffRoles();
     }
     function syncRatingUi(val) {
@@ -2285,8 +2360,9 @@
           (chip.id === 'staff-sort-year-asc' && mode === 'year_asc');
         chip.classList.toggle('chip-on', on);
       });
-      paintStaffRoles();
       closeSheet('sort');
+      // Server sorts the full role, then we page — top stays stable on «Развернуть».
+      reloadStaffFilmographyForListQuery();
     }
     var sr = root.querySelector('#staff-sort-rating');
     var sd = root.querySelector('#staff-sort-year-desc');
@@ -2303,8 +2379,17 @@
         var pair = readYearPair();
         if (sel.indexOf('from') >= 0) pair.from = parseInt(el.value, 10) || bounds.min;
         else pair.to = parseInt(el.value, 10) || bounds.max;
-        applyYearRange(pair.from, pair.to, sel.indexOf('desk') >= 0);
+        applyYearRange(pair.from, pair.to, false);
       });
+      if (sel.indexOf('desk') >= 0) {
+        el.addEventListener('change', function () {
+          var pair = readYearPair();
+          if (sel.indexOf('from') >= 0) pair.from = parseInt(el.value, 10) || bounds.min;
+          else pair.to = parseInt(el.value, 10) || bounds.max;
+          applyYearRange(pair.from, pair.to, false);
+          reloadStaffFilmographyForListQuery();
+        });
+      }
     });
     var ratingRange = root.querySelector('#staff-rating-min-range');
     var ratingDesk = root.querySelector('#staff-rating-min-desk');
@@ -2315,7 +2400,7 @@
       });
       ratingDesk.addEventListener('change', function () {
         syncRatingUi(ratingDesk.value);
-        paintStaffRoles();
+        reloadStaffFilmographyForListQuery();
       });
       // Empty + dim placeholder "7" by default (never ship literal 0)
       if (!_staffFilterState.ratingMin) {
@@ -2330,19 +2415,25 @@
       var gEl = root.querySelector('#staff-filter-genre');
       if (gEl) _staffFilterState.genre = gEl.value || '';
       if (ratingRange) syncRatingUi(ratingRange.value);
-      paintStaffRoles();
       closeSheet('filter');
+      reloadStaffFilmographyForListQuery();
     });
     var resetBtn = root.querySelector('#staff-filter-reset');
     if (resetBtn) resetBtn.addEventListener('click', function () {
       _staffFilterState.genre = '';
+      _staffFilterState.year = '';
+      _staffFilterState.yearFrom = '';
+      _staffFilterState.yearTo = '';
       var fg = root.querySelector('#staff-filter-genre');
       var fgd = root.querySelector('#staff-filter-genre-desk');
       if (fg) fg.value = '';
       if (fgd) fgd.value = '';
       syncRatingUi(0);
       applyYearRange(bounds.min, bounds.max, true);
+      _staffFilterState.yearFrom = '';
+      _staffFilterState.yearTo = '';
       closeSheet('filter');
+      reloadStaffFilmographyForListQuery();
     });
     var genreEl = root.querySelector('#staff-filter-genre');
     var genreDesk = root.querySelector('#staff-filter-genre-desk');
@@ -2355,7 +2446,7 @@
       _staffFilterState.genre = e.target.value || '';
       if (genreEl) genreEl.value = _staffFilterState.genre;
       syncFilterActiveBtn();
-      paintStaffRoles();
+      reloadStaffFilmographyForListQuery();
     });
 
     var mainBtn = root.querySelector('#staff-toggle-main');
@@ -2363,7 +2454,7 @@
     if (mainBtn) {
       mainBtn.addEventListener('click', function () {
         _staffFilterState.mainRolesOnly = !_staffFilterState.mainRolesOnly;
-        paintStaffRoles();
+        reloadStaffFilmographyForListQuery();
       });
     }
     if (friendsBtn) {
@@ -2376,7 +2467,7 @@
           return;
         }
         _staffFilterState.friendsRatedOnly = !_staffFilterState.friendsRatedOnly;
-        paintStaffRoles();
+        reloadStaffFilmographyForListQuery();
       });
     }
     bindStaffRoleExpandButtons(root);
@@ -3124,7 +3215,7 @@
     var base = isFestPersonId(personId)
       ? (API_BASE + '/api/public/person/fest/' + encodeURIComponent(festPersonSlug(personId)))
       : (API_BASE + '/api/public/person/' + encodeURIComponent(personId));
-    var url = base + '/films?role=' + encodeURIComponent(roleKey) + '&offset=' + off + '&limit=' + lim;
+    var url = base + '/films?' + staffFilmsQueryParams(roleKey, off, lim);
     return fetch(url, { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
@@ -3137,7 +3228,11 @@
         var block = (_staffLastData.films_by_role || []).find(function (b) {
           return String(b.role_key || '') === String(roleKey || '');
         });
-        if (block && batch.total != null) block.total = batch.total;
+        // list_total = filtered/sorted count from API; keep role total for «Развернуть» math
+        if (block && batch.total != null) {
+          block.list_total = batch.total;
+          if (!staffServerListQueryActive()) block.total = batch.total;
+        }
         paintStaffRoles();
         return batch;
       });
