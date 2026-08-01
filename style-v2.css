@@ -13297,9 +13297,10 @@ body.site-search-sheet-open { overflow: hidden; }
   padding: 2px 0;
 }
 .site-search-persons-grid--compact {
-  grid-template-columns: 1fr;
+  /* Legacy class: keep 2-up on desktop (was 1-col → huge empty space). */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
-  gap: 8px;
+  gap: 12px;
 }
 .site-search-persons-grid--compact .site-search-person-card {
   min-width: 0;
@@ -13312,10 +13313,13 @@ body.site-search-sheet-open { overflow: hidden; }
 }
 .site-search-persons-expand-btn {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 100%;
+  max-width: 220px;
+  height: 36px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid rgba(168, 85, 247, 0.38);
   background: rgba(8, 6, 24, 0.45);
   color: rgba(244, 246, 255, 0.88);
@@ -13326,10 +13330,10 @@ body.site-search-sheet-open { overflow: hidden; }
   align-items: center;
   justify-content: center;
   transition: border-color 0.15s ease, background 0.15s ease;
+  margin: 4px auto 0;
 }
 .site-search-persons-grid--compact .site-search-persons-expand-btn {
-  grid-column: 1;
-  grid-row: auto;
+  grid-column: 1 / -1;
   justify-self: center;
   width: 100%;
   max-width: 220px;
