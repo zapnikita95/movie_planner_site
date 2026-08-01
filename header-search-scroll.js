@@ -153,12 +153,66 @@
     return btn;
   }
 
+  function syncChromeSearchPosition(doc) {
+    var buttons = doc.querySelector('#site-header .header-buttons');
+    var btn = doc.getElementById('header-chrome-search-btn');
+    if (!buttons || !btn) return;
+    var br = buttons.getBoundingClientRect();
+    if (!(br.width > 0)) return;
+    var compact = !!(doc.body && doc.body.classList.contains(CHROME_SEARCH_CLASS));
+    var coins = doc.getElementById('header-coins-btn');
+    var coinsVisible = !!(
+      coins
+      && !coins.classList.contains('hidden')
+      && coins.offsetParent !== null
+      && coins.getBoundingClientRect().width > 0
+    );
+    var anchor = null;
+    var gap = 6;
+    var chromeW = 28;
+    if (compact && coinsVisible) {
+      // Overlay coins slot — trail (bell/avatar) never moves.
+      anchor = coins;
+      gap = 0;
+    } else {
+      var login = buttons.querySelector('[data-action="login"]');
+      var loginVisible = !!(
+        login
+        && !login.classList.contains('hidden')
+        && login.offsetParent !== null
+        && getComputedStyle(login).display !== 'none'
+      );
+      var userWrap = doc.getElementById('header-user-wrap');
+      var userVisible = !!(
+        userWrap
+        && !userWrap.classList.contains('hidden')
+        && userWrap.offsetParent !== null
+      );
+      if (loginVisible) anchor = login;
+      else if (userVisible) anchor = userWrap;
+    }
+    if (!anchor) {
+      buttons.style.setProperty('--mp-chrome-right', '82px');
+      return;
+    }
+    var ar = anchor.getBoundingClientRect();
+    // css `right` = distance from buttons' right edge to chrome button's right edge.
+    var rightPx;
+    if (compact && coinsVisible) {
+      rightPx = Math.max(0, br.right - ar.right + (ar.width - chromeW) / 2);
+    } else {
+      rightPx = Math.max(0, br.right - ar.left + gap);
+    }
+    buttons.style.setProperty('--mp-chrome-right', Math.round(rightPx * 10) / 10 + 'px');
+  }
+
   function syncChromeSearchBtn(doc, compactOn, searchOpen) {
     var btn = ensureChromeSearchBtn(doc);
     if (!btn) return;
     btn.setAttribute('aria-label', searchOpen ? 'Закрыть поиск' : 'Поиск');
     btn.setAttribute('title', searchOpen ? 'Закрыть поиск' : 'Поиск');
     btn.classList.toggle('header-chrome-search-btn--close', !!(compactOn && searchOpen));
+    syncChromeSearchPosition(doc);
   }
 
   function bindChromeSearchBtn(doc) {
@@ -224,7 +278,6 @@
       var inputFocused = !!(input && doc.activeElement === input);
       var y = global.scrollY || 0;
       var suppressHide = Date.now() < _suppressHideUntil;
-      var searchActive = dropdownOpen || inputFocused || suppressHide;
       var decision = decideSearchRetract(y, lastY, {
         mobile: mobile,
         dropdownOpen: dropdownOpen,
@@ -242,6 +295,10 @@
       pastFilm = filmPast;
       var pastName = !!(staffPast || filmPast);
       var compactPage = !!(mode.onStaff || mode.onFilm);
+      // Compact sticky: only real focus/hub keeps the input open (ignore mount suppressRetract).
+      var searchActive = compactPage
+        ? (dropdownOpen || inputFocused)
+        : (dropdownOpen || inputFocused || suppressHide);
 
       // Staff/film compact sticky: collapse input into chrome 🔍; expand only when searching.
       if (mobile && compactPage && pastName) {

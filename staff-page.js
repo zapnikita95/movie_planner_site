@@ -1267,7 +1267,18 @@
     var awardsRoot = ensureStaffAwardsRoot();
     if (!awardsRoot) return;
     if (awardsRoot.getAttribute('data-loaded') === '1' || awardsRoot._awardsLoading) return;
-    loadStaffAwards(awardsRoot, { silent: true });
+    if (prefetchStaffAwards._scheduled) return;
+    prefetchStaffAwards._scheduled = true;
+    // After first filmography paint — awards tab is hidden; don't contend with /head + films.
+    var run = function () {
+      prefetchStaffAwards._scheduled = false;
+      loadStaffAwards(awardsRoot, { silent: true });
+    };
+    if (typeof global.requestIdleCallback === 'function') {
+      global.requestIdleCallback(run, { timeout: 2200 });
+    } else {
+      global.setTimeout(run, 1200);
+    }
   }
 
   function loadStaffAwards(root, opts) {
@@ -1583,7 +1594,6 @@
     bindStaffDeskPaneTabs(root);
     _staffMainPane = 'films';
     setStaffTab('films');
-    prefetchStaffAwards();
     if (!bindStaffTabs._resizeBound) {
       bindStaffTabs._resizeBound = true;
       window.addEventListener('resize', function () {
@@ -3018,11 +3028,6 @@
       applyStaffMainPane();
       prefetchStaffAwards();
       try {
-        if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.suppressRetract === 'function') {
-          global.MpHeaderSearchScroll.suppressRetract(1400);
-        }
-      } catch (_hs) {}
-      try {
         if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
           global.MpPublicPromo.mountAfterHero(root);
         }
@@ -3155,21 +3160,34 @@
     });
     if (!pending.length) return Promise.resolve();
 
+    // First paint: primary + one more visible role. Defer HIMSELF/chronicle/etc.
     var primary = pending[0];
-    var rest = pending.slice(1);
+    var soon = pending.slice(1, 2);
+    var deferred = pending.slice(2);
     var primaryLim = PERSON_FILM_BATCH_PRIMARY;
     return loadStaffRoleFilms(personId, primary.role_key, 0, primaryLim).then(function () {
-      var idx = 0;
-      function loadNextPair() {
-        if (idx >= rest.length) return Promise.resolve();
-        var pair = rest.slice(idx, idx + 2);
-        idx += 2;
-        return Promise.all(pair.map(function (rm) {
-          var batchLim = PERSON_FILM_BATCH_OTHER;
-          return loadStaffRoleFilms(personId, rm.role_key, 0, batchLim).catch(function () {});
-        })).then(loadNextPair);
+      return Promise.all(soon.map(function (rm) {
+        return loadStaffRoleFilms(personId, rm.role_key, 0, PERSON_FILM_BATCH_OTHER).catch(function () {});
+      }));
+    }).then(function () {
+      if (!deferred.length) return;
+      var kick = function () {
+        var idx = 0;
+        function loadNextPair() {
+          if (idx >= deferred.length) return Promise.resolve();
+          var pair = deferred.slice(idx, idx + 2);
+          idx += 2;
+          return Promise.all(pair.map(function (rm) {
+            return loadStaffRoleFilms(personId, rm.role_key, 0, PERSON_FILM_BATCH_OTHER).catch(function () {});
+          })).then(loadNextPair);
+        }
+        return loadNextPair();
+      };
+      if (typeof global.requestIdleCallback === 'function') {
+        global.requestIdleCallback(function () { kick(); }, { timeout: 2500 });
+        return;
       }
-      return loadNextPair();
+      global.setTimeout(function () { kick(); }, 900);
     });
   }
 

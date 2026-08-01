@@ -17447,13 +17447,13 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   outline-offset: 2px;
 }
 
-/* Compact sticky: search icon in logo row (replaces coins / sits by login) */
+/* Compact sticky 🔍: out of flex flow so Войти / avatar never shift */
 .header-chrome-search-btn {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   margin: 0;
   border: 0;
@@ -17470,14 +17470,35 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   outline-offset: 2px;
 }
 .header-chrome-search-glyph { display: block; }
-body.mp-header-chrome-search #header-chrome-search-btn {
-  display: inline-flex !important;
-}
-body.mp-header-chrome-search #header-coins-btn {
-  display: none !important;
-}
-body.mp-header-chrome-search .header-buttons {
-  gap: 6px;
+@media (max-width: 860px) {
+  body.staff-standalone-page .header-buttons,
+  body.film-standalone-page .header-buttons {
+    position: relative;
+  }
+  body.staff-standalone-page #header-chrome-search-btn,
+  body.film-standalone-page #header-chrome-search-btn {
+    display: inline-flex !important;
+    position: absolute;
+    top: 50%;
+    right: var(--mp-chrome-right, 82px);
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 4;
+  }
+  body.mp-header-chrome-search #header-chrome-search-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  /* Keep coins box size — avatar/bell stay put; 🔍 overlays the slot */
+  body.mp-header-chrome-search #header-coins-btn {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 }
 body.header-search-dropdown-open.mp-header-chrome-search #header-chrome-search-btn {
   color: #fff;
@@ -23438,10 +23459,6 @@ body.in-cabinet .mp-pick-done {
     height: 28px !important;
     border: 0 !important;
     background: transparent !important;
-  }
-  body.mp-header-chrome-search #header-chrome-search-btn {
-    width: 28px;
-    height: 28px;
   }
 
   /* ===== Film mobile: full-bleed poster + sticky #film-title (mirror staff) ===== */
