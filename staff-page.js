@@ -309,18 +309,33 @@
     bindStaffFactsSectionToggle(section, toggle, panel, preview);
   }
 
-  function loadStaffPersonFacts(personId) {
-    if (isFestPersonId(personId)) return Promise.resolve();
-    return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/facts', {
+  var _staffFactsPrefetch = null;
+
+  function prefetchStaffPersonFacts(personId) {
+    if (isFestPersonId(personId)) return Promise.resolve(null);
+    var pid = String(personId || '');
+    if (_staffFactsPrefetch && _staffFactsPrefetch.pid === pid) {
+      return _staffFactsPrefetch.promise;
+    }
+    var promise = fetch(API_BASE + '/api/public/person/' + encodeURIComponent(pid) + '/facts', {
       method: 'GET',
       mode: 'cors',
     })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        if (!d || !d.success) return;
-        renderStaffPersonFacts(d.web_facts || []);
-      })
-      .catch(function () {});
+      .catch(function () { return null; });
+    _staffFactsPrefetch = { pid: pid, promise: promise };
+    return promise;
+  }
+
+  function loadStaffPersonFacts(personId, bootFacts) {
+    if (Array.isArray(bootFacts) && bootFacts.length) {
+      renderStaffPersonFacts(bootFacts);
+    }
+    if (isFestPersonId(personId)) return Promise.resolve();
+    return prefetchStaffPersonFacts(personId).then(function (d) {
+      if (!d || !d.success) return;
+      renderStaffPersonFacts(d.web_facts || []);
+    });
   }
 
   var STAFF_MONTHS_GEN = [
@@ -591,6 +606,9 @@
     if (isNaN(toVal)) toVal = yMax;
     var rMinVal = _staffFilterState.ratingMin !== '' ? parseFloat(_staffFilterState.ratingMin) : 0;
     if (isNaN(rMinVal)) rMinVal = 0;
+    var deskRatingAttrs = rMinVal > 0
+      ? (' value="' + rMinVal + '" placeholder="7"')
+      : ' placeholder="7"';
     var filterOn = staffFilterActive();
     var filterSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm32,40a8,8,0,0,0,0,16H184a8,8,0,0,0,0-16Zm32,56a8,8,0,0,0,0,16h48a8,8,0,0,0,0-16Z"/></svg>';
     var sortSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M112,168a8,8,0,0,1-5.66-2.34l-48-48a8,8,0,0,1,11.32-11.32L104,140.69V40a8,8,0,0,1,16,0V140.69l34.34-34.35a8,8,0,0,1,11.32,11.32l-48,48A8,8,0,0,1,112,168Zm88-80a8,8,0,0,0-5.66,2.34l-48,48a8,8,0,0,0,11.32,11.32L176,115.31V216a8,8,0,0,0,16,0V115.31l34.34,34.35a8,8,0,0,0,11.32-11.32l-48-48A8,8,0,0,0,200,88Z"/></svg>';
@@ -654,7 +672,8 @@
           '<label class="person-filter-field"><span class="person-filter-k">Жанр</span>' +
             '<select class="person-filter-select" id="staff-filter-genre-desk">' + gOpts + '</select></label>' +
           '<label class="person-filter-field"><span class="person-filter-k">Рейтинг от</span>' +
-            '<input type="number" class="person-filter-select" id="staff-rating-min-desk" min="0" max="10" step="0.1" value="' + rMinVal + '" aria-label="Минимальный рейтинг"></label>' +
+            '<input type="number" class="person-filter-select person-filter-select--placeholder" id="staff-rating-min-desk" min="0" max="10" step="0.1"' +
+            deskRatingAttrs + ' aria-label="Минимальный рейтинг"></label>' +
         '</div>' +
       '</div>'
     );
@@ -954,12 +973,16 @@
       if (paint) paintStaffRoles();
     }
     function syncRatingUi(val) {
-      var n = Math.max(0, Math.min(10, parseFloat(val) || 0));
+      var raw = String(val == null ? '' : val).trim();
+      var n = raw === '' ? 0 : Math.max(0, Math.min(10, parseFloat(raw) || 0));
       var range = root.querySelector('#staff-rating-min-range');
       var desk = root.querySelector('#staff-rating-min-desk');
       var lab = root.querySelector('#staff-rating-min-label');
       if (range) range.value = String(n);
-      if (desk) desk.value = String(n);
+      if (desk) {
+        desk.placeholder = '7';
+        desk.value = n > 0 ? String(n) : '';
+      }
       if (lab) lab.textContent = n > 0 ? n.toFixed(1) : 'любой';
       _staffFilterState.ratingMin = n > 0 ? String(n) : '';
       syncFilterActiveBtn();
@@ -1022,10 +1045,20 @@
     var ratingRange = root.querySelector('#staff-rating-min-range');
     var ratingDesk = root.querySelector('#staff-rating-min-desk');
     if (ratingRange) ratingRange.addEventListener('input', function () { syncRatingUi(ratingRange.value); });
-    if (ratingDesk) ratingDesk.addEventListener('change', function () {
-      syncRatingUi(ratingDesk.value);
-      paintStaffRoles();
-    });
+    if (ratingDesk) {
+      ratingDesk.addEventListener('focus', function () {
+        if (String(ratingDesk.value || '').trim() === '0') ratingDesk.value = '';
+      });
+      ratingDesk.addEventListener('change', function () {
+        syncRatingUi(ratingDesk.value);
+        paintStaffRoles();
+      });
+      // Empty + dim placeholder "7" by default (never ship literal 0)
+      if (!_staffFilterState.ratingMin) {
+        ratingDesk.value = '';
+        ratingDesk.placeholder = '7';
+      }
+    }
     var applyBtn = root.querySelector('#staff-filter-apply');
     if (applyBtn) applyBtn.addEventListener('click', function () {
       var pair = readYearPair();
@@ -1207,6 +1240,27 @@
     );
   }
 
+  function staffPageLayoutHtml(opts) {
+    opts = opts || {};
+    var bootCls = opts.boot ? ' staff-page--boot' : '';
+    return (
+      '<article class="staff-page' + bootCls + '">' +
+        '<div class="staff-page-proto-layout">' +
+          '<aside class="staff-proto-aside" id="staff-proto-aside">' +
+            '<div class="staff-proto-aside-inner">' +
+              '<div class="staff-hero staff-hero--poster" role="banner">' + (opts.heroInner || '') + '</div>' +
+              staffTabsHtml() +
+              '<div class="staff-proto-overview" data-pane="overview">' + (opts.overviewInner || '') + '</div>' +
+            '</div>' +
+          '</aside>' +
+          '<div class="staff-proto-main" id="staff-proto-main" data-pane="films">' +
+            (opts.mainInner || '') +
+          '</div>' +
+        '</div>' +
+      '</article>'
+    );
+  }
+
   function staffBootHeroHtml() {
     var boot = readMpRouteBoot();
     if (!bootMatchesPerson(boot)) return staffLoadingHtml();
@@ -1217,21 +1271,21 @@
     var pid = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
     var photoHtml = staffHeroPhotoImgHtml({ photo: boot.photo_url }, pid);
     setStaffHeaderTitle(title);
-    return (
-      '<article class="staff-page staff-page--boot">' +
-        '<div class="staff-hero staff-hero--poster" role="banner">' + photoHtml +
-          '<div class="staff-hero-text">' +
-            '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
-            (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
-          '</div>' +
-        '</div>' +
-        staffTabsHtml() +
-        '<div class="staff-proto-overview" data-pane="overview"></div>' +
-        '<div class="staff-proto-main" data-pane="films">' +
-          staffLoadingHtml('Фильмография…') +
-        '</div>' +
-      '</article>'
-    );
+    var heroInner = photoHtml +
+      '<div class="staff-hero-text">' +
+        '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
+        (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
+      '</div>';
+    var overviewInner = '';
+    if (Array.isArray(boot.web_facts) && boot.web_facts.length) {
+      overviewInner = staffFactsSectionHtml();
+    }
+    return staffPageLayoutHtml({
+      boot: true,
+      heroInner: heroInner,
+      overviewInner: overviewInner,
+      mainInner: staffLoadingHtml('Фильмография…'),
+    });
   }
 
   function staffContentRoot() {
@@ -1271,6 +1325,11 @@
     if (pageRoot) {
       pageRoot.className = 'container film-page-container staff-page-content';
       pageRoot.innerHTML = '<div id="staff-root" class="staff-page-content-inner">' + staffBootHeroHtml() + '</div>';
+      var boot = readMpRouteBoot();
+      if (bootMatchesPerson(boot, personId) && Array.isArray(boot.web_facts) && boot.web_facts.length) {
+        renderStaffPersonFacts(boot.web_facts);
+      }
+      prefetchStaffPersonFacts(personId);
     }
 
     if (global.MpPublicFilmLogin) {
@@ -1619,45 +1678,9 @@
       } else if (worksEl) worksEl.remove();
     }
 
-    function mountStaffBody(article) {
-      var overview = article.querySelector('.staff-proto-overview');
-      var main = article.querySelector('.staff-proto-main');
-      if (!overview) {
-        article.insertAdjacentHTML('beforeend', staffTabsHtml() +
-          '<div class="staff-proto-overview" data-pane="overview"></div>' +
-          '<div class="staff-proto-main" data-pane="films"></div>');
-        overview = article.querySelector('.staff-proto-overview');
-        main = article.querySelector('.staff-proto-main');
-      }
-      if (overview) {
-        overview.innerHTML = (metaHtml || '') + staffFactsSectionHtml();
-      }
-      if (main) {
-        main.innerHTML = staffPickBannerHtml() + filtersBarHtml() +
-          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
-        root._staffFiltersBound = false;
-      }
-      if (!article.querySelector('.staff-proto-tabs')) {
-        var heroForTabs = article.querySelector('.staff-hero');
-        if (heroForTabs) heroForTabs.insertAdjacentHTML('afterend', staffTabsHtml());
-      }
-      var heroNode = article.querySelector('.staff-hero');
-      if (heroNode) heroNode.classList.add('staff-hero--poster');
-    }
-
-    var bootArticle = root.querySelector('.staff-page--boot');
-    if (bootArticle) {
-      fillHeroText(bootArticle.querySelector('.staff-hero'));
-      bootArticle.classList.remove('staff-page--boot');
-      var loadingEl = bootArticle.querySelector('.mp-route-boot-loading');
-      if (loadingEl) loadingEl.remove();
-      root.querySelector('#staff-person-filters') && root.querySelector('#staff-person-filters').remove();
-      root.querySelector('#staff-roles-root') && root.querySelector('#staff-roles-root').remove();
-      root.querySelector('#staff-facts-section') && root.querySelector('#staff-facts-section').remove();
-      root.querySelector('#mp-pick-banner') && root.querySelector('#mp-pick-banner').remove();
-      mountStaffBody(bootArticle);
-      bindStaffTabs(bootArticle);
-      bindStaffPickBanner(bootArticle);
+    function finishStaffMount(article) {
+      bindStaffTabs(article);
+      bindStaffPickBanner(article);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
@@ -1666,7 +1689,9 @@
           global.MpPublicPromo.mountAfterHero(root);
         }
       } catch (_e) {}
-      loadStaffPersonFacts(personId);
+      var boot = readMpRouteBoot();
+      var bootFacts = (data && data.web_facts) || (boot && bootMatchesPerson(boot, personId) && boot.web_facts) || null;
+      loadStaffPersonFacts(personId, bootFacts);
       root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
         var rk = btn.getAttribute('data-role-key') || '';
         var block = (_staffLastData.films_by_role || []).find(function (b) {
@@ -1675,52 +1700,52 @@
         var filtered = block ? filterPersonFilmsClient(block.films || [], _staffFilterState) : [];
         btn._importIds = filtered.map(function (f) { return String(f.kp_id || ''); }).filter(Boolean);
       });
+    }
+
+    function mountStaffBody(article) {
+      var overview = article.querySelector('.staff-proto-overview');
+      var main = article.querySelector('.staff-proto-main');
+      if (overview) {
+        overview.innerHTML = (metaHtml || '') + staffFactsSectionHtml();
+      }
+      if (main) {
+        main.innerHTML = staffPickBannerHtml() + filtersBarHtml() +
+          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
+        root._staffFiltersBound = false;
+      }
+      var heroNode = article.querySelector('.staff-hero');
+      if (heroNode) heroNode.classList.add('staff-hero--poster');
+      return article;
+    }
+
+    var bootArticle = root.querySelector('.staff-page--boot');
+    if (bootArticle) {
+      fillHeroText(bootArticle.querySelector('.staff-hero'));
+      bootArticle.classList.remove('staff-page--boot');
+      var loadingEl = bootArticle.querySelector('.mp-route-boot-loading');
+      if (loadingEl) loadingEl.remove();
+      mountStaffBody(bootArticle);
+      finishStaffMount(bootArticle);
       return;
     }
 
-    root.innerHTML =
-      '<article class="staff-page">' +
-        '<div class="staff-hero staff-hero--poster" role="banner">' + staffHeroPhotoImgHtml(person, personId) +
-          '<div class="staff-hero-text">' +
-            '<h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
-            (secondaryName
-              ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
-            profHtml +
-            worksHtml +
-          '</div>' +
-        '</div>' +
-        staffTabsHtml() +
-        '<div class="staff-proto-overview" data-pane="overview">' +
-          (metaHtml || '') +
-          staffFactsSectionHtml() +
-        '</div>' +
-        '<div class="staff-proto-main" data-pane="films">' +
-          staffPickBannerHtml() +
-          filtersBarHtml() +
-          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
-        '</div>' +
-      '</article>';
+    var heroInner = staffHeroPhotoImgHtml(person, personId) +
+      '<div class="staff-hero-text">' +
+        '<h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
+        (secondaryName
+          ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
+        profHtml +
+        worksHtml +
+      '</div>';
+    root.innerHTML = staffPageLayoutHtml({
+      heroInner: heroInner,
+      overviewInner: (metaHtml || '') + staffFactsSectionHtml(),
+      mainInner: staffPickBannerHtml() + filtersBarHtml() +
+        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>',
+    });
 
     root._staffFiltersBound = false;
-    bindStaffTabs(root);
-    bindStaffPickBanner(root);
-    bindStaffFilters(root);
-    bindStaffRoleExpandButtons(root);
-    bindStaffImportButtons(root, personId);
-    try {
-      if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
-        global.MpPublicPromo.mountAfterHero(root);
-      }
-    } catch (_e) {}
-    loadStaffPersonFacts(personId);
-    root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
-      var rk = btn.getAttribute('data-role-key') || '';
-      var block = (_staffLastData.films_by_role || []).find(function (b) {
-        return String(b.role_key || '') === rk;
-      });
-      var filtered = block ? filterPersonFilmsClient(block.films || [], _staffFilterState) : [];
-      btn._importIds = filtered.map(function (f) { return String(f.kp_id || ''); }).filter(Boolean);
-    });
+    finishStaffMount(root);
   }
 
   function mergeStaffFilmsBatch(roleKey, batchFilms, append) {
@@ -1816,6 +1841,8 @@
           renderStaffData(d, personId);
         });
     }
+    // Facts in parallel with /head — don't wait for filmography paint
+    prefetchStaffPersonFacts(personId);
     return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/head', { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
@@ -1840,6 +1867,7 @@
           person: head.person || {},
           filters: head.filters || { years: [], genres: [] },
           films_by_role: filmsByRole,
+          web_facts: head.web_facts || null,
         }, personId);
         return loadStaffRolesProgressive(personId, rolesMeta);
       });
