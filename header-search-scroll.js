@@ -7,6 +7,8 @@
  * - Wide hysteresis so stop-scroll near threshold does not toggle.
  * - Title always stays at order:4; search at order:3 (never swap).
  * - Mutually exclusive staff vs film body page classes.
+ * - On /s/ and /f/: NEVER retract search and NEVER flip title-only ↔ with-search
+ *   (that height thrash is the “epileptic” mobile header jump).
  */
 (function (global) {
   'use strict';
@@ -163,11 +165,10 @@
         suppressHide: suppressHide,
       });
 
-      // Apply search retract first (except keep), then sticky — search may hide under sticky title.
-      if (mobile) applyDecision(search, decision);
+      // Staff/film: lock search open. Retract + sticky title thrash header height on scroll.
+      var lockSearchOpen = !!(mode.onStaff || mode.onFilm);
+      if (mobile && !lockSearchOpen) applyDecision(search, decision);
       else applyDecision(search, 'show');
-
-      var searchVisible = !search.classList.contains(RETRACT_CLASS);
 
       var staffPast = mobile && mode.onStaff && heroTitlePastHeader(
         doc, header, pastStaff, '.staff-hero-name', 'staff-standalone-page'
@@ -178,6 +179,7 @@
       );
       pastFilm = filmPast;
 
+      // Sticky chrome is always search+title (showSearch:true). Never title-only class.
       if (staffPast) {
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
@@ -185,7 +187,7 @@
           onlyClass: 'staff-header-title-only',
           withSearchClass: 'staff-header-search-with-title',
           pastName: true,
-          showSearch: searchVisible,
+          showSearch: true,
         });
         applyStickyHeaderTitle(doc, {
           pageClass: 'film-standalone-page',
@@ -202,7 +204,7 @@
           onlyClass: 'film-header-title-only',
           withSearchClass: 'film-header-search-with-title',
           pastName: true,
-          showSearch: searchVisible,
+          showSearch: true,
         });
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
