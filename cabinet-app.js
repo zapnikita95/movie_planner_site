@@ -14126,10 +14126,19 @@
   function glassCtaIconHtml(iconKey) {
     return '<span class="glass-cta__icon" aria-hidden="true">' + mpIcon(iconKey, { size: 'md' }) + '</span>';
   }
+  function glassCtaLabelHtml(label, opts) {
+    const text = String((opts && opts.label) != null ? opts.label : (label || ''));
+    /* Guest watchlist: force «просмотра» onto line 2 so it never runs under «Войти». */
+    if (opts && opts.loginHint && text === 'В список просмотра') {
+      return 'В список<br class="glass-cta__br">просмотра';
+    }
+    return escapeHtml(text);
+  }
   function buildGlassCtaButtonHtml(opts) {
     opts = opts || {};
     const idAttr = opts.id ? (' id="' + escapeHtml(opts.id) + '"') : '';
-    const extra = opts.className ? (' ' + opts.className) : '';
+    let extra = opts.className ? (' ' + opts.className) : '';
+    if (opts.loginHint) extra += ' glass-cta--login-hint';
     const dataAttrs = opts.dataAttrs || '';
     const caret = opts.caret
       ? '<span class="action-dropdown-caret glass-cta__caret" aria-hidden="true">▾</span>'
@@ -14144,7 +14153,7 @@
           ' aria-label="' + escapeHtml(opts.label || '') + '">' +
           glassCtaLayersHtml() +
           glassCtaIconHtml(opts.icon || 'watchlist') +
-          '<span class="glass-cta__label">' + escapeHtml(opts.label || '') + '</span>' +
+          '<span class="glass-cta__label">' + glassCtaLabelHtml(opts.label, opts) + '</span>' +
           loginHint +
           caret +
         '</button>' +
