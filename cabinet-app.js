@@ -14128,9 +14128,12 @@
   }
   function glassCtaLabelHtml(label, opts) {
     const text = String((opts && opts.label) != null ? opts.label : (label || ''));
-    /* Guest watchlist: force «просмотра» onto line 2 so it never runs under «Войти». */
-    if (opts && opts.loginHint && text === 'В список просмотра') {
+    /* Two-line centered labels on narrow screens (CSS also centers). */
+    if (text === 'В список просмотра') {
       return 'В список<br class="glass-cta__br">просмотра';
+    }
+    if (text === 'Запланировать просмотр') {
+      return 'Запланировать<br class="glass-cta__br">просмотр';
     }
     return escapeHtml(text);
   }
