@@ -6284,15 +6284,17 @@
     updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), true);
   }
 
-  function withFilmReviewUtm(url, channelTitle) {
-    const raw = String(url || '').trim();
+  function withFilmReviewUtm(url, channelTitle, medium) {
+    var raw = String(url || '').trim();
     if (!/^https?:\/\//i.test(raw)) return raw;
     try {
-      const u = new URL(raw);
+      var u = new URL(raw);
       if (!u.searchParams.get('utm_source')) u.searchParams.set('utm_source', 'movie_planner');
-      if (!u.searchParams.get('utm_medium')) u.searchParams.set('utm_medium', 'film_reviews');
+      if (!u.searchParams.get('utm_medium')) {
+        u.searchParams.set('utm_medium', medium || 'film_reviews');
+      }
       if (!u.searchParams.get('utm_campaign')) u.searchParams.set('utm_campaign', 'news');
-      const content = String(channelTitle || 'youtube').replace(/[^\w.\-@]+/g, '_').slice(0, 80);
+      var content = String(channelTitle || 'youtube').replace(/[^\w.\-@]+/g, '_').slice(0, 80);
       if (content && !u.searchParams.get('utm_content')) u.searchParams.set('utm_content', content);
       return u.toString();
     } catch (_) {
@@ -6300,42 +6302,73 @@
     }
   }
 
-  function filmDescReviewsInlineHtml(items) {
-    if (!items || !items.length) return '';
-    const ytSvg = '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
+  function filmSocialIconHtml(platform) {
+    var p = String(platform || '').toLowerCase();
+    if (p === 'instagram') {
+      return '<span class="film-review-ig" aria-hidden="true" title="Instagram">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+        '<path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.2.1 4.7 1.7 4.9 4.9.1 1.3.1 1.7.1 4.8s0 3.6-.1 4.9c-.2 3.1-1.7 4.7-4.9 4.9-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-3.2-.2-4.7-1.8-4.9-4.9-.1-1.3-.1-1.7-.1-4.9s0-3.6.1-4.9C2.4 4 3.9 2.4 7.1 2.3 8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.2 0-3.5 0-4.8.1-2.3.1-3.4 1.2-3.5 3.5-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.8c.1 2.2 1.2 3.4 3.5 3.5 1.2.1 1.6.1 4.8.1s3.5 0 4.8-.1c2.3-.1 3.4-1.3 3.5-3.5.1-1.3.1-1.6.1-4.8s0-3.5-.1-4.8c-.1-2.2-1.2-3.4-3.5-3.5-1.3-.1-1.6-.1-4.8-.1zm0 3.1a5.1 5.1 0 1 1 0 10.2 5.1 5.1 0 0 1 0-10.2zm0 1.8a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6zm6.5-2.1a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>' +
+        '</svg></span>';
+    }
+    return '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
       '<path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/>' +
       '</svg></span>';
-    const lis = items.slice(0, 8).map(function (it) {
+  }
+
+  function filmDescSocialsInlineHtml(socials) {
+    if (!socials || !socials.length) return '';
+    var lis = socials.slice(0, 6).map(function (it) {
       if (!it || !it.url) return '';
-      const title = escapeHtml(it.title || 'Видео');
-      const ch = escapeHtml(it.channel_title || '');
-      const url = escapeHtml(withFilmReviewUtm(it.url, it.channel_title || ''));
-      const chBit = ch ? ' <span class="film-review-channel">' + ch + '</span>' : '';
-      return '<li class="film-review-item">' + ytSvg +
+      var plat = String(it.platform || 'link');
+      var label = escapeHtml(it.label || (it.handle ? '@' + it.handle : plat));
+      var handle = escapeHtml(it.handle || label);
+      var url = escapeHtml(withFilmReviewUtm(it.url, it.handle || it.label || plat, 'film_social'));
+      return '<li class="film-review-item">' + filmSocialIconHtml(plat) +
         '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
-        ' data-review-out="1" data-review-channel="' + ch + '">' +
-        title + '</a>' + chBit + '</li>';
+        ' data-review-out="1" data-review-platform="' + escapeHtml(plat) + '"' +
+        ' data-review-channel="' + handle + '">' +
+        label + '</a></li>';
     }).filter(Boolean).join('');
     if (!lis) return '';
-    return '<div class="film-desc-reviews-title">Разборы на YouTube</div>' +
+    return '<div class="film-desc-reviews-title">В соцсетях</div>' +
       '<ul class="film-desc-reviews-list">' + lis + '</ul>';
   }
 
-  function paintFilmDescReviews(wrap, items) {
+  function filmDescReviewsInlineHtml(items, socials) {
+    var ytSvg = filmSocialIconHtml('youtube');
+    var lis = (items || []).slice(0, 8).map(function (it) {
+      if (!it || !it.url) return '';
+      var title = escapeHtml(it.title || 'Видео');
+      var ch = escapeHtml(it.channel_title || '');
+      var url = escapeHtml(withFilmReviewUtm(it.url, it.channel_title || '', 'film_reviews'));
+      var chBit = ch ? ' <span class="film-review-channel">' + ch + '</span>' : '';
+      return '<li class="film-review-item">' + ytSvg +
+        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-platform="youtube" data-review-channel="' + ch + '">' +
+        title + '</a>' + chBit + '</li>';
+    }).filter(Boolean).join('');
+    var ytBlock = lis
+      ? ('<div class="film-desc-reviews-title">Разборы на YouTube</div><ul class="film-desc-reviews-list">' + lis + '</ul>')
+      : '';
+    return filmDescSocialsInlineHtml(socials) + ytBlock;
+  }
+
+  function paintFilmDescReviews(wrap, items, socials) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
-    const hero = (wrap && wrap.closest('.hero-content')) ||
+    var hero = (wrap && wrap.closest('.hero-content')) ||
       document.querySelector('#film-page-content .hero-content, .film-page .hero-content, .movie-page .hero-content');
-    const revEl = ensureFilmReviewsSlot(hero);
+    var revEl = ensureFilmReviewsSlot(hero);
     if (!revEl) return;
-    const list = Array.isArray(items) ? items : [];
-    revEl.innerHTML = list.length ? filmDescReviewsInlineHtml(list) : '';
+    var list = Array.isArray(items) ? items : [];
+    var soc = Array.isArray(socials) ? socials : [];
+    revEl.innerHTML = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
     revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
       a.addEventListener('click', function () {
         try {
           if (typeof window.ym === 'function') {
             window.ym(110038199, 'reachGoal', 'buzz_outbound', {
-              platform: 'youtube',
+              platform: a.getAttribute('data-review-platform') || 'youtube',
               channel: a.getAttribute('data-review-channel') || '',
               view: 'film_reviews',
             });
@@ -6361,7 +6394,7 @@
       })
       .then(function (d) {
         wrap.setAttribute('data-reviews-loaded', kp);
-        paintFilmDescReviews(wrap, (d && d.items) || []);
+        paintFilmDescReviews(wrap, (d && d.items) || [], (d && d.socials) || []);
       })
       .catch(function () {})
       .then(function () { wrap.removeAttribute('data-reviews-loading'); });

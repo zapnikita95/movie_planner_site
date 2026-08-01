@@ -6818,6 +6818,12 @@ body.film-standalone-page .film-page-similar-section,
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
 }
 .film-review-yt { color: #ff4444; display: inline-flex; flex: 0 0 auto; transform: translateY(2px); }
+.film-review-ig {
+  color: #e1306c;
+  display: inline-flex;
+  flex: 0 0 auto;
+  transform: translateY(2px);
+}
 .film-review-channel { color: var(--text-muted); font-size: 12px; }
 .film-review-link { color: var(--accent, #7eb8ff); }
 
