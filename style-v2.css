@@ -22251,15 +22251,30 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
 body.staff-standalone-page {
   overflow-x: clip;
 }
+/* flex column .staff-page + margin:auto was shrink-wrapping the grid to ~500px
+   and centering photo+facts — force full width from first paint (boot too). */
+body.staff-standalone-page .staff-page,
+body.staff-standalone-page .staff-page.staff-page--boot {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  align-items: stretch !important;
+}
 body.staff-standalone-page .staff-page-proto-layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  display: grid !important;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) !important;
   gap: 20px 28px;
   align-items: start;
+  width: 100% !important;
   max-width: 1180px;
-  margin: 0 auto;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   padding: 16px 16px 80px;
   box-sizing: border-box;
+  flex: none !important;
+  min-width: 0 !important;
 }
 body.staff-standalone-page .staff-proto-aside {
   position: sticky;
@@ -22277,6 +22292,8 @@ body.staff-standalone-page .staff-proto-aside {
   scroll-padding-bottom: 48px;
   padding-bottom: 8px;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 300px;
 }
 body.staff-standalone-page .staff-proto-aside-inner {
   width: 100%;
@@ -22284,12 +22301,136 @@ body.staff-standalone-page .staff-proto-aside-inner {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  justify-content: flex-start;
   gap: 0;
+  height: auto !important;
+  min-height: 0 !important;
   padding-bottom: 72px;
   box-sizing: border-box;
 }
 body.staff-standalone-page .staff-proto-aside-inner > * {
-  flex: 0 0 auto;
+  flex: 0 0 auto !important;
+}
+
+/* Facts card: proto compact (~66px closed) — NOT base 12/44 padding (~211px) */
+body.staff-standalone-page .staff-proto-aside .staff-facts-anchor,
+body.staff-standalone-page .staff-proto-aside .staff-facts-anchor.staff-facts-anchor--interactive {
+  margin: 0 !important;
+  width: 100%;
+  max-width: 300px;
+  box-sizing: border-box;
+  cursor: pointer;
+  z-index: 3;
+  flex: 0 0 auto !important;
+  align-self: flex-start !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  border-radius: 14px;
+  border: 1px solid rgba(236, 72, 153, 0.22);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(59, 130, 246, 0.06));
+  overflow: hidden;
+  position: relative;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-toggle {
+  pointer-events: none;
+  display: block !important;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 28px 8px 10px !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.3 !important;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 246, 255, 0.95);
+  text-align: left;
+  font: inherit;
+  cursor: inherit;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-toggle-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  margin: 0 0 4px !important;
+  min-height: 0 !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-toggle-label {
+  font-size: 11px !important;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2 !important;
+  color: rgba(251, 207, 232, 0.95);
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-chevron {
+  position: absolute !important;
+  right: 10px !important;
+  top: 8px !important;
+  transform: none !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  opacity: 0.85;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-preview {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  overflow: hidden !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  max-height: calc(1.35em * 2) !important;
+  color: #e4e4ec !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-preview.hidden {
+  display: none !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-panel {
+  padding: 6px 10px 14px !important;
+  margin: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-panel.hidden {
+  display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-list {
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-list li {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  color: #e4e4ec;
+  padding-left: 12px;
+  margin: 0 !important;
+}
+/* Boot uses same interactive toggle markup as final — no extra shell padding */
+body.staff-standalone-page .staff-proto-aside .staff-facts-anchor.staff-facts--boot {
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+body.staff-standalone-page .staff-proto-aside .staff-facts-anchor.staff-facts--boot .staff-facts-list {
+  display: none !important;
 }
 body.staff-standalone-page .staff-proto-main .person-filters-toggles {
   display: flex;
@@ -23409,13 +23550,19 @@ body.staff-standalone-page .staff-awards-loading {
     font-size: 12.5px !important;
     margin: 2px 0 4px !important;
   }
-  body.staff-standalone-page .staff-proto-aside .staff-facts-anchor {
-    margin: 0 !important;
-    max-width: 300px;
-  }
   body.staff-standalone-page main.container.staff-page-content,
-  body.staff-standalone-page #film-page-content.staff-page-content {
+  body.staff-standalone-page #film-page-content.staff-page-content,
+  body.staff-standalone-page #film-page-content.container.staff-page-content,
+  body.staff-standalone-page #staff-root,
+  body.staff-standalone-page .film-page-outer {
     padding-top: 0 !important;
     max-width: none !important;
+    width: 100% !important;
+  }
+  body.staff-standalone-page #section-film .film-page-outer {
+    max-width: 1180px !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 }
