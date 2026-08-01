@@ -14359,6 +14359,57 @@ button.staff-import-btn:hover {
   position: absolute; right: 6px; top: 6px; z-index: 2;
   padding: 2px 7px; border-radius: 8px; font-size: 11px; font-weight: 800;
   background: rgba(0,0,0,.72); color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.staff-film-rating--top {
+  color: #ffcc5c;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+.staff-film-rating--top .staff-film-rating-star {
+  display: inline-flex;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  color: #ffcc5c;
+}
+.staff-film-rating--top .staff-film-rating-star svg {
+  width: 11px;
+  height: 11px;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+.staff-film-bell {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 4;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c2185b, #6d28d9);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.staff-film-bell.active {
+  background: rgba(30, 30, 38, 0.94);
+  border: 1.5px solid #ff2d7b;
+}
+.staff-film-bell:focus-visible {
+  outline: 2px solid var(--focus-ring, #c4b5fd);
+  outline-offset: 2px;
 }
 .staff-film-title {
   margin-top: 8px;
