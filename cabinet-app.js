@@ -6699,14 +6699,57 @@
     return formatWebFactHtml(fact);
   }
 
-  function renderCabinetStaffPersonFacts(webFacts) {
+  function staffFactsItemsFromPayload(d) {
+    const web = (d && Array.isArray(d.web_facts))
+      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      : [];
+    const kpRaw = (d && Array.isArray(d.kp_facts)) ? d.kp_facts : [];
+    const kp = [];
+    kpRaw.forEach(function (item) {
+      if (!item) return;
+      if (typeof item === 'string') {
+        const t = item.trim();
+        if (t) kp.push({ fact: t });
+        return;
+      }
+      if (item.fact) kp.push(item);
+    });
+    if (!web.length) return kp.slice(0, 8);
+    const out = web.slice();
+    const norm = function (text) {
+      return String(text || '')
+        .toLowerCase()
+        .replace(/[«»"'()\[\].,;:!?—–-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+    const nearDup = function (a, b) {
+      const na = norm(a);
+      const nb = norm(b);
+      if (!na || !nb) return false;
+      if (na === nb) return true;
+      const shorter = na.length <= nb.length ? na : nb;
+      const longer = na.length <= nb.length ? nb : na;
+      if (shorter.length >= 28 && longer.indexOf(shorter) !== -1) return true;
+      return false;
+    };
+    kp.forEach(function (f) {
+      if (out.length >= 8) return;
+      if (!out.some(function (x) { return nearDup(f.fact, x.fact); })) out.push(f);
+    });
+    return out.slice(0, 8);
+  }
+
+  function renderCabinetStaffPersonFacts(factsOrPayload) {
     const section = document.getElementById('staff-facts-section');
     const preview = document.getElementById('staff-facts-preview');
     const list = document.getElementById('staff-facts-list');
     const panel = document.getElementById('staff-facts-panel');
     const toggle = document.getElementById('staff-facts-toggle');
     if (!section || !preview || !list) return;
-    const facts = (webFacts || []).filter(function (f) { return f && f.fact; });
+    const facts = Array.isArray(factsOrPayload)
+      ? factsOrPayload.filter(function (f) { return f && f.fact; })
+      : staffFactsItemsFromPayload(factsOrPayload || {});
     if (!facts.length) {
       section.classList.add('hidden');
       return;
@@ -6751,7 +6794,7 @@
       .then(function (d) {
         if (!d || !d.success) return;
         _staffPageFactsLoadedKp = pid;
-        renderCabinetStaffPersonFacts(d.web_facts || []);
+        renderCabinetStaffPersonFacts(d);
       })
       .catch(function () {});
   }

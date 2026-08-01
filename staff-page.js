@@ -276,14 +276,68 @@
     });
   }
 
-  function renderStaffPersonFacts(webFacts) {
+  function _staffFactNormKey(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[«»"'()\[\].,;:!?—–-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function _staffFactsNearDup(a, b) {
+    var na = _staffFactNormKey(a);
+    var nb = _staffFactNormKey(b);
+    if (!na || !nb) return false;
+    if (na === nb) return true;
+    var shorter = na.length <= nb.length ? na : nb;
+    var longer = na.length <= nb.length ? nb : na;
+    if (shorter.length >= 28 && longer.indexOf(shorter) !== -1) return true;
+    var wa = na.split(' ').filter(Boolean);
+    var wb = nb.split(' ').filter(Boolean);
+    if (wa.length < 4 || wb.length < 4) return false;
+    var setB = {};
+    wb.forEach(function (w) { setB[w] = 1; });
+    var inter = 0;
+    wa.forEach(function (w) { if (setB[w]) inter += 1; });
+    return inter / Math.min(wa.length, wb.length) >= 0.78;
+  }
+
+  /** web_facts (with sources) first, then KP strings — same «Интересные факты» list. */
+  function staffFactsItemsFromPayload(d) {
+    var web = (d && Array.isArray(d.web_facts))
+      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      : [];
+    var kpRaw = (d && Array.isArray(d.kp_facts)) ? d.kp_facts : [];
+    var kp = [];
+    kpRaw.forEach(function (item) {
+      if (!item) return;
+      if (typeof item === 'string') {
+        var t = item.trim();
+        if (t) kp.push({ fact: t });
+        return;
+      }
+      if (item.fact) kp.push(item);
+    });
+    if (!web.length) return kp.slice(0, 8);
+    var out = web.slice();
+    kp.forEach(function (f) {
+      if (out.length >= 8) return;
+      var dup = out.some(function (x) { return _staffFactsNearDup(f.fact, x.fact); });
+      if (!dup) out.push(f);
+    });
+    return out.slice(0, 8);
+  }
+
+  function renderStaffPersonFacts(factsOrPayload) {
     var section = document.getElementById('staff-facts-section');
     var preview = document.getElementById('staff-facts-preview');
     var list = document.getElementById('staff-facts-list');
     var panel = document.getElementById('staff-facts-panel');
     var toggle = document.getElementById('staff-facts-toggle');
     if (!section || !preview || !list) return;
-    var facts = (webFacts || []).filter(function (f) { return f && f.fact; });
+    var facts = Array.isArray(factsOrPayload)
+      ? factsOrPayload.filter(function (f) { return f && f.fact; })
+      : staffFactsItemsFromPayload(factsOrPayload || {});
     if (!facts.length) {
       section.classList.add('hidden');
       return;
@@ -342,14 +396,17 @@
     return promise;
   }
 
-  function loadStaffPersonFacts(personId, bootFacts) {
-    if (Array.isArray(bootFacts) && bootFacts.length) {
-      renderStaffPersonFacts(bootFacts);
+  function loadStaffPersonFacts(personId, bootPayload) {
+    if (bootPayload) {
+      var bootItems = Array.isArray(bootPayload)
+        ? bootPayload
+        : staffFactsItemsFromPayload(bootPayload);
+      if (bootItems.length) renderStaffPersonFacts(bootItems);
     }
     if (isFestPersonId(personId)) return Promise.resolve();
     return prefetchStaffPersonFacts(personId).then(function (d) {
       if (!d || !d.success) return;
-      renderStaffPersonFacts(d.web_facts || []);
+      renderStaffPersonFacts(d);
     });
   }
 
@@ -372,9 +429,13 @@
 
   function staffMetaLine(person) {
     if (!person) return '';
+    var bits = [];
     var bday = fmtStaffBirthday(person.birthday || person.birth_date || '');
-    if (bday) {
-      return '<p class="staff-hero-meta">Дата рождения: ' + escapeHtml(bday) + '</p>';
+    if (bday) bits.push('Дата рождения: ' + bday);
+    var place = String(person.birthplace || person.birth_place || '').trim();
+    if (place) bits.push(place);
+    if (bits.length) {
+      return '<p class="staff-hero-meta">' + escapeHtml(bits.join(' · ')) + '</p>';
     }
     var parts = [];
     if (person.birth_year) {
@@ -1277,7 +1338,11 @@
         (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
       '</div>';
     var overviewInner = '';
-    if (Array.isArray(boot.web_facts) && boot.web_facts.length) {
+    var bootFactItems = staffFactsItemsFromPayload({
+      web_facts: boot.web_facts,
+      kp_facts: boot.kp_facts,
+    });
+    if (bootFactItems.length) {
       overviewInner = staffFactsSectionHtml();
     }
     return staffPageLayoutHtml({
@@ -1326,8 +1391,12 @@
       pageRoot.className = 'container film-page-container staff-page-content';
       pageRoot.innerHTML = '<div id="staff-root" class="staff-page-content-inner">' + staffBootHeroHtml() + '</div>';
       var boot = readMpRouteBoot();
-      if (bootMatchesPerson(boot, personId) && Array.isArray(boot.web_facts) && boot.web_facts.length) {
-        renderStaffPersonFacts(boot.web_facts);
+      if (bootMatchesPerson(boot, personId)) {
+        var earlyFacts = staffFactsItemsFromPayload({
+          web_facts: boot.web_facts,
+          kp_facts: boot.kp_facts,
+        });
+        if (earlyFacts.length) renderStaffPersonFacts(earlyFacts);
       }
       prefetchStaffPersonFacts(personId);
     }
@@ -1690,7 +1759,12 @@
         }
       } catch (_e) {}
       var boot = readMpRouteBoot();
-      var bootFacts = (data && data.web_facts) || (boot && bootMatchesPerson(boot, personId) && boot.web_facts) || null;
+      var bootFacts = null;
+      if (data && (data.web_facts || data.kp_facts)) {
+        bootFacts = { web_facts: data.web_facts || [], kp_facts: data.kp_facts || [] };
+      } else if (boot && bootMatchesPerson(boot, personId) && (boot.web_facts || boot.kp_facts)) {
+        bootFacts = { web_facts: boot.web_facts || [], kp_facts: boot.kp_facts || [] };
+      }
       loadStaffPersonFacts(personId, bootFacts);
       root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
         var rk = btn.getAttribute('data-role-key') || '';
@@ -1868,6 +1942,7 @@
           filters: head.filters || { years: [], genres: [] },
           films_by_role: filmsByRole,
           web_facts: head.web_facts || null,
+          kp_facts: head.kp_facts || null,
         }, personId);
         return loadStaffRolesProgressive(personId, rolesMeta);
       });
