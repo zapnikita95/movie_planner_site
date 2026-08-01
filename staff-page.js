@@ -28,6 +28,8 @@
   var _staffGlobalFilters = { years: [], genres: [] };
   var _staffPickOn = false;
   var _staffPickSelected = new Map();
+  /** Desktop (and synced mobile awards): 'films' | 'awards' */
+  var _staffMainPane = 'films';
   var PICK_START_ARROW =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">' +
     '<path d="M5 12h12m0 0-4.5-4.5M17 12l-4.5 4.5" stroke="currentColor" stroke-width="2.2" ' +
@@ -550,7 +552,7 @@
       start.innerHTML = pickStartLabelHtml(_staffPickOn);
     }
     if (!_staffPickOn) _staffPickSelected.clear();
-    if (_staffPickOn) setStaffTab('films');
+    // Keep current filmography/awards pane — selection Map persists across switch.
     paintStaffRoles();
     refreshStaffPickDone();
   }
@@ -765,11 +767,90 @@
     return String(n) + ' ' + ruCountWord(n, 'победа', 'победы', 'побед');
   }
 
-  function syncStaffAwardsDesktop() {
+  function staffDeskPaneTabsHtml() {
+    return (
+      '<nav class="staff-desk-pane-tabs" id="staff-desk-pane-tabs" aria-label="Фильмография и награды">' +
+        '<button type="button" class="staff-desk-pane-tab' +
+          (_staffMainPane === 'films' ? ' is-active' : '') +
+          '" data-staff-pane="films"' +
+          (_staffMainPane === 'films' ? ' aria-current="page"' : '') +
+          '>Фильмография</button>' +
+        '<button type="button" class="staff-desk-pane-tab' +
+          (_staffMainPane === 'awards' ? ' is-active' : '') +
+          '" data-staff-pane="awards"' +
+          (_staffMainPane === 'awards' ? ' aria-current="page"' : '') +
+          '>Награды</button>' +
+      '</nav>'
+    );
+  }
+
+  function ensureStaffAwardsRoot() {
+    var rolesRoot = document.getElementById('staff-roles-root');
     var awardsRoot = document.getElementById('staff-awards-root');
-    if (!awardsRoot || !isStaffDesktopLayout()) return;
-    awardsRoot.classList.remove('hidden');
-    if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
+    var main = document.getElementById('staff-proto-main');
+    if (!awardsRoot) {
+      awardsRoot = document.createElement('div');
+      awardsRoot.id = 'staff-awards-root';
+      awardsRoot.classList.add('hidden');
+    }
+    if (_staffPersonId) awardsRoot.setAttribute('data-person-id', String(_staffPersonId));
+    // Sibling after #staff-roles-root — never between role sections.
+    if (rolesRoot && rolesRoot.contains(awardsRoot)) {
+      rolesRoot.after(awardsRoot);
+    } else if (rolesRoot && awardsRoot.previousElementSibling !== rolesRoot) {
+      rolesRoot.after(awardsRoot);
+    } else if (!rolesRoot && main && !awardsRoot.parentNode) {
+      main.appendChild(awardsRoot);
+    }
+    return awardsRoot;
+  }
+
+  function applyStaffMainPane() {
+    var awardsRoot = document.getElementById('staff-awards-root') || ensureStaffAwardsRoot();
+    var filmsRoot = document.getElementById('staff-roles-root');
+    var filters = document.getElementById('staff-person-filters');
+    var pick = document.getElementById('mp-pick-banner');
+    var deskTabs = document.getElementById('staff-desk-pane-tabs');
+    var desktop = isStaffDesktopLayout();
+    var tab = document.body.getAttribute('data-staff-tab') || 'films';
+    var showTools = desktop ? true : (tab === 'films' || tab === 'awards');
+    if (filters) filters.classList.toggle('hidden', !showTools);
+    if (pick) pick.classList.toggle('hidden', !showTools);
+    if (deskTabs) {
+      // CSS also hides on mobile; keep in DOM under filters for desktop placement.
+      deskTabs.classList.toggle('hidden', !desktop);
+    }
+    var showAwards;
+    var showFilms;
+    if (desktop) {
+      showAwards = _staffMainPane === 'awards';
+      showFilms = _staffMainPane === 'films';
+    } else if (tab === 'overview') {
+      showAwards = false;
+      showFilms = false;
+    } else {
+      showAwards = tab === 'awards';
+      showFilms = tab === 'films';
+    }
+    if (filmsRoot) filmsRoot.classList.toggle('hidden', !showFilms);
+    if (awardsRoot) awardsRoot.classList.toggle('hidden', !showAwards);
+  }
+
+  function setStaffMainPane(pane) {
+    _staffMainPane = pane === 'awards' ? 'awards' : 'films';
+    document.body.setAttribute('data-staff-pane', _staffMainPane);
+    document.querySelectorAll('.staff-desk-pane-tab').forEach(function (btn) {
+      var on = btn.getAttribute('data-staff-pane') === _staffMainPane;
+      btn.classList.toggle('is-active', on);
+      if (on) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
+    });
+    applyStaffMainPane();
+    if (_staffMainPane === 'awards') {
+      var awardsRoot = ensureStaffAwardsRoot();
+      if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
+      else if (awardsRoot._awardsItems) paintStaffAwards(awardsRoot);
+    }
   }
 
   function setStaffTab(tab) {
@@ -781,51 +862,48 @@
       if (on) btn.setAttribute('aria-current', 'page');
       else btn.removeAttribute('aria-current');
     });
-    var awardsRoot = document.getElementById('staff-awards-root');
-    var filmsRoot = document.getElementById('staff-roles-root');
-    var filters = document.getElementById('staff-person-filters');
-    var pick = document.getElementById('mp-pick-banner');
-    if (isStaffDesktopLayout()) {
-      // Desktop: filmography + awards accordion both in main (no tab swap).
-      if (filmsRoot) filmsRoot.classList.remove('hidden');
-      if (filters) filters.classList.remove('hidden');
-      if (pick) pick.classList.remove('hidden');
-      syncStaffAwardsDesktop();
-      return;
+    if (t === 'awards' || t === 'films') {
+      _staffMainPane = t === 'awards' ? 'awards' : 'films';
+      document.body.setAttribute('data-staff-pane', _staffMainPane);
+      document.querySelectorAll('.staff-desk-pane-tab').forEach(function (btn) {
+        var on = btn.getAttribute('data-staff-pane') === _staffMainPane;
+        btn.classList.toggle('is-active', on);
+        if (on) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+      });
     }
-    if (t === 'awards') {
-      if (filmsRoot) filmsRoot.classList.add('hidden');
-      if (filters) filters.classList.add('hidden');
-      if (pick) pick.classList.add('hidden');
-      if (awardsRoot) {
-        awardsRoot.classList.remove('hidden');
-        if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
-      }
-    } else if (t === 'films') {
-      if (awardsRoot) awardsRoot.classList.add('hidden');
-      if (filmsRoot) filmsRoot.classList.remove('hidden');
-      if (filters) filters.classList.remove('hidden');
-      if (pick) pick.classList.remove('hidden');
-    } else {
-      if (awardsRoot) awardsRoot.classList.add('hidden');
-      if (filmsRoot) filmsRoot.classList.add('hidden');
-      if (filters) filters.classList.add('hidden');
-      if (pick) pick.classList.add('hidden');
+    applyStaffMainPane();
+    if (t === 'awards' || (isStaffDesktopLayout() && _staffMainPane === 'awards')) {
+      var awardsRoot = ensureStaffAwardsRoot();
+      if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
     }
+  }
+
+  function staffAwardsApiBase() {
+    return (window.MpApiConfig && window.MpApiConfig.apiBase)
+      ? window.MpApiConfig.apiBase()
+      : ((window.API_BASE || window.location.origin || '').replace(/\/$/, ''));
+  }
+
+  function absStaffMediaUrl(url) {
+    var u = String(url || '').trim();
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u) || u.indexOf('data:') === 0) return u;
+    if (u.charAt(0) === '/') return staffAwardsApiBase() + u;
+    return u;
   }
 
   function loadStaffAwards(root) {
     if (!root) return;
-    var pid = root.getAttribute('data-person-id') || (window.__MP_STAFF_PERSON_ID || '');
+    if (root._awardsLoading) return;
+    var pid = root.getAttribute('data-person-id') || String(_staffPersonId || '') || (window.__MP_STAFF_PERSON_ID || '');
     if (!pid) {
       root.innerHTML = '<p class="staff-awards-empty">Номинации пока не загружены</p>';
       return;
     }
+    root._awardsLoading = true;
     root.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
-    var base = (window.MpApiConfig && window.MpApiConfig.apiBase)
-      ? window.MpApiConfig.apiBase()
-      : ((window.API_BASE || window.location.origin || '').replace(/\/$/, ''));
-    fetch(base + '/api/public/person/' + encodeURIComponent(pid) + '/awards?limit=200', {
+    fetch(staffAwardsApiBase() + '/api/public/person/' + encodeURIComponent(pid) + '/awards?limit=200', {
       method: 'GET',
       mode: 'cors',
     })
@@ -833,25 +911,92 @@
       .then(function (data) {
         root.setAttribute('data-loaded', '1');
         var items = (data && data.items) || [];
+        items.forEach(function (it) {
+          it.poster = absStaffMediaUrl(it.poster);
+          it.icon = absStaffMediaUrl(it.icon || '');
+        });
         root._awardsItems = items;
-        root._awardsWinsOnly = false;
+        if (root._awardsWinsOnly == null) root._awardsWinsOnly = false;
         if (!items.length) {
           root.innerHTML = '<p class="staff-awards-empty">Пока нет номинаций в базе — собираем оскары и фестивали</p>';
+          applyStaffMainPane();
           return;
         }
         paintStaffAwards(root);
+        applyStaffMainPane();
       })
       .catch(function () {
         root.innerHTML = '<p class="staff-awards-empty">Не удалось загрузить награды</p>';
+        applyStaffMainPane();
+      })
+      .finally(function () {
+        root._awardsLoading = false;
       });
+  }
+
+  function staffFilmIndexByKp() {
+    var map = {};
+    var primary = String(_staffPrimaryRoleKey || '').toUpperCase();
+    ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (block) {
+      var rk = String(block.role_key || '').toUpperCase();
+      (block.films || []).forEach(function (f) {
+        var kp = String(f.kp_id || '').replace(/\D/g, '');
+        if (!kp) return;
+        if (!map[kp] || (primary && rk === primary)) {
+          map[kp] = f;
+        }
+      });
+    });
+    return map;
+  }
+
+  function filterStaffAwardItems(items) {
+    var idx = staffFilmIndexByKp();
+    var roleKey = _staffPrimaryRoleKey || 'ACTOR';
+    var enriched = (items || []).map(function (it) {
+      var kp = String(it.kp_id || '').replace(/\D/g, '');
+      var film = (kp && idx[kp]) || {};
+      return {
+        kp_id: kp || it.kp_id,
+        year: it.year != null ? it.year : film.year,
+        genres: film.genres || [],
+        rating: film.rating != null ? film.rating : film.rating_kp,
+        rating_kp: film.rating_kp != null ? film.rating_kp : film.rating,
+        cast_rank: film.cast_rank,
+        description: film.description,
+        friend_rated_high: film.friend_rated_high,
+        watched: film.watched,
+        has_rating: film.has_rating,
+        film_url: film.film_url,
+        catalog_id: film.catalog_id,
+        fest_slug: film.fest_slug,
+        tmdb_id: film.tmdb_id,
+        _award: it,
+      };
+    });
+    return filterPersonFilmsClient(enriched, _staffFilterState, roleKey).map(function (m) {
+      return m._award;
+    });
   }
 
   function paintStaffAwards(root) {
     if (!root) return;
-    var items = root._awardsItems || [];
+    var items = filterStaffAwardItems(root._awardsItems || []);
     var winsOnly = !!root._awardsWinsOnly;
     root.innerHTML = renderStaffAwardsHtml(items, { winsOnly: winsOnly });
     bindStaffAwardsUi(root);
+  }
+
+  function awardIconFallbackLetters(awardName, slug) {
+    var s = String(slug || '').replace(/[^a-z0-9]/gi, '');
+    if (s === 'sag') return 'SAG';
+    if (s === 'saturn') return 'SAT';
+    if (s === 'emmy') return 'EMM';
+    if (s === 'nika') return 'НИК';
+    if (s === 'golden-eagle') return 'ОРЁ';
+    if (s === 'cesar') return 'CÉS';
+    var name = String(awardName || '?').replace(/[«»\"]/g, '').trim();
+    return name.slice(0, 3).toUpperCase();
   }
 
   function renderStaffAwardsHtml(items, opts) {
@@ -878,21 +1023,28 @@
     }
     html += '</p>';
     html +=
-      '<label class="staff-awards-wins-toggle">' +
-        '<input type="checkbox" id="staff-awards-wins-only"' + (winsOnly ? ' checked' : '') + '>' +
-        '<span>Только победы</span>' +
+      '<label class="staff-awards-switch">' +
+        '<input type="checkbox" id="staff-awards-wins-only" role="switch"' +
+        (winsOnly ? ' checked' : '') + '>' +
+        '<span class="staff-awards-switch-ui" aria-hidden="true"></span>' +
+        '<span class="staff-awards-switch-label">Только победы</span>' +
       '</label>';
     html += '</div>';
     if (!order.length) {
-      html += '<p class="staff-awards-empty">Нет побед в загруженных номинациях</p></div>';
+      html += '<p class="staff-awards-empty">' +
+        (winsOnly
+          ? 'Нет побед в загруженных номинациях'
+          : 'Нет номинаций по текущим фильтрам') +
+        '</p></div>';
       return html;
     }
     order.forEach(function (awardName, idx) {
       var rows = byAward[awardName] || [];
-      var noms = rows.length; // includes wins
+      var noms = rows.length;
       var wins = rows.filter(function (it) { return !!it.win; }).length;
       var first = rows[0] || {};
-      var iconSrc = (first.icon || '').replace(/"/g, '&quot;');
+      var iconSrc = absStaffMediaUrl(first.icon || '').replace(/"/g, '&quot;');
+      var slug = String(first.award_slug || '');
       var panelId = 'staff-awards-panel-' + idx;
       var meta = escapeHtml(ruNominationsLabel(noms));
       if (wins) meta += ' · ' + escapeHtml(ruWinsLabel(wins));
@@ -901,7 +1053,12 @@
         '<button type="button" class="staff-awards-acc" aria-expanded="false" aria-controls="' +
         panelId + '">';
       if (iconSrc) {
-        html += '<img class="staff-awards-group-icon" src="' + iconSrc + '" alt="" width="36" height="36" loading="lazy">';
+        html += '<img class="staff-awards-group-icon" src="' + iconSrc + '" alt="" width="32" height="32" loading="lazy">';
+      } else {
+        html +=
+          '<span class="staff-awards-group-fallback">' +
+          escapeHtml(awardIconFallbackLetters(awardName, slug)) +
+          '</span>';
       }
       html += '<span class="staff-awards-acc-text">';
       html += '<span class="staff-awards-acc-name">' + escapeHtml(awardName) + '</span>';
@@ -919,9 +1076,21 @@
           ? '<span class="staff-awards-badge">Победа</span>'
           : '<span class="staff-awards-badge staff-awards-badge--nom">Номинация</span>';
         var href = kp ? ('/f/' + encodeURIComponent(kp)) : '#';
-        var poster = (it.poster || '').replace(/"/g, '&quot;');
+        var poster = absStaffMediaUrl(it.poster || '').replace(/"/g, '&quot;');
+        var titlePlain = String(it.film_title || 'Фильм');
+        var selected = !!(kp && _staffPickSelected.has(kp));
+        var check = _staffPickOn
+          ? ('<span class="staff-film-check' + (selected ? ' is-on' : '') + '" aria-hidden="true">' +
+            (selected ? '✓' : '') + '</span>')
+          : '';
         html += '<li class="staff-awards-item' + winCls + '">';
-        html += '<a class="staff-awards-link" href="' + href + '">';
+        html +=
+          '<a class="staff-awards-link' + (selected ? ' is-selected' : '') + '" href="' + href + '"' +
+          (kp ? (' data-kp="' + escapeHtml(kp) + '"') : '') +
+          ' data-poster="' + escapeHtml(String(it.poster || poster || '')) + '"' +
+          ' data-title="' + escapeHtml(titlePlain) + '">';
+        html += '<span class="staff-awards-poster-wrap">';
+        html += check;
         if (poster) {
           html +=
             '<img class="staff-awards-poster" src="' + poster +
@@ -930,9 +1099,11 @@
         } else {
           html += '<span class="staff-awards-poster staff-awards-poster--ph" aria-hidden="true"></span>';
         }
+        html += '</span>';
         html += '<span class="staff-awards-copy">';
-        html += '<span class="staff-awards-nom">' + nom + '</span>';
+        // Film title primary; nomination secondary.
         html += '<span class="staff-awards-film">' + title + (year ? (' · ' + escapeHtml(year)) : '') + '</span>';
+        html += '<span class="staff-awards-nom">' + nom + '</span>';
         html += '</span>' + badge + '</a></li>';
       });
       html += '</ul></div></section>';
@@ -965,6 +1136,17 @@
     });
   }
 
+  function bindStaffDeskPaneTabs(root) {
+    var nav = (root && root.querySelector('#staff-desk-pane-tabs')) || document.getElementById('staff-desk-pane-tabs');
+    if (!nav || nav._deskPaneBound) return;
+    nav._deskPaneBound = true;
+    nav.querySelectorAll('[data-staff-pane]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setStaffMainPane(btn.getAttribute('data-staff-pane'));
+      });
+    });
+  }
+
   function bindStaffTabs(root) {
     if (!root) return;
     root.querySelectorAll('.staff-proto-tab').forEach(function (btn) {
@@ -972,12 +1154,17 @@
         setStaffTab(btn.getAttribute('data-staff-tab'));
       };
     });
+    bindStaffDeskPaneTabs(root);
+    _staffMainPane = 'films';
     setStaffTab('films');
-    syncStaffAwardsDesktop();
     if (!bindStaffTabs._resizeBound) {
       bindStaffTabs._resizeBound = true;
       window.addEventListener('resize', function () {
-        if (isStaffDesktopLayout()) syncStaffAwardsDesktop();
+        applyStaffMainPane();
+        if (isStaffDesktopLayout() && _staffMainPane === 'awards') {
+          var awardsRoot = ensureStaffAwardsRoot();
+          if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
+        }
       });
     }
   }
@@ -1017,10 +1204,15 @@
     root._staffPickCardsBound = true;
     root.addEventListener('click', function (e) {
       if (!_staffPickOn) return;
-      if (e.target && e.target.closest && e.target.closest('[data-bell-kp], .staff-import-btn, .staff-role-expand, .mp-pick-start, .mp-pick-banner .x')) {
+      if (e.target && e.target.closest && e.target.closest(
+        '[data-bell-kp], .staff-import-btn, .staff-role-expand, .mp-pick-start, .mp-pick-banner .x, ' +
+        '.staff-awards-acc, .staff-awards-switch, #staff-desk-pane-tabs'
+      )) {
         return;
       }
-      var card = e.target && e.target.closest ? e.target.closest('a.staff-film-card') : null;
+      var card = e.target && e.target.closest
+        ? e.target.closest('a.staff-film-card, a.staff-awards-link')
+        : null;
       if (!card || !root.contains(card)) return;
       e.preventDefault();
       e.stopPropagation();
@@ -1705,6 +1897,11 @@
     if (!root || !_staffLastData) return;
     var rolesRoot = root.querySelector('#staff-roles-root');
     if (rolesRoot) rolesRoot.innerHTML = rolesHtml(_staffLastData.films_by_role || []);
+    var awardsKeep = ensureStaffAwardsRoot();
+    if (awardsKeep && awardsKeep.getAttribute('data-loaded') === '1' && awardsKeep._awardsItems) {
+      paintStaffAwards(awardsKeep);
+    }
+    applyStaffMainPane();
     var filtersRoot = root.querySelector('#staff-person-filters');
     if (filtersRoot) {
       var genreEl = filtersRoot.querySelector('#staff-filter-genre');
@@ -1729,6 +1926,7 @@
       }
     }
     bindStaffFilters(root);
+    bindStaffDeskPaneTabs(root);
     bindStaffRoleExpandButtons(root);
     if (_staffPersonId) bindStaffImportButtons(root, _staffPersonId);
     bindStaffPickBanner(root);
@@ -2273,12 +2471,15 @@
 
     function finishStaffMount(article) {
       bindStaffTabs(article);
+      bindStaffDeskPaneTabs(article);
       bindStaffPickBanner(article);
       bindStaffPickCardClicks(root);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
       bindStaffFilmNavTitles(root);
+      ensureStaffAwardsRoot();
+      applyStaffMainPane();
       try {
         if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.suppressRetract === 'function') {
           global.MpHeaderSearchScroll.suppressRetract(1400);
@@ -2316,9 +2517,10 @@
       if (main) {
         var pidAttr = escapeHtml(String(personId || ''));
         main.innerHTML =
-          '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>' +
           staffPickBannerHtml() + filtersBarHtml() +
-          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
+          staffDeskPaneTabsHtml() +
+          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+          '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>';
         root._staffFiltersBound = false;
       }
       var heroNode = article.querySelector('.staff-hero');
@@ -2348,10 +2550,7 @@
     root.innerHTML = staffPageLayoutHtml({
       heroInner: heroInner,
       overviewInner: (metaHtml || '') + staffFactsSectionHtml(),
-      mainInner:
-        '<div id="staff-awards-root" class="hidden" data-person-id="' +
-          escapeHtml(String(personId || '')) + '"></div>' +
-        staffPickBannerHtml() + filtersBarHtml() +
+      mainInner: staffPickBannerHtml() + filtersBarHtml() +
         '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>',
     });
 
