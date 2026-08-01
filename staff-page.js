@@ -540,9 +540,25 @@
     return s;
   }
 
+  /** Hero needs HQ — never ship w185/w342 soap. Match guest-cta proto (original). */
+  function upgradeStaffHeroPhotoUrl(src) {
+    var s = cleanStaffPersonPhoto(src);
+    if (!s) return '';
+    // Always apex TMDB mirror (RF) at original size
+    var m = s.match(/\/api\/public\/poster\/tmdb\/(?:w\d+|h\d+|original)\/([^?#]+)/i);
+    if (m) return '/api/public/poster/tmdb/original/' + m[1];
+    m = s.match(/image\.tmdb\.org\/t\/p\/(?:w\d+|h\d+|original)\/([^?#]+)/i);
+    if (m) return '/api/public/poster/tmdb/original/' + m[1];
+    if (/^\/?[a-zA-Z0-9_]+\.(jpg|jpeg|png|webp)$/i.test(s)) {
+      return '/api/public/poster/tmdb/original/' + s.replace(/^\//, '');
+    }
+    return s;
+  }
+
   function staffDefaultPhotoUrl(personId) {
     var kp = String(personId || '').replace(/\D/g, '');
     if (!kp) return '';
+    // Prefer KP big actor art over tiny iphone360 when no TMDB
     return 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
   }
 
@@ -550,7 +566,7 @@
     var out = [];
     var seen = {};
     (list || []).forEach(function (u) {
-      var s = cleanStaffPersonPhoto(u);
+      var s = upgradeStaffHeroPhotoUrl(u);
       if (!s || seen[s]) return;
       seen[s] = 1;
       out.push(s);
@@ -563,13 +579,14 @@
     var boot = readMpRouteBoot();
     var bootPhoto = '';
     if (bootMatchesPerson(boot, kp)) {
-      bootPhoto = cleanStaffPersonPhoto(String(boot.photo_url || '').trim());
+      bootPhoto = String(boot.photo_url || '').trim();
     }
-    var apiPhoto = cleanStaffPersonPhoto(person && (person.photo || person.photo_url));
+    var apiPhoto = person && (person.photo || person.photo_url);
+    // HQ first: API/boot (upgraded), then KP fallback — never prefer tiny before original
     return uniqueStaffPhotoCandidates([
+      apiPhoto,
       bootPhoto,
       staffDefaultPhotoUrl(kp),
-      apiPhoto,
     ]);
   }
 

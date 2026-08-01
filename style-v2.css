@@ -21955,8 +21955,22 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
    Do NOT invent a second #site-header — only page hero + title slot in existing header.
    Root gutters: style-v2 page-shell padding 14px 12px — kill for full-bleed photo. */
 @media (max-width: 860px) {
-  body.staff-standalone-page .page-shell {
-    padding: 0 !important;
+  /* HAR 2026-08-01: side «рамка» = #cabinet-readonly padding 14px 12px, not only page-shell */
+  body.staff-standalone-page .page-shell,
+  body.staff-standalone-page #cabinet-readonly,
+  body.staff-standalone-page #cabinet-readonly.film-page-mode,
+  html.mp-staff-boot body.staff-standalone-page #cabinet-readonly,
+  html.mp-staff-boot #cabinet-readonly {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  body.staff-standalone-page .page-shell,
+  body.staff-standalone-page #cabinet-readonly,
+  html.mp-staff-boot #cabinet-readonly {
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
     overflow-x: clip !important;
   }
@@ -21969,17 +21983,23 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
   body.staff-standalone-page .page-shell > main.staff-standalone-main,
   body.staff-standalone-page .staff-page-content,
   body.staff-standalone-page #film-page-content.staff-page-content,
-  body.staff-standalone-page #film-page-content {
+  body.staff-standalone-page #film-page-content,
+  body.staff-standalone-page #section-film {
     margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     max-width: none !important;
+    width: 100% !important;
   }
   body.staff-standalone-page .staff-page {
     padding: 0 0 24px;
+    margin: 0;
+    max-width: none;
   }
 
-  /* Full-bleed photo; face visible; title BELOW image */
+  /* Full-bleed edge-to-edge (proto): no side gutters, top radius only */
   body.staff-standalone-page .staff-hero,
   body.staff-standalone-page .staff-hero--poster {
     display: flex !important;
@@ -21987,12 +22007,14 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
     align-items: stretch !important;
     text-align: left !important;
     gap: 0 !important;
-    margin: 10px 0 0 !important;
+    margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     min-height: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
   }
   body.staff-standalone-page .staff-hero-photo,
   body.staff-standalone-page .staff-hero-ph {
