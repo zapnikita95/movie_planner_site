@@ -2474,6 +2474,8 @@
     }
     document.addEventListener('click', function (e) {
       var wrap = document.getElementById('header-search');
+      var chromeBtn = document.getElementById('header-chrome-search-btn');
+      if (chromeBtn && (e.target === chromeBtn || (chromeBtn.contains && chromeBtn.contains(e.target)))) return;
       if (wrap && !wrap.contains(e.target)) hide();
     });
   }
@@ -2778,6 +2780,9 @@
         '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
         standaloneHeaderSearchHtml() +
         '<div class="header-buttons">' +
+          '<button type="button" class="header-chrome-search-btn" id="header-chrome-search-btn" aria-label="Поиск" title="Поиск">' +
+            '<svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' +
+          '</button>' +
           '<div class="header-user-wrap account-switcher" id="header-user-wrap" style="position:relative">' +
             '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
               '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
