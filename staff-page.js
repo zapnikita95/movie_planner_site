@@ -500,7 +500,10 @@
   function staffPickBannerHtml() {
     return (
       '<div class="mp-pick-banner" id="mp-pick-banner">' +
-        '<strong class="mp-pick-banner__text">Выбрать интересные</strong>' +
+        '<strong class="mp-pick-banner__text">' +
+          '<span class="mp-pick-banner__short">Выбрать интересные</span>' +
+          '<span class="mp-pick-banner__long">Выбрать интересные картины</span>' +
+        '</strong>' +
         '<button type="button" class="mp-pick-start" id="staff-pick-start" aria-pressed="false">' +
           pickStartLabelHtml(false) +
         '</button>' +
