@@ -22777,15 +22777,6 @@ body.in-cabinet .mp-pick-done {
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
     mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
   }
-  /* Tablet: full-bleed but taller so wide crop doesn’t chop the face */
-  @media (min-width: 600px) {
-    body.staff-standalone-page .staff-hero-photo,
-    body.staff-standalone-page .staff-hero-ph {
-      height: min(46vh, 400px) !important;
-      max-height: 400px !important;
-      object-position: center 18% !important;
-    }
-  }
   body.staff-standalone-page .staff-hero-ph {
     font-size: 72px;
     background: #1a1a22 !important;
@@ -23587,6 +23578,16 @@ body.staff-standalone-page .staff-awards-loading {
   margin: 12px 0 24px;
   font-size: 14px;
   color: var(--text-body, #e4e4ec);
+}
+
+/* Tablet: full-bleed taller hero so wide crop doesn’t chop the face */
+@media (min-width: 600px) and (max-width: 860px) {
+  body.staff-standalone-page .staff-hero-photo,
+  body.staff-standalone-page .staff-hero-ph {
+    height: min(46vh, 400px) !important;
+    max-height: 400px !important;
+    object-position: center 18% !important;
+  }
 }
 
 @media (min-width: 861px) {
