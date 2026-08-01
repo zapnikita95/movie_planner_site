@@ -21246,12 +21246,41 @@ img.mp-poster-placeholder,
   }
 }
 
-/* ===== Liquid glass CTA (film card) — from .local/glass-cta-button.html ===== */
-.film-toolbar-plan-wrap {
+/* ===== Liquid glass CTA — exact from .local/glass-cta-button.html ===== */
+/* Stage ambient bloom (THIS is what makes it glow on black / film card) */
+.glass-cta-stage {
+  --r: 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 22px 16px;
   overflow: visible;
+  box-sizing: border-box;
 }
-.film-page-toolbar--guest {
-  overflow: visible;
+.glass-cta-stage::before {
+  content: "";
+  position: absolute;
+  inset: 22% 2%;
+  background:
+    radial-gradient(ellipse 42% 60% at 16% 40%, rgba(110, 90, 255, 0.32), transparent 72%),
+    radial-gradient(ellipse 36% 55% at 82% 62%, rgba(255, 55, 150, 0.28), transparent 70%),
+    radial-gradient(ellipse 30% 48% at 68% 18%, rgba(255, 150, 50, 0.18), transparent 70%);
+  filter: blur(22px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+}
+.film-toolbar-plan-wrap,
+.film-page-toolbar--guest,
+.film-page-toolbar,
+main.film-page .hero-content,
+#section-film .hero-content,
+#film-page-content .hero-content {
+  overflow: visible !important;
 }
 .glass-cta {
   --r: 20px;
@@ -21279,15 +21308,43 @@ img.mp-poster-placeholder,
     -6px -4px 28px -10px rgba(100, 120, 255, 0.35),
     8px 6px 30px -10px rgba(255, 50, 140, 0.3),
     4px -6px 22px -10px rgba(255, 160, 60, 0.18);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
 }
 .glass-cta:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.7),
-    -7px -5px 32px -10px rgba(100, 120, 255, 0.42),
-    9px 7px 34px -10px rgba(255, 50, 140, 0.36),
-    5px -7px 26px -10px rgba(255, 160, 60, 0.22);
+    0 14px 36px rgba(0, 0, 0, 0.7),
+    -8px -6px 40px -6px rgba(120, 140, 255, 0.65),
+    10px 8px 44px -6px rgba(255, 55, 160, 0.55),
+    6px -8px 36px -6px rgba(255, 170, 70, 0.4),
+    0 0 48px -4px rgba(160, 120, 255, 0.35);
+}
+.glass-cta:hover .glass-cta__bloom {
+  opacity: 1;
+  filter: blur(8px);
+  transform: scale(1.04);
+}
+.glass-cta:hover .glass-cta__ring {
+  opacity: 1;
+  filter: brightness(1.25);
+}
+.glass-cta:hover .glass-cta__flare {
+  opacity: 1;
+  filter: brightness(1.35);
+}
+.glass-cta:hover .glass-cta__tint {
+  background: linear-gradient(
+    110deg,
+    rgba(140, 120, 255, 0.14) 0%,
+    rgba(180, 220, 255, 0.12) 16%,
+    transparent 30%,
+    transparent 55%,
+    rgba(255, 160, 60, 0.1) 72%,
+    transparent 88%
+  );
 }
 .glass-cta:focus-visible {
   outline: 2px solid rgba(170, 150, 255, 0.65);
@@ -21297,7 +21354,12 @@ img.mp-poster-placeholder,
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(22, 22, 28, 0.98) 0%, rgba(10, 10, 13, 1) 55%, rgba(8, 8, 11, 1) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(22, 22, 28, 0.98) 0%,
+    rgba(10, 10, 13, 1) 55%,
+    rgba(8, 8, 11, 1) 100%
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
     inset 0 -10px 20px rgba(0, 0, 0, 0.35);
@@ -21331,6 +21393,7 @@ img.mp-poster-placeholder,
   z-index: 2;
   pointer-events: none;
   opacity: 0.92;
+  transition: opacity 0.25s ease, filter 0.25s ease;
 }
 .glass-cta__flare {
   position: absolute;
@@ -21349,6 +21412,7 @@ img.mp-poster-placeholder,
   z-index: 3;
   pointer-events: none;
   mix-blend-mode: screen;
+  transition: opacity 0.25s ease, filter 0.25s ease;
 }
 .glass-cta__bloom {
   position: absolute;
@@ -21363,6 +21427,7 @@ img.mp-poster-placeholder,
   z-index: -1;
   pointer-events: none;
   opacity: 0.85;
+  transition: opacity 0.25s ease, filter 0.25s ease, transform 0.25s ease;
 }
 .glass-cta__tint {
   position: absolute;
@@ -21379,6 +21444,7 @@ img.mp-poster-placeholder,
   );
   z-index: 1;
   pointer-events: none;
+  transition: background 0.25s ease;
 }
 .glass-cta__icon {
   position: relative;
@@ -21424,31 +21490,32 @@ img.mp-poster-placeholder,
   color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
 }
-/* override solid pink plan button when glass */
+/* Kill solid pink plan fill when glass */
 .film-toolbar-plan.glass-cta,
-.film-toolbar-plan-wrap .action-dropdown-btn.glass-cta {
+.film-toolbar-plan-wrap .action-dropdown-btn.glass-cta,
+button.glass-cta.film-toolbar-plan {
   background: #0a0a0c !important;
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.65),
     -6px -4px 28px -10px rgba(100, 120, 255, 0.35),
     8px 6px 30px -10px rgba(255, 50, 140, 0.3),
     4px -6px 22px -10px rgba(255, 160, 60, 0.18) !important;
-  font-weight: 500;
-  justify-content: flex-start;
-  padding: 0 16px 0 8px;
+  font-weight: 500 !important;
+  justify-content: flex-start !important;
+  padding: 0 16px 0 8px !important;
   max-width: 392px;
   width: 100%;
+  min-height: 52px !important;
+  border-radius: 20px !important;
 }
-.film-toolbar-plan-wrap .action-dropdown:has(.glass-cta) {
-  width: min(100%, 392px);
-  max-width: 392px;
+.film-toolbar-plan-wrap .action-dropdown:has(.glass-cta),
+.film-toolbar-plan-wrap .action-dropdown:has(.glass-cta-stage) {
+  width: min(100%, 440px);
+  max-width: 440px;
   overflow: visible;
 }
-.film-page-toolbar--guest .film-toolbar-plan-wrap {
-  justify-content: center;
-}
-.film-page-toolbar--guest .glass-cta {
-  margin: 0 auto;
+.film-toolbar-plan-wrap .glass-cta-stage {
+  width: 100%;
 }
 /* Guest: no corner tag */
 .film-hero-with-tag:not(.film-hero--authed) > .film-hero-tag-btn,
