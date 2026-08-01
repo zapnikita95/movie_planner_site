@@ -712,8 +712,12 @@
 
   function collectionCodeFromPath(pathname) {
     var p = (pathname || (typeof window !== "undefined" ? window.location.pathname : "") || "").replace(/\/$/, "");
-    if (p.indexOf("/features/collections/") !== 0) return null;
-    var code = p.split("/features/collections/")[1].split("/")[0];
+    var code = null;
+    if (p.indexOf("/whattowatch/collections/") === 0) {
+      code = p.split("/whattowatch/collections/")[1].split("/")[0];
+    } else if (p.indexOf("/features/collections/") === 0) {
+      code = p.split("/features/collections/")[1].split("/")[0];
+    }
     if (!code || code === "collections") return null;
     if (!/^[A-Za-z0-9_-]{2,64}$/.test(code)) return null;
     return code;
@@ -737,6 +741,14 @@
         if (typeof global.__mpWtwCollectionsBack === "function") global.__mpWtwCollectionsBack();
         return;
       }
+      if (action === "wtw-page") {
+        var pageRaw = parseInt(btn.getAttribute("data-page") || "0", 10);
+        if (!pageRaw || pageRaw < 1 || btn.disabled) return;
+        _discoveryState.page = pageRaw;
+        loadDiscoveryList(root);
+        try { root.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (_) {}
+        return;
+      }
       if (action === "wtw-public-open") {
         var code = btn.getAttribute("data-coll-id");
         if (code && typeof global.__mpWtwOpenCollectionCode === "function") {
@@ -754,29 +766,53 @@
     });
   }
 
-  function renderDiscoveryHub(root) {
-    if (!root) return;
-    root.innerHTML =
-      '<div class="collections-page collections-page--discovery">'
-      + '<p class="cabinet-hint collections-intro">Готовые подборки Movie Planner — откройте список и добавьте понравившиеся в базу.</p>'
-      + '<div class="collections-list-host" id="wtw-collections-discovery-list"><div class="settings-loading">Загружаем…</div></div>'
-      + (hasSiteAuth() ? "" : guestWhatIsHtml())
-      + "</div>";
-    bindWtwCollectionsPanel(root);
-    try {
-      if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
-        global.MpPublicPromo.bindRegister(root);
-      }
-    } catch (_) {}
-    hydrateIcons(root);
-    apiPublicGet("/api/public/collections?limit=80").then(function (data) {
-      var listEl = root.querySelector("#wtw-collections-discovery-list");
-      if (!listEl) return;
+  var _discoveryState = { q: "", page: 1, pageSize: 24, total: 0, loading: false };
+
+  function discoveryQueryString() {
+    var params = ["limit=" + _discoveryState.pageSize, "offset=" + ((_discoveryState.page - 1) * _discoveryState.pageSize)];
+    if (_discoveryState.q) params.push("q=" + encodeURIComponent(_discoveryState.q));
+    return params.join("&");
+  }
+
+  function discoveryPagerHtml() {
+    var total = _discoveryState.total || 0;
+    var pages = Math.max(1, Math.ceil(total / _discoveryState.pageSize));
+    var page = Math.min(Math.max(1, _discoveryState.page), pages);
+    _discoveryState.page = page;
+    if (total <= _discoveryState.pageSize) {
+      return total
+        ? '<p class="collections-pager-meta">' + total + " подборок</p>"
+        : "";
+    }
+    return (
+      '<div class="collections-pager" role="navigation" aria-label="Страницы подборок">'
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-coll-action="wtw-page" data-page="'
+      + (page - 1) + '"' + (page <= 1 ? " disabled" : "") + ">Назад</button>"
+      + '<span class="collections-pager-meta">Стр. ' + page + " из " + pages + " · " + total + "</span>"
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-coll-action="wtw-page" data-page="'
+      + (page + 1) + '"' + (page >= pages ? " disabled" : "") + ">Далее</button>"
+      + "</div>"
+    );
+  }
+
+  function loadDiscoveryList(root) {
+    var listEl = root && root.querySelector("#wtw-collections-discovery-list");
+    var pagerEl = root && root.querySelector("#wtw-collections-discovery-pager");
+    if (!listEl) return;
+    if (_discoveryState.loading) return;
+    _discoveryState.loading = true;
+    listEl.className = "collections-list-host";
+    listEl.innerHTML = '<div class="settings-loading">Загружаем…</div>';
+    if (pagerEl) pagerEl.innerHTML = "";
+    apiPublicGet("/api/public/collections?" + discoveryQueryString()).then(function (data) {
+      _discoveryState.loading = false;
+      if (!listEl.isConnected) return;
       if (!data || !data.success) {
         listEl.className = "collections-empty-wrap";
         listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
         return;
       }
+      _discoveryState.total = Number(data.total || 0) || 0;
       var items = data.collections || [];
       fillListEl(listEl, items, function (c) {
         return listItemHtml({
@@ -787,14 +823,66 @@
           title: c.name,
           hint: (c.films_count || 0) + " в подборке",
         });
-      }, '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
+      }, _discoveryState.q
+        ? '<p class="empty-hint collections-empty-hint">Ничего не найдено — попробуйте другое название</p>'
+        : '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
+      if (pagerEl) pagerEl.innerHTML = discoveryPagerHtml();
     }).catch(function () {
-      var listEl = root.querySelector("#wtw-collections-discovery-list");
-      if (listEl) {
-        listEl.className = "collections-empty-wrap";
-        listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
-      }
+      _discoveryState.loading = false;
+      if (!listEl.isConnected) return;
+      listEl.className = "collections-empty-wrap";
+      listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
     });
+  }
+
+  function renderDiscoveryHub(root) {
+    if (!root) return;
+    _discoveryState.q = "";
+    _discoveryState.page = 1;
+    _discoveryState.total = 0;
+    _discoveryState.loading = false;
+    root.innerHTML =
+      '<div class="collections-page collections-page--discovery">'
+      + '<p class="cabinet-hint collections-intro">Готовые подборки Movie Planner — откройте список и добавьте понравившиеся в базу.</p>'
+      + '<label class="collections-search-label" for="wtw-collections-search">'
+      + '<span class="visually-hidden">Поиск по коллекциям</span>'
+      + '<input type="search" id="wtw-collections-search" class="collections-search-input" '
+      + 'placeholder="Оскар, Канны, актёр или фильм" autocomplete="off" enterkeyhint="search">'
+      + "</label>"
+      + '<div class="collections-list-host" id="wtw-collections-discovery-list"><div class="settings-loading">Загружаем…</div></div>'
+      + '<div id="wtw-collections-discovery-pager" class="collections-pager-host"></div>'
+      + (hasSiteAuth() ? "" : guestWhatIsHtml())
+      + "</div>";
+    bindWtwCollectionsPanel(root);
+    var searchInput = root.querySelector("#wtw-collections-search");
+    var searchTimer = null;
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        var val = String(searchInput.value || "").trim();
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          _discoveryState.q = val;
+          _discoveryState.page = 1;
+          loadDiscoveryList(root);
+        }, 280);
+      });
+      searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (searchTimer) clearTimeout(searchTimer);
+          _discoveryState.q = String(searchInput.value || "").trim();
+          _discoveryState.page = 1;
+          loadDiscoveryList(root);
+        }
+      });
+    }
+    try {
+      if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
+        global.MpPublicPromo.bindRegister(root);
+      }
+    } catch (_) {}
+    hydrateIcons(root);
+    loadDiscoveryList(root);
   }
 
   function renderPublicByCode(root, shortCode) {
