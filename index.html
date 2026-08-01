@@ -637,6 +637,9 @@
                           '<div class="staff-hero-text">' +
                             '<h1 class="staff-hero-name">' + esc(title) + '</h1>' +
                             (en ? '<p class="staff-hero-sub">' + esc(en) + '</p>' : '') +
+                            /* Reserve final slots so facts don't jump when person meta arrives */
+                            '<p class="staff-hero-prof staff-boot-skel" aria-hidden="true">&nbsp;</p>' +
+                            '<p class="staff-hero-stats staff-boot-skel" aria-hidden="true">&nbsp;</p>' +
                           '</div>' +
                         '</div>' +
                         '<div class="staff-proto-tabs" role="tablist" aria-label="Разделы">' +
@@ -644,6 +647,7 @@
                           '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
                         '</div>' +
                         '<div class="staff-proto-overview" data-pane="overview">' +
+                          '<p class="staff-hero-meta staff-boot-skel" aria-hidden="true">&nbsp;</p>' +
                           '<section class="staff-facts-anchor staff-facts-anchor--interactive staff-facts--boot" id="staff-facts-section" aria-label="Интересные факты" aria-busy="true">' +
                             '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
                               '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
@@ -2768,7 +2772,7 @@
           || path === '/series' || path === '/series-hub' || path === '/settings'
           || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile';
-        var V = '20260801awardsDesk1';
+        var V = '20260801staffTight1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

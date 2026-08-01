@@ -14177,8 +14177,21 @@ header.staff-hero,
 }
 .staff-filter-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
 .staff-role-block { margin-bottom: 10px; }
-body.staff-standalone-page .staff-role-block { margin-bottom: 8px; }
-body.staff-standalone-page .staff-role-block + .staff-role-block { margin-top: 4px; }
+/* Kill landing `section { padding: 60px 24px }` — was giant black holes after «Развернуть» */
+body.staff-standalone-page #staff-roles-root > .staff-role-block,
+body.staff-standalone-page .staff-role-block {
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0 0 12px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.staff-standalone-page #staff-roles-root > .staff-role-block + .staff-role-block {
+  margin-top: 2px !important;
+}
+body.staff-standalone-page #staff-roles-root .staff-role-expand {
+  margin: 8px auto 0 !important;
+}
 body.staff-standalone-page #staff-awards-root {
   margin: 0;
   padding: 0;
@@ -14360,6 +14373,7 @@ button.staff-import-btn:hover {
   width: fit-content;
   margin: 8px auto 0;
   padding: 7px 16px;
+  /* keep compact — parent section padding overridden above */
   border-radius: 999px;
   border: 1px solid rgba(255,45,123,.38);
   background: rgba(255,45,123,.1);
@@ -22465,6 +22479,23 @@ body.staff-standalone-page .staff-proto-aside .staff-facts-anchor.staff-facts--b
 body.staff-standalone-page .staff-proto-aside .staff-facts-anchor.staff-facts--boot .staff-facts-list {
   display: none !important;
 }
+/* Boot skeletons: reserve prof / works / birthday so facts stay put */
+body.staff-standalone-page .staff-boot-skel {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+  color: transparent !important;
+  background: transparent !important;
+}
+body.staff-standalone-page .staff-hero-prof.staff-boot-skel,
+body.staff-standalone-page .staff-hero-stats.staff-boot-skel {
+  min-height: 1.25em;
+  margin: 2px 0 4px !important;
+}
+body.staff-standalone-page .staff-hero-meta.staff-boot-skel {
+  min-height: 1.35em;
+  margin: 4px 0 10px !important;
+}
 body.staff-standalone-page .staff-proto-main .person-filters-toggles {
   display: flex;
   flex-wrap: wrap;
@@ -22507,6 +22538,13 @@ body.staff-standalone-page .mp-pick-banner > strong {
   display: inline-flex;
   align-items: center;
   align-self: center;
+}
+/* Mobile: short; desktop: «Выбрать интересные картины» */
+body.staff-standalone-page .mp-pick-banner__long { display: none; }
+body.staff-standalone-page .mp-pick-banner__short { display: inline; }
+@media (min-width: 861px) {
+  body.staff-standalone-page .mp-pick-banner__short { display: none; }
+  body.staff-standalone-page .mp-pick-banner__long { display: inline; }
 }
 body.staff-standalone-page .mp-pick-start {
   flex: 0 0 auto;
@@ -23596,8 +23634,10 @@ body.staff-standalone-page .staff-awards-loading {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
+  body.staff-standalone-page #staff-roles-root > .staff-role-block,
   body.staff-standalone-page .staff-role-block {
-    margin-bottom: 8px;
+    padding: 0 !important;
+    margin: 0 0 12px !important;
   }
   #header-staff-title,
   #header-film-title { display: none !important; }
