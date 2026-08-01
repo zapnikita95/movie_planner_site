@@ -1389,11 +1389,12 @@
   function glassCtaLabelHtml(label, opts) {
     var text = String((opts && opts.label) != null ? opts.label : (label || ''));
     /* Two-line centered labels on narrow screens (CSS also centers). */
+    /* Space before <br>: when br is display:none on desktop, words stay separated. */
     if (text === 'В список просмотра') {
-      return 'В список<br class="glass-cta__br">просмотра';
+      return 'В список <br class="glass-cta__br">просмотра';
     }
     if (text === 'Запланировать просмотр') {
-      return 'Запланировать<br class="glass-cta__br">просмотр';
+      return 'Запланировать <br class="glass-cta__br">просмотр';
     }
     return escapeHtml(text);
   }
