@@ -22084,6 +22084,65 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
   }
 }
 
+/* ===== Staff desktop = guest-cta proto layout (sticky aside + filmography) ===== */
+body.staff-standalone-page {
+  overflow-x: clip;
+}
+body.staff-standalone-page .staff-page-proto-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 20px 28px;
+  align-items: start;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 16px 80px;
+  box-sizing: border-box;
+}
+body.staff-standalone-page .staff-proto-aside {
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  z-index: 2;
+  height: fit-content;
+  max-height: calc(100vh - 96px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 48px;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+}
+body.staff-standalone-page .staff-proto-aside-inner {
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-bottom: 72px;
+  box-sizing: border-box;
+}
+body.staff-standalone-page .staff-proto-aside-inner > * {
+  flex: 0 0 auto;
+}
+body.staff-standalone-page .staff-proto-main .person-filters-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px !important; /* detach from desktop year/genre row */
+}
+body.staff-standalone-page .staff-proto-main .person-filters-row--desktop {
+  margin-top: 0 !important;
+}
+#staff-rating-min-desk.person-filter-select--placeholder::placeholder,
+#staff-rating-min-desk::placeholder {
+  color: var(--text-placeholder, rgba(255, 255, 255, 0.62));
+  opacity: 1;
+}
+
 /* ===== Staff mobile = guest-cta proto v17 parity (2026-08-01) =====
    Do NOT invent a second #site-header. Full-bleed hero like actor-pitt.html. */
 @media (max-width: 860px) {
@@ -22133,6 +22192,26 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
     padding: 0 0 24px;
     margin: 0;
     max-width: none;
+  }
+  body.staff-standalone-page .staff-page-proto-layout {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    padding: 0 0 24px !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  body.staff-standalone-page .staff-proto-aside {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  body.staff-standalone-page .staff-proto-aside-inner {
+    max-width: none !important;
+    width: 100% !important;
+    padding-bottom: 0 !important;
   }
 
   /* Full-bleed edge-to-edge (proto): small air under header, top radius only */
@@ -22441,6 +22520,81 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
     order: 4;
     margin-top: 6px;
   }
+
+  /* ===== Film mobile: full-bleed poster + sticky #film-title (mirror staff) ===== */
+  body.film-standalone-page .page-shell,
+  body.film-standalone-page #cabinet-readonly,
+  body.film-standalone-page #cabinet-readonly.film-page-mode,
+  body.film-standalone-page #cabinet-readonly > .container,
+  body.film-standalone-page #section-film,
+  body.film-standalone-page #section-film .film-page-outer,
+  body.film-standalone-page .film-page-outer,
+  body.film-standalone-page #film-page-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  body.film-standalone-page .film-hero-with-tag .hero-content,
+  body.film-standalone-page .hero-content,
+  body.film-standalone-page .film-page-toolbar,
+  body.film-standalone-page .film-desc-wrap,
+  body.film-standalone-page .film-desc-reviews-inline,
+  body.film-standalone-page .film-hero-crew,
+  body.film-standalone-page .mp-public-promo {
+    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
+    box-sizing: border-box;
+  }
+  #header-film-title {
+    display: none;
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    min-height: 40px;
+    align-items: center;
+    margin: 8px 0 0;
+    padding: 0 2px;
+    box-sizing: border-box;
+    color: #f4f4f5;
+    font-family: Unbounded, Inter, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 29px;
+  }
+  body.film-standalone-page.film-header-title-on #header-film-title {
+    display: flex;
+  }
+  body.film-standalone-page.film-header-title-on #header-search {
+    order: 3;
+    flex: 1 1 100%;
+    margin: 8px 0 0 !important;
+  }
+  body.film-standalone-page.film-header-title-on.film-header-title-only #header-search.header-search--retracted,
+  body.film-standalone-page.film-header-title-on #header-search.header-search--retracted {
+    opacity: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+  body.film-standalone-page.film-header-title-on.film-header-search-with-title #header-search {
+    opacity: 1 !important;
+    max-height: 56px !important;
+    pointer-events: auto !important;
+  }
+  body.film-standalone-page.film-header-title-on.film-header-search-with-title #header-film-title {
+    order: 4;
+    margin-top: 6px;
+  }
 }
 
 @media (min-width: 861px) {
@@ -22449,7 +22603,70 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
   body.staff-standalone-page .staff-proto-main {
     display: block !important;
   }
-  #header-staff-title { display: none !important; }
-  body.staff-standalone-page .person-filters-tools { display: flex !important; }
+  #header-staff-title,
+  #header-film-title { display: none !important; }
+  /* Desktop: year/genre/rating row; tool sheets are mobile-only */
+  body.staff-standalone-page .person-filters-tools { display: none !important; }
   body.staff-standalone-page .person-filters-row--desktop { display: flex !important; }
+  body.staff-standalone-page .person-filter-sheet { display: none !important; }
+
+  /* Desktop hero = portrait in sticky aside (proto) */
+  body.staff-standalone-page .staff-proto-aside .staff-hero,
+  body.staff-standalone-page .staff-proto-aside .staff-hero--poster {
+    display: block !important;
+    flex-direction: unset !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    min-height: 0 !important;
+    width: 100% !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-hero-photo,
+  body.staff-standalone-page .staff-proto-aside .staff-hero-ph {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: 3 / 4;
+    object-fit: cover !important;
+    object-position: top center !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-hero-text {
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    text-align: left !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-hero-name {
+    margin: 10px 0 2px !important;
+    font-size: clamp(20px, 2.2vw, 28px) !important;
+    line-height: 1.1 !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-hero-sub {
+    margin: 0 0 6px !important;
+    font-size: 12px !important;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #b4b4be !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-hero-prof,
+  body.staff-standalone-page .staff-proto-aside .staff-hero-stats {
+    font-size: 12.5px !important;
+    margin: 2px 0 4px !important;
+  }
+  body.staff-standalone-page .staff-proto-aside .staff-facts-anchor {
+    margin: 0 !important;
+    max-width: 300px;
+  }
+  body.staff-standalone-page main.container.staff-page-content,
+  body.staff-standalone-page #film-page-content.staff-page-content {
+    padding-top: 0 !important;
+    max-width: none !important;
+  }
 }

@@ -1,7 +1,7 @@
 /**
  * Mobile: hide header search on scroll down, show on scroll up.
- * Staff pages: pin actor name in search slot after hero name scrolls away;
- * scroll-up reveals search above the sticky name; back to hero unpins name.
+ * Staff/film pages: pin hero title in header after it scrolls away;
+ * scroll-up can reveal search above the sticky name.
  * Keeps logo / login / profile visible. Does not invent a second header.
  */
 (function (global) {
@@ -42,31 +42,36 @@
     else search.classList.remove(RETRACT_CLASS);
   }
 
-  function staffHeroNamePastHeader(doc, header, wasPast) {
-    if (!doc || !doc.body || !doc.body.classList.contains('staff-standalone-page')) return false;
-    var nameEl = doc.querySelector('.staff-hero-name');
+  function heroTitlePastHeader(doc, header, wasPast, selector, pageClass) {
+    if (!doc || !doc.body || !doc.body.classList.contains(pageClass)) return false;
+    var nameEl = doc.querySelector(selector);
     if (!nameEl) return false;
     var headerH = header ? header.offsetHeight : 86;
     var top = nameEl.getBoundingClientRect().top;
-    // Hysteresis: enter sticky earlier, leave later — kills search/title flicker
+    // Hysteresis: enter sticky earlier, leave later — less flicker
     if (wasPast) return top < headerH + 28;
     return top < headerH - 8;
   }
 
-  function applyStaffHeaderTitle(doc, opts) {
+  function applyStickyHeaderTitle(doc, opts) {
     opts = opts || {};
     var body = doc.body;
-    if (!body || !body.classList.contains('staff-standalone-page')) {
-      if (body) {
-        body.classList.remove('staff-header-title-on', 'staff-header-title-only', 'staff-header-search-with-title');
-      }
+    if (!body) return;
+    var pageClass = opts.pageClass || '';
+    var onClass = opts.onClass || '';
+    var onlyClass = opts.onlyClass || '';
+    var withSearchClass = opts.withSearchClass || '';
+    if (!pageClass || !body.classList.contains(pageClass)) {
+      if (onClass) body.classList.remove(onClass);
+      if (onlyClass) body.classList.remove(onlyClass);
+      if (withSearchClass) body.classList.remove(withSearchClass);
       return;
     }
     var past = !!opts.pastName;
     var showSearch = !!opts.showSearch;
-    body.classList.toggle('staff-header-title-on', past);
-    body.classList.toggle('staff-header-title-only', past && !showSearch);
-    body.classList.toggle('staff-header-search-with-title', past && showSearch);
+    body.classList.toggle(onClass, past);
+    body.classList.toggle(onlyClass, past && !showSearch);
+    body.classList.toggle(withSearchClass, past && showSearch);
   }
 
   function bindMobileSearchScroll(opts) {
@@ -78,7 +83,8 @@
     if (!doc) return global.MpHeaderSearchScroll;
 
     var lastY = global.scrollY || 0;
-    var pastSticky = false;
+    var pastStaff = false;
+    var pastFilm = false;
     var searchStickyShow = true;
     var ticking = false;
 
@@ -94,31 +100,89 @@
       var input = doc.getElementById('header-search-input');
       var inputFocused = !!(input && doc.activeElement === input);
       var y = global.scrollY || 0;
-      var pastName = mobile && staffHeroNamePastHeader(doc, header, pastSticky);
-      pastSticky = pastName;
       var decision = decideSearchRetract(y, lastY, {
         mobile: mobile,
         dropdownOpen: dropdownOpen,
         inputFocused: inputFocused,
       });
 
+      var staffPast = mobile && heroTitlePastHeader(
+        doc, header, pastStaff, '.staff-hero-name', 'staff-standalone-page'
+      );
+      pastStaff = staffPast;
+      var filmPast = mobile && !staffPast && heroTitlePastHeader(
+        doc, header, pastFilm, '#film-title', 'film-standalone-page'
+      );
+      // Don't treat staff page as film sticky
+      if (doc.body && doc.body.classList.contains('staff-standalone-page')) {
+        filmPast = false;
+      }
+      pastFilm = filmPast;
+
+      var pastName = staffPast || filmPast;
+
       if (pastName) {
-        // Past hero name: sticky title on. Scroll-up / focus → search above title.
         if (decision === 'show' || dropdownOpen || inputFocused || y <= 8) searchStickyShow = true;
         else if (decision === 'hide') searchStickyShow = false;
-        applyStaffHeaderTitle(doc, { pastName: true, showSearch: searchStickyShow });
+
+        if (staffPast) {
+          applyStickyHeaderTitle(doc, {
+            pageClass: 'staff-standalone-page',
+            onClass: 'staff-header-title-on',
+            onlyClass: 'staff-header-title-only',
+            withSearchClass: 'staff-header-search-with-title',
+            pastName: true,
+            showSearch: searchStickyShow,
+          });
+          applyStickyHeaderTitle(doc, {
+            pageClass: 'film-standalone-page',
+            onClass: 'film-header-title-on',
+            onlyClass: 'film-header-title-only',
+            withSearchClass: 'film-header-search-with-title',
+            pastName: false,
+            showSearch: true,
+          });
+        } else {
+          applyStickyHeaderTitle(doc, {
+            pageClass: 'film-standalone-page',
+            onClass: 'film-header-title-on',
+            onlyClass: 'film-header-title-only',
+            withSearchClass: 'film-header-search-with-title',
+            pastName: true,
+            showSearch: searchStickyShow,
+          });
+          applyStickyHeaderTitle(doc, {
+            pageClass: 'staff-standalone-page',
+            onClass: 'staff-header-title-on',
+            onlyClass: 'staff-header-title-only',
+            withSearchClass: 'staff-header-search-with-title',
+            pastName: false,
+            showSearch: true,
+          });
+        }
         if (searchStickyShow) search.classList.remove(RETRACT_CLASS);
         else search.classList.add(RETRACT_CLASS);
       } else {
         searchStickyShow = true;
-        applyStaffHeaderTitle(doc, { pastName: false, showSearch: true });
-        // On staff page before sticky title: keep search visible (no retract flicker)
-        if (doc.body && doc.body.classList.contains('staff-standalone-page')) {
-          applyDecision(search, 'show');
-        } else {
-          applyDecision(search, mobile ? decision : 'show');
-          if (!mobile) applyDecision(search, 'show');
-        }
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'staff-standalone-page',
+          onClass: 'staff-header-title-on',
+          onlyClass: 'staff-header-title-only',
+          withSearchClass: 'staff-header-search-with-title',
+          pastName: false,
+          showSearch: true,
+        });
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'film-standalone-page',
+          onClass: 'film-header-title-on',
+          onlyClass: 'film-header-title-only',
+          withSearchClass: 'film-header-search-with-title',
+          pastName: false,
+          showSearch: true,
+        });
+        // Always hide search on scroll-down (staff + film + cabinet)
+        applyDecision(search, mobile ? decision : 'show');
+        if (!mobile) applyDecision(search, 'show');
       }
       lastY = y;
     }
@@ -142,7 +206,6 @@
     RETRACT_CLASS: RETRACT_CLASS,
     decideSearchRetract: decideSearchRetract,
     bodyAllowsMobileSearchRetract: bodyAllowsMobileSearchRetract,
-    staffHeroNamePastHeader: staffHeroNamePastHeader,
     bind: bindMobileSearchScroll,
   };
 

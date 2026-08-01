@@ -43,6 +43,29 @@
       .join(', ');
   }
 
+  function ensureHeaderFilmTitleSlot() {
+    var header = document.getElementById('site-header');
+    var content = header && header.querySelector('.header-content');
+    if (!content) return null;
+    var el = document.getElementById('header-film-title');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'header-film-title';
+      el.className = 'header-film-title';
+      el.setAttribute('aria-live', 'polite');
+      content.appendChild(el);
+    }
+    return el;
+  }
+
+  function setFilmHeaderTitle(name) {
+    var el = ensureHeaderFilmTitleSlot();
+    if (!el) return;
+    var t = String(name || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    el.textContent = t;
+    el.title = t;
+  }
+
   /** Parse /f/123 or /f/movie-123 / /f/tv-123 / /f/fest-slug — KP ids stay bare numbers; TMDB uses prefix. */
   function parseFilmRoute(pathname) {
     var path = String(pathname || (global.location && global.location.pathname) || '');
@@ -379,7 +402,9 @@
     var slots = ensureFilmHeroMetaStack(hero);
     var titleRu = film && film.title ? String(film.title).trim() : '';
     if (slots.titleEl && titleRu) {
-      slots.titleEl.textContent = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
+      var cleanTitle = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
+      slots.titleEl.textContent = cleanTitle;
+      setFilmHeaderTitle(cleanTitle);
     }
     setReservedLine(slots.enEl, pickFilmTitleEn(film));
     setReservedLine(slots.genresEl, buildFilmGenresLineText(film && film.genres, film && film.is_series));
@@ -2782,6 +2807,7 @@
     setFilmHeroBackdrop(bootPoster, heroKey);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title;
+    setFilmHeaderTitle(title);
     syncFilmHeroMeta(pageRoot, {
       title: title,
       title_en: boot.title_en || boot.name_en || '',
@@ -3638,6 +3664,7 @@
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
           if (tEl) tEl.textContent = title;
+          setFilmHeaderTitle(title);
           setFilmDescription(pickFilmDescription(f));
           if (isTmdbOnly || isFest) {
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
