@@ -1747,12 +1747,33 @@
       } else if (worksEl) worksEl.remove();
     }
 
+    function bindStaffFilmNavTitles(scope) {
+      if (!scope || scope._staffFilmNavBound) return;
+      scope._staffFilmNavBound = true;
+      scope.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a.staff-film-card') : null;
+        if (!a) return;
+        var ru = String(a.getAttribute('data-film-title-ru') || '').trim();
+        if (!ru || !/[а-яА-ЯёЁ]/.test(ru)) {
+          var titleEl = a.querySelector('.staff-film-title');
+          ru = titleEl ? String(titleEl.textContent || '').trim() : '';
+        }
+        if (!ru || !/[а-яА-ЯёЁ]/.test(ru)) return;
+        var href = String(a.getAttribute('href') || '');
+        var m = href.match(/\/f\/(\d+)/);
+        var kp = m ? m[1] : '';
+        if (!kp) return;
+        try { sessionStorage.setItem('mp_film_nav_title_ru_' + kp, ru); } catch (_s) {}
+      }, true);
+    }
+
     function finishStaffMount(article) {
       bindStaffTabs(article);
       bindStaffPickBanner(article);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
+      bindStaffFilmNavTitles(root);
       try {
         if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
           global.MpPublicPromo.mountAfterHero(root);

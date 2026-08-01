@@ -106,17 +106,15 @@
         inputFocused: inputFocused,
       });
 
-      var staffPast = mobile && heroTitlePastHeader(
+      var onStaff = !!(doc.body && doc.body.classList.contains('staff-standalone-page'));
+      var onFilm = !!(doc.body && doc.body.classList.contains('film-standalone-page')) && !onStaff;
+      var staffPast = mobile && onStaff && heroTitlePastHeader(
         doc, header, pastStaff, '.staff-hero-name', 'staff-standalone-page'
       );
       pastStaff = staffPast;
-      var filmPast = mobile && !staffPast && heroTitlePastHeader(
+      var filmPast = mobile && onFilm && heroTitlePastHeader(
         doc, header, pastFilm, '#film-title', 'film-standalone-page'
       );
-      // Don't treat staff page as film sticky
-      if (doc.body && doc.body.classList.contains('staff-standalone-page')) {
-        filmPast = false;
-      }
       pastFilm = filmPast;
 
       var pastName = staffPast || filmPast;

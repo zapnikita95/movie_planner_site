@@ -6415,11 +6415,18 @@
       const castRoot = moreBtn.closest('.film-hero-crew, .film-modal-crew, #film-hero-cast-root, #film-cast-root') || root;
       const shortEl = castRoot.querySelector('.film-actors-short');
       const fullEl = castRoot.querySelector('.film-actors-full');
+      const wrap = castRoot.querySelector('.film-actors-more-wrap');
       if (!shortEl || !fullEl) return;
       const collapsed = fullEl.classList.contains('hidden');
       fullEl.classList.toggle('hidden', !collapsed);
       shortEl.classList.toggle('hidden', collapsed);
-      moreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
+      if (collapsed) {
+        if (fullEl.parentNode) fullEl.parentNode.insertBefore(moreBtn, fullEl.nextSibling);
+        moreBtn.textContent = 'свернуть';
+      } else {
+        if (wrap) wrap.appendChild(moreBtn);
+        moreBtn.textContent = 'ещё';
+      }
       moreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
     });
   }
@@ -6665,11 +6672,18 @@
       let row =
         '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
       if (hasMore) {
+        var shortHead = collapsed.slice(0, -1);
+        var shortLast = collapsed[collapsed.length - 1];
+        row += '<span class="film-actors-short">';
+        if (shortHead.length) {
+          row += shortHead.join('<span class="film-cast-sep">, </span>') + '<span class="film-cast-sep">, </span>';
+        }
+        row += '<span class="film-actors-more-wrap">' + shortLast +
+          ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button></span>';
+        row += '</span>';
         row +=
-          '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>' +
           '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
-          hiddenActors.join('<span class="film-cast-sep">, </span>') + '</span>' +
-          ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
+          hiddenActors.join('<span class="film-cast-sep">, </span>') + '</span>';
       } else {
         row += actorLinks.join('<span class="film-cast-sep">, </span>');
       }
