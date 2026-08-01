@@ -42,13 +42,15 @@
     else search.classList.remove(RETRACT_CLASS);
   }
 
-  function staffHeroNamePastHeader(doc, header) {
+  function staffHeroNamePastHeader(doc, header, wasPast) {
     if (!doc || !doc.body || !doc.body.classList.contains('staff-standalone-page')) return false;
     var nameEl = doc.querySelector('.staff-hero-name');
     if (!nameEl) return false;
     var headerH = header ? header.offsetHeight : 86;
     var top = nameEl.getBoundingClientRect().top;
-    return top < headerH - 4;
+    // Hysteresis: enter sticky earlier, leave later — kills search/title flicker
+    if (wasPast) return top < headerH + 28;
+    return top < headerH - 8;
   }
 
   function applyStaffHeaderTitle(doc, opts) {
@@ -76,6 +78,8 @@
     if (!doc) return global.MpHeaderSearchScroll;
 
     var lastY = global.scrollY || 0;
+    var pastSticky = false;
+    var searchStickyShow = true;
     var ticking = false;
 
     function update() {
@@ -90,7 +94,8 @@
       var input = doc.getElementById('header-search-input');
       var inputFocused = !!(input && doc.activeElement === input);
       var y = global.scrollY || 0;
-      var pastName = mobile && staffHeroNamePastHeader(doc, header);
+      var pastName = mobile && staffHeroNamePastHeader(doc, header, pastSticky);
+      pastSticky = pastName;
       var decision = decideSearchRetract(y, lastY, {
         mobile: mobile,
         dropdownOpen: dropdownOpen,
@@ -99,14 +104,21 @@
 
       if (pastName) {
         // Past hero name: sticky title on. Scroll-up / focus → search above title.
-        var showSearch = decision === 'show' || dropdownOpen || inputFocused || y <= 8;
-        applyStaffHeaderTitle(doc, { pastName: true, showSearch: showSearch });
-        if (showSearch) search.classList.remove(RETRACT_CLASS);
+        if (decision === 'show' || dropdownOpen || inputFocused || y <= 8) searchStickyShow = true;
+        else if (decision === 'hide') searchStickyShow = false;
+        applyStaffHeaderTitle(doc, { pastName: true, showSearch: searchStickyShow });
+        if (searchStickyShow) search.classList.remove(RETRACT_CLASS);
         else search.classList.add(RETRACT_CLASS);
       } else {
+        searchStickyShow = true;
         applyStaffHeaderTitle(doc, { pastName: false, showSearch: true });
-        applyDecision(search, mobile ? decision : 'show');
-        if (!mobile) applyDecision(search, 'show');
+        // On staff page before sticky title: keep search visible (no retract flicker)
+        if (doc.body && doc.body.classList.contains('staff-standalone-page')) {
+          applyDecision(search, 'show');
+        } else {
+          applyDecision(search, mobile ? decision : 'show');
+          if (!mobile) applyDecision(search, 'show');
+        }
       }
       lastY = y;
     }
