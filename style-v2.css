@@ -21571,10 +21571,7 @@ main.film-page .hero-content,
   overflow: visible;
 }
 .glass-cta__br {
-  display: block;
-  content: "";
-  margin: 0;
-  line-height: 0;
+  display: none;
 }
 .glass-cta__login {
   position: relative;
