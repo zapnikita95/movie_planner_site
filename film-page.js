@@ -4302,6 +4302,11 @@
       if (!opts.cabinetMode) document.body.classList.add('film-standalone-page');
     } catch (_e) {}
     renderFilmPage(opts);
+    try {
+      if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.bind === 'function') {
+        global.MpHeaderSearchScroll.bind();
+      }
+    } catch (_scroll) {}
   }
 
   global.MpFilmPage = {
