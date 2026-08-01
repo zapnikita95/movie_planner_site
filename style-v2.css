@@ -22202,8 +22202,16 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
   body.staff-standalone-page #site-header:has(#header-search.header-search--retracted),
   body.user-standalone-page #site-header:has(#header-search.header-search--retracted),
   body.in-cabinet #site-header:has(#header-search.header-search--retracted) {
-    padding-bottom: 4px !important;
-    margin-bottom: 6px !important;
+    /* Probe 2026-08-01: was padding 12+4 + content → 75px dark band. Keep chrome tight. */
+    padding-top: 6px !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 4px !important;
+  }
+  body.staff-standalone-page.staff-header-title-on.staff-header-title-only #site-header,
+  body.film-standalone-page.film-header-title-on.film-header-title-only #site-header {
+    padding-top: 6px !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 4px !important;
   }
   body.header-search-dropdown-open .header-search.header-search--retracted {
     opacity: 1 !important;
