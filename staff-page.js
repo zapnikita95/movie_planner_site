@@ -1324,26 +1324,55 @@
   }
 
   function staffYearBounds() {
-    var years = (_staffGlobalFilters && _staffGlobalFilters.years) || [];
-    var nums = years.map(function (y) { return parseInt(y, 10); }).filter(function (n) { return !isNaN(n) && n > 0; });
-    if (!nums.length) {
-      var min = 9999;
-      var max = 0;
-      ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (b) {
-        (b.films || []).forEach(function (f) {
-          var y = parseInt(f.year, 10);
-          if (!y) return;
-          if (y < min) min = y;
-          if (y > max) max = y;
-        });
+    /* Prefer years from loaded filmography (progressive fills this). */
+    var min = 9999;
+    var max = 0;
+    ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (b) {
+      (b.films || []).forEach(function (f) {
+        var y = parseInt(f.year, 10);
+        if (!y || y < 1880 || y > 2100) return;
+        if (y < min) min = y;
+        if (y > max) max = y;
       });
-      if (min > max) {
-        var now = new Date().getFullYear();
-        return { min: 1950, max: now };
+    });
+    if (min <= max) return { min: min, max: max };
+    /* Head arrives before /films — temporary fallback from filters.years */
+    var years = (_staffGlobalFilters && _staffGlobalFilters.years) || [];
+    var nums = years.map(function (y) { return parseInt(y, 10); }).filter(function (n) {
+      return !isNaN(n) && n >= 1880 && n <= 2100;
+    });
+    if (nums.length) return { min: Math.min.apply(null, nums), max: Math.max.apply(null, nums) };
+    var now = new Date().getFullYear();
+    return { min: Math.max(1950, now - 40), max: now };
+  }
+
+  function syncStaffYearInputs() {
+    var bounds = staffYearBounds();
+    var yMin = bounds.min;
+    var yMax = bounds.max;
+    var root = staffContentRoot();
+    if (!root) return;
+    var userFrom = _staffFilterState.yearFrom !== '';
+    var userTo = _staffFilterState.yearTo !== '';
+    [
+      '#staff-year-from', '#staff-year-from-range', '#staff-year-from-desk',
+      '#staff-year-to', '#staff-year-to-range', '#staff-year-to-desk'
+    ].forEach(function (sel) {
+      var el = root.querySelector(sel);
+      if (!el) return;
+      try {
+        el.min = String(yMin);
+        el.max = String(yMax);
+      } catch (_e) {}
+      var isFrom = sel.indexOf('from') >= 0;
+      if (isFrom && !userFrom) el.value = String(yMin);
+      if (!isFrom && !userTo) el.value = String(yMax);
+      var cur = parseInt(el.value, 10);
+      if (!isNaN(cur)) {
+        if (cur < yMin) el.value = String(yMin);
+        if (cur > yMax) el.value = String(yMax);
       }
-      return { min: min, max: max };
-    }
-    return { min: Math.min.apply(null, nums), max: Math.max.apply(null, nums) };
+    });
   }
 
   function staffFilterActive() {
@@ -2004,6 +2033,7 @@
         if (genreDesk) genreDesk.value = _staffFilterState.genre || '';
       }
     }
+    syncStaffYearInputs();
     bindStaffFilters(root);
     bindStaffDeskPaneTabs(root);
     bindStaffRoleExpandButtons(root);

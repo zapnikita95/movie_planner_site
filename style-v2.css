@@ -22743,7 +22743,7 @@ body.in-cabinet .mp-pick-done {
     padding-bottom: 0 !important;
   }
 
-  /* Full-bleed photo; height capped so name stays in first viewport */
+  /* Phone: full-bleed portrait crop. No fade-mask (it hid the face on short viewports). */
   body.staff-standalone-page .staff-hero,
   body.staff-standalone-page .staff-hero--poster {
     display: flex !important;
@@ -22751,7 +22751,7 @@ body.in-cabinet .mp-pick-done {
     align-items: stretch !important;
     text-align: left !important;
     gap: 0 !important;
-    margin: 10px 0 0 !important;
+    margin: 8px 0 0 !important;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -22764,18 +22764,18 @@ body.in-cabinet .mp-pick-done {
   body.staff-standalone-page .staff-hero-ph {
     width: 100% !important;
     max-width: none !important;
-    height: min(42vh, 320px) !important;
-    min-height: 200px !important;
-    max-height: 320px !important;
-    aspect-ratio: auto !important;
-    border-radius: 20px 20px 0 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 3 / 4 !important;
+    max-height: min(50vh, 380px) !important;
+    border-radius: 16px 16px 0 0 !important;
     object-fit: cover !important;
-    object-position: center 22% !important;
+    object-position: center 18% !important;
     box-shadow: none !important;
     margin: 0 !important;
     display: block !important;
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 88%, rgba(0, 0, 0, 0.35) 96%, transparent 100%);
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
   }
   body.staff-standalone-page .staff-hero-ph {
     font-size: 72px;
@@ -23591,13 +23591,34 @@ body.staff-standalone-page .staff-awards-loading {
   color: var(--text-body, #e4e4ec);
 }
 
-/* Tablet: full-bleed taller hero so wide crop doesn’t chop the face */
+/* Tablet: centered portrait card — full-bleed landscape was forehead-only */
 @media (min-width: 600px) and (max-width: 860px) {
+  body.staff-standalone-page .staff-hero,
+  body.staff-standalone-page .staff-hero--poster {
+    align-items: center !important;
+    margin: 12px 0 0 !important;
+    padding: 0 16px !important;
+    box-sizing: border-box;
+  }
   body.staff-standalone-page .staff-hero-photo,
   body.staff-standalone-page .staff-hero-ph {
-    height: min(46vh, 400px) !important;
-    max-height: 400px !important;
-    object-position: center 18% !important;
+    width: min(100%, 340px) !important;
+    max-width: 340px !important;
+    height: auto !important;
+    aspect-ratio: 3 / 4 !important;
+    max-height: min(52vh, 420px) !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    object-fit: cover !important;
+    object-position: top center !important;
+    margin: 0 auto !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+  body.staff-standalone-page .staff-hero-text {
+    width: 100% !important;
+    max-width: 640px !important;
+    padding: 14px 0 8px !important;
   }
 }
 
