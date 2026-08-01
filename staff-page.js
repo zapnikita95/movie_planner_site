@@ -426,7 +426,7 @@
       if (t > works) works = t;
     });
     if (works <= 0) return '';
-    var word = works === 1 ? 'работа' : works < 5 ? 'работы' : 'работ';
+    var word = ruCountWord(works, 'работа', 'работы', 'работ');
     return '<p class="staff-hero-stats"><span class="staff-hero-works">' + works + ' ' + word + '</span></p>';
   }
 
