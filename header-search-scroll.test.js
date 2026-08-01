@@ -19,11 +19,13 @@ function assert(cond, msg) {
 
 assert(decide(0, 0, { mobile: true }) === 'show', 'top → show');
 assert(decide(4, 0, { mobile: true }) === 'show', 'near top → show');
-assert(decide(40, 20, { mobile: true }) === 'hide', 'scroll down → hide');
-assert(decide(20, 40, { mobile: true }) === 'show', 'scroll up → show');
-assert(decide(40, 38, { mobile: true }) === 'keep', 'tiny delta → keep');
+assert(decide(40, 10, { mobile: true }) === 'show', 'under 48px → show (anti-jump)');
+assert(decide(100, 60, { mobile: true }) === 'hide', 'scroll down past band → hide');
+assert(decide(50, 80, { mobile: true }) === 'show', 'scroll up → show');
+assert(decide(100, 90, { mobile: true }) === 'keep', 'tiny delta → keep');
 assert(decide(100, 20, { mobile: true, dropdownOpen: true }) === 'show', 'dropdown → show');
 assert(decide(100, 20, { mobile: true, inputFocused: true }) === 'show', 'focus → show');
+assert(decide(100, 20, { mobile: true, suppressHide: true }) === 'show', 'suppress → show');
 assert(decide(100, 20, { mobile: false }) === 'show', 'desktop → show');
 
 console.log('header-search-scroll.test.js: OK');
