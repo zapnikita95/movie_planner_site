@@ -2222,20 +2222,47 @@
     var filmCabinetRoute = !!(document.getElementById('cabinet-readonly') &&
       document.getElementById('cabinet-readonly').classList.contains('film-page-mode'));
     if (document.body && document.body.classList.contains('in-cabinet') && !filmCabinetRoute) return;
+    global.__MP_HEADER_SEARCH_BOUND = true;
     var input = document.getElementById('header-search-input');
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
+    var iconBtn = document.getElementById('header-search-icon-btn');
+    var searchWrap = document.getElementById('header-search');
     var timer = null;
     var controller = null;
     var seq = 0;
+    var hubSeq = 0;
     var SEARCH_DEBOUNCE_MS = 260;
+    var QUICK_QUERIES = [
+      'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
+    ];
     if (!input || !dd) return;
     function escapeText(v) {
       return String(v || '').replace(/[&<>"']/g, function (c) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
       });
     }
-    function hide() { dd.classList.add('hidden'); dd.innerHTML = ''; }
+    function setDropdownOpen(open) {
+      if (!document.body) return;
+      document.body.classList.toggle('header-search-dropdown-open', !!open);
+      if (searchWrap) {
+        if (open) searchWrap.classList.remove('header-search--retracted');
+      }
+      if (iconBtn) {
+        iconBtn.setAttribute('aria-label', open ? 'Закрыть поиск' : 'Поиск');
+        iconBtn.classList.toggle('header-search-icon-btn--close', !!open);
+      }
+      try {
+        if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
+          global.MpHeaderSearchScroll.refresh();
+        }
+      } catch (_e) {}
+    }
+    function hide() {
+      dd.classList.add('hidden');
+      dd.innerHTML = '';
+      setDropdownOpen(false);
+    }
     function cleanPoster(src) { return cleanPosterUrl(src); }
     function searchLoadingHtml() {
       if (global.__MP_SEARCH_LOADING_HTML) return global.__MP_SEARCH_LOADING_HTML();
@@ -2243,12 +2270,86 @@
         + '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>'
         + '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
     }
+    function readRecentQueries() {
+      try {
+        var raw = localStorage.getItem('mp_header_search_recent_v1');
+        var arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.filter(function (x) { return String(x || '').trim().length >= 2; }).slice(0, 8) : [];
+      } catch (_e) { return []; }
+    }
+    function applyQuery(q) {
+      var query = String(q || '').trim();
+      if (query.length < 2) return;
+      input.value = query;
+      if (clearBtn) clearBtn.classList.remove('hidden');
+      run(query);
+    }
+    function renderStandaloneHub(premieres) {
+      var popular = QUICK_QUERIES.slice(0, 8);
+      var recent = readRecentQueries();
+      var html = '<div class="hs-hub">';
+      html += '<div class="header-search-recent-title">Популярные запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
+      popular.forEach(function (q) {
+        html += '<button type="button" class="header-search-chip" data-hs-popular-q="' + escapeText(q) + '">' + escapeText(q) + '</button>';
+      });
+      html += '</div>';
+      if (recent.length) {
+        html += '<div class="header-search-recent-title">Недавние запросы</div><div class="header-search-recent-row hs-hub-chips-row">';
+        recent.forEach(function (q) {
+          html += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeText(q) + '">' + escapeText(q) + '</button>';
+        });
+        html += '</div>';
+      }
+      html += '<div class="header-search-recent-title">Сейчас в прокате</div>';
+      if (premieres && premieres.length) {
+        html += '<div class="hs-hub-prem-scroll">';
+        premieres.slice(0, 10).forEach(function (p) {
+          var kp = String((p && p.kp_id) || '').replace(/\D/g, '');
+          var title = escapeText((p && p.title) || '—');
+          var poster = cleanPoster((p && p.poster) || '') || '/images/film-poster-placeholder.png';
+          html += '<a class="hs-hub-prem-card" href="/f/' + encodeURIComponent(kp) + '">'
+            + '<img class="hs-hub-prem-img" src="' + poster.replace(/"/g, '&quot;') + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
+            + '<span class="hs-hub-prem-title">' + title + '</span></a>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="header-search-empty hs-hub-empty">Список проката временно пуст</div>';
+      }
+      html += '<div class="hs-hub-foot"><a class="hs-hub-more" href="/search">Расширенный поиск →</a></div>';
+      html += '</div>';
+      dd.innerHTML = html;
+      dd.classList.remove('hidden');
+      setDropdownOpen(true);
+    }
+    function showStandaloneHub() {
+      if (typeof global.showHeaderSearchHub === 'function' && global.__MP_CABINET_HEADER_SEARCH) {
+        global.showHeaderSearchHub(dd);
+        return;
+      }
+      var my = ++hubSeq;
+      renderStandaloneHub([]);
+      fetch(apiBase + '/api/public/premieres?period=month&limit=12', { method: 'GET', mode: 'cors' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (my !== hubSeq) return;
+          if (input.value.trim().length >= 2) return;
+          renderStandaloneHub((data && data.items) || []);
+        })
+        .catch(function () {});
+    }
+    if (typeof global.showHeaderSearchHub !== 'function') {
+      global.showHeaderSearchHub = function (target) {
+        if (target && target !== dd) return;
+        showStandaloneHub();
+      };
+    }
     function render(items, persons) {
       items = items || [];
       persons = persons || [];
       if (!items.length && !persons.length) {
         dd.innerHTML = '<div class="header-search-empty">Ничего не нашлось</div>';
         dd.classList.remove('hidden');
+        setDropdownOpen(true);
         return;
       }
       var html = '';
@@ -2275,11 +2376,15 @@
       }).join('');
       dd.innerHTML = html;
       dd.classList.remove('hidden');
+      setDropdownOpen(true);
     }
     function run(q) {
       q = String(q || '').trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !q);
-      if (q.length < 2) { hide(); return; }
+      if (q.length < 2) {
+        showStandaloneHub();
+        return;
+      }
       clearTimeout(timer);
       timer = setTimeout(function () {
         var mySeq = ++seq;
@@ -2287,6 +2392,7 @@
         controller = global.AbortController ? new AbortController() : null;
         dd.innerHTML = searchLoadingHtml();
         dd.classList.remove('hidden');
+        setDropdownOpen(true);
         fetch(apiBase + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6&person_limit=1', {
           method: 'GET',
           mode: 'cors',
@@ -2299,13 +2405,16 @@
           })
           .catch(function (e) {
             if (e && e.name === 'AbortError') return;
-            if (mySeq === seq) dd.innerHTML = '<div class="header-search-empty">Не удалось найти</div>';
+            if (mySeq === seq) {
+              dd.innerHTML = '<div class="header-search-empty">Не удалось найти</div>';
+              setDropdownOpen(true);
+            }
           });
       }, SEARCH_DEBOUNCE_MS);
     }
     input.addEventListener('input', function () { run(input.value); });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); }
+      if (e.key === 'Escape') { input.value = ''; if (clearBtn) clearBtn.classList.add('hidden'); hide(); input.blur(); }
       if (e.key === 'Enter') {
         var q = input.value.trim();
         if (q.length >= 2) global.location.href = '/search?q=' + encodeURIComponent(q);
@@ -2315,20 +2424,52 @@
       if (filmCabinetRoute && typeof global.ensureFullCabinet === 'function') {
         try { global.ensureFullCabinet(); } catch (_cab) {}
       }
-      if (input.value.trim().length >= 2 && dd.innerHTML) dd.classList.remove('hidden');
-      else if (global.showHeaderSearchHub && dd) global.showHeaderSearchHub(dd);
+      if (searchWrap) searchWrap.classList.remove('header-search--retracted');
+      if (input.value.trim().length >= 2) {
+        if (dd.innerHTML && !dd.querySelector('.hs-hub')) {
+          dd.classList.remove('hidden');
+          setDropdownOpen(true);
+        } else {
+          run(input.value);
+        }
+      } else {
+        showStandaloneHub();
+      }
     });
+    if (iconBtn && !iconBtn.dataset.mpStandaloneSearchIcon) {
+      iconBtn.dataset.mpStandaloneSearchIcon = '1';
+      iconBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (document.body && document.body.classList.contains('header-search-dropdown-open')) {
+          hide();
+          input.blur();
+          return;
+        }
+        input.focus();
+        showStandaloneHub();
+      });
+    }
+    if (dd && !dd.dataset.mpStandaloneHubClicks) {
+      dd.dataset.mpStandaloneHubClicks = '1';
+      dd.addEventListener('click', function (e) {
+        var chip = e.target && e.target.closest ? e.target.closest('[data-hs-popular-q], [data-hs-recent-q]') : null;
+        if (!chip) return;
+        e.preventDefault();
+        applyQuery(chip.getAttribute('data-hs-popular-q') || chip.getAttribute('data-hs-recent-q') || '');
+      });
+    }
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
         input.value = '';
         clearBtn.classList.add('hidden');
-        hide();
+        showStandaloneHub();
         input.focus();
       });
     }
     document.addEventListener('click', function (e) {
       var wrap = document.getElementById('header-search');
-      if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
+      if (wrap && !wrap.contains(e.target)) hide();
     });
   }
 

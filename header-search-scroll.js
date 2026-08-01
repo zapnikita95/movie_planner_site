@@ -1,7 +1,7 @@
 /**
  * Mobile: hide header search on scroll down, show on scroll up.
- * Staff/film pages: pin hero title in header after it scrolls away;
- * scroll-up can reveal search above the sticky name.
+ * Staff/film pages: pin hero title in header after it scrolls away.
+ * When sticky title is on, keep search row stable (no title-only ↔ with-title flip).
  * Keeps logo / login / profile visible. Does not invent a second header.
  */
 (function (global) {
@@ -9,6 +9,7 @@
 
   var RETRACT_CLASS = 'header-search--retracted';
   var MQ = '(max-width: 860px)';
+  var _updateFn = null;
 
   function decideSearchRetract(y, lastY, opts) {
     opts = opts || {};
@@ -85,7 +86,6 @@
     var lastY = global.scrollY || 0;
     var pastStaff = false;
     var pastFilm = false;
-    var searchStickyShow = true;
     var ticking = false;
 
     function update() {
@@ -120,8 +120,9 @@
       var pastName = staffPast || filmPast;
 
       if (pastName) {
-        if (decision === 'show' || dropdownOpen || inputFocused || y <= 8) searchStickyShow = true;
-        else if (decision === 'hide') searchStickyShow = false;
+        // Stable sticky chrome: always search+title together.
+        // Scroll-driven flip title-only ↔ search-with-title caused header jump.
+        var searchStickyShow = true;
 
         if (staffPast) {
           applyStickyHeaderTitle(doc, {
@@ -158,10 +159,8 @@
             showSearch: true,
           });
         }
-        if (searchStickyShow) search.classList.remove(RETRACT_CLASS);
-        else search.classList.add(RETRACT_CLASS);
+        search.classList.remove(RETRACT_CLASS);
       } else {
-        searchStickyShow = true;
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
           onClass: 'staff-header-title-on',
@@ -178,12 +177,13 @@
           pastName: false,
           showSearch: true,
         });
-        // Always hide search on scroll-down (staff + film + cabinet)
         applyDecision(search, mobile ? decision : 'show');
         if (!mobile) applyDecision(search, 'show');
       }
       lastY = y;
     }
+
+    _updateFn = update;
 
     global.addEventListener('scroll', function () {
       if (!ticking) {
@@ -205,6 +205,9 @@
     decideSearchRetract: decideSearchRetract,
     bodyAllowsMobileSearchRetract: bodyAllowsMobileSearchRetract,
     bind: bindMobileSearchScroll,
+    refresh: function () {
+      if (typeof _updateFn === 'function') _updateFn();
+    },
   };
 
   if (global.document) {
