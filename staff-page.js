@@ -499,6 +499,7 @@
       '<nav class="staff-proto-tabs" id="staff-proto-tabs" aria-label="Разделы">' +
         '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Обзор</button>' +
         '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
+        '<button type="button" class="staff-proto-tab" data-staff-tab="awards">Награды</button>' +
       '</nav>'
     );
   }
@@ -541,7 +542,7 @@
   }
 
   function setStaffTab(tab) {
-    var t = tab === 'overview' ? 'overview' : 'films';
+    var t = tab === 'overview' ? 'overview' : (tab === 'awards' ? 'awards' : 'films');
     document.body.setAttribute('data-staff-tab', t);
     document.querySelectorAll('.staff-proto-tab').forEach(function (btn) {
       var on = btn.getAttribute('data-staff-tab') === t;
@@ -549,6 +550,102 @@
       if (on) btn.setAttribute('aria-current', 'page');
       else btn.removeAttribute('aria-current');
     });
+    var awardsRoot = document.getElementById('staff-awards-root');
+    var filmsRoot = document.getElementById('staff-roles-root');
+    var filters = document.getElementById('staff-person-filters');
+    var pick = document.getElementById('mp-pick-banner');
+    if (t === 'awards') {
+      if (filmsRoot) filmsRoot.classList.add('hidden');
+      if (filters) filters.classList.add('hidden');
+      if (pick) pick.classList.add('hidden');
+      if (awardsRoot) {
+        awardsRoot.classList.remove('hidden');
+        if (awardsRoot.getAttribute('data-loaded') !== '1') loadStaffAwards(awardsRoot);
+      }
+    } else if (t === 'films') {
+      if (awardsRoot) awardsRoot.classList.add('hidden');
+      if (filmsRoot) filmsRoot.classList.remove('hidden');
+      if (filters) filters.classList.remove('hidden');
+      if (pick) pick.classList.remove('hidden');
+    } else {
+      if (awardsRoot) awardsRoot.classList.add('hidden');
+      if (filmsRoot) filmsRoot.classList.add('hidden');
+      if (filters) filters.classList.add('hidden');
+      if (pick) pick.classList.add('hidden');
+    }
+  }
+
+  function loadStaffAwards(root) {
+    if (!root) return;
+    var pid = root.getAttribute('data-person-id') || (window.__MP_STAFF_PERSON_ID || '');
+    if (!pid) {
+      root.innerHTML = '<p class="staff-awards-empty">Номинации пока не загружены</p>';
+      return;
+    }
+    root.innerHTML = '<p class="staff-awards-loading">Загружаем награды…</p>';
+    var base = (window.MpApiConfig && window.MpApiConfig.apiBase)
+      ? window.MpApiConfig.apiBase()
+      : ((window.API_BASE || window.location.origin || '').replace(/\/$/, ''));
+    fetch(base + '/api/public/person/' + encodeURIComponent(pid) + '/awards?limit=200', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        root.setAttribute('data-loaded', '1');
+        var items = (data && data.items) || [];
+        if (!items.length) {
+          root.innerHTML = '<p class="staff-awards-empty">Пока нет номинаций в базе — собираем оскары и фестивали</p>';
+          return;
+        }
+        root.innerHTML = renderStaffAwardsHtml(items, data.wins || 0);
+      })
+      .catch(function () {
+        root.innerHTML = '<p class="staff-awards-empty">Не удалось загрузить награды</p>';
+      });
+  }
+
+  function renderStaffAwardsHtml(items, wins) {
+    var byAward = {};
+    (items || []).forEach(function (it) {
+      var key = String(it.award_name || 'Награда');
+      if (!byAward[key]) byAward[key] = [];
+      byAward[key].push(it);
+    });
+    var order = Object.keys(byAward).sort(function (a, b) {
+      return byAward[b].length - byAward[a].length;
+    });
+    var html = '<div class="staff-awards">';
+    html += '<p class="staff-awards-summary">' + escapeHtml(String(items.length)) +
+      ' номинац' + (items.length === 1 ? 'ия' : 'ий') +
+      (wins ? (' · <strong>' + escapeHtml(String(wins)) + ' побед</strong>') : '') + '</p>';
+    order.forEach(function (awardName) {
+      html += '<section class="staff-awards-group">';
+      html += '<h2 class="staff-awards-group-title">' + escapeHtml(awardName) + '</h2>';
+      html += '<ul class="staff-awards-list">';
+      byAward[awardName].forEach(function (it) {
+        var nom = escapeHtml(it.nomination || 'Номинация');
+        var title = escapeHtml(it.film_title || 'Фильм');
+        var year = it.year ? String(it.year) : '';
+        var kp = it.kp_id ? String(it.kp_id) : '';
+        var winCls = it.win ? ' is-win' : '';
+        var badge = it.win ? '<span class="staff-awards-badge">Победа</span>' : '<span class="staff-awards-badge staff-awards-badge--nom">Номинация</span>';
+        var href = kp ? ('/f/' + encodeURIComponent(kp)) : '#';
+        var poster = (it.poster || '').replace(/"/g, '&quot;');
+        html += '<li class="staff-awards-item' + winCls + '">';
+        html += '<a class="staff-awards-link" href="' + href + '">';
+        if (poster) {
+          html += '<img class="staff-awards-poster" src="' + poster + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
+        }
+        html += '<span class="staff-awards-copy">';
+        html += '<span class="staff-awards-nom">' + nom + '</span>';
+        html += '<span class="staff-awards-film">' + title + (year ? (' · ' + escapeHtml(year)) : '') + '</span>';
+        html += '</span>' + badge + '</a></li>';
+      });
+      html += '</ul></section>';
+    });
+    html += '</div>';
+    return html;
   }
 
   function bindStaffTabs(root) {
@@ -1830,8 +1927,10 @@
         overview.innerHTML = (metaHtml || '') + staffFactsSectionHtml();
       }
       if (main) {
+        var pidAttr = escapeHtml(String(personId || ''));
         main.innerHTML = staffPickBannerHtml() + filtersBarHtml() +
-          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
+          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+          '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>';
         root._staffFiltersBound = false;
       }
       var heroNode = article.querySelector('.staff-hero');
@@ -1862,7 +1961,9 @@
       heroInner: heroInner,
       overviewInner: (metaHtml || '') + staffFactsSectionHtml(),
       mainInner: staffPickBannerHtml() + filtersBarHtml() +
-        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>',
+        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+        '<div id="staff-awards-root" class="hidden" data-person-id="' +
+          escapeHtml(String(personId || '')) + '"></div>',
     });
 
     root._staffFiltersBound = false;
@@ -2056,7 +2157,16 @@
       return;
     }
     markRouteReady();
-    try { document.body.classList.add('film-standalone-page', 'staff-standalone-page'); } catch (_e) {}
+    try {
+      document.body.classList.add('staff-standalone-page');
+      document.body.classList.remove(
+        'film-standalone-page',
+        'landing-root-page',
+        'film-header-title-on',
+        'film-header-title-only',
+        'film-header-search-with-title'
+      );
+    } catch (_e) {}
     if (canUseInlineCabinetShell()) {
       bootstrapInlineCabinetShell(personId);
     } else {
