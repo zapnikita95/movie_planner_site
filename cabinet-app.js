@@ -16133,12 +16133,12 @@
       tmp.innerHTML = buildFilmExtRatingsSlotHtml(film);
       const node = tmp.firstElementChild;
       if (!node) return;
+      const stack = hero.querySelector('.film-hero-meta-stack');
       const metaLine = hero.querySelector('#film-meta-line, .film-meta-line');
-      const titleEn = hero.querySelector('#film-title-en, .film-title-en');
-      if (metaLine && metaLine.parentNode) {
+      if (stack) {
+        stack.appendChild(node);
+      } else if (metaLine && metaLine.parentNode) {
         metaLine.insertAdjacentElement('afterend', node);
-      } else if (titleEn && titleEn.parentNode) {
-        titleEn.insertAdjacentElement('afterend', node);
       } else if (eyebrow && eyebrow.parentNode) {
         eyebrow.insertAdjacentElement('afterend', node);
       } else {
@@ -16218,59 +16218,75 @@
     return en;
   }
 
+  function ensureFilmHeroMetaStack(hero) {
+    const content = (hero && hero.classList && hero.classList.contains('hero-content'))
+      ? hero
+      : ((hero && hero.querySelector && (hero.querySelector('.hero-content') || hero)) || document);
+    const titleEl = content.querySelector('#film-title, h1');
+    let stack = content.querySelector('.film-hero-meta-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'film-hero-meta-stack';
+      if (titleEl && titleEl.parentNode) {
+        if (titleEl.nextSibling) titleEl.parentNode.insertBefore(stack, titleEl.nextSibling);
+        else titleEl.parentNode.appendChild(stack);
+      } else if (content.appendChild) {
+        content.appendChild(stack);
+      }
+    }
+    function ensureSlot(sel, id, className) {
+      let el = stack.querySelector(sel) || content.querySelector(sel);
+      if (!el) {
+        el = document.createElement('p');
+        if (id) el.id = id;
+        el.className = className;
+        stack.appendChild(el);
+      } else if (el.parentNode !== stack) {
+        stack.appendChild(el);
+      }
+      return el;
+    }
+    const enEl = ensureSlot('#film-title-en, .film-title-en', 'film-title-en', 'film-title-en');
+    const genresEl = ensureSlot('#film-genres-line, .film-genres-line', 'film-genres-line', 'film-genres-line');
+    const metaEl = ensureSlot('#film-meta-line, .film-meta-line', 'film-meta-line', 'film-meta-line');
+    const ratings = content.querySelector('.film-ext-ratings');
+    if (ratings && ratings.parentNode !== stack) stack.appendChild(ratings);
+    [enEl, genresEl, metaEl, ratings].filter(Boolean).forEach((node) => stack.appendChild(node));
+    const chips = content.querySelector('.eyebrow, #chips');
+    if (chips) {
+      chips.innerHTML = '';
+      chips.setAttribute('hidden', '');
+      chips.setAttribute('aria-hidden', 'true');
+    }
+    return { content, stack, titleEl, enEl, genresEl, metaEl, ratings };
+  }
+
+  function setReservedLine(el, text) {
+    if (!el) return;
+    const val = String(text || '').trim();
+    el.removeAttribute('hidden');
+    if (val) {
+      el.textContent = val;
+      el.classList.remove('is-empty');
+      el.removeAttribute('aria-hidden');
+    } else {
+      el.innerHTML = '&nbsp;';
+      el.classList.add('is-empty');
+      el.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   function syncFilmHeroMeta(pageRoot, film) {
     if (!pageRoot || !film) return;
     const hero = pageRoot.querySelector('.film-hero-with-tag, section.hero') || pageRoot;
-    const titleEl = hero.querySelector('#film-title, h1');
+    const slots = ensureFilmHeroMetaStack(hero);
     const titleRu = String(film.title || '').trim().replace(/\s*\(\d{4}\)\s*$/, '');
-    if (titleEl && titleRu && !isGenericFilmTitle(titleRu)) {
-      titleEl.textContent = titleRu;
+    if (slots.titleEl && titleRu && !isGenericFilmTitle(titleRu)) {
+      slots.titleEl.textContent = titleRu;
     }
-    let enEl = hero.querySelector('#film-title-en, .film-title-en');
-    const en = pickFilmTitleEn(film);
-    if (!enEl && titleEl && titleEl.parentNode) {
-      enEl = document.createElement('p');
-      enEl.id = 'film-title-en';
-      enEl.className = 'film-title-en';
-      titleEl.insertAdjacentElement('afterend', enEl);
-    }
-    if (enEl) {
-      if (en) { enEl.textContent = en; enEl.hidden = false; }
-      else { enEl.textContent = ''; enEl.hidden = true; }
-    }
-    let metaEl = hero.querySelector('#film-meta-line, .film-meta-line');
-    const metaText = buildFilmMetaLineText(film);
-    const afterEl = (enEl && !enEl.hidden) ? enEl : titleEl;
-    if (!metaEl && afterEl && afterEl.parentNode) {
-      metaEl = document.createElement('p');
-      metaEl.id = 'film-meta-line';
-      metaEl.className = 'film-meta-line';
-      afterEl.insertAdjacentElement('afterend', metaEl);
-    }
-    if (metaEl) {
-      if (metaText) { metaEl.textContent = metaText; metaEl.hidden = false; }
-      else { metaEl.textContent = ''; metaEl.hidden = true; }
-    }
-    let genresEl = hero.querySelector('#film-genres-line, .film-genres-line');
-    const ratings = hero.querySelector('.film-ext-ratings');
-    const insertAfter = ratings || metaEl || afterEl;
-    const genresText = buildFilmGenresLineText(film.genres, film.is_series);
-    if (!genresEl && insertAfter && insertAfter.parentNode) {
-      genresEl = document.createElement('p');
-      genresEl.id = 'film-genres-line';
-      genresEl.className = 'film-genres-line';
-      insertAfter.insertAdjacentElement('afterend', genresEl);
-    }
-    if (genresEl) {
-      if (genresText) { genresEl.textContent = genresText; genresEl.hidden = false; }
-      else { genresEl.textContent = ''; genresEl.hidden = true; }
-    }
-    const chips = hero.querySelector('.eyebrow, #chips');
-    if (chips) {
-      chips.innerHTML = '';
-      chips.hidden = true;
-      chips.setAttribute('aria-hidden', 'true');
-    }
+    setReservedLine(slots.enEl, pickFilmTitleEn(film));
+    setReservedLine(slots.genresEl, buildFilmGenresLineText(film.genres, film.is_series));
+    setReservedLine(slots.metaEl, buildFilmMetaLineText(film));
   }
 
   function buildFilmGenreChipsHtml(film) {
@@ -16378,10 +16394,12 @@
         '</div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title">' + escapeHtml(titleText) + '</h1>' +
-          '<p class="film-title-en" id="film-title-en" hidden></p>' +
-          '<p class="film-meta-line" id="film-meta-line" hidden></p>' +
-          buildFilmExtRatingsSlotHtml(film) +
-          '<p class="film-genres-line" id="film-genres-line" hidden></p>' +
+          '<div class="film-hero-meta-stack">' +
+            '<p class="film-title-en is-empty" id="film-title-en" aria-hidden="true">&nbsp;</p>' +
+            '<p class="film-genres-line is-empty" id="film-genres-line" aria-hidden="true">&nbsp;</p>' +
+            '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true">&nbsp;</p>' +
+            buildFilmExtRatingsSlotHtml(film) +
+          '</div>' +
           crew +
           buildFilmDescWrapHtml() +
           toolbarHtml +
