@@ -22745,7 +22745,7 @@ body.in-cabinet .mp-pick-done {
     padding-bottom: 0 !important;
   }
 
-  /* Phone: full-bleed portrait crop. No fade-mask (it hid the face on short viewports). */
+  /* Phone (≤599 via tablet override): inset + top radius + soft bottom fade (proto). */
   body.staff-standalone-page .staff-hero,
   body.staff-standalone-page .staff-hero--poster {
     display: flex !important;
@@ -22753,31 +22753,35 @@ body.in-cabinet .mp-pick-done {
     align-items: stretch !important;
     text-align: left !important;
     gap: 0 !important;
-    margin: 8px 0 0 !important;
-    padding: 0 !important;
+    margin: 10px 0 0 !important;
+    padding: 0 10px !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     min-height: 0 !important;
     width: 100% !important;
     max-width: none !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
   }
   body.staff-standalone-page .staff-hero-photo,
   body.staff-standalone-page .staff-hero-ph {
     width: 100% !important;
     max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    aspect-ratio: 3 / 4 !important;
-    max-height: min(50vh, 380px) !important;
-    border-radius: 16px 16px 0 0 !important;
+    /* Proto height — face above soft fade band */
+    height: min(62vh, 560px) !important;
+    min-height: 400px !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    border-radius: 20px 20px 0 0 !important;
     object-fit: cover !important;
-    object-position: center 18% !important;
+    object-position: center 22% !important;
     box-shadow: none !important;
     margin: 0 !important;
     display: block !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
+    /* Soft bottom edge only — last ~6%, face stays clear on tight KP headshots */
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 94%, rgba(0, 0, 0, 0.4) 98%, transparent 100%) !important;
+    mask-image: linear-gradient(180deg, #000 0%, #000 94%, rgba(0, 0, 0, 0.4) 98%, transparent 100%) !important;
   }
   body.staff-standalone-page .staff-hero-ph {
     font-size: 72px;
