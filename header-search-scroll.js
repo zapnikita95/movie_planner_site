@@ -19,9 +19,12 @@
     opts = opts || {};
     if (!opts.mobile) return 'show';
     if (opts.dropdownOpen || opts.inputFocused) return 'show';
-    if (y <= 8) return 'show';
-    if (y > lastY + 10) return 'hide';
-    if (y < lastY - 10) return 'show';
+    if (opts.suppressHide) return 'show';
+    // Stay open near top — layout settle / hero image must not yank the row.
+    if (y <= 48) return 'show';
+    // Wider deltas: stop-scroll and tiny layout shifts must not toggle.
+    if (y > lastY + 28) return 'hide';
+    if (y < lastY - 18) return 'show';
     return 'keep';
   }
 
@@ -124,6 +127,8 @@
     return { onStaff: onStaff, onFilm: onFilm && !onStaff };
   }
 
+  var _suppressHideUntil = 0;
+
   function bindMobileSearchScroll(opts) {
     opts = opts || {};
     if (global._mpHeaderSearchScrollBound) return global.MpHeaderSearchScroll;
@@ -150,10 +155,12 @@
       var input = doc.getElementById('header-search-input');
       var inputFocused = !!(input && doc.activeElement === input);
       var y = global.scrollY || 0;
+      var suppressHide = Date.now() < _suppressHideUntil;
       var decision = decideSearchRetract(y, lastY, {
         mobile: mobile,
         dropdownOpen: dropdownOpen,
         inputFocused: inputFocused,
+        suppressHide: suppressHide,
       });
 
       // Apply search retract first (except keep), then sticky — search may hide under sticky title.
@@ -249,6 +256,14 @@
     bodyAllowsMobileSearchRetract: bodyAllowsMobileSearchRetract,
     stickyChromeBottom: stickyChromeBottom,
     bind: bindMobileSearchScroll,
+    suppressRetract: function (ms) {
+      var n = parseInt(ms, 10);
+      if (!(n > 0)) n = 1000;
+      _suppressHideUntil = Date.now() + n;
+      var search = global.document && global.document.getElementById('header-search');
+      if (search) search.classList.remove(RETRACT_CLASS);
+      if (typeof _updateFn === 'function') _updateFn();
+    },
     refresh: function () {
       if (typeof _updateFn === 'function') _updateFn();
     },

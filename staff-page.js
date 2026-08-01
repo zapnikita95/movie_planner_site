@@ -26,6 +26,12 @@
   var _staffLoginNow = null;
   var _staffPendingFriendsFilter = false;
   var _staffGlobalFilters = { years: [], genres: [] };
+  var _staffPickOn = false;
+  var _staffPickSelected = new Map();
+  var PICK_START_ARROW =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">' +
+    '<path d="M5 12h12m0 0-4.5-4.5M17 12l-4.5 4.5" stroke="currentColor" stroke-width="2.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   var STAFF_ROLE_LABELS = {
     ACTOR: 'Актер',
@@ -484,14 +490,102 @@
     return '<p class="staff-hero-stats"><span class="staff-hero-works">' + works + ' ' + word + '</span></p>';
   }
 
+  function pickStartLabelHtml(on) {
+    return on ? 'Отмена' : ('Начать ' + PICK_START_ARROW);
+  }
+
   function staffPickBannerHtml() {
     return (
       '<div class="mp-pick-banner" id="mp-pick-banner">' +
         '<strong class="mp-pick-banner__text">Выбрать интересные</strong>' +
-        '<button type="button" class="mp-pick-start" id="staff-pick-start" aria-pressed="false">Начать</button>' +
+        '<button type="button" class="mp-pick-start" id="staff-pick-start" aria-pressed="false">' +
+          pickStartLabelHtml(false) +
+        '</button>' +
         '<button type="button" class="x" id="staff-pick-banner-x" aria-label="Закрыть">×</button>' +
       '</div>'
     );
+  }
+
+  function ensureStaffPickDoneBar() {
+    var el = document.getElementById('mp-pick-done');
+    if (el) return el;
+    el = document.createElement('div');
+    el.className = 'mp-pick-done';
+    el.id = 'mp-pick-done';
+    el.innerHTML =
+      '<span class="mp-pick-done__label" id="mp-pick-done-label">Готово</span>' +
+      '<button type="button" class="mp-pick-done__go" id="mp-pick-done-go" aria-label="Далее">›</button>';
+    document.body.appendChild(el);
+    var go = el.querySelector('#mp-pick-done-go');
+    if (go && !go._staffPickGoBound) {
+      go._staffPickGoBound = true;
+      go.addEventListener('click', function () {
+        submitStaffPickSelection();
+      });
+    }
+    return el;
+  }
+
+  function refreshStaffPickDone() {
+    var done = ensureStaffPickDoneBar();
+    var label = document.getElementById('mp-pick-done-label');
+    var n = _staffPickSelected.size;
+    if (n > 0 && _staffPickOn) {
+      done.classList.add('is-on');
+      if (label) {
+        label.textContent = 'Готово · ' + n + ' ' + (n === 1 ? 'фильм' : n < 5 ? 'фильма' : 'фильмов');
+      }
+    } else {
+      done.classList.remove('is-on');
+    }
+  }
+
+  function setStaffPickMode(on) {
+    _staffPickOn = !!on;
+    document.body.classList.toggle('is-pick-mode', _staffPickOn);
+    var start = document.getElementById('staff-pick-start');
+    if (start) {
+      start.setAttribute('aria-pressed', _staffPickOn ? 'true' : 'false');
+      start.innerHTML = pickStartLabelHtml(_staffPickOn);
+    }
+    if (!_staffPickOn) _staffPickSelected.clear();
+    if (_staffPickOn) setStaffTab('films');
+    paintStaffRoles();
+    refreshStaffPickDone();
+  }
+
+  function submitStaffPickSelection() {
+    var n = _staffPickSelected.size;
+    if (!n) return;
+    var ids = Array.from(_staffPickSelected.keys()).filter(Boolean);
+    if (!ids.length) return;
+    try {
+      sessionStorage.setItem('mp_staff_pick_kp_ids', JSON.stringify(ids));
+    } catch (_e) {}
+    if (!mpToken()) {
+      if (_staffLoginNow) _staffLoginNow('staff_pick');
+      else if (global.MpPublicFilmLogin) global.MpPublicFilmLogin.open('staff_pick');
+      else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + _staffPersonId);
+      return;
+    }
+    var roleKey = _staffPrimaryRoleKey || '';
+    var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mpToken() };
+    fetch(API_BASE + '/api/site/persons/' + encodeURIComponent(_staffPersonId) + '/import', {
+      method: 'POST',
+      mode: 'cors',
+      headers: headers,
+      body: JSON.stringify({ role_key: roleKey, film_kp_ids: ids }),
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      if (res && res.success) {
+        if (global.showToast) global.showToast('Добавлено: ' + (res.added != null ? res.added : n));
+        setStaffPickMode(false);
+        if (_staffPersonId) loadStaff(_staffPersonId);
+      } else if (global.showToast) {
+        global.showToast((res && res.error) || 'Не удалось добавить');
+      }
+    }).catch(function () {
+      if (global.showToast) global.showToast('Ошибка сети');
+    });
   }
 
   function staffTabsHtml() {
@@ -620,8 +714,15 @@
       ' номинац' + (items.length === 1 ? 'ия' : 'ий') +
       (wins ? (' · <strong>' + escapeHtml(String(wins)) + ' побед</strong>') : '') + '</p>';
     order.forEach(function (awardName) {
+      var groupIcon = '';
+      var first = byAward[awardName][0] || {};
+      var iconSrc = (first.icon || first.image_url || '').replace(/"/g, '&quot;');
       html += '<section class="staff-awards-group">';
-      html += '<h2 class="staff-awards-group-title">' + escapeHtml(awardName) + '</h2>';
+      html += '<h2 class="staff-awards-group-title">';
+      if (iconSrc) {
+        html += '<img class="staff-awards-group-icon" src="' + iconSrc + '" alt="" width="36" height="36" loading="lazy">';
+      }
+      html += '<span>' + escapeHtml(awardName) + '</span></h2>';
       html += '<ul class="staff-awards-list">';
       byAward[awardName].forEach(function (it) {
         var nom = escapeHtml(it.nomination || 'Номинация');
@@ -632,9 +733,12 @@
         var badge = it.win ? '<span class="staff-awards-badge">Победа</span>' : '<span class="staff-awards-badge staff-awards-badge--nom">Номинация</span>';
         var href = kp ? ('/f/' + encodeURIComponent(kp)) : '#';
         var poster = (it.poster || '').replace(/"/g, '&quot;');
+        var rowIcon = (it.icon || it.image_url || iconSrc || '').replace(/"/g, '&quot;');
         html += '<li class="staff-awards-item' + winCls + '">';
         html += '<a class="staff-awards-link" href="' + href + '">';
-        if (poster) {
+        if (rowIcon) {
+          html += '<img class="staff-awards-icon" src="' + rowIcon + '" alt="" width="40" height="40" loading="lazy">';
+        } else if (poster) {
           html += '<img class="staff-awards-poster" src="' + poster + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
         }
         html += '<span class="staff-awards-copy">';
@@ -659,28 +763,59 @@
   }
 
   function bindStaffPickBanner(root) {
-    var start = root && root.querySelector('#staff-pick-start');
-    var bx = root && root.querySelector('#staff-pick-banner-x');
-    if (!start) return;
-    start.onclick = function () {
-      var on = !document.body.classList.contains('is-pick-mode');
-      document.body.classList.toggle('is-pick-mode', on);
-      start.setAttribute('aria-pressed', on ? 'true' : 'false');
-      start.textContent = on ? 'Отмена' : 'Начать';
-      if (on) setStaffTab('films');
-      // Reuse existing «В базу» on first role as multi-add entry for guests/auth
-      if (on) {
-        var importBtn = root.querySelector('.staff-import-btn');
-        if (importBtn && !mpToken()) {
-          /* pick mode: card clicks still handled below via import prompt */
-        }
+    ensureStaffPickDoneBar();
+    var start = (root && root.querySelector('#staff-pick-start')) || document.getElementById('staff-pick-start');
+    var bx = (root && root.querySelector('#staff-pick-banner-x')) || document.getElementById('staff-pick-banner-x');
+    if (start && !start._staffPickBound) {
+      start._staffPickBound = true;
+      start.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setStaffPickMode(!_staffPickOn);
+      });
+    }
+    if (bx && !bx._staffPickBound) {
+      bx._staffPickBound = true;
+      bx.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var b = document.getElementById('mp-pick-banner');
+        if (b) b.style.display = 'none';
+        setStaffPickMode(false);
+      });
+    }
+    if (start) {
+      start.setAttribute('aria-pressed', _staffPickOn ? 'true' : 'false');
+      start.innerHTML = pickStartLabelHtml(_staffPickOn);
+    }
+    document.body.classList.toggle('is-pick-mode', _staffPickOn);
+    refreshStaffPickDone();
+  }
+
+  function bindStaffPickCardClicks(root) {
+    if (!root || root._staffPickCardsBound) return;
+    root._staffPickCardsBound = true;
+    root.addEventListener('click', function (e) {
+      if (!_staffPickOn) return;
+      if (e.target && e.target.closest && e.target.closest('[data-bell-kp], .staff-import-btn, .staff-role-expand, .mp-pick-start, .mp-pick-banner .x')) {
+        return;
       }
-    };
-    if (bx) bx.onclick = function () {
-      var b = document.getElementById('mp-pick-banner');
-      if (b) b.style.display = 'none';
-      document.body.classList.remove('is-pick-mode');
-    };
+      var card = e.target && e.target.closest ? e.target.closest('a.staff-film-card') : null;
+      if (!card || !root.contains(card)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var id = String(card.getAttribute('data-kp') || '').replace(/\D/g, '');
+      if (!id) return;
+      if (_staffPickSelected.has(id)) _staffPickSelected.delete(id);
+      else {
+        _staffPickSelected.set(id, {
+          poster: card.getAttribute('data-poster') || '',
+          title: card.getAttribute('data-title') || '',
+        });
+      }
+      paintStaffRoles();
+      refreshStaffPickDone();
+    }, true);
   }
 
   function countStaffFilmsWithState(state) {
@@ -1027,14 +1162,26 @@
       var href = staffFilmHref(f);
       if (!href) return '';
       var kp = String(f.kp_id || '').replace(/\D/g, '');
+      var posterUrl = cleanStaffPoster(f.poster || f.poster_url) || MP_POSTER_PLACEHOLDER;
       var poster = staffFilmPosterHtml(f.poster || f.poster_url, kp);
       var rating = f.rating != null && !isNaN(Number(f.rating))
         ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
         : '';
+      var title = String(f.title || '—');
+      var selected = !!(kp && _staffPickSelected.has(kp));
+      var check = _staffPickOn
+        ? ('<span class="staff-film-check' + (selected ? ' is-on' : '') + '" aria-hidden="true">' +
+          (selected ? '✓' : '') + '</span>')
+        : '';
       return (
-        '<a class="staff-film-card" href="' + escapeHtml(href) + '">' +
-          '<div class="staff-film-media">' + poster + rating + '</div>' +
-          '<div class="staff-film-title">' + escapeHtml(f.title || '—') + '</div>' +
+        '<a class="staff-film-card' + (selected ? ' is-selected' : '') + '" href="' + escapeHtml(href) + '"' +
+          (kp ? (' data-kp="' + escapeHtml(kp) + '"') : '') +
+          ' data-poster="' + escapeHtml(posterUrl) + '"' +
+          ' data-title="' + escapeHtml(title) + '"' +
+          (title && /[а-яА-ЯёЁ]/.test(title) ? (' data-film-title-ru="' + escapeHtml(title) + '"') : '') +
+          '>' +
+          '<div class="staff-film-media">' + poster + rating + check + '</div>' +
+          '<div class="staff-film-title">' + escapeHtml(title) + '</div>' +
           (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
         '</a>'
       );
@@ -1364,6 +1511,9 @@
     bindStaffFilters(root);
     bindStaffRoleExpandButtons(root);
     if (_staffPersonId) bindStaffImportButtons(root, _staffPersonId);
+    bindStaffPickBanner(root);
+    bindStaffPickCardClicks(root);
+    refreshStaffPickDone();
   }
 
   function readMpRouteBoot() {
@@ -1893,10 +2043,16 @@
     function finishStaffMount(article) {
       bindStaffTabs(article);
       bindStaffPickBanner(article);
+      bindStaffPickCardClicks(root);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
       bindStaffFilmNavTitles(root);
+      try {
+        if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.suppressRetract === 'function') {
+          global.MpHeaderSearchScroll.suppressRetract(1400);
+        }
+      } catch (_hs) {}
       try {
         if (!mpToken() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
           global.MpPublicPromo.mountAfterHero(root);
