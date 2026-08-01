@@ -2550,11 +2550,14 @@
         profHtml +
         worksHtml +
       '</div>';
+    var pidAttr = escapeHtml(String(personId || ''));
     root.innerHTML = staffPageLayoutHtml({
       heroInner: heroInner,
       overviewInner: (metaHtml || '') + staffFactsSectionHtml(),
       mainInner: staffPickBannerHtml() + filtersBarHtml() +
-        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>',
+        staffDeskPaneTabsHtml() +
+        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+        '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>',
     });
 
     root._staffFiltersBound = false;
