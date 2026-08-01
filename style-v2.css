@@ -5432,12 +5432,12 @@ body.in-public-stats .header-search {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 0 0 12px;
-  padding-top: 14px; /* padding — no margin-collapse with chips */
+  margin: 0 0 8px;
+  padding-top: 0;
   position: relative;
   z-index: 1;
   /* Reserve badge-row height so description does not jump when KP/IMDb arrive */
-  min-height: 24px;
+  min-height: 26px;
   box-sizing: content-box;
 }
 #section-film .film-ext-ratings,
@@ -5446,14 +5446,20 @@ body.in-public-stats .header-search {
 main.film-page .film-ext-ratings,
 .movie-page .film-ext-ratings {
   margin-top: 0;
-  margin-bottom: 12px;
-  padding-top: 14px;
+  margin-bottom: 8px;
+  padding-top: 0;
 }
 #section-film .eyebrow + .film-ext-ratings,
 #film-page-content .eyebrow + .film-ext-ratings,
 .movie-page .eyebrow + .film-ext-ratings,
 main.film-page .eyebrow + .film-ext-ratings {
-  padding-top: 14px;
+  padding-top: 0;
+}
+.film-meta-line + .film-ext-ratings,
+.film-hero-meta-stack .film-ext-ratings {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 8px;
 }
 .film-ext-ratings[hidden] { display: none !important; }
 .film-ext-ratings.is-empty {
@@ -21510,9 +21516,24 @@ main.film-page .hero-content,
   color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
 }
-/* Film hero meta — left-aligned text lines, no chips */
+/* Film hero meta stack — fixed slots, no layout jump after async fill */
+.film-hero-meta-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+.film-hero-meta-stack > .film-title-en,
+.film-hero-meta-stack > .film-genres-line,
+.film-hero-meta-stack > .film-meta-line,
+.film-hero-meta-stack > .film-ext-ratings {
+  margin: 0 !important;
+}
 .film-title-en {
-  margin: 2px 0 8px;
+  margin: 0;
+  min-height: 1.25em;
+  line-height: 1.25;
   color: var(--text-muted, #b4b4be);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -21520,18 +21541,28 @@ main.film-page .hero-content,
   font-weight: 600;
   font-family: Inter, system-ui, sans-serif;
 }
+.film-title-en.is-empty {
+  visibility: hidden;
+  pointer-events: none;
+}
 .film-meta-line,
 .film-genres-line {
-  margin: 0 0 10px;
+  margin: 0;
+  min-height: 1.45em;
+  line-height: 1.45;
   color: var(--text-body, #e4e4ec);
   font-size: 14px;
   font-weight: 500;
-  line-height: 1.45;
   font-family: Inter, system-ui, sans-serif;
 }
 .film-genres-line {
   color: var(--text-muted, #b4b4be);
   font-weight: 500;
+}
+.film-meta-line.is-empty,
+.film-genres-line.is-empty {
+  visibility: hidden;
+  pointer-events: none;
 }
 .login-modal-cta {
   margin: 0 0 14px;

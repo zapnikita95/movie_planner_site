@@ -206,10 +206,10 @@
       tmp.innerHTML = buildFilmExtRatingsSlotHtml(film);
       var node = tmp.firstElementChild;
       if (!node) return;
+      var stack = hero.querySelector('.film-hero-meta-stack');
       var metaLine = hero.querySelector('#film-meta-line, .film-meta-line');
-      var titleEn = hero.querySelector('#film-title-en, .film-title-en');
-      if (metaLine && metaLine.parentNode) metaLine.insertAdjacentElement('afterend', node);
-      else if (titleEn && titleEn.parentNode) titleEn.insertAdjacentElement('afterend', node);
+      if (stack) stack.appendChild(node);
+      else if (metaLine && metaLine.parentNode) metaLine.insertAdjacentElement('afterend', node);
       else if (eyebrow && eyebrow.parentNode) eyebrow.insertAdjacentElement('afterend', node);
       else {
         var title = hero.querySelector('#film-title, h1');
@@ -310,81 +310,80 @@
     return en;
   }
 
+  function ensureFilmHeroMetaStack(hero) {
+    var content = (hero && hero.classList && hero.classList.contains('hero-content'))
+      ? hero
+      : (hero && hero.querySelector ? (hero.querySelector('.hero-content') || hero) : document);
+    var titleEl = content.querySelector('#film-title, h1');
+    var stack = content.querySelector('.film-hero-meta-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'film-hero-meta-stack';
+      if (titleEl && titleEl.parentNode) {
+        if (titleEl.nextSibling) titleEl.parentNode.insertBefore(stack, titleEl.nextSibling);
+        else titleEl.parentNode.appendChild(stack);
+      } else if (content.appendChild) {
+        content.appendChild(stack);
+      }
+    }
+    function ensureSlot(sel, id, className, tag) {
+      var el = stack.querySelector(sel) || content.querySelector(sel);
+      if (!el) {
+        el = document.createElement(tag || 'p');
+        if (id) el.id = id;
+        el.className = className;
+        stack.appendChild(el);
+      } else if (el.parentNode !== stack) {
+        stack.appendChild(el);
+      }
+      return el;
+    }
+    var enEl = ensureSlot('#film-title-en, .film-title-en', 'film-title-en', 'film-title-en', 'p');
+    var genresEl = ensureSlot('#film-genres-line, .film-genres-line', 'film-genres-line', 'film-genres-line', 'p');
+    var metaEl = ensureSlot('#film-meta-line, .film-meta-line', 'film-meta-line', 'film-meta-line', 'p');
+    var ratings = content.querySelector('.film-ext-ratings');
+    if (ratings && ratings.parentNode !== stack) stack.appendChild(ratings);
+    // Hard order: EN → genres → meta → ratings
+    var order = [enEl, genresEl, metaEl, ratings].filter(Boolean);
+    order.forEach(function (node) { stack.appendChild(node); });
+    var chips = content.querySelector('#chips, .eyebrow');
+    if (chips) {
+      chips.innerHTML = '';
+      chips.setAttribute('hidden', '');
+      chips.setAttribute('aria-hidden', 'true');
+    }
+    return { content: content, stack: stack, titleEl: titleEl, enEl: enEl, genresEl: genresEl, metaEl: metaEl, ratings: ratings };
+  }
+
+  function setReservedLine(el, text) {
+    if (!el) return;
+    var val = String(text || '').trim();
+    el.removeAttribute('hidden');
+    if (val) {
+      el.textContent = val;
+      el.classList.remove('is-empty');
+      el.removeAttribute('aria-hidden');
+    } else {
+      el.innerHTML = '&nbsp;';
+      el.classList.add('is-empty');
+      el.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   function syncFilmHeroMeta(root, film) {
     var scope = root && root.querySelector ? root : document;
     var hero = scope.querySelector
       ? (scope.querySelector('.film-hero-with-tag, section.hero, .hero-content') || scope)
       : document;
     if (!hero || !hero.querySelector) hero = document;
-    var titleEl = hero.querySelector('#film-title, h1');
+    var slots = ensureFilmHeroMetaStack(hero);
     var titleRu = film && film.title ? String(film.title).trim() : '';
-    if (titleEl && titleRu) {
-      titleEl.textContent = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
+    if (slots.titleEl && titleRu) {
+      slots.titleEl.textContent = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
     }
-    var en = pickFilmTitleEn(film);
-    var enEl = hero.querySelector('#film-title-en, .film-title-en');
-    if (!enEl && titleEl && titleEl.parentNode) {
-      enEl = document.createElement('p');
-      enEl.id = 'film-title-en';
-      enEl.className = 'film-title-en';
-      titleEl.insertAdjacentElement('afterend', enEl);
-    }
-    if (enEl) {
-      if (en) {
-        enEl.textContent = en;
-        enEl.hidden = false;
-        enEl.removeAttribute('hidden');
-      } else {
-        enEl.textContent = '';
-        enEl.hidden = true;
-      }
-    }
-    var metaText = buildFilmMetaLineText(film);
-    var metaEl = hero.querySelector('#film-meta-line, .film-meta-line');
-    var afterEl = enEl && !enEl.hidden ? enEl : titleEl;
-    if (!metaEl && afterEl && afterEl.parentNode) {
-      metaEl = document.createElement('p');
-      metaEl.id = 'film-meta-line';
-      metaEl.className = 'film-meta-line';
-      afterEl.insertAdjacentElement('afterend', metaEl);
-    }
-    if (metaEl) {
-      if (metaText) {
-        metaEl.textContent = metaText;
-        metaEl.hidden = false;
-        metaEl.removeAttribute('hidden');
-      } else {
-        metaEl.textContent = '';
-        metaEl.hidden = true;
-      }
-    }
-    var genresText = buildFilmGenresLineText(film && film.genres, film && film.is_series);
-    var genresEl = hero.querySelector('#film-genres-line, .film-genres-line');
-    var ratings = hero.querySelector('.film-ext-ratings');
-    var insertAfter = ratings || metaEl || afterEl;
-    if (!genresEl && insertAfter && insertAfter.parentNode) {
-      genresEl = document.createElement('p');
-      genresEl.id = 'film-genres-line';
-      genresEl.className = 'film-genres-line';
-      insertAfter.insertAdjacentElement('afterend', genresEl);
-    }
-    if (genresEl) {
-      if (genresText) {
-        genresEl.textContent = genresText;
-        genresEl.hidden = false;
-        genresEl.removeAttribute('hidden');
-      } else {
-        genresEl.textContent = '';
-        genresEl.hidden = true;
-      }
-    }
-    // Chips removed — clear legacy eyebrow if still present.
-    var chips = hero.querySelector('#chips, .eyebrow');
-    if (chips) {
-      chips.innerHTML = '';
-      chips.hidden = true;
-      chips.setAttribute('aria-hidden', 'true');
-    }
+    setReservedLine(slots.enEl, pickFilmTitleEn(film));
+    setReservedLine(slots.genresEl, buildFilmGenresLineText(film && film.genres, film && film.is_series));
+    setReservedLine(slots.metaEl, buildFilmMetaLineText(film));
   }
 
   function cleanPosterUrl(src) {
@@ -2680,10 +2679,12 @@
         '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
-          '<p class="film-title-en" id="film-title-en" hidden></p>' +
-          '<p class="film-meta-line" id="film-meta-line" hidden></p>' +
-          buildFilmExtRatingsSlotHtml(null) +
-          '<p class="film-genres-line" id="film-genres-line" hidden></p>' +
+          '<div class="film-hero-meta-stack">' +
+            '<p class="film-title-en is-empty" id="film-title-en" aria-hidden="true">&nbsp;</p>' +
+            '<p class="film-genres-line is-empty" id="film-genres-line" aria-hidden="true">&nbsp;</p>' +
+            '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true">&nbsp;</p>' +
+            buildFilmExtRatingsSlotHtml(null) +
+          '</div>' +
           '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
@@ -2778,7 +2779,12 @@
       genres: boot.genres,
       is_series: !!boot.is_series,
       series_stats: boot.series_stats,
+      rating_kp: boot.rating_kp,
+      rating_imdb: boot.rating_imdb,
+      rating_kp_votes: boot.rating_kp_votes,
+      rating_imdb_votes: boot.rating_imdb_votes,
     });
+    syncFilmExtRatings(pageRoot, boot);
     if (boot.description) setFilmDescription(boot.description);
     var descWrapBoot = pageRoot.querySelector('#film-desc-wrap');
     if (descWrapBoot) {
@@ -2920,10 +2926,12 @@
               '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
-                '<p class="film-title-en" id="film-title-en" hidden></p>' +
-                '<p class="film-meta-line" id="film-meta-line" hidden></p>' +
-                buildFilmExtRatingsSlotHtml(null) +
-                '<p class="film-genres-line" id="film-genres-line" hidden></p>' +
+                '<div class="film-hero-meta-stack">' +
+                  '<p class="film-title-en is-empty" id="film-title-en" aria-hidden="true">&nbsp;</p>' +
+                  '<p class="film-genres-line is-empty" id="film-genres-line" aria-hidden="true">&nbsp;</p>' +
+                  '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true">&nbsp;</p>' +
+                  buildFilmExtRatingsSlotHtml(null) +
+                '</div>' +
                 '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
                 buildFilmDescWrapHtml() +
                 buildFilmPageToolbar({ kp_id: '' }, { inBase: false, authenticated: false, canRate: true }) +
