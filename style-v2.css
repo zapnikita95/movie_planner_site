@@ -21288,12 +21288,12 @@ main.film-page .hero-content,
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   width: 100%;
   max-width: 392px;
   height: 52px;
   min-height: 52px;
-  padding: 0 16px 0 8px;
+  padding: 0 16px 0 12px;
   border: 0;
   border-radius: var(--r);
   cursor: pointer;
@@ -21452,21 +21452,23 @@ main.film-page .hero-content,
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  width: auto;
+  height: auto;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: #e6e6ea;
 }
 .glass-cta__icon .mp-icon,
 .glass-cta__icon i,
 .glass-cta__icon svg {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   display: block;
-  font-size: 17px;
+  font-size: 22px;
   line-height: 1;
   color: #e6e6ea;
 }
@@ -21482,6 +21484,24 @@ main.film-page .hero-content,
   white-space: nowrap;
   text-align: left;
 }
+.glass-cta__login {
+  position: relative;
+  z-index: 4;
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: rgba(200, 210, 230, 0.78);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.glass-cta:hover .glass-cta__login {
+  color: rgba(230, 236, 245, 0.95);
+}
 .glass-cta__caret {
   position: relative;
   z-index: 4;
@@ -21489,6 +21509,36 @@ main.film-page .hero-content,
   margin-left: 4px;
   color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
+}
+/* Film hero meta — left-aligned text lines, no chips */
+.film-title-en {
+  margin: 2px 0 8px;
+  color: var(--text-muted, #b4b4be);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: Inter, system-ui, sans-serif;
+}
+.film-meta-line,
+.film-genres-line {
+  margin: 0 0 10px;
+  color: var(--text-body, #e4e4ec);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  font-family: Inter, system-ui, sans-serif;
+}
+.film-genres-line {
+  color: var(--text-muted, #b4b4be);
+  font-weight: 500;
+}
+.login-modal-cta {
+  margin: 0 0 14px;
+  color: var(--text-body, #e4e4ec);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 /* Kill solid pink plan fill when glass */
 .film-toolbar-plan.glass-cta,
@@ -21502,7 +21552,7 @@ button.glass-cta.film-toolbar-plan {
     4px -6px 22px -10px rgba(255, 160, 60, 0.18) !important;
   font-weight: 500 !important;
   justify-content: flex-start !important;
-  padding: 0 16px 0 8px !important;
+  padding: 0 16px 0 12px !important;
   max-width: 392px;
   width: 100%;
   min-height: 52px !important;

@@ -318,6 +318,45 @@
     });
   }
 
+  function loginCtaMessageForAction(action) {
+    var a = String(action || '').toLowerCase();
+    if (a.indexOf('watched') === 0) {
+      return 'Авторизуйтесь, чтобы добавить фильм в базу просмотренных';
+    }
+    if (a.indexOf('rate') === 0) {
+      return 'Авторизуйтесь, чтобы поставить оценку фильму';
+    }
+    if (a.indexOf('add') === 0 || a.indexOf('plan') === 0 || a.indexOf('tag') === 0 || a.indexOf('watchlist') === 0) {
+      return 'Авторизуйтесь, чтобы сохранить фильм в список просмотра';
+    }
+    return '';
+  }
+
+  function setLoginCtaMessage(actionOrText) {
+    var modal = $('login-modal');
+    if (!modal) return;
+    var el = modal.querySelector('#login-modal-cta');
+    if (!el) {
+      var title = modal.querySelector('.modal-title');
+      if (!title) return;
+      el = document.createElement('p');
+      el.id = 'login-modal-cta';
+      el.className = 'login-modal-cta';
+      title.insertAdjacentElement('afterend', el);
+    }
+    var msg = String(actionOrText || '');
+    if (msg && msg.indexOf(' ') < 0 && msg.length < 40) {
+      msg = loginCtaMessageForAction(msg);
+    }
+    if (!msg) {
+      el.textContent = '';
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = msg;
+  }
+
   function showLoginModal() {
     var modal = mountLoginModalPortal();
     if (!modal) return;
@@ -371,6 +410,7 @@
         '<div class="modal-content" style="position:relative;z-index:1;max-height:min(90vh,720px);overflow:auto">' +
           '<button type="button" class="modal-close" data-action="close-login" aria-label="Закрыть">&times;</button>' +
           '<div class="modal-title">Movie Planner</div>' +
+          '<p class="login-modal-cta" id="login-modal-cta" hidden></p>' +
           '<div class="login-auth-tabs" role="tablist" aria-label="Вход и регистрация">' +
             '<button type="button" class="login-auth-tab active" data-login-tab="login" role="tab" aria-selected="true">Вход</button>' +
             '<button type="button" class="login-auth-tab" data-login-tab="register" role="tab" aria-selected="false">Регистрация</button>' +
@@ -780,6 +820,7 @@
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }
+    setLoginCtaMessage(action || '');
     setLoginTab(tabName === 'register' ? 'register' : 'login');
     showLoginModal();
     schedulePfBotPrefetch();
@@ -890,7 +931,7 @@
 
   bindGlobalDialogDelegation();
 
-  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal, hide: hideLoginModal };
+  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal, hide: hideLoginModal, setCta: setLoginCtaMessage };
   global.showLoginModalOverlay = showLoginModal;
   global.mpCloseLoginModal = close;
   global._mpDismissLoginModal = function () {
