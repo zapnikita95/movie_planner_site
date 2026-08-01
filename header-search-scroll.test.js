@@ -28,4 +28,10 @@ assert(decide(100, 20, { mobile: true, inputFocused: true }) === 'show', 'focus 
 assert(decide(100, 20, { mobile: true, suppressHide: true }) === 'show', 'suppress → show');
 assert(decide(100, 20, { mobile: false }) === 'show', 'desktop → show');
 
+// Staff/film must lock search open and never feed showSearch from retract state.
+assert(src.includes('lockSearchOpen'), 'staff/film lock search open');
+assert(src.includes('var lockSearchOpen = !!(mode.onStaff || mode.onFilm)'), 'lock on staff+film');
+assert(!/showSearch:\s*searchVisible/.test(src), 'no showSearch: searchVisible (title-only flip)');
+assert((src.match(/showSearch:\s*true/g) || []).length >= 4, 'sticky paths always showSearch:true');
+
 console.log('header-search-scroll.test.js: OK');
