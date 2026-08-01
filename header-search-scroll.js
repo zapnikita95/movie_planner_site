@@ -2,18 +2,22 @@
  * Mobile: hide header search on scroll down, show on scroll up (smooth CSS).
  * Staff/film: pin hero title in header after name scrolls away — no flicker.
  *
+ * Compact sticky (staff/film):
+ * - Collapse search input into chrome 🔍 in the logo row (replaces coins).
+ * - Sticky name stays below; header height stable while scrolling.
+ * - Tap 🔍 → expand search + hub (intentional); close → compact again.
+ *
  * Anti-flicker rules:
  * - Measure sticky threshold vs logo/buttons row only (not full header height).
  * - Wide hysteresis so stop-scroll near threshold does not toggle.
  * - Title always stays at order:4; search at order:3 (never swap).
  * - Mutually exclusive staff vs film body page classes.
- * - On /s/ and /f/: NEVER retract search and NEVER flip title-only ↔ with-search
- *   (that height thrash is the “epileptic” mobile header jump).
  */
 (function (global) {
   'use strict';
 
   var RETRACT_CLASS = 'header-search--retracted';
+  var CHROME_SEARCH_CLASS = 'mp-header-chrome-search';
   var MQ = '(max-width: 860px)';
   var _updateFn = null;
 
@@ -129,6 +133,45 @@
     return { onStaff: onStaff, onFilm: onFilm && !onStaff };
   }
 
+  function syncChromeSearchBtn(doc, compactOn, searchOpen) {
+    var btn = doc.getElementById('header-chrome-search-btn');
+    if (!btn) return;
+    btn.setAttribute('aria-label', searchOpen ? 'Закрыть поиск' : 'Поиск');
+    btn.setAttribute('title', searchOpen ? 'Закрыть поиск' : 'Поиск');
+    btn.classList.toggle('header-chrome-search-btn--close', !!(compactOn && searchOpen));
+  }
+
+  function bindChromeSearchBtn(doc) {
+    var btn = doc.getElementById('header-chrome-search-btn');
+    if (!btn || btn.dataset.mpChromeSearchBound) return;
+    btn.dataset.mpChromeSearchBound = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var body = doc.body;
+      var input = doc.getElementById('header-search-input');
+      var search = doc.getElementById('header-search');
+      var open = !!(body && body.classList.contains('header-search-dropdown-open'));
+      if (open) {
+        if (body) body.classList.remove('header-search-dropdown-open');
+        var dd = doc.getElementById('header-search-dropdown');
+        if (dd) {
+          dd.classList.add('hidden');
+          dd.innerHTML = '';
+        }
+        if (input) input.blur();
+        if (typeof _updateFn === 'function') _updateFn();
+        return;
+      }
+      if (search) search.classList.remove(RETRACT_CLASS);
+      _suppressHideUntil = Date.now() + 800;
+      if (input) {
+        try { input.focus(); } catch (_f) {}
+      }
+      if (typeof _updateFn === 'function') _updateFn();
+    });
+  }
+
   var _suppressHideUntil = 0;
 
   function bindMobileSearchScroll(opts) {
@@ -148,27 +191,26 @@
       ticking = false;
       var search = doc.getElementById('header-search');
       var header = doc.getElementById('site-header');
+      var body = doc.body;
       if (header) header.classList.remove('site-header--retracted');
-      if (!search) return;
+      if (!search || !body) return;
+
+      bindChromeSearchBtn(doc);
 
       var mode = ensureExclusivePageMode(doc);
       var mobile = bodyAllowsMobileSearchRetract();
-      var dropdownOpen = !!(doc.body && doc.body.classList.contains('header-search-dropdown-open'));
+      var dropdownOpen = !!body.classList.contains('header-search-dropdown-open');
       var input = doc.getElementById('header-search-input');
       var inputFocused = !!(input && doc.activeElement === input);
       var y = global.scrollY || 0;
       var suppressHide = Date.now() < _suppressHideUntil;
+      var searchActive = dropdownOpen || inputFocused || suppressHide;
       var decision = decideSearchRetract(y, lastY, {
         mobile: mobile,
         dropdownOpen: dropdownOpen,
         inputFocused: inputFocused,
         suppressHide: suppressHide,
       });
-
-      // Staff/film: lock search open. Retract + sticky title thrash header height on scroll.
-      var lockSearchOpen = !!(mode.onStaff || mode.onFilm);
-      if (mobile && !lockSearchOpen) applyDecision(search, decision);
-      else applyDecision(search, 'show');
 
       var staffPast = mobile && mode.onStaff && heroTitlePastHeader(
         doc, header, pastStaff, '.staff-hero-name', 'staff-standalone-page'
@@ -178,8 +220,25 @@
         doc, header, pastFilm, '#film-title', 'film-standalone-page'
       );
       pastFilm = filmPast;
+      var pastName = !!(staffPast || filmPast);
+      var compactPage = !!(mode.onStaff || mode.onFilm);
 
-      // Sticky chrome is always search+title (showSearch:true). Never title-only class.
+      // Staff/film compact sticky: collapse input into chrome 🔍; expand only when searching.
+      if (mobile && compactPage && pastName) {
+        body.classList.add(CHROME_SEARCH_CLASS);
+        if (searchActive) applyDecision(search, 'show');
+        else applyDecision(search, 'hide');
+      } else if (mobile && !compactPage) {
+        body.classList.remove(CHROME_SEARCH_CLASS);
+        applyDecision(search, decision);
+      } else {
+        body.classList.remove(CHROME_SEARCH_CLASS);
+        applyDecision(search, 'show');
+      }
+
+      var showSearchRow = !(mobile && compactPage && pastName && !searchActive);
+      syncChromeSearchBtn(doc, pastName && compactPage, searchActive && pastName);
+
       if (staffPast) {
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
@@ -187,7 +246,7 @@
           onlyClass: 'staff-header-title-only',
           withSearchClass: 'staff-header-search-with-title',
           pastName: true,
-          showSearch: true,
+          showSearch: showSearchRow,
         });
         applyStickyHeaderTitle(doc, {
           pageClass: 'film-standalone-page',
@@ -204,7 +263,7 @@
           onlyClass: 'film-header-title-only',
           withSearchClass: 'film-header-search-with-title',
           pastName: true,
-          showSearch: true,
+          showSearch: showSearchRow,
         });
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
@@ -254,6 +313,7 @@
 
   global.MpHeaderSearchScroll = {
     RETRACT_CLASS: RETRACT_CLASS,
+    CHROME_SEARCH_CLASS: CHROME_SEARCH_CLASS,
     decideSearchRetract: decideSearchRetract,
     bodyAllowsMobileSearchRetract: bodyAllowsMobileSearchRetract,
     stickyChromeBottom: stickyChromeBottom,
