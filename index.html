@@ -646,26 +646,20 @@
                           '</div>' +
                         '</div>' +
                         '<div class="staff-proto-tabs" role="tablist" aria-label="Разделы">' +
-                          '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Обзор</button>' +
+                          '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Биография</button>' +
                           '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
                           '<button type="button" class="staff-proto-tab" data-staff-tab="awards">Награды</button>' +
-                        '</div>' +
-                        '<div class="staff-proto-overview" data-pane="overview">' +
-                          '<p class="staff-hero-meta staff-boot-skel" aria-hidden="true">&nbsp;</p>' +
-                          '<section class="staff-facts-anchor staff-facts-anchor--interactive staff-facts--boot" id="staff-facts-section" aria-label="Интересные факты" aria-busy="true">' +
-                            '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
-                              '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
-                              '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
-                              '<span class="staff-facts-preview" id="staff-facts-preview">Загружаем…</span>' +
-                            '</button>' +
-                            '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
-                              '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
-                            '</div>' +
-                          '</section>' +
                         '</div>' +
                       '</div>' +
                     '</aside>' +
                     '<div class="staff-proto-main" id="staff-proto-main" data-pane="films">' +
+                      '<div id="staff-bio-root" class="staff-bio-root hidden" data-pane="bio">' +
+                        '<p class="staff-hero-meta staff-boot-skel" aria-hidden="true">&nbsp;</p>' +
+                        '<section class="staff-facts-anchor staff-facts-anchor--flat staff-facts--boot" id="staff-facts-section" aria-label="Интересные факты" aria-busy="true">' +
+                          '<h2 class="staff-facts-heading">Интересные факты</h2>' +
+                          '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+                        '</section>' +
+                      '</div>' +
                       loadingShell('Фильмография…') +
                     '</div>' +
                   '</div>' +
@@ -2782,7 +2776,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260801wtwCollUrls1';
+        var V = '20260801staffBio1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

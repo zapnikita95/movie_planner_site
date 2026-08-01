@@ -28,7 +28,7 @@
   var _staffGlobalFilters = { years: [], genres: [] };
   var _staffPickOn = false;
   var _staffPickSelected = new Map();
-  /** Desktop (and synced mobile awards): 'films' | 'awards' */
+  /** Desktop main pane (+ mobile awards sync): 'bio' | 'films' | 'awards' */
   var _staffMainPane = 'films';
   var PICK_START_ARROW =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">' +
@@ -240,50 +240,6 @@
     return formatWebFactHtml(wf && wf.fact);
   }
 
-  function staffFactsPreviewText(fact) {
-    var t = String(fact || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\s+/g, ' ').trim();
-    if (t.length <= 140) return t;
-    return t.slice(0, 137).trim() + '…';
-  }
-
-  function staffFactsPreviewHtml(fact) {
-    return formatWebFactHtml(fact);
-  }
-
-  function bindStaffFactsSectionToggle(section, toggle, panel, preview) {
-    if (!section || section._staffFactsBound) return;
-    section._staffFactsBound = true;
-    section.classList.add('staff-facts-anchor--interactive');
-    if (toggle) toggle.setAttribute('tabindex', '-1');
-    section.setAttribute('tabindex', '0');
-    if (!section.getAttribute('role')) section.setAttribute('role', 'button');
-
-    function setOpen(open) {
-      if (panel) panel.classList.toggle('hidden', !open);
-      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      var chev = section.querySelector('.staff-facts-chevron');
-      if (chev) chev.textContent = open ? '▴' : '▾';
-      if (preview) preview.classList.toggle('hidden', open);
-      section.classList.toggle('staff-facts-anchor--open', open);
-    }
-
-    function flip() {
-      var open = !!(panel && panel.classList.contains('hidden'));
-      setOpen(open);
-    }
-
-    section.addEventListener('click', function (e) {
-      if (e.target.closest('.staff-fact-source')) return;
-      if (e.target.closest('a[href]') && !e.target.closest('.staff-facts-toggle-head')) return;
-      flip();
-    });
-    section.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      e.preventDefault();
-      flip();
-    });
-  }
-
   function _staffFactNormKey(text) {
     return String(text || '')
       .toLowerCase()
@@ -338,11 +294,8 @@
 
   function renderStaffPersonFacts(factsOrPayload) {
     var section = document.getElementById('staff-facts-section');
-    var preview = document.getElementById('staff-facts-preview');
     var list = document.getElementById('staff-facts-list');
-    var panel = document.getElementById('staff-facts-panel');
-    var toggle = document.getElementById('staff-facts-toggle');
-    if (!section || !preview || !list) return;
+    if (!section || !list) return;
     var facts = Array.isArray(factsOrPayload)
       ? factsOrPayload.filter(function (f) { return f && f.fact; })
       : staffFactsItemsFromPayload(factsOrPayload || {});
@@ -351,10 +304,10 @@
       return;
     }
     section.classList.remove('hidden', 'staff-facts--boot');
+    section.classList.add('staff-facts-anchor--flat', 'staff-facts-anchor--open');
     section.removeAttribute('aria-busy');
-    preview.innerHTML = staffFactsPreviewHtml(facts[0].fact);
     list.innerHTML = '';
-    facts.slice(0, 6).forEach(function (wf) {
+    facts.slice(0, 8).forEach(function (wf) {
       var li = document.createElement('li');
       var cat = wf.category ? ('<strong>' + escapeHtml(wf.category) + ':</strong> ') : '';
       var text = webFactBodyHtml(wf);
@@ -369,22 +322,6 @@
       li.innerHTML = cat + text + src;
       list.appendChild(li);
     });
-    // Mobile overview: facts are page content (always open, no card) — proto --flat
-    var flat = false;
-    try { flat = !!(global.matchMedia && global.matchMedia('(max-width: 860px)').matches); } catch (_e) {}
-    if (flat) {
-      section.classList.add('staff-facts-anchor--flat', 'staff-facts-anchor--open');
-      if (panel) panel.classList.remove('hidden');
-      if (preview) preview.classList.add('hidden');
-      if (toggle) {
-        toggle.setAttribute('aria-expanded', 'true');
-        toggle.setAttribute('tabindex', '-1');
-      }
-      return;
-    }
-    if (panel) panel.classList.add('hidden');
-    if (toggle) toggle.setAttribute('aria-expanded', 'false');
-    bindStaffFactsSectionToggle(section, toggle, panel, preview);
   }
 
   var _staffFactsPrefetch = null;
@@ -705,7 +642,7 @@
   function staffTabsHtml() {
     return (
       '<nav class="staff-proto-tabs" id="staff-proto-tabs" aria-label="Разделы">' +
-        '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Обзор</button>' +
+        '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Биография</button>' +
         '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
         '<button type="button" class="staff-proto-tab" data-staff-tab="awards">Награды</button>' +
       '</nav>'
@@ -714,16 +651,19 @@
 
   function staffFactsSectionHtml() {
     return (
-      '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
-        '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
-          '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
-          '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
-          '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
-        '</button>' +
-        '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
-          '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
-        '</div>' +
+      '<section class="staff-facts-anchor staff-facts-anchor--flat hidden" id="staff-facts-section" aria-label="Интересные факты">' +
+        '<h2 class="staff-facts-heading">Интересные факты</h2>' +
+        '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
       '</section>'
+    );
+  }
+
+  function staffBioPaneHtml(metaHtml) {
+    return (
+      '<div id="staff-bio-root" class="staff-bio-root hidden" data-pane="bio">' +
+        (metaHtml || '') +
+        staffFactsSectionHtml() +
+      '</div>'
     );
   }
 
@@ -771,18 +711,20 @@
   }
 
   function staffDeskPaneTabsHtml() {
+    function tab(pane, label) {
+      var on = _staffMainPane === pane;
+      return (
+        '<button type="button" class="staff-desk-pane-tab' + (on ? ' is-active' : '') +
+          '" data-staff-pane="' + pane + '"' +
+          (on ? ' aria-current="page"' : '') +
+          '>' + label + '</button>'
+      );
+    }
     return (
-      '<nav class="staff-desk-pane-tabs" id="staff-desk-pane-tabs" aria-label="Фильмография и награды">' +
-        '<button type="button" class="staff-desk-pane-tab' +
-          (_staffMainPane === 'films' ? ' is-active' : '') +
-          '" data-staff-pane="films"' +
-          (_staffMainPane === 'films' ? ' aria-current="page"' : '') +
-          '>Фильмография</button>' +
-        '<button type="button" class="staff-desk-pane-tab' +
-          (_staffMainPane === 'awards' ? ' is-active' : '') +
-          '" data-staff-pane="awards"' +
-          (_staffMainPane === 'awards' ? ' aria-current="page"' : '') +
-          '>Награды</button>' +
+      '<nav class="staff-desk-pane-tabs" id="staff-desk-pane-tabs" aria-label="Разделы персоны">' +
+        tab('bio', 'Биография') +
+        tab('films', 'Фильмография') +
+        tab('awards', 'Награды') +
       '</nav>'
     );
   }
@@ -811,12 +753,15 @@
   function applyStaffMainPane() {
     var awardsRoot = document.getElementById('staff-awards-root') || ensureStaffAwardsRoot();
     var filmsRoot = document.getElementById('staff-roles-root');
+    var bioRoot = document.getElementById('staff-bio-root');
     var filters = document.getElementById('staff-person-filters');
     var pick = document.getElementById('mp-pick-banner');
     var deskTabs = document.getElementById('staff-desk-pane-tabs');
     var desktop = isStaffDesktopLayout();
     var tab = document.body.getAttribute('data-staff-tab') || 'films';
-    var showTools = desktop ? true : (tab === 'films' || tab === 'awards');
+    var showTools = desktop
+      ? (_staffMainPane === 'films' || _staffMainPane === 'awards')
+      : (tab === 'films' || tab === 'awards');
     if (filters) filters.classList.toggle('hidden', !showTools);
     if (pick) pick.classList.toggle('hidden', !showTools);
     if (deskTabs) {
@@ -825,22 +770,33 @@
     }
     var showAwards;
     var showFilms;
+    var showBio;
     if (desktop) {
+      showBio = _staffMainPane === 'bio';
       showAwards = _staffMainPane === 'awards';
       showFilms = _staffMainPane === 'films';
     } else if (tab === 'overview') {
+      showBio = true;
       showAwards = false;
       showFilms = false;
     } else {
+      showBio = false;
       showAwards = tab === 'awards';
       showFilms = tab === 'films';
     }
+    if (bioRoot) bioRoot.classList.toggle('hidden', !showBio);
     if (filmsRoot) filmsRoot.classList.toggle('hidden', !showFilms);
     if (awardsRoot) awardsRoot.classList.toggle('hidden', !showAwards);
   }
 
+  function normalizeStaffPane(pane) {
+    if (pane === 'awards') return 'awards';
+    if (pane === 'bio' || pane === 'overview') return 'bio';
+    return 'films';
+  }
+
   function setStaffMainPane(pane) {
-    _staffMainPane = pane === 'awards' ? 'awards' : 'films';
+    _staffMainPane = normalizeStaffPane(pane);
     document.body.setAttribute('data-staff-pane', _staffMainPane);
     document.querySelectorAll('.staff-desk-pane-tab').forEach(function (btn) {
       var on = btn.getAttribute('data-staff-pane') === _staffMainPane;
@@ -874,16 +830,18 @@
       if (on) btn.setAttribute('aria-current', 'page');
       else btn.removeAttribute('aria-current');
     });
-    if (t === 'awards' || t === 'films') {
+    if (t === 'overview') {
+      _staffMainPane = 'bio';
+    } else {
       _staffMainPane = t === 'awards' ? 'awards' : 'films';
-      document.body.setAttribute('data-staff-pane', _staffMainPane);
-      document.querySelectorAll('.staff-desk-pane-tab').forEach(function (btn) {
-        var on = btn.getAttribute('data-staff-pane') === _staffMainPane;
-        btn.classList.toggle('is-active', on);
-        if (on) btn.setAttribute('aria-current', 'page');
-        else btn.removeAttribute('aria-current');
-      });
     }
+    document.body.setAttribute('data-staff-pane', _staffMainPane);
+    document.querySelectorAll('.staff-desk-pane-tab').forEach(function (btn) {
+      var on = btn.getAttribute('data-staff-pane') === _staffMainPane;
+      btn.classList.toggle('is-active', on);
+      if (on) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
+    });
     applyStaffMainPane();
     if (t === 'awards') {
       var awardsRoot = ensureStaffAwardsRoot();
@@ -2085,7 +2043,6 @@
             '<div class="staff-proto-aside-inner">' +
               '<div class="staff-hero staff-hero--poster" role="banner">' + (opts.heroInner || '') + '</div>' +
               staffTabsHtml() +
-              '<div class="staff-proto-overview" data-pane="overview">' + (opts.overviewInner || '') + '</div>' +
             '</div>' +
           '</aside>' +
           '<div class="staff-proto-main" id="staff-proto-main" data-pane="films">' +
@@ -2111,19 +2068,17 @@
         '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
         (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
       '</div>';
-    var overviewInner = '';
-    var bootFactItems = staffFactsItemsFromPayload({
-      web_facts: boot.web_facts,
-      kp_facts: boot.kp_facts,
-    });
-    if (bootFactItems.length) {
-      overviewInner = staffFactsSectionHtml();
+    var bootMeta = '';
+    if (boot.birthday || boot.birthplace || boot.birth_place) {
+      bootMeta = staffMetaLine({
+        birthday: boot.birthday,
+        birthplace: boot.birthplace || boot.birth_place,
+      });
     }
     return staffPageLayoutHtml({
       boot: true,
       heroInner: heroInner,
-      overviewInner: overviewInner,
-      mainInner: staffLoadingHtml('Фильмография…'),
+      mainInner: staffBioPaneHtml(bootMeta) + staffLoadingHtml('Фильмография…'),
     });
   }
 
@@ -2620,16 +2575,15 @@
     }
 
     function mountStaffBody(article) {
-      var overview = article.querySelector('.staff-proto-overview');
       var main = article.querySelector('.staff-proto-main');
-      if (overview) {
-        overview.innerHTML = (metaHtml || '') + staffFactsSectionHtml();
-      }
       if (main) {
         var pidAttr = escapeHtml(String(personId || ''));
+        var loadingEl = main.querySelector('.mp-route-boot-loading');
+        if (loadingEl) loadingEl.remove();
         main.innerHTML =
           staffPickBannerHtml() + filtersBarHtml() +
           staffDeskPaneTabsHtml() +
+          staffBioPaneHtml(metaHtml || '') +
           '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
           '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>';
         root._staffFiltersBound = false;
@@ -2661,9 +2615,9 @@
     var pidAttr = escapeHtml(String(personId || ''));
     root.innerHTML = staffPageLayoutHtml({
       heroInner: heroInner,
-      overviewInner: (metaHtml || '') + staffFactsSectionHtml(),
       mainInner: staffPickBannerHtml() + filtersBarHtml() +
         staffDeskPaneTabsHtml() +
+        staffBioPaneHtml(metaHtml || '') +
         '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
         '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>',
     });
