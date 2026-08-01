@@ -3263,11 +3263,18 @@
       let row =
         '<div class="film-cast-row film-cast-actors"><span class="film-cast-label">Актёры:</span> ';
       if (hasMore) {
+        var shortHead = collapsed.slice(0, -1);
+        var shortLast = collapsed[collapsed.length - 1];
+        row += '<span class="film-actors-short">';
+        if (shortHead.length) {
+          row += shortHead.join('<span class="film-cast-sep">, </span>') + '<span class="film-cast-sep">, </span>';
+        }
+        row += '<span class="film-actors-more-wrap">' + shortLast +
+          ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button></span>';
+        row += '</span>';
         row +=
-          '<span class="film-actors-short">' + collapsed.join('<span class="film-cast-sep">, </span>') + '</span>' +
           '<span class="film-actors-full hidden"><span class="film-cast-sep">, </span>' +
-          actorLinks.slice(FILM_CAST_ACTORS_COLLAPSED).join('<span class="film-cast-sep">, </span>') + '</span>' +
-          ' <button type="button" class="film-actors-more-btn" aria-expanded="false">ещё</button>';
+          actorLinks.slice(FILM_CAST_ACTORS_COLLAPSED).join('<span class="film-cast-sep">, </span>') + '</span>';
       } else {
         row += actorLinks.join('<span class="film-cast-sep">, </span>');
       }
@@ -10404,11 +10411,18 @@
         const castRoot = actorsMoreBtn.closest('.film-hero-crew, .film-modal-crew');
         const shortEl = castRoot ? castRoot.querySelector('.film-actors-short') : content.querySelector('.film-actors-short');
         const fullEl = castRoot ? castRoot.querySelector('.film-actors-full') : content.querySelector('.film-actors-full');
+        const wrap = castRoot ? castRoot.querySelector('.film-actors-more-wrap') : content.querySelector('.film-actors-more-wrap');
         if (!shortEl || !fullEl) return;
         const collapsed = fullEl.classList.contains('hidden');
         fullEl.classList.toggle('hidden', !collapsed);
         shortEl.classList.toggle('hidden', collapsed);
-        actorsMoreBtn.textContent = collapsed ? 'свернуть' : 'ещё';
+        if (collapsed) {
+          if (fullEl.parentNode) fullEl.parentNode.insertBefore(actorsMoreBtn, fullEl.nextSibling);
+          actorsMoreBtn.textContent = 'свернуть';
+        } else {
+          if (wrap) wrap.appendChild(actorsMoreBtn);
+          actorsMoreBtn.textContent = 'ещё';
+        }
         actorsMoreBtn.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
       });
     }

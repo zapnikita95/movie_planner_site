@@ -393,6 +393,25 @@
     }
   }
 
+  function readNavFilmTitleRu(kpId) {
+    try {
+      var key = 'mp_film_nav_title_ru_' + String(kpId || '').replace(/\D/g, '');
+      if (!key || key.endsWith('_')) return '';
+      var t = String(sessionStorage.getItem(key) || '').trim();
+      if (t && /[а-яА-ЯёЁ]/.test(t)) return t;
+    } catch (_e) {}
+    return '';
+  }
+
+  function preferRuFilmTitle(apiTitle, kpId) {
+    var api = String(apiTitle || '').trim();
+    var nav = readNavFilmTitleRu(kpId);
+    if (nav && (!api || !/[а-яА-ЯёЁ]/.test(api))) return nav;
+    if (api && /[а-яА-ЯёЁ]/.test(api)) return api;
+    if (nav) return nav;
+    return api;
+  }
+
   function syncFilmHeroMeta(root, film) {
     var scope = root && root.querySelector ? root : document;
     var hero = scope.querySelector
@@ -400,7 +419,16 @@
       : document;
     if (!hero || !hero.querySelector) hero = document;
     var slots = ensureFilmHeroMetaStack(hero);
-    var titleRu = film && film.title ? String(film.title).trim() : '';
+    var kpForTitle = film && (film.kp_id || film.kinopoiskId || film.id);
+    var titleRu = preferRuFilmTitle(film && film.title, kpForTitle);
+    // Never put Latin original into #film-title when we have a RU candidate.
+    if (titleRu && !/[а-яА-ЯёЁ]/.test(titleRu)) {
+      var enOnly = pickFilmTitleEn(film);
+      if (enOnly && titleRu.toLowerCase() === enOnly.toLowerCase()) {
+        var navRu = readNavFilmTitleRu(kpForTitle);
+        if (navRu) titleRu = navRu;
+      }
+    }
     if (slots.titleEl && titleRu) {
       var cleanTitle = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
       slots.titleEl.textContent = cleanTitle;
@@ -2795,8 +2823,13 @@
       match = bootKp && keyDigits && bootKp === keyDigits;
     }
     if (!match) return false;
-    if (isGenericFilmTitle(boot.title)) return false;
-    var title = boot.title || 'Фильм';
+    if (isGenericFilmTitle(boot.title) && !readNavFilmTitleRu(bootKp || keyDigits)) return false;
+    var title = preferRuFilmTitle(boot.title || '', bootKp || keyDigits) || boot.title || 'Фильм';
+    // Boot sometimes carries Latin original — never paint that into #film-title when RU exists.
+    if (title && !/[а-яА-ЯёЁ]/.test(title)) {
+      var navEarly = readNavFilmTitleRu(bootKp || keyDigits);
+      if (navEarly) title = navEarly;
+    }
     var bootPoster = boot.poster_url || poster;
     var year = boot.year ? ' (' + boot.year + ')' : '';
     var heroKey = (meta.mode === 'tmdb' || meta.mode === 'fest')
@@ -3401,11 +3434,21 @@
           moreBtn.addEventListener('click', function () {
             var shortEl = root.querySelector('.film-actors-short');
             var fullEl = root.querySelector('.film-actors-full');
+            var wrap = root.querySelector('.film-actors-more-wrap');
             if (!shortEl || !fullEl) return;
             var expanded = fullEl.classList.contains('hidden');
             fullEl.classList.toggle('hidden', !expanded);
             shortEl.classList.toggle('hidden', expanded);
-            moreBtn.textContent = expanded ? 'свернуть' : 'ещё';
+            if (expanded) {
+              // Keep «свернуть» visible after the full list (not inside hidden short).
+              if (fullEl.parentNode) {
+                fullEl.parentNode.insertBefore(moreBtn, fullEl.nextSibling);
+              }
+              moreBtn.textContent = 'свернуть';
+            } else {
+              if (wrap) wrap.appendChild(moreBtn);
+              moreBtn.textContent = 'ещё';
+            }
             moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
           });
         }
@@ -3650,13 +3693,13 @@
             if (bootT && bootT.type === 'film' && bootT.title) bootTitleKeep = String(bootT.title).trim();
           } catch (_bt) {}
           var apiTitle = String(f.title || '').trim();
-          var titleBase = apiTitle || 'Фильм';
-          if (bootTitleKeep && /[а-яА-ЯёЁ]/.test(bootTitleKeep) && apiTitle && !/[а-яА-ЯёЁ]/.test(apiTitle)) {
+          var titleBase = preferRuFilmTitle(apiTitle, pathKey || kpId) || apiTitle || 'Фильм';
+          if (bootTitleKeep && /[а-яА-ЯёЁ]/.test(bootTitleKeep) && titleBase && !/[а-яА-ЯёЁ]/.test(titleBase)) {
             titleBase = bootTitleKeep;
           } else {
             var tEl0 = document.getElementById('film-title');
             var curTitle = tEl0 ? String(tEl0.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim() : '';
-            if (curTitle && /[а-яА-ЯёЁ]/.test(curTitle) && apiTitle && !/[а-яА-ЯёЁ]/.test(apiTitle)) {
+            if (curTitle && /[а-яА-ЯёЁ]/.test(curTitle) && titleBase && !/[а-яА-ЯёЁ]/.test(titleBase)) {
               titleBase = curTitle;
             }
           }
