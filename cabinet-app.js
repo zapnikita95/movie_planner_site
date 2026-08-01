@@ -6946,7 +6946,31 @@
       });
     }
 
+    function fmtStaffBirthdayIso(iso) {
+      if (!iso) return '';
+      const s = String(iso).slice(0, 10);
+      const p = s.split('-');
+      if (p.length !== 3) return s;
+      const y = +p[0];
+      const m = +p[1];
+      const d = +p[2];
+      const months = [
+        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+      ];
+      if (!y || !m || !d || m < 1 || m > 12) return s;
+      return d + ' ' + months[m - 1] + ' ' + y;
+    }
     function staffMetaHtml(p) {
+      if (!p) return '';
+      const bits = [];
+      const bday = fmtStaffBirthdayIso(p.birthday || p.birth_date || '');
+      if (bday) bits.push('Дата рождения: ' + bday);
+      const place = String(p.birthplace || p.birth_place || '').trim();
+      if (place) bits.push(place);
+      if (bits.length) {
+        return '<p class="staff-hero-meta">' + escapeHtml(bits.join(' · ')) + '</p>';
+      }
       const parts = [];
       if (p.birth_year) {
         let y = String(p.birth_year);
@@ -6954,7 +6978,6 @@
         parts.push(y);
       }
       if (p.country) parts.push(String(p.country));
-      if (!parts.length && p.professions) parts.push(String(p.professions).slice(0, 96));
       if (!parts.length) return '';
       return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
     }
