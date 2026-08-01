@@ -23439,20 +23439,11 @@ body.in-cabinet .mp-pick-done {
     margin-top: 2px;
   }
 
-  /* Compact sticky: logo row keeps [🔍][🔔][👤] / [🔍][Войти]; search input only when active */
+  /* Compact sticky: MUST leave flex flow. flex:0 0 0 kept a zero-width item on row 1
+     → space-between parked it on the right and shoved Войти/avatar left. */
   body.mp-header-chrome-search.staff-header-title-on #header-search.header-search--retracted,
   body.mp-header-chrome-search.film-header-title-on #header-search.header-search--retracted {
-    opacity: 0 !important;
-    max-height: 0 !important;
-    min-height: 0 !important;
-    height: 0 !important;
-    flex: 0 0 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
+    display: none !important;
   }
   body.mp-header-chrome-search .header-inbox-btn {
     width: 28px !important;
