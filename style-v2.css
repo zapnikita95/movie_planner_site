@@ -21926,6 +21926,30 @@ main.film-page .hero-content > h1 {
   font-weight: 500;
   line-height: 1.45;
 }
+/* Staff pick → register: up to 10 selected posters (proto actor-pitt parity) */
+.login-pick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 6px;
+  margin: 0 auto 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.login-pick-chips[hidden] {
+  display: none !important;
+}
+.login-pick-chips img {
+  width: 40px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  flex: 0 0 auto;
+  background: #1a1a22;
+}
 /* Kill solid pink plan fill when glass */
 .film-toolbar-plan.glass-cta,
 .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta,
@@ -22624,10 +22648,18 @@ body.in-cabinet .mp-pick-done {
   body.staff-standalone-page[data-staff-tab='awards'] .staff-proto-main { display: block; }
 
   body.staff-standalone-page .staff-awards {
-    padding: 4px 0 28px;
+    padding: 4px 0 20px;
+  }
+  body.staff-standalone-page .staff-awards-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    flex-wrap: wrap;
   }
   body.staff-standalone-page .staff-awards-summary {
-    margin: 0 0 16px;
+    margin: 0;
     font-size: 14px;
     color: var(--text-muted, #b4b4be);
   }
@@ -22635,30 +22667,79 @@ body.in-cabinet .mp-pick-done {
     color: var(--text-primary, #f4f4f5);
     font-weight: 700;
   }
-  body.staff-standalone-page .staff-awards-group {
-    margin: 0 0 22px;
+  body.staff-standalone-page .staff-awards-wins-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-body, #e4e4ec);
+    cursor: pointer;
+    user-select: none;
   }
-  body.staff-standalone-page .staff-awards-group-title {
-    margin: 0 0 10px;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-primary, #f4f4f5);
+  body.staff-standalone-page .staff-awards-wins-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+  }
+  body.staff-standalone-page .staff-awards-group {
+    margin: 0 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  body.staff-standalone-page .staff-awards-acc {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 12px 12px;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
-  body.staff-standalone-page .staff-awards-group-icon,
-  body.staff-standalone-page .staff-awards-icon {
-    width: 40px;
-    height: 40px;
+  body.staff-standalone-page .staff-awards-acc:focus-visible {
+    outline: 2px solid var(--focus-ring, #a78bfa);
+    outline-offset: -2px;
+  }
+  body.staff-standalone-page .staff-awards-group-icon {
+    width: 36px;
+    height: 36px;
     object-fit: contain;
     border-radius: 8px;
     flex-shrink: 0;
     background: #000;
   }
-  body.staff-standalone-page .staff-awards-group-icon {
-    width: 36px;
-    height: 36px;
+  body.staff-standalone-page .staff-awards-acc-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  body.staff-standalone-page .staff-awards-acc-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #f4f4f5);
+  }
+  body.staff-standalone-page .staff-awards-acc-meta {
+    font-size: 12px;
+    color: var(--text-muted, #b4b4be);
+  }
+  body.staff-standalone-page .staff-awards-acc-chevron {
+    color: var(--text-muted, #b4b4be);
+    font-size: 14px;
+    transition: transform 0.15s ease;
+  }
+  body.staff-standalone-page .staff-awards-acc.is-open .staff-awards-acc-chevron {
+    transform: rotate(180deg);
+  }
+  body.staff-standalone-page .staff-awards-panel {
+    padding: 0 10px 12px;
   }
   body.staff-standalone-page .staff-awards-list {
     list-style: none;
@@ -22689,6 +22770,9 @@ body.in-cabinet .mp-pick-done {
     border-radius: 6px;
     flex-shrink: 0;
     background: #1a1a22;
+  }
+  body.staff-standalone-page .staff-awards-poster--ph {
+    display: inline-block;
   }
   body.staff-standalone-page .staff-awards-copy {
     flex: 1;
@@ -23063,11 +23147,199 @@ body.in-cabinet .mp-pick-done {
   }
 }
 
+/* Staff awards — shared mobile+desktop (accordion + posters + wins toggle) */
+body.staff-standalone-page .staff-awards {
+  padding: 4px 0 20px;
+}
+body.staff-standalone-page .staff-awards-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+body.staff-standalone-page .staff-awards-summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted, #b4b4be);
+}
+body.staff-standalone-page .staff-awards-summary strong {
+  color: var(--text-primary, #f4f4f5);
+  font-weight: 700;
+}
+body.staff-standalone-page .staff-awards-wins-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body, #e4e4ec);
+  cursor: pointer;
+  user-select: none;
+}
+body.staff-standalone-page .staff-awards-wins-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+body.staff-standalone-page .staff-awards-group {
+  margin: 0 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+body.staff-standalone-page .staff-awards-acc {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+body.staff-standalone-page .staff-awards-acc:focus-visible {
+  outline: 2px solid var(--focus-ring, #a78bfa);
+  outline-offset: -2px;
+}
+body.staff-standalone-page .staff-awards-group-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #000;
+}
+body.staff-standalone-page .staff-awards-acc-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+body.staff-standalone-page .staff-awards-acc-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #f4f4f5);
+}
+body.staff-standalone-page .staff-awards-acc-meta {
+  font-size: 12px;
+  color: var(--text-muted, #b4b4be);
+}
+body.staff-standalone-page .staff-awards-acc-chevron {
+  color: var(--text-muted, #b4b4be);
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+body.staff-standalone-page .staff-awards-acc.is-open .staff-awards-acc-chevron {
+  transform: rotate(180deg);
+}
+body.staff-standalone-page .staff-awards-panel {
+  padding: 0 10px 12px;
+}
+body.staff-standalone-page .staff-awards-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+body.staff-standalone-page .staff-awards-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  color: inherit;
+}
+body.staff-standalone-page .staff-awards-item.is-win .staff-awards-link {
+  border-color: rgba(96, 165, 250, 0.45);
+}
+body.staff-standalone-page .staff-awards-poster {
+  width: 40px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #1a1a22;
+}
+body.staff-standalone-page .staff-awards-poster--ph {
+  display: inline-block;
+}
+body.staff-standalone-page .staff-awards-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+body.staff-standalone-page .staff-awards-nom {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f4f4f5);
+}
+body.staff-standalone-page .staff-awards-film {
+  font-size: 13px;
+  color: var(--text-muted, #b4b4be);
+}
+body.staff-standalone-page .staff-awards-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: #2563eb;
+}
+body.staff-standalone-page .staff-awards-badge--nom {
+  background: transparent;
+  color: #93c5fd;
+  border: 1px solid rgba(147, 197, 253, 0.45);
+}
+body.staff-standalone-page .staff-awards-empty,
+body.staff-standalone-page .staff-awards-loading {
+  margin: 12px 0 24px;
+  font-size: 14px;
+  color: var(--text-body, #e4e4ec);
+}
+
 @media (min-width: 861px) {
   .staff-proto-tabs { display: none !important; }
   body.staff-standalone-page .staff-proto-overview,
   body.staff-standalone-page .staff-proto-main {
     display: block !important;
+  }
+  /* Desktop: awards accordion always above filmography (no tabs) */
+  body.staff-standalone-page #staff-awards-root.hidden {
+    display: block !important;
+  }
+  body.staff-standalone-page #staff-awards-root {
+    margin: 0 0 22px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  body.staff-standalone-page #staff-awards-root::before {
+    content: 'Награды';
+    display: block;
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary, #f4f4f5);
+  }
+  body.staff-standalone-page .staff-awards-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
   #header-staff-title,
   #header-film-title { display: none !important; }

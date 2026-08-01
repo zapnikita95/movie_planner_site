@@ -320,6 +320,9 @@
 
   function loginCtaMessageForAction(action) {
     var a = String(action || '').toLowerCase();
+    if (a === 'staff_pick' || a.indexOf('staff_pick') === 0) {
+      return 'Фильмы готовы к добавлению в вашу базу. Завершите регистрацию и запланируйте просмотр интересных картин.';
+    }
     if (a.indexOf('watched') === 0) {
       return 'Авторизуйтесь, чтобы добавить фильм в базу просмотренных';
     }
@@ -330,6 +333,48 @@
       return 'Авторизуйтесь, чтобы сохранить фильм в список просмотра';
     }
     return '';
+  }
+
+  function ensurePickChipsSlot() {
+    var modal = $('login-modal');
+    if (!modal) return null;
+    var el = modal.querySelector('#login-pick-chips');
+    if (el) return el;
+    var cta = modal.querySelector('#login-modal-cta');
+    el = document.createElement('div');
+    el.id = 'login-pick-chips';
+    el.className = 'login-pick-chips';
+    el.hidden = true;
+    if (cta && cta.parentNode) cta.insertAdjacentElement('afterend', el);
+    else {
+      var title = modal.querySelector('.modal-title');
+      if (title) title.insertAdjacentElement('afterend', el);
+      else modal.querySelector('.modal-content') && modal.querySelector('.modal-content').insertBefore(el, modal.querySelector('.modal-content').firstChild);
+    }
+    return el;
+  }
+
+  function setPickChips(items) {
+    var el = ensurePickChipsSlot();
+    if (!el) return;
+    el.innerHTML = '';
+    var list = Array.isArray(items) ? items.slice(0, 10) : [];
+    if (!list.length) {
+      el.hidden = true;
+      return;
+    }
+    list.forEach(function (it) {
+      var src = String((it && (it.poster || it.poster_url || it.src)) || '').trim();
+      if (!src) return;
+      var img = document.createElement('img');
+      img.src = src;
+      img.alt = String((it && (it.title || it.name)) || '');
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function () { try { img.remove(); } catch (_e) {} };
+      el.appendChild(img);
+    });
+    el.hidden = !el.childNodes.length;
   }
 
   function setLoginCtaMessage(actionOrText) {
@@ -572,14 +617,18 @@
         global.MpUtm.flush(data.token, cfg.apiBase);
       }
     } catch (_utm) {}
+    var usedCabinetApply = false;
     if (typeof global._mpApplySiteSessionLogin === 'function') {
-      global._mpApplySiteSessionLogin(data, $('login-modal'), null);
-      close();
-      return;
+      usedCabinetApply = true;
+      try { global._mpApplySiteSessionLogin(data, $('login-modal'), null); } catch (_ap) {}
+    } else {
+      saveSession(data);
     }
-    saveSession(data);
     close();
+    // Always run onSuccess (staff pick import, friends filter, etc.) — even when
+    // cabinet applySiteSessionLogin handles the shell.
     try { cfg.onSuccess(data); } catch (_e) {}
+    if (usedCabinetApply) return;
     try {
       if (typeof global.__mpScheduleContentPagePostAuthOffer === 'function') {
         global.__mpScheduleContentPagePostAuthOffer();
@@ -814,13 +863,27 @@
     }
   }
 
-  function open(action, tabName) {
+  function open(action, tabNameOrOpts) {
     ensureLoginModal();
     rememberOAuthReturn();
+    var opts = {};
+    var tabName = 'login';
+    if (tabNameOrOpts && typeof tabNameOrOpts === 'object') {
+      opts = tabNameOrOpts;
+      tabName = opts.tab === 'register' ? 'register' : (opts.tab === 'login' ? 'login' : '');
+    } else if (tabNameOrOpts === 'register' || tabNameOrOpts === 'login') {
+      tabName = tabNameOrOpts;
+    }
+    var act = String(action || '');
+    if (!tabName) {
+      tabName = (act === 'staff_pick' || act.indexOf('staff_pick') === 0) ? 'register' : 'login';
+    }
     if (action) {
       try { sessionStorage.setItem('mp_public_film_action', action + ':' + cfg.kpId); } catch (_e) {}
     }
-    setLoginCtaMessage(action || '');
+    if (opts.cta) setLoginCtaMessage(opts.cta);
+    else setLoginCtaMessage(action || '');
+    setPickChips(opts.chips || null);
     setLoginTab(tabName === 'register' ? 'register' : 'login');
     showLoginModal();
     schedulePfBotPrefetch();
@@ -831,6 +894,7 @@
       sessionStorage.removeItem('mp_pending_kp_open');
       sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_e) {}
+    try { setPickChips(null); } catch (_c) {}
     if (isPublicFilmOrStaffRoute() || isMarketingLanding()) {
       hideLoginModal();
       return;
@@ -931,7 +995,15 @@
 
   bindGlobalDialogDelegation();
 
-  global.MpPublicFilmLogin = { init: init, open: open, close: close, show: showLoginModal, hide: hideLoginModal, setCta: setLoginCtaMessage };
+  global.MpPublicFilmLogin = {
+    init: init,
+    open: open,
+    close: close,
+    show: showLoginModal,
+    hide: hideLoginModal,
+    setCta: setLoginCtaMessage,
+    setPickChips: setPickChips,
+  };
   global.showLoginModalOverlay = showLoginModal;
   global.mpCloseLoginModal = close;
   global._mpDismissLoginModal = function () {
