@@ -594,11 +594,17 @@
           function esc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
           }
-          function readBootTitle() {
+          function readBootJson() {
             try {
               var el = document.getElementById('mp-route-boot');
-              if (!el) return '';
-              var boot = JSON.parse(el.textContent || '');
+              if (!el) return null;
+              return JSON.parse(el.textContent || '');
+            } catch (_) { return null; }
+          }
+          function readBootTitle() {
+            try {
+              var boot = readBootJson();
+              if (!boot) return '';
               var t = String(boot.title || boot.display_name || boot.name_ru || '').trim();
               if (!t || t === 'Фильм' || t === 'Film' || t === 'Сериал' || t === 'Series') return '';
               if (/^(фильм|сериал|film|series)\s+\d+$/i.test(t)) return '';
@@ -610,8 +616,58 @@
               '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
               '<p class="mp-page-loading-text">' + esc(label) + '</p></div>';
           }
+          function staffGridBootShell(boot) {
+            boot = boot || {};
+            var title = String(boot.name_ru || boot.display_name || boot.title || 'Загрузка…').trim();
+            if (title.indexOf(' (') > 0 && boot.name_ru) title = String(boot.name_ru).trim();
+            var en = String(boot.name_en || '').trim();
+            if (en && en === title) en = '';
+            var photo = String(boot.photo_url || '').trim();
+            var photoHtml = photo
+              ? '<img class="staff-hero-photo" src="' + esc(photo) + '" alt="" decoding="async" referrerpolicy="no-referrer">'
+              : '<div class="staff-hero-photo staff-hero-ph" aria-hidden="true">👤</div>';
+            return (
+              '<div id="staff-root" class="staff-page-content-inner">' +
+                '<article class="staff-page staff-page--boot">' +
+                  '<div class="staff-page-proto-layout">' +
+                    '<aside class="staff-proto-aside" id="staff-proto-aside">' +
+                      '<div class="staff-proto-aside-inner">' +
+                        '<div class="staff-hero staff-hero--poster" role="banner">' +
+                          photoHtml +
+                          '<div class="staff-hero-text">' +
+                            '<h1 class="staff-hero-name">' + esc(title) + '</h1>' +
+                            (en ? '<p class="staff-hero-sub">' + esc(en) + '</p>' : '') +
+                          '</div>' +
+                        '</div>' +
+                        '<div class="staff-proto-tabs" role="tablist" aria-label="Разделы">' +
+                          '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Обзор</button>' +
+                          '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
+                        '</div>' +
+                        '<div class="staff-proto-overview" data-pane="overview">' +
+                          '<section class="staff-facts-anchor staff-facts--flat" aria-busy="true">' +
+                            '<h2 class="staff-facts-title">Интересные факты</h2>' +
+                            '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+                          '</section>' +
+                        '</div>' +
+                      '</div>' +
+                    '</aside>' +
+                    '<div class="staff-proto-main" id="staff-proto-main" data-pane="films">' +
+                      loadingShell('Фильмография…') +
+                    '</div>' +
+                  '</div>' +
+                '</article>' +
+              '</div>'
+            );
+          }
           function paintRouteBoot() {
             document.body.classList.add('in-cabinet');
+            if (staffMatch) {
+              document.body.classList.add('staff-standalone-page');
+              document.body.classList.remove('film-standalone-page', 'landing-root-page');
+            } else if (filmMatch) {
+              document.body.classList.add('film-standalone-page');
+              document.body.classList.remove('staff-standalone-page', 'landing-root-page');
+            }
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
             var cabinet = document.getElementById('cabinet-readonly');
@@ -628,8 +684,16 @@
             if (homeStats) homeStats.classList.add('hidden');
             var pageRoot = document.getElementById('film-page-content');
             if (!pageRoot) return;
+            var boot = readBootJson() || {};
             var bootTitle = readBootTitle();
-            var headline = bootTitle || (filmMatch ? 'Загрузка фильма…' : 'Загрузка…');
+            if (staffMatch) {
+              /* Desktop/mobile: paint left photo+facts grid immediately — no center spinner jump */
+              pageRoot.className = 'container film-page-container staff-page-content';
+              pageRoot.innerHTML = staffGridBootShell(boot);
+              document.body.setAttribute('data-staff-tab', 'films');
+              return;
+            }
+            var headline = bootTitle || 'Загрузка фильма…';
             pageRoot.className = 'movie-page loading';
             pageRoot.innerHTML = loadingShell(headline);
           }
@@ -2698,7 +2762,7 @@
           || path === '/series' || path === '/series-hub' || path === '/settings'
           || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile';
-        var V = '20260801staffSearchHub1';
+        var V = '20260801stickyLayout1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

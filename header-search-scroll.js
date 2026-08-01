@@ -1,8 +1,12 @@
 /**
- * Mobile: hide header search on scroll down, show on scroll up.
- * Staff/film pages: pin hero title in header after it scrolls away.
- * When sticky title is on, keep search row stable (no title-only ↔ with-title flip).
- * Keeps logo / login / profile visible. Does not invent a second header.
+ * Mobile: hide header search on scroll down, show on scroll up (smooth CSS).
+ * Staff/film: pin hero title in header after name scrolls away — no flicker.
+ *
+ * Anti-flicker rules:
+ * - Measure sticky threshold vs logo/buttons row only (not full header height).
+ * - Wide hysteresis so stop-scroll near threshold does not toggle.
+ * - Title always stays at order:4; search at order:3 (never swap).
+ * - Mutually exclusive staff vs film body page classes.
  */
 (function (global) {
   'use strict';
@@ -16,8 +20,8 @@
     if (!opts.mobile) return 'show';
     if (opts.dropdownOpen || opts.inputFocused) return 'show';
     if (y <= 8) return 'show';
-    if (y > lastY + 8) return 'hide';
-    if (y < lastY - 8) return 'show';
+    if (y > lastY + 10) return 'hide';
+    if (y < lastY - 10) return 'show';
     return 'keep';
   }
 
@@ -43,15 +47,40 @@
     else search.classList.remove(RETRACT_CLASS);
   }
 
+  /** Viewport Y of bottom of logo/buttons row — stable when search/title toggle. */
+  function stickyChromeBottom(header) {
+    if (!header) return 56;
+    var logo = header.querySelector('.logo');
+    var buttons = header.querySelector('.header-buttons');
+    var bottom = 0;
+    if (logo) bottom = Math.max(bottom, logo.getBoundingClientRect().bottom);
+    if (buttons) bottom = Math.max(bottom, buttons.getBoundingClientRect().bottom);
+    if (!bottom) {
+      // Fallback: top padding + ~44px row (ignore search/title)
+      var r = header.getBoundingClientRect();
+      return r.top + 48;
+    }
+    return bottom;
+  }
+
   function heroTitlePastHeader(doc, header, wasPast, selector, pageClass) {
     if (!doc || !doc.body || !doc.body.classList.contains(pageClass)) return false;
     var nameEl = doc.querySelector(selector);
     if (!nameEl) return false;
-    var headerH = header ? header.offsetHeight : 86;
+    var chromeBottom = stickyChromeBottom(header);
     var top = nameEl.getBoundingClientRect().top;
-    // Hysteresis: enter sticky earlier, leave later — less flicker
-    if (wasPast) return top < headerH + 28;
-    return top < headerH - 8;
+    // Wide hysteresis: enter when title clears chrome; leave only when well below.
+    if (wasPast) return top < chromeBottom + 56;
+    return top < chromeBottom + 4;
+  }
+
+  function clearStickyClasses(body, prefix) {
+    if (!body || !body.classList) return;
+    body.classList.remove(
+      prefix + '-header-title-on',
+      prefix + '-header-title-only',
+      prefix + '-header-search-with-title'
+    );
   }
 
   function applyStickyHeaderTitle(doc, opts) {
@@ -71,8 +100,28 @@
     var past = !!opts.pastName;
     var showSearch = !!opts.showSearch;
     body.classList.toggle(onClass, past);
+    // Title-only vs with-search: search visibility only — title slot order stays fixed in CSS.
     body.classList.toggle(onlyClass, past && !showSearch);
     body.classList.toggle(withSearchClass, past && showSearch);
+  }
+
+  function ensureExclusivePageMode(doc) {
+    var body = doc.body;
+    if (!body || !body.classList) return { onStaff: false, onFilm: false };
+    var onStaff = body.classList.contains('staff-standalone-page');
+    var onFilm = body.classList.contains('film-standalone-page');
+    if (onStaff && onFilm) {
+      // Prefer staff when both present (common /s/ bug leftover).
+      body.classList.remove('film-standalone-page');
+      clearStickyClasses(body, 'film');
+      onFilm = false;
+      var ft = doc.getElementById('header-film-title');
+      if (ft) {
+        ft.textContent = '';
+        ft.removeAttribute('title');
+      }
+    }
+    return { onStaff: onStaff, onFilm: onFilm && !onStaff };
   }
 
   function bindMobileSearchScroll(opts) {
@@ -95,6 +144,7 @@
       if (header) header.classList.remove('site-header--retracted');
       if (!search) return;
 
+      var mode = ensureExclusivePageMode(doc);
       var mobile = bodyAllowsMobileSearchRetract();
       var dropdownOpen = !!(doc.body && doc.body.classList.contains('header-search-dropdown-open'));
       var input = doc.getElementById('header-search-input');
@@ -106,60 +156,55 @@
         inputFocused: inputFocused,
       });
 
-      var onStaff = !!(doc.body && doc.body.classList.contains('staff-standalone-page'));
-      var onFilm = !!(doc.body && doc.body.classList.contains('film-standalone-page')) && !onStaff;
-      var staffPast = mobile && onStaff && heroTitlePastHeader(
+      // Apply search retract first (except keep), then sticky — search may hide under sticky title.
+      if (mobile) applyDecision(search, decision);
+      else applyDecision(search, 'show');
+
+      var searchVisible = !search.classList.contains(RETRACT_CLASS);
+
+      var staffPast = mobile && mode.onStaff && heroTitlePastHeader(
         doc, header, pastStaff, '.staff-hero-name', 'staff-standalone-page'
       );
       pastStaff = staffPast;
-      var filmPast = mobile && onFilm && heroTitlePastHeader(
+      var filmPast = mobile && mode.onFilm && heroTitlePastHeader(
         doc, header, pastFilm, '#film-title', 'film-standalone-page'
       );
       pastFilm = filmPast;
 
-      var pastName = staffPast || filmPast;
-
-      if (pastName) {
-        // Stable sticky chrome: always search+title together.
-        // Scroll-driven flip title-only ↔ search-with-title caused header jump.
-        var searchStickyShow = true;
-
-        if (staffPast) {
-          applyStickyHeaderTitle(doc, {
-            pageClass: 'staff-standalone-page',
-            onClass: 'staff-header-title-on',
-            onlyClass: 'staff-header-title-only',
-            withSearchClass: 'staff-header-search-with-title',
-            pastName: true,
-            showSearch: searchStickyShow,
-          });
-          applyStickyHeaderTitle(doc, {
-            pageClass: 'film-standalone-page',
-            onClass: 'film-header-title-on',
-            onlyClass: 'film-header-title-only',
-            withSearchClass: 'film-header-search-with-title',
-            pastName: false,
-            showSearch: true,
-          });
-        } else {
-          applyStickyHeaderTitle(doc, {
-            pageClass: 'film-standalone-page',
-            onClass: 'film-header-title-on',
-            onlyClass: 'film-header-title-only',
-            withSearchClass: 'film-header-search-with-title',
-            pastName: true,
-            showSearch: searchStickyShow,
-          });
-          applyStickyHeaderTitle(doc, {
-            pageClass: 'staff-standalone-page',
-            onClass: 'staff-header-title-on',
-            onlyClass: 'staff-header-title-only',
-            withSearchClass: 'staff-header-search-with-title',
-            pastName: false,
-            showSearch: true,
-          });
-        }
-        search.classList.remove(RETRACT_CLASS);
+      if (staffPast) {
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'staff-standalone-page',
+          onClass: 'staff-header-title-on',
+          onlyClass: 'staff-header-title-only',
+          withSearchClass: 'staff-header-search-with-title',
+          pastName: true,
+          showSearch: searchVisible,
+        });
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'film-standalone-page',
+          onClass: 'film-header-title-on',
+          onlyClass: 'film-header-title-only',
+          withSearchClass: 'film-header-search-with-title',
+          pastName: false,
+          showSearch: true,
+        });
+      } else if (filmPast) {
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'film-standalone-page',
+          onClass: 'film-header-title-on',
+          onlyClass: 'film-header-title-only',
+          withSearchClass: 'film-header-search-with-title',
+          pastName: true,
+          showSearch: searchVisible,
+        });
+        applyStickyHeaderTitle(doc, {
+          pageClass: 'staff-standalone-page',
+          onClass: 'staff-header-title-on',
+          onlyClass: 'staff-header-title-only',
+          withSearchClass: 'staff-header-search-with-title',
+          pastName: false,
+          showSearch: true,
+        });
       } else {
         applyStickyHeaderTitle(doc, {
           pageClass: 'staff-standalone-page',
@@ -177,8 +222,6 @@
           pastName: false,
           showSearch: true,
         });
-        applyDecision(search, mobile ? decision : 'show');
-        if (!mobile) applyDecision(search, 'show');
       }
       lastY = y;
     }
@@ -204,6 +247,7 @@
     RETRACT_CLASS: RETRACT_CLASS,
     decideSearchRetract: decideSearchRetract,
     bodyAllowsMobileSearchRetract: bodyAllowsMobileSearchRetract,
+    stickyChromeBottom: stickyChromeBottom,
     bind: bindMobileSearchScroll,
     refresh: function () {
       if (typeof _updateFn === 'function') _updateFn();
