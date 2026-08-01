@@ -15293,7 +15293,7 @@ body.film-standalone-page {
       body.user-standalone-page .page-shell > main.user-standalone-main { margin-top: 10px; }
       body.film-standalone-page #site-header,
       body.staff-standalone-page #site-header,
-      body.user-standalone-page #site-header { top: 8px; margin-bottom: 12px; }
+      body.user-standalone-page #site-header { top: 0; margin-bottom: 8px; }
       body.landing-root-page.film-standalone-page #site-header,
       body.landing-root-page.film-standalone-page header#site-header {
         top: 0 !important;
