@@ -313,6 +313,144 @@
     return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
   }
 
+  function staffProfLine(person) {
+    if (!person) return '';
+    var raw = '';
+    if (person.profession_keys && person.profession_keys.length) {
+      var skip = { HIMSELF: 1, HERSELF: 1, CAMEO: 1, UNCREDITED: 1 };
+      raw = person.profession_keys.map(function (k) {
+        var key = String(k || '').toUpperCase();
+        if (skip[key] || key.indexOf('HRONO') === 0) return '';
+        return staffRoleDisplayName(k, '');
+      }).filter(Boolean);
+      var seen = {};
+      raw = raw.filter(function (x) {
+        if (seen[x] || /играет сам/i.test(x)) return false;
+        seen[x] = 1;
+        return true;
+      }).slice(0, 3).join(', ');
+    } else if (person.professions) {
+      raw = String(person.professions).split(/[,;]/).slice(0, 3).join(', ').trim();
+    }
+    if (!raw) return '';
+    return '<p class="staff-hero-prof">' + escapeHtml(raw) + '</p>';
+  }
+
+  function staffWorksLine(filmsByRole) {
+    var works = 0;
+    (filmsByRole || []).forEach(function (rm) {
+      var rk = String(rm.role_key || '').toUpperCase();
+      if (rk === 'HIMSELF' || rk === 'HERSELF' || rk.indexOf('HRONO') === 0) return;
+      var t = parseInt(rm.total != null ? rm.total : (rm.films || []).length, 10) || 0;
+      if (t > works) works = t;
+    });
+    if (works <= 0) return '';
+    var word = works === 1 ? 'работа' : works < 5 ? 'работы' : 'работ';
+    return '<p class="staff-hero-stats"><span class="staff-hero-works">' + works + ' ' + word + '</span></p>';
+  }
+
+  function staffPickBannerHtml() {
+    return (
+      '<div class="mp-pick-banner" id="mp-pick-banner">' +
+        '<strong class="mp-pick-banner__text">Выбрать интересные</strong>' +
+        '<button type="button" class="mp-pick-start" id="staff-pick-start" aria-pressed="false">Начать</button>' +
+        '<button type="button" class="x" id="staff-pick-banner-x" aria-label="Закрыть">×</button>' +
+      '</div>'
+    );
+  }
+
+  function staffTabsHtml() {
+    return (
+      '<nav class="staff-proto-tabs" id="staff-proto-tabs" aria-label="Разделы">' +
+        '<button type="button" class="staff-proto-tab" data-staff-tab="overview">Обзор</button>' +
+        '<button type="button" class="staff-proto-tab is-active" data-staff-tab="films" aria-current="page">Фильмография</button>' +
+      '</nav>'
+    );
+  }
+
+  function staffFactsSectionHtml() {
+    return (
+      '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
+        '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
+          '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
+          '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
+          '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
+        '</button>' +
+        '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
+          '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  function ensureHeaderStaffTitleSlot() {
+    var header = document.getElementById('site-header');
+    var content = header && header.querySelector('.header-content');
+    if (!content) return null;
+    var el = document.getElementById('header-staff-title');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'header-staff-title';
+      el.className = 'header-staff-title';
+      el.setAttribute('aria-live', 'polite');
+      content.appendChild(el);
+    }
+    return el;
+  }
+
+  function setStaffHeaderTitle(name) {
+    var el = ensureHeaderStaffTitleSlot();
+    if (!el) return;
+    el.textContent = String(name || '').trim();
+    el.title = el.textContent;
+  }
+
+  function setStaffTab(tab) {
+    var t = tab === 'overview' ? 'overview' : 'films';
+    document.body.setAttribute('data-staff-tab', t);
+    document.querySelectorAll('.staff-proto-tab').forEach(function (btn) {
+      var on = btn.getAttribute('data-staff-tab') === t;
+      btn.classList.toggle('is-active', on);
+      if (on) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
+    });
+  }
+
+  function bindStaffTabs(root) {
+    if (!root) return;
+    root.querySelectorAll('.staff-proto-tab').forEach(function (btn) {
+      btn.onclick = function () {
+        setStaffTab(btn.getAttribute('data-staff-tab'));
+      };
+    });
+    setStaffTab('films');
+  }
+
+  function bindStaffPickBanner(root) {
+    var start = root && root.querySelector('#staff-pick-start');
+    var bx = root && root.querySelector('#staff-pick-banner-x');
+    if (!start) return;
+    start.onclick = function () {
+      var on = !document.body.classList.contains('is-pick-mode');
+      document.body.classList.toggle('is-pick-mode', on);
+      start.setAttribute('aria-pressed', on ? 'true' : 'false');
+      start.textContent = on ? 'Отмена' : 'Начать';
+      if (on) setStaffTab('films');
+      // Reuse existing «В базу» on first role as multi-add entry for guests/auth
+      if (on) {
+        var importBtn = root.querySelector('.staff-import-btn');
+        if (importBtn && !mpToken()) {
+          /* pick mode: card clicks still handled below via import prompt */
+        }
+      }
+    };
+    if (bx) bx.onclick = function () {
+      var b = document.getElementById('mp-pick-banner');
+      if (b) b.style.display = 'none';
+      document.body.classList.remove('is-pick-mode');
+    };
+  }
+
   function countStaffFilmsWithState(state) {
     var total = 0;
     ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (block) {
@@ -800,15 +938,20 @@
     var secondary = boot.name_en && boot.name_en !== boot.name_ru ? boot.name_en : '';
     var pid = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
     var photoHtml = staffHeroPhotoImgHtml({ photo: boot.photo_url }, pid);
+    setStaffHeaderTitle(title);
     return (
       '<article class="staff-page staff-page--boot">' +
-        '<div class="staff-hero" role="banner">' + photoHtml +
+        '<div class="staff-hero staff-hero--poster" role="banner">' + photoHtml +
           '<div class="staff-hero-text">' +
             '<h1 class="staff-hero-name">' + escapeHtml(title) + '</h1>' +
             (secondary ? '<p class="staff-hero-sub">' + escapeHtml(secondary) + '</p>' : '') +
           '</div>' +
         '</div>' +
-        staffLoadingHtml('Фильмография…') +
+        staffTabsHtml() +
+        '<div class="staff-proto-overview" data-pane="overview"></div>' +
+        '<div class="staff-proto-main" data-pane="films">' +
+          staffLoadingHtml('Фильмография…') +
+        '</div>' +
       '</article>'
     );
   }
@@ -1157,65 +1300,85 @@
 
     var photoCandidates = staffHeroPhotoCandidates(person, personId);
     var personPhoto = photoCandidates[0] || MP_PERSON_PLACEHOLDER;
+    var metaHtml = staffMetaLine(person);
+    var profHtml = staffProfLine(person);
+    var worksHtml = staffWorksLine(data.films_by_role || []);
+    setStaffHeaderTitle(titleName);
+
+    function fillHeroText(hero) {
+      if (!hero) return;
+      var img = hero.querySelector('img.staff-hero-photo, .staff-hero-photo');
+      if (personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER) {
+        if (img && img.tagName === 'IMG') {
+          var rest = photoCandidates.slice(1);
+          img.setAttribute('data-mp-fallbacks', rest.join('|'));
+          img.dataset.mpPersonFailed = '';
+          img.classList.remove('mp-person-placeholder');
+          if (img.getAttribute('src') !== personPhoto) img.setAttribute('src', personPhoto);
+        } else {
+          var ph = hero.querySelector('.staff-hero-ph, .staff-hero-photo');
+          if (ph) ph.outerHTML = staffHeroPhotoImgHtml(person, personId);
+        }
+      }
+      var nameEl = hero.querySelector('.staff-hero-name');
+      if (nameEl) nameEl.textContent = titleName;
+      var textWrap = hero.querySelector('.staff-hero-text');
+      if (!textWrap) return;
+      var subEl = hero.querySelector('.staff-hero-sub');
+      if (secondaryName) {
+        if (subEl) subEl.textContent = secondaryName;
+        else textWrap.insertAdjacentHTML('beforeend', '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>');
+      } else if (subEl) subEl.remove();
+      var profEl = hero.querySelector('.staff-hero-prof');
+      if (profHtml) {
+        if (profEl) profEl.outerHTML = profHtml;
+        else textWrap.insertAdjacentHTML('beforeend', profHtml);
+      } else if (profEl) profEl.remove();
+      var worksEl = hero.querySelector('.staff-hero-stats');
+      if (worksHtml) {
+        if (worksEl) worksEl.outerHTML = worksHtml;
+        else textWrap.insertAdjacentHTML('beforeend', worksHtml);
+      } else if (worksEl) worksEl.remove();
+    }
+
+    function mountStaffBody(article) {
+      var overview = article.querySelector('.staff-proto-overview');
+      var main = article.querySelector('.staff-proto-main');
+      if (!overview) {
+        article.insertAdjacentHTML('beforeend', staffTabsHtml() +
+          '<div class="staff-proto-overview" data-pane="overview"></div>' +
+          '<div class="staff-proto-main" data-pane="films"></div>');
+        overview = article.querySelector('.staff-proto-overview');
+        main = article.querySelector('.staff-proto-main');
+      }
+      if (overview) {
+        overview.innerHTML = (metaHtml || '') + staffFactsSectionHtml();
+      }
+      if (main) {
+        main.innerHTML = staffPickBannerHtml() + filtersBarHtml() +
+          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
+      }
+      if (!article.querySelector('.staff-proto-tabs')) {
+        var heroForTabs = article.querySelector('.staff-hero');
+        if (heroForTabs) heroForTabs.insertAdjacentHTML('afterend', staffTabsHtml());
+      }
+      var heroNode = article.querySelector('.staff-hero');
+      if (heroNode) heroNode.classList.add('staff-hero--poster');
+    }
+
     var bootArticle = root.querySelector('.staff-page--boot');
     if (bootArticle) {
-      var hero = bootArticle.querySelector('.staff-hero');
-      if (hero) {
-        var img = hero.querySelector('img.staff-hero-photo, .staff-hero-photo');
-        if (personPhoto && personPhoto !== MP_PERSON_PLACEHOLDER) {
-          if (img && img.tagName === 'IMG') {
-            var rest = photoCandidates.slice(1);
-            img.setAttribute('data-mp-fallbacks', rest.join('|'));
-            img.dataset.mpPersonFailed = '';
-            img.classList.remove('mp-person-placeholder');
-            if (img.getAttribute('src') !== personPhoto) img.setAttribute('src', personPhoto);
-          } else {
-            var ph = hero.querySelector('.staff-hero-ph, .staff-hero-photo');
-            if (ph) ph.outerHTML = staffHeroPhotoImgHtml(person, personId);
-          }
-        }
-        var nameEl = hero.querySelector('.staff-hero-name');
-        if (nameEl) nameEl.textContent = titleName;
-        var subEl = hero.querySelector('.staff-hero-sub');
-        if (secondaryName) {
-          if (subEl) subEl.textContent = secondaryName;
-          else {
-            var textWrap = hero.querySelector('.staff-hero-text');
-            if (textWrap) {
-              textWrap.insertAdjacentHTML('beforeend', '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>');
-            }
-          }
-        } else if (subEl) subEl.remove();
-        var metaHtml = staffMetaLine(person);
-        var metaEl = hero.querySelector('.staff-hero-meta');
-        if (metaHtml) {
-          if (metaEl) metaEl.outerHTML = metaHtml;
-          else {
-            var tw = hero.querySelector('.staff-hero-text');
-            if (tw) tw.insertAdjacentHTML('beforeend', metaHtml);
-          }
-        } else if (metaEl) metaEl.remove();
-      }
+      fillHeroText(bootArticle.querySelector('.staff-hero'));
       bootArticle.classList.remove('staff-page--boot');
       var loadingEl = bootArticle.querySelector('.mp-route-boot-loading');
       if (loadingEl) loadingEl.remove();
       root.querySelector('#staff-person-filters') && root.querySelector('#staff-person-filters').remove();
       root.querySelector('#staff-roles-root') && root.querySelector('#staff-roles-root').remove();
       root.querySelector('#staff-facts-section') && root.querySelector('#staff-facts-section').remove();
-      bootArticle.insertAdjacentHTML('beforeend',
-        '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
-          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
-            '<span class="staff-facts-toggle-head"><span class="staff-facts-toggle-label">Интересные факты</span></span>' +
-            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
-            '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
-          '</button>' +
-          '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
-            '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
-          '</div>' +
-        '</section>' +
-        filtersBarHtml() +
-        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>'
-      );
+      root.querySelector('#mp-pick-banner') && root.querySelector('#mp-pick-banner').remove();
+      mountStaffBody(bootArticle);
+      bindStaffTabs(bootArticle);
+      bindStaffPickBanner(bootArticle);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
@@ -1238,30 +1401,29 @@
 
     root.innerHTML =
       '<article class="staff-page">' +
-        '<div class="staff-hero" role="banner">' + staffHeroPhotoImgHtml(person, personId) +
+        '<div class="staff-hero staff-hero--poster" role="banner">' + staffHeroPhotoImgHtml(person, personId) +
           '<div class="staff-hero-text">' +
             '<h1 class="staff-hero-name">' + escapeHtml(titleName) + '</h1>' +
             (secondaryName
               ? '<p class="staff-hero-sub">' + escapeHtml(secondaryName) + '</p>' : '') +
-            staffMetaLine(person) +
+            profHtml +
+            worksHtml +
           '</div>' +
         '</div>' +
-        '<section class="staff-facts-anchor hidden" id="staff-facts-section" aria-label="Интересные факты">' +
-          '<button type="button" class="staff-facts-toggle" id="staff-facts-toggle" aria-expanded="false" aria-controls="staff-facts-panel" tabindex="-1">' +
-            '<span class="staff-facts-toggle-head">' +
-              '<span class="staff-facts-toggle-label">Интересные факты</span>' +
-            '</span>' +
-            '<span class="staff-facts-chevron" aria-hidden="true">▾</span>' +
-            '<span class="staff-facts-preview" id="staff-facts-preview"></span>' +
-          '</button>' +
-          '<div class="staff-facts-panel hidden" id="staff-facts-panel">' +
-            '<ul class="staff-facts-list" id="staff-facts-list"></ul>' +
-          '</div>' +
-        '</section>' +
-        filtersBarHtml() +
-        '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+        staffTabsHtml() +
+        '<div class="staff-proto-overview" data-pane="overview">' +
+          (metaHtml || '') +
+          staffFactsSectionHtml() +
+        '</div>' +
+        '<div class="staff-proto-main" data-pane="films">' +
+          staffPickBannerHtml() +
+          filtersBarHtml() +
+          '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
+        '</div>' +
       '</article>';
 
+    bindStaffTabs(root);
+    bindStaffPickBanner(root);
     bindStaffFilters(root);
     bindStaffRoleExpandButtons(root);
     bindStaffImportButtons(root, personId);
