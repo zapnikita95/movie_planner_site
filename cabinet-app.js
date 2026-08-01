@@ -10065,58 +10065,14 @@
   }
 
   function initCabinetMobileHeaderScroll() {
-    if (window._mpCabinetHeaderScrollBound) return;
-    window._mpCabinetHeaderScrollBound = true;
+    /* Search-only retract on mobile (logo / profile stay). */
+    try {
+      if (window.MpHeaderSearchScroll && typeof window.MpHeaderSearchScroll.bind === 'function') {
+        window.MpHeaderSearchScroll.bind();
+      }
+    } catch (_e) {}
     const header = document.getElementById('site-header');
-    if (!header) return;
-    let lastY = window.scrollY || 0;
-    let ticking = false;
-
-    function bodyUsesMobileRetractHeader() {
-      if (!window.matchMedia('(max-width: 768px)').matches) return false;
-      const b = document.body;
-      return b.classList.contains('in-cabinet')
-        || b.classList.contains('landing-root-page')
-        || b.classList.contains('film-standalone-page')
-        || b.classList.contains('user-standalone-page')
-        || b.classList.contains('staff-standalone-page');
-    }
-
-    function updateHeaderVisibility() {
-      ticking = false;
-      if (!bodyUsesMobileRetractHeader()) {
-        header.classList.remove('site-header--retracted');
-        return;
-      }
-      if (document.body.classList.contains('header-search-dropdown-open')) {
-        header.classList.remove('site-header--retracted');
-        lastY = _headerSearchScrollLockY || 0;
-        return;
-      }
-      const searchInput = document.getElementById('header-search-input');
-      if (searchInput && document.activeElement === searchInput) {
-        header.classList.remove('site-header--retracted');
-        lastY = window.scrollY || _headerSearchScrollLockY || 0;
-        return;
-      }
-      const y = window.scrollY || 0;
-      if (y <= 6) {
-        header.classList.remove('site-header--retracted');
-      } else if (y > lastY + 6) {
-        header.classList.add('site-header--retracted');
-      } else if (y < lastY - 6) {
-        header.classList.remove('site-header--retracted');
-      }
-      lastY = y;
-    }
-
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(updateHeaderVisibility);
-      }
-    }, { passive: true });
-    window.addEventListener('resize', updateHeaderVisibility, { passive: true });
+    if (header) header.classList.remove('site-header--retracted');
   }
 
   function renderHomeBlockHtml(blockId) {

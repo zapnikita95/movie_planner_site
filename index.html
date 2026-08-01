@@ -2698,9 +2698,10 @@
           || path === '/series' || path === '/series-hub' || path === '/settings'
           || path === '/whattowatch' || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile';
-        var V = '20260801glassCta7';
+        var V = '20260801searchScroll1';
         var core = [
           'mp-api-config.js?v=' + V,
+          'header-search-scroll.js?v=' + V,
           'telegram-open.js?v=20260602tgsafari1',
           'film-friends-social.js?v=' + V,
           'public-film-login.js?v=' + V,
@@ -2725,6 +2726,7 @@
         if (isSearch) {
           list = [
             'mp-api-config.js?v=' + V,
+            'header-search-scroll.js?v=' + V,
             'mp-icons.js?v=' + V,
             'page-loading.js?v=' + V,
             'avatar-crop.js?v=' + V,
@@ -2734,6 +2736,7 @@
           /* /buzz: сначала API+buzz-page — скелетон уже в HTML, данные не ждут 2с лендинг-скриптов */
           list = [
             'mp-api-config.js?v=' + V,
+            'header-search-scroll.js?v=' + V,
             'mp-icons.js?v=' + V,
             'buzz-page.js?v=' + V,
             'telegram-open.js?v=20260602tgsafari1',
@@ -2749,6 +2752,7 @@
           /* Logged-in: cabinet-app first — HAR showed ~4s script waterfall before any home API */
           list = [
             'mp-api-config.js?v=' + V,
+            'header-search-scroll.js?v=' + V,
             'mp-icons.js?v=' + V,
             'page-loading.js?v=' + V,
             'home-rails.js?v=' + V,
