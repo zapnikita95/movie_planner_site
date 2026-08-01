@@ -1578,7 +1578,9 @@ body.in-cabinet .mp-lang-toggle {
   letter-spacing: 0.05em;
 }
 
-section {
+/* Landing marketing blocks only — NEVER bare `section {}`.
+   Bare rule leaked 60px padding into cabinet/staff (<section class="staff-awards-group"> etc). */
+#landing > section {
   padding: 60px 24px;
   max-width: 1200px;
   margin: 0 auto;
@@ -23524,6 +23526,12 @@ body.staff-standalone-page .staff-awards-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  align-items: stretch;
+}
+body.staff-standalone-page .staff-awards-item {
+  display: flex;
+  min-height: 0;
+  height: auto;
 }
 body.staff-standalone-page .staff-awards-link {
   display: flex;
@@ -23535,6 +23543,10 @@ body.staff-standalone-page .staff-awards-link {
   border: 1px solid rgba(255, 255, 255, 0.06);
   text-decoration: none;
   color: inherit;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 body.staff-standalone-page .staff-awards-item.is-win .staff-awards-link {
   border-color: rgba(96, 165, 250, 0.45);
@@ -23681,6 +23693,13 @@ body.staff-standalone-page .staff-awards-loading {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
+    align-items: stretch;
+  }
+  body.staff-standalone-page .staff-awards-item {
+    height: 100%;
+  }
+  body.staff-standalone-page .staff-awards-link {
+    height: 100%;
   }
   body.staff-standalone-page #staff-roles-root > .staff-role-block,
   body.staff-standalone-page .staff-role-block {
