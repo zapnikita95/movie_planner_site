@@ -21950,3 +21950,260 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
     overflow: visible !important;
   }
 }
+
+/* ===== Staff mobile poster hero + sticky header title (2026-08-01) =====
+   Do NOT invent a second #site-header — only page hero + title slot in existing header.
+   Root gutters: style-v2 page-shell padding 14px 12px — kill for full-bleed photo. */
+@media (max-width: 860px) {
+  body.staff-standalone-page .page-shell {
+    padding: 0 !important;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-x: clip !important;
+  }
+  body.staff-standalone-page #site-header,
+  body.staff-standalone-page .page-shell > #site-header {
+    top: 0 !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  body.staff-standalone-page .page-shell > main.staff-standalone-main,
+  body.staff-standalone-page .staff-page-content,
+  body.staff-standalone-page #film-page-content.staff-page-content,
+  body.staff-standalone-page #film-page-content {
+    margin-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: none !important;
+  }
+  body.staff-standalone-page .staff-page {
+    padding: 0 0 24px;
+  }
+
+  /* Full-bleed photo; face visible; title BELOW image */
+  body.staff-standalone-page .staff-hero,
+  body.staff-standalone-page .staff-hero--poster {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    text-align: left !important;
+    gap: 0 !important;
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    min-height: 0 !important;
+  }
+  body.staff-standalone-page .staff-hero-photo,
+  body.staff-standalone-page .staff-hero-ph {
+    width: 100% !important;
+    height: min(62vh, 560px) !important;
+    min-height: 400px !important;
+    max-width: none !important;
+    border-radius: 20px 20px 0 0 !important;
+    object-fit: cover !important;
+    object-position: center 28% !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 90%, rgba(0, 0, 0, 0.35) 97%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 90%, rgba(0, 0, 0, 0.35) 97%, transparent 100%);
+  }
+  body.staff-standalone-page .staff-hero-ph {
+    font-size: 72px;
+    background: #1a1a22 !important;
+  }
+  body.staff-standalone-page .staff-hero-text {
+    position: relative !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 14px 16px 8px !important;
+    background: #09090b;
+    text-align: left !important;
+    gap: 0 !important;
+  }
+  body.staff-standalone-page .staff-hero-name {
+    margin: 0 0 3px !important;
+    font-size: 26px !important;
+    line-height: 1.12 !important;
+    color: #f4f4f5 !important;
+  }
+  body.staff-standalone-page .staff-hero-sub {
+    margin: 0 0 4px !important;
+    font-size: 12px !important;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #b4b4be !important;
+  }
+  body.staff-standalone-page .staff-hero-prof {
+    margin: 0 0 3px;
+    font-size: 13px;
+    color: #b4b4be;
+  }
+  body.staff-standalone-page .staff-hero-stats {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e4e4ec;
+  }
+  body.staff-standalone-page .staff-hero-text > .staff-hero-meta {
+    display: none; /* birthday/meta lives in overview on mobile */
+  }
+
+  body.staff-standalone-page .staff-proto-tabs {
+    display: flex;
+    gap: 18px;
+    align-items: flex-end;
+    padding: 4px 16px 0;
+    margin: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #09090b;
+  }
+  body.staff-standalone-page .staff-proto-tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #b4b4be;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 0 10px;
+    margin: 0;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  body.staff-standalone-page .staff-proto-tab.is-active {
+    color: #f4f4f5;
+    border-bottom-color: #f4f4f5;
+  }
+  body.staff-standalone-page .staff-proto-overview {
+    padding: 14px 16px 8px;
+  }
+  body.staff-standalone-page .staff-proto-overview .staff-hero-meta {
+    display: block;
+    margin: 0 0 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #e4e4ec;
+  }
+  body.staff-standalone-page .staff-proto-main {
+    padding: 12px 16px 0;
+  }
+  body.staff-standalone-page[data-staff-tab='overview'] .staff-proto-main { display: none; }
+  body.staff-standalone-page[data-staff-tab='films'] .staff-proto-overview { display: none; }
+  body.staff-standalone-page[data-staff-tab='overview'] .staff-proto-overview { display: block; }
+  body.staff-standalone-page[data-staff-tab='films'] .staff-proto-main { display: block; }
+
+  /* Flat facts on overview (no pink card) */
+  body.staff-standalone-page .staff-proto-overview .staff-facts-anchor {
+    margin: 4px 0 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+  }
+
+  body.staff-standalone-page .mp-pick-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding: 10px 12px;
+    margin: 0 0 12px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(109, 40, 217, 0.28), rgba(194, 24, 91, 0.16));
+    border: 1px solid rgba(196, 181, 253, 0.28);
+  }
+  body.staff-standalone-page .mp-pick-banner__text {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f4f4f5;
+    display: inline-flex;
+    align-items: center;
+  }
+  body.staff-standalone-page .mp-pick-start {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #c2185b, #6d28d9);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  body.staff-standalone-page.is-pick-mode .mp-pick-start {
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    color: #f4f4f5;
+  }
+  body.staff-standalone-page .mp-pick-banner .x {
+    border: 0;
+    background: transparent;
+    color: #b4b4be;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  /* Sticky actor name in existing header (search row slot) */
+  #header-staff-title {
+    display: none;
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    min-height: 40px;
+    align-items: center;
+    margin: 8px 0 0;
+    padding: 0 2px;
+    box-sizing: border-box;
+    color: #f4f4f5;
+    font-family: Unbounded, Inter, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 29px;
+  }
+  body.staff-standalone-page.staff-header-title-on #header-staff-title {
+    display: flex;
+  }
+  body.staff-standalone-page.staff-header-title-on #header-search.header-search--retracted,
+  body.staff-standalone-page.staff-header-title-on.staff-header-title-only #header-search {
+    display: none !important;
+  }
+  body.staff-standalone-page.staff-header-title-on.staff-header-search-with-title #header-search {
+    display: block !important;
+    order: 3;
+    flex: 1 1 100%;
+    margin: 8px 0 0 !important;
+    opacity: 1 !important;
+    max-height: none !important;
+    pointer-events: auto;
+  }
+  body.staff-standalone-page.staff-header-title-on.staff-header-search-with-title #header-staff-title {
+    order: 4;
+    margin-top: 6px;
+  }
+}
+
+@media (min-width: 861px) {
+  .staff-proto-tabs { display: none !important; }
+  body.staff-standalone-page .staff-proto-overview,
+  body.staff-standalone-page .staff-proto-main {
+    display: block !important;
+  }
+  #header-staff-title { display: none !important; }
+}
