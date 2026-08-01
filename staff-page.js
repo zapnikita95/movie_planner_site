@@ -17,7 +17,10 @@
   var _staffExpandedRoles = {};
   var _staffRoleHasMore = {};
   var _staffPrimaryRoleKey = '';
-  var _staffFilterState = { year: '', genre: '', mainRolesOnly: false, friendsRatedOnly: false };
+  var _staffFilterState = {
+    year: '', yearFrom: '', yearTo: '', genre: '', ratingMin: '',
+    mainRolesOnly: false, friendsRatedOnly: false,
+  };
   var _staffSortMode = 'default';
   var _staffPersonId = '';
   var _staffLoginNow = null;
@@ -79,13 +82,23 @@
     var st = state || {};
     var genreL = String(st.genre || '').trim().toLowerCase();
     var yearExact = st.year != null && st.year !== '' ? parseInt(st.year, 10) : null;
+    var yearFrom = st.yearFrom != null && st.yearFrom !== '' ? parseInt(st.yearFrom, 10) : null;
+    var yearTo = st.yearTo != null && st.yearTo !== '' ? parseInt(st.yearTo, 10) : null;
+    var ratingMin = st.ratingMin != null && st.ratingMin !== '' ? parseFloat(st.ratingMin) : 0;
+    if (isNaN(ratingMin)) ratingMin = 0;
     return (films || []).filter(function (f) {
       if (!f) return false;
       var hasKp = !!(f.kp_id && String(f.kp_id).replace(/\D/g, ''));
       var hasFest = !!(f.film_url || f.catalog_id || f.fest_slug || f.tmdb_id);
       if (!hasKp && !hasFest) return false;
       var yr = f.year != null ? parseInt(f.year, 10) : null;
-      if (yearExact != null && yr !== yearExact) return false;
+      if (yearExact != null && !isNaN(yearExact) && yr !== yearExact) return false;
+      if (yearFrom != null && !isNaN(yearFrom) && (yr == null || yr < yearFrom)) return false;
+      if (yearTo != null && !isNaN(yearTo) && (yr == null || yr > yearTo)) return false;
+      if (ratingMin > 0) {
+        var r = parseFloat(f.rating_kp != null ? f.rating_kp : f.rating);
+        if (isNaN(r) || r < ratingMin) return false;
+      }
       if (genreL) {
         var gblob = (f.genres || []).join(' ').toLowerCase();
         if (gblob.indexOf(genreL) < 0) return false;
@@ -278,6 +291,19 @@
       li.innerHTML = cat + text + src;
       list.appendChild(li);
     });
+    // Mobile overview: facts are page content (always open, no card) — proto --flat
+    var flat = false;
+    try { flat = !!(global.matchMedia && global.matchMedia('(max-width: 860px)').matches); } catch (_e) {}
+    if (flat) {
+      section.classList.add('staff-facts-anchor--flat', 'staff-facts-anchor--open');
+      if (panel) panel.classList.remove('hidden');
+      if (preview) preview.classList.add('hidden');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'true');
+        toggle.setAttribute('tabindex', '-1');
+      }
+      return;
+    }
     if (panel) panel.classList.add('hidden');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
     bindStaffFactsSectionToggle(section, toggle, panel, preview);
@@ -297,8 +323,29 @@
       .catch(function () {});
   }
 
+  var STAFF_MONTHS_GEN = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+  ];
+
+  function fmtStaffBirthday(iso) {
+    if (!iso) return '';
+    var s = String(iso).slice(0, 10);
+    var p = s.split('-');
+    if (p.length !== 3) return s;
+    var y = +p[0];
+    var m = +p[1];
+    var d = +p[2];
+    if (!y || !m || !d || m < 1 || m > 12) return s;
+    return d + ' ' + STAFF_MONTHS_GEN[m - 1] + ' ' + y;
+  }
+
   function staffMetaLine(person) {
     if (!person) return '';
+    var bday = fmtStaffBirthday(person.birthday || person.birth_date || '');
+    if (bday) {
+      return '<p class="staff-hero-meta">Дата рождения: ' + escapeHtml(bday) + '</p>';
+    }
     var parts = [];
     if (person.birth_year) {
       var y = String(person.birth_year);
@@ -306,9 +353,6 @@
       parts.push(y);
     }
     if (person.country) parts.push(String(person.country));
-    if (!parts.length && person.professions) {
-      parts.push(String(person.professions).slice(0, 96));
-    }
     if (!parts.length) return '';
     return '<p class="staff-hero-meta">' + escapeHtml(parts.join(' · ')) + '</p>';
   }
@@ -462,7 +506,10 @@
   function staffToggleChipAvailability() {
     var base = {
       year: _staffFilterState.year || '',
+      yearFrom: _staffFilterState.yearFrom || '',
+      yearTo: _staffFilterState.yearTo || '',
       genre: _staffFilterState.genre || '',
+      ratingMin: _staffFilterState.ratingMin || '',
       mainRolesOnly: !!_staffFilterState.mainRolesOnly,
       friendsRatedOnly: !!_staffFilterState.friendsRatedOnly,
     };
@@ -470,6 +517,39 @@
       mainDisabled: !base.mainRolesOnly && countStaffFilmsWithState(Object.assign({}, base, { mainRolesOnly: true })) === 0,
       friendsDisabled: !base.friendsRatedOnly && countStaffFilmsWithState(Object.assign({}, base, { friendsRatedOnly: true })) === 0,
     };
+  }
+
+  function staffYearBounds() {
+    var years = (_staffGlobalFilters && _staffGlobalFilters.years) || [];
+    var nums = years.map(function (y) { return parseInt(y, 10); }).filter(function (n) { return !isNaN(n) && n > 0; });
+    if (!nums.length) {
+      var min = 9999;
+      var max = 0;
+      ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (b) {
+        (b.films || []).forEach(function (f) {
+          var y = parseInt(f.year, 10);
+          if (!y) return;
+          if (y < min) min = y;
+          if (y > max) max = y;
+        });
+      });
+      if (min > max) {
+        var now = new Date().getFullYear();
+        return { min: 1950, max: now };
+      }
+      return { min: min, max: max };
+    }
+    return { min: Math.min.apply(null, nums), max: Math.max.apply(null, nums) };
+  }
+
+  function staffFilterActive() {
+    return !!(
+      _staffFilterState.yearFrom ||
+      _staffFilterState.yearTo ||
+      _staffFilterState.genre ||
+      (_staffFilterState.ratingMin && parseFloat(_staffFilterState.ratingMin) > 0) ||
+      _staffFilterState.year
+    );
   }
 
   function staffToggleChipAttrs(kind, avail) {
@@ -502,27 +582,79 @@
 
   function filtersBarHtml() {
     var avail = staffToggleChipAvailability();
+    var bounds = staffYearBounds();
+    var yMin = bounds.min;
+    var yMax = bounds.max;
+    var fromVal = _staffFilterState.yearFrom !== '' ? parseInt(_staffFilterState.yearFrom, 10) : yMin;
+    var toVal = _staffFilterState.yearTo !== '' ? parseInt(_staffFilterState.yearTo, 10) : yMax;
+    if (isNaN(fromVal)) fromVal = yMin;
+    if (isNaN(toVal)) toVal = yMax;
+    var rMinVal = _staffFilterState.ratingMin !== '' ? parseFloat(_staffFilterState.ratingMin) : 0;
+    if (isNaN(rMinVal)) rMinVal = 0;
+    var filterOn = staffFilterActive();
+    var filterSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm32,40a8,8,0,0,0,0,16H184a8,8,0,0,0,0-16Zm32,56a8,8,0,0,0,0,16h48a8,8,0,0,0,0-16Z"/></svg>';
+    var sortSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M112,168a8,8,0,0,1-5.66-2.34l-48-48a8,8,0,0,1,11.32-11.32L104,140.69V40a8,8,0,0,1,16,0V140.69l34.34-34.35a8,8,0,0,1,11.32,11.32l-48,48A8,8,0,0,1,112,168Zm88-80a8,8,0,0,0-5.66,2.34l-48,48a8,8,0,0,0,11.32,11.32L176,115.31V216a8,8,0,0,0,16,0V115.31l34.34,34.35a8,8,0,0,0,11.32-11.32l-48-48A8,8,0,0,0,200,88Z"/></svg>';
+    var gOpts = genreOptionsHtml().replace('>Любой<', '>Все жанры<');
+    var sortChips =
+      '<button type="button" class="chip' + (_staffSortMode === 'rating_desc' ? ' chip-on' : '') + '" id="staff-sort-rating">По оценке</button>' +
+      '<button type="button" class="chip' + (_staffSortMode === 'year_desc' ? ' chip-on' : '') + '" id="staff-sort-year-desc">Сначала новые</button>' +
+      '<button type="button" class="chip' + (_staffSortMode === 'year_asc' ? ' chip-on' : '') + '" id="staff-sort-year-asc">Сначала старые</button>';
     return (
       '<div class="person-filters" id="staff-person-filters">' +
-        '<div class="person-filters-row">' +
-          '<label class="person-filter-field">' +
-            '<span class="person-filter-k">Год</span>' +
-            '<select class="person-filter-select" id="staff-filter-year">' + yearOptionsHtml() + '</select>' +
-          '</label>' +
-          '<label class="person-filter-field">' +
-            '<span class="person-filter-k">Жанр</span>' +
-            '<select class="person-filter-select" id="staff-filter-genre">' + genreOptionsHtml() + '</select>' +
-          '</label>' +
+        '<div class="person-filters-tools">' +
+          '<button type="button" class="person-tool-btn' + (filterOn ? ' is-active' : '') + '" id="staff-filter-open" aria-expanded="false" aria-controls="staff-filter-sheet">' +
+            filterSvg + '<span>Фильтр</span></button>' +
+          '<button type="button" class="person-tool-btn" id="staff-sort-open" aria-expanded="false" aria-controls="staff-sort-sheet">' +
+            sortSvg + '<span>Сортировка</span></button>' +
+        '</div>' +
+        '<div class="person-filter-sheet hidden" id="staff-filter-sheet" role="dialog" aria-label="Фильтр">' +
+          '<div class="person-filter-sheet-head"><span>Фильтр</span>' +
+            '<button type="button" class="person-filter-sheet-close" data-sheet-close="filter" aria-label="Закрыть">×</button></div>' +
+          '<label class="person-filter-field"><span class="person-filter-k">Жанр</span>' +
+            '<select class="person-filter-select" id="staff-filter-genre">' + gOpts + '</select></label>' +
+          '<div class="person-year-range" id="staff-year-range">' +
+            '<div class="person-year-range-head"><span class="person-filter-k">Годы</span>' +
+              '<span class="person-year-range-vals" id="staff-year-range-label">' + fromVal + ' – ' + toVal + '</span></div>' +
+            '<div class="person-year-range-inputs">' +
+              '<label>с <input type="number" id="staff-year-from" min="' + yMin + '" max="' + yMax + '" value="' + fromVal + '" inputmode="numeric"></label>' +
+              '<label>по <input type="number" id="staff-year-to" min="' + yMin + '" max="' + yMax + '" value="' + toVal + '" inputmode="numeric"></label>' +
+            '</div>' +
+            '<div class="person-year-sliders">' +
+              '<input type="range" id="staff-year-from-range" min="' + yMin + '" max="' + yMax + '" value="' + fromVal + '" aria-label="Год начала">' +
+              '<input type="range" id="staff-year-to-range" min="' + yMin + '" max="' + yMax + '" value="' + toVal + '" aria-label="Год конца">' +
+            '</div>' +
+          '</div>' +
+          '<div class="person-rating-min" id="staff-rating-min">' +
+            '<div class="person-year-range-head"><span class="person-filter-k">Рейтинг от</span>' +
+              '<span class="person-year-range-vals" id="staff-rating-min-label">' +
+                (rMinVal > 0 ? rMinVal.toFixed(1) : 'любой') + '</span></div>' +
+            '<input type="range" id="staff-rating-min-range" min="0" max="10" step="0.1" value="' + rMinVal + '" aria-label="Минимальный рейтинг">' +
+          '</div>' +
+          '<div class="person-filter-sheet-actions">' +
+            '<button type="button" class="person-filter-reset" id="staff-filter-reset">Сбросить</button>' +
+            '<button type="button" class="person-filter-apply" id="staff-filter-apply">Применить</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="person-filter-sheet hidden" id="staff-sort-sheet" role="dialog" aria-label="Сортировка">' +
+          '<div class="person-filter-sheet-head"><span>Сортировка</span>' +
+            '<button type="button" class="person-filter-sheet-close" data-sheet-close="sort" aria-label="Закрыть">×</button></div>' +
+          '<div class="person-filters-sort" aria-label="Сортировка">' + sortChips + '</div>' +
         '</div>' +
         '<div class="person-filters-toggles">' +
           '<button type="button"' + staffToggleChipAttrs('main', avail) + ' id="staff-toggle-main">Главные роли</button>' +
           '<button type="button"' + staffToggleChipAttrs('friends', avail) + ' id="staff-toggle-friends">Друзья хорошо оценили</button>' +
         '</div>' +
-        '<div class="person-filters-sort">' +
-          '<span class="person-filter-k">Сортировка</span>' +
-          '<button type="button" class="chip' + (_staffSortMode === 'rating_desc' ? ' chip-on' : '') + '" id="staff-sort-rating" aria-pressed="' + (_staffSortMode === 'rating_desc' ? 'true' : 'false') + '">По оценке</button>' +
-          '<button type="button" class="chip' + (_staffSortMode === 'year_desc' ? ' chip-on' : '') + '" id="staff-sort-year-desc" aria-pressed="' + (_staffSortMode === 'year_desc' ? 'true' : 'false') + '">Сначала новые</button>' +
-          '<button type="button" class="chip' + (_staffSortMode === 'year_asc' ? ' chip-on' : '') + '" id="staff-sort-year-asc" aria-pressed="' + (_staffSortMode === 'year_asc' ? 'true' : 'false') + '">Сначала старые</button>' +
+        '<div class="person-filters-row person-filters-row--desktop">' +
+          '<label class="person-filter-field"><span class="person-filter-k">Годы</span>' +
+            '<span class="person-year-range-inline">' +
+              '<input type="number" class="person-filter-select" id="staff-year-from-desk" min="' + yMin + '" max="' + yMax + '" value="' + fromVal + '" aria-label="Год начала">' +
+              '<span aria-hidden="true">–</span>' +
+              '<input type="number" class="person-filter-select" id="staff-year-to-desk" min="' + yMin + '" max="' + yMax + '" value="' + toVal + '" aria-label="Год конца">' +
+            '</span></label>' +
+          '<label class="person-filter-field"><span class="person-filter-k">Жанр</span>' +
+            '<select class="person-filter-select" id="staff-filter-genre-desk">' + gOpts + '</select></label>' +
+          '<label class="person-filter-field"><span class="person-filter-k">Рейтинг от</span>' +
+            '<input type="number" class="person-filter-select" id="staff-rating-min-desk" min="0" max="10" step="0.1" value="' + rMinVal + '" aria-label="Минимальный рейтинг"></label>' +
         '</div>' +
       '</div>'
     );
@@ -758,37 +890,179 @@
 
   function bindStaffFilters(root) {
     if (!root) return;
+    var filtersRoot = root.querySelector('#staff-person-filters');
     if (root._staffFiltersBound) {
-      var filtersRootEarly = root.querySelector('#staff-person-filters');
-      updateStaffToggleChips(filtersRootEarly);
-      if (filtersRootEarly) {
-        var sortRating = filtersRootEarly.querySelector('#staff-sort-rating');
-        var sortYearDesc = filtersRootEarly.querySelector('#staff-sort-year-desc');
-        var sortYearAsc = filtersRootEarly.querySelector('#staff-sort-year-asc');
-        if (sortRating) sortRating.classList.toggle('chip-on', _staffSortMode === 'rating_desc');
-        if (sortYearDesc) sortYearDesc.classList.toggle('chip-on', _staffSortMode === 'year_desc');
-        if (sortYearAsc) sortYearAsc.classList.toggle('chip-on', _staffSortMode === 'year_asc');
+      updateStaffToggleChips(filtersRoot);
+      if (filtersRoot) {
+        ['#staff-sort-rating', '#staff-sort-year-desc', '#staff-sort-year-asc'].forEach(function (sel) {
+          var el = filtersRoot.querySelector(sel);
+          if (!el) return;
+          var mode = sel.indexOf('rating') >= 0 ? 'rating_desc' : (sel.indexOf('desc') >= 0 ? 'year_desc' : 'year_asc');
+          el.classList.toggle('chip-on', _staffSortMode === mode);
+        });
+        var fBtn = filtersRoot.querySelector('#staff-filter-open');
+        if (fBtn) fBtn.classList.toggle('is-active', staffFilterActive());
       }
       return;
     }
     root._staffFiltersBound = true;
-    var yearEl = root.querySelector('#staff-filter-year');
+    var bounds = staffYearBounds();
+
+    function closeSheet(which) {
+      var id = which === 'sort' ? 'staff-sort-sheet' : 'staff-filter-sheet';
+      var sheet = root.querySelector('#' + id);
+      if (sheet) sheet.classList.add('hidden');
+      var openBtn = root.querySelector(which === 'sort' ? '#staff-sort-open' : '#staff-filter-open');
+      if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+    }
+    function openSheet(which) {
+      closeSheet('filter');
+      closeSheet('sort');
+      var id = which === 'sort' ? 'staff-sort-sheet' : 'staff-filter-sheet';
+      var sheet = root.querySelector('#' + id);
+      if (sheet) sheet.classList.remove('hidden');
+      var openBtn = root.querySelector(which === 'sort' ? '#staff-sort-open' : '#staff-filter-open');
+      if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+    }
+    function syncFilterActiveBtn() {
+      var fBtn = root.querySelector('#staff-filter-open');
+      if (fBtn) fBtn.classList.toggle('is-active', staffFilterActive());
+    }
+    function syncYearUi(from, to) {
+      var f = Math.max(bounds.min, Math.min(bounds.max, from));
+      var t = Math.max(bounds.min, Math.min(bounds.max, to));
+      if (f > t) { var tmp = f; f = t; t = tmp; }
+      ['#staff-year-from', '#staff-year-from-range', '#staff-year-from-desk'].forEach(function (sel) {
+        var el = root.querySelector(sel);
+        if (el) el.value = String(f);
+      });
+      ['#staff-year-to', '#staff-year-to-range', '#staff-year-to-desk'].forEach(function (sel) {
+        var el = root.querySelector(sel);
+        if (el) el.value = String(t);
+      });
+      var lab = root.querySelector('#staff-year-range-label');
+      if (lab) lab.textContent = f + ' – ' + t;
+      return { from: f, to: t };
+    }
+    function applyYearRange(from, to, paint) {
+      var r = syncYearUi(from, to);
+      var full = r.from <= bounds.min && r.to >= bounds.max;
+      _staffFilterState.yearFrom = full ? '' : String(r.from);
+      _staffFilterState.yearTo = full ? '' : String(r.to);
+      _staffFilterState.year = '';
+      syncFilterActiveBtn();
+      if (paint) paintStaffRoles();
+    }
+    function syncRatingUi(val) {
+      var n = Math.max(0, Math.min(10, parseFloat(val) || 0));
+      var range = root.querySelector('#staff-rating-min-range');
+      var desk = root.querySelector('#staff-rating-min-desk');
+      var lab = root.querySelector('#staff-rating-min-label');
+      if (range) range.value = String(n);
+      if (desk) desk.value = String(n);
+      if (lab) lab.textContent = n > 0 ? n.toFixed(1) : 'любой';
+      _staffFilterState.ratingMin = n > 0 ? String(n) : '';
+      syncFilterActiveBtn();
+      return n;
+    }
+    function readYearPair() {
+      var fEl = root.querySelector('#staff-year-from') || root.querySelector('#staff-year-from-desk');
+      var tEl = root.querySelector('#staff-year-to') || root.querySelector('#staff-year-to-desk');
+      return {
+        from: parseInt(fEl && fEl.value, 10) || bounds.min,
+        to: parseInt(tEl && tEl.value, 10) || bounds.max,
+      };
+    }
+
+    var filterOpen = root.querySelector('#staff-filter-open');
+    var sortOpen = root.querySelector('#staff-sort-open');
+    if (filterOpen) filterOpen.addEventListener('click', function () {
+      var sheet = root.querySelector('#staff-filter-sheet');
+      if (sheet && !sheet.classList.contains('hidden')) closeSheet('filter');
+      else openSheet('filter');
+    });
+    if (sortOpen) sortOpen.addEventListener('click', function () {
+      var sheet = root.querySelector('#staff-sort-sheet');
+      if (sheet && !sheet.classList.contains('hidden')) closeSheet('sort');
+      else openSheet('sort');
+    });
+    root.querySelectorAll('[data-sheet-close]').forEach(function (btn) {
+      btn.addEventListener('click', function () { closeSheet(btn.getAttribute('data-sheet-close')); });
+    });
+
+    function setSort(mode) {
+      _staffSortMode = mode;
+      root.querySelectorAll('.person-filters-sort .chip').forEach(function (chip) {
+        var on = (chip.id === 'staff-sort-rating' && mode === 'rating_desc') ||
+          (chip.id === 'staff-sort-year-desc' && mode === 'year_desc') ||
+          (chip.id === 'staff-sort-year-asc' && mode === 'year_asc');
+        chip.classList.toggle('chip-on', on);
+      });
+      paintStaffRoles();
+      closeSheet('sort');
+    }
+    var sr = root.querySelector('#staff-sort-rating');
+    var sd = root.querySelector('#staff-sort-year-desc');
+    var sa = root.querySelector('#staff-sort-year-asc');
+    if (sr) sr.addEventListener('click', function () { setSort('rating_desc'); });
+    if (sd) sd.addEventListener('click', function () { setSort('year_desc'); });
+    if (sa) sa.addEventListener('click', function () { setSort('year_asc'); });
+
+    ['#staff-year-from', '#staff-year-to', '#staff-year-from-range', '#staff-year-to-range',
+      '#staff-year-from-desk', '#staff-year-to-desk'].forEach(function (sel) {
+      var el = root.querySelector(sel);
+      if (!el) return;
+      el.addEventListener('input', function () {
+        var pair = readYearPair();
+        if (sel.indexOf('from') >= 0) pair.from = parseInt(el.value, 10) || bounds.min;
+        else pair.to = parseInt(el.value, 10) || bounds.max;
+        applyYearRange(pair.from, pair.to, sel.indexOf('desk') >= 0);
+      });
+    });
+    var ratingRange = root.querySelector('#staff-rating-min-range');
+    var ratingDesk = root.querySelector('#staff-rating-min-desk');
+    if (ratingRange) ratingRange.addEventListener('input', function () { syncRatingUi(ratingRange.value); });
+    if (ratingDesk) ratingDesk.addEventListener('change', function () {
+      syncRatingUi(ratingDesk.value);
+      paintStaffRoles();
+    });
+    var applyBtn = root.querySelector('#staff-filter-apply');
+    if (applyBtn) applyBtn.addEventListener('click', function () {
+      var pair = readYearPair();
+      applyYearRange(pair.from, pair.to, false);
+      var gEl = root.querySelector('#staff-filter-genre');
+      if (gEl) _staffFilterState.genre = gEl.value || '';
+      if (ratingRange) syncRatingUi(ratingRange.value);
+      paintStaffRoles();
+      closeSheet('filter');
+    });
+    var resetBtn = root.querySelector('#staff-filter-reset');
+    if (resetBtn) resetBtn.addEventListener('click', function () {
+      _staffFilterState.genre = '';
+      var fg = root.querySelector('#staff-filter-genre');
+      var fgd = root.querySelector('#staff-filter-genre-desk');
+      if (fg) fg.value = '';
+      if (fgd) fgd.value = '';
+      syncRatingUi(0);
+      applyYearRange(bounds.min, bounds.max, true);
+      closeSheet('filter');
+    });
     var genreEl = root.querySelector('#staff-filter-genre');
+    var genreDesk = root.querySelector('#staff-filter-genre-desk');
+    if (genreEl) genreEl.addEventListener('change', function (e) {
+      _staffFilterState.genre = e.target.value || '';
+      if (genreDesk) genreDesk.value = _staffFilterState.genre;
+      syncFilterActiveBtn();
+    });
+    if (genreDesk) genreDesk.addEventListener('change', function (e) {
+      _staffFilterState.genre = e.target.value || '';
+      if (genreEl) genreEl.value = _staffFilterState.genre;
+      syncFilterActiveBtn();
+      paintStaffRoles();
+    });
+
     var mainBtn = root.querySelector('#staff-toggle-main');
     var friendsBtn = root.querySelector('#staff-toggle-friends');
-
-    if (yearEl) {
-      yearEl.addEventListener('change', function (e) {
-        _staffFilterState.year = e.target.value || '';
-        paintStaffRoles();
-      });
-    }
-    if (genreEl) {
-      genreEl.addEventListener('change', function (e) {
-        _staffFilterState.genre = e.target.value || '';
-        paintStaffRoles();
-      });
-    }
     if (mainBtn) {
       mainBtn.addEventListener('click', function () {
         if (mainBtn.disabled || mainBtn.classList.contains('chip-disabled')) return;
@@ -810,18 +1084,6 @@
         paintStaffRoles();
       });
     }
-    function bindSortChip(id, mode) {
-      var el = root.querySelector(id);
-      if (!el || el._staffSortBound) return;
-      el._staffSortBound = true;
-      el.addEventListener('click', function () {
-        _staffSortMode = _staffSortMode === mode ? 'default' : mode;
-        paintStaffRoles();
-      });
-    }
-    bindSortChip('#staff-sort-rating', 'rating_desc');
-    bindSortChip('#staff-sort-year-desc', 'year_desc');
-    bindSortChip('#staff-sort-year-asc', 'year_asc');
     bindStaffRoleExpandButtons(root);
   }
 
@@ -887,10 +1149,10 @@
     if (rolesRoot) rolesRoot.innerHTML = rolesHtml(_staffLastData.films_by_role || []);
     var filtersRoot = root.querySelector('#staff-person-filters');
     if (filtersRoot) {
-      var yearEl = filtersRoot.querySelector('#staff-filter-year');
       var genreEl = filtersRoot.querySelector('#staff-filter-genre');
-      if (yearEl) yearEl.value = _staffFilterState.year || '';
+      var genreDesk = filtersRoot.querySelector('#staff-filter-genre-desk');
       if (genreEl) genreEl.value = _staffFilterState.genre || '';
+      if (genreDesk) genreDesk.value = _staffFilterState.genre || '';
       updateStaffToggleChips(filtersRoot);
       var sortRating = filtersRoot.querySelector('#staff-sort-rating');
       var sortYearDesc = filtersRoot.querySelector('#staff-sort-year-desc');
@@ -898,15 +1160,14 @@
       if (sortRating) sortRating.classList.toggle('chip-on', _staffSortMode === 'rating_desc');
       if (sortYearDesc) sortYearDesc.classList.toggle('chip-on', _staffSortMode === 'year_desc');
       if (sortYearAsc) sortYearAsc.classList.toggle('chip-on', _staffSortMode === 'year_asc');
-      if (yearEl && _staffGlobalFilters.years && _staffGlobalFilters.years.length) {
-        var cur = yearEl.innerHTML;
-        var next = yearOptionsHtml();
-        if (cur !== next) yearEl.innerHTML = next;
-      }
+      var fBtn = filtersRoot.querySelector('#staff-filter-open');
+      if (fBtn) fBtn.classList.toggle('is-active', staffFilterActive());
       if (genreEl && _staffGlobalFilters.genres && _staffGlobalFilters.genres.length) {
-        var curG = genreEl.innerHTML;
-        var nextG = genreOptionsHtml();
-        if (curG !== nextG) genreEl.innerHTML = nextG;
+        var nextG = genreOptionsHtml().replace('>Любой<', '>Все жанры<');
+        if (genreEl.innerHTML !== nextG) genreEl.innerHTML = nextG;
+        if (genreDesk && genreDesk.innerHTML !== nextG) genreDesk.innerHTML = nextG;
+        genreEl.value = _staffFilterState.genre || '';
+        if (genreDesk) genreDesk.value = _staffFilterState.genre || '';
       }
     }
     bindStaffFilters(root);
@@ -1098,7 +1359,7 @@
             '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
             '<div class="header-search" id="header-search" role="search">' +
               '<span class="header-search-icon" aria-hidden="true">🔍</span>' +
-              '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал…" autocomplete="off" aria-label="Поиск">' +
+              '<input type="text" id="header-search-input" class="header-search-input" placeholder="Найти фильм или сериал" autocomplete="off" aria-label="Поиск">' +
               '<button type="button" class="header-search-mic mp-icon-btn" id="header-search-mic" data-mp-icon="voice" data-mp-icon-weight="duotone" aria-label="Голосовой ввод" title="Голосовой ввод"><svg class="mp-icon-svg-fallback" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.83V232a8,8,0,0,1-16,0V207.83A80.09,80.09,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.09,80.09,0,0,1,136,207.83Z"/></svg></button>' +
               '<button type="button" class="header-search-clear hidden" id="header-search-clear" aria-label="Очистить">×</button>' +
               '<div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>' +
@@ -1374,6 +1635,7 @@
       if (main) {
         main.innerHTML = staffPickBannerHtml() + filtersBarHtml() +
           '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>';
+        root._staffFiltersBound = false;
       }
       if (!article.querySelector('.staff-proto-tabs')) {
         var heroForTabs = article.querySelector('.staff-hero');
@@ -1439,6 +1701,7 @@
         '</div>' +
       '</article>';
 
+    root._staffFiltersBound = false;
     bindStaffTabs(root);
     bindStaffPickBanner(root);
     bindStaffFilters(root);
