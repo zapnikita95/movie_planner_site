@@ -348,7 +348,8 @@
       section.classList.add('hidden');
       return;
     }
-    section.classList.remove('hidden');
+    section.classList.remove('hidden', 'staff-facts--boot');
+    section.removeAttribute('aria-busy');
     preview.innerHTML = staffFactsPreviewHtml(facts[0].fact);
     list.innerHTML = '';
     facts.slice(0, 6).forEach(function (wf) {
