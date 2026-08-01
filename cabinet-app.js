@@ -17485,19 +17485,38 @@
       + (kp ? (' data-kp="' + escapeHtml(kp) + '"') : '') + mpPosterOnErrorAttr() + '>';
   }
 
+  function fetchHeaderSearchBuzzTop() {
+    return fetch(API_BASE + '/api/public/buzz?days=7&limit=10&view=films', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const items = (d && d.items) ? d.items : [];
+        return items.map((it) => ({
+          kp_id: it.kp_id,
+          title: it.title || 'Фильм',
+          poster: it.poster || '',
+        })).filter((it) => it.kp_id);
+      })
+      .catch(() => []);
+  }
+
   function fetchHeaderSearchHubData() {
     if (_headerSearchHubCache && Date.now() - _headerSearchHubCache.ts < HEADER_SEARCH_HUB_TTL_MS) {
       return Promise.resolve(_headerSearchHubCache);
     }
     const premPromise = fetchPremieresForSearchHub().catch(() => ({ items: [] }));
+    const buzzPromise = fetchHeaderSearchBuzzTop();
     const popPromise = getToken()
       ? api('/api/site/search/popular').catch(() => null)
       : Promise.resolve(null);
-    return Promise.all([popPromise, premPromise]).then(([pop, prem]) => {
+    return Promise.all([popPromise, premPromise, buzzPromise]).then(([pop, prem, buzz]) => {
       let items = (prem && prem.items) ? prem.items.slice() : [];
       const bag = {
         ts: Date.now(),
         popular: mergeHeaderSearchPopularChips(pop),
+        buzz: (buzz || []).slice(0, 10),
         premieres: items.slice(0, 10),
       };
       _headerSearchHubCache = bag;
@@ -17523,9 +17542,10 @@
 
   function renderHeaderSearchHubHtml(bag, opts) {
     opts = opts || {};
-    bag = bag || { popular: mergeHeaderSearchPopularChips(null), premieres: [] };
+    bag = bag || { popular: mergeHeaderSearchPopularChips(null), premieres: [], buzz: [] };
     const recQ = _readJsonLs(LS_SEARCH_RECENT, []);
     const recF = _readJsonLs(LS_FILM_RECENT, []);
+    const buzzItems = Array.isArray(bag.buzz) ? bag.buzz : [];
     let h = '<div class="hs-hub">';
     h += renderHeaderSearchTypeTabsHtml();
 
@@ -17543,6 +17563,26 @@
         h += '<button type="button" class="header-search-chip" data-hs-recent-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>';
       });
       h += '</div>';
+    }
+
+    // Most-discussed first — empty search should surface buzz, not only cinema schedule.
+    h += '<div class="header-search-recent-title">В тренде</div>';
+    if (bag.premieresLoading && !buzzItems.length) {
+      h += '<div class="hs-hub-prem-scroll hs-hub-prem-skeleton">';
+      for (let sk = 0; sk < 4; sk++) {
+        h += '<div class="hs-hub-prem-card hs-hub-prem-card--skel"><span class="hs-hub-prem-title">…</span></div>';
+      }
+      h += '</div>';
+    } else if (buzzItems.length) {
+      h += '<div class="hs-hub-prem-scroll">';
+      buzzItems.forEach((p) => {
+        h += '<button type="button" class="hs-hub-prem-card" data-hs-premiere-kp="' + escapeHtml(String(p.kp_id || '')) + '">'
+          + hubPosterImgHtml(p.kp_id, p.poster, 'hs-hub-prem-img')
+          + '<span class="hs-hub-prem-title">' + escapeHtml(p.title || '—') + '</span></button>';
+      });
+      h += '</div>';
+    } else {
+      h += '<div class="header-search-empty hs-hub-empty">Пока нет обсуждаемых фильмов</div>';
     }
 
     h += '<div class="header-search-recent-title">Сейчас в прокате</div>';
@@ -17923,13 +17963,15 @@
     return '<div class="site-search-results-loading">' + siteSearchLoadingHtml() + '</div>';
   }
 
+  // Desktop: 2 columns × 2 rows (no full-width single-column cards).
   const SITE_SEARCH_PERSONS_VISIBLE = 4;
 
   function siteSearchPersonsBlockHtml(persons) {
     if (!persons || !persons.length) return '';
     const cards = persons.map(siteSearchPersonCardHtml);
     const hasMore = cards.length > SITE_SEARCH_PERSONS_VISIBLE;
-    let html = '<div class="site-search-persons-grid site-search-persons-grid--compact">';
+    // 2-up grid on desktop (CSS); avoid --compact which forced 1 column + empty space.
+    let html = '<div class="site-search-persons-grid">';
     html += cards.slice(0, SITE_SEARCH_PERSONS_VISIBLE).join('');
     if (hasMore) {
       html += '<div class="site-search-persons-more hidden">' + cards.slice(SITE_SEARCH_PERSONS_VISIBLE).join('') + '</div>';
