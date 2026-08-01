@@ -28,8 +28,20 @@
   var _staffGlobalFilters = { years: [], genres: [] };
   var _staffPickOn = false;
   var _staffPickSelected = new Map();
+  var _staffNotifyOn = new Set();
+  /** Top 10% of craft ratings (≥ 90th percentile) across loaded filmography. */
+  var _staffTopRatingThreshold = null;
   /** Desktop main pane (+ mobile awards sync): 'bio' | 'films' | 'awards' */
   var _staffMainPane = 'films';
+  var STAFF_CRAFT_ROLE_KEYS = {
+    ACTOR: 1, DIRECTOR: 1, WRITER: 1, PRODUCER: 1,
+    OPERATOR: 1, COMPOSER: 1, DESIGN: 1, EDITOR: 1,
+  };
+  var STAFF_JUNK_ROLE_KEYS = {
+    HIMSELF: 1, HERSELF: 1, CAMEO: 1, UNCREDITED: 1, VOICE_OVER: 1,
+  };
+  var STAFF_SELF_CREDIT_RE =
+    /^(himself|herself|self|играет сам(ого|у)? себя|играет себя|камео|cameo|uncredited|не указан)/i;
   var PICK_START_ARROW =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">' +
     '<path d="M5 12h12m0 0-4.5-4.5M17 12l-4.5 4.5" stroke="currentColor" stroke-width="2.2" ' +
@@ -87,7 +99,7 @@
   }
 
   var STAFF_MAIN_ROLE_KEYS = { ACTOR: 1, DIRECTOR: 1, WRITER: 1, PRODUCER: 1 };
-  var STAFF_SELF_ROLE_RE = /играет сам|сам себя|herself|himself|cameo|камео/i;
+  var STAFF_SELF_ROLE_RE = /играет сам|сам себя|herself|himself|cameo|камео|uncredited|не указан/i;
 
   function staffLooksMainCredit(f, roleKey) {
     if (!f) return false;
@@ -99,8 +111,126 @@
     }
     var desc = String(f.role_description || f.description || f.character || '').trim();
     if (!desc) return !!(STAFF_MAIN_ROLE_KEYS[rk] || !rk);
-    if (STAFF_SELF_ROLE_RE.test(desc)) return false;
+    if (STAFF_SELF_ROLE_RE.test(desc) || STAFF_SELF_CREDIT_RE.test(desc)) return false;
     return true;
+  }
+
+  function staffFilmDisplayRating(f) {
+    if (!f) return null;
+    var r = parseFloat(f.rating);
+    if (!isNaN(r) && r > 0) return r;
+    var kp = parseFloat(f.rating_kp);
+    if (!isNaN(kp) && kp > 0) return kp;
+    var imdb = parseFloat(f.rating_imdb);
+    if (!isNaN(imdb) && imdb > 0) return imdb;
+    return null;
+  }
+
+  function staffFormatRating(r) {
+    var n = typeof r === 'number' ? r : parseFloat(r);
+    if (isNaN(n) || n <= 0) return '';
+    var up = Math.ceil(n * 10 - 1e-9) / 10;
+    if (Math.abs(up - Math.round(up)) < 1e-9) return String(Math.round(up));
+    return up.toFixed(1);
+  }
+
+  function staffIsJunkRoleKey(roleKey) {
+    var rk = String(roleKey || '').toUpperCase();
+    if (STAFF_JUNK_ROLE_KEYS[rk]) return true;
+    if (rk.indexOf('HRONO') === 0) return true;
+    return false;
+  }
+
+  function staffIsSelfOrUncreditedCredit(f, roleKey) {
+    if (!f) return true;
+    var rk = String(roleKey || f.role_key || '').toUpperCase();
+    if (staffIsJunkRoleKey(rk)) return true;
+    var desc = String(f.role_description || f.description || f.character || '').trim();
+    if (!desc) return false;
+    return STAFF_SELF_ROLE_RE.test(desc) || STAFF_SELF_CREDIT_RE.test(desc);
+  }
+
+  function staffCountsForTopRating(f, roleKey) {
+    if (!f) return false;
+    var rk = String(roleKey || f.role_key || '').toUpperCase();
+    if (!STAFF_CRAFT_ROLE_KEYS[rk] || staffIsJunkRoleKey(rk)) return false;
+    if (staffIsSelfOrUncreditedCredit(f, rk)) return false;
+    return staffFilmDisplayRating(f) != null;
+  }
+
+  function staffPercentileThreshold(values, p) {
+    var arr = (values || []).filter(function (n) {
+      return typeof n === 'number' && !isNaN(n) && n > 0;
+    }).slice().sort(function (a, b) { return a - b; });
+    if (!arr.length) return null;
+    if (arr.length === 1) return arr[0];
+    var rank = (Math.max(0, Math.min(100, p)) / 100) * (arr.length - 1);
+    var lo = Math.floor(rank);
+    var hi = Math.ceil(rank);
+    if (lo === hi) return arr[lo];
+    return arr[lo] + (arr[hi] - arr[lo]) * (rank - lo);
+  }
+
+  function recomputeStaffTopRatingThreshold() {
+    var vals = [];
+    ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (block) {
+      var rk = String(block.role_key || '').toUpperCase();
+      (block.films || []).forEach(function (f) {
+        if (!staffCountsForTopRating(f, rk)) return;
+        var r = staffFilmDisplayRating(f);
+        if (r != null) vals.push(r);
+      });
+    });
+    _staffTopRatingThreshold = staffPercentileThreshold(vals, 90);
+  }
+
+  function staffIsTopRatedFilm(f, roleKey) {
+    if (_staffTopRatingThreshold == null) return false;
+    if (!staffCountsForTopRating(f, roleKey)) return false;
+    var r = staffFilmDisplayRating(f);
+    return r != null && r >= _staffTopRatingThreshold - 1e-9;
+  }
+
+  function staffParsePremiereDay(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return null;
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    if (isNaN(d.getTime())) return null;
+    return d;
+  }
+
+  function staffTodayLocal() {
+    var n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  }
+
+  /** Колокольчик только при известной premiere_date > сегодня (или is_upcoming от API). */
+  function staffIsUpcomingFilm(f) {
+    if (!f) return false;
+    if (f.is_upcoming === true) return true;
+    var prem = staffParsePremiereDay(f.premiere_date);
+    if (!prem) return false;
+    return prem.getTime() > staffTodayLocal().getTime();
+  }
+
+  function staffRatingStarSvg() {
+    return (
+      '<span class="staff-film-rating-star" aria-hidden="true">' +
+        '<svg viewBox="0 0 256 256" width="11" height="11" fill="currentColor">' +
+          '<path d="M234.29,114.24l-45.13,39.36,13.51,58.57a16,16,0,0,1-23.84,17.34l-51.11-31-51.11,31A16,16,0,0,1,53.33,212.16L66.84,153.6,21.71,114.24a16,16,0,0,1,9.11-28.19l59.46-5.15,23.21-55.36a15.95,15.95,0,0,1,29.22,0L144.72,80.9l59.46,5.15a16,16,0,0,1,9.11,28.19Z"/>' +
+        '</svg>' +
+      '</span>'
+    );
+  }
+
+  function staffBellSvg() {
+    return (
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">' +
+        '<path d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22Zm7-6.2V11a7 7 0 1 0-14 0v4.8L3 17.8V19h18v-1.2l-2-1.8Z" fill="currentColor"/>' +
+      '</svg>'
+    );
   }
 
   function filterPersonFilmsClient(films, state, roleKey) {
@@ -1523,6 +1653,74 @@
     }, true);
   }
 
+  function staffOpenLoginForBell() {
+    if (_staffLoginNow) {
+      _staffLoginNow('staff_premiere');
+      return;
+    }
+    if (global.MpPublicFilmLogin && typeof global.MpPublicFilmLogin.open === 'function') {
+      global.MpPublicFilmLogin.open('staff_premiere');
+      return;
+    }
+    global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/s/' + (_staffPersonId || ''));
+  }
+
+  function handleStaffBellClick(btn) {
+    if (!btn || btn.disabled) return;
+    var kp = String(btn.getAttribute('data-bell-kp') || '').replace(/\D/g, '');
+    if (!kp) return;
+    if (!mpToken()) {
+      staffOpenLoginForBell();
+      return;
+    }
+    var active = _staffNotifyOn.has(kp) || btn.classList.contains('active');
+    var date = String(btn.getAttribute('data-date') || '');
+    var oldHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '…';
+    var req = {
+      method: active ? 'DELETE' : 'POST',
+      headers: mpAuthHeaders(),
+    };
+    if (!active) req.body = JSON.stringify({ premiere_date: date || undefined });
+    fetch(API_BASE + '/api/site/premieres/' + encodeURIComponent(kp) + '/notify', req)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.success) {
+          staffToast((data && (data.message || data.error)) || 'Не удалось изменить напоминание', { type: 'error' });
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+          return;
+        }
+        if (active) _staffNotifyOn.delete(kp);
+        else _staffNotifyOn.add(kp);
+        var on = _staffNotifyOn.has(kp);
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-label', on ? 'Отключить напоминание' : 'Напомнить о выходе');
+        btn.setAttribute('title', on ? 'Отключить напоминание' : 'Напомнить о выходе');
+        btn.innerHTML = staffBellSvg();
+        btn.disabled = false;
+        staffToast(on ? 'Напоминание включено' : 'Напоминание отключено');
+      })
+      .catch(function () {
+        staffToast('Ошибка сети', { type: 'error' });
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      });
+  }
+
+  function bindStaffBellClicks(root) {
+    if (!root || root._staffBellBound) return;
+    root._staffBellBound = true;
+    root.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('[data-bell-kp]') : null;
+      if (!btn || !root.contains(btn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handleStaffBellClick(btn);
+    }, true);
+  }
+
   function countStaffFilmsWithState(state) {
     var total = 0;
     ((_staffLastData && _staffLastData.films_by_role) || []).forEach(function (block) {
@@ -1898,14 +2096,28 @@
       var kp = String(f.kp_id || '').replace(/\D/g, '');
       var posterUrl = cleanStaffPoster(f.poster || f.poster_url) || MP_POSTER_PLACEHOLDER;
       var poster = staffFilmPosterHtml(f.poster || f.poster_url, kp);
-      var rating = f.rating != null && !isNaN(Number(f.rating))
-        ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
+      var ratingNum = staffFilmDisplayRating(f);
+      var ratingTxt = staffFormatRating(ratingNum);
+      var top = ratingTxt !== '' && staffIsTopRatedFilm(f, roleKey);
+      var rating = ratingTxt !== ''
+        ? ('<span class="staff-film-rating' + (top ? ' staff-film-rating--top' : '') + '">' +
+          (top ? staffRatingStarSvg() : '') + escapeHtml(ratingTxt) + '</span>')
         : '';
       var title = String(f.title || '—');
       var selected = !!(kp && _staffPickSelected.has(kp));
       var check = _staffPickOn
         ? ('<span class="staff-film-check' + (selected ? ' is-on' : '') + '" aria-hidden="true">' +
           (selected ? '✓' : '') + '</span>')
+        : '';
+      var upcoming = staffIsUpcomingFilm(f);
+      var bellOn = !!(kp && _staffNotifyOn.has(kp));
+      var bell = (upcoming && kp)
+        ? ('<button type="button" class="staff-film-bell premiere-poster-bell--overlay' +
+          (bellOn ? ' active' : '') + '" data-bell-kp="' + escapeHtml(kp) + '"' +
+          (f.premiere_date ? (' data-date="' + escapeHtml(String(f.premiere_date)) + '"') : '') +
+          ' aria-label="' + (bellOn ? 'Отключить напоминание' : 'Напомнить о выходе') + '"' +
+          ' title="' + (bellOn ? 'Отключить напоминание' : 'Напомнить о выходе') + '">' +
+          staffBellSvg() + '</button>')
         : '';
       return (
         '<a class="staff-film-card' + (selected ? ' is-selected' : '') + '" href="' + escapeHtml(href) + '"' +
@@ -1914,7 +2126,7 @@
           ' data-title="' + escapeHtml(title) + '"' +
           (title && /[а-яА-ЯёЁ]/.test(title) ? (' data-film-title-ru="' + escapeHtml(title) + '"') : '') +
           '>' +
-          '<div class="staff-film-media">' + poster + rating + check + '</div>' +
+          '<div class="staff-film-media">' + poster + rating + check + bell + '</div>' +
           '<div class="staff-film-title">' + escapeHtml(title) + '</div>' +
           (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
         '</a>'
@@ -2217,6 +2429,7 @@
   function paintStaffRoles() {
     var root = staffContentRoot();
     if (!root || !_staffLastData) return;
+    recomputeStaffTopRatingThreshold();
     var rolesRoot = root.querySelector('#staff-roles-root');
     if (rolesRoot) rolesRoot.innerHTML = rolesHtml(_staffLastData.films_by_role || []);
     var awardsKeep = ensureStaffAwardsRoot();
@@ -2254,6 +2467,7 @@
     if (_staffPersonId) bindStaffImportButtons(root, _staffPersonId);
     bindStaffPickBanner(root);
     bindStaffPickCardClicks(root);
+    bindStaffBellClicks(root);
     refreshStaffPickDone();
   }
 
@@ -2794,6 +3008,7 @@
       bindStaffDeskPaneTabs(article);
       bindStaffPickBanner(article);
       bindStaffPickCardClicks(root);
+      bindStaffBellClicks(root);
       bindStaffFilters(root);
       bindStaffRoleExpandButtons(root);
       bindStaffImportButtons(root, personId);
