@@ -133,8 +133,28 @@
     return { onStaff: onStaff, onFilm: onFilm && !onStaff };
   }
 
-  function syncChromeSearchBtn(doc, compactOn, searchOpen) {
+  function ensureChromeSearchBtn(doc) {
     var btn = doc.getElementById('header-chrome-search-btn');
+    if (btn) return btn;
+    var buttons = doc.querySelector('#site-header .header-buttons');
+    if (!buttons) return null;
+    btn = doc.createElement('button');
+    btn.type = 'button';
+    btn.className = 'header-chrome-search-btn';
+    btn.id = 'header-chrome-search-btn';
+    btn.setAttribute('aria-label', 'Поиск');
+    btn.title = 'Поиск';
+    btn.innerHTML = '<svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>';
+    var login = buttons.querySelector('[data-action="login"]');
+    var userWrap = doc.getElementById('header-user-wrap');
+    if (login && login.parentNode === buttons) buttons.insertBefore(btn, login);
+    else if (userWrap && userWrap.parentNode === buttons) buttons.insertBefore(btn, userWrap);
+    else buttons.insertBefore(btn, buttons.firstChild);
+    return btn;
+  }
+
+  function syncChromeSearchBtn(doc, compactOn, searchOpen) {
+    var btn = ensureChromeSearchBtn(doc);
     if (!btn) return;
     btn.setAttribute('aria-label', searchOpen ? 'Закрыть поиск' : 'Поиск');
     btn.setAttribute('title', searchOpen ? 'Закрыть поиск' : 'Поиск');
@@ -142,7 +162,7 @@
   }
 
   function bindChromeSearchBtn(doc) {
-    var btn = doc.getElementById('header-chrome-search-btn');
+    var btn = ensureChromeSearchBtn(doc);
     if (!btn || btn.dataset.mpChromeSearchBound) return;
     btn.dataset.mpChromeSearchBound = '1';
     btn.addEventListener('click', function (e) {

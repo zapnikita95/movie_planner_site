@@ -30,6 +30,7 @@ assert(decide(100, 20, { mobile: false }) === 'show', 'desktop → show');
 
 assert(src.includes('mp-header-chrome-search'), 'chrome search body class');
 assert(src.includes('header-chrome-search-btn'), 'chrome search button bind');
+assert(src.includes('ensureChromeSearchBtn'), 'ensure chrome btn if HTML stale');
 assert(src.includes('CHROME_SEARCH_CLASS'), 'exports chrome class constant');
 assert(sandbox.MpHeaderSearchScroll.CHROME_SEARCH_CLASS === 'mp-header-chrome-search', 'chrome class value');
 
