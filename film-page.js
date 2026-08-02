@@ -3501,13 +3501,16 @@
         }
         if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
+        var roleRaw = String(entry.character || entry.role || '').trim();
+        if (roleRaw.length > 72) roleRaw = roleRaw.slice(0, 69).replace(/\s+\S*$/, '') + '…';
+        var roleAttr = roleRaw ? (' data-staff-character="' + roleRaw.replace(/"/g, '&quot;') + '"') : '';
         var kpAttr = '';
         var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
         if (kpOnly) kpAttr = ' data-staff-kp="' + kpOnly + '"';
         var tmdbAttr = '';
         var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
         if (tmdbOnly && !kpOnly) tmdbAttr = ' data-staff-tmdb="' + tmdbOnly + '"';
-        return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
+        return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + roleAttr + '>' + nm + '</a>';
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
@@ -3544,8 +3547,12 @@
           hoverEl = document.createElement('div');
           hoverEl.id = 'staff-hover-preview';
           hoverEl.className = 'staff-hover-preview hidden';
-          hoverEl.innerHTML = '<img alt="" class="staff-hover-photo"><div class="staff-hover-name"></div>';
+          hoverEl.innerHTML = '<img alt="" class="staff-hover-photo"><div class="staff-hover-name"></div><div class="staff-hover-role"></div>';
           document.body.appendChild(hoverEl);
+        } else if (!hoverEl.querySelector('.staff-hover-role')) {
+          var roleSlot = document.createElement('div');
+          roleSlot.className = 'staff-hover-role';
+          hoverEl.appendChild(roleSlot);
         }
         var hoverTimer = null;
         var activeLink = null;
@@ -3579,15 +3586,21 @@
           link.addEventListener('mouseenter', function (e) {
             if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
             var nm = link.getAttribute('data-staff-name') || link.textContent || '';
+            var role = (link.getAttribute('data-staff-character') || '').trim();
             clearTimeout(hoverTimer);
             hoverTimer = setTimeout(function () {
               activeLink = link;
               hoverEl.querySelector('.staff-hover-name').textContent = nm;
+              var roleEl = hoverEl.querySelector('.staff-hover-role');
+              if (roleEl) {
+                roleEl.textContent = role || '';
+                roleEl.style.display = role ? 'block' : 'none';
+              }
               var img = hoverEl.querySelector('.staff-hover-photo');
               img.removeAttribute('src');
               hoverEl.classList.remove('hidden');
               hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
-              hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
+              hoverEl.style.top = Math.min(window.innerHeight - 140, e.clientY + 14) + 'px';
               var custom = (link.getAttribute('data-staff-photo') || '').trim();
               img.onerror = function () {
                 if (global.mpPersonOnError) global.mpPersonOnError(img);
