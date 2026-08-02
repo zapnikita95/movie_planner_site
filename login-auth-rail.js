@@ -50,8 +50,10 @@
 
   function kpOf(item) {
     if (!item) return '';
-    var v = item.kp_id || item.kinopoiskId || item.id || item.kpId;
-    return v != null ? String(v) : '';
+    // staff_pick payload uses `kp`; public APIs use kp_id / id
+    var v = item.kp_id || item.kp || item.kinopoiskId || item.id || item.kpId;
+    if (v == null || v === '') return '';
+    return String(v).replace(/\D/g, '') || String(v);
   }
 
   function normalizeItem(raw, opts) {
@@ -67,6 +69,7 @@
       title: titleOf(raw),
       poster: poster,
       current: !!(opts && opts.current),
+      selected: !!(opts && (opts.selected || opts.current)),
     };
   }
 
@@ -117,7 +120,7 @@
     syncDots(track, dotsEl);
   }
 
-  function renderRail(items, caption) {
+  function renderRail(items, caption, mode) {
     var rail = ensureRailDom();
     if (!rail) return;
     var track = document.getElementById('login-film-rail-track') || rail.querySelector('.login-film-rail__track');
@@ -129,6 +132,7 @@
     track.innerHTML = '';
     dots.innerHTML = '';
     track._mpRailDotsBound = false;
+    rail.classList.toggle('login-film-rail--pick', mode === 'pick');
 
     if (!list.length) {
       rail.hidden = true;
@@ -138,7 +142,9 @@
     if (cap) cap.textContent = caption || '';
     list.forEach(function (it) {
       var card = document.createElement('div');
-      card.className = 'login-film-rail__card' + (it.current ? ' is-current' : '');
+      var hi = it.current || it.selected || mode === 'pick';
+      card.className = 'login-film-rail__card' + (hi ? ' is-current' : '');
+      if (it.title) card.title = it.title;
       var img = document.createElement('img');
       img.src = it.poster;
       img.alt = it.title || '';
@@ -220,10 +226,10 @@
 
   function loadFromChips(chips) {
     var items = (Array.isArray(chips) ? chips : [])
-      .map(function (c) { return normalizeItem(c); })
+      .map(function (c) { return normalizeItem(c, { selected: true }); })
       .filter(Boolean)
       .slice(0, 12);
-    return Promise.resolve({ items: items, caption: 'Выбранные фильмы' });
+    return Promise.resolve({ items: items, caption: 'Ваш выбор', mode: 'pick' });
   }
 
   function loadAuthFilmRail(opts) {
@@ -232,7 +238,8 @@
     ensureRailDom();
 
     var loader;
-    if (opts.chips && opts.chips.length) {
+    var isPick = !!(opts.chips && opts.chips.length);
+    if (isPick) {
       loader = loadFromChips(opts.chips);
     } else {
       var filmKp = filmKpFromPath();
@@ -244,16 +251,14 @@
 
     return loader
       .catch(function () {
+        if (isPick) return { items: [], caption: '', mode: 'pick' };
         return loadBuzzContext().catch(function () {
           return { items: [], caption: '' };
         });
       })
       .then(function (pack) {
         if (token !== railLoadToken) return;
-        renderRail(pack.items || [], pack.caption || '');
-        if ((!pack.items || !pack.items.length) && !(opts.chips && opts.chips.length)) {
-          // last resort buzz already tried; leave hidden
-        }
+        renderRail(pack.items || [], pack.caption || '', pack.mode || (isPick ? 'pick' : ''));
       });
   }
 

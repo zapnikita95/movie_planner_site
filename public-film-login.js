@@ -427,7 +427,7 @@
     el.textContent = msg;
   }
 
-  function showLoginModal() {
+  function showLoginModal(railOpts) {
     var modal = mountLoginModalPortal();
     if (!modal) return;
     try {
@@ -453,7 +453,10 @@
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     bindCloseHandlers();
-    refreshAuthFilmRail(null);
+    // open() may pass chips (staff_pick) — don't overwrite with context rail
+    if (!(railOpts && railOpts.skipRailLoad)) {
+      refreshAuthFilmRail((railOpts && railOpts.chips) || null);
+    }
   }
 
   function hideLoginModal() {
@@ -929,8 +932,9 @@
     if (opts.cta) setLoginCtaMessage(opts.cta);
     else setLoginCtaMessage(action || '');
     setLoginTab(tabName === 'register' ? 'register' : 'login');
-    showLoginModal();
-    refreshAuthFilmRail(opts.chips || null);
+    var chips = opts.chips || null;
+    showLoginModal({ skipRailLoad: true });
+    refreshAuthFilmRail(chips);
     schedulePfBotPrefetch();
   }
 

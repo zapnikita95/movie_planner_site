@@ -22239,6 +22239,20 @@ main.film-page .hero-content > h1 {
   border-color: rgba(255, 90, 165, 0.85);
   box-shadow: 0 0 0 2px rgba(255, 90, 165, 0.25);
 }
+/* Staff pick → register: selected films as a richer carousel */
+.login-film-rail--pick .login-film-rail__card {
+  width: 76px;
+}
+@media (min-width: 420px) {
+  .login-film-rail--pick .login-film-rail__card { width: 84px; }
+}
+.login-film-rail--pick .login-film-rail__card img {
+  border-color: rgba(255, 90, 165, 0.7);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(192, 132, 252, 0.35);
+}
+.login-film-rail--pick .login-film-rail__caption {
+  color: #e9d5ff;
+}
 .login-film-rail__dots {
   display: flex;
   justify-content: center;
