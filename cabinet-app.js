@@ -6608,8 +6608,12 @@
       hoverEl = document.createElement('div');
       hoverEl.id = 'staff-hover-preview';
       hoverEl.className = 'staff-hover-preview hidden';
-      hoverEl.innerHTML = '<img alt="" class="staff-hover-photo"><div class="staff-hover-name"></div>';
+      hoverEl.innerHTML = '<img alt="" class="staff-hover-photo"><div class="staff-hover-name"></div><div class="staff-hover-role"></div>';
       document.body.appendChild(hoverEl);
+    } else if (!hoverEl.querySelector('.staff-hover-role')) {
+      const roleSlot = document.createElement('div');
+      roleSlot.className = 'staff-hover-role';
+      hoverEl.appendChild(roleSlot);
     }
     let hoverTimer = null;
     let activeLink = null;
@@ -6681,17 +6685,22 @@
       });
       link.addEventListener('mouseenter', function (e) {
         if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
-        const kp = link.getAttribute('data-staff-kp');
         const nm = link.getAttribute('data-staff-name') || link.textContent || '';
+        const role = (link.getAttribute('data-staff-character') || '').trim();
         clearTimeout(hoverTimer);
         hoverTimer = setTimeout(function () {
           activeLink = link;
           hoverEl.querySelector('.staff-hover-name').textContent = nm;
+          const roleEl = hoverEl.querySelector('.staff-hover-role');
+          if (roleEl) {
+            roleEl.textContent = role || '';
+            roleEl.style.display = role ? 'block' : 'none';
+          }
           const img = hoverEl.querySelector('.staff-hover-photo');
           img.removeAttribute('src');
           hoverEl.classList.remove('hidden');
           hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
-          hoverEl.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
+          hoverEl.style.top = Math.min(window.innerHeight - 140, e.clientY + 14) + 'px';
           showPreviewPhoto(link, img);
         }, 180);
       });
@@ -6715,7 +6724,10 @@
     const kp = String(kpRaw).replace(/\D/g, '');
     if (!kp) return '<span class="staff-cast-plain">' + nm + '</span>';
     const photo = entry.photo ? (' data-staff-photo="' + escapeHtml(String(entry.photo)) + '"') : '';
-    return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '"' + photo + '>' + nm + '</a>';
+    let roleRaw = String(entry.character || entry.role || '').trim();
+    if (roleRaw.length > 72) roleRaw = roleRaw.slice(0, 69).replace(/\s+\S*$/, '') + '…';
+    const role = roleRaw ? (' data-staff-character="' + escapeHtml(roleRaw) + '"') : '';
+    return '<a href="/s/' + encodeURIComponent(kp) + '" class="staff-cast-link" data-staff-kp="' + escapeHtml(kp) + '" data-staff-name="' + nm + '"' + photo + role + '>' + nm + '</a>';
   }
 
   function buildFilmCastSkeletonHtml() {
