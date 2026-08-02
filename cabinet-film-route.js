@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260802staffPrefetch1';
+  var BUILD = '20260802tmdbStaffEn';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -64,6 +64,8 @@
     var path = global.location.pathname || '';
     var m = path.match(/^\/s\/fest-([a-z0-9\-]+)\/?$/i);
     if (m) return 'fest-' + String(m[1] || '');
+    m = path.match(/^\/s\/tmdb-(\d+)\/?$/i);
+    if (m) return 'tmdb-' + String(m[1] || '');
     m = path.match(/^\/s\/(\d+)\/?$/);
     return m ? m[1] : '';
   }

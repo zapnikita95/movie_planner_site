@@ -3495,12 +3495,19 @@
             if (kp) path = '/s/' + kp;
           }
         }
+        if (!path) {
+          var tid = String(entry.tmdb_person_id || entry.person_id || '').replace(/\D/g, '');
+          if (tid) path = '/s/tmdb-' + tid;
+        }
         if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
         var kpAttr = '';
         var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
         if (kpOnly) kpAttr = ' data-staff-kp="' + kpOnly + '"';
-        return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + ' data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
+        var tmdbAttr = '';
+        var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
+        if (tmdbOnly && !kpOnly) tmdbAttr = ' data-staff-tmdb="' + tmdbOnly + '"';
+        return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + '>' + nm + '</a>';
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
@@ -3558,8 +3565,8 @@
           link.addEventListener('click', function (e) {
             hidePreview();
             var href = String(link.getAttribute('href') || '');
-            /* Fest person pages are full navigations — do not hijack into KP-only SPA. */
-            if (/\/s\/fest-/i.test(href)) return;
+            /* Fest / TMDB person pages are full navigations — do not hijack into KP-only SPA. */
+            if (/\/s\/(?:fest-|tmdb-)/i.test(href)) return;
             var kp = link.getAttribute('data-staff-kp');
             if (!kp) return;
             if (global.MpCabinetNav && typeof global.MpCabinetNav.openStaffPage === 'function') {
@@ -3587,6 +3594,7 @@
                 else { img.src = PERSON_PH; img.onerror = null; }
               };
               var kpHover = (link.getAttribute('data-staff-kp') || '').replace(/\D/g, '');
+              var tmdbHover = (link.getAttribute('data-staff-tmdb') || '').replace(/\D/g, '');
               if (custom && !/no-poster/i.test(custom)) {
                 img.src = custom;
               } else if (kpHover) {
@@ -3594,6 +3602,15 @@
                   .then(function (r) { return r.json(); })
                   .then(function (payload) {
                     var ph = payload && payload.person && payload.person.photo ? String(payload.person.photo) : '';
+                    if (activeLink === link) img.src = (ph && !/no-poster/i.test(ph)) ? ph : PERSON_PH;
+                  })
+                  .catch(function () { if (activeLink === link) img.src = PERSON_PH; });
+              } else if (tmdbHover) {
+                fetch(API_BASE + '/api/public/person/tmdb/' + encodeURIComponent(tmdbHover) + '/head', { credentials: 'omit' })
+                  .then(function (r) { return r.json(); })
+                  .then(function (payload) {
+                    var ph = payload && payload.person && (payload.person.photo || payload.person.photo_url)
+                      ? String(payload.person.photo || payload.person.photo_url) : '';
                     if (activeLink === link) img.src = (ph && !/no-poster/i.test(ph)) ? ph : PERSON_PH;
                   })
                   .catch(function () { if (activeLink === link) img.src = PERSON_PH; });
