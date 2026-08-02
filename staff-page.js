@@ -11,13 +11,13 @@
   var PERSON_FILMS_PREVIEW_OTHER = 14;
   var PERSON_FILM_BATCH_PRIMARY = 21;
   var PERSON_FILM_BATCH_OTHER = 14;
-  /** Full-role fetch when sorting/filtering so «Развернуть» does not reshuffle the top. */
-  var PERSON_FILM_BATCH_FULL = 120;
   var MP_POSTER_PLACEHOLDER = '/images/film-poster-placeholder.png';
   var MP_PERSON_PLACEHOLDER = '/images/person-avatar-placeholder.png';
   var _staffLastData = null;
   var _staffExpandedRoles = {};
   var _staffRoleHasMore = {};
+  /** Bumps on sort/filter reload — cancels in-flight remainder prefetch. */
+  var _staffFilmsPrefetchGen = 0;
   var _staffPrimaryRoleKey = '';
   var _staffFilterState = {
     year: '', yearFrom: '', yearTo: '', genre: '', ratingMin: '',
@@ -357,14 +357,16 @@
       staffFilterActive();
   }
 
-  function staffNeedsFullRoleLoad() {
-    return staffServerListQueryActive() ||
-      !!_staffFilterState.mainRolesOnly ||
-      !!_staffFilterState.friendsRatedOnly;
+  /** Prefetch remainder after first page (sort/filter or client-only filters). */
+  function staffNeedsFullRolePrefetch() {
+    return !!_staffFilterState.mainRolesOnly ||
+      !!_staffFilterState.friendsRatedOnly ||
+      staffServerListQueryActive();
   }
 
   function personFilmBatchLimit(roleKey) {
-    if (staffNeedsFullRoleLoad()) return PERSON_FILM_BATCH_FULL;
+    // Always page small batches. Server sorts/filters the full role; remainder
+    // arrives via quiet background prefetch (or on «Развернуть»).
     var rk = String(roleKey || '').toUpperCase();
     var primary = _staffPrimaryRoleKey || resolvePrimaryRoleKey(
       (_staffLastData && _staffLastData.films_by_role) || []
@@ -417,6 +419,7 @@
       paintStaffRoles();
       return Promise.resolve();
     }
+    _staffFilmsPrefetchGen += 1;
     (_staffLastData.films_by_role || []).forEach(function (b) {
       b.films = [];
     });
@@ -3208,7 +3211,8 @@
     else block.films = incoming.slice();
   }
 
-  function loadStaffRoleFilms(personId, roleKey, offset, limitOverride) {
+  function loadStaffRoleFilms(personId, roleKey, offset, limitOverride, opts) {
+    var quiet = !!(opts && opts.quiet);
     var off = Math.max(0, parseInt(offset, 10) || 0);
     var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
     if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
@@ -3233,20 +3237,61 @@
           block.list_total = batch.total;
           if (!staffServerListQueryActive()) block.total = batch.total;
         }
-        paintStaffRoles();
+        // Quiet prefetch: merge into memory only. Paint when expanded (visible)
+        // or on the first page (off === 0).
+        if (!quiet || off === 0 || _staffExpandedRoles[roleKey]) {
+          paintStaffRoles();
+        }
         return batch;
       });
   }
 
-  function loadStaffRoleFilmsBackground(personId, roleKey, offset) {
-    return loadStaffRoleFilms(personId, roleKey, offset).then(function (batch) {
-      if (!batch || !batch.has_more || !_staffExpandedRoles[roleKey]) return;
-      var block = (_staffLastData.films_by_role || []).find(function (b) {
-        return String(b.role_key || '') === String(roleKey || '');
-      });
-      var nextOff = block && block.films ? block.films.length : offset;
-      return loadStaffRoleFilmsBackground(personId, roleKey, nextOff);
+  /**
+   * After first page paints: pull remaining pages in the background so
+   * «Развернуть» is instant. Aborts when prefetch gen changes (new sort/filter).
+   */
+  function prefetchStaffRoleFilmsRemainder(personId, roleKey, gen) {
+    if (gen != null && gen !== _staffFilmsPrefetchGen) return Promise.resolve();
+    if (!_staffRoleHasMore[roleKey]) return Promise.resolve();
+    var block = (_staffLastData.films_by_role || []).find(function (b) {
+      return String(b.role_key || '') === String(roleKey || '');
     });
+    var nextOff = block && block.films ? block.films.length : 0;
+    return loadStaffRoleFilms(personId, roleKey, nextOff, null, { quiet: true }).then(function (batch) {
+      if (gen != null && gen !== _staffFilmsPrefetchGen) return;
+      if (!batch || !batch.has_more) return;
+      return prefetchStaffRoleFilmsRemainder(personId, roleKey, gen);
+    });
+  }
+
+  function scheduleStaffRoleRemainderPrefetch(personId, roleKey) {
+    if (!staffNeedsFullRolePrefetch() && !_staffExpandedRoles[roleKey]) return;
+    if (!_staffRoleHasMore[roleKey]) return;
+    var gen = _staffFilmsPrefetchGen;
+    var kick = function () {
+      prefetchStaffRoleFilmsRemainder(personId, roleKey, gen).catch(function () {});
+    };
+    if (typeof global.requestIdleCallback === 'function') {
+      global.requestIdleCallback(kick, { timeout: 1200 });
+    } else {
+      global.setTimeout(kick, 120);
+    }
+  }
+
+  function loadStaffRoleFilmsBackground(personId, roleKey, offset) {
+    // Expand path: keep fetching while expanded (or until role complete).
+    var gen = _staffFilmsPrefetchGen;
+    return loadStaffRoleFilms(personId, roleKey, offset, null, { quiet: !_staffExpandedRoles[roleKey] })
+      .then(function (batch) {
+        if (gen !== _staffFilmsPrefetchGen) return;
+        if (!batch || !batch.has_more) return;
+        if (!_staffExpandedRoles[roleKey] && !staffNeedsFullRolePrefetch()) return;
+        var block = (_staffLastData.films_by_role || []).find(function (b) {
+          return String(b.role_key || '') === String(roleKey || '');
+        });
+        var nextOff = block && block.films ? block.films.length : offset;
+        return loadStaffRoleFilmsBackground(personId, roleKey, nextOff);
+      });
   }
 
   function loadStaffRolesProgressive(personId, rolesMeta) {
@@ -3260,16 +3305,27 @@
     var soon = pending.slice(1, 2);
     var deferred = pending.slice(2);
     var primaryLim = PERSON_FILM_BATCH_PRIMARY;
+    var gen = _staffFilmsPrefetchGen;
     return loadStaffRoleFilms(personId, primary.role_key, 0, primaryLim).then(function () {
+      // Visible grid first (~21), then quietly warm the rest for sort/filter.
+      scheduleStaffRoleRemainderPrefetch(personId, primary.role_key);
       return Promise.all(soon.map(function (rm) {
-        return loadStaffRoleFilms(personId, rm.role_key, 0, PERSON_FILM_BATCH_OTHER).catch(function () {});
+        return loadStaffRoleFilms(personId, rm.role_key, 0, PERSON_FILM_BATCH_OTHER)
+          .then(function () {
+            if (staffNeedsFullRolePrefetch()) {
+              scheduleStaffRoleRemainderPrefetch(personId, rm.role_key);
+            }
+          })
+          .catch(function () {});
       }));
     }).then(function () {
       if (!deferred.length) return;
       var kick = function () {
+        if (gen !== _staffFilmsPrefetchGen) return Promise.resolve();
         var idx = 0;
         function loadNextPair() {
           if (idx >= deferred.length) return Promise.resolve();
+          if (gen !== _staffFilmsPrefetchGen) return Promise.resolve();
           var pair = deferred.slice(idx, idx + 2);
           idx += 2;
           return Promise.all(pair.map(function (rm) {
