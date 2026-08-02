@@ -22191,6 +22191,99 @@ main.film-page .hero-content > h1 {
   flex: 0 0 auto;
   background: #1a1a22;
 }
+/* Auth modal: always-on film rail */
+.login-film-rail {
+  margin: 0 0 14px;
+  width: 100%;
+}
+.login-film-rail[hidden] {
+  display: none !important;
+}
+.login-film-rail__caption {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #b4b4be);
+}
+.login-film-rail__track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.login-film-rail__track::-webkit-scrollbar { display: none; }
+.login-film-rail__card {
+  flex: 0 0 auto;
+  width: 64px;
+  scroll-snap-align: start;
+}
+@media (min-width: 420px) {
+  .login-film-rail__card { width: 72px; }
+}
+.login-film-rail__card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  background: #1a1a22;
+}
+.login-film-rail__card.is-current img {
+  border-color: rgba(255, 90, 165, 0.85);
+  box-shadow: 0 0 0 2px rgba(255, 90, 165, 0.25);
+}
+.login-film-rail__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+  min-height: 6px;
+}
+.login-film-rail__dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+}
+.login-film-rail__dots span.on {
+  width: 16px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #ff5aa5, #a855f7);
+}
+/* Privacy above Yandex on register — one line */
+.login-register-privacy--top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 6px;
+  white-space: nowrap;
+}
+.login-register-privacy--top > span {
+  white-space: nowrap;
+}
+.login-register-privacy--top input {
+  margin: 0;
+  flex-shrink: 0;
+}
+#login-pane-register > #login-register-status {
+  margin: 0 0 10px;
+}
+#login-pane-register > #login-register-status:empty {
+  display: none;
+}
+.login-email-send-btn.is-locked {
+  opacity: 0.45;
+  filter: grayscale(0.15);
+}
 /* Kill solid pink plan fill when glass */
 .film-toolbar-plan.glass-cta,
 .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta,

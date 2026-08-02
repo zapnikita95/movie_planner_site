@@ -719,9 +719,19 @@
       const tab = preferredTab === 'register' || preferredTab === 'login'
         ? preferredTab
         : loginTabFromQuery();
+      try {
+        if (window.MpLoginAuthRail && typeof window.MpLoginAuthRail.upgrade === 'function') {
+          window.MpLoginAuthRail.upgrade();
+        }
+      } catch (_railUp) {}
       if (window.MpPublicFilmLogin && typeof window.MpPublicFilmLogin.show === 'function') {
         window.MpPublicFilmLogin.show();
         setLoginAuthTab(tab);
+        try {
+          if (window.MpLoginAuthRail && typeof window.MpLoginAuthRail.load === 'function') {
+            window.MpLoginAuthRail.load({});
+          }
+        } catch (_railLoad) {}
         scheduleSiteBotAuthPrefetch();
         return;
       }
@@ -8744,6 +8754,8 @@
     function syncRegOauthButtons() {
       const ok = regPrivacy && regPrivacy.checked;
       if (oauthY) oauthY.classList.toggle('is-locked', !ok);
+      const regCodeBtn = document.getElementById('login-register-request-btn');
+      if (regCodeBtn) regCodeBtn.classList.toggle('is-locked', !ok);
     }
     if (regPrivacy) regPrivacy.addEventListener('change', () => {
       syncRegOauthButtons();
@@ -8891,11 +8903,7 @@
           setRegStatus('Укажите корректный email', 'error');
           return;
         }
-        const name = registrationName();
-        if (!name) {
-          setRegStatus('Укажите имя', 'error');
-          return;
-        }
+        // Имя необязательно — уже зарегистрированный может войти с вкладки регистрации.
         if (!regPrivacy || !regPrivacy.checked) {
           nudgeLoginPrivacy('reg');
           return;

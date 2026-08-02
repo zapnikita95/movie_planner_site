@@ -4910,10 +4910,7 @@
           return;
         }
         const name = registrationName();
-        if (!name) {
-          setRegStatus('Укажите имя', 'error');
-          return;
-        }
+        // Имя необязательно — уже зарегистрированный может войти с вкладки регистрации.
         if (!regPrivacy || !regPrivacy.checked) {
           nudgeLoginPrivacy('reg');
           return;
