@@ -5693,7 +5693,7 @@
     const m = p.match(_filmPathRe);
     return m ? parseInt(m[1], 10) : null;
   }
-  const _staffPathRe = /^\/s\/(fest-[a-z0-9\-]+|\d+)(?:\/?)?$/i;
+  const _staffPathRe = /^\/s\/(fest-[a-z0-9\-]+|tmdb-\d+|\d+)(?:\/?)?$/i;
   let _staffPageKpId = null;
   let _staffPageRepaint = null;
   let _staffPageFilterState = null;

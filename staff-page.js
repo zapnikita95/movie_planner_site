@@ -274,9 +274,32 @@
     return /^fest-[a-z0-9\-]+$/i.test(String(personId || ''));
   }
 
+  function isTmdbPersonId(personId) {
+    return /^tmdb-\d+$/i.test(String(personId || ''));
+  }
+
+  function isCatalogPersonId(personId) {
+    return isFestPersonId(personId) || isTmdbPersonId(personId);
+  }
+
   function festPersonSlug(personId) {
     var s = String(personId || '');
     return s.indexOf('fest-') === 0 ? s.slice(5) : '';
+  }
+
+  function tmdbPersonNumericId(personId) {
+    var m = String(personId || '').match(/^tmdb-(\d+)$/i);
+    return m ? m[1] : '';
+  }
+
+  function staffPublicApiBase(personId) {
+    if (isFestPersonId(personId)) {
+      return API_BASE + '/api/public/person/fest/' + encodeURIComponent(festPersonSlug(personId));
+    }
+    if (isTmdbPersonId(personId)) {
+      return API_BASE + '/api/public/person/tmdb/' + encodeURIComponent(tmdbPersonNumericId(personId));
+    }
+    return API_BASE + '/api/public/person/' + encodeURIComponent(personId);
   }
 
   function staffFilmHref(f) {
@@ -530,7 +553,7 @@
   var _staffFactsPrefetch = null;
 
   function prefetchStaffPersonFacts(personId) {
-    if (isFestPersonId(personId)) return Promise.resolve(null);
+    if (isCatalogPersonId(personId)) return Promise.resolve(null);
     var pid = String(personId || '');
     if (_staffFactsPrefetch && _staffFactsPrefetch.pid === pid) {
       return _staffFactsPrefetch.promise;
@@ -552,7 +575,7 @@
         : staffFactsItemsFromPayload(bootPayload);
       if (bootItems.length) renderStaffPersonFacts(bootItems);
     }
-    if (isFestPersonId(personId)) return Promise.resolve();
+    if (isCatalogPersonId(personId)) return Promise.resolve();
     return prefetchStaffPersonFacts(personId).then(function (d) {
       if (!d || !d.success) return;
       renderStaffPersonFacts(d);
@@ -1339,6 +1362,7 @@
   function prefetchStaffAwards() {
     var awardsRoot = ensureStaffAwardsRoot();
     if (!awardsRoot) return;
+    if (isCatalogPersonId(_staffPersonId || window.__MP_STAFF_PERSON_ID || '')) return;
     if (awardsRoot.getAttribute('data-loaded') === '1' || awardsRoot._awardsLoading) return;
     if (prefetchStaffAwards._scheduled) return;
     prefetchStaffAwards._scheduled = true;
@@ -1359,7 +1383,7 @@
     if (root._awardsLoading) return;
     opts = opts || {};
     var pid = root.getAttribute('data-person-id') || String(_staffPersonId || '') || (window.__MP_STAFF_PERSON_ID || '');
-    if (!pid) {
+    if (!pid || isCatalogPersonId(pid)) {
       if (!opts.silent || staffAwardsRootIsVisible(root)) {
         root.innerHTML = '<p class="staff-awards-empty">Номинации пока не загружены</p>';
       }
@@ -3011,7 +3035,7 @@
         url: pageUrl,
         image: photo || undefined,
       };
-      if (!isFestPersonId(personId)) {
+      if (!isCatalogPersonId(personId)) {
         payload.sameAs = 'https://www.kinopoisk.ru/name/' + personId + '/';
       }
       if (person && person.birth_year) payload.birthDate = String(person.birth_year) + '-01-01';
@@ -3216,9 +3240,7 @@
     var off = Math.max(0, parseInt(offset, 10) || 0);
     var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
     if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
-    var base = isFestPersonId(personId)
-      ? (API_BASE + '/api/public/person/fest/' + encodeURIComponent(festPersonSlug(personId)))
-      : (API_BASE + '/api/public/person/' + encodeURIComponent(personId));
+    var base = staffPublicApiBase(personId);
     var url = base + '/films?' + staffFilmsQueryParams(roleKey, off, lim);
     return fetch(url, { method: 'GET', mode: 'cors' })
       .then(function (r) {
@@ -3343,9 +3365,8 @@
   }
 
   function loadStaffProgressive(personId) {
-    if (isFestPersonId(personId)) {
-      var slug = festPersonSlug(personId);
-      return fetch(API_BASE + '/api/public/person/fest/' + encodeURIComponent(slug), { method: 'GET', mode: 'cors' })
+    if (isFestPersonId(personId) || isTmdbPersonId(personId)) {
+      return fetch(staffPublicApiBase(personId), { method: 'GET', mode: 'cors' })
         .then(function (r) {
           if (!r.ok) throw new Error('http_' + r.status);
           return r.json();
@@ -3355,7 +3376,7 @@
             try { global.location.replace(d.redirect); } catch (_e) {}
             return;
           }
-          if (!d || !d.success) throw new Error('fest_person');
+          if (!d || !d.success) throw new Error(isTmdbPersonId(personId) ? 'tmdb_person' : 'fest_person');
           renderStaffData(d, personId);
         });
     }
@@ -3421,7 +3442,7 @@
     var loadPromise = loadStaffProgressive(personId);
     return loadPromise
       .then(function () {
-        if (isFestPersonId(personId)) return;
+        if (isCatalogPersonId(personId)) return;
         fetch(API_BASE + '/api/public/staff/' + encodeURIComponent(personId), { method: 'GET', mode: 'cors' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (seo) { applyStaffSeoFromApi(seo); })
@@ -3447,7 +3468,7 @@
   function bootstrap(opts) {
     opts = opts || {};
     var raw = String(opts.personId || '');
-    var personId = isFestPersonId(raw) ? raw : raw.replace(/\D/g, '');
+    var personId = isCatalogPersonId(raw) ? raw : raw.replace(/\D/g, '');
     if (!personId) {
       markRouteReady();
       return;

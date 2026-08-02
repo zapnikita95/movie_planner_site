@@ -563,7 +563,7 @@
           var path = (location.pathname || '/').replace(/\/$/, '') || '/';
           /* KP / TMDB catalog / fest leads — all must paint film shell (hide landing). */
           var filmMatch = path.match(/^\/f\/(?:fest-[a-z0-9\-]+|(?:movie|tv)-\d+|\d+)$/i);
-          var staffMatch = path.match(/^\/s\/(?:fest-[a-z0-9\-]+|\d+)$/i);
+          var staffMatch = path.match(/^\/s\/(?:fest-[a-z0-9\-]+|tmdb-\d+|\d+)$/i);
           if (!filmMatch && !staffMatch) return;
           function hasRouteToken() {
             try {
@@ -2747,7 +2747,7 @@
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
         /* KP: /f/123 — TMDB: /f/movie-123 — fest lead: /f/fest-slug (must load film-page.js). */
         var isFilm = /^\/f\/(?:fest-[a-z0-9\-]+|(?:movie|tv)-\d+|\d+)$/i.test(path);
-        var isStaff = /^\/s\/(?:fest-[a-z0-9\-]+|\d+)$/i.test(path);
+        var isStaff = /^\/s\/(?:fest-[a-z0-9\-]+|tmdb-\d+|\d+)$/i.test(path);
         var isSearch = path === '/search';
         var isBuzz = path === '/buzz' || path === '/news';
         var isRoute = isFilm || isStaff;
@@ -2776,7 +2776,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260802staffPrefetch1';
+        var V = '20260802tmdbStaffEn';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
