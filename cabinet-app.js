@@ -17859,6 +17859,9 @@
       const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
       const inBase = it.already_in_base_film_id;
       const isPublicSearch = !getToken();
+      let rawTitle = String(it.title || '').trim();
+      // Never show bare kp_id as title (character search once showed «5502» for BTTF 2).
+      if (/^\d+$/.test(rawTitle) || (it.kp_id && rawTitle === String(it.kp_id))) rawTitle = '';
       const actionBtn = isPublicSearch
         ? `<a class="hs-result-btn hs-btn-open" href="${buildFilmShareUrl(it.kp_id)}" data-stop-hs-row="1">Открыть</a>`
         : inBase
@@ -17867,7 +17870,7 @@
       return `<div class="hs-result" role="option" tabindex="0" data-hs-row-kp="${escapeHtml(String(it.kp_id || ''))}">
         ${siteSearchPosterHtml(poster, 'hs-result-poster')}
         <div class="hs-result-info">
-          <div class="hs-result-title">${escapeHtml(it.title || '')}</div>
+          <div class="hs-result-title">${escapeHtml(rawTitle || 'Фильм')}</div>
           <div class="hs-result-meta"><span>${escapeHtml(typeLabel)}</span>${year ? '<span>·</span><span>' + escapeHtml(year) + '</span>' : ''}${inBase ? '<span>·</span><span class="hs-in-base">в базе</span>' : ''}</div>
         </div>
         ${actionBtn}
