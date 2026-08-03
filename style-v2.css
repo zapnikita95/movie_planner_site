@@ -5648,6 +5648,24 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   overflow: hidden;
 }
 
+/* Desktop film «Похожие»: size B (~128px). Mobile keeps base 92px. */
+@media (min-width: 861px) {
+  .similar-rail {
+    gap: 12px;
+  }
+  .similar-rail-card,
+  .film-page-similar-rail .similar-rail-card {
+    flex: 0 0 128px;
+    min-width: 128px;
+    max-width: 128px;
+    width: 128px;
+  }
+  .similar-rail-title {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+}
+
 .film-page-similar-section {
   max-width: 1180px;
   width: 100%;
@@ -24041,10 +24059,11 @@ body.staff-standalone-page .staff-awards-loading {
   body.staff-standalone-page #staff-roles-root.hidden {
     display: none !important;
   }
+  /* Desktop awards cards: size B (readable posters; filmography grid untouched) */
   body.staff-standalone-page .staff-awards-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 10px;
     align-items: stretch;
   }
   body.staff-standalone-page .staff-awards-item {
@@ -24052,6 +24071,31 @@ body.staff-standalone-page .staff-awards-loading {
   }
   body.staff-standalone-page .staff-awards-link {
     height: 100%;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  body.staff-standalone-page .staff-awards-poster-wrap {
+    width: 64px;
+    height: 96px;
+  }
+  body.staff-standalone-page .staff-awards-poster,
+  body.staff-standalone-page .staff-awards-poster--ph {
+    width: 64px;
+    height: 96px;
+    border-radius: 8px;
+  }
+  body.staff-standalone-page .staff-awards-film {
+    font-size: 15px;
+    line-height: 1.3;
+  }
+  body.staff-standalone-page .staff-awards-nom {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  body.staff-standalone-page .staff-awards-badge {
+    font-size: 12px;
+    padding: 5px 10px;
   }
   body.staff-standalone-page #staff-roles-root > .staff-role-block,
   body.staff-standalone-page .staff-role-block {
