@@ -2361,7 +2361,7 @@
       if (persons.length) {
         html += persons.slice(0, 1).map(function (p) {
           var photo = cleanPoster(p.photo) || '/images/person-avatar-placeholder.png';
-          var name = escapeText(p.name_ru || p.name_en || 'Персона');
+          var name = escapeText(p.display_name || p.name_ru || p.name_en || 'Персона');
           var prof = escapeText(String(p.professions || '').slice(0, 60));
           return '<a class="hs-result hs-result-person search-result" href="/s/' + encodeURIComponent(String(p.kp_person_id)) + '">'
             + '<img class="hs-result-poster hs-result-person-photo search-result-poster" src="' + photo.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
@@ -2374,9 +2374,12 @@
         var typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
         var year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
         var posterSafe = cleanPoster(it.poster).replace(/"/g, '&quot;');
+        // Never show bare kp_id as title (API bug showed «5502» for Back to the Future 2).
+        var rawTitle = String(it.title || '').trim();
+        if (/^\d+$/.test(rawTitle) || (it.kp_id && rawTitle === String(it.kp_id))) rawTitle = '';
         return '<a class="search-result" href="/f/' + encodeURIComponent(String(it.kp_id)) + '">' +
           (posterSafe ? '<img class="search-result-poster" src="' + posterSafe + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">' : '<img class="search-result-poster mp-poster-placeholder" src="/images/film-poster-placeholder.png" alt="" loading="lazy">') +
-          '<span><span class="search-result-title">' + escapeText(it.title) + '</span>' +
+          '<span><span class="search-result-title">' + escapeText(rawTitle || 'Фильм') + '</span>' +
           '<span class="search-result-meta"><span>' + escapeText(typeLabel) + '</span>' + (year ? '<span>·</span><span>' + escapeText(year) + '</span>' : '') + '</span></span></a>';
       }).join('');
       dd.innerHTML = html;
