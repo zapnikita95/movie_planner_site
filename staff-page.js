@@ -2042,10 +2042,9 @@
   }
 
   function staffDefaultPhotoUrl(personId) {
-    var kp = String(personId || '').replace(/\D/g, '');
-    if (!kp) return '';
-    // Prefer KP big actor art over tiny iphone360 when no TMDB
-    return 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+    // Never invent KP actor_iphone/{id}.jpg — missing photos redirect to gray «K».
+    // Real faces come from API/boot (KP mds / TMDB). Empty → branded / emoji hero.
+    return '';
   }
 
   function uniqueStaffPhotoCandidates(list) {
@@ -2068,11 +2067,10 @@
       bootPhoto = String(boot.photo_url || '').trim();
     }
     var apiPhoto = person && (person.photo || person.photo_url);
-    // HQ first: API/boot (upgraded), then KP fallback — never prefer tiny before original
+    // Only real API/boot photos — never synthesize KP actor CDN stubs.
     return uniqueStaffPhotoCandidates([
       apiPhoto,
       bootPhoto,
-      staffDefaultPhotoUrl(kp),
     ]);
   }
 
@@ -2103,13 +2101,16 @@
     var raw = String(img.getAttribute('data-mp-fallbacks') || '').trim();
     if (raw) {
       var parts = raw.split('|').map(function (s) { return String(s || '').trim(); }).filter(Boolean);
-      if (parts.length) {
+      while (parts.length) {
         var next = parts.shift();
+        if (!next || /no-poster|kinopoiskapiunofficial|person-avatar-placeholder/i.test(next)) continue;
+        if (/actor_iphone\/iphone360_\d+\.jpg/i.test(next) && !/get-kinopoisk-image|avatars\.mds/i.test(next)) continue;
         img.setAttribute('data-mp-fallbacks', parts.join('|'));
         img.removeAttribute('srcset');
         img.src = next;
         return;
       }
+      img.removeAttribute('data-mp-fallbacks');
     }
     img.onerror = null;
     img.dataset.mpPersonFailed = '1';
