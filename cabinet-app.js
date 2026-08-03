@@ -154,13 +154,18 @@
     var raw = String(img.getAttribute('data-mp-fallbacks') || '').trim();
     if (raw) {
       var parts = raw.split('|').map(function (s) { return String(s || '').trim(); }).filter(Boolean);
-      if (parts.length) {
+      // Skip KP gray-K / no-poster fallbacks — go straight to branded.
+      while (parts.length) {
         var next = parts.shift();
+        if (!next || /no-poster|kinopoiskapiunofficial|person-avatar-placeholder/i.test(next)) continue;
+        // Invented actor_iphone templates often 302→gray «K» without firing onerror.
+        if (/actor_iphone\/iphone360_\d+\.jpg/i.test(next) && !/get-kinopoisk-image|avatars\.mds/i.test(next)) continue;
         img.setAttribute('data-mp-fallbacks', parts.join('|'));
         img.removeAttribute('srcset');
         img.src = next;
         return;
       }
+      img.removeAttribute('data-mp-fallbacks');
     }
     img.onerror = null;
     img.dataset.mpPersonFailed = '1';
@@ -5984,6 +5989,17 @@
     return list;
   }
 
+  function isStaffPhotoUsable(url) {
+    const s = String(url || '').trim();
+    if (!s) return false;
+    // Branded MP / unofficial / no-poster / bare KP actor template = not a real face.
+    // Never invent actor_iphone/{id}.jpg — KP redirects missing photos to gray «K».
+    if (/person-avatar-placeholder|film-poster-placeholder|no-poster|kinopoiskapiunofficial/i.test(s)) {
+      return false;
+    }
+    return true;
+  }
+
   function resolveStaffHeroPhotoUrl(person, personId) {
     const kp = String(personId || (person && person.kp_person_id) || '').replace(/\D/g, '');
     const boot = readMpRouteBoot();
@@ -5992,10 +6008,9 @@
       ? String(boot.photo_url || '').trim()
       : '';
     const apiPhoto = String((person && (person.photo || person.photo_url)) || '').trim();
-    const bootClean = bootPhoto && !/person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(bootPhoto) ? bootPhoto : '';
-    const apiClean = apiPhoto && !/person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(apiPhoto) ? apiPhoto : '';
-    const def = kp ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg') : '';
-    return bootClean || apiClean || def || MP_PERSON_PLACEHOLDER;
+    const bootClean = isStaffPhotoUsable(bootPhoto) ? bootPhoto : '';
+    const apiClean = isStaffPhotoUsable(apiPhoto) ? apiPhoto : '';
+    return bootClean || apiClean || MP_PERSON_PLACEHOLDER;
   }
 
   function staffHeroPhotoImgHtml(person, personId) {
@@ -6006,11 +6021,11 @@
       ? String(boot.photo_url || '').trim()
       : '';
     const apiPhoto = String((person && (person.photo || person.photo_url)) || '').trim();
-    const def = kp ? ('https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg') : '';
     const cands = [];
-    [bootPhoto, def, apiPhoto].forEach(function (u) {
+    // Only real API/boot photos — never synthesize KP actor_iphone (gray «K» stubs).
+    [apiPhoto, bootPhoto].forEach(function (u) {
       const s = String(u || '').trim();
-      if (!s || /person-avatar-placeholder|no-poster|kinopoiskapiunofficial/i.test(s)) return;
+      if (!isStaffPhotoUsable(s)) return;
       if (cands.indexOf(s) >= 0) return;
       cands.push(s);
     });
@@ -6641,7 +6656,7 @@
         if (window.mpPersonOnError) window.mpPersonOnError(img);
         else { img.src = MP_PERSON_PLACEHOLDER; img.onerror = null; }
       };
-      if (custom && !/no-poster/i.test(custom)) {
+      if (custom && isStaffPhotoUsable(custom)) {
         img.src = custom;
         img.style.display = 'block';
         return;
@@ -6652,7 +6667,7 @@
           .then(function (r) { return r.json(); })
           .then(function (d) {
             var ph = d && d.person && d.person.photo ? String(d.person.photo) : '';
-            if (ph && !/no-poster/i.test(ph) && activeLink === link) {
+            if (isStaffPhotoUsable(ph) && activeLink === link) {
               img.src = ph;
               img.style.display = 'block';
             } else {

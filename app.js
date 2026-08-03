@@ -3197,11 +3197,39 @@
       hoverKp = null;
     }
 
-    function showPreviewPhoto(kp, img) {
-      if (!kp) return;
-      img.src = 'https://st.kp.yandex.net/images/actor_iphone/iphone360_' + kp + '.jpg';
+    function showPreviewPhoto(kp, img, customPhoto) {
+      if (!kp && !customPhoto) return;
+      var custom = String(customPhoto || '').trim();
+      img.onerror = function () {
+        img.onerror = null;
+        img.src = (typeof MP_PERSON_PLACEHOLDER !== 'undefined' ? MP_PERSON_PLACEHOLDER : '/images/person-avatar-placeholder.png');
+      };
+      if (custom && !/no-poster|person-avatar-placeholder|kinopoiskapiunofficial/i.test(custom)) {
+        img.src = custom;
+        img.style.display = 'block';
+        return;
+      }
+      // Never invent KP actor_iphone — gray «K» stub. Fetch head photo or branded.
+      if (kp) {
+        fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/public/person/' + encodeURIComponent(kp) + '/head', { credentials: 'omit' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var ph = d && d.person && d.person.photo ? String(d.person.photo) : '';
+            if (ph && !/no-poster|person-avatar-placeholder|kinopoiskapiunofficial/i.test(ph)) {
+              img.src = ph;
+            } else {
+              img.src = (typeof MP_PERSON_PLACEHOLDER !== 'undefined' ? MP_PERSON_PLACEHOLDER : '/images/person-avatar-placeholder.png');
+            }
+            img.style.display = 'block';
+          })
+          .catch(function () {
+            img.src = (typeof MP_PERSON_PLACEHOLDER !== 'undefined' ? MP_PERSON_PLACEHOLDER : '/images/person-avatar-placeholder.png');
+            img.style.display = 'block';
+          });
+        return;
+      }
+      img.src = (typeof MP_PERSON_PLACEHOLDER !== 'undefined' ? MP_PERSON_PLACEHOLDER : '/images/person-avatar-placeholder.png');
       img.style.display = 'block';
-      img.onerror = function () { img.style.display = 'none'; };
     }
 
     root.querySelectorAll('.staff-cast-link').forEach(function (link) {
@@ -3231,7 +3259,7 @@
           hoverEl.classList.remove('hidden');
           hoverEl.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
           hoverEl.style.top = Math.min(window.innerHeight - 140, e.clientY + 14) + 'px';
-          showPreviewPhoto(kp, img);
+          showPreviewPhoto(kp, img, link.getAttribute('data-staff-photo') || '');
         }, 180);
       });
       link.addEventListener('mouseleave', function () {
