@@ -1919,7 +1919,10 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     margin-left: 0;
     margin-right: 0;
   }
-  body.in-cabinet .header-settings-btn {
+  /* Logged-in mobile: same chrome as film page — coins + bell + avatar, no Settings wrap. */
+  html.mp-session .header-settings-btn,
+  body.in-cabinet .header-settings-btn,
+  body.in-search-page .header-settings-btn {
     flex-shrink: 0;
     margin-left: 4px;
     display: none !important;
@@ -13543,6 +13546,7 @@ body.landing-root-page #landing-root-nav.hidden {
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
   word-break: break-word;
+  text-transform: uppercase;
 }
 .site-search-person-en {
   display: block;
@@ -13552,6 +13556,7 @@ body.landing-root-page #landing-root-nav.hidden {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: lowercase;
 }
 .site-search-person-prof {
   display: block;
@@ -13900,8 +13905,20 @@ header.staff-hero,
 .staff-hero-photo { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
 .staff-hero-ph { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.08); font-size: 44px; }
 .staff-hero-text { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-.staff-hero-name { margin: 0; font-family: Unbounded, Inter, sans-serif; font-size: clamp(22px, 4vw, 30px); font-weight: 800; line-height: 1.15; }
-.staff-hero-sub { color: rgba(244,246,255,.62); margin: 4px 0 0; font-size: 15px; }
+.staff-hero-name {
+  margin: 0;
+  font-family: Unbounded, Inter, sans-serif;
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.staff-hero-sub {
+  color: rgba(244,246,255,.62);
+  margin: 4px 0 0;
+  font-size: 15px;
+  text-transform: lowercase;
+}
 .staff-hero-meta { color: rgba(244,246,255,.5); margin: 4px 0 0; font-size: 13px; font-weight: 600; }
 .staff-facts-anchor {
   margin: 0 0 16px;
@@ -15657,12 +15674,15 @@ body.film-standalone-page {
 
   body.film-standalone-page .header-user-wrap,
   body.staff-standalone-page .header-user-wrap,
-  body.user-standalone-page .header-user-wrap {
+  body.user-standalone-page .header-user-wrap,
+  body.in-cabinet .header-user-wrap,
+  body.in-search-page .header-user-wrap {
     width: 100%;
     max-width: 100%;
     justify-content: flex-end;
     gap: 8px;
     justify-self: unset !important;
+    flex-wrap: nowrap !important;
   }
 
   /* ≤374: same logo for guest + logged-in (do not shrink / truncate text). */
@@ -23152,12 +23172,13 @@ body.in-cabinet .mp-pick-done {
     font-size: 26px !important;
     line-height: 1.12 !important;
     color: #f4f4f5 !important;
+    text-transform: uppercase;
   }
   body.staff-standalone-page .staff-hero-sub {
     margin: 0 0 4px !important;
     font-size: 12px !important;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
     color: #b4b4be !important;
   }
   body.staff-standalone-page .staff-hero-prof {
@@ -24169,8 +24190,8 @@ body.staff-standalone-page .staff-awards-loading {
   body.staff-standalone-page .staff-proto-aside .staff-hero-sub {
     margin: 0 0 6px !important;
     font-size: 12px !important;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
     color: #b4b4be !important;
   }
   body.staff-standalone-page .staff-proto-aside .staff-hero-prof,
