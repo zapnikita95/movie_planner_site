@@ -17841,12 +17841,17 @@
     let html = '';
     if (persons.length) {
       html += persons.slice(0, HEADER_SEARCH_PREVIEW_PERSONS).map((p) => {
-        const name = escapeHtml(p.display_name || p.name_ru || p.name_en || 'Персона');
+        const names = sitePersonNameLines(p);
+        const name = escapeHtml(names.primary);
+        const secondary = names.secondary && names.secondary !== names.primary
+          ? escapeHtml(names.secondary)
+          : '';
         const prof = escapeHtml(String(p.professions || '').slice(0, 60));
         return `<a class="hs-result hs-result-person" href="/s/${escapeHtml(String(p.kp_person_id))}">
         ${siteSearchPersonPhotoHtml(p.photo, p.kp_person_id, 'hs-result-poster hs-result-person-photo')}
         <div class="hs-result-info">
-          <div class="hs-result-title">${name}</div>
+          <div class="hs-result-title site-search-person-name">${name}</div>
+          ${secondary ? '<div class="hs-result-meta site-search-person-en">' + secondary + '</div>' : ''}
           <div class="hs-result-meta"><span>Актёр / режиссёр</span>${prof ? '<span>·</span><span>' + prof + '</span>' : ''}</div>
         </div>
       </a>`;
@@ -17975,13 +17980,22 @@
     return list;
   }
 
+  function sitePersonNameLines(p) {
+    // Apex RU: never trust display_name — Accept-Language:en flips it to Latin first.
+    p = p || {};
+    const ru = String(p.name_ru || '').trim();
+    const en = String(p.name_en || '').trim();
+    const primary = ru || en || String(p.display_name || '').trim() || 'Персона';
+    const secondary = (ru && en && en !== ru) ? en : '';
+    return { primary: primary, secondary: secondary };
+  }
+
   function siteSearchPersonCardHtml(p) {
     const pid = escapeHtml(String(p.kp_person_id || ''));
-    const primary = escapeHtml(p.display_name || p.name_ru || p.name_en || 'Персона');
-    const secondary = escapeHtml(
-      p.secondary_name || ((p.name_en && p.name_en !== (p.name_ru || '')) ? p.name_en : '')
-    );
-    const showSecondary = secondary && secondary !== primary;
+    const names = sitePersonNameLines(p);
+    const primary = escapeHtml(names.primary);
+    const secondary = escapeHtml(names.secondary);
+    const showSecondary = !!(secondary && secondary !== primary);
     const prof = escapeHtml(String(p.professions || '').slice(0, 80));
     return '<a class="site-search-person-card" href="/s/' + pid + '">'
       + siteSearchPersonPhotoHtml(p.photo, p.kp_person_id, 'site-search-person-photo')

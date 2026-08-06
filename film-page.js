@@ -2361,11 +2361,15 @@
       if (persons.length) {
         html += persons.slice(0, 1).map(function (p) {
           var photo = cleanPoster(p.photo) || '/images/person-avatar-placeholder.png';
-          var name = escapeText(p.display_name || p.name_ru || p.name_en || 'Персона');
+          var ru = String(p.name_ru || '').trim();
+          var en = String(p.name_en || '').trim();
+          var name = escapeText(ru || en || p.display_name || 'Персона');
+          var secondary = (ru && en && en !== ru) ? escapeText(en) : '';
           var prof = escapeText(String(p.professions || '').slice(0, 60));
           return '<a class="hs-result hs-result-person search-result" href="/s/' + encodeURIComponent(String(p.kp_person_id)) + '">'
             + '<img class="hs-result-poster hs-result-person-photo search-result-poster" src="' + photo.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
-            + '<span><span class="search-result-title">' + name + '</span>'
+            + '<span><span class="search-result-title site-search-person-name">' + name + '</span>'
+            + (secondary ? '<span class="search-result-meta site-search-person-en">' + secondary + '</span>' : '')
             + '<span class="search-result-meta"><span>Актёр / режиссёр</span>'
             + (prof ? '<span>·</span><span>' + prof + '</span>' : '') + '</span></span></a>';
         }).join('');
