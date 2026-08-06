@@ -10092,9 +10092,9 @@ a.link-inline:hover {
 /* Карточка превью при наведении на постер в ленте главной */
 .home-poster-tile-wrap {
   position: relative;
-  flex: 0 0 42%;
-  min-width: 120px;
-  max-width: 150px;
+  flex: 0 0 148px;
+  min-width: 148px;
+  max-width: 160px;
   scroll-snap-align: start;
 }
 .home-poster-tile-wrap > .home-poster-tile {
@@ -10937,6 +10937,7 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
   }
   body.in-cabinet #section-home .home-poster-rail,
   body.in-cabinet #section-home .home-prem-rail {
+    align-items: flex-start;
     gap: 18px;
     padding: 0 0 18px;
     scroll-snap-type: x mandatory;
@@ -10945,37 +10946,36 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
   body.in-cabinet #section-home .home-poster-tile-wrap,
   body.in-cabinet #section-home .home-poster-tile,
   body.in-cabinet #section-home .home-pre-card {
-    flex: 0 0 clamp(180px, 16vw, 260px);
-    min-width: clamp(180px, 16vw, 260px);
+    flex: 0 0 clamp(168px, 15vw, 196px);
+    min-width: clamp(168px, 15vw, 196px);
     max-width: none;
-    border-radius: 14px;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
     scroll-snap-align: start;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease;
   }
   body.in-cabinet #section-home .home-poster-tile-wrap > .home-poster-tile {
     flex: none;
     min-width: 0;
     width: 100%;
   }
-  body.in-cabinet #section-home .home-poster-tile-wrap:hover {
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-  }
-  body.in-cabinet #section-home .home-poster-tile-wrap:hover .home-poster-tile {
-    transform: translateY(-4px);
-  }
+  body.in-cabinet #section-home .home-poster-tile-wrap:hover .home-poster-tile,
   body.in-cabinet #section-home .home-pre-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
   }
   body.in-cabinet #section-home .home-poster-tile-title,
   body.in-cabinet #section-home .home-pre-card-title {
-    font-size: 15px;
-    padding: 10px 10px 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 2px 2px;
+    min-height: 2.5em;
   }
   body.in-cabinet #section-home .home-poster-tile-year,
   body.in-cabinet #section-home .home-pre-card-meta {
-    font-size: 13px;
-    padding: 0 10px 10px;
+    font-size: 12px;
+    padding: 0 2px 0;
+    min-height: 1.35em;
   }
   body.in-cabinet #section-home .home-dashboard-root .home-dash-rows {
     overflow: visible;
@@ -17631,7 +17631,8 @@ body.in-cabinet .inbox-fab { display: none !important; }
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 14px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -17660,17 +17661,18 @@ body.in-cabinet .inbox-fab { display: none !important; }
 .home-rail--draggable.is-dragging .home-pre-card {
   pointer-events: none;
 }
+/* Stream rail (E): крупный постер без «контейнера»; название — 2 строки как D */
 .home-poster-tile,
 .home-pre-card {
-  flex: 0 0 42%;
-  min-width: 120px;
-  max-width: 150px;
+  flex: 0 0 148px;
+  min-width: 148px;
+  max-width: 160px;
   scroll-snap-align: start;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -17708,6 +17710,8 @@ html.mp-guest-cabinet-boot #cabinet-readonly > .container > .cabinet-nav {
   background: rgba(255, 255, 255, 0.06) center/cover no-repeat;
   position: relative;
   overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
 }
 .home-pre-card-poster-img {
   width: 100%;
@@ -17735,9 +17739,9 @@ body.guest-cabinet-preview #section-home .home-prem-rail,
 }
 body.guest-cabinet-preview #section-home .home-pre-card,
 #home-dashboard-root .home-pre-card {
-  flex: 0 0 clamp(132px, 38vw, 168px);
-  min-width: 132px;
-  max-width: 168px;
+  flex: 0 0 148px;
+  min-width: 148px;
+  max-width: 160px;
   scroll-snap-align: start;
 }
 #home-dashboard-root .home-section-body {
@@ -17748,7 +17752,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  align-items: stretch;
+  align-items: flex-start;
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
@@ -17757,9 +17761,9 @@ body.guest-cabinet-preview #section-home .home-pre-card,
 #home-dashboard-root .home-prem-rail > .home-pre-card {
   display: flex;
   flex-direction: column;
-  flex: 0 0 clamp(132px, 38vw, 168px);
-  min-width: 132px;
-  max-width: 168px;
+  flex: 0 0 148px;
+  min-width: 148px;
+  max-width: 160px;
 }
 .home-poster-tile-img img {
   width: 100%;
@@ -17778,10 +17782,11 @@ body.guest-cabinet-preview #section-home .home-pre-card,
 .home-poster-tile-img--empty::after { display: none; }
 .home-poster-tile-title,
 .home-pre-card-title {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.25;
-  padding: 8px 8px 2px;
+  padding: 7px 2px 2px;
+  min-height: 2.5em; /* всегда 2 строки — сетка не скачет */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -17790,8 +17795,10 @@ body.guest-cabinet-preview #section-home .home-pre-card,
 .home-poster-tile-year,
 .home-pre-card-meta {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
-  padding: 0 8px 8px;
+  color: var(--text-muted, #b4b4be);
+  padding: 0 2px 0;
+  min-height: 1.35em;
+  line-height: 1.35;
 }
 .home-pre-card-body { padding: 0 0 2px; }
 .home-rated-badge {
@@ -18679,12 +18686,12 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    align-items: stretch;
+    align-items: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
     min-width: 0;
   }
@@ -18692,10 +18699,10 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   #home-dashboard-root .home-prem-rail > .home-pre-card {
     display: flex;
     flex-direction: column;
-    flex: 0 0 clamp(132px, 42vw, 168px);
-    width: clamp(132px, 42vw, 168px);
-    min-width: 132px;
-    max-width: 168px;
+    flex: 0 0 148px;
+    width: 148px;
+    min-width: 148px;
+    max-width: 160px;
     scroll-snap-align: start;
   }
 }
