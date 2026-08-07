@@ -2641,6 +2641,7 @@
           '<aside class="staff-proto-aside" id="staff-proto-aside">' +
             '<div class="staff-proto-aside-inner">' +
               '<div class="staff-hero staff-hero--poster" role="banner">' + (opts.heroInner || '') + '</div>' +
+              '<div id="staff-buzz-slot" class="staff-buzz-slot" aria-live="polite"></div>' +
               staffTabsHtml() +
             '</div>' +
           '</aside>' +
@@ -2650,6 +2651,67 @@
         '</div>' +
       '</article>'
     );
+  }
+
+  function staffBuzzHtml(posts) {
+    var list = (posts || []).filter(function (p) { return p && p.post_url; }).slice(0, 4);
+    if (!list.length) return '';
+    var lis = list.map(function (p) {
+      var teaser = escapeHtml(String(p.teaser || p.title_raw || '').trim().slice(0, 120));
+      if (!teaser) return '';
+      var ch = escapeHtml(String(p.channel_label || 'источник').trim());
+      var url = escapeHtml(String(p.post_url || ''));
+      var dt = String(p.posted_at || '').slice(0, 10);
+      var dtBit = /^\d{4}-\d{2}-\d{2}$/.test(dt)
+        ? '<time class="film-buzz-date" datetime="' + escapeHtml(dt) + '">' +
+          escapeHtml(dt.slice(8, 10) + '.' + dt.slice(5, 7)) + '</time>'
+        : '';
+      var kid = String(p.kp_id || '').replace(/\D/g, '');
+      var filmBit = kid
+        ? ' <a class="staff-buzz-film" href="/f/' + kid + '">фильм</a>'
+        : '';
+      return '<li class="film-buzz-item">' + dtBit +
+        '<a class="film-buzz-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
+        ch + '</a>' + filmBit +
+        '<span class="film-buzz-teaser"> — ' + teaser + '</span></li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-buzz-block staff-buzz-block">' +
+      '<div class="film-buzz-head">' +
+      '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
+      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
+      '<a class="film-buzz-all" href="/buzz">Все</a></div>' +
+      '<ul class="film-buzz-list">' + lis + '</ul></div>';
+  }
+
+  function loadStaffBuzzBlock(article, data) {
+    var slot = (article && article.querySelector('#staff-buzz-slot')) ||
+      document.getElementById('staff-buzz-slot');
+    if (!slot || slot.getAttribute('data-loaded') === '1') return;
+    var ids = [];
+    var seen = {};
+    ((data && data.films_by_role) || []).forEach(function (block) {
+      (block.films || []).forEach(function (f) {
+        var kid = String((f && f.kp_id) || '').replace(/\D/g, '');
+        if (!kid || seen[kid]) return;
+        seen[kid] = 1;
+        ids.push(kid);
+      });
+    });
+    if (!ids.length) return;
+    slot.setAttribute('data-loaded', '1');
+    var q = ids.slice(0, 30).join(',');
+    fetch(API_BASE + '/api/public/buzz/films?ids=' + encodeURIComponent(q) + '&days=21&limit=4', {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var html = staffBuzzHtml((d && d.posts) || []);
+        if (html) slot.innerHTML = html;
+      })
+      .catch(function () {});
   }
 
   function staffBootHeroHtml() {
@@ -3159,6 +3221,7 @@
         bootFacts = { web_facts: boot.web_facts || [], kp_facts: boot.kp_facts || [] };
       }
       loadStaffPersonFacts(personId, bootFacts);
+      loadStaffBuzzBlock(article, data);
       root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
         var rk = btn.getAttribute('data-role-key') || '';
         var block = (_staffLastData.films_by_role || []).find(function (b) {
