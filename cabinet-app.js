@@ -16487,15 +16487,16 @@
   function setReservedLine(el, text) {
     if (!el) return;
     const val = String(text || '').trim();
-    el.removeAttribute('hidden');
     if (val) {
       el.textContent = val;
       el.classList.remove('is-empty');
       el.removeAttribute('aria-hidden');
+      el.removeAttribute('hidden');
     } else {
-      el.innerHTML = '&nbsp;';
+      el.textContent = '';
       el.classList.add('is-empty');
       el.setAttribute('aria-hidden', 'true');
+      el.setAttribute('hidden', '');
     }
   }
 
@@ -16618,9 +16619,9 @@
         '<div class="hero-content">' +
           '<h1 id="film-title">' + escapeHtml(titleText) + '</h1>' +
           '<div class="film-hero-meta-stack">' +
-            '<p class="film-title-en is-empty" id="film-title-en" aria-hidden="true">&nbsp;</p>' +
-            '<p class="film-genres-line is-empty" id="film-genres-line" aria-hidden="true">&nbsp;</p>' +
-            '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true">&nbsp;</p>' +
+            '<p class="film-title-en is-empty" id="film-title-en" aria-hidden="true" hidden></p>' +
+            '<p class="film-genres-line is-empty" id="film-genres-line" aria-hidden="true" hidden></p>' +
+            '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true" hidden></p>' +
             buildFilmExtRatingsSlotHtml(film) +
           '</div>' +
           crew +
