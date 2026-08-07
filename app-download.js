@@ -199,6 +199,58 @@
     });
   }
 
+  /**
+   * Deep-link в приложение; если не установлено — стор платформы
+   * (iOS → App Store, Android → Google Play; десктоп — выбор платформы).
+   */
+  function openDeepLinkOrStore(deepLink, opts) {
+    opts = opts || {};
+    var fallbackMs = typeof opts.fallbackMs === 'number' ? opts.fallbackMs : 1600;
+    return loadRelease().then(function () {
+      var started = Date.now();
+      var hidden = false;
+      function onHide() {
+        hidden = true;
+        try {
+          document.removeEventListener('visibilitychange', onVis);
+          window.removeEventListener('pagehide', onHide);
+          window.removeEventListener('blur', onHide);
+        } catch (_e) {}
+      }
+      function onVis() {
+        if (document.hidden) onHide();
+      }
+      try {
+        document.addEventListener('visibilitychange', onVis);
+        window.addEventListener('pagehide', onHide);
+        window.addEventListener('blur', onHide);
+      } catch (_e2) {}
+
+      if (deepLink) {
+        try {
+          var iframe = document.createElement('iframe');
+          iframe.style.cssText = 'display:none;width:0;height:0;border:0';
+          iframe.src = deepLink;
+          document.body.appendChild(iframe);
+          setTimeout(function () {
+            try { iframe.remove(); } catch (_r) {}
+          }, 2000);
+        } catch (_e3) {}
+        try { window.location.href = deepLink; } catch (_e4) {}
+      }
+
+      setTimeout(function () {
+        if (hidden) return;
+        // Если приложение открылось, вкладка обычно уходит в background.
+        if (document.hidden) return;
+        if (Date.now() - started < fallbackMs - 200 && document.hasFocus && !document.hasFocus()) return;
+        if (isIOS()) openUrl(iosUrl());
+        else if (isAndroid()) openUrl(androidUrl());
+        else showPlatformPicker();
+      }, fallbackMs);
+    });
+  }
+
   global.MpAppDownload = {
     isIOS: isIOS,
     isAndroid: isAndroid,
@@ -208,6 +260,7 @@
     showPlatformPicker: showPlatformPicker,
     wireInstallLinks: wireInstallLinks,
     bindProfileDownloadButton: bindProfileDownloadButton,
+    openDeepLinkOrStore: openDeepLinkOrStore,
   };
 
   if (document.readyState === 'loading') {

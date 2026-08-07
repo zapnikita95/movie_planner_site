@@ -2289,10 +2289,12 @@
         <h2 class="add-film-title" id="invite-confirm-title">Присоединиться к группе?</h2>
         <p class="add-film-hint" id="invite-confirm-hint">Вас пригласили в совместную коллекцию фильмов. После вступления вы увидите планы и фильмы участников.</p>
         <div id="invite-confirm-meta" class="share-invite-meta" style="margin:10px 0"></div>
+        <p class="add-film-hint" id="invite-confirm-consent" style="display:none;margin:8px 0 0;font-size:13px">Вступая, вы соглашаетесь получать уведомления о планах и предложениях этой группы.</p>
         <div id="invite-confirm-status" class="add-film-status"></div>
-        <div class="create-room-actions" style="justify-content:center;gap:12px">
-          <button type="button" class="btn btn-secondary" data-action="close-invite-confirm-modal">Отмена</button>
+        <div class="create-room-actions" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:14px">
           <button type="button" class="btn btn-primary" id="invite-confirm-submit">Присоединиться</button>
+          <button type="button" class="btn btn-secondary" id="invite-confirm-open-app">Открыть в приложении</button>
+          <button type="button" class="btn btn-secondary" data-action="close-invite-confirm-modal">Отмена</button>
         </div>
       </div>
     </div>
@@ -2304,9 +2306,10 @@
         <button type="button" class="add-film-modal-close" data-action="close-invite-success-modal" aria-label="Закрыть">&times;</button>
         <div id="invite-success-emoji" style="font-size:64px;line-height:1;margin-bottom:10px">🎉</div>
         <h2 class="add-film-title" id="invite-success-title">Вы в группе!</h2>
-        <p class="add-film-hint" id="invite-success-hint">Теперь вы видите общие планы и фильмы. Переключайтесь между профилями через меню в правом верхнем углу.</p>
-        <div class="create-room-actions" style="justify-content:center">
+        <p class="add-film-hint" id="invite-success-hint">Теперь вам доступны общие планы и фильмы. Переключайтесь между профилями через меню в правом верхнем углу.</p>
+        <div class="create-room-actions" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:14px">
           <button type="button" class="btn btn-primary" id="invite-success-goto">Перейти в группу</button>
+          <button type="button" class="btn btn-secondary" id="invite-success-open-app">Открыть в приложении</button>
         </div>
       </div>
     </div>
@@ -2784,7 +2787,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260807inviteModal';
+        var V = '20260808inviteUx1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -2802,7 +2805,7 @@
           'user-profile-page.js?v=' + V,
           'user-page.js?v=20260618profile1',
           'app-open-banner.js?v=20260731tgBounce1',
-          'app-download.js?v=20260619store1',
+          'app-download.js?v=20260808inviteApp1',
           'onboarding-flow.js?v=' + V,
           'collections-page.js?v=' + V,
           'home-rails.js?v=' + V,
@@ -2853,7 +2856,7 @@
             'user-profile-page.js?v=' + V,
             'user-page.js?v=20260618profile1',
             'app-open-banner.js?v=20260531appstore1',
-            'app-download.js?v=20260619store1',
+            'app-download.js?v=20260808inviteApp1',
             'telegram-open.js?v=20260602tgsafari1',
             'login-auth-rail.js?v=' + V,
             'public-film-login.js?v=' + V,
