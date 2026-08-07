@@ -5,11 +5,7 @@
 (function (global) {
   'use strict';
 
-<<<<<<< Updated upstream
   var BUILD = '20260808titleEnCollapse';
-=======
-  var BUILD = '20260808titleEnCollapse';
->>>>>>> Stashed changes
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
