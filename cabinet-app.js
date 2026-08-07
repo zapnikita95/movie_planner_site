@@ -7775,6 +7775,7 @@
       cinema_watch_check: 'Кино',
       cinema_ticket_reminder: 'Планы',
       plan_friend_invite: 'Планы',
+      group_friend_invite: 'Группа',
       plan_friend_cancelled: 'Планы',
       tournament_welcome: 'Турнир',
       tournament_win: 'Турнир',
@@ -8005,6 +8006,29 @@
           + (kp ? ' data-kp-id="' + escapeHtml(kp) + '"' : '')
           + '>Добавить к себе</button>';
       }
+    } else if (it.kind === 'group_friend_invite') {
+      const gToken = String(pl.token || pl.invite_token || '').trim();
+      const gStatus = String(pl.status || '').toLowerCase();
+      const gAccepted = pl.accepted === true || pl.accepted === 'true' || gStatus === 'accepted';
+      const gDeclined = gStatus === 'declined';
+      thumb = siteInboxThumbHtml({ icon: 'friends' });
+      headline = escapeHtml((it.title || 'Приглашение в группу').trim());
+      body = escapeHtml(siteInboxCleanBody(it.body));
+      if (gAccepted) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">✓ Вы в группе</span>'
+          + siteInboxNavBtn('friends', 'Группы', false);
+      } else if (gDeclined) {
+        actions = '<span class="cabinet-hint" style="font-weight:600">Отклонено</span>';
+      } else if (gToken) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-group-friend-accept" data-invite-token="'
+          + escapeHtml(gToken) + '"'
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Принять</button>'
+          + '<button type="button" class="btn btn-small btn-secondary site-inbox-group-friend-decline" data-invite-token="'
+          + escapeHtml(gToken) + '"'
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Отклонить</button>';
+      }
     } else if (it.kind === 'cinema_watch_check') {
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) }) : siteInboxThumbHtml({ icon: 'ticket' });
       headline = escapeHtml(filmTitle || (it.title || 'Поход в кино').trim());
@@ -8146,6 +8170,41 @@
           btn.disabled = false;
         }
       });
+    });
+    async function siteInboxRespondGroupFriend(btn, action) {
+      const token = (btn.getAttribute('data-invite-token') || '').trim();
+      const iid = Number(btn.getAttribute('data-inbox-id'));
+      if (!token) return;
+      btn.disabled = true;
+      try {
+        const res = await api('/api/site/groups/invite-friends/respond', {
+          method: 'POST',
+          body: JSON.stringify({
+            token: token,
+            action: action,
+            accept_group_notifications: true,
+          }),
+        });
+        if (res && res.success) {
+          showToast(action === 'accept' ? 'Вы вступили в группу' : 'Приглашение отклонено');
+          if (iid) await siteInboxMarkRead([iid]);
+          closeHeaderInboxDropdown();
+          if (action === 'accept') showSection('friends');
+          else renderInboxSection();
+        } else {
+          showToast((res && (res.message || res.error)) || 'Не удалось', { type: 'error' });
+          btn.disabled = false;
+        }
+      } catch (err) {
+        showToast((err && err.message) || 'Не удалось', { type: 'error' });
+        btn.disabled = false;
+      }
+    }
+    root.querySelectorAll('.site-inbox-group-friend-accept').forEach((btn) => {
+      btn.addEventListener('click', () => { void siteInboxRespondGroupFriend(btn, 'accept'); });
+    });
+    root.querySelectorAll('.site-inbox-group-friend-decline').forEach((btn) => {
+      btn.addEventListener('click', () => { void siteInboxRespondGroupFriend(btn, 'decline'); });
     });
     root.querySelectorAll('.site-inbox-cinema-yes').forEach((btn) => {
       btn.addEventListener('click', async () => {
