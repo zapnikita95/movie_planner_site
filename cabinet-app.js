@@ -773,13 +773,15 @@
     return path === '/' || path === '/index.html';
   }
 
-  /** На / с kp_open / __spa — не редиректить на /home (открытие фильма и т.п.). */
+  /** На / с kp_open / __spa / invite — не редиректить на /home (deep-link). */
   function marketingRootHasAuthedDeepLink() {
     try {
       const params = new URLSearchParams(window.location.search);
       const kpOpen = params.get('kp_open');
       if (kpOpen && /^\d+$/.test(kpOpen)) return true;
       if (params.get('__spa')) return true;
+      // Иначе /?invite_token=… → /home без модалки (handleInvite до redirect не успевает).
+      if (params.get('invite_token')) return true;
     } catch (_) {}
     return false;
   }
@@ -9094,10 +9096,9 @@
       deferNonCriticalCabinetBoot();
       try {
         const pending = localStorage.getItem('mp_pending_invite_token');
-        if (pending) {
-          localStorage.removeItem('mp_pending_invite_token');
-          // showInviteConfirmModal(pending);
-        }
+        // Не снимаем токен до accept — showCabinetAfterLogin может сделать
+        // location.replace('/home') и модалка должна открыться уже на /home.
+        if (pending) showInviteConfirmModal(pending);
       } catch (_) {}
       try {
         const pendingFriend = localStorage.getItem('mp_pending_add_friend');
@@ -24149,6 +24150,17 @@
     } catch (_) {}
 
     try { renderGuestOnboardCta(); } catch (_) {}
+
+    // Group invite: /g/<token> → /?invite_token=… (и /home?invite_token=…).
+    // Раньше функция была объявлена, но нигде не вызывалась — гости видели
+    // только лендинг без модалки «Присоединиться».
+    try { handleInviteTokenFromUrl(); } catch (_) {}
+    try {
+      const pendingInvite = localStorage.getItem('mp_pending_invite_token');
+      if (pendingInvite && !(new URLSearchParams(window.location.search).get('invite_token'))) {
+        showInviteConfirmModal(pendingInvite);
+      }
+    } catch (_) {}
 
     const footerYearEl = document.getElementById('footer-year');
     if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();

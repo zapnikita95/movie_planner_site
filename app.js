@@ -5126,10 +5126,7 @@
       loadTvSettings();
       try {
         const pending = localStorage.getItem('mp_pending_invite_token');
-        if (pending) {
-          localStorage.removeItem('mp_pending_invite_token');
-          // showInviteConfirmModal(pending);
-        }
+        if (pending) showInviteConfirmModal(pending);
       } catch (_) {}
       try {
         const pendingFriend = localStorage.getItem('mp_pending_add_friend');
@@ -15189,6 +15186,13 @@
     bindUserProfileChromeOnce();
     try { bindFilmTagViewChromeOnce(); } catch (_) {}
     void handleAddFriendFromUrl();
+    try { handleInviteTokenFromUrl(); } catch (_) {}
+    try {
+      const pendingInvite = localStorage.getItem('mp_pending_invite_token');
+      if (pendingInvite && !(new URLSearchParams(window.location.search).get('invite_token'))) {
+        showInviteConfirmModal(pendingInvite);
+      }
+    } catch (_) {}
 
     // P4.3: History API — кабинет, /film/:id, разделы
     window.addEventListener('popstate', () => {
