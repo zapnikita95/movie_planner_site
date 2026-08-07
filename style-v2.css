@@ -22249,8 +22249,17 @@ main.film-page .hero-content > h1 {
   font-weight: 600;
   font-family: Inter, system-ui, sans-serif;
 }
-.film-title-en.is-empty {
+/* Empty EN title must not reserve a gap under RU h1 (was visibility:hidden + min-height). */
+.film-title-en.is-empty,
+.film-title-en:empty {
+  display: none !important;
   visibility: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
   pointer-events: none;
 }
 .film-meta-line,
@@ -22269,7 +22278,14 @@ main.film-page .hero-content > h1 {
 }
 .film-meta-line.is-empty,
 .film-genres-line.is-empty {
+  display: none !important;
   visibility: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
   pointer-events: none;
 }
 .login-modal-cta {
