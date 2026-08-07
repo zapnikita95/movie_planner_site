@@ -1297,7 +1297,39 @@
     return filmDescSocialsInlineHtml(socials) + ytBlock;
   }
 
-  function paintFilmDescReviews(wrap, items, socials) {
+  function filmBuzzFeedHtml(posts) {
+    var list = (posts || []).filter(function (p) { return p && p.post_url; }).slice(0, 4);
+    if (!list.length) return '';
+    var lis = list.map(function (p) {
+      var teaser = escapeHtml(String(p.teaser || p.title_raw || '').trim().slice(0, 140));
+      if (!teaser) return '';
+      var ch = escapeHtml(String(p.channel_label || p.channel_title || 'источник').trim());
+      var url = escapeHtml(withReviewUtm(p.post_url, p.channel_label || '', 'film_buzz'));
+      var dt = String(p.posted_at || '').slice(0, 10);
+      var dtBit = '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+        dtBit = '<time class="film-buzz-date" datetime="' + escapeHtml(dt) + '">' +
+          escapeHtml(dt.slice(8, 10) + '.' + dt.slice(5, 7)) + '</time>';
+      }
+      var plat = escapeHtml(String(p.platform || 'telegram'));
+      return '<li class="film-buzz-item">' +
+        (dtBit || '') +
+        '<a class="film-buzz-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-platform="' + plat + '"' +
+        ' data-review-channel="' + ch + '">' + ch + '</a>' +
+        '<span class="film-buzz-teaser"> — ' + teaser + '</span></li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-buzz-block" id="film-buzz-block">' +
+      '<div class="film-buzz-head">' +
+      '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
+      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
+      '<a class="film-buzz-all" href="/buzz">Все</a>' +
+      '</div>' +
+      '<ul class="film-buzz-list">' + lis + '</ul></div>';
+  }
+
+  function paintFilmDescReviews(wrap, items, socials, buzzPosts) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     var hero = (wrap && wrap.closest('.hero-content')) ||
       document.querySelector('#film-page-content .hero-content, .film-page .hero-content, .movie-page .hero-content');
@@ -1305,7 +1337,10 @@
     if (!revEl) return;
     var list = Array.isArray(items) ? items : [];
     var soc = Array.isArray(socials) ? socials : [];
-    revEl.innerHTML = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
+    var buzz = Array.isArray(buzzPosts) ? buzzPosts : [];
+    var buzzHtml = filmBuzzFeedHtml(buzz);
+    var rest = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
+    revEl.innerHTML = buzzHtml + rest;
     revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
       a.addEventListener('click', function () {
         try {
@@ -1313,7 +1348,7 @@
             window.ym(110038199, 'reachGoal', 'buzz_outbound', {
               platform: a.getAttribute('data-review-platform') || 'youtube',
               channel: a.getAttribute('data-review-channel') || '',
-              view: 'film_reviews',
+              view: a.closest('.film-buzz-block') ? 'film_buzz' : 'film_reviews',
             });
           }
         } catch (_) {}
@@ -1330,7 +1365,7 @@
     if (wrap.getAttribute('data-reviews-loaded') === kp) return Promise.resolve();
     if (wrap.getAttribute('data-reviews-loading') === kp) return Promise.resolve();
     wrap.setAttribute('data-reviews-loading', kp);
-    return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', {
+    var reviewsP = fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', {
       method: 'GET',
       mode: 'cors',
     })
@@ -1338,9 +1373,23 @@
         if (!r.ok) throw new Error('api_' + r.status);
         return r.json();
       })
-      .then(function (d) {
+      .catch(function () { return { items: [], socials: [] }; });
+    var buzzP = fetch(API_BASE + '/api/public/buzz/film/' + encodeURIComponent(kp) + '?days=21', {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('api_' + r.status);
+        return r.json();
+      })
+      .then(function (d) { return (d && d.posts) || []; })
+      .catch(function () { return []; });
+    return Promise.all([reviewsP, buzzP])
+      .then(function (pair) {
         wrap.setAttribute('data-reviews-loaded', kp);
-        paintFilmDescReviews(wrap, (d && d.items) || [], (d && d.socials) || []);
+        var d = pair[0] || {};
+        paintFilmDescReviews(wrap, d.items || [], d.socials || [], pair[1] || []);
       })
       .catch(function () {})
       .then(function () { wrap.removeAttribute('data-reviews-loading'); });
