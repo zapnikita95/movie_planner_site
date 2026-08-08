@@ -7964,21 +7964,33 @@
       const actionId = pl.action_id != null ? String(pl.action_id).replace(/\D/g, '') : '';
       const accepted = pl.accepted === true || pl.accepted === 'true' || it.kind === 'group_share_accepted';
       const accPlan = String(pl.accepted_mode || '') === 'plan';
+      const fromLib = pl.from_library_add === true || pl.from_library_add === 'true'
+        || pl.from_library_add === 1 || pl.from_library_add === '1'
+        || String(pl.accepted_mode || '') === 'group_library';
+      const groupChatId = pl.group_chat_id != null ? String(pl.group_chat_id).trim() : '';
       thumb = kp ? siteInboxThumbHtml({ poster: posterUrl(kp) })
         : (friendUid && !Number.isNaN(friendUid) ? siteInboxThumbHtml({ uid: friendUid, name: pl.author_name || friendName }) : siteInboxThumbHtml({ icon: 'friends' }));
       headline = escapeHtml(filmTitle || (it.title || kind).trim());
       body = escapeHtml(siteInboxCleanBody(it.body));
       if (accepted) {
         actions = '<span class="cabinet-hint" style="font-weight:600">'
-          + (accPlan ? '✓ Сеанс в вашем расписании' : '✓ Фильм в вашей базе')
+          + (accPlan ? '✓ Сеанс в вашем расписании' : (fromLib ? '✓ Уже в группе' : '✓ Фильм в вашей базе'))
           + '</span>';
-      } else {
-        if (actionId) {
-          actions = '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-accept" data-action-id="'
-            + escapeHtml(actionId) + '"'
-            + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
-            + '>Принять в базу</button>';
+        if (fromLib && groupChatId) {
+          actions += '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-open-group" data-chat-id="'
+            + escapeHtml(groupChatId) + '">Открыть группу</button>';
         }
+      } else if (fromLib) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-open-group" data-chat-id="'
+          + escapeHtml(groupChatId) + '"'
+          + (actionId ? ' data-action-id="' + escapeHtml(actionId) + '"' : '')
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Открыть группу</button>';
+      } else if (actionId) {
+        actions = '<button type="button" class="btn btn-small btn-primary site-inbox-gshare-accept" data-action-id="'
+          + escapeHtml(actionId) + '"'
+          + (inboxId ? ' data-inbox-id="' + escapeHtml(inboxId) + '"' : '')
+          + '>Принять в базу</button>';
       }
     } else if (['group_rating', 'group_rate_invite'].includes(it.kind)) {
       if (!kp) kp = siteInboxExtractKp(pl, it);
@@ -8129,11 +8141,17 @@
             body: JSON.stringify({ action_id: aid }),
           });
           if (res && res.success) {
-            showToast(res.message || (res.mode === 'plan' ? 'Сеанс добавлен в расписание' : 'Фильм добавлен в базу'));
+            const toastMsg = res.message
+              || (res.mode === 'plan'
+                ? 'Сеанс добавлен в расписание'
+                : (res.mode === 'group_library' ? 'Фильм уже в группе' : 'Фильм добавлен в базу'));
+            showToast(toastMsg);
             if (iid) await siteInboxMarkRead([iid]);
             closeHeaderInboxDropdown();
             if (res.mode === 'plan') showSection('plans');
-            else renderInboxSection();
+            else if (res.mode === 'group_library' && res.group_chat_id != null) {
+              try { switchProfileTo(res.group_chat_id); } catch (_) { renderInboxSection(); }
+            } else renderInboxSection();
           } else {
             showToast((res && (res.message || res.error)) || 'Не удалось принять', { type: 'error' });
             btn.disabled = false;
@@ -8141,6 +8159,33 @@
         } catch (err) {
           const msg = (err && err.message) || 'Не удалось принять';
           showToast(msg, { type: 'error' });
+          btn.disabled = false;
+        }
+      });
+    });
+    root.querySelectorAll('.site-inbox-gshare-open-group').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const chatId = btn.getAttribute('data-chat-id');
+        const aid = Number(btn.getAttribute('data-action-id'));
+        const iid = Number(btn.getAttribute('data-inbox-id'));
+        btn.disabled = true;
+        try {
+          if (aid) {
+            try {
+              await api('/api/site/inbox/group-share/accept', {
+                method: 'POST',
+                body: JSON.stringify({ action_id: aid }),
+              });
+            } catch (_) { /* open group anyway */ }
+          }
+          if (iid) {
+            try { await siteInboxMarkRead([iid]); } catch (_) {}
+          }
+          closeHeaderInboxDropdown();
+          if (chatId) switchProfileTo(chatId);
+          else renderInboxSection();
+        } catch (err) {
+          showToast((err && err.message) || 'Не удалось открыть группу', { type: 'error' });
           btn.disabled = false;
         }
       });
