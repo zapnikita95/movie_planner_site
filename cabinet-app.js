@@ -9562,6 +9562,21 @@
     try { mountHomeDashboardRails(); } catch (_) {}
     try { scheduleHomeDashboardRefresh(); } catch (_) {}
   }
+  function applyHomeLibraryRevDelta(delta) {
+    var n = 0;
+    try {
+      if (window.MPHomeRails && typeof MPHomeRails.applyLibraryDelta === 'function') {
+        n = MPHomeRails.applyLibraryDelta(delta) || 0;
+      }
+    } catch (_) {
+      n = 0;
+    }
+    if (n > 0) {
+      try { scheduleHomeDashboardRefresh(); } catch (_) {}
+      return true;
+    }
+    return false;
+  }
   function tickHomeLibraryRevPoll() {
     if (_homeLibRevInflight) return;
     if (document.visibilityState === 'hidden') return;
@@ -9585,7 +9600,9 @@
     }
     if (!homeVisible) return;
     _homeLibRevInflight = true;
-    Promise.resolve(api('/api/home/library-rev', { timeoutMs: 8000 }))
+    var since = _homeLibRevKnown != null ? Number(_homeLibRevKnown) : 0;
+    var q = since > 0 ? ('?since_rev=' + encodeURIComponent(String(since))) : '';
+    Promise.resolve(api('/api/home/library-rev' + q, { timeoutMs: 8000 }))
       .then(function (snap) {
         var rev = Number((snap && snap.rev) || 0);
         if (_homeLibRevKnown == null) {
@@ -9594,7 +9611,10 @@
         }
         if (rev !== _homeLibRevKnown) {
           _homeLibRevKnown = rev;
-          bustHomeRailsForLibraryRev();
+          var delta = (snap && snap.delta) || [];
+          if (!applyHomeLibraryRevDelta(delta)) {
+            bustHomeRailsForLibraryRev();
+          }
         }
       })
       .catch(function () {})

@@ -309,6 +309,66 @@
       afterAppend(batch);
     }
 
+    function renderPrepend(batch) {
+      if (!batch || !batch.length) return;
+      var first = container.querySelector(".home-poster-tile-wrap, .home-poster-tile, .home-pre-card");
+      var html = "";
+      if (railId === "premieres") {
+        html = batch.map(function (p, i) { return premiereCardHtml(p, config, i); }).join("");
+      } else {
+        html = batch.map(function (m, i) {
+          return posterTileHtml(m, {
+            rated: railId === "recent-rated",
+            posterUrl: config.posterUrl,
+          }, i);
+        }).join("");
+      }
+      if (first) {
+        first.insertAdjacentHTML("beforebegin", html);
+      } else {
+        sentinel.insertAdjacentHTML("beforebegin", html);
+      }
+      afterAppend(batch);
+    }
+
+    function prependItems(rawBatch) {
+      var batch = (rawBatch || []).map(normalizeRailItem).filter(function (it) {
+        return it && (it.kp_id != null || it.title);
+      });
+      if (!batch.length) return 0;
+      var seen = {};
+      batch.forEach(function (it) {
+        var k = String(it.kp_id != null ? it.kp_id : "");
+        if (k) seen[k] = true;
+      });
+      items = items.filter(function (it) {
+        var k = String(it.kp_id != null ? it.kp_id : "");
+        return !(k && seen[k]);
+      });
+      // Drop DOM tiles that match kp_id (avoid duplicates after optimistic insert).
+      Object.keys(seen).forEach(function (kp) {
+        if (!kp) return;
+        container.querySelectorAll('[data-kp-id="' + kp + '"]').forEach(function (el) {
+          var wrap = el.closest(".home-poster-tile-wrap") || el;
+          try { wrap.remove(); } catch (_e) {}
+        });
+      });
+      items = batch.concat(items);
+      offset = Math.max(offset, items.length);
+      renderPrepend(batch);
+      writeRailCache(railId, period, items, offset, hasMore);
+      if (typeof config.onMeta === "function") {
+        config.onMeta({ total: items.length, loaded: items.length, hasMore: hasMore });
+      }
+      return batch.length;
+    }
+
+    container.__mpHomeRail = {
+      railId: railId,
+      prependItems: prependItems,
+      softRefresh: function () { return loadMore(true); },
+    };
+
     function applyCache(bag) {
       if (!bag || !bag.items || !bag.items.length) return false;
       items = bag.items.map(normalizeRailItem);
@@ -397,11 +457,53 @@
     }
   }
 
+  /** Partner poll delta: insert cards into mounted rails without full remount/GET. */
+  function applyLibraryDelta(delta) {
+    var list = Array.isArray(delta) ? delta : [];
+    if (!list.length) return 0;
+    var byKp = {};
+    list.forEach(function (raw) {
+      if (!raw || typeof raw !== "object") return;
+      var kp = raw.kp_id != null ? String(raw.kp_id).replace(/\D/g, "") : "";
+      if (!kp) return;
+      byKp[kp] = normalizeRailItem({
+        kp_id: Number(kp) || kp,
+        title: raw.title || ("KP " + kp),
+        year: raw.year,
+        poster: raw.poster || raw.poster_thumb || "",
+        is_series: !!raw.is_series,
+        id: raw.film_id || raw.id,
+        film_id: raw.film_id || raw.id,
+      });
+    });
+    var items = Object.keys(byKp).map(function (k) { return byKp[k]; });
+    if (!items.length) return 0;
+    // Newest first (higher rev last in server bag → reverse).
+    items.reverse();
+    var applied = 0;
+    var roots = document.querySelectorAll(
+      '[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"]'
+    );
+    roots.forEach(function (el) {
+      var ctl = el.__mpHomeRail;
+      if (!ctl || typeof ctl.prependItems !== "function") return;
+      var railId = ctl.railId || el.getAttribute("data-home-rail") || "";
+      var batch = items;
+      if (railId === "series" || railId === "series-mix") {
+        batch = items.filter(function (it) { return !!it.is_series; });
+      }
+      if (!batch.length) return;
+      applied += ctl.prependItems(batch) || 0;
+    });
+    return applied;
+  }
+
   global.MPHomeRails = {
     PAGE: PAGE,
     fetchHomeRail: fetchHomeRail,
     mountPaginatedHomeRail: mountPaginatedHomeRail,
     clearRailCache: clearRailCache,
+    applyLibraryDelta: applyLibraryDelta,
     posterTileHtml: posterTileHtml,
     premiereCardHtml: premiereCardHtml,
   };
