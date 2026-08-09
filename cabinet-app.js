@@ -9195,6 +9195,10 @@
       updateProfileSwitcherUI(me);
       refreshGroupSuggestions(me);
       updateGroupContextFab();
+      try {
+        if (me && me.is_group_profile) startHomeLibraryRevPoll();
+        else stopHomeLibraryRevPoll();
+      } catch (_) {}
       // Capacity: keep /me → home critical path lean. TV/config/apps/achievements
       // compete with dashboard+rails for the same 8–12 gunicorn threads.
       deferNonCriticalCabinetBoot();
@@ -9527,6 +9531,89 @@
       try { renderHomeDashboardFromCache(); } catch (_) {}
     }, 120);
   }
+
+  /** Group home: poll library-rev and remount unwatched rails when partner adds/shares. */
+  var _homeLibRevTimer = null;
+  var _homeLibRevKnown = null;
+  var _homeLibRevInflight = false;
+  function stopHomeLibraryRevPoll() {
+    if (_homeLibRevTimer) {
+      clearInterval(_homeLibRevTimer);
+      _homeLibRevTimer = null;
+    }
+    _homeLibRevKnown = null;
+    _homeLibRevInflight = false;
+  }
+  function bustHomeRailsForLibraryRev() {
+    try {
+      if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
+        MPHomeRails.clearRailCache('unwatched');
+        MPHomeRails.clearRailCache('series-mix');
+        MPHomeRails.clearRailCache('series');
+      }
+    } catch (_) {}
+    var root = document.getElementById('home-dashboard-root');
+    if (root) {
+      root.querySelectorAll('[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"]').forEach(function (el) {
+        el.removeAttribute('data-rail-mounted');
+        try { el.innerHTML = ''; } catch (_) {}
+      });
+    }
+    try { mountHomeDashboardRails(); } catch (_) {}
+    try { scheduleHomeDashboardRefresh(); } catch (_) {}
+  }
+  function tickHomeLibraryRevPoll() {
+    if (_homeLibRevInflight) return;
+    if (document.visibilityState === 'hidden') return;
+    var me = _cabinetMeCache;
+    if (!me || !me.is_group_profile) {
+      stopHomeLibraryRevPoll();
+      return;
+    }
+    var homeVisible = false;
+    try {
+      var section = document.getElementById('section-home') || document.querySelector('[data-section="home"]');
+      homeVisible = !!(section && !section.classList.contains('hidden') && section.offsetParent !== null);
+    } catch (_) {
+      homeVisible = true;
+    }
+    if (!homeVisible && document.getElementById('home-dashboard-root')) {
+      // Soft check: if dashboard root exists and body is in cabinet home flow, keep polling.
+      try {
+        homeVisible = !!(document.body && document.body.classList.contains('cabinet-active'));
+      } catch (_) {}
+    }
+    if (!homeVisible) return;
+    _homeLibRevInflight = true;
+    Promise.resolve(api('/api/home/library-rev', { timeoutMs: 8000 }))
+      .then(function (snap) {
+        var rev = Number((snap && snap.rev) || 0);
+        if (_homeLibRevKnown == null) {
+          _homeLibRevKnown = rev;
+          return;
+        }
+        if (rev !== _homeLibRevKnown) {
+          _homeLibRevKnown = rev;
+          bustHomeRailsForLibraryRev();
+        }
+      })
+      .catch(function () {})
+      .finally(function () {
+        _homeLibRevInflight = false;
+      });
+  }
+  function startHomeLibraryRevPoll() {
+    stopHomeLibraryRevPoll();
+    var me = _cabinetMeCache;
+    if (!me || !me.is_group_profile) return;
+    tickHomeLibraryRevPoll();
+    _homeLibRevTimer = setInterval(tickHomeLibraryRevPoll, 450);
+  }
+  try {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') tickHomeLibraryRevPoll();
+    });
+  } catch (_) {}
 
   function _mergePlansForHomePreview() {
     const d = _plansData || { home: [], cinema: [], premieres: [] };
@@ -10685,6 +10772,7 @@
     _patchHomeDashboardStaticBlocks();
     paintHomeTournamentBlock();
     _scheduleMountHomeDashboardRails();
+    try { startHomeLibraryRevPoll(); } catch (_) {}
 
     const dashboardPromise = isGuestCabinetPreview()
       ? Promise.resolve(null)
@@ -19021,6 +19109,10 @@
     _cabinetMeCache = me;
     refreshGroupSuggestions(me);
     updateGroupContextFab();
+    try {
+      if (me && me.is_group_profile) startHomeLibraryRevPoll();
+      else stopHomeLibraryRevPoll();
+    } catch (_) {}
     setProfileSwitcherVisible(true);
     const token = ++_profileSwitcherFetchToken;
     fetchSiteProfiles({ lite: true }).then((data) => {

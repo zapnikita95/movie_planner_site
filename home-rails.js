@@ -94,6 +94,17 @@
     } catch (_e) {}
   }
 
+  function clearRailCache(railId, period) {
+    try {
+      railCacheStorage(railId).removeItem(railCacheKey(railId, period));
+    } catch (_e) {}
+    if (period == null) {
+      try {
+        railCacheStorage(railId).removeItem(railCacheKey(railId, "-"));
+      } catch (_e2) {}
+    }
+  }
+
   function attachHorizontalRailPrefetch(container, onLoad, opts) {
     if (!container || typeof onLoad !== "function") return;
     opts = opts || {};
@@ -390,6 +401,7 @@
     PAGE: PAGE,
     fetchHomeRail: fetchHomeRail,
     mountPaginatedHomeRail: mountPaginatedHomeRail,
+    clearRailCache: clearRailCache,
     posterTileHtml: posterTileHtml,
     premiereCardHtml: premiereCardHtml,
   };
