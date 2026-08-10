@@ -5667,6 +5667,11 @@ a.collections-film-card { color: inherit; text-decoration: none; }
     margin-top: 8px;
     font-size: 12px;
   }
+  .film-page-similar-prev,
+  .film-page-similar-next {
+    height: calc(128px * 3 / 2);
+    min-height: calc(128px * 3 / 2);
+  }
 }
 
 .film-page-similar-section {
@@ -5709,6 +5714,9 @@ a.collections-film-card { color: inherit; text-decoration: none; }
 .film-page-similar-rail.is-dragging {
   cursor: grabbing;
 }
+.film-page-similar-rail.is-dragging .similar-rail-card {
+  cursor: grabbing;
+}
 .film-page-similar-prev,
 .film-page-similar-next {
   appearance: none;
@@ -5726,11 +5734,13 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   align-self: flex-start;
   z-index: 2;
   width: 40px;
+  /* Fallback = poster (92×2/3). JS syncNav sets exact poster height (fluid ≤374 / desktop 128). */
   height: calc(92px * 3 / 2);
+  min-height: calc(92px * 3 / 2);
   margin: 0;
   padding: 0;
   border: 1px solid rgba(196, 181, 253, 0.35);
-  border-radius: 999px;
+  border-radius: 14px;
   background: rgba(8, 6, 20, 0.55);
   color: rgba(255, 255, 255, 0.78);
   font-size: 26px;
@@ -5738,6 +5748,12 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   line-height: 1;
   cursor: pointer;
   transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease, visibility 0.15s ease;
+}
+.film-page-similar-rail .similar-rail-card,
+.film-page-similar-rail .similar-rail-poster,
+.film-page-similar-rail img {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .film-page-similar-prev:hover,
 .film-page-similar-next:hover,
@@ -5832,7 +5848,7 @@ main.film-page .film-page-similar-section,
     flex: 0 0 26px;
     flex-basis: 26px;
     width: 26px;
-    height: 117px; /* ~2:3 of ~78px card width at 320 */
+    /* Height synced to .similar-rail-poster by JS — fluid card width ≠ 78px. */
     font-size: 18px;
   }
   .film-page-similar-rail.similar-rail {
