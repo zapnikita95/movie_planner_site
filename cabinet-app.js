@@ -7462,9 +7462,12 @@
       !pageRoot.classList.contains('hidden');
     if (alreadyFilm) {
       clearCabinetSectionBootCss();
+      try { document.documentElement.classList.remove('mp-user-boot'); } catch (_) {}
       return;
     }
     clearCabinetSectionBootCss();
+    try { document.documentElement.classList.remove('mp-user-boot'); } catch (_) {}
+    if (_currentUserProfileId) _currentUserProfileId = null;
     if (ro.classList.contains('hidden')) {
       try { showScreen('cabinet-readonly'); } catch (_) {}
       ro.classList.remove('hidden');
@@ -7481,10 +7484,13 @@
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.add('hidden');
   }
-  /** Снять ранний boot CSS (/f/:kp), иначе mp-film-boot держит #section-film поверх любого раздела. */
+  /**
+   * Снять ранний boot CSS (/f/, /s/, /u/), иначе sticky !important держит
+   * #section-film / #section-user поверх /groups|/stats|/settings|/shazam.
+   */
   function clearFilmBootLayout(readonly) {
     try {
-      document.documentElement.classList.remove('mp-film-boot', 'mp-staff-boot');
+      document.documentElement.classList.remove('mp-film-boot', 'mp-staff-boot', 'mp-user-boot');
     } catch (_) {}
     const ro = readonly || document.getElementById('cabinet-readonly');
     if (!ro) return;
@@ -7599,6 +7605,11 @@
     }
     if (rendered && sectionId !== 'film') {
       clearFilmBootLayout(readonly);
+    }
+    // /u/:id boot (mp-user-boot) форсит #section-user даже с .hidden — снять при уходе.
+    if (rendered && sectionId !== 'user') {
+      try { document.documentElement.classList.remove('mp-user-boot'); } catch (_) {}
+      if (_currentUserProfileId) _currentUserProfileId = null;
     }
     if (rendered && tShown && tShown.id && tShown.id !== 'section-film') {
       _filmModalCurrentId = null;
@@ -24229,16 +24240,10 @@
       settingsHeaderBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const isMobileCabinet = window.matchMedia('(max-width: 768px)').matches && document.body.classList.contains('in-cabinet');
-        if (isMobileCabinet) {
-          closeAccountDropdown();
-          showSection('settings');
-          if (typeof renderSettingsSection === 'function') renderSettingsSection();
-          return;
-        }
-        const dd = document.getElementById('header-settings-dropdown');
-        if (dd && dd.classList.contains('hidden')) openAccountDropdown();
-        else closeAccountDropdown();
+        closeAccountDropdown();
+        // Всегда отдельная страница /settings — не дропдаун поверх /u/ профиля.
+        showSection('settings');
+        if (typeof renderSettingsSection === 'function') renderSettingsSection();
       });
     }
     const profilePill = document.getElementById('header-profile-pill');
@@ -24271,6 +24276,7 @@
       try {
         document.documentElement.classList.remove('mp-session');
         document.documentElement.classList.remove('mp-auth-boot');
+        document.documentElement.classList.remove('mp-user-boot');
       } catch (_) {}
       renderHeader(null);
       const pathKpLogout = kpIdFromPathname(window.location.pathname);
