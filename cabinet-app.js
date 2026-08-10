@@ -10060,7 +10060,8 @@
       rail.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'touch') return;
         if (e.button != null && e.button !== 0) return;
-        if (e.target.closest('a, input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-prev, .film-page-similar-next')) return;
+        // Allow drag on poster tiles / similar cards (button or <a>). Nested controls stay excluded.
+        if (e.target.closest('input, select, textarea, [data-stop-card-click], .search-poster-qbtn, .film-page-similar-prev, .film-page-similar-next')) return;
         active = true;
         dragging = false;
         startX = e.clientX;
@@ -10093,6 +10094,7 @@
       rail.addEventListener('pointerup', endDrag);
       rail.addEventListener('pointercancel', endDrag);
       rail.addEventListener('lostpointercapture', endDrag);
+      rail.addEventListener('dragstart', (e) => { e.preventDefault(); });
       rail.addEventListener('click', (e) => {
         if (!dragging) return;
         e.preventDefault();
@@ -16038,6 +16040,14 @@
       const atEnd = rail.scrollLeft >= max - 4;
       const hideNext = !canScroll || atEnd;
       const hidePrev = !canScroll || atStart;
+      const poster = rail.querySelector('.similar-rail-poster');
+      if (poster) {
+        const ph = Math.round(poster.getBoundingClientRect().height);
+        if (ph >= 40) {
+          next.style.height = ph + 'px';
+          if (prev) prev.style.height = ph + 'px';
+        }
+      }
       next.hidden = hideNext;
       next.classList.toggle('is-nav-off', !canScroll);
       next.classList.toggle('is-edge-hidden', canScroll && hideNext);
@@ -16084,8 +16094,13 @@
     try {
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(syncNav).observe(rail);
+        const firstPoster = rail.querySelector('.similar-rail-poster');
+        if (firstPoster) new ResizeObserver(syncNav).observe(firstPoster);
       }
     } catch (_) {}
+    rail.querySelectorAll('img').forEach(function (img) {
+      if (!img.complete) img.addEventListener('load', syncNav, { once: true });
+    });
     syncNav();
   }
 

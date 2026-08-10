@@ -609,10 +609,12 @@
     var startX = 0;
     var startScroll = 0;
     var THRESH = 6;
+    // Allow drag starting on poster cards (including <a.similar-rail-card>).
+    // Exclude only true nested controls / side arrows.
     rail.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return;
       if (e.button != null && e.button !== 0) return;
-      if (e.target.closest('a, input, select, textarea, .film-page-similar-prev, .film-page-similar-next')) return;
+      if (e.target.closest('input, select, textarea, .film-page-similar-prev, .film-page-similar-next')) return;
       active = true;
       dragging = false;
       startX = e.clientX;
@@ -643,6 +645,9 @@
     }
     rail.addEventListener('pointerup', endDrag);
     rail.addEventListener('pointercancel', endDrag);
+    rail.addEventListener('lostpointercapture', endDrag);
+    // Kill native image/link drag ghost that steals the gesture on posters.
+    rail.addEventListener('dragstart', function (e) { e.preventDefault(); });
     rail.addEventListener('click', function (e) {
       if (!dragging) return;
       e.preventDefault();
@@ -684,6 +689,15 @@
       var atEnd = rail.scrollLeft >= max - 4;
       var hideNext = !canScroll || atEnd;
       var hidePrev = !canScroll || atStart;
+      // Match arrow height to real poster (fluid cards on ≤374 make fixed CSS wrong).
+      var poster = rail.querySelector('.similar-rail-poster');
+      if (poster) {
+        var ph = Math.round(poster.getBoundingClientRect().height);
+        if (ph >= 40) {
+          next.style.height = ph + 'px';
+          if (prev) prev.style.height = ph + 'px';
+        }
+      }
       next.hidden = hideNext;
       next.classList.toggle('is-nav-off', !canScroll);
       next.classList.toggle('is-edge-hidden', canScroll && hideNext);
@@ -724,8 +738,13 @@
     try {
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(syncNav).observe(rail);
+        var firstPoster = rail.querySelector('.similar-rail-poster');
+        if (firstPoster) new ResizeObserver(syncNav).observe(firstPoster);
       }
     } catch (_ro) {}
+    rail.querySelectorAll('img').forEach(function (img) {
+      if (!img.complete) img.addEventListener('load', syncNav, { once: true });
+    });
     syncNav();
   }
 
