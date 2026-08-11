@@ -2787,7 +2787,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260810settingsUserBoot1';
+        var V = '20260811filmBootFast1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -2867,16 +2867,34 @@
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
-        if (isFilm) {
-          list.push('onboarding-flow.js?v=' + V);
-          list.push('film-page.js?v=' + V);
-          list.push('cabinet-film-route.js?v=' + V);
-        } else if (isStaff) {
-          /* Same thin path as /f/: no cabinet-app on first paint; auth chrome via film-page. */
-          list.push('onboarding-flow.js?v=' + V);
-          list.push('film-page.js?v=' + V);
-          list.push('staff-page.js?v=' + V);
-          list.push('cabinet-film-route.js?v=' + V);
+        /* /f/|/s/: critical path FIRST (serial), then auth/promo in parallel.
+           Old chain was 14 serial scripts → ~4s before film-page.js (owner WebVisor). */
+        var deferred = null;
+        if (isFilm || isStaff) {
+          list = [
+            'mp-api-config.js?v=' + V,
+            'header-search-scroll.js?v=' + V,
+            'page-loading.js?v=' + V,
+            'mp-icons.js?v=' + V
+          ];
+          if (isFilm) {
+            list.push('film-page.js?v=' + V);
+            list.push('cabinet-film-route.js?v=' + V);
+          } else {
+            list.push('film-page.js?v=' + V);
+            list.push('staff-page.js?v=' + V);
+            list.push('cabinet-film-route.js?v=' + V);
+          }
+          deferred = [
+            'telegram-open.js?v=20260602tgsafari1',
+            'login-auth-rail.js?v=' + V,
+            'public-film-login.js?v=' + V,
+            'plan-modal.js?v=' + V,
+            'film-user-tags.js?v=' + V,
+            'film-friends-social.js?v=' + V,
+            'mp-public-promo.js?v=' + V,
+            'onboarding-flow.js?v=' + V
+          ];
         } else if (!isBuzz && !isSearch && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
           list.push('buzz-page.js?v=' + V);
@@ -2886,8 +2904,20 @@
             list.push('landing-vitrine.js?v=20260801profileLanding1');
           }
         }
+        function loadParallel(urls) {
+          if (!urls || !urls.length) return;
+          for (var j = 0; j < urls.length; j++) {
+            var p = document.createElement('script');
+            p.src = '/' + urls[j];
+            p.defer = true;
+            document.body.appendChild(p);
+          }
+        }
         function loadAt(i) {
-          if (i >= list.length) return;
+          if (i >= list.length) {
+            loadParallel(deferred);
+            return;
+          }
           var s = document.createElement('script');
           s.src = '/' + list[i];
           s.defer = true;
