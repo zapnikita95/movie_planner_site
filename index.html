@@ -2787,7 +2787,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260811filmBootFast1';
+        var V = '20260811filmBootFast2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -2867,25 +2867,20 @@
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
-        /* /f/|/s/: critical path FIRST (serial), then auth/promo in parallel.
-           Old chain was 14 serial scripts → ~4s before film-page.js (owner WebVisor). */
+        /* /f/|/s/: ONLY mp-api-config is serial; film-page + chrome load in parallel.
+           WebVisor showed ~4s when 14 scripts waited on each onload. */
         var deferred = null;
         if (isFilm || isStaff) {
-          list = [
-            'mp-api-config.js?v=' + V,
+          list = ['mp-api-config.js?v=' + V];
+          deferred = [
             'header-search-scroll.js?v=' + V,
             'page-loading.js?v=' + V,
-            'mp-icons.js?v=' + V
+            'mp-icons.js?v=' + V,
+            'film-page.js?v=' + V
           ];
-          if (isFilm) {
-            list.push('film-page.js?v=' + V);
-            list.push('cabinet-film-route.js?v=' + V);
-          } else {
-            list.push('film-page.js?v=' + V);
-            list.push('staff-page.js?v=' + V);
-            list.push('cabinet-film-route.js?v=' + V);
-          }
-          deferred = [
+          if (isStaff) deferred.push('staff-page.js?v=' + V);
+          deferred.push('cabinet-film-route.js?v=' + V);
+          deferred.push(
             'telegram-open.js?v=20260602tgsafari1',
             'login-auth-rail.js?v=' + V,
             'public-film-login.js?v=' + V,
@@ -2894,7 +2889,7 @@
             'film-friends-social.js?v=' + V,
             'mp-public-promo.js?v=' + V,
             'onboarding-flow.js?v=' + V
-          ];
+          );
         } else if (!isBuzz && !isSearch && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
           list.push('buzz-page.js?v=' + V);
