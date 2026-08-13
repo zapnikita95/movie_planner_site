@@ -1052,7 +1052,11 @@
     if (!window.__MP_FILM_ROUTE_LITE_READY) return false;
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return true;
-    return !!(pageRoot.querySelector('.film-hero-with-tag') || pageRoot.querySelector('.mp-page-loading'));
+    // Loading spinner must NOT count as "lite ready" — that left search→/f/ on forever spin.
+    if (pageRoot.classList.contains('loading') || pageRoot.querySelector('.mp-page-loading')) {
+      return false;
+    }
+    return !!pageRoot.querySelector('.film-hero-with-tag');
   }
 
   function isFilmPageContentReady(kpId) {
@@ -1722,12 +1726,13 @@
   function openFilmHeroByKpPublic(kp, o) {
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return Promise.resolve();
-    if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive()) return Promise.resolve();
+    const targetKp = String(kp || '').replace(/\D/g, '');
     const existingHero = pageRoot.querySelector('.film-hero-with-tag');
     const existingKp = heroKpIdFromRoot(pageRoot);
-    const sameKpHero = !!(existingHero && existingKp && existingKp === String(kp || '').replace(/\D/g, ''));
+    const loadingNow = pageRoot.classList.contains('loading') || !!pageRoot.querySelector('.mp-page-loading');
+    const sameKpHero = !!(existingHero && existingKp && existingKp === targetKp);
     const existingTitle = pageRoot.querySelector('#film-title') || (existingHero && existingHero.querySelector('h1'));
-    if (sameKpHero && existingTitle && !pageRoot.classList.contains('loading')) {
+    if (sameKpHero && existingTitle && !loadingNow) {
       const t = stripFilmTitleYear(existingTitle.textContent);
       if (t && t !== 'Загрузка…' && !isGenericFilmTitle(t)) {
         /* Already painted (shell/boot) — only enrich, never wipe. */
@@ -1740,6 +1745,16 @@
           })
           .catch(function () {});
       }
+    }
+    // Sticky flags from a previous /f/ must not skip paint for a new kp (search widget hang).
+    if (!sameKpHero || loadingNow) {
+      try { window.__MP_FILM_RENDERED = false; } catch (_) {}
+    } else if (window.__MP_FILM_RENDERED || isFilmLiteRouteActive()) {
+      const tReady = existingTitle ? stripFilmTitleYear(existingTitle.textContent) : '';
+      if (tReady && tReady !== 'Загрузка…' && !isGenericFilmTitle(tReady)) {
+        return Promise.resolve();
+      }
+      try { window.__MP_FILM_RENDERED = false; } catch (_) {}
     }
     _filmModalCurrentId = null;
     _staffPageKpId = null;
@@ -6423,7 +6438,39 @@
     return filmDescSocialsInlineHtml(socials) + ytBlock;
   }
 
-  function paintFilmDescReviews(wrap, items, socials) {
+  function filmBuzzFeedHtml(posts) {
+    var list = (posts || []).filter(function (p) { return p && p.post_url; }).slice(0, 4);
+    if (!list.length) return '';
+    var lis = list.map(function (p) {
+      var teaser = escapeHtml(String(p.teaser || p.title_raw || '').trim().slice(0, 140));
+      if (!teaser) return '';
+      var ch = escapeHtml(String(p.channel_label || p.channel_title || 'источник').trim());
+      var url = escapeHtml(withFilmReviewUtm(p.post_url, p.channel_label || '', 'film_buzz'));
+      var dt = String(p.posted_at || '').slice(0, 10);
+      var dtBit = '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+        dtBit = '<time class="film-buzz-date" datetime="' + escapeHtml(dt) + '">' +
+          escapeHtml(dt.slice(8, 10) + '.' + dt.slice(5, 7)) + '</time>';
+      }
+      var plat = escapeHtml(String(p.platform || 'telegram'));
+      return '<li class="film-buzz-item">' +
+        (dtBit || '') +
+        '<a class="film-buzz-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-platform="' + plat + '"' +
+        ' data-review-channel="' + ch + '">' + ch + '</a>' +
+        '<span class="film-buzz-teaser"> — ' + teaser + '</span></li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-buzz-block" id="film-buzz-block">' +
+      '<div class="film-buzz-head">' +
+      '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
+      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
+      '<a class="film-buzz-all" href="/buzz">Все</a>' +
+      '</div>' +
+      '<ul class="film-buzz-list">' + lis + '</ul></div>';
+  }
+
+  function paintFilmDescReviews(wrap, items, socials, buzzPosts) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     var hero = (wrap && wrap.closest('.hero-content')) ||
       document.querySelector('#film-page-content .hero-content, .film-page .hero-content, .movie-page .hero-content');
@@ -6431,7 +6478,11 @@
     if (!revEl) return;
     var list = Array.isArray(items) ? items : [];
     var soc = Array.isArray(socials) ? socials : [];
-    revEl.innerHTML = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
+    var buzz = Array.isArray(buzzPosts) ? buzzPosts : [];
+    var rest = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
+    var buzzHtml = filmBuzzFeedHtml(buzz) || '';
+    // YouTube first, «В тренде» after.
+    revEl.innerHTML = rest + buzzHtml;
     revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
       a.addEventListener('click', function () {
         try {
@@ -6439,7 +6490,7 @@
             window.ym(110038199, 'reachGoal', 'buzz_outbound', {
               platform: a.getAttribute('data-review-platform') || 'youtube',
               channel: a.getAttribute('data-review-channel') || '',
-              view: 'film_reviews',
+              view: a.closest('.film-buzz-block') ? 'film_buzz' : 'film_reviews',
             });
           }
         } catch (_) {}
@@ -6456,14 +6507,28 @@
     if (wrap.getAttribute('data-reviews-loaded') === kp) return Promise.resolve();
     if (wrap.getAttribute('data-reviews-loading') === kp) return Promise.resolve();
     wrap.setAttribute('data-reviews-loading', kp);
-    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', { method: 'GET', mode: 'cors' })
+    const reviewsP = fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp) + '/reviews', { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('api_' + r.status);
         return r.json();
       })
-      .then(function (d) {
+      .catch(function () { return { items: [], socials: [] }; });
+    const buzzP = fetch(getPublicApiBase() + '/api/public/buzz/film/' + encodeURIComponent(kp) + '?days=14', {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('api_' + r.status);
+        return r.json();
+      })
+      .then(function (d) { return (d && d.posts) || []; })
+      .catch(function () { return []; });
+    return Promise.all([reviewsP, buzzP])
+      .then(function (pair) {
         wrap.setAttribute('data-reviews-loaded', kp);
-        paintFilmDescReviews(wrap, (d && d.items) || [], (d && d.socials) || []);
+        const d = pair[0] || {};
+        paintFilmDescReviews(wrap, d.items || [], d.socials || [], pair[1] || []);
       })
       .catch(function () {})
       .then(function () { wrap.removeAttribute('data-reviews-loading'); });
