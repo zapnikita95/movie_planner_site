@@ -6920,8 +6920,14 @@ body.film-standalone-page .film-page-similar-section,
 .film-desc-reviews-list { list-style: none; padding: 0; margin: 0 0 4px; }
 .film-desc-reviews-list li,
 .film-review-item {
-  margin: 0 0 8px; font-size: 13px; line-height: 1.45;
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
 }
 .film-review-yt { color: #ff4444; display: inline-flex; flex: 0 0 auto; transform: translateY(2px); }
 .film-review-ig {
@@ -6930,8 +6936,23 @@ body.film-standalone-page .film-page-similar-section,
   flex: 0 0 auto;
   transform: translateY(2px);
 }
-.film-review-channel { color: var(--text-muted); font-size: 12px; }
-.film-review-link { color: var(--accent, #7eb8ff); }
+.film-review-channel {
+  color: var(--text-muted);
+  font-size: 12px;
+  flex: 0 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42%;
+}
+.film-review-link {
+  color: var(--accent, #7eb8ff);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Premieres */
 .premieres-toolbar { display: flex; gap: 8px; }

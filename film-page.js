@@ -1361,7 +1361,8 @@
     var buzz = Array.isArray(buzzPosts) ? buzzPosts : [];
     var buzzHtml = filmBuzzFeedHtml(buzz);
     var rest = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc) : '';
-    revEl.innerHTML = buzzHtml + rest;
+    // YouTube / соцсети сверху, «В тренде» ниже (актуальность buzz короче).
+    revEl.innerHTML = rest + buzzHtml;
     revEl.querySelectorAll('a[data-review-out]').forEach(function (a) {
       a.addEventListener('click', function () {
         try {
@@ -1395,7 +1396,7 @@
         return r.json();
       })
       .catch(function () { return { items: [], socials: [] }; });
-    var buzzP = fetch(API_BASE + '/api/public/buzz/film/' + encodeURIComponent(kp) + '?days=21', {
+    var buzzP = fetch(API_BASE + '/api/public/buzz/film/' + encodeURIComponent(kp) + '?days=14', {
       method: 'GET',
       mode: 'cors',
       credentials: 'omit',
