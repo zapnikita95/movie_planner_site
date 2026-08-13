@@ -996,10 +996,10 @@
           '<span class="film-desc-short"></span>' +
           '<span class="film-desc-full hidden">' +
             '<span class="film-desc-plot"></span>' +
-            '<span class="film-desc-facts-inline"></span>' +
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
+        '<div class="film-desc-facts-inline"></div>' +
       '</div>'
     );
   }
@@ -1026,29 +1026,27 @@
     if (!wrap) return;
     var fullEl = wrap.querySelector('.film-desc-full');
     if (!fullEl) return;
+    var plotEl = fullEl.querySelector('.film-desc-plot');
+    var factsEl = wrap.querySelector('.film-desc-facts-inline');
+    if (!factsEl) {
+      factsEl = document.createElement('div');
+      factsEl.className = 'film-desc-facts-inline';
+    }
+    if (factsEl.parentNode !== wrap) wrap.appendChild(factsEl);
     var plotText = String(
       wrap.getAttribute('data-plot-text') ||
-      (fullEl.querySelector('.film-desc-plot') && fullEl.querySelector('.film-desc-plot').textContent) ||
-      fullEl.textContent ||
+      (plotEl && plotEl.textContent) ||
       (wrap.querySelector('.film-desc-short') && wrap.querySelector('.film-desc-short').textContent) ||
       lastFilmDescription ||
       ''
     ).trim();
     if (plotText) wrap.setAttribute('data-plot-text', plotText);
-    var plotEl = fullEl.querySelector('.film-desc-plot');
     if (!plotEl) {
       plotEl = document.createElement('span');
       plotEl.className = 'film-desc-plot';
-      /* Never wipe facts/reviews via textContent on the full block. */
       fullEl.insertBefore(plotEl, fullEl.firstChild);
     }
     plotEl.textContent = plotText;
-    var factsEl = fullEl.querySelector('.film-desc-facts-inline');
-    if (!factsEl) {
-      factsEl = document.createElement('span');
-      factsEl.className = 'film-desc-facts-inline';
-      fullEl.appendChild(factsEl);
-    }
     /* Reviews live AFTER the toolbar (#film-desc-reviews-slot) — never inside desc wrap. */
     var nestedReviews = wrap.querySelector('.film-desc-reviews-inline');
     if (nestedReviews && nestedReviews.id !== 'film-desc-reviews-slot') {
@@ -1125,7 +1123,7 @@
     }
     wrap.classList.remove('hidden');
     var expanded = btn.getAttribute('aria-expanded') === 'true';
-    var needsMore = text.length > FILM_DESC_PREVIEW_LEN || extras;
+    var needsMore = text.length > FILM_DESC_PREVIEW_LEN;
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       var cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
