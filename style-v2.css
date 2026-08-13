@@ -5521,6 +5521,10 @@ main.film-page .eyebrow + .film-ext-ratings {
   display: block;
   margin-top: 12px;
 }
+.film-desc-wrap > .film-desc-facts-inline {
+  display: block;
+  margin-top: 10px;
+}
 .film-desc-facts-inline .film-desc-facts-list,
 .film-desc-facts-inline .film-toolbar-facts-list {
   margin: 0;
