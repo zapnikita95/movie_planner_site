@@ -2830,7 +2830,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260814factsMerge1';
+        var V = '20260814filmRace1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -2910,20 +2910,20 @@
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
-        /* /f/|/s/: ONLY mp-api-config is serial; film-page + chrome load in parallel.
-           WebVisor showed ~4s when 14 scripts waited on each onload. */
+        /* /f/|/s/: mp-api-config serial; page module(s) gated; chrome parallel.
+           Never start cabinet-film-route before film-page/staff-page — race left
+           «Догружаем карточку…» forever (HAR 2026-08-14). */
         var deferred = null;
+        var pageGate = null;
         if (isFilm || isStaff) {
           list = ['mp-api-config.js?v=' + V];
+          pageGate = ['film-page.js?v=' + V];
+          if (isStaff) pageGate.push('staff-page.js?v=' + V);
           deferred = [
-            'film-page.js?v=' + V,
             'header-search-scroll.js?v=' + V,
             'page-loading.js?v=' + V,
-            'mp-icons.js?v=' + V
-          ];
-          if (isStaff) deferred.push('staff-page.js?v=' + V);
-          deferred.push('cabinet-film-route.js?v=' + V);
-          deferred.push(
+            'mp-icons.js?v=' + V,
+            'cabinet-film-route.js?v=' + V,
             'telegram-open.js?v=20260602tgsafari1',
             'login-auth-rail.js?v=' + V,
             'public-film-login.js?v=' + V,
@@ -2932,7 +2932,7 @@
             'film-friends-social.js?v=' + V,
             'mp-public-promo.js?v=' + V,
             'onboarding-flow.js?v=' + V
-          );
+          ];
         } else if (!isBuzz && !isSearch && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
           list.push('buzz-page.js?v=' + V);
@@ -2942,18 +2942,32 @@
             list.push('landing-vitrine.js?v=20260801profileLanding1');
           }
         }
-        function loadParallel(urls) {
-          if (!urls || !urls.length) return;
+        function loadParallel(urls, onDone) {
+          if (!urls || !urls.length) {
+            if (onDone) onDone();
+            return;
+          }
+          var left = urls.length;
+          function tick() {
+            left -= 1;
+            if (left <= 0 && onDone) onDone();
+          }
           for (var j = 0; j < urls.length; j++) {
             var p = document.createElement('script');
             p.src = '/' + urls[j];
             p.defer = true;
+            p.onload = tick;
+            p.onerror = tick;
             document.body.appendChild(p);
           }
         }
         function loadAt(i) {
           if (i >= list.length) {
-            loadParallel(deferred);
+            if (pageGate && pageGate.length) {
+              loadParallel(pageGate, function () { loadParallel(deferred); });
+            } else {
+              loadParallel(deferred);
+            }
             return;
           }
           var s = document.createElement('script');

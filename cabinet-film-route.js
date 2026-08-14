@@ -5,10 +5,12 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260814factsMerge1';
+  var BUILD = '20260814filmRace1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
+  var _initTries = 0;
+  var _INIT_RETRY_MAX = 200; /* ~10s @ 50ms — film-page may still be downloading */
 
   function isThinPublicShell() {
     try {
@@ -327,6 +329,7 @@
   function initFilm() {
     var route = filmRouteFromPath();
     if (!route || !global.MpFilmPage) return false;
+    if (global.__MP_FILM_ROUTE_LITE_READY) return true;
 
     global.ensureFullCabinet = ensureFullCabinet;
     global.__MP_FILM_ROUTE_LITE_READY = true;
@@ -402,6 +405,7 @@
   function initStaff() {
     var personId = staffPersonIdFromPath();
     if (!personId || !global.MpStaffPage) return false;
+    if (global.__MP_STAFF_ROUTE_LITE_READY) return true;
 
     global.ensureFullCabinet = ensureFullCabinet;
     global.__MP_STAFF_ROUTE_LITE_READY = true;
@@ -451,8 +455,23 @@
   }
 
   function init() {
-    if (initFilm()) return;
-    initStaff();
+    var route = filmRouteFromPath();
+    if (route) {
+      /* Parallel script load: this file often finishes before film-page.js → MpFilmPage missing. */
+      if (!global.MpFilmPage) {
+        if (_initTries++ < _INIT_RETRY_MAX) setTimeout(init, 50);
+        return;
+      }
+      initFilm();
+      return;
+    }
+    if (staffPersonIdFromPath()) {
+      if (!global.MpStaffPage) {
+        if (_initTries++ < _INIT_RETRY_MAX) setTimeout(init, 50);
+        return;
+      }
+      initStaff();
+    }
   }
 
   if (document.readyState === 'loading') {
