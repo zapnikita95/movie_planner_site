@@ -5521,9 +5521,13 @@ main.film-page .eyebrow + .film-ext-ratings {
   display: block;
   margin-top: 12px;
 }
-.film-desc-wrap > .film-desc-facts-inline {
+.film-desc-full .film-desc-facts-inline {
   display: block;
   margin-top: 10px;
+}
+/* Legacy misplaced sibling from 20260813factsOnCard — hide until migrate moves it into .film-desc-full */
+.film-desc-wrap > .film-desc-facts-inline {
+  display: none;
 }
 .film-desc-facts-inline .film-desc-facts-list,
 .film-desc-facts-inline .film-toolbar-facts-list {
