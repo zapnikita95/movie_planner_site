@@ -35,6 +35,9 @@
   var _staffTopRatingThreshold = null;
   /** Desktop main pane (+ mobile awards sync): 'bio' | 'films' | 'awards' */
   var _staffMainPane = 'films';
+  /** kp_id → { mention_count, title, poster } from /api/public/buzz/films */
+  var _staffBuzzByKp = {};
+  var _staffBuzzDays = 21;
   var STAFF_CRAFT_ROLE_KEYS = {
     ACTOR: 1, DIRECTOR: 1, WRITER: 1, PRODUCER: 1,
     OPERATOR: 1, COMPOSER: 1, DESIGN: 1, EDITOR: 1,
@@ -2227,6 +2230,12 @@
           ' title="' + (bellOn ? 'Отключить напоминание' : 'Напомнить о выходе') + '">' +
           staffBellSvg() + '</button>')
         : '';
+      var buzzMeta = kp ? _staffBuzzByKp[kp] : null;
+      var buzzN = buzzMeta && buzzMeta.mention_count ? Number(buzzMeta.mention_count) : 0;
+      var buzzBadge = (buzzN > 0 && !bell)
+        ? ('<span class="staff-film-buzz-badge" aria-label="В тренде, ' + buzzN + ' упоминаний">' +
+          '<span class="staff-film-buzz-dot" aria-hidden="true"></span> В тренде · ' + buzzN + '</span>')
+        : '';
       return (
         '<a class="staff-film-card' + (selected ? ' is-selected' : '') + '" href="' + escapeHtml(href) + '"' +
           (kp ? (' data-kp="' + escapeHtml(kp) + '"') : '') +
@@ -2234,7 +2243,7 @@
           ' data-title="' + escapeHtml(title) + '"' +
           (title && /[а-яА-ЯёЁ]/.test(title) ? (' data-film-title-ru="' + escapeHtml(title) + '"') : '') +
           '>' +
-          '<div class="staff-film-media">' + poster + rating + check + bell + '</div>' +
+          '<div class="staff-film-media">' + poster + rating + check + bell + buzzBadge + '</div>' +
           '<div class="staff-film-title">' + escapeHtml(title) + '</div>' +
           (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
         '</a>'
@@ -2566,6 +2575,9 @@
       paintStaffAwards(awardsKeep);
     }
     applyStaffMainPane();
+    var article = root.querySelector('.staff-page') || root;
+    loadStaffBuzzBlock(article || root, _staffLastData);
+    applyStaffBuzzBadges(root);
     var filtersRoot = root.querySelector('#staff-person-filters');
     if (filtersRoot) {
       var genreEl = filtersRoot.querySelector('#staff-filter-genre');
@@ -2653,35 +2665,72 @@
     );
   }
 
-  function staffBuzzHtml(posts) {
-    var list = (posts || []).filter(function (p) { return p && p.post_url; }).slice(0, 4);
+  function staffBuzzStripHtml(films, days) {
+    var list = (films || []).filter(function (f) {
+      return f && Number(f.mention_count) > 0 && String(f.kp_id || '').replace(/\D/g, '');
+    }).slice(0, 2);
     if (!list.length) return '';
-    var lis = list.map(function (p) {
-      var teaser = escapeHtml(String(p.teaser || p.title_raw || '').trim().slice(0, 120));
-      if (!teaser) return '';
-      var ch = escapeHtml(String(p.channel_label || 'источник').trim());
-      var url = escapeHtml(String(p.post_url || ''));
-      var dt = String(p.posted_at || '').slice(0, 10);
-      var dtBit = /^\d{4}-\d{2}-\d{2}$/.test(dt)
-        ? '<time class="film-buzz-date" datetime="' + escapeHtml(dt) + '">' +
-          escapeHtml(dt.slice(8, 10) + '.' + dt.slice(5, 7)) + '</time>'
-        : '';
-      var kid = String(p.kp_id || '').replace(/\D/g, '');
-      var filmBit = kid
-        ? ' <a class="staff-buzz-film" href="/f/' + kid + '">фильм</a>'
-        : '';
-      return '<li class="film-buzz-item">' + dtBit +
-        '<a class="film-buzz-link" href="' + url + '" target="_blank" rel="noopener nofollow">' +
-        ch + '</a>' + filmBit +
-        '<span class="film-buzz-teaser"> — ' + teaser + '</span></li>';
-    }).filter(Boolean).join('');
-    if (!lis) return '';
-    return '<div class="film-buzz-block staff-buzz-block">' +
-      '<div class="film-buzz-head">' +
-      '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
-      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
-      '<a class="film-buzz-all" href="/buzz">Все</a></div>' +
-      '<ul class="film-buzz-list">' + lis + '</ul></div>';
+    var daysN = Math.max(1, Number(days) || 21);
+    return list.map(function (f, idx) {
+      var kid = String(f.kp_id || '').replace(/\D/g, '');
+      var title = String(f.title || f.title_raw || 'Фильм').trim() || 'Фильм';
+      var poster = String(f.poster || '').trim();
+      var n = Number(f.mention_count) || 0;
+      var posterHtml = poster
+        ? ('<img class="staff-buzz-strip-poster" src="' + escapeHtml(poster) +
+          '" alt="" width="34" height="51" loading="lazy" referrerpolicy="no-referrer" />')
+        : '<span class="staff-buzz-strip-poster staff-buzz-strip-poster--ph" aria-hidden="true"></span>';
+      var titleLine = list.length === 1
+        ? (escapeHtml(title) + ' в тренде')
+        : escapeHtml(title);
+      return (
+        '<a class="staff-buzz-strip' + (idx > 0 ? ' staff-buzz-strip--sec' : '') +
+          '" href="/f/' + kid + '">' +
+          posterHtml +
+          '<span class="staff-buzz-strip-body">' +
+            '<span class="staff-buzz-strip-title">' +
+              '<span class="staff-buzz-strip-dot" aria-hidden="true"></span>' +
+              titleLine +
+            '</span>' +
+            '<span class="staff-buzz-strip-meta">' + n + ' упом. · за ' + daysN + ' дн.</span>' +
+          '</span>' +
+          '<span class="staff-buzz-strip-chev" aria-hidden="true">›</span>' +
+        '</a>'
+      );
+    }).join('');
+  }
+
+  function staffFilmLookupFromData(data) {
+    var byKp = {};
+    ((data && data.films_by_role) || []).forEach(function (block) {
+      (block.films || []).forEach(function (f) {
+        var kid = String((f && f.kp_id) || '').replace(/\D/g, '');
+        if (!kid || byKp[kid]) return;
+        byKp[kid] = f;
+      });
+    });
+    return byKp;
+  }
+
+  function applyStaffBuzzBadges(root) {
+    var scope = root || document;
+    Object.keys(_staffBuzzByKp).forEach(function (kid) {
+      var meta = _staffBuzzByKp[kid];
+      var n = meta && Number(meta.mention_count);
+      if (!(n > 0)) return;
+      scope.querySelectorAll('a.staff-film-card[data-kp="' + kid + '"]').forEach(function (card) {
+        var media = card.querySelector('.staff-film-media');
+        if (!media) return;
+        if (media.querySelector('.staff-film-buzz-badge')) return;
+        if (media.querySelector('.staff-film-bell')) return;
+        var badge = document.createElement('span');
+        badge.className = 'staff-film-buzz-badge';
+        badge.setAttribute('aria-label', 'В тренде, ' + n + ' упоминаний');
+        badge.innerHTML =
+          '<span class="staff-film-buzz-dot" aria-hidden="true"></span> В тренде · ' + n;
+        media.appendChild(badge);
+      });
+    });
   }
 
   function loadStaffBuzzBlock(article, data) {
@@ -2701,6 +2750,7 @@
     if (!ids.length) return;
     slot.setAttribute('data-loaded', '1');
     var q = ids.slice(0, 30).join(',');
+    var filmLookup = staffFilmLookupFromData(data);
     fetch(API_BASE + '/api/public/buzz/films?ids=' + encodeURIComponent(q) + '&days=21&limit=4', {
       method: 'GET',
       mode: 'cors',
@@ -2708,8 +2758,56 @@
     })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
-        var html = staffBuzzHtml((d && d.posts) || []);
+        var days = (d && d.days) || 21;
+        _staffBuzzDays = days;
+        var films = Array.isArray(d && d.films) ? d.films.slice() : [];
+        // Fallback: aggregate posts if older API without films[]
+        if (!films.length && d && Array.isArray(d.posts) && d.posts.length) {
+          var agg = {};
+          d.posts.forEach(function (p) {
+            var kid = String((p && p.kp_id) || '').replace(/\D/g, '');
+            if (!kid) return;
+            if (!agg[kid]) {
+              agg[kid] = {
+                kp_id: kid,
+                mention_count: 0,
+                title: String(p.title_raw || '').trim(),
+                title_raw: String(p.title_raw || '').trim(),
+                poster: null,
+              };
+            }
+            agg[kid].mention_count += 1;
+          });
+          films = Object.keys(agg).map(function (k) { return agg[k]; })
+            .sort(function (a, b) { return b.mention_count - a.mention_count; });
+        }
+        _staffBuzzByKp = {};
+        films.forEach(function (f) {
+          var kid = String((f && f.kp_id) || '').replace(/\D/g, '');
+          if (!kid) return;
+          var local = filmLookup[kid] || {};
+          var title = String(
+            local.title || f.title || f.title_raw || ''
+          ).trim();
+          var poster = cleanStaffPoster(local.poster || local.poster_url || f.poster) || '';
+          var row = {
+            kp_id: kid,
+            mention_count: Number(f.mention_count) || 0,
+            title: title,
+            title_raw: String(f.title_raw || title).trim(),
+            poster: poster,
+          };
+          if (row.mention_count > 0) _staffBuzzByKp[kid] = row;
+        });
+        var stripFilms = Object.keys(_staffBuzzByKp).map(function (k) {
+          return _staffBuzzByKp[k];
+        }).sort(function (a, b) {
+          return (b.mention_count || 0) - (a.mention_count || 0);
+        });
+        var html = staffBuzzStripHtml(stripFilms, days);
         if (html) slot.innerHTML = html;
+        else slot.innerHTML = '';
+        applyStaffBuzzBadges(article || document);
       })
       .catch(function () {});
   }
@@ -3120,6 +3218,7 @@
     var person = data.person || {};
     _staffLastData = data;
     _staffRoleHasMore = {};
+    _staffBuzzByKp = {};
     _staffPrimaryRoleKey = resolvePrimaryRoleKey(data.films_by_role || []);
     _staffGlobalFilters = data.filters || { years: [], genres: [] };
     var titleName = person.name_ru || person.display_name || person.name_en || 'Персона';

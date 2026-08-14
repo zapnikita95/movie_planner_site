@@ -6913,6 +6913,9 @@ body.film-standalone-page .film-page-similar-section,
 .staff-buzz-slot {
   margin: 0 0 8px;
   padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .staff-buzz-block .film-buzz-item { font-size: 12px; }
 .staff-buzz-film {
@@ -6920,6 +6923,108 @@ body.film-standalone-page .film-page-similar-section,
   text-decoration: underline;
   text-underline-offset: 2px;
   margin-left: 2px;
+}
+
+/* Compact trend strip on /s/ (under hero) */
+.staff-buzz-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 90, 165, 0.38);
+  text-decoration: none !important;
+  color: inherit;
+  box-sizing: border-box;
+}
+.staff-buzz-strip:hover {
+  border-color: #ff5aa5;
+  background: rgba(255, 90, 165, 0.08);
+}
+.staff-buzz-strip--sec {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.staff-buzz-strip-poster {
+  width: 34px;
+  height: 51px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex: 0 0 auto;
+  background: #1a1a22;
+}
+.staff-buzz-strip-poster--ph {
+  display: inline-block;
+}
+.staff-buzz-strip-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.staff-buzz-strip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary, #f4f4f5);
+}
+.staff-buzz-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff5aa5;
+  box-shadow: 0 0 0 3px rgba(255, 90, 165, 0.18);
+  flex: 0 0 auto;
+}
+.staff-buzz-strip-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted, #b4b4be);
+}
+.staff-buzz-strip-chev {
+  color: var(--text-muted, #b4b4be);
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+.staff-film-buzz-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 90, 165, 0.55);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  pointer-events: none;
+}
+.staff-film-buzz-badge .staff-film-buzz-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff5aa5;
+  box-shadow: 0 0 0 2px rgba(255, 90, 165, 0.2);
+  flex: 0 0 auto;
+}
+@media (max-width: 860px) {
+  body.staff-standalone-page .staff-buzz-slot {
+    margin: 0 10px 8px;
+    padding: 0;
+  }
+}
+@media (min-width: 861px) {
+  body.staff-standalone-page .staff-buzz-slot {
+    margin: 10px 0 8px;
+    padding: 0;
+  }
 }
 .film-desc-reviews-list { list-style: none; padding: 0; margin: 0 0 4px; }
 .film-desc-reviews-list li,
