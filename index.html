@@ -619,6 +619,45 @@
               '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
               '<p class="mp-page-loading-text">' + esc(label) + '</p></div>';
           }
+          /* Paint real hero from SSR boot so weak nets see the film before film-page.js (jsDelivr) arrives. */
+          function filmBootShell(boot) {
+            boot = boot || {};
+            var title = String(boot.title || boot.name_ru || '').trim() || 'Загрузка…';
+            var year = boot.year ? ' (' + String(boot.year) + ')' : '';
+            var en = String(boot.title_en || boot.name_en || '').trim();
+            if (en && en === title) en = '';
+            var poster = String(boot.poster_url || '').trim();
+            var genres = String(boot.genres || '').trim();
+            var country = String(boot.country || '').trim();
+            var desc = String(boot.description || '').trim();
+            if (desc.length > 420) desc = desc.slice(0, 417).replace(/\s+\S*$/, '') + '…';
+            var metaBits = [];
+            if (boot.duration_min) metaBits.push(String(boot.duration_min) + ' мин');
+            if (boot.age_rating) metaBits.push(String(boot.age_rating));
+            if (country) metaBits.push(country);
+            var ratingBits = [];
+            if (boot.rating_kp != null && boot.rating_kp !== '') ratingBits.push('КП ' + boot.rating_kp);
+            if (boot.rating_imdb != null && boot.rating_imdb !== '') ratingBits.push('IMDb ' + boot.rating_imdb);
+            var posterHtml = poster
+              ? '<img class="poster" id="poster" src="' + esc(poster) + '" alt="Постер" decoding="async" referrerpolicy="no-referrer">'
+              : '<div class="poster poster-empty" id="poster" aria-hidden="true">🎬</div>';
+            return (
+              '<section class="hero film-hero-with-tag film-page--boot" data-kp-id="' + esc(boot.kp_id || '') + '">' +
+                '<div class="poster-wrap">' + posterHtml + '</div>' +
+                '<div class="hero-content">' +
+                  '<h1 id="film-title">' + esc(title + year) + '</h1>' +
+                  '<div class="film-hero-meta-stack">' +
+                    (en ? '<p class="film-title-en" id="film-title-en">' + esc(en) + '</p>' : '<p class="film-title-en is-empty" id="film-title-en" hidden></p>') +
+                    (genres ? '<p class="film-genres-line" id="film-genres-line">' + esc(genres) + '</p>' : '<p class="film-genres-line is-empty" id="film-genres-line" hidden></p>') +
+                    (metaBits.length ? '<p class="film-meta-line" id="film-meta-line">' + esc(metaBits.join(' · ')) + '</p>' : '<p class="film-meta-line is-empty" id="film-meta-line" hidden></p>') +
+                    (ratingBits.length ? '<p class="film-ext-ratings" id="film-ext-ratings">' + esc(ratingBits.join(' · ')) + '</p>' : '') +
+                  '</div>' +
+                  (desc ? '<div class="film-desc-wrap" id="film-desc-wrap"><p class="film-hero-desc" id="film-desc">' + esc(desc) + '</p></div>' : '') +
+                  '<p class="status mp-boot-hydrating" id="hint">Догружаем карточку…</p>' +
+                '</div>' +
+              '</section>'
+            );
+          }
           function staffGridBootShell(boot) {
             boot = boot || {};
             var title = String(boot.name_ru || boot.display_name || boot.title || 'Загрузка…').trim();
@@ -701,9 +740,14 @@
               document.body.setAttribute('data-staff-tab', 'films');
               return;
             }
-            var headline = bootTitle || 'Загрузка фильма…';
-            pageRoot.className = 'movie-page loading';
-            pageRoot.innerHTML = loadingShell(headline);
+            /* Film: paint hero from SSR boot immediately (weak net / slow film-page.js). */
+            pageRoot.className = 'movie-page';
+            if (boot && (boot.title || boot.poster_url || boot.description)) {
+              pageRoot.innerHTML = filmBootShell(boot);
+            } else {
+              pageRoot.className = 'movie-page loading';
+              pageRoot.innerHTML = loadingShell(bootTitle || 'Загрузка фильма…');
+            }
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintRouteBoot);
           else paintRouteBoot();
@@ -2686,7 +2730,6 @@
                 <div class="footer-info footer-guides">
                     <h3>Трекер кино</h3>
                     <p><a href="/films/discover">Карточки фильмов</a></p>
-                    <p><a href="/f/77647">Горбатая гора (2005)</a></p>
                     <p><a href="/articles/kak-razmestit-svoy-film-online.html">Как разместить свой фильм онлайн</a></p>
                     <p><a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Список просмотренных фильмов</a></p>
                     <p><a href="/articles/prilozhenie-treker-dlya-filmov.html">Трекер фильмов — приложение</a></p>
@@ -2787,7 +2830,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260813factsOnCard1';
+        var V = '20260814weakNetFilm1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -2873,10 +2916,10 @@
         if (isFilm || isStaff) {
           list = ['mp-api-config.js?v=' + V];
           deferred = [
+            'film-page.js?v=' + V,
             'header-search-scroll.js?v=' + V,
             'page-loading.js?v=' + V,
-            'mp-icons.js?v=' + V,
-            'film-page.js?v=' + V
+            'mp-icons.js?v=' + V
           ];
           if (isStaff) deferred.push('staff-page.js?v=' + V);
           deferred.push('cabinet-film-route.js?v=' + V);
