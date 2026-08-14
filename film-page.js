@@ -996,10 +996,10 @@
           '<span class="film-desc-short"></span>' +
           '<span class="film-desc-full hidden">' +
             '<span class="film-desc-plot"></span>' +
+            '<span class="film-desc-facts-inline"></span>' +
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
-        '<div class="film-desc-facts-inline"></div>' +
       '</div>'
     );
   }
@@ -1027,12 +1027,6 @@
     var fullEl = wrap.querySelector('.film-desc-full');
     if (!fullEl) return;
     var plotEl = fullEl.querySelector('.film-desc-plot');
-    var factsEl = wrap.querySelector('.film-desc-facts-inline');
-    if (!factsEl) {
-      factsEl = document.createElement('div');
-      factsEl.className = 'film-desc-facts-inline';
-    }
-    if (factsEl.parentNode !== wrap) wrap.appendChild(factsEl);
     var plotText = String(
       wrap.getAttribute('data-plot-text') ||
       (plotEl && plotEl.textContent) ||
@@ -1044,9 +1038,20 @@
     if (!plotEl) {
       plotEl = document.createElement('span');
       plotEl.className = 'film-desc-plot';
+      /* Never wipe facts via textContent on the full block. */
       fullEl.insertBefore(plotEl, fullEl.firstChild);
     }
     plotEl.textContent = plotText;
+    /* Canon: facts live inside collapsed «ещё» (.film-desc-full), not always-open under the plot. */
+    var factsEl = fullEl.querySelector('.film-desc-facts-inline');
+    if (!factsEl) {
+      factsEl = wrap.querySelector('.film-desc-facts-inline');
+    }
+    if (!factsEl) {
+      factsEl = document.createElement('span');
+      factsEl.className = 'film-desc-facts-inline';
+    }
+    if (factsEl.parentNode !== fullEl) fullEl.appendChild(factsEl);
     /* Reviews live AFTER the toolbar (#film-desc-reviews-slot) — never inside desc wrap. */
     var nestedReviews = wrap.querySelector('.film-desc-reviews-inline');
     if (nestedReviews && nestedReviews.id !== 'film-desc-reviews-slot') {
@@ -1123,7 +1128,8 @@
     }
     wrap.classList.remove('hidden');
     var expanded = btn.getAttribute('aria-expanded') === 'true';
-    var needsMore = text.length > FILM_DESC_PREVIEW_LEN;
+    /* Short plot + facts must still offer «ещё» — otherwise facts stay forever open. */
+    var needsMore = text.length > FILM_DESC_PREVIEW_LEN || extras;
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       var cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';

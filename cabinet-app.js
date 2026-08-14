@@ -6161,10 +6161,10 @@
           '<span class="film-desc-short"></span>' +
           '<span class="film-desc-full hidden">' +
             '<span class="film-desc-plot"></span>' +
+            '<span class="film-desc-facts-inline"></span>' +
           '</span>' +
           '<button type="button" class="film-actors-more-btn film-desc-more-btn hidden" aria-expanded="false">ещё</button>' +
         '</p>' +
-        '<div class="film-desc-facts-inline"></div>' +
       '</div>'
     );
   }
@@ -6210,12 +6210,16 @@
       fullEl.insertBefore(plotEl, fullEl.firstChild);
     }
     plotEl.textContent = plotText;
-    let factsEl = wrap.querySelector('.film-desc-facts-inline');
+    /* Canon: facts inside collapsed «ещё», not always-open under the plot. */
+    let factsEl = fullEl.querySelector('.film-desc-facts-inline');
     if (!factsEl) {
-      factsEl = document.createElement('div');
+      factsEl = wrap.querySelector('.film-desc-facts-inline');
+    }
+    if (!factsEl) {
+      factsEl = document.createElement('span');
       factsEl.className = 'film-desc-facts-inline';
     }
-    if (factsEl.parentNode !== wrap) wrap.appendChild(factsEl);
+    if (factsEl.parentNode !== fullEl) fullEl.appendChild(factsEl);
     const nestedReviews = wrap.querySelector('.film-desc-reviews-inline');
     if (nestedReviews && nestedReviews.id !== 'film-desc-reviews-slot') {
       const hero = wrap.closest('.hero-content');
@@ -6292,7 +6296,7 @@
     }
     wrap.classList.remove('hidden');
     const expanded = btn.getAttribute('aria-expanded') === 'true';
-    const needsMore = text.length > FILM_DESC_PREVIEW_LEN;
+    const needsMore = text.length > FILM_DESC_PREVIEW_LEN || extras;
     if (text.length > FILM_DESC_PREVIEW_LEN) {
       const cut = text.slice(0, FILM_DESC_PREVIEW_LEN).replace(/\s+\S*$/, '');
       shortEl.textContent = cut + '…';
