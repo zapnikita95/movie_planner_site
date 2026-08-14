@@ -2733,9 +2733,33 @@
     });
   }
 
+  function ensureStaffBuzzSlot(article) {
+    var slot = (article && article.querySelector)
+      ? article.querySelector('#staff-buzz-slot')
+      : null;
+    if (!slot) slot = document.getElementById('staff-buzz-slot');
+    if (slot) return slot;
+    var asideInner = (article && article.querySelector('.staff-proto-aside-inner')) ||
+      document.querySelector('.staff-proto-aside-inner');
+    if (!asideInner) return null;
+    slot = document.createElement('div');
+    slot.id = 'staff-buzz-slot';
+    slot.className = 'staff-buzz-slot';
+    slot.setAttribute('aria-live', 'polite');
+    var tabs = asideInner.querySelector('.staff-proto-tabs');
+    var hero = asideInner.querySelector('.staff-hero');
+    if (tabs && tabs.parentNode === asideInner) {
+      asideInner.insertBefore(slot, tabs);
+    } else if (hero && hero.nextSibling) {
+      asideInner.insertBefore(slot, hero.nextSibling);
+    } else {
+      asideInner.appendChild(slot);
+    }
+    return slot;
+  }
+
   function loadStaffBuzzBlock(article, data) {
-    var slot = (article && article.querySelector('#staff-buzz-slot')) ||
-      document.getElementById('staff-buzz-slot');
+    var slot = ensureStaffBuzzSlot(article);
     if (!slot || slot.getAttribute('data-loaded') === '1') return;
     var ids = [];
     var seen = {};
