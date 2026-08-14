@@ -1200,14 +1200,69 @@
     return '<li>' + cat + text + src + '</li>';
   }
 
+  function stripWikiFootnotesClient(text) {
+    return String(text || '').replace(/(?:\s*\[\d+\])+\s*$/g, '').trim();
+  }
+
+  function filmFactDedupeKey(text) {
+    return stripWikiFootnotesClient(text).toLowerCase();
+  }
+
   function filmFactsItemsFromPayload(d) {
+    // Web enrich first (with sources), then Kinopoisk trivia — never drop KP when web exists.
     var web = (d && Array.isArray(d.web_facts))
-      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      ? d.web_facts.filter(function (f) { return f && f.fact && !f.is_spoiler; })
       : [];
-    if (web.length) return web.slice(0, 8);
-    var arr = (d && Array.isArray(d.facts) && d.facts.length) ? d.facts.slice(0, 8) : [];
-    if (!arr.length && d && Array.isArray(d.bloopers)) arr = d.bloopers.slice(0, 6);
-    return arr;
+    var kp = (d && Array.isArray(d.facts)) ? d.facts : [];
+    var out = [];
+    var seen = {};
+
+    function alreadyHave(key) {
+      if (!key || seen[key]) return true;
+      if (key.length > 40) {
+        for (var prev in seen) {
+          if (prev.length > 40 && (key.indexOf(prev) !== -1 || prev.indexOf(key) !== -1)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function pushWeb(item) {
+      var raw = stripWikiFootnotesClient(item && item.fact);
+      if (!raw) return;
+      var key = filmFactDedupeKey(raw);
+      if (alreadyHave(key)) return;
+      seen[key] = true;
+      var copy = {};
+      for (var k in item) {
+        if (Object.prototype.hasOwnProperty.call(item, k)) copy[k] = item[k];
+      }
+      copy.fact = raw;
+      if (copy.fact_html) {
+        copy.fact_html = String(copy.fact_html).replace(/(?:\s*\[\d+\])+(?=(?:\s|<|$))/g, '');
+      } else {
+        copy.fact_html = undefined;
+      }
+      out.push(copy);
+    }
+
+    function pushPlain(text) {
+      var raw = stripWikiFootnotesClient(text);
+      if (!raw) return;
+      var key = filmFactDedupeKey(raw);
+      if (alreadyHave(key)) return;
+      seen[key] = true;
+      out.push(raw);
+    }
+
+    web.forEach(pushWeb);
+    kp.forEach(pushPlain);
+    if (!out.length && d && Array.isArray(d.bloopers)) {
+      d.bloopers.forEach(pushPlain);
+    }
+    return out.slice(0, 8);
   }
 
   /** Real Kinopoisk film id only — never digits from fest-/movie-/tv- catalog keys (year → /f/2025/facts wipe). */
