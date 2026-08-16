@@ -1,0 +1,54 @@
+---
+description: >-
+  Запрет vibecoded/нейро-UI при любой разработке дизайна. Канон 30 пунктов.
+  Ссылаться на это правило, не импровизировать «как у AI-SaaS».
+alwaysApply: true
+---
+
+# Не делать vibecoded UI
+
+При любой правке лендинга, кабинета, миниаппа, мобилки, HTML-отчёта, canvas: **сначала этот список**. Не копировать эстетику «AI startup 2025».
+
+Источник: чеклист aj.on.ai «30 reasons your site looks vibecoded». Правило = **запрет**, не рецепт «добавь ещё».
+
+## Делать
+
+- Свой шрифт и 1–2 цвета продукта, не Inter/Geist/Space Grotesk по умолчанию.
+- Живой продукт на экране (кабинет, плеер, каталог), не бутафорский dash.
+- Юр. ссылки в футере, если есть оферта/ПДн.
+- Марка проекта (осколки, постеры, салфетка) важнее шаблонных карточек.
+
+## Не делать (30)
+
+1. harsh gradients  
+2. lucide icons как единственный набор  
+3. purple / pure white фон  
+4. rainbow coloring / rainbow border  
+5. drop shadows «для объёма»  
+6. 3 одинаковые feature-карточки в ряд  
+7. emoji как иконки  
+8. liquid glass / backdrop-blur хром  
+9. em dash (—) в маркетинге; точка или запятая  
+10. Inter / Geist / Space Grotesk  
+11. colored left stripe у карточек  
+12. fake testimonials  
+13. bento grids  
+14. terminal window как декор  
+15. «it's not X, it's Y»  
+16. checkmark bullets  
+17. 3 pricing tiers без реальных тарифов  
+18. нет живого демо продукта  
+19. soft corner radius везде (16px+ SaaS)  
+20. purple + black pack  
+21. нет skeleton, прыжок пусто→данные  
+22. radial orbs на фоне  
+23. dot grids  
+24. sparkle icons  
+25. animated arrows  
+26. нет оферты / TOS в UI  
+27. нет политики ПДн в UI  
+28. hover-анимации карточек (scale/glow)  
+29. neon colors  
+30. basic pastel feature-cards  
+
+Нарушение 2+ пунктов в одном экране: переделать экран, не «чуть приглушить градиент».
