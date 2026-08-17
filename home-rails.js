@@ -11,7 +11,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 11;
+  var RAIL_CACHE_VERSION = 12;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -58,8 +58,34 @@
     return offset > 0 ? PAGE_MORE : PAGE;
   }
 
+  function railScopeKey() {
+    try {
+      if (global.__mpRailScope) return String(global.__mpRailScope);
+    } catch (_e) {}
+    try {
+      var cid = global.localStorage && global.localStorage.getItem("mp_site_active_chat_id");
+      if (cid) return "c:" + String(cid);
+    } catch (_e2) {}
+    return "anon";
+  }
+
+  function setRailScope(scope) {
+    try {
+      global.__mpRailScope = scope != null ? String(scope) : "anon";
+    } catch (_e) {}
+  }
+
   function railCacheKey(railId, period) {
-    return "mp_home_rail_v" + RAIL_CACHE_VERSION + "_" + railId + "_" + (period || "-");
+    return (
+      "mp_home_rail_v" +
+      RAIL_CACHE_VERSION +
+      "_" +
+      railScopeKey() +
+      "_" +
+      railId +
+      "_" +
+      (period || "-")
+    );
   }
 
   function railCacheStorage(railId) {
@@ -503,6 +529,7 @@
     fetchHomeRail: fetchHomeRail,
     mountPaginatedHomeRail: mountPaginatedHomeRail,
     clearRailCache: clearRailCache,
+    setRailScope: setRailScope,
     applyLibraryDelta: applyLibraryDelta,
     posterTileHtml: posterTileHtml,
     premiereCardHtml: premiereCardHtml,

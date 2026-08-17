@@ -9630,11 +9630,12 @@
         MPHomeRails.clearRailCache('unwatched');
         MPHomeRails.clearRailCache('series-mix');
         MPHomeRails.clearRailCache('series');
+        MPHomeRails.clearRailCache('recent-rated');
       }
     } catch (_) {}
     var root = document.getElementById('home-dashboard-root');
     if (root) {
-      root.querySelectorAll('[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"]').forEach(function (el) {
+      root.querySelectorAll('[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"], [data-home-rail="recent-rated"]').forEach(function (el) {
         el.removeAttribute('data-rail-mounted');
         try { el.innerHTML = ''; } catch (_) {}
       });
@@ -10192,6 +10193,12 @@
     if (isGuestCabinetPreview()) return;
     if (!window.MPHomeRails || typeof MPHomeRails.mountPaginatedHomeRail !== 'function') return;
     if (!root) return;
+    try {
+      if (typeof MPHomeRails.setRailScope === 'function') {
+        var scopeChat = getActiveChatId();
+        MPHomeRails.setRailScope(scopeChat != null ? 'c:' + String(scopeChat) : 'anon');
+      }
+    } catch (_) {}
     const containers = Array.from(root.querySelectorAll('[data-home-rail]')).filter((container) => {
       return container.getAttribute('data-rail-mounted') !== '1';
     });
