@@ -5636,6 +5636,26 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   border: 1px solid rgba(255,255,255,0.08);
 }
 .similar-rail-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.similar-reason-pill {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  z-index: 2;
+  max-width: calc(100% - 36px);
+  height: 20px;
+  line-height: 20px;
+  padding: 0 7px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 .similar-rail-poster .similar-in-base {
   position: absolute;
   top: 6px;

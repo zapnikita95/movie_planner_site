@@ -577,11 +577,15 @@
         (ph ? ' class="mp-poster-placeholder"' : '') +
         ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this); else { this.onerror=null; this.src=\'' + MP_POSTER_PLACEHOLDER + '\'; }">';
       var inBase = s.in_base_film_id ? '<span class="similar-in-base">✓</span>' : '';
+      var reason = String(s.reason || s.reason_label || '').trim();
+      var reasonPill = reason
+        ? '<span class="similar-reason-pill">' + filmSimilarEscape(reason) + '</span>'
+        : '';
       var em = s.is_series ? '📺 ' : '🎬 ';
       var href = s.kp_id ? ('/f/' + encodeURIComponent(String(s.kp_id))) : '#';
       return (
         '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(title) + '" role="listitem">' +
-          '<div class="similar-rail-poster">' + img + inBase + '</div>' +
+          '<div class="similar-rail-poster">' + img + reasonPill + inBase + '</div>' +
           '<div class="similar-rail-title">' + em + filmSimilarEscape(title) + '</div>' +
         '</a>'
       );
