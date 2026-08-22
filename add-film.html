@@ -193,6 +193,7 @@
     }
     body.add-film-page .af-field { margin-bottom: 14px; }
     body.add-film-page .af-field.full { grid-column: 1 / -1; }
+    body.add-film-page .af-series-only.hidden { display: none; }
     body.add-film-page .af-field label {
       display: block;
       margin-bottom: 6px;
@@ -489,6 +490,15 @@
                     <option value="other">Другое</option>
                   </select>
                 </div>
+                <div class="af-field af-series-only hidden" id="field-seasons">
+                  <label for="seasons_count">Сезонов</label>
+                  <input id="seasons_count" name="seasons_count" type="number" min="1" max="50" placeholder="1">
+                </div>
+                <div class="af-field af-series-only hidden" id="field-episodes">
+                  <label for="episodes_count">Серий</label>
+                  <input id="episodes_count" name="episodes_count" type="number" min="1" max="500" placeholder="6">
+                  <span class="hint">Для сериала — чтобы отмечать просмотренные серии в кабинете.</span>
+                </div>
                 <div class="af-field">
                   <label for="director">Режиссёр</label>
                   <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
@@ -675,6 +685,19 @@
     var resendBtn = document.getElementById('resend-btn');
     var codeEmail = document.getElementById('code-email');
     var verifyCode = document.getElementById('verify-code');
+    var filmTypeEl = document.getElementById('film_type');
+    var seriesFields = document.querySelectorAll('.af-series-only');
+
+    function syncSeriesFields() {
+      var isSeries = filmTypeEl && String(filmTypeEl.value || '') === 'series';
+      seriesFields.forEach(function (el) {
+        el.classList.toggle('hidden', !isSeries);
+      });
+    }
+    if (filmTypeEl) {
+      filmTypeEl.addEventListener('change', syncSeriesFields);
+      syncSeriesFields();
+    }
 
     function showStep(id) {
       ['step-form', 'step-code', 'step-done'].forEach(function (sid) {
@@ -746,7 +769,7 @@
         }
         var fd = new FormData();
         fd.append('poster', posterFile, posterFile.name || 'poster.jpg');
-        ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
+        ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone', 'seasons_count', 'episodes_count'].forEach(function (name) {
           var el = document.getElementById(name);
           fd.append(name, el ? String(el.value || '').trim() : '');
         });

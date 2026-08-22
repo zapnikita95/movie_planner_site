@@ -101,6 +101,20 @@
         pathKey: 'fest-' + slug,
       };
     }
+    m = path.match(/^\/f\/mp-(\d+)\/?$/i);
+    if (m) {
+      var mpId = String(m[1] || '');
+      return {
+        mode: 'mp',
+        mediaType: '',
+        tmdbId: '',
+        catalogId: 'mp-' + mpId,
+        kpId: '',
+        festSlug: '',
+        mpFilmId: mpId,
+        pathKey: 'mp-' + mpId,
+      };
+    }
     m = path.match(/^\/f\/(\d+)\/?$/);
     if (m) {
       return {
@@ -1014,15 +1028,7 @@
 
   function filmDescPlotText(wrap) {
     if (!wrap) return String(lastFilmDescription || '').trim();
-    var legacy = wrap.querySelector('#film-desc.film-hero-desc');
-    return normalizeFilmDescriptionText(
-      wrap.getAttribute('data-plot-text') ||
-      (wrap.querySelector('.film-desc-plot') && wrap.querySelector('.film-desc-plot').textContent) ||
-      (wrap.querySelector('.film-desc-short') && wrap.querySelector('.film-desc-short').textContent) ||
-      (legacy && !legacy.querySelector('.film-desc-short') && legacy.textContent) ||
-      lastFilmDescription ||
-      ''
-    );
+    return String(wrap.getAttribute('data-plot-text') || lastFilmDescription || '').trim();
   }
 
   function filmDescFactsInlineHtml(payload) {
@@ -1034,34 +1040,8 @@
       '</ul>';
   }
 
-  function upgradeLegacyFilmDescWrap(wrap) {
-    if (!wrap || wrap.querySelector('.film-desc-full')) return false;
-    var legacyDesc = wrap.querySelector('#film-desc');
-    var legacyText = normalizeFilmDescriptionText(
-      wrap.getAttribute('data-plot-text') ||
-      (legacyDesc && !legacyDesc.querySelector('.film-desc-short') && legacyDesc.textContent) ||
-      lastFilmDescription ||
-      ''
-    );
-    var tmp = document.createElement('div');
-    tmp.innerHTML = buildFilmDescWrapHtml();
-    wrap.innerHTML = tmp.firstElementChild.innerHTML;
-    if (!wrap.id) wrap.id = 'film-desc-wrap';
-    wrap.classList.add('film-desc-wrap');
-    if (legacyText) {
-      wrap.setAttribute('data-plot-text', legacyText);
-      lastFilmDescription = legacyText;
-    }
-    bindFilmDescExpand(wrap);
-    if (legacyText) {
-      updateFilmDescCollapseState(wrap, legacyText, wrap.getAttribute('data-has-facts') === '1');
-    }
-    return true;
-  }
-
   function migrateFilmDescWrap(wrap) {
     if (!wrap) return;
-    upgradeLegacyFilmDescWrap(wrap);
     var fullEl = wrap.querySelector('.film-desc-full');
     if (!fullEl) return;
     var plotEl = fullEl.querySelector('.film-desc-plot');
@@ -1162,13 +1142,6 @@
     var extras = !!hasFacts || wrap.getAttribute('data-has-facts') === '1';
     if (!text && !extras) {
       wrap.classList.add('hidden');
-      return;
-    }
-    if (!text && extras) {
-      wrap.classList.remove('hidden');
-      shortEl.textContent = '';
-      plotEl.textContent = '';
-      btn.classList.add('hidden');
       return;
     }
     wrap.classList.remove('hidden');
@@ -3182,6 +3155,12 @@
       match = (bootFest && wantFest && bootFest === wantFest)
         || (bootCatalog && key && bootCatalog === key.toLowerCase())
         || (bootCatalog && bootCatalog.indexOf('fest-') === 0 && key && bootCatalog === ('fest-' + wantFest));
+    } else if (meta.mode === 'mp') {
+      var wantMp = String(meta.mpFilmId || '').replace(/\D/g, '');
+      var bootMp = String(boot.mp_film_id || '').replace(/\D/g, '');
+      match = (bootMp && wantMp && bootMp === wantMp)
+        || (bootCatalog && key && bootCatalog === key.toLowerCase())
+        || (bootCatalog && bootCatalog.indexOf('mp-') === 0 && wantMp && bootCatalog === ('mp-' + wantMp));
     } else {
       match = bootKp && keyDigits && bootKp === keyDigits;
     }
@@ -3195,7 +3174,7 @@
     }
     var bootPoster = boot.poster_url || poster;
     var year = boot.year ? ' (' + boot.year + ')' : '';
-    var heroKey = (meta.mode === 'tmdb' || meta.mode === 'fest')
+    var heroKey = (meta.mode === 'tmdb' || meta.mode === 'fest' || meta.mode === 'mp')
       ? (meta.catalogId || key)
       : (bootKp || keyDigits);
     pageRoot.className = 'movie-page';
@@ -3234,7 +3213,7 @@
       }
     } catch (_e) {}
     // fest-/movie- keys contain years (…-2025); never treat those digits as kp_id → empty /facts wipe.
-    if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest') {
+    if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest' && meta.mode !== 'mp') {
       try {
         var bootFactsKp = numericKpFilmId(boot.kp_id);
         if (bootFactsKp) loadFilmDescFacts(bootFactsKp, pageRoot);
@@ -3261,28 +3240,36 @@
     if (!catalogId && tmdbId && mediaType) catalogId = mediaType + '-' + tmdbId;
     var kpId = String(opts.kpId || (routeFromPath && routeFromPath.kpId) || '').replace(/\D/g, '');
     var festSlug = String(opts.festSlug || (routeFromPath && routeFromPath.festSlug) || '').trim();
-    var isFest = !kpId && !tmdbId && !!festSlug;
-    var isTmdbOnly = !kpId && !!tmdbId && !isFest;
+    var mpFilmId = String(opts.mpFilmId || (routeFromPath && routeFromPath.mpFilmId) || '').replace(/\D/g, '');
+    var isMp = !kpId && !tmdbId && !festSlug && !!mpFilmId;
+    var isFest = !kpId && !tmdbId && !mpFilmId && !!festSlug;
+    var isTmdbOnly = !kpId && !!tmdbId && !isFest && !isMp;
     if (isTmdbOnly && !mediaType) mediaType = 'movie';
     if (isTmdbOnly && !catalogId) catalogId = mediaType + '-' + tmdbId;
     if (isFest && !catalogId) catalogId = 'fest-' + festSlug;
-    var pathKey = isFest ? ('fest-' + festSlug) : (isTmdbOnly ? catalogId : kpId);
+    if (isMp && !catalogId) catalogId = 'mp-' + mpFilmId;
+    var pathKey = isMp ? ('mp-' + mpFilmId) : (isFest ? ('fest-' + festSlug) : (isTmdbOnly ? catalogId : kpId));
     if (!pathKey) return;
     var routeMeta = {
-      mode: isFest ? 'fest' : (isTmdbOnly ? 'tmdb' : 'kp'),
+      mode: isMp ? 'mp' : (isFest ? 'fest' : (isTmdbOnly ? 'tmdb' : 'kp')),
       kpId: kpId,
       tmdbId: tmdbId,
       mediaType: mediaType,
       catalogId: catalogId,
       festSlug: festSlug,
+      mpFilmId: mpFilmId,
       pathKey: pathKey,
     };
-    var publicFilmApi = isFest
+    var publicFilmApi = isMp
+      ? '/api/public/film/mp/' + encodeURIComponent(mpFilmId)
+      : (isFest
       ? '/api/public/film/fest/' + encodeURIComponent(festSlug)
       : (isTmdbOnly
       ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId)
-      : '/api/public/film/' + encodeURIComponent(kpId));
-    var publicCastApi = isFest
+      : '/api/public/film/' + encodeURIComponent(kpId)));
+    var publicCastApi = isMp
+      ? '/api/public/film/mp/' + encodeURIComponent(mpFilmId) + '/cast'
+      : (isFest
       ? '/api/public/film/fest/' + encodeURIComponent(festSlug) + '/cast'
       : (isTmdbOnly
       ? '/api/public/film/tmdb/' + encodeURIComponent(mediaType) + '/' + encodeURIComponent(tmdbId) + '/cast'
@@ -3648,7 +3635,7 @@
           });
       }
       function scheduleLoadFacts() {
-        if (isFest || isTmdbOnly || !numericKpFilmId(kpId)) return;
+        if (isFest || isTmdbOnly || isMp || !numericKpFilmId(kpId)) return;
         var run = function () { loadFilmDescFacts(kpId, document); };
         run();
         if (typeof requestIdleCallback === 'function') {
@@ -4102,7 +4089,7 @@
           if (tEl) tEl.textContent = title;
           setFilmHeaderTitle(title);
           setFilmDescription(pickFilmDescription(f));
-          if (isTmdbOnly || isFest) {
+          if (isTmdbOnly || isFest || isMp) {
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
               ? data.web_facts
               : (Array.isArray(f.web_facts) ? f.web_facts : []);
@@ -4756,6 +4743,19 @@
           global.MpPublicPromo.mountAfterHero(similarRoot);
         }
       } catch (_promoEnd) {}
+      try {
+        if (global.MpMonetization && typeof global.MpMonetization.initFilmPage === 'function' && similarRoot && kpId) {
+          var _monTitleEl = document.getElementById('film-title');
+          var _monTitle = _monTitleEl ? String(_monTitleEl.textContent || '').trim() : '';
+          var _monSeries = !!(document.querySelector('.film-hero-with-tag[data-is-series="1"]'));
+          global.MpMonetization.initFilmPage({
+            root: similarRoot,
+            kpId: kpId,
+            title: _monTitle,
+            isSeries: _monSeries,
+          });
+        }
+      } catch (_monEnd) {}
   }
 
   function bootstrap(opts) {

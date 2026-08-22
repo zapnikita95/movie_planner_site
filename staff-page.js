@@ -250,7 +250,8 @@
     return (films || []).filter(function (f) {
       if (!f) return false;
       var hasKp = !!(f.kp_id && String(f.kp_id).replace(/\D/g, ''));
-      var hasFest = !!(f.film_url || f.catalog_id || f.fest_slug || f.tmdb_id);
+      var hasMp = !!(f.mp_film_id || (f.catalog_id && String(f.catalog_id).indexOf('mp-') === 0));
+      var hasFest = !!(f.film_url || f.catalog_id || f.fest_slug || f.tmdb_id || hasMp);
       if (!hasKp && !hasFest) return false;
       var yr = f.year != null ? parseInt(f.year, 10) : null;
       if (yearExact != null && !isNaN(yearExact) && yr !== yearExact) return false;
@@ -273,6 +274,10 @@
     });
   }
 
+  function isMpPersonId(personId) {
+    return /^mp-\d+$/i.test(String(personId || ''));
+  }
+
   function isFestPersonId(personId) {
     return /^fest-[a-z0-9\-]+$/i.test(String(personId || ''));
   }
@@ -282,7 +287,12 @@
   }
 
   function isCatalogPersonId(personId) {
-    return isFestPersonId(personId) || isTmdbPersonId(personId);
+    return isFestPersonId(personId) || isTmdbPersonId(personId) || isMpPersonId(personId);
+  }
+
+  function mpPersonNumericId(personId) {
+    var m = String(personId || '').match(/^mp-(\d+)$/i);
+    return m ? m[1] : '';
   }
 
   function festPersonSlug(personId) {
@@ -298,6 +308,9 @@
   function staffPublicApiBase(personId) {
     if (isFestPersonId(personId)) {
       return API_BASE + '/api/public/person/fest/' + encodeURIComponent(festPersonSlug(personId));
+    }
+    if (isMpPersonId(personId)) {
+      return API_BASE + '/api/public/person/mp/' + encodeURIComponent(mpPersonNumericId(personId));
     }
     if (isTmdbPersonId(personId)) {
       return API_BASE + '/api/public/person/tmdb/' + encodeURIComponent(tmdbPersonNumericId(personId));
@@ -3677,6 +3690,11 @@
       renderStaffShell(personId);
     }
     loadStaff(personId);
+    try {
+      if (global.MpMonetization && typeof global.MpMonetization.initStaffPage === 'function') {
+        global.MpMonetization.initStaffPage({ personId: personId });
+      }
+    } catch (_monStaff) {}
   }
 
   global.MpStaffPage = { bootstrap: bootstrap, API_BASE: API_BASE };
