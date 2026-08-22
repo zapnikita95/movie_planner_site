@@ -10547,7 +10547,6 @@
         + '</div>'
         + '<div class="home-pre-card-body">'
         + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
-        + (it.year ? '<div class="home-pre-card-meta">' + escapeHtml(String(it.year)) + '</div>' : '')
         + '</div></div>';
     }).join('') + '</div>';
   }
@@ -11341,7 +11340,7 @@
     window._mpHomeNavBound = true;
     document.addEventListener('click', (e) => {
       const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
-      if (!premiereBtn || !premiereBtn.closest('.home-dashboard-root, #landing')) return;
+      if (!premiereBtn || !premiereBtn.closest('#home-dashboard-root, .home-dashboard-root, #landing, #section-premieres')) return;
       e.preventDefault();
       e.stopPropagation();
       handlePremiereNotifyButton(premiereBtn, () => {

@@ -261,6 +261,25 @@
     return "";
   }
 
+  function premiereNotifyBellHtml(p, hideNotify) {
+    if (hideNotify) return "";
+    var reminded = !!(p.reminder_set || p.notify_enabled);
+    var pdate = p.premiere_date || p.release_date || "";
+    var action = reminded ? "premiere-notify-off" : "premiere-notify-on";
+    var label = reminded ? "Отслеживается" : "Отслеживать премьеру";
+    var cls =
+      "premiere-bell-btn premiere-poster-bell premiere-poster-bell--overlay" +
+      (reminded ? " active" : "");
+    var icon = reminded
+      ? '<i class="ph ph-bell-slash" aria-hidden="true"></i>'
+      : '<i class="ph ph-bell" aria-hidden="true"></i>';
+    return (
+      '<span role="button" tabindex="0" class="' + cls + '" data-action="' + action +
+      '" data-kp="' + esc(String(p.kp_id || "")) + '" data-date="' + esc(String(pdate)) +
+      '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + icon + "</span>"
+    );
+  }
+
   function premiereCardHtml(p, opts, tileIndex) {
     opts = opts || {};
     var hideNotify = opts.hideNotify;
@@ -273,28 +292,19 @@
       ' decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
     var pdate = p.premiere_date || p.release_date || "";
     var datePill = premiereDateDdMm(pdate);
-    var reminded = !!(p.reminder_set || p.notify_enabled);
-    var notifyBtn = hideNotify
-      ? ""
-      : '<span class="search-poster-qbtn search-poster-qbtn--premiere ' +
-        (reminded ? "search-poster-qbtn--premiere-off" : "search-poster-qbtn--premiere-on") +
-        '" data-notify-kp="' + esc(String(p.kp_id)) + '" data-premiere-date="' + esc(pdate) +
-        '" data-state="' + (reminded ? "on" : "off") + '" role="button" tabindex="0" aria-label="' +
-        (reminded ? "Отписаться от премьеры" : "Напомнить о премьере") + '">' +
-        (reminded ? '<i class="ph ph-bell-slash" aria-hidden="true"></i>' : '<i class="ph ph-bell" aria-hidden="true"></i>') + "</span>";
+    var notifyBtn = premiereNotifyBellHtml(p, hideNotify);
     var datePillHtml = datePill
       ? '<span class="premiere-poster-date-pill">' + esc(datePill) + "</span>"
       : "";
-    var meta = pdate ? esc(String(pdate)) : (p.year ? esc(String(p.year)) : "");
     var attrs = siteFilmAttrs(p);
     return (
       '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
-      '<div class="home-pre-card-poster">' +
-      img + datePillHtml + notifyBtn +
+      '<div class="home-pre-card-poster premiere-poster-media">' +
+      img + datePillHtml +
+      (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
       '<div class="home-pre-card-body">' +
       '<div class="home-pre-card-title">' + esc(p.title || "—") + "</div>" +
-      '<div class="home-pre-card-meta">' + (meta ? esc(String(meta)) : "") + "</div>" +
       "</div></div>"
     );
   }
