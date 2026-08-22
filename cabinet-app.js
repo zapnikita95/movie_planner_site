@@ -530,12 +530,21 @@
     if (!root) return '';
     const wrap = root.querySelector('#film-desc-wrap');
     if (wrap) {
+      const plot = wrap.querySelector('.film-desc-plot');
       const full = wrap.querySelector('.film-desc-full');
       const short = wrap.querySelector('.film-desc-short');
-      const text = normalizeFilmDescriptionText((full && full.textContent) || (short && short.textContent) || '');
+      const legacy = wrap.querySelector('#film-desc.film-hero-desc');
+      const text = normalizeFilmDescriptionText(
+        wrap.getAttribute('data-plot-text') ||
+        (plot && plot.textContent) ||
+        (full && full.textContent) ||
+        (short && short.textContent) ||
+        (legacy && legacy.textContent) ||
+        ''
+      );
       if (text) return text;
     }
-    const el = root.querySelector('.hero-content .description, #film-desc.description');
+    const el = root.querySelector('.hero-content .description, #film-desc.description, #film-desc.film-hero-desc');
     if (!el || el.classList.contains('hidden') || el.classList.contains('skeleton')) return '';
     return normalizeFilmDescriptionText(el.textContent || '');
   }
@@ -6175,10 +6184,13 @@
 
   function filmDescPlotText(wrap) {
     if (!wrap) return '';
+    const legacy = wrap.querySelector('#film-desc.film-hero-desc');
     return normalizeFilmDescriptionText(
       wrap.getAttribute('data-plot-text') ||
       wrap.querySelector('.film-desc-plot')?.textContent ||
-      wrap.querySelector('.film-desc-short')?.textContent || ''
+      wrap.querySelector('.film-desc-short')?.textContent ||
+      (legacy && !legacy.querySelector('.film-desc-short') && legacy.textContent) ||
+      ''
     );
   }
 
@@ -6191,8 +6203,30 @@
       '</ul>';
   }
 
+  function upgradeLegacyFilmDescWrap(wrap) {
+    if (!wrap || wrap.querySelector('.film-desc-full')) return false;
+    const legacyDesc = wrap.querySelector('#film-desc');
+    const legacyText = normalizeFilmDescriptionText(
+      wrap.getAttribute('data-plot-text') ||
+      (legacyDesc && !legacyDesc.querySelector('.film-desc-short') && legacyDesc.textContent) ||
+      ''
+    );
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildFilmDescWrapHtml();
+    wrap.innerHTML = tmp.firstElementChild.innerHTML;
+    if (!wrap.id) wrap.id = 'film-desc-wrap';
+    wrap.classList.add('film-desc-wrap');
+    if (legacyText) wrap.setAttribute('data-plot-text', legacyText);
+    bindFilmDescExpand(wrap);
+    if (legacyText) {
+      updateFilmDescCollapseState(wrap, legacyText, wrap.getAttribute('data-has-facts') === '1');
+    }
+    return true;
+  }
+
   function migrateFilmDescWrap(wrap) {
     if (!wrap) return;
+    upgradeLegacyFilmDescWrap(wrap);
     const fullEl = wrap.querySelector('.film-desc-full');
     if (!fullEl) return;
     const plotText = normalizeFilmDescriptionText(
@@ -6292,6 +6326,13 @@
     const extras = !!hasFacts || hasReviews || wrap.getAttribute('data-has-facts') === '1';
     if (!text && !extras) {
       wrap.classList.add('hidden');
+      return;
+    }
+    if (!text && extras) {
+      wrap.classList.remove('hidden');
+      shortEl.textContent = '';
+      plotEl.textContent = '';
+      btn.classList.add('hidden');
       return;
     }
     wrap.classList.remove('hidden');
@@ -10161,14 +10202,17 @@
         rail.scrollLeft = startScroll - dx;
       });
       function endDrag(e) {
-        if (!active) return;
+        const wasActive = active;
+        const wasDragging = dragging;
         active = false;
         rail.classList.remove('is-dragging');
-        try {
-          if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
-        } catch (_) {}
+        if (wasActive) {
+          try {
+            if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+        }
         // Keep `dragging` until click capture so the open-film handler can ignore it.
-        if (dragging) {
+        if (wasDragging) {
           setTimeout(function () { dragging = false; }, 0);
         }
       }
@@ -10183,6 +10227,17 @@
         dragging = false;
       }, true);
     });
+    if (!window._mpHomeRailDragSafetyBound) {
+      window._mpHomeRailDragSafetyBound = true;
+      const clearStuckHomeRails = () => {
+        document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
+          rail.classList.remove('is-dragging');
+        });
+      };
+      document.addEventListener('pointerup', clearStuckHomeRails, true);
+      document.addEventListener('pointercancel', clearStuckHomeRails, true);
+      window.addEventListener('blur', clearStuckHomeRails);
+    }
   }
 
   function mountHomeDashboardRails() {
@@ -10408,6 +10463,8 @@
       const rating = (rated && m.rating != null)
         ? '<span class="home-rated-badge">★ ' + escapeHtml(String(m.rating)) + '</span>'
         : '';
+      const kpNav = m.kp_id ? String(m.kp_id).replace(/\D/g, '') : '';
+      const hrefAttr = kpNav ? (' href="/f/' + encodeURIComponent(kpNav) + '"') : '';
       const attrs = homeDashNavAttrs(m)
         + (m.title ? (' data-title="' + escapeHtml(m.title) + '"') : '')
         + (m.year ? (' data-year="' + escapeHtml(String(m.year)) + '"') : '')
@@ -10423,11 +10480,11 @@
       };
       const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
       return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
-        + '<button type="button" class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
+        + '<a' + hrefAttr + ' class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
         + '<div class="home-poster-tile-img">' + img + rating + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + year + '</div>'
-        + '</button>' + preview + '</div>';
+        + '</a>' + preview + '</div>';
     }).join('') + '</div>';
   }
 
@@ -10452,6 +10509,8 @@
         : (p.plan_type === 'cinema' ? 'В кино' : 'Дома');
       const sub = [when, placeShort].filter(Boolean).join(' · ') || '—';
       const badge = '<span class="home-rated-badge home-plan-badge">' + escapeHtml(placeShort) + '</span>';
+      const kpNav = p.kp_id ? String(p.kp_id).replace(/\D/g, '') : '';
+      const hrefAttr = kpNav ? (' href="/f/' + encodeURIComponent(kpNav) + '"') : '';
       const attrs = homeDashNavAttrs(p)
         + (p.title ? (' data-title="' + escapeHtml(p.title) + '"') : '')
         + (p.year ? (' data-year="' + escapeHtml(String(p.year)) + '"') : '')
@@ -10466,11 +10525,11 @@
       };
       const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
       return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
-        + '<button type="button" class="home-poster-tile home-poster-tile--plan" role="listitem"' + attrs + '>'
+        + '<a' + hrefAttr + ' class="home-poster-tile home-poster-tile--plan" role="listitem"' + attrs + '>'
         + '<div class="home-poster-tile-img">' + img + badge + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(p.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + escapeHtml(sub) + '</div>'
-        + '</button>' + preview + '</div>';
+        + '</a>' + preview + '</div>';
     }).join('') + '</div>';
   }
 
@@ -10558,6 +10617,7 @@
       openHomeDashboardFilmTile(hit.kp, hit.fid, hit.tile);
     }, true);
   }
+  bindHomeDashboardFilmNavOnce();
 
   function initCabinetMobileHeaderScroll() {
     /* Search-only retract on mobile (logo / profile stay). */
@@ -11305,7 +11365,14 @@
       });
     }, true);
     document.addEventListener('click', (e) => {
-      if (homeDashboardFilmTileFromEvent(e)) return;
+      const homeTileHit = homeDashboardFilmTileFromEvent(e);
+      if (homeTileHit) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openHomeDashboardFilmTile(homeTileHit.kp, homeTileHit.fid, homeTileHit.tile);
+        return;
+      }
       const card = e.target.closest('[data-film-id],[data-kp-id],[data-kp]');
       if (card && card.closest('#home-dashboard-root') && !e.target.closest('button,a,input,select,textarea,[data-stop-card-click]')) {
         const filmId = String(card.getAttribute('data-film-id') || '').trim();
@@ -11362,7 +11429,7 @@
       markCabinetUserNav(sec);
       showSection(sec);
       afterCabinetSectionShown(sec);
-    });
+    }, true);
   }
 
   function syncHomeLayoutModalFromStorage() {
@@ -14629,7 +14696,6 @@
     const planItems = [
       `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
       `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">${mpActionLabel('ticket', 'В кино')}</button>`,
-      `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
     const watchItems = [];
     if (item.online_link) {
@@ -16926,6 +16992,7 @@
     }
     if (getToken()) loadFilmFriendsSocial(film);
     loadFilmCastSection(film.kp_id, content.querySelector('#film-hero-cast-root'), film);
+    ensureFilmHeroDescription(content, film);
     paintBootFilmDescFacts(film.kp_id, content);
     loadFilmDescFacts(film.kp_id, content);
   }
