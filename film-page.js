@@ -1014,7 +1014,15 @@
 
   function filmDescPlotText(wrap) {
     if (!wrap) return String(lastFilmDescription || '').trim();
-    return String(wrap.getAttribute('data-plot-text') || lastFilmDescription || '').trim();
+    var legacy = wrap.querySelector('#film-desc.film-hero-desc');
+    return normalizeFilmDescriptionText(
+      wrap.getAttribute('data-plot-text') ||
+      (wrap.querySelector('.film-desc-plot') && wrap.querySelector('.film-desc-plot').textContent) ||
+      (wrap.querySelector('.film-desc-short') && wrap.querySelector('.film-desc-short').textContent) ||
+      (legacy && !legacy.querySelector('.film-desc-short') && legacy.textContent) ||
+      lastFilmDescription ||
+      ''
+    );
   }
 
   function filmDescFactsInlineHtml(payload) {
@@ -1026,8 +1034,34 @@
       '</ul>';
   }
 
+  function upgradeLegacyFilmDescWrap(wrap) {
+    if (!wrap || wrap.querySelector('.film-desc-full')) return false;
+    var legacyDesc = wrap.querySelector('#film-desc');
+    var legacyText = normalizeFilmDescriptionText(
+      wrap.getAttribute('data-plot-text') ||
+      (legacyDesc && !legacyDesc.querySelector('.film-desc-short') && legacyDesc.textContent) ||
+      lastFilmDescription ||
+      ''
+    );
+    var tmp = document.createElement('div');
+    tmp.innerHTML = buildFilmDescWrapHtml();
+    wrap.innerHTML = tmp.firstElementChild.innerHTML;
+    if (!wrap.id) wrap.id = 'film-desc-wrap';
+    wrap.classList.add('film-desc-wrap');
+    if (legacyText) {
+      wrap.setAttribute('data-plot-text', legacyText);
+      lastFilmDescription = legacyText;
+    }
+    bindFilmDescExpand(wrap);
+    if (legacyText) {
+      updateFilmDescCollapseState(wrap, legacyText, wrap.getAttribute('data-has-facts') === '1');
+    }
+    return true;
+  }
+
   function migrateFilmDescWrap(wrap) {
     if (!wrap) return;
+    upgradeLegacyFilmDescWrap(wrap);
     var fullEl = wrap.querySelector('.film-desc-full');
     if (!fullEl) return;
     var plotEl = fullEl.querySelector('.film-desc-plot');
@@ -1128,6 +1162,13 @@
     var extras = !!hasFacts || wrap.getAttribute('data-has-facts') === '1';
     if (!text && !extras) {
       wrap.classList.add('hidden');
+      return;
+    }
+    if (!text && extras) {
+      wrap.classList.remove('hidden');
+      shortEl.textContent = '';
+      plotEl.textContent = '';
+      btn.classList.add('hidden');
       return;
     }
     wrap.classList.remove('hidden');
