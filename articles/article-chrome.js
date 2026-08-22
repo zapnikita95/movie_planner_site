@@ -12,11 +12,17 @@
     '<svg class="mp-icon-svg-fallback" width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.83V232a8,8,0,0,1-16,0V207.83A80.09,80.09,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.09,80.09,0,0,1,136,207.83Z"/></svg>';
 
-  if (!global.__mpMetrikaSite) {
-    var ms = document.createElement('script');
-    ms.src = '/yandex-metrika.js?v=20260731landingAuth1';
-    ms.async = true;
-    (document.head || document.documentElement).appendChild(ms);
+  if (!global.MpCookieConsent) {
+    if (!document.querySelector('link[href*="cookie-consent.css"]')) {
+      var ccCss = document.createElement('link');
+      ccCss.rel = 'stylesheet';
+      ccCss.href = '/cookie-consent.css?v=20260822cookieConsent1';
+      (document.head || document.documentElement).appendChild(ccCss);
+    }
+    var ccJs = document.createElement('script');
+    ccJs.src = '/cookie-consent.js?v=20260822cookieConsent1';
+    ccJs.async = false;
+    (document.head || document.documentElement).appendChild(ccJs);
   }
 
   function ensureStylesheet(href) {
