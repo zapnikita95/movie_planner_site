@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260822rsy1';
+  var BUILD = '20260823mpfilm1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -33,6 +33,20 @@
         catalogId: 'fest-' + slug,
         kpId: '',
         pathKey: 'fest-' + slug,
+      };
+    }
+    m = path.match(/^\/f\/mp-(\d+)\/?$/i);
+    if (m) {
+      var mpId = String(m[1] || '');
+      return {
+        mode: 'mp',
+        mediaType: '',
+        tmdbId: '',
+        festSlug: '',
+        catalogId: 'mp-' + mpId,
+        kpId: '',
+        mpFilmId: mpId,
+        pathKey: 'mp-' + mpId,
       };
     }
     m = path.match(/^\/f\/(movie|tv)-(\d+)\/?$/i);
@@ -66,6 +80,8 @@
     var path = global.location.pathname || '';
     var m = path.match(/^\/s\/fest-([a-z0-9\-]+)\/?$/i);
     if (m) return 'fest-' + String(m[1] || '');
+    m = path.match(/^\/s\/mp-(\d+)\/?$/i);
+    if (m) return 'mp-' + String(m[1] || '');
     m = path.match(/^\/s\/tmdb-(\d+)\/?$/i);
     if (m) return 'tmdb-' + String(m[1] || '');
     m = path.match(/^\/s\/(\d+)\/?$/);
@@ -389,6 +405,7 @@
       mediaType: route.mediaType || '',
       catalogId: route.catalogId || '',
       festSlug: route.festSlug || '',
+      mpFilmId: route.mpFilmId || '',
       pageUrl: global.location.origin + '/f/' + route.pathKey,
       cabinetMode: true,
       onReady: function () {
