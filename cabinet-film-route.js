@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260823mpfilm1';
+  var BUILD = '20260823filmfix1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -399,6 +399,9 @@
       }
     };
 
+    if (getToken()) {
+      refreshAuthChrome(route);
+    }
     global.MpFilmPage.bootstrap({
       kpId: route.kpId || '',
       tmdbId: route.tmdbId || '',
@@ -412,6 +415,7 @@
         global.__MP_FILM_RENDERED = true;
         bindNavPrefetch();
         if (getToken()) {
+          refreshAuthChrome(route);
           setTimeout(function () { ensureFullCabinet(); }, 400);
         }
       },

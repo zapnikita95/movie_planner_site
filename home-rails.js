@@ -237,13 +237,15 @@
       ? '<span class="home-rated-badge">★ ' + esc(String(m.rating)) + "</span>"
       : "";
     var ratedCls = opts.rated ? " home-poster-tile--rated" : "";
+    var kpNav = m.kp_id != null ? String(m.kp_id).replace(/\D/g, "") : "";
+    var hrefAttr = kpNav ? (' href="/f/' + encodeURIComponent(kpNav) + '"') : "";
     return (
       '<div class="home-poster-tile-wrap">' +
-      '<button class="home-poster-tile' + ratedCls + '" type="button" role="listitem"' + siteFilmAttrs(m) + ">" +
+      '<a class="home-poster-tile' + ratedCls + '"' + hrefAttr + ' role="listitem"' + siteFilmAttrs(m) + ">" +
       '<div class="home-poster-tile-img">' + img + rating + "</div>" +
       '<div class="home-poster-tile-title">' + esc(m.title || "") + "</div>" +
       '<div class="home-poster-tile-year">' + (m.year ? esc(String(m.year)) : "—") + "</div>" +
-      "</button></div>"
+      "</a></div>"
     );
   }
 
