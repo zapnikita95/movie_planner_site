@@ -6,7 +6,7 @@
 
   var PAGE = 12;
   var PAGE_MORE = 24;
-  var FIRST_PAGE_BY_RAIL = { "series-mix": 8 };
+  var FIRST_PAGE_BY_RAIL = {};
   var RAIL_PREFETCH_ITEMS_AHEAD = 4;
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;

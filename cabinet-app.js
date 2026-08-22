@@ -10281,12 +10281,6 @@
             } else if (blockEl) {
               blockEl.classList.remove('hidden');
             }
-            if (!metaEl || !meta || !meta.total) {
-              if (metaEl) metaEl.textContent = '';
-              return;
-            }
-            const tail = meta.hasMore ? ' · листайте вправо' : '';
-            metaEl.textContent = meta.loaded + ' из ' + meta.total + tail;
           },
         });
         try { bindHomePosterRailDragScroll(container); } catch (_) {}
@@ -10666,40 +10660,34 @@
         return '<section class="home-dash-block" data-home-block="series">' + head
           + '<div class="home-section-body">' + renderHomePosterRailHtml(guestSeries, { vitrine: true }) + '</div></section>';
       }
-      const seed = _homeDashboardCache
-        ? (
-            Array.isArray(_homeDashboardCache.series_mix) && _homeDashboardCache.series_mix.length
-              ? _homeDashboardCache.series_mix
-              : (Array.isArray(_homeDashboardCache.series) ? _homeDashboardCache.series : [])
-          ).slice(0, 12)
-        : [];
-      if (seed.length) {
-        return '<section class="home-dash-block" data-home-block="series">' + head
-          + '<div class="home-section-body">' + renderHomePosterRailHtml(seed) + '</div></section>';
-      }
       return '<section class="home-dash-block" data-home-block="series">' + head
         + '<div class="home-section-body">'
         + '<div class="home-poster-rail home-rail--draggable" data-home-rail="series-mix" role="list"></div>'
-        + '<div class="home-rail-meta" data-home-rail-meta="series-mix" aria-live="polite"></div>'
         + '</div></section>';
     }
 
     if (blockId === 'premieres') {
-      const raw = typeof _homePremierePreview !== 'undefined' ? _homePremierePreview : [];
-      let items = raw.slice();
-      if (typeof filterPremieresUpcomingMsk === 'function') {
-        items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
-      }
-      items = items.slice(0, 12);
-      if (!items.length) {
+      if (isGuestCabinetPreview()) {
+        const raw = typeof _homePremierePreview !== 'undefined' ? _homePremierePreview : [];
+        let items = raw.slice();
+        if (typeof filterPremieresUpcomingMsk === 'function') {
+          items = filterPremieresUpcomingMsk(items, { guestFallback: true, keepUndated: true });
+        }
+        items = items.slice(0, 12);
+        if (!items.length) {
+          return '<section class="home-dash-block" data-home-block="premieres">' + head
+            + renderHomeBlockCtaHtml(
+              '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Смотреть премьеры</button> '
+              + '<button type="button" class="btn btn-small btn-secondary" data-plans-action="open-add-film">Добавить фильм</button>'
+            ) + '</section>';
+        }
         return '<section class="home-dash-block" data-home-block="premieres">' + head
-          + renderHomeBlockCtaHtml(
-            '<button type="button" class="btn btn-small btn-primary" data-home-show-section="premieres">Смотреть премьеры</button> '
-            + '<button type="button" class="btn btn-small btn-secondary" data-plans-action="open-add-film">Добавить фильм</button>'
-          ) + '</section>';
+          + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
       }
       return '<section class="home-dash-block" data-home-block="premieres">' + head
-        + '<div class="home-section-body">' + renderHomePremiereRailHtml(items) + '</div></section>';
+        + '<div class="home-section-body">'
+        + '<div class="home-prem-rail home-rail--draggable" data-home-rail="premieres" role="list"></div>'
+        + '</div></section>';
     }
     if (blockId === 'recent_ratings') {
       const seed = _homeDashboardCache && Array.isArray(_homeDashboardCache.recent_rated)
@@ -23597,8 +23585,92 @@
   }
 
   let _premieresData = [];
-  let _premieresPeriod = 'current_month';
+  let _premieresPeriod = 'upcoming';
   let _premieresSort = 'date';
+  let _premieresOffset = 0;
+  let _premieresHasMore = true;
+  let _premieresLoadInflight = null;
+  const PREMIERES_PAGE_SIZE = 24;
+
+  function fetchPremieresPage(offset, limit) {
+    if (!getToken()) {
+      return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
+        const all = (prem && prem.items) ? prem.items.slice() : [];
+        const page = all.slice(offset, offset + limit);
+        return {
+          items: page,
+          has_more: offset + page.length < all.length,
+          total: all.length,
+        };
+      });
+    }
+    return api(
+      '/api/site/premieres?period=upcoming&offset=' + encodeURIComponent(offset) + '&limit=' + encodeURIComponent(limit),
+      { timeoutMs: 32000 }
+    ).then((data) => ({
+      items: (data && data.success && Array.isArray(data.items)) ? data.items : [],
+      has_more: !!(data && data.has_more),
+      total: Number(data && data.total) || 0,
+    }));
+  }
+
+  function bindPremieresInfiniteScroll() {
+    const sec = document.getElementById('section-premieres');
+    const sentinel = document.getElementById('premieres-sentinel');
+    if (!sec || !sentinel || sec._premieresScrollBound) return;
+    sec._premieresScrollBound = true;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMorePremieres();
+    }, { root: null, rootMargin: '360px 0px', threshold: 0 });
+    io.observe(sentinel);
+    sec._premieresIo = io;
+  }
+
+  function loadMorePremieres(reset) {
+    if (reset) {
+      _premieresOffset = 0;
+      _premieresHasMore = true;
+      _premieresData = [];
+      _premieresLoadInflight = null;
+    }
+    if (_premieresLoadInflight) return _premieresLoadInflight;
+    if (!_premieresHasMore && !reset) return Promise.resolve();
+    const loading = document.getElementById('premieres-loading');
+    const errorEl = document.getElementById('premieres-error');
+    const grid = document.getElementById('premieres-grid');
+    if (reset) {
+      if (loading) loading.classList.remove('hidden');
+      if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
+      if (grid) grid.innerHTML = '';
+    }
+    _premieresLoadInflight = fetchPremieresPage(_premieresOffset, PREMIERES_PAGE_SIZE)
+      .then((page) => {
+        _premieresLoadInflight = null;
+        if (loading) loading.classList.add('hidden');
+        const batch = page.items || [];
+        if (!batch.length && !_premieresData.length) {
+          if (errorEl) {
+            errorEl.textContent = 'Ближайших премьер пока нет.';
+            errorEl.classList.remove('hidden');
+          }
+          _premieresHasMore = false;
+          return;
+        }
+        _premieresData = _premieresData.concat(batch);
+        _premieresOffset += batch.length;
+        _premieresHasMore = !!page.has_more;
+        renderPremieresList();
+      })
+      .catch(() => {
+        _premieresLoadInflight = null;
+        if (loading) loading.classList.add('hidden');
+        if (!_premieresData.length && errorEl) {
+          errorEl.textContent = 'Ошибка сети.';
+          errorEl.classList.remove('hidden');
+        }
+      });
+    return _premieresLoadInflight;
+  }
 
   function updatePremiereReminderState(kp, data, reminderSet) {
     [_premieresData, _homePremierePreview].forEach((arr) => {
@@ -23664,40 +23736,15 @@
   }
 
   function renderPremieresSection(forceReload) {
-    const periodSel = document.getElementById('premieres-period');
     const sortSel = document.getElementById('premieres-sort');
-    if (periodSel && periodSel.value) _premieresPeriod = periodSel.value;
-    if (periodSel && !periodSel._bound) {
-      periodSel._bound = true;
-      periodSel.addEventListener('change', () => { _premieresPeriod = periodSel.value; renderPremieresSection(true); });
-    }
+    _premieresPeriod = 'upcoming';
     if (sortSel && !sortSel._bound) {
       sortSel._bound = true;
       sortSel.addEventListener('change', () => { _premieresSort = sortSel.value; renderPremieresList(); });
     }
-    const loading = document.getElementById('premieres-loading');
-    const errorEl = document.getElementById('premieres-error');
-    const grid = document.getElementById('premieres-grid');
-    if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
+    bindPremieresInfiniteScroll();
     if (forceReload || !_premieresData.length) {
-      if (loading) loading.classList.remove('hidden');
-      if (grid) grid.innerHTML = '';
-      fetchPremieresForDisplay(_premieresPeriod).then((prem) => {
-        if (loading) loading.classList.add('hidden');
-        _premieresData = prem.items || [];
-        if (!_premieresData.length) {
-          if (errorEl) {
-            errorEl.textContent = _premieresRolloverActive
-              ? 'В этом календарном месяце премьер не осталось — откройте «Следующий месяц».'
-              : 'На этот период премьер нет.';
-            errorEl.classList.remove('hidden');
-          }
-        }
-        renderPremieresList();
-      }).catch(() => {
-        if (loading) loading.classList.add('hidden');
-        if (errorEl) { errorEl.textContent = 'Ошибка сети.'; errorEl.classList.remove('hidden'); }
-      });
+      loadMorePremieres(true);
     } else {
       renderPremieresList();
     }
@@ -23712,9 +23759,7 @@
     } else {
       items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
     }
-    if (_premieresPeriod === 'current_month' || _premieresPeriod === 'next_month') {
-      items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
-    }
+    items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
     if (!items.length) {
       grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
       return;
