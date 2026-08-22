@@ -1,6 +1,15 @@
 /* Yandex.Metrika — сайт movie-planner.ru (счётчик 110038199) */
 (function () {
   try {
+    if (
+      window.MpCookieConsent &&
+      typeof window.MpCookieConsent.allows === 'function' &&
+      !window.MpCookieConsent.allows('analytics')
+    ) {
+      return;
+    }
+  } catch (_) {}
+  try {
     // e2e / headless не должны портить отказы и «цели формы».
     // sessionStorage: SPA может снять ?e2e= при навигации на /home — skip сохраняем.
     var q = String(location.search || "");
