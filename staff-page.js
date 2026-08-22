@@ -3353,6 +3353,13 @@
         var filtered = block ? filterPersonFilmsClient(block.films || [], _staffFilterState, rk) : [];
         btn._importIds = filtered.map(function (f) { return String(f.kp_id || ''); }).filter(Boolean);
       });
+      try {
+        if (global.MpRsy && typeof global.MpRsy.mountStaffPage === 'function') {
+          global.MpRsy.mountStaffPage();
+        } else if (typeof global.mpLoadYandexRsy === 'function') {
+          global.mpLoadYandexRsy();
+        }
+      } catch (_rsy) {}
     }
 
     function mountStaffBody(article) {
