@@ -6,7 +6,9 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260822rsy1';
+  var BUILD = '20260822content1';
+  /** Layout disabled until RSY moderation passes — no DOM wrap, no content shift. */
+  var LAYOUT_ENABLED = false;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
 
@@ -81,7 +83,7 @@
   }
 
   function ensureRail(anchor, kind, blockId) {
-    if (!anchor || !blockId || !isDesktop()) return null;
+    if (!LAYOUT_ENABLED || !anchor || !blockId || !isDesktop()) return null;
     var parent = anchor.parentElement;
     if (!parent) return null;
 
@@ -131,7 +133,7 @@
   }
 
   function mountFilmPage() {
-    if (!allowsAds() || shouldSkip() || !isDesktop()) return;
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip() || !isDesktop()) return;
     var outer =
       document.querySelector('#section-film .film-page-outer') ||
       document.querySelector('main.film-page .film-page-outer') ||
@@ -141,7 +143,7 @@
   }
 
   function mountStaffPage() {
-    if (!allowsAds() || shouldSkip() || !isDesktop()) return;
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip() || !isDesktop()) return;
     var main = document.querySelector('main.staff-standalone-main');
     if (!main || !BLOCKS.staffDesktop) return;
     ensureRail(main, 'staff', BLOCKS.staffDesktop);
@@ -174,7 +176,8 @@
   }
 
   function boot() {
-    if (shouldSkip()) return;
+    teardownRails();
+    if (!LAYOUT_ENABLED || shouldSkip()) return;
     mountForRoute();
     if (!global._mpRsyResizeBound) {
       global._mpRsyResizeBound = true;
@@ -212,5 +215,9 @@
     } else {
       boot();
     }
+  } else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', teardownRails);
+  } else {
+    teardownRails();
   }
 })(typeof window !== 'undefined' ? window : this);
