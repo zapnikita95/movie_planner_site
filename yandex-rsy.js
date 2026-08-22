@@ -1,7 +1,7 @@
 /**
  * Yandex RSY — movie-planner.ru
- * Desktop: sticky sidebar on /f/ and /s/. Mobile: hidden (no floor overlay).
- * Loads only after cookie consent category "ads".
+ * RULE: .cursor/rules/yandex-rsy-ads.mdc — ads must NOT shift layout (no DOM wrap).
+ * Desktop: fixed slot or bottom only. LAYOUT_ENABLED=false until re-enabled safely.
  */
 (function (global) {
   'use strict';
