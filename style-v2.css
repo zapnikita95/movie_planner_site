@@ -5603,6 +5603,7 @@ main.film-page .eyebrow + .film-ext-ratings {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  align-items: flex-start;
   gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -5613,7 +5614,8 @@ main.film-page .eyebrow + .film-ext-ratings {
 }
 .similar-rail-card {
   flex: 0 0 92px;
-  min-width: 92px;
+  width: 92px;
+  min-width: 0;
   max-width: 108px;
   scroll-snap-align: start;
   background: transparent;
@@ -5623,19 +5625,34 @@ main.film-page .eyebrow + .film-ext-ratings {
   cursor: pointer;
   color: inherit;
   text-decoration: none;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 a.similar-rail-card:hover { color: inherit; text-decoration: none; }
 a.collections-film-card { color: inherit; text-decoration: none; }
 .similar-rail-poster {
   position: relative;
+  width: 100%;
+  flex: 0 0 auto;
   aspect-ratio: 2 / 3;
   border-radius: 10px;
   overflow: hidden;
   background: #0a0818;
   border: 1px solid rgba(255,255,255,0.08);
 }
-.similar-rail-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.similar-rail-poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .similar-reason-pill {
   position: absolute;
   left: 5px;
@@ -5669,6 +5686,8 @@ a.collections-film-card { color: inherit; text-decoration: none; }
 }
 .similar-rail-title {
   margin-top: 6px;
+  flex: 0 0 auto;
+  min-height: calc(2 * 1.25 * 11px);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.25;
@@ -5694,6 +5713,7 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   .similar-rail-title {
     margin-top: 8px;
     font-size: 12px;
+    min-height: calc(2 * 1.25 * 12px);
   }
   .film-page-similar-prev,
   .film-page-similar-next {
@@ -5724,6 +5744,7 @@ a.collections-film-card { color: inherit; text-decoration: none; }
 .film-page-similar-rail {
   flex: 1 1 auto;
   min-width: 0;
+  align-items: flex-start;
   justify-content: flex-start;
   /* Desktop: keep a usable scroll affordance even with grab-drag. */
   cursor: grab;
@@ -5857,8 +5878,8 @@ main.film-page .film-page-similar-section,
   }
 }
 
-/* iPhone SE / 320: exactly two full similar posters between arrows (no clip under ›). */
-@media (max-width: 374px) {
+/* iPhone SE / narrow mobile: two equal poster columns between arrows. */
+@media (max-width: 768px) {
   .film-page-similar-section {
     padding-left: 8px;
     padding-right: 8px;
@@ -5885,11 +5906,45 @@ main.film-page .film-page-similar-section,
     overflow-y: hidden;
   }
   .film-page-similar-rail .similar-rail-card {
-    /* Two cards + one gap fill the rail viewport exactly — never under ›. */
+    /* min-width:0 — intrinsic KP posters must not blow flex basis (Perfume vs Leon). */
     flex: 0 0 calc((100% - 10px) / 2) !important;
-    min-width: calc((100% - 10px) / 2) !important;
-    max-width: calc((100% - 10px) / 2) !important;
     width: calc((100% - 10px) / 2) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 10px) / 2) !important;
+  }
+}
+
+/* Legacy alias — keep ≤374 aligned with mobile rail above. */
+@media (max-width: 374px) {
+  .film-page-similar-section {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  main.film-page .film-page-similar-section,
+  #film-page-content .film-page-similar-section {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .film-page-similar-rail-wrap {
+    gap: 4px;
+  }
+  .film-page-similar-prev,
+  .film-page-similar-next {
+    flex: 0 0 26px;
+    flex-basis: 26px;
+    width: 26px;
+    font-size: 18px;
+  }
+  .film-page-similar-rail.similar-rail {
+    gap: 10px !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .film-page-similar-rail .similar-rail-card {
+    flex: 0 0 calc((100% - 10px) / 2) !important;
+    width: calc((100% - 10px) / 2) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 10px) / 2) !important;
   }
 }
 
