@@ -32,7 +32,8 @@
 
 .mp-cookie-card {
   position: relative;
-  max-width: 520px;
+  width: 100%;
+  max-width: min(100%, 520px);
   margin: 0 auto;
   background: var(--bg-surface, #131318);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -89,6 +90,7 @@
   color: #f9a8d4;
   text-decoration: underline;
   text-underline-offset: 2px;
+  white-space: nowrap;
 }
 
 .mp-cookie-lead a:hover {
@@ -270,6 +272,21 @@
 
 .mp-cookie-toggle input:focus-visible + .mp-cookie-toggle-track {
   box-shadow: 0 0 0 2px #09090b, 0 0 0 4px #d8b4fe;
+}
+
+@media (min-width: 600px) {
+  .mp-cookie-card {
+    max-width: 720px;
+  }
+
+  .mp-cookie-main {
+    padding: 16px 44px 16px 20px;
+  }
+
+  .mp-cookie-lead {
+    font-size: 14px;
+    line-height: 1.4;
+  }
 }
 
 @media (min-width: 520px) {
