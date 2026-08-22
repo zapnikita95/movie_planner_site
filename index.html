@@ -1575,7 +1575,6 @@
                     </div>
                 </div>
             </div>
-            <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
@@ -1585,6 +1584,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="trend"></span><span class="cabinet-nav-btn-text">В тренде</span></button>
                 <button type="button" class="cabinet-nav-btn mp-nav-tournament" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
+            <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
                 <span class="inbox-fab-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
                 <span class="inbox-fab-badge hidden" id="inbox-fab-badge" aria-hidden="true"></span>
@@ -1873,20 +1873,19 @@
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <div class="premieres-toolbar">
-                        <select id="premieres-period" class="premieres-period-select" aria-label="Период">
-                            <option value="prev_month">Прошедший месяц</option>
-                            <option value="current_month" selected>Текущий месяц</option>
-                            <option value="next_month">Следующий месяц</option>
+                        <select id="premieres-period" class="premieres-period-select hidden" aria-hidden="true" tabindex="-1">
+                            <option value="upcoming" selected>Ближайшие</option>
                         </select>
                         <select id="premieres-sort" class="premieres-sort-select" aria-label="Сортировка">
                             <option value="date">По дате</option>
                             <option value="genre">По жанру</option>
                         </select>
                     </div>
-                    <p class="cabinet-hint">Афиша кинопремьер России. Включайте напоминания, добавляйте релизы в базу и открывайте карточки фильмов прямо на сайте.</p>
+                    <p class="cabinet-hint">Ближайшие премьеры — от сегодня и дальше по календарю. Листайте вниз, список подгрузится.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
+                    <div id="premieres-sentinel" class="premieres-sentinel" aria-hidden="true"></div>
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading" data-buzz-boot="1">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
@@ -2847,7 +2846,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260822similarGrid1';
+        var V = '20260822homeRails2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

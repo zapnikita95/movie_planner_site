@@ -7147,6 +7147,12 @@ body.film-standalone-page .film-page-similar-section,
 .premieres-period-select, .premieres-sort-select { padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 13px; }
 .premieres-loading, .premieres-error { padding: 16px; color: var(--text-muted); font-size: 14px; }
 .premieres-error { color: #ff6b6b; }
+.premieres-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+#premieres-period { display: none !important; }
 .premieres-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -10476,10 +10482,7 @@ a.link-inline:hover {
   -webkit-line-clamp: 2;
 }
 .home-rail-meta {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 6px;
-  padding: 0 2px;
+  display: none !important;
 }
 .home-poster-rail.home-rail--draggable {
   cursor: grab;
