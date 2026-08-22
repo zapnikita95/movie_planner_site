@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260822cookieConsent2';
+  var BUILD = '20260822rsy1';
   var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
@@ -106,10 +106,13 @@
     if (allows('analytics')) {
       loadScriptOnce('/yandex-metrika.js?v=' + BUILD, '__mpMetrikaLoadRequested');
     }
-    if (allows('ads') && typeof global.mpLoadYandexRsy === 'function') {
-      try {
-        global.mpLoadYandexRsy();
-      } catch (_e) {}
+    if (allows('ads')) {
+      loadScriptOnce('/yandex-rsy.js?v=' + BUILD, '__mpRsyLoadRequested');
+      if (typeof global.mpLoadYandexRsy === 'function') {
+        try {
+          global.mpLoadYandexRsy();
+        } catch (_e) {}
+      }
     }
   }
 

@@ -4715,6 +4715,13 @@
           global.MpPublicPromo.mountAfterHero(similarRoot);
         }
       } catch (_promoEnd) {}
+      try {
+        if (global.MpRsy && typeof global.MpRsy.mountFilmPage === 'function') {
+          global.MpRsy.mountFilmPage();
+        } else if (typeof global.mpLoadYandexRsy === 'function') {
+          global.mpLoadYandexRsy();
+        }
+      } catch (_rsy) {}
   }
 
   function bootstrap(opts) {
