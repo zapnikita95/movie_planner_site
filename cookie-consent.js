@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260822rsy1';
+  var BUILD = '20260822content1';
   var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
@@ -108,11 +108,6 @@
     }
     if (allows('ads')) {
       loadScriptOnce('/yandex-rsy.js?v=' + BUILD, '__mpRsyLoadRequested');
-      if (typeof global.mpLoadYandexRsy === 'function') {
-        try {
-          global.mpLoadYandexRsy();
-        } catch (_e) {}
-      }
     }
   }
 
