@@ -6,6 +6,12 @@ body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav {
   visibility: hidden !important;
 }
 
+body.guest-cabinet-preview #landing-root-nav,
+html.mp-guest-cabinet-boot #landing-root-nav {
+  display: flex !important;
+  visibility: visible !important;
+}
+
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn {
   color: var(--text-muted, #b4b4be);
   transition: color 0.15s ease;
