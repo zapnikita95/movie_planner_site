@@ -1,69 +1,65 @@
-/* Yandex RSY — desktop sidebar on /f/ and /s/ */
-
-.mp-page-with-rsy {
-  display: block;
-  width: 100%;
-}
-
-@media (min-width: 1280px) {
-  #section-film .mp-page-with-rsy,
-  body.film-standalone-page .mp-page-with-rsy,
-  body.staff-standalone-page .mp-page-with-rsy {
-    display: flex;
-    align-items: flex-start;
-    gap: 24px;
-    width: 100%;
-    max-width: 1520px;
-    margin: 0 auto;
-    padding: 0 clamp(12px, 2vw, 24px);
-    box-sizing: border-box;
-  }
-
-  #section-film .mp-page-with-rsy .film-page-outer,
-  body.film-standalone-page .mp-page-with-rsy .film-page-outer {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 1180px;
-    margin: 0;
-    padding: 0;
-  }
-
-  body.staff-standalone-page .mp-page-with-rsy > main.staff-standalone-main {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 1180px;
-    margin: 0;
-  }
-
-  .mp-rsy-rail {
-    flex: 0 0 300px;
-    width: 300px;
-    position: sticky;
-    top: 96px;
-    align-self: flex-start;
-    min-height: 120px;
-    z-index: 1;
-  }
-
-  .mp-rsy-slot {
-    width: 100%;
-    min-height: 120px;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-}
-
-@media (max-width: 1279px) {
-  .mp-rsy-rail {
-    display: none !important;
-  }
-
-  .mp-page-with-rsy {
-    display: block;
-  }
-
-  .mp-page-with-rsy .film-page-outer,
-  .mp-page-with-rsy > main.staff-standalone-main {
-    max-width: none;
-  }
-}
+/* Yandex RSY — fixed sidebar + inline slots. Never wrap .film-page-outer. */
+
+.mp-rsy-fixed-rail {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  top: 96px;
+  width: 300px;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.mp-rsy-fixed-rail[hidden] {
+  display: none !important;
+}
+
+.mp-rsy-fixed-rail .mp-rsy-slot {
+  pointer-events: auto;
+  width: 100%;
+  min-height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mp-rsy-inline {
+  width: 100%;
+  max-width: 1180px;
+  margin: 20px auto 0;
+  padding: 0 clamp(12px, 2vw, 24px);
+  box-sizing: border-box;
+}
+
+.mp-rsy-inline .mp-rsy-slot {
+  width: 100%;
+  min-height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mp-rsy-inline--after_similar {
+  margin-top: 16px;
+}
+
+.mp-rsy-inline--after_filmography {
+  margin-top: 24px;
+}
+
+.mp-rsy-inline--article {
+  margin-top: 28px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 1519px) {
+  .mp-rsy-fixed-rail {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1279px) {
+  .mp-rsy-inline {
+    padding: 0 12px;
+  }
+}
+

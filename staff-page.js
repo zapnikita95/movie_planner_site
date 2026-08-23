@@ -3349,6 +3349,11 @@
           global.MpPublicPromo.mountAfterHero(root);
         }
       } catch (_e) {}
+      try {
+        if (global.MpRsy && typeof global.MpRsy.mountStaffAfterFilmography === 'function') {
+          global.MpRsy.mountStaffAfterFilmography();
+        }
+      } catch (_rsyStaff) {}
       var boot = readMpRouteBoot();
       var bootFacts = null;
       if (data && (data.web_facts || data.kp_facts)) {
@@ -3690,6 +3695,11 @@
       renderStaffShell(personId);
     }
     loadStaff(personId);
+    try {
+      if (global.MpRsy && typeof global.MpRsy.mountStaffPage === 'function') {
+        global.MpRsy.mountStaffPage();
+      }
+    } catch (_rsyStaffBoot) {}
     try {
       if (global.MpMonetization && typeof global.MpMonetization.initStaffPage === 'function') {
         global.MpMonetization.initStaffPage({ personId: personId });
