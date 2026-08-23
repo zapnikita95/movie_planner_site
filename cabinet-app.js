@@ -526,6 +526,29 @@
     return film;
   }
 
+  /** Keep lite/shell/DOM plot when /api/site/film returns empty description. */
+  function mergeHeroDescriptionFromContext(film, kp, root) {
+    if (!film) return film;
+    const kpNorm = String(kp || film.kp_id || '').replace(/\D/g, '');
+    if (!kpNorm) return film;
+    if (pickFilmDescription(film) && !isTruncatedFilmDescription(pickFilmDescription(film))) {
+      return film;
+    }
+    const fromDom = root ? currentFilmDescriptionFromDom(root) : '';
+    const fromCache = _filmHeroDescCache.get(kpNorm) || '';
+    const merged = pickBestFilmDescriptionText(
+      pickFilmDescription(film),
+      fromDom,
+      fromCache,
+      pickFilmDescription(filmFromRouteBoot(kpNorm))
+    );
+    if (merged) {
+      film.description = merged;
+      rememberFilmHeroDescription(kpNorm, merged);
+    }
+    return film;
+  }
+
   function currentFilmDescriptionFromDom(root) {
     if (!root) return '';
     const wrap = root.querySelector('#film-desc-wrap');
@@ -604,6 +627,8 @@
     const kp = String(film.kp_id || '').replace(/\D/g, '');
     if (!kp) return Promise.resolve(film);
 
+    mergeHeroDescriptionFromContext(film, kp, root);
+
     // Lite/API settled with no plot — clear sticky remake glue, skip boot/DOM revive.
     if (film.__descSettled && !pickFilmDescription(film)) {
       _filmHeroDescCache.delete(kp);
@@ -626,6 +651,13 @@
       !descriptionLooksLatinOnly(settled)
     ) {
       applyFilmDescriptionToHero(root, film);
+      if (!pickFilmDescription(film)) {
+        return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+          rememberFilmHeroDescription(kp, pickFilmDescription(enriched));
+          applyFilmDescriptionToHero(root, enriched);
+          return enriched;
+        }).catch(function () { return film; });
+      }
       return Promise.resolve(film);
     }
 
@@ -6347,6 +6379,8 @@
       shortEl.textContent = '';
       plotEl.textContent = '';
       btn.classList.add('hidden');
+      fullEl.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
       return;
     }
     wrap.classList.remove('hidden');
@@ -6424,7 +6458,15 @@
     }
     factsEl.innerHTML = filmDescFactsInlineHtml(payload);
     wrap.setAttribute('data-has-facts', '1');
-    updateFilmDescCollapseState(wrap, filmDescPlotText(wrap), true);
+    const plotForCollapse = filmDescPlotText(wrap)
+      || normalizeFilmDescriptionText(wrap.getAttribute('data-plot-text') || '');
+    updateFilmDescCollapseState(wrap, plotForCollapse, true);
+    const btn = wrap.querySelector('.film-desc-more-btn');
+    const shortEl = wrap.querySelector('.film-desc-short');
+    if (btn && shortEl && !plotForCollapse && btn.classList.contains('hidden') === false) {
+      btn.classList.add('hidden');
+      shortEl.classList.add('hidden');
+    }
   }
 
   function withFilmReviewUtm(url, channelTitle, medium) {
@@ -10588,7 +10630,12 @@
       + buttonsHtml + '</div></div>';
   }
 
+  function homeRailDragActiveFromEvent(e) {
+    return !!(e && e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging'));
+  }
+
   function homeDashboardFilmTileFromEvent(e) {
+    if (homeRailDragActiveFromEvent(e)) return null;
     const tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
     if (!tile || e.target.closest('[data-stop-card-click]')) return null;
     const kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || '').replace(/\D/g, '')
@@ -10600,16 +10647,20 @@
 
   function openHomeDashboardFilmTile(kp, fid, tile) {
     if (tile) stashFilmShellFromCard(tile);
-    if (isCabinetActive()) {
-      openFilmNav(kp, fid);
-      return;
-    }
+    try {
+      if (isCabinetActive()) {
+        openFilmNav(kp, fid);
+        return;
+      }
+    } catch (_) {}
     const href = filmNavHref(kp);
     if (href) {
-      window.location.href = href;
+      try { window.location.href = href; } catch (_) { window.location.assign(href); }
       return;
     }
-    if (fid && fid !== 'null') openFilmPageFromLegacyPath(Number(fid));
+    if (fid && fid !== 'null') {
+      try { openFilmPageFromLegacyPath(Number(fid)); } catch (_) {}
+    }
   }
 
   function bindHomeDashboardFilmNavOnce() {
@@ -15036,7 +15087,10 @@
     }
     const heroRoot = root.closest('#film-page-content, #section-film, .movie-page') || document.getElementById('film-page-content');
     const kpForFacts = numericKpFilmId((film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot));
-    if (kpForFacts) loadFilmDescFacts(kpForFacts, heroRoot);
+    if (kpForFacts && heroRoot) {
+      Promise.resolve(ensureFilmHeroDescription(heroRoot, film || { kp_id: kpForFacts }))
+        .finally(function () { loadFilmDescFacts(kpForFacts, heroRoot); });
+    }
     if (seriesToggle && seriesPanel && film && film.is_series) {
       seriesToggle.addEventListener('click', function (e) {
         e.preventDefault();
@@ -24767,6 +24821,7 @@
     window.__mpWriteOnboardReturnFromLocation = writeOnboardReturnFromLocation;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
+    window.openFilmNav = openFilmNav;
     window.stashFilmShellFromCard = stashFilmShellFromCard;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
     window.openFilmTagView = openFilmTagView;

@@ -3640,23 +3640,33 @@
     <script>
       /* Home rail clicks before cabinet-app.js finishes loading (race on /home). */
       (function () {
-        if (window._mpHomeDashFilmNavBound) return;
-        window._mpHomeDashFilmNavBound = true;
+        if (window._mpHomeDashFilmNavEarly) return;
+        window._mpHomeDashFilmNavEarly = true;
+        function mpHomeTileDragActive(e) {
+          var rail = e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging');
+          return !!rail;
+        }
+        function mpOpenHomeFilmTile(kp) {
+          if (!kp) return;
+          if (typeof window.openFilmPageByKp === 'function') {
+            try { window.openFilmPageByKp(kp); return; } catch (_a) {}
+          }
+          if (typeof window.openFilmNav === 'function') {
+            try { window.openFilmNav(kp); return; } catch (_b) {}
+          }
+          try { window.location.href = '/f/' + encodeURIComponent(kp); } catch (_c) {}
+        }
         document.addEventListener('click', function (e) {
+          if (mpHomeTileDragActive(e)) return;
           var tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
           if (!tile || e.target.closest('[data-stop-card-click]')) return;
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
           var kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || '').replace(/\D/g, '')
             || String((tile.getAttribute('href') || '').replace(/^\/f\//, '')).replace(/\D/g, '');
           if (!kp) return;
-          if (tile.tagName === 'A' && tile.getAttribute('href') && !e.defaultPrevented) return;
           e.preventDefault();
           e.stopPropagation();
-          if (typeof window.openFilmNav === 'function') {
-            window.openFilmNav(kp);
-            return;
-          }
-          try { window.location.href = '/f/' + encodeURIComponent(kp); } catch (_e) {}
+          mpOpenHomeFilmTile(kp);
         }, true);
       })();
     </script>
@@ -3694,7 +3704,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestNav4fix1';
+        var V = '20260823homeFilmFix1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
