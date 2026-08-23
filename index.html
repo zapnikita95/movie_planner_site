@@ -124,7 +124,7 @@
           if (hasStoredSiteSession()) return;
           var l = document.createElement('link');
           l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestMobNav4';
+          l.href = '/landing-hero-b.css?v=20260823guestScrollSafari1';
           document.head.appendChild(l);
         } catch (_) {}
       })();
@@ -3694,7 +3694,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823nytCentury2';
+        var V = '20260823guestScrollSafari1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -4077,31 +4077,50 @@
         var userActive = false;
         var speed = 0.42;
         var dragging = false;
+        var dragPending = false;
+        var dragAxisLocked = false;
         var moved = false;
         var dragStartX = 0;
+        var dragStartY = 0;
         var dragStartScroll = 0;
 
         viewport.addEventListener('pointerdown', function (e) {
           if (e.button !== 0) return;
           ensureClones();
-          dragging = true;
+          dragPending = true;
+          dragging = false;
+          dragAxisLocked = false;
           moved = false;
-          userActive = true;
           dragStartX = e.clientX;
+          dragStartY = e.clientY;
           dragStartScroll = viewport.scrollLeft;
-          viewport.classList.add('is-dragging');
-          try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
         }, { capture: true });
         viewport.addEventListener('pointermove', function (e) {
-          if (!dragging) return;
+          if (!dragPending && !dragging) return;
           var dx = e.clientX - dragStartX;
+          var dy = e.clientY - dragStartY;
+          if (!dragAxisLocked) {
+            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+            if (Math.abs(dy) >= Math.abs(dx)) {
+              dragPending = false;
+              return;
+            }
+            dragAxisLocked = true;
+            dragging = true;
+            userActive = true;
+            viewport.classList.add('is-dragging');
+            try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          if (!dragging) return;
           if (Math.abs(dx) > 3) {
             moved = true;
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
           }
           viewport.scrollLeft = dragStartScroll - dx;
         }, { passive: false });
         viewport.addEventListener('pointerup', function (e) {
+          dragPending = false;
+          dragAxisLocked = false;
           if (!dragging) return;
           dragging = false;
           viewport.classList.remove('is-dragging');
@@ -4109,6 +4128,8 @@
           setTimeout(function () { userActive = false; }, 1800);
         });
         viewport.addEventListener('pointercancel', function () {
+          dragPending = false;
+          dragAxisLocked = false;
           dragging = false;
           viewport.classList.remove('is-dragging');
           setTimeout(function () { userActive = false; }, 1800);
