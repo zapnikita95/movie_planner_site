@@ -14,11 +14,12 @@ html.mp-guest-cabinet-boot #landing-root-nav {
 
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn {
   color: var(--text-muted, #b4b4be);
-  transition: color 0.15s ease;
+  background: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn:hover,
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn:focus-visible {
-  color: var(--text-primary, #f4f4f5);
+  color: #ff7eb6;
 }
 
 /* Demo B — полноэкранная стена, кадры, карусели. Инлайн в демо. */
