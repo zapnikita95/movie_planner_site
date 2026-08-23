@@ -164,8 +164,8 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
     z-index: 302;
   }
 
-  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/home"],
-  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/watchlist"] {
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href$="/home"],
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href$="/watchlist"] {
     display: inline-flex !important;
   }
 
@@ -227,7 +227,7 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   }
 
   body.landing-guest-home #landing-root-nav .cabinet-nav-btn,
-  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn:not([href="/home"]):not([href="/watchlist"]) {
+  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn:not([href$="/home"]):not([href$="/watchlist"]) {
     flex: unset !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -268,10 +268,10 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   }
 
   /* Гость без авторизации: 4 таба — Планы / Смотреть / Премьеры / В тренде */
-  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/home"],
-  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/watchlist"],
-  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href="/home"],
-  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href="/watchlist"] {
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/home"],
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"],
+  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/home"],
+  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"] {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
