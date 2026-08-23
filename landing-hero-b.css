@@ -1,7 +1,7 @@
 /* Concept B — ONLY guest unauthenticated home (/) */
 html.mp-session #landing-root-nav,
 html.mp-auth-boot #landing-root-nav,
-body.in-cabinet #landing-root-nav {
+body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav {
   display: none !important;
   visibility: hidden !important;
 }
@@ -33,57 +33,11 @@ body.landing-guest-home .content-wrapper {
 
 body.landing-guest-home #site-header {
   z-index: 300;
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
 }
 
 body.landing-guest-home #landing-root-nav {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
-}
-
-body.landing-guest-home .content-wrapper > #site-header,
-body.landing-guest-home .content-wrapper > #landing-root-nav {
-  background: #09090b !important;
-}
-
-body.landing-guest-home #site-header,
-body.landing-guest-home #site-header .header-content {
-  background: #09090b !important;
-  border: none !important;
-  border-bottom: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
-}
-
-body.landing-guest-home #site-header::after,
-body.landing-guest-home #site-header::before,
-body.landing-guest-home .header-content::before,
-body.landing-guest-home .header-content::after,
-body.landing-guest-home #header-search::before,
-body.landing-guest-home #header-search::after,
-body.landing-guest-home .header-search::before,
-body.landing-guest-home .header-search::after {
-  display: none !important;
-  content: none !important;
-}
-
-body.landing-guest-home #header-search,
-body.landing-guest-home .header-search {
-  border: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-}
-
-body.landing-guest-home .header-search-input {
-  border: none !important;
-  box-shadow: none !important;
 }
 
 /* Десктоп: горизонтальное меню под шапкой, без полоски */
@@ -759,12 +713,13 @@ body.landing-guest-home #landing > section.landing-tv-section {
   max-width: 1280px;
   margin-left: auto;
   margin-right: auto;
-  text-align: left;
+  text-align: center;
 }
 
-body.landing-guest-home #landing > section.landing-articles-section .section-title {
+body.landing-guest-home #landing > section.landing-articles-section .section-title,
+body.landing-guest-home #landing > section.landing-frame--faq .section-title {
   color: var(--text-primary);
-  text-align: left !important;
+  text-align: center !important;
   margin-bottom: 20px;
 }
 
@@ -984,44 +939,6 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
   body.landing-guest-home {
     --landing-guest-chrome-top: calc(100px + env(safe-area-inset-top, 0px));
     --landing-guest-chrome-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* Шапка: не ломать flex-wrap (logo + войти + поиск), перебить style-v2 #0c0c12 */
-  html.mp-landing-boot body.landing-guest-home .header-content,
-  body.landing-guest-home #site-header .header-content {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    grid-template-columns: unset !important;
-    align-items: center !important;
-    gap: 8px 12px !important;
-    min-height: 0 !important;
-    background: #09090b !important;
-  }
-
-  html.mp-landing-boot body.landing-guest-home .logo,
-  body.landing-guest-home .logo {
-    grid-column: unset !important;
-    grid-row: unset !important;
-    flex: 0 0 auto !important;
-  }
-
-  html.mp-landing-boot body.landing-guest-home .header-buttons,
-  body.landing-guest-home .header-buttons {
-    grid-column: unset !important;
-    grid-row: unset !important;
-    flex: 0 0 auto !important;
-  }
-
-  html.mp-landing-boot body.landing-guest-home #header-search,
-  body.landing-guest-home #header-search {
-    order: 3 !important;
-    flex: 1 1 100% !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    grid-column: unset !important;
-    grid-row: unset !important;
-    margin: 0 !important;
   }
 
   body.landing-guest-home .landing-poster-wall-rot {

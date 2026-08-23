@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <style id="landing-demo-critical">@media (max-width:768px){html.mp-landing-boot body.landing-guest-home .header-content{display:flex!important;flex-wrap:wrap!important;grid-template-columns:unset!important;align-items:center!important;gap:8px 12px!important;min-height:0!important}html.mp-landing-boot body.landing-guest-home .logo{grid-column:unset!important;grid-row:unset!important;flex:0 0 auto}html.mp-landing-boot body.landing-guest-home .header-buttons{grid-column:unset!important;grid-row:unset!important;flex:0 0 auto}html.mp-landing-boot body.landing-guest-home #header-search{order:3!important;flex:1 1 100%!important;width:100%!important;max-width:none!important;min-width:0!important;grid-column:unset!important;grid-row:unset!important;margin:0!important}}@media (min-width:769px){html.mp-landing-boot body.landing-guest-home .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,min(560px,40vw)) minmax(0,1fr)!important;flex-wrap:nowrap!important;align-items:center!important;gap:10px 14px!important;min-height:52px!important}html.mp-landing-boot body.landing-guest-home .logo{grid-column:1!important;grid-row:1!important}html.mp-landing-boot body.landing-guest-home .header-buttons{grid-column:3!important;grid-row:1!important}html.mp-landing-boot body.landing-guest-home #header-search{grid-column:2!important;grid-row:1!important;order:unset!important;flex:unset!important;width:100%!important;max-width:560px!important;margin:0 auto!important}}body.landing-guest-home #site-header{margin:0!important;padding-bottom:6px!important}body.landing-guest-home #landing-root-nav{margin:0!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))!important}html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet #landing-root-nav{display:none!important}#site-header,#site-header .header-content{background:#09090b!important}body.landing-guest-home #site-header,#site-header .header-content,#landing-root-nav{background:#09090b!important}</style>
+    <style id="landing-demo-critical">html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important}#site-header,#site-header .header-content{background:#09090b!important}body.landing-guest-home #site-header,#site-header .header-content,#landing-root-nav{background:#09090b!important}</style>
     <meta charset="UTF-8">
     <script>
       (function () {
@@ -122,10 +122,9 @@
             } catch (_) { return false; }
           }
           if (hasStoredSiteSession()) return;
-          document.documentElement.classList.add('mp-landing-boot');
           var l = document.createElement('link');
           l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestMobileHero2';
+          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix1';
           document.head.appendChild(l);
         } catch (_) {}
       })();
@@ -196,8 +195,8 @@
       html.mp-search-boot #cabinet-readonly.hidden{display:none!important}
       html.mp-guest-cabinet-boot #landing{display:none!important}
       html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
-      html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important}
-      html.mp-auth-boot #landing-root-nav,html.mp-session #landing-root-nav,body.in-cabinet #landing-root-nav{display:none!important;visibility:hidden!important}
+      html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important;visibility:visible!important}
+      html.mp-auth-boot #landing-root-nav,html.mp-session #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important;visibility:hidden!important}
       html:not(.mp-session) #landing-root-nav .mp-nav-tournament,html:not(.mp-session) #landing-root-nav a[href="/tournament"]{display:none!important}
       #section-buzz.buzz-is-loading #buzz-seo-footer,#section-buzz.buzz-is-loading #buzz-digest,#buzz-seo-footer[hidden],#buzz-digest[hidden]{display:none!important}
       html.mp-auth-boot body.in-cabinet #header-search{display:block!important}
@@ -2429,7 +2428,6 @@
                     </div>
                 </div>
             </div>
-            <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="home"><span class="cabinet-nav-btn-emoji" data-mp-icon="home"></span><span class="cabinet-nav-btn-text">Главная</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
@@ -2439,6 +2437,7 @@
                 <button type="button" class="cabinet-nav-btn" data-section="buzz"><span class="cabinet-nav-btn-emoji" data-mp-icon="trend"></span><span class="cabinet-nav-btn-text">В тренде</span></button>
                 <button type="button" class="cabinet-nav-btn mp-nav-tournament" data-section="tournament"><span class="cabinet-nav-btn-emoji" data-mp-icon="tournament"></span><span class="cabinet-nav-btn-text">Турнир</span></button>
             </div>
+            <div class="cabinet-home-stats hidden" id="cabinet-home-stats" aria-label="Статистика базы"></div>
             <button type="button" class="inbox-fab" id="inbox-fab" aria-label="Уведомления" title="Уведомления">
                 <span class="inbox-fab-icon mp-icon" data-mp-icon="inbox" aria-hidden="true"></span>
                 <span class="inbox-fab-badge hidden" id="inbox-fab-badge" aria-hidden="true"></span>
@@ -3723,7 +3722,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestMobileHero2';
+        var V = '20260823guestCabinetFix1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

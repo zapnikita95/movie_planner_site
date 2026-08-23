@@ -7181,6 +7181,7 @@ body.film-standalone-page .film-page-similar-section,
   body.in-cabinet #section-premieres .premiere-poster-tile:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    z-index: 90;
   }
 }
 .premiere-poster-tile {
@@ -7193,7 +7194,10 @@ body.film-standalone-page .film-page-similar-section,
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   position: relative;
 }
-.premiere-poster-tile:hover { transform: scale(0.98); }
+.premiere-poster-tile:hover {
+  transform: scale(0.98);
+  z-index: 90;
+}
 .premiere-poster-media { position: relative; }
 .premiere-poster-tile-img {
   width: 100%;
@@ -7203,6 +7207,13 @@ body.film-standalone-page .film-page-similar-section,
   display: block;
 }
 .premiere-poster-tile-img--ph { background: rgba(255,255,255,0.06); }
+
+/* SSR /premieres crawl block — только для ботов без JS; в кабинете скрываем */
+body.in-cabinet .seo-premieres-crawl,
+body.guest-cabinet-preview .seo-premieres-crawl {
+  display: none !important;
+}
+
 .premiere-poster-date-pill {
   position: absolute;
   left: 5px;
@@ -10302,7 +10313,7 @@ a.link-inline:hover {
   position: absolute;
   left: 62px;
   bottom: calc(100% - 4px);
-  z-index: 80;
+  z-index: 200;
   width: min(360px, calc(100vw - 44px));
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);
