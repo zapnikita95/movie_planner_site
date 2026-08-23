@@ -633,7 +633,11 @@
     if (film.__descSettled && !pickFilmDescription(film)) {
       _filmHeroDescCache.delete(kp);
       applyFilmDescriptionToHero(root, film);
-      return Promise.resolve(film);
+      return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+        rememberFilmHeroDescription(kp, pickFilmDescription(enriched));
+        applyFilmDescriptionToHero(root, enriched);
+        return enriched;
+      }).catch(function () { return film; });
     }
 
     mergeBootDescription(film, kp);
@@ -1473,7 +1477,7 @@
 
   function mapLiteFilmForHero(lite, kp) {
     const d = lite || {};
-    const desc = String(d.description || '').trim();
+    const desc = pickFilmDescription({ description: d.description, plot: d.plot, shortDescription: d.shortDescription });
     return {
       kp_id: String(kp || d.kp_id || '').replace(/\D/g, ''),
       title: d.title || 'Фильм',
@@ -1485,7 +1489,6 @@
       is_series: !!d.is_series,
       watched: !!d.watched,
       in_library: !!d.in_library,
-      // null/empty lite description is NOT "settled empty" — still fetch public plot.
       __descSettled: !!desc,
     };
   }
@@ -1500,6 +1503,7 @@
     if (!kp) return;
     let title = card.getAttribute('data-title') || '';
     let poster = card.getAttribute('data-poster') || '';
+    let description = card.getAttribute('data-description') || '';
     if (!title) {
       const tile = card.closest(
         '.buzz-tile, .buzz-feed-row, .home-poster-tile, .film-card-v2, [data-kp-id], [data-kp]'
@@ -1526,6 +1530,7 @@
         poster: poster,
         year: card.getAttribute('data-year') || '',
         is_series: card.getAttribute('data-is-series') === '1',
+        description: description || '',
       }));
     } catch (_) {}
   }
@@ -6467,6 +6472,11 @@
       btn.classList.add('hidden');
       shortEl.classList.add('hidden');
     }
+    const kp = String(wrap.getAttribute('data-kp') || '').replace(/\D/g, '');
+    const cachedDesc = kp ? (_filmHeroDescCache.get(kp) || '') : '';
+    if (!plotForCollapse && cachedDesc) {
+      updateFilmDescCollapseState(wrap, cachedDesc, true);
+    }
   }
 
   function withFilmReviewUtm(url, channelTitle, medium) {
@@ -10244,7 +10254,6 @@
         dragging = false;
         startX = e.clientX;
         startScroll = rail.scrollLeft;
-        try { rail.setPointerCapture(e.pointerId); } catch (_) {}
       });
       rail.addEventListener('pointermove', (e) => {
         if (!active) return;
@@ -10252,6 +10261,7 @@
         if (!dragging && Math.abs(dx) > THRESH) {
           dragging = true;
           rail.classList.add('is-dragging');
+          try { rail.setPointerCapture(e.pointerId); } catch (_) {}
         }
         if (!dragging) return;
         e.preventDefault();
@@ -10352,8 +10362,14 @@
     const kpId = String(card.getAttribute('data-kp-id') || card.getAttribute('data-kp') || '').trim();
     const filmId = String(card.getAttribute('data-film-id') || '').trim();
     if (isCabinetActive()) {
-      openFilmNav(kpId, filmId);
-      return;
+      if (kpId.replace(/\D/g, '')) {
+        openFilmWithFallback(kpId);
+        return;
+      }
+      if (filmId && filmId !== 'null') {
+        openFilmPageFromLegacyPath(Number(filmId));
+        return;
+      }
     }
     const href = filmNavHref(kpId);
     if (href) {
@@ -10631,6 +10647,38 @@
       + buttonsHtml + '</div></div>';
   }
 
+  function openFilmWithFallback(kpId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return;
+    const want = '/f/' + kp;
+    try {
+      if (typeof openFilmPageByKp === 'function') openFilmPageByKp(kp);
+      else if (typeof openFilmNav === 'function') openFilmNav(kp);
+      else window.location.assign(want);
+    } catch (_) {
+      try { window.location.assign(want); } catch (_2) {}
+    }
+    setTimeout(function () {
+      try {
+        if (window.location.pathname !== want) window.location.assign(want);
+      } catch (_3) {}
+    }, 220);
+  }
+
+  function homeDashboardFilmTileFromClickTarget(e) {
+    if (!e || !e.target) return null;
+    let tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+    if (!tile && e.target.closest('.home-poster-rail, .home-prem-rail, .home-rail--draggable')) {
+      const cx = typeof e.clientX === 'number' ? e.clientX : 0;
+      const cy = typeof e.clientY === 'number' ? e.clientY : 0;
+      if (cx || cy) {
+        const under = document.elementFromPoint(cx, cy);
+        if (under) tile = under.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+      }
+    }
+    return tile;
+  }
+
   function homeRailDragActiveFromEvent(e) {
     if (mpHomeRailClickSuppressed()) return true;
     const rail = e && e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging');
@@ -10643,7 +10691,7 @@
 
   function homeDashboardFilmTileFromEvent(e) {
     if (homeRailDragActiveFromEvent(e)) return null;
-    const tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+    const tile = homeDashboardFilmTileFromClickTarget(e);
     if (!tile || e.target.closest('[data-stop-card-click]')) return null;
     const kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || '').replace(/\D/g, '')
       || String((tile.getAttribute('href') || '').replace(/^\/f\//, '')).replace(/\D/g, '');
@@ -10654,9 +10702,10 @@
 
   function openHomeDashboardFilmTile(kp, fid, tile) {
     if (tile) stashFilmShellFromCard(tile);
+    const kpNorm = String(kp || '').replace(/\D/g, '');
     try {
-      if (isCabinetActive()) {
-        openFilmNav(kp, fid);
+      if (isCabinetActive() && kpNorm) {
+        openFilmWithFallback(kpNorm);
         return;
       }
     } catch (_) {}
@@ -15095,8 +15144,13 @@
     const heroRoot = root.closest('#film-page-content, #section-film, .movie-page') || document.getElementById('film-page-content');
     const kpForFacts = numericKpFilmId((film && film.kp_id) || opts.kpId || filmToolbarKpFromRoot(heroRoot));
     if (kpForFacts && heroRoot) {
-      Promise.resolve(ensureFilmHeroDescription(heroRoot, film || { kp_id: kpForFacts }))
-        .finally(function () { loadFilmDescFacts(kpForFacts, heroRoot); });
+      ensureFilmHeroDescription(heroRoot, film || { kp_id: kpForFacts })
+        .then(function (enriched) {
+          return loadFilmDescFacts(kpForFacts, heroRoot).then(function () { return enriched; });
+        })
+        .then(function (enriched) {
+          if (enriched) applyFilmDescriptionToHero(heroRoot, enriched);
+        });
     }
     if (seriesToggle && seriesPanel && film && film.is_series) {
       seriesToggle.addEventListener('click', function (e) {
@@ -23882,7 +23936,8 @@
         description: it.description || '',
         emoji: '🎭',
       });
-      const navAttrs = homeDashNavAttrs(it);
+      const navAttrs = homeDashNavAttrs(it)
+        + (it.description ? (' data-description="' + escapeHtml(String(it.description).slice(0, 500)) + '"') : '');
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
@@ -24850,6 +24905,7 @@
     window.__mpWriteOnboardReturnFromLocation = writeOnboardReturnFromLocation;
     window.restoreDocumentTitle = restoreDocumentTitle;
     window.openFilmPageByKp = openFilmPageByKp;
+    window.openFilmWithFallback = openFilmWithFallback;
     window.openFilmNav = openFilmNav;
     window.stashFilmShellFromCard = stashFilmShellFromCard;
     window.openFilmPageFromLegacyPath = openFilmPageFromLegacyPath;
