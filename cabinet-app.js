@@ -20511,13 +20511,22 @@
     function paintWtwCollectionsPanel() {
       const panel = root.querySelector('#site-wtw-collections-panel');
       if (!panel || siteWtwScope !== 'collections') return;
-      try {
-        if (siteWtwCollectionCode && window.MpCollectionsPage && typeof window.MpCollectionsPage.renderPublicByCode === 'function') {
-          window.MpCollectionsPage.renderPublicByCode(panel, siteWtwCollectionCode);
-        } else if (window.MpCollectionsPage && typeof window.MpCollectionsPage.renderDiscoveryHub === 'function') {
-          window.MpCollectionsPage.renderDiscoveryHub(panel);
-        }
-      } catch (_) {}
+      function tryPaint(attempt) {
+        try {
+          if (siteWtwCollectionCode && window.MpCollectionsPage && typeof window.MpCollectionsPage.renderPublicByCode === 'function') {
+            window.MpCollectionsPage.renderPublicByCode(panel, siteWtwCollectionCode);
+            return;
+          }
+          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.renderDiscoveryHub === 'function') {
+            window.MpCollectionsPage.renderDiscoveryHub(panel);
+            return;
+          }
+          if (attempt < 60) {
+            setTimeout(function () { tryPaint(attempt + 1); }, 50);
+          }
+        } catch (_) {}
+      }
+      tryPaint(0);
     }
 
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
