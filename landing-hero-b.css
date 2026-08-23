@@ -45,7 +45,7 @@ body.landing-guest-home #site-header {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(20px, 3.5vw, 48px) 8px clamp(20px, 3.5vw, 48px) !important;
+  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(20px, 3.5vw, 48px) 12px clamp(20px, 3.5vw, 48px) !important;
   background: transparent !important;
   border-bottom: none !important;
   border-radius: 0 !important;
@@ -65,13 +65,42 @@ body.landing-guest-home #site-header .header-content {
   max-width: var(--site-max, 1600px);
   margin: 0 auto;
   width: 100%;
-  padding-left: 0;
-  padding-right: 0;
+  min-height: 52px;
+  padding: 4px 0 0;
+  box-sizing: border-box;
   border-radius: 0 !important;
   background: transparent !important;
 }
 
-/* Гостевая /: перекрыть style-v2 solid chrome — прозрачная шапка и меню */
+/* Гостевая /: полное название сервиса — не режем как на /f/ */
+body.landing-guest-home.landing-root-page .logo,
+body.landing-guest-home.landing-root-page.film-standalone-page .logo {
+  min-width: 0;
+  max-width: none !important;
+  flex-shrink: 0 !important;
+}
+
+body.landing-guest-home.landing-root-page .logo .logo-text,
+body.landing-guest-home.landing-root-page .logo > span,
+body.landing-guest-home.landing-root-page.film-standalone-page .logo .logo-text,
+body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
+  display: inline !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+/* 1024 и планшет: не сжимать логотип в grid-колонке */
+@media (min-width: 769px) and (max-width: 1100px) {
+  body.landing-guest-home.landing-root-page .logo,
+  body.landing-guest-home.landing-root-page.film-standalone-page .logo {
+    min-width: max-content !important;
+    max-width: none !important;
+    flex-shrink: 0 !important;
+  }
+}
+
 @media (min-width: 861px) {
   body.landing-guest-home.landing-root-page #site-header,
   body.landing-guest-home.landing-root-page.film-standalone-page #site-header,
@@ -97,8 +126,8 @@ body.landing-guest-home #site-header .header-content {
     padding: 0 clamp(20px, 3.5vw, 48px) 6px !important;
     background: transparent !important;
     border-bottom: none !important;
-    justify-content: flex-start !important;
-    gap: 4px !important;
+    justify-content: center !important;
+    gap: 6px !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     z-index: 302;
@@ -499,6 +528,10 @@ body.landing-guest-home footer.footer {
 }
 
 .landing-hero-b .hero-alt-channels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-start !important;
   margin: 0 !important;
   text-align: left !important;
@@ -999,7 +1032,14 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
 @media (max-width: 860px) {
   body.landing-guest-home {
     --landing-guest-chrome-top: calc(100px + env(safe-area-inset-top, 0px));
-    --landing-guest-chrome-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    --landing-guest-chrome-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Планшетная ширина: нижнее меню выше — резервируем больше, чтобы strip не заезжал */
+  @media (min-width: 481px) and (max-width: 860px) {
+    body.landing-guest-home {
+      --landing-guest-chrome-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
   }
 
   body.landing-guest-home .landing-poster-wall-rot {
@@ -1079,9 +1119,9 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
   }
 
   body.landing-guest-home .landing-guest-strip {
-    margin-top: 8px !important;
-    padding-top: 8px !important;
-    gap: 10px !important;
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    gap: 8px !important;
     font-size: 13px !important;
     max-width: 100% !important;
   }
@@ -1089,6 +1129,45 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
   body.landing-guest-home .landing-guest-strip-perf {
     width: 40px !important;
     height: 10px !important;
+  }
+
+  /* 375 / 320: без декоративной «плёнки» — текст strip в одну строку */
+  @media (max-width: 480px) {
+    body.landing-guest-home .landing-guest-strip-perf {
+      display: none !important;
+    }
+
+    body.landing-guest-home .landing-guest-strip-text {
+      white-space: nowrap !important;
+      font-size: 12px !important;
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+    }
+
+    body.landing-guest-home .landing-hero-b .hero-alt-channels {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 4px !important;
+      overflow: hidden !important;
+    }
+
+    body.landing-guest-home .hero-alt-channels-label {
+      flex: 0 0 auto !important;
+      white-space: nowrap !important;
+    }
+
+    body.landing-guest-home .hero-alt-sep {
+      display: none !important;
+    }
+
+    body.landing-guest-home .landing-hero-b .hero-alt-channels a {
+      flex: 0 1 auto !important;
+      min-width: 0 !important;
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+      white-space: nowrap !important;
+    }
   }
 
   body.landing-guest-home .landing-cta-outline {
