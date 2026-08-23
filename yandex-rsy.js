@@ -1,21 +1,22 @@
 /**
  * Yandex RSY — movie-planner.ru
- * Fixed rails sit in side gutters (never over 1180/800 content). No DOM wrap.
+ * Tall vertical sidebar in side gutters; width scales down; hidden if no room.
  */
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyLayout2';
+  var BUILD = '20260824rsyLayout3';
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
   var CONTENT_FILM_STAFF = 1180;
   var CONTENT_ARTICLE = 800;
-  var GUTTER_GAP = 20;
+  var GUTTER_GAP = 16;
+  var RAIL_MIN_W = 160;
+  var RAIL_IDEAL_W = 300;
 
   var BLOCKS = {
-    /** Disabled on /f/ — only horizontal after Similar (user: sidebar ugly + overlaps). */
-    filmSidebar: null,
+    filmSidebar: 'R-A-19798904-2',
     filmAfterSimilar: 'R-A-19798904-1',
     staffSidebar: 'R-A-19798904-3',
     staffAfterFilmography: 'R-A-19798904-4',
@@ -59,21 +60,14 @@
     return /\/articles\//.test(path) ? CONTENT_ARTICLE : CONTENT_FILM_STAFF;
   }
 
-  function railWidthForKind(kind) {
+  /** Ideal width by viewport; actual width may shrink to fit gutter. */
+  function railIdealWidth(kind) {
     var vw = viewportWidth();
-    if (kind === 'staff') {
-      if (vw >= 2000) return 360;
-      if (vw >= 1760) return 336;
-      return 300;
-    }
-    if (kind === 'article') {
-      if (vw >= 1760) return 300;
-      return 260;
-    }
-    return 300;
+    if (vw >= 2000) return 360;
+    if (vw >= 1760) return 336;
+    return RAIL_IDEAL_W;
   }
 
-  /** Gutter geometry: rail fully outside centered content column. */
   function railGeometry(side, kind) {
     var vw = viewportWidth();
     if (vw < DESKTOP_MIN) return null;
@@ -81,12 +75,11 @@
     var contentMax = contentMaxForPath(path);
     var half = Math.min(contentMax / 2, vw / 2 - 12);
     var gutter = vw / 2 - half;
-    var railW = railWidthForKind(kind);
-    if (gutter < railW + GUTTER_GAP) return null;
-    var w = Math.min(railW, gutter - GUTTER_GAP);
-    if (w < 200) return null;
+    var maxW = gutter - GUTTER_GAP;
+    if (maxW < RAIL_MIN_W) return null;
+    var w = Math.min(railIdealWidth(kind), maxW);
     if (side === 'left') {
-      return { left: Math.max(12, vw / 2 - half - GUTTER_GAP - w), width: w };
+      return { left: Math.max(8, vw / 2 - half - GUTTER_GAP - w), width: w };
     }
     return { left: vw / 2 + half + GUTTER_GAP, width: w };
   }
@@ -166,6 +159,7 @@
     rail.style.left = geo.left + 'px';
     rail.style.right = 'auto';
     rail.style.width = geo.width + 'px';
+    rail.dataset.mpRsyWidth = String(geo.width);
   }
 
   function ensureFixedRail(kind, blockId, side) {
@@ -178,17 +172,24 @@
     if (!rail) {
       rail = document.createElement('aside');
       rail.id = railId;
-      rail.className = 'mp-rsy-fixed-rail mp-rsy-fixed-rail--' + kind + ' mp-rsy-fixed-rail--' + side;
+      rail.className = 'mp-rsy-fixed-rail mp-rsy-fixed-rail--tall mp-rsy-fixed-rail--' + kind + ' mp-rsy-fixed-rail--' + side;
       rail.setAttribute('aria-label', 'Реклама');
       var slot = document.createElement('div');
       slot.id = slotId(kind, side);
-      slot.className = 'mp-rsy-slot mp-rsy-slot--' + kind;
+      slot.className = 'mp-rsy-slot mp-rsy-slot--tall mp-rsy-slot--' + kind;
       rail.appendChild(slot);
       document.body.appendChild(rail);
     }
     applyRailPosition(rail, geo);
     renderBlock(blockId, slotId(kind, side));
     return rail;
+  }
+
+  function pathKindActive(path, kind) {
+    if (kind === 'film') return /^\/f\/\d+/.test(path) || /^\/f\/mp-\d+/.test(path);
+    if (kind === 'staff') return /^\/s\/\d+/.test(path);
+    if (kind === 'article') return /\/articles\//.test(path);
+    return false;
   }
 
   function updateFixedRailVisibility() {
@@ -202,10 +203,7 @@
       if (rail.classList.contains('mp-rsy-fixed-rail--article')) kind = 'article';
       if (rail.classList.contains('mp-rsy-fixed-rail--film')) kind = 'film';
       var side = rail.classList.contains('mp-rsy-fixed-rail--left') ? 'left' : 'right';
-      var showStaff = /^\/s\/\d+/.test(path) && kind === 'staff';
-      var showArticle = /\/articles\//.test(path) && kind === 'article';
-      var showFilm = false;
-      if (!showStaff && !showArticle && !showFilm) {
+      if (!pathKindActive(path, kind)) {
         rail.hidden = true;
         return;
       }
@@ -271,6 +269,7 @@
 
   function mountFilmPage() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
     mountFilmAfterSimilar();
   }
 
@@ -285,7 +284,10 @@
     if (typeof MutationObserver === 'undefined') return;
     _observer = new MutationObserver(function () {
       var path = String(global.location && global.location.pathname || '');
-      if (/^\/f\//.test(path)) mountFilmAfterSimilar();
+      if (/^\/f\//.test(path)) {
+        mountFilmAfterSimilar();
+        if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
+      }
       if (/^\/s\//.test(path)) mountStaffAfterFilmography();
       if (/\/articles\//.test(path)) mountArticlePage();
     });

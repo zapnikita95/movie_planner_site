@@ -1,39 +1,33 @@
-/* Yandex RSY — gutters only (left set in JS). Never overlap 1180/800 content. */
+/* Yandex RSY — tall vertical sidebar in gutters; never over content column. */
 
 .mp-rsy-fixed-rail {
   position: fixed;
-  top: 96px;
+  top: 88px;
   right: auto;
-  max-height: calc(100vh - 120px);
-  overflow: hidden;
+  height: calc(100vh - 104px);
+  max-height: calc(100vh - 104px);
   z-index: 40;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .mp-rsy-fixed-rail[hidden] {
   display: none !important;
 }
 
-.mp-rsy-fixed-rail--staff {
-  max-height: calc(100vh - 100px);
-}
-
-.mp-rsy-fixed-rail--staff .mp-rsy-slot {
-  min-height: 280px;
-  max-height: calc(100vh - 120px);
-}
-
-.mp-rsy-fixed-rail--article .mp-rsy-slot {
-  min-height: 200px;
-  max-height: calc(100vh - 140px);
+/* Tall slot — Yandex renders vertical multi-ad grid inside */
+.mp-rsy-fixed-rail--tall .mp-rsy-slot {
+  pointer-events: auto;
+  width: 100%;
+  min-height: calc(100vh - 112px);
+  height: auto;
+  border-radius: 12px;
+  overflow: visible;
 }
 
 .mp-rsy-fixed-rail .mp-rsy-slot {
   pointer-events: auto;
   width: 100%;
-  min-height: 120px;
-  border-radius: 12px;
-  overflow: hidden;
 }
 
 .mp-rsy-inline {
@@ -62,16 +56,9 @@
   margin-bottom: 8px;
 }
 
-/* Horizontal strip — not a multi-row grid */
 .mp-rsy-inline--after_filmography .mp-rsy-slot,
 .mp-rsy-inline--after_similar .mp-rsy-slot {
   max-height: 120px;
-}
-
-.mp-rsy-inline--after_filmography iframe,
-.mp-rsy-inline--after_similar iframe,
-.mp-rsy-inline--article iframe {
-  max-height: 120px !important;
 }
 
 .mp-rsy-inline--article {
