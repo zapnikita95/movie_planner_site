@@ -827,9 +827,16 @@
   function setLandingRootNavVisible(visible) {
     try {
       const nav = document.getElementById('landing-root-nav');
-      if (nav) nav.classList.toggle('hidden', !visible);
+      if (nav) {
+        nav.classList.toggle('hidden', !visible);
+        if (!visible) nav.setAttribute('hidden', '');
+        else nav.removeAttribute('hidden');
+      }
       document.body.classList.toggle('landing-root-page', visible);
       document.body.classList.toggle('film-standalone-page', visible);
+      if (!visible) {
+        document.body.classList.remove('landing-guest-home');
+      }
       const hs = document.getElementById('header-search');
       if (hs && visible) hs.classList.remove('hidden');
     } catch (_) {}
@@ -5139,6 +5146,9 @@
           ) {
             try { hideSiteSearchScreen(); } catch (_) {}
           }
+          const landingEarly = document.getElementById('landing');
+          if (landingEarly) landingEarly.classList.add('hidden');
+          setLandingRootNavVisible(false);
           setHeaderSearchVisible(screenId);
           return;
         }
@@ -5153,6 +5163,10 @@
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
+    if (screenId !== 'landing') {
+      const landingHide = document.getElementById('landing');
+      if (landingHide) landingHide.classList.add('hidden');
+    }
     const header = document.getElementById('site-header');
     if (header) header.classList.remove('hidden');
     const target = document.getElementById(screenId);

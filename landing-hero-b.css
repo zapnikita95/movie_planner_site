@@ -256,8 +256,8 @@ body.landing-guest-home #landing {
   scroll-snap-stop: always;
 }
 
-/* Фиксированная стена + единый veil на всю прокрутку */
-.landing-poster-wall {
+/* Фиксированная стена + единый veil — только гостевая / */
+body.landing-guest-home .landing-poster-wall {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -266,7 +266,7 @@ body.landing-guest-home #landing {
   background: #050506;
 }
 
-.landing-global-veil {
+body.landing-guest-home .landing-global-veil {
   position: fixed;
   inset: 0;
   z-index: 1;
@@ -274,7 +274,7 @@ body.landing-guest-home #landing {
   background: rgba(9, 9, 11, 0.72);
 }
 
-.landing-poster-wall-rot {
+body.landing-guest-home .landing-poster-wall-rot {
   position: absolute;
   left: -50vw;
   width: 200vw;
@@ -284,14 +284,14 @@ body.landing-guest-home #landing {
   will-change: transform;
 }
 
-.landing-poster-wall-grid {
+body.landing-guest-home .landing-poster-wall-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 10px;
   min-height: 620vh;
 }
 
-.landing-poster-wall-p {
+body.landing-guest-home .landing-poster-wall-p {
   aspect-ratio: 2/3;
   border-radius: 2px;
   background: #1a1a22 center/cover no-repeat;
@@ -966,12 +966,12 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
 }
 
 @media (max-width: 720px) {
-  .landing-poster-wall-rot {
+  body.landing-guest-home .landing-poster-wall-rot {
     left: -48vw;
     width: 196vw;
   }
 
-  .landing-poster-wall-grid {
+  body.landing-guest-home .landing-poster-wall-grid {
     grid-template-columns: repeat(6, 1fr);
     gap: 8px;
     min-height: 540vh;
@@ -992,7 +992,7 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
 
   .landing-hero-tagline span,
   .landing-tagline-line,
-  .landing-poster-wall-rot {
+  body.landing-guest-home .landing-poster-wall-rot {
     transition: none;
   }
 

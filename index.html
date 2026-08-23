@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" class="mp-landing-boot">
+<html lang="ru">
 <head>
     <style id="landing-demo-critical">@media (max-width:768px){html.mp-landing-boot body.landing-guest-home .header-content{display:flex!important;flex-wrap:wrap!important;grid-template-columns:unset!important;align-items:center!important;gap:8px 12px!important;min-height:0!important}html.mp-landing-boot body.landing-guest-home .logo{grid-column:unset!important;grid-row:unset!important;flex:0 0 auto}html.mp-landing-boot body.landing-guest-home .header-buttons{grid-column:unset!important;grid-row:unset!important;flex:0 0 auto}html.mp-landing-boot body.landing-guest-home #header-search{order:3!important;flex:1 1 100%!important;width:100%!important;max-width:none!important;min-width:0!important;grid-column:unset!important;grid-row:unset!important;margin:0!important}}@media (min-width:769px){html.mp-landing-boot body.landing-guest-home .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,min(560px,40vw)) minmax(0,1fr)!important;flex-wrap:nowrap!important;align-items:center!important;gap:10px 14px!important;min-height:52px!important}html.mp-landing-boot body.landing-guest-home .logo{grid-column:1!important;grid-row:1!important}html.mp-landing-boot body.landing-guest-home .header-buttons{grid-column:3!important;grid-row:1!important}html.mp-landing-boot body.landing-guest-home #header-search{grid-column:2!important;grid-row:1!important;order:unset!important;flex:unset!important;width:100%!important;max-width:560px!important;margin:0 auto!important}}body.landing-guest-home #site-header{margin:0!important;padding-bottom:0!important}body.landing-guest-home #landing-root-nav{margin:0!important;padding:4px 16px 6px!important}html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet #landing-root-nav{display:none!important}#site-header,#site-header .header-content{background:#09090b!important}body.landing-guest-home #site-header,#site-header .header-content,#landing-root-nav{background:#09090b!important}</style>
     <meta charset="UTF-8">
@@ -100,7 +100,36 @@
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="preload" href="/style-v2.css?v=20260807homeRailE" as="style">
     <link rel="stylesheet" href="/style-v2.css?v=20260807homeRailE">
-    <link rel="stylesheet" href="/landing-hero-b.css?v=20260823guestHomeOnly1">
+    <script>
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path === '/index.html') path = '/';
+          if (path !== '/') return;
+          function hasStoredSiteSession() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+                }
+                for (var j = 0; j < sessions.length; j++) {
+                  if (sessions[j] && sessions[j].token) return true;
+                }
+              }
+              return !!localStorage.getItem('mp_site_token');
+            } catch (_) { return false; }
+          }
+          if (hasStoredSiteSession()) return;
+          document.documentElement.classList.add('mp-landing-boot');
+          var l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.href = '/landing-hero-b.css?v=20260823authNavFix1';
+          document.head.appendChild(l);
+        } catch (_) {}
+      })();
+    </script>
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -168,6 +197,7 @@
       html.mp-guest-cabinet-boot #landing{display:none!important}
       html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
       html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important}
+      html.mp-auth-boot #landing-root-nav,html.mp-session #landing-root-nav,body.in-cabinet #landing-root-nav{display:none!important;visibility:hidden!important}
       html:not(.mp-session) #landing-root-nav .mp-nav-tournament,html:not(.mp-session) #landing-root-nav a[href="/tournament"]{display:none!important}
       #section-buzz.buzz-is-loading #buzz-seo-footer,#section-buzz.buzz-is-loading #buzz-digest,#buzz-seo-footer[hidden],#buzz-digest[hidden]{display:none!important}
       html.mp-auth-boot body.in-cabinet #header-search{display:block!important}
@@ -475,7 +505,12 @@
                 el.classList.add('hidden');
               });
             }
-            if (!guestPreview) paintSessionHeaderStub();
+            if (!guestPreview) {
+              document.body.classList.remove('landing-root-page', 'film-standalone-page', 'landing-guest-home');
+              var rootNav = document.getElementById('landing-root-nav');
+              if (rootNav) rootNav.classList.add('hidden');
+              paintSessionHeaderStub();
+            }
           }
           var sectionId = cabinetSectionFromPath(path);
           if (!sectionId) return;
@@ -996,7 +1031,8 @@
         return map[p] ? p : null;
       }
       if (cabinetSectionFromPath(path) && hasStoredSiteSession()) {
-        document.body.classList.remove('landing-guest-home');
+        document.body.classList.remove('landing-guest-home', 'landing-root-page', 'film-standalone-page');
+        document.documentElement.classList.remove('mp-landing-boot');
         document.documentElement.classList.add('mp-auth-boot', 'mp-session');
         document.body.classList.add('in-cabinet');
         return;
@@ -1071,7 +1107,7 @@
       })();
     </script>
 
-    <nav class="cabinet-nav film-standalone-nav" id="landing-root-nav" aria-label="Разделы">
+    <nav class="cabinet-nav film-standalone-nav hidden" id="landing-root-nav" aria-label="Разделы">
       <a class="cabinet-nav-btn" href="/plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></a>
       <a class="cabinet-nav-btn" href="/premieres"><span class="cabinet-nav-btn-emoji" data-mp-icon="premieres"></span><span class="cabinet-nav-btn-text">Премьеры</span></a>
       <a class="cabinet-nav-btn" href="/whattowatch"><span class="cabinet-nav-btn-emoji" data-mp-icon="watch"></span><span class="cabinet-nav-btn-text">Смотреть</span></a>
@@ -1156,7 +1192,34 @@
     </div>
 
     <!-- Landing -->
-    <main id="landing">
+    <main id="landing" class="hidden">
+    <script>
+      (function () {
+        try {
+          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path === '/index.html') path = '/';
+          if (path !== '/') return;
+          function hasStoredSiteSession() {
+            try {
+              var active = localStorage.getItem('mp_site_active_chat_id');
+              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+              if (Array.isArray(sessions)) {
+                for (var i = 0; i < sessions.length; i++) {
+                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
+                }
+                for (var j = 0; j < sessions.length; j++) {
+                  if (sessions[j] && sessions[j].token) return true;
+                }
+              }
+              return !!localStorage.getItem('mp_site_token');
+            } catch (_) { return false; }
+          }
+          if (hasStoredSiteSession()) return;
+          var landing = document.getElementById('landing');
+          if (landing) landing.classList.remove('hidden');
+        } catch (_) {}
+      })();
+    </script>
 
       <div id="landing-poster-wall" class="landing-poster-wall" aria-hidden="true">
         <div class="landing-poster-wall-rot" id="landing-poster-wall-rot">
@@ -3660,7 +3723,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestHomeOnly1';
+        var V = '20260823authNavFix1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3978,7 +4041,25 @@
       });
 
       var wallRot = document.getElementById('landing-poster-wall-rot');
-      if (wallRot && !reduce) {
+      var guestHomeWall = (function () {
+        try {
+          var p = (location.pathname || '/').replace(/\/$/, '') || '/';
+          if (p === '/index.html') p = '/';
+          if (p !== '/') return false;
+          var active = localStorage.getItem('mp_site_active_chat_id');
+          var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+          if (Array.isArray(sessions)) {
+            for (var i = 0; i < sessions.length; i++) {
+              if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return false;
+            }
+            for (var j = 0; j < sessions.length; j++) {
+              if (sessions[j] && sessions[j].token) return false;
+            }
+          }
+          return !localStorage.getItem('mp_site_token');
+        } catch (_) { return false; }
+      })();
+      if (wallRot && guestHomeWall && !reduce) {
         var wallDrift = 0;
         function paintWall() {
           var y = window.scrollY || document.documentElement.scrollTop || 0;

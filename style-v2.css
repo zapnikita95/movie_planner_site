@@ -1952,7 +1952,10 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   body.in-cabinet .home-dash-empty--cta .plans-empty-actions {
     justify-content: center;
   }
-  body.in-cabinet .cabinet-nav {
+  body.in-cabinet #cabinet-readonly > .container > .cabinet-nav,
+  body.in-cabinet #cabinet-onboarding > .container > .cabinet-nav,
+  body.in-cabinet #cabinet-readonly .cabinet-nav,
+  body.in-cabinet #cabinet-onboarding .cabinet-nav {
     position: fixed;
     left: 0;
     right: 0;
@@ -1970,9 +1973,12 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     overflow: visible;
   }
   /* Auth mobile: 4 tabs — Планы / База / Смотреть / В тренде (Главная — по логотипу) */
-  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="home"],
-  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="premieres"],
-  body.in-cabinet .cabinet-nav .cabinet-nav-btn[data-section="tournament"] {
+  body.in-cabinet #cabinet-readonly .cabinet-nav .cabinet-nav-btn[data-section="home"],
+  body.in-cabinet #cabinet-readonly .cabinet-nav .cabinet-nav-btn[data-section="premieres"],
+  body.in-cabinet #cabinet-readonly .cabinet-nav .cabinet-nav-btn[data-section="tournament"],
+  body.in-cabinet #cabinet-onboarding .cabinet-nav .cabinet-nav-btn[data-section="home"],
+  body.in-cabinet #cabinet-onboarding .cabinet-nav .cabinet-nav-btn[data-section="premieres"],
+  body.in-cabinet #cabinet-onboarding .cabinet-nav .cabinet-nav-btn[data-section="tournament"] {
     display: none !important;
   }
   body.in-cabinet .cabinet-nav-btn {
