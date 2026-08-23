@@ -1929,7 +1929,18 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   }
   body.in-cabinet .cabinet-home-stats {
     gap: 8px;
-    margin: 0 0 16px;
+    margin: 0 0 6px;
+  }
+  body.in-cabinet:has(#cabinet-home-stats:not(.hidden)) #section-home .home-quick-actions {
+    display: none !important;
+    margin: 0;
+    min-height: 0;
+  }
+  body.in-cabinet #section-home .home-dashboard-root {
+    margin-top: 0;
+  }
+  body.in-cabinet #section-home .home-dashboard-root > .home-dash-block:first-child .home-dash-head {
+    margin-top: 0;
   }
   body.in-cabinet .cabinet-home-stat {
     min-height: 84px;
@@ -5649,7 +5660,7 @@ main.film-page .eyebrow + .film-ext-ratings {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   scroll-snap-type: x proximity;
   padding-bottom: 6px;
   scrollbar-width: thin;
@@ -11292,7 +11303,7 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
     padding: 0 0 18px;
     overflow-y: visible;
     overscroll-behavior-y: auto;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
     scroll-snap-type: x mandatory;
     scroll-padding-inline: max(24px, env(safe-area-inset-left, 0px));
   }
@@ -11338,7 +11349,7 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
   }
   body.in-cabinet .cabinet-home-stats {
     gap: 18px;
-    margin: 4px 0 32px;
+    margin: 4px 0 10px;
   }
   body.in-cabinet .cabinet-home-stat {
     min-height: 112px;
@@ -18070,7 +18081,7 @@ body.in-cabinet .inbox-fab { display: none !important; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   scroll-snap-type: x proximity;
   padding: 2px 2px 8px;
   margin: 0;
@@ -18167,7 +18178,7 @@ body.guest-cabinet-preview #section-home .home-prem-rail,
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: auto;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   scroll-snap-type: x mandatory;
   gap: 12px;
   padding-bottom: 8px;
@@ -18191,7 +18202,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   overflow-x: auto;
   overflow-y: visible;
   overscroll-behavior-y: auto;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   width: 100%;
   min-width: 0;
 }
@@ -19128,7 +19139,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: auto;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
     scroll-snap-type: x mandatory;
     gap: 14px;
     width: 100%;
