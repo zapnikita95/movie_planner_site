@@ -124,7 +124,7 @@
           if (hasStoredSiteSession()) return;
           var l = document.createElement('link');
           l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix5';
+          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix6';
           document.head.appendChild(l);
         } catch (_) {}
       })();
@@ -1228,9 +1228,12 @@
             <a href="/download" class="landing-cta-outline mp-app-download">Скачать приложение</a>
           </div>
           <p class="hero-alt-channels">
-            Также: <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener">Mini App</a>
-            · <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" target="_blank" rel="noopener" id="landing-ext-chrome" class="landing-ext-link landing-ext-chrome">Расширение Chrome</a>
-            · <a href="https://apps.apple.com/us/app/movie-planner-extension/id6775017713?mt=12" target="_blank" rel="noopener" id="landing-ext-safari" class="landing-ext-link landing-ext-safari" hidden>Расширение Safari</a>
+            <span class="hero-alt-channels-label">Также:</span>
+            <a href="https://t.me/movie_planner_bot/app" target="_blank" rel="noopener" class="landing-ext-link">Mini App</a>
+            <span class="hero-alt-sep" aria-hidden="true">·</span>
+            <a href="https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&amp;hl=ru" target="_blank" rel="noopener" id="landing-ext-chrome" class="landing-ext-link landing-ext-chrome">Расширение Chrome</a>
+            <span class="hero-alt-sep hero-alt-sep--safari" aria-hidden="true" hidden>·</span>
+            <a href="https://apps.apple.com/us/app/movie-planner-extension/id6775017713?mt=12" target="_blank" rel="noopener" id="landing-ext-safari" class="landing-ext-link landing-ext-safari" hidden>Расширение Safari</a>
           </p>
           <div class="landing-guest-strip" aria-label="Начать вести базу просмотров">
             <div class="landing-guest-strip-perf" aria-hidden="true" title="Декоративная плёнка"></div>
@@ -3691,7 +3694,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestCabinetFix5';
+        var V = '20260823guestCabinetFix6';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
