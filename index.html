@@ -98,8 +98,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260824homeClickFix1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260824homeClickFix1">
+    <link rel="preload" href="/style-v2.css?v=20260824homeNavFix2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260824homeNavFix2">
     <script>
       (function () {
         try {
@@ -3656,17 +3656,30 @@
         }
         function mpOpenHomeFilmTile(kp) {
           if (!kp) return;
+          var want = '/f/' + encodeURIComponent(kp);
+          if (typeof window.openFilmWithFallback === 'function') {
+            try { window.openFilmWithFallback(kp); return; } catch (_d) {}
+          }
           if (typeof window.openFilmPageByKp === 'function') {
-            try { window.openFilmPageByKp(kp); return; } catch (_a) {}
+            try { window.openFilmPageByKp(kp); } catch (_a) {}
+          } else if (typeof window.openFilmNav === 'function') {
+            try { window.openFilmNav(kp); } catch (_b) {}
           }
-          if (typeof window.openFilmNav === 'function') {
-            try { window.openFilmNav(kp); return; } catch (_b) {}
+          setTimeout(function () {
+            try { if (location.pathname !== want) location.href = want; } catch (_c) {}
+          }, 220);
+        }
+        function mpHomeTileFromEvent(e) {
+          var tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+          if (!tile && e.target.closest('.home-poster-rail, .home-prem-rail, .home-rail--draggable')) {
+            var under = document.elementFromPoint(e.clientX, e.clientY);
+            if (under) tile = under.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
           }
-          try { window.location.href = '/f/' + encodeURIComponent(kp); } catch (_c) {}
+          return tile;
         }
         document.addEventListener('click', function (e) {
           if (mpHomeTileDragActive(e)) return;
-          var tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
+          var tile = mpHomeTileFromEvent(e);
           if (!tile || e.target.closest('[data-stop-card-click]')) return;
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
           var kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || '').replace(/\D/g, '')
@@ -3712,7 +3725,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260824homeClickFix1';
+        var V = '20260824homeNavFix2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
