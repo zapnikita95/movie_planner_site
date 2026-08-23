@@ -14,11 +14,12 @@ html.mp-guest-cabinet-boot #landing-root-nav {
 
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn {
   color: var(--text-muted, #b4b4be);
-  transition: color 0.15s ease;
+  background: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn:hover,
 body.landing-guest-home #landing-root-nav .cabinet-nav-btn:focus-visible {
-  color: var(--text-primary, #f4f4f5);
+  color: #ff7eb6;
 }
 
 /* Demo B — полноэкранная стена, кадры, карусели. Инлайн в демо. */
@@ -34,11 +35,13 @@ body.landing-guest-home {
 body.landing-guest-home .content-wrapper {
   position: relative;
   background: transparent !important;
-  z-index: 0;
+  z-index: 1;
 }
 
 body.landing-guest-home #site-header {
-  z-index: 300;
+  position: sticky;
+  top: 0;
+  z-index: 301;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -47,6 +50,15 @@ body.landing-guest-home #site-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+/* Гостевая /: шапка не «уезжает» при retract-scroll (десктоп) */
+@media (min-width: 861px) {
+  body.landing-guest-home #site-header.site-header--retracted {
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
 }
 
 body.landing-guest-home #site-header .header-content {
@@ -68,7 +80,8 @@ body.landing-guest-home #landing-root-nav {
   body.landing-guest-home.landing-root-page #landing-root-nav {
     display: flex !important;
     visibility: visible !important;
-    position: static !important;
+    position: sticky !important;
+    top: var(--landing-guest-header-h, 72px);
     max-width: var(--site-max, 1600px);
     margin: 0 auto clamp(12px, 1.5vw, 20px) !important;
     padding: 0 12px 8px !important;
@@ -78,7 +91,7 @@ body.landing-guest-home #landing-root-nav {
     gap: 6px !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
-    z-index: 299;
+    z-index: 300;
   }
 
   body.landing-guest-home #landing-root-nav::-webkit-scrollbar {
@@ -439,7 +452,8 @@ body.landing-guest-home footer.footer {
   border: none;
 }
 
-.landing-cta-main:hover {
+.landing-cta-main:hover,
+.landing-cta-main:focus-visible {
   background: #a31650;
 }
 
@@ -447,6 +461,19 @@ body.landing-guest-home footer.footer {
   color: var(--text-body);
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.28);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.landing-cta-outline:hover,
+.landing-cta-outline:focus-visible {
+  color: var(--text-primary, #f4f4f5);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.48);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35) !important;
 }
 
 .landing-hero-b .hero-alt-channels {
@@ -999,14 +1026,14 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
   }
 
   body.landing-guest-home .landing-hero-b .hero-subtitle {
-    font-size: 13px !important;
-    line-height: 1.42 !important;
-    margin: 0 0 10px !important;
+    font-size: 12.5px !important;
+    line-height: 1.38 !important;
+    margin: 0 0 8px !important;
     max-width: 100% !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block !important;
+    overflow: visible !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
   }
 
   body.landing-guest-home .landing-cta-row {
@@ -1044,6 +1071,14 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
 
   body.landing-guest-home .landing-cta-outline {
     background: rgba(19, 19, 24, 0.9) !important;
+  }
+
+  body.landing-guest-home .landing-cta-outline:hover,
+  body.landing-guest-home .landing-cta-outline:focus-visible {
+    background: rgba(36, 36, 44, 0.96) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    color: var(--text-primary, #f4f4f5) !important;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35) !important;
   }
 
   body.landing-guest-home .landing-hero-b .hero-alt-channels a,
@@ -1116,8 +1151,9 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
   }
 
   body.landing-guest-home .landing-hero-b .hero-subtitle {
-    -webkit-line-clamp: 2;
-    margin-bottom: 8px !important;
+    font-size: 12px !important;
+    line-height: 1.34 !important;
+    margin-bottom: 6px !important;
   }
 
   body.landing-guest-home .landing-hero-b .hero-alt-channels {

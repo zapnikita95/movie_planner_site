@@ -346,14 +346,9 @@
     var path = (global.location.pathname || '').split('/').pop() || '';
     var RELATED = {
       'fakty-o-semkah-filmov.html': [
-        { href: '/articles/interesnye-fakty-o-filmah.html', title: 'Интересные факты о фильмах' },
+        { href: '/f/838', title: 'Человек-паук' },
         { href: '/f/789914', title: 'Физрук — актёры и факты' },
         { href: '/f/1331277', title: 'Милый дом' }
-      ],
-      'interesnye-fakty-o-filmah.html': [
-        { href: '/articles/fakty-o-semkah-filmov.html', title: 'Факты о съёмках' },
-        { href: '/f/789914', title: 'Физрук' },
-        { href: '/s/551325', title: 'Дмитрий Нагиев' }
       ],
       'top-10-serialov.html': [
         { href: '/f/1331277', title: 'Милый дом' },
