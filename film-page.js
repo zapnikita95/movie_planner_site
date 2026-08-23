@@ -2333,8 +2333,8 @@
     ];
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
       tabs.map(function (t) {
-        var iconHtml = (window.MPIcons && MPIcons.html) ? MPIcons.html(t.icon, { size: 'md' }) : '';
-        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji">' + iconHtml + '</span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
+        /* data-mp-icon: hydrate after async mp-icons.js (articles mount nav before MPIcons). */
+        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji" data-mp-icon="' + escapeHtml(t.icon) + '"></span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
       }).join('') +
     '</nav>';
   }
