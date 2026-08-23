@@ -3645,8 +3645,14 @@
         if (window._mpHomeDashFilmNavEarly) return;
         window._mpHomeDashFilmNavEarly = true;
         function mpHomeTileDragActive(e) {
+          var until = Number(window._mpHomeRailSuppressClickUntil || 0);
+          if (until > Date.now()) return true;
           var rail = e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging');
-          return !!rail;
+          if (rail) {
+            try { rail.classList.remove('is-dragging'); } catch (_z) {}
+            return false;
+          }
+          return false;
         }
         function mpOpenHomeFilmTile(kp) {
           if (!kp) return;
@@ -3706,7 +3712,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260824homeRailScrollY1';
+        var V = '20260824homeClickFix1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

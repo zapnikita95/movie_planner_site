@@ -10269,6 +10269,7 @@
         }
         // Keep `dragging` until click capture so the open-film handler can ignore it.
         if (wasDragging) {
+          mpHomeRailSuppressClick(400);
           setTimeout(function () { dragging = false; }, 0);
         }
       }
@@ -10631,7 +10632,13 @@
   }
 
   function homeRailDragActiveFromEvent(e) {
-    return !!(e && e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging'));
+    if (mpHomeRailClickSuppressed()) return true;
+    const rail = e && e.target && e.target.closest && e.target.closest('.home-rail--draggable.is-dragging');
+    if (rail) {
+      mpHomeRailClearDragState();
+      return false;
+    }
+    return false;
   }
 
   function homeDashboardFilmTileFromEvent(e) {
@@ -16570,10 +16577,32 @@
   function isFilmDescPlaceholder(text) {
     const s = String(text || '').trim().toLowerCase();
     if (!s) return true;
+    if (s === '—' || s === '-' || s === '–') return true;
+    if (s === 'нет описания' || s === 'no description') return true;
     if (s.startsWith('откройте в movie planner')) return true;
     if (s.startsWith('откройте фильм в movie planner')) return true;
     if (s.startsWith('open in movie planner')) return true;
     return false;
+  }
+
+  function mpHomeRailClickSuppressed() {
+    const until = Number(window._mpHomeRailSuppressClickUntil || 0);
+    return until > Date.now();
+  }
+
+  function mpHomeRailSuppressClick(ms) {
+    const bump = Date.now() + (ms == null ? 350 : ms);
+    if (bump > Number(window._mpHomeRailSuppressClickUntil || 0)) {
+      window._mpHomeRailSuppressClickUntil = bump;
+    }
+  }
+
+  function mpHomeRailClearDragState() {
+    try {
+      document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
+        rail.classList.remove('is-dragging');
+      });
+    } catch (_) {}
   }
 
   function pickFilmDescription(film) {

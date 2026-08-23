@@ -18021,10 +18021,7 @@ body.in-cabinet .inbox-fab { display: none !important; }
   scroll-snap-type: none;
   user-select: none;
 }
-.home-rail--draggable.is-dragging .home-poster-tile,
-.home-rail--draggable.is-dragging .home-pre-card {
-  pointer-events: none;
-}
+/* Do not pointer-events:none tiles while dragging — is-dragging can stick and kill all clicks until blur. */
 /* Stream rail (E): крупный постер без «контейнера»; название — 2 строки как D */
 .home-poster-tile,
 .home-pre-card {

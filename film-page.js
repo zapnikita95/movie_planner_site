@@ -936,6 +936,8 @@
   function isFilmDescPlaceholder(text) {
     var s = String(text || '').trim().toLowerCase();
     if (!s) return true;
+    if (s === '—' || s === '-' || s === '–') return true;
+    if (s === 'нет описания' || s === 'no description') return true;
     if (s.indexOf('откройте в movie planner') === 0) return true;
     if (s.indexOf('откройте фильм в movie planner') === 0) return true;
     if (s.indexOf('open in movie planner') === 0) return true;
