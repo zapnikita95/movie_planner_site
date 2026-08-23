@@ -1489,6 +1489,10 @@
       is_series: !!d.is_series,
       watched: !!d.watched,
       in_library: !!d.in_library,
+      rating_kp: d.rating_kp != null ? d.rating_kp : null,
+      rating_imdb: d.rating_imdb != null ? d.rating_imdb : null,
+      rating_kp_votes: d.rating_kp_votes != null ? d.rating_kp_votes : null,
+      rating_imdb_votes: d.rating_imdb_votes != null ? d.rating_imdb_votes : null,
       __descSettled: !!desc,
     };
   }
@@ -15020,6 +15024,7 @@
         if (shouldPatchFilmHeroInPlace(pageRoot, detail.film)) {
           stickyFilmCountry(detail.film, pageRoot);
           syncFilmGenreChips(pageRoot, detail.film);
+          syncFilmExtRatings(pageRoot, detail.film);
           replaceFilmPageToolbarInHero(
             pageRoot,
             detail.film,
@@ -16479,6 +16484,7 @@
           mergeBootPoster(cached.film, cached.film.kp_id);
           mergeBootDescription(cached.film, cached.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(cached.film, pageRoot));
+          syncFilmExtRatings(pageRoot, cached.film);
           replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me));
           bindFilmModalInteractions(cached.film, pageRoot);
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
@@ -16551,6 +16557,7 @@
           mergeBootPoster(data.film, data.film.kp_id);
           mergeBootDescription(data.film, data.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
+          syncFilmExtRatings(pageRoot, data.film);
           replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me));
           bindFilmModalInteractions(data.film, pageRoot);
           try { loadFilmFriendsSocial(data.film); } catch (_) {}
