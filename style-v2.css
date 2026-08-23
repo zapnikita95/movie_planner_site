@@ -13776,6 +13776,11 @@ body.landing-root-page #landing-root-nav .cabinet-nav-btn {
 body.landing-root-page #landing-root-nav.hidden {
   display: none !important;
 }
+body.landing-guest-home #landing-root-nav,
+body.landing-guest-home #landing-root-nav.hidden {
+  display: flex !important;
+  visibility: visible !important;
+}
 
 .mp-guest-cabinet-nav {
   display: flex;
