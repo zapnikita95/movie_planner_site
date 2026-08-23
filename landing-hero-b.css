@@ -349,6 +349,13 @@ body.landing-guest-home footer.footer {
   background: rgba(9, 9, 11, 0.94);
 }
 
+/* Safety: if poster-wall shell breaks, main still has flow height — footer stays below hero */
+body.landing-guest-home main#landing:not(.hidden) {
+  display: block;
+  min-height: 72vh;
+  min-height: 72dvh;
+}
+
 /* Hero — только scrim + текст, стена общая */
 .landing-hero-b {
   position: relative;
