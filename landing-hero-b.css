@@ -30,6 +30,8 @@ html.landing-demo-scroll {
 
 body.landing-guest-home {
   background: var(--bg-main, #09090b);
+  --landing-guest-hpad: clamp(16px, 4vw, 56px);
+  --landing-guest-header-max: min(1180px, calc(100% - 2 * var(--landing-guest-hpad)));
 }
 
 body.landing-guest-home .content-wrapper {
@@ -43,9 +45,12 @@ body.landing-guest-home #site-header {
   top: 0;
   z-index: 301;
   width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(20px, 3.5vw, 48px) 12px clamp(20px, 3.5vw, 48px) !important;
+  max-width: var(--landing-guest-header-max, min(1180px, 100%));
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-bottom: 0 !important;
+  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(16px, 4vw, 48px) 12px !important;
+  box-sizing: border-box;
   background: transparent !important;
   border-bottom: none !important;
   border-radius: 0 !important;
@@ -62,7 +67,7 @@ body.landing-guest-home #site-header {
 }
 
 body.landing-guest-home #site-header .header-content {
-  max-width: var(--site-max, 1600px);
+  max-width: 100%;
   margin: 0 auto;
   width: 100%;
   min-height: 52px;
@@ -70,6 +75,19 @@ body.landing-guest-home #site-header .header-content {
   box-sizing: border-box;
   border-radius: 0 !important;
   background: transparent !important;
+}
+
+@media (min-width: 861px) {
+  body.landing-guest-home.landing-root-page.film-standalone-page #site-header,
+  body.landing-guest-home.landing-root-page #site-header {
+    max-width: var(--landing-guest-header-max, min(1180px, 100%)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: clamp(16px, 4vw, 48px) !important;
+    padding-right: clamp(16px, 4vw, 48px) !important;
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 12px !important;
+  }
 }
 
 /* Гостевая /: полное название сервиса — не режем как на /f/ */
@@ -121,9 +139,9 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
     visibility: visible !important;
     position: relative !important;
     top: auto !important;
-    max-width: var(--site-max, 1600px);
+    max-width: var(--landing-guest-header-max, min(1180px, 100%));
     margin: 0 auto 4px !important;
-    padding: 0 clamp(20px, 3.5vw, 48px) 6px !important;
+    padding: 0 clamp(16px, 4vw, 48px) 6px !important;
     background: transparent !important;
     border-bottom: none !important;
     justify-content: center !important;
