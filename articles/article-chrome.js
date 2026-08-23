@@ -16,11 +16,11 @@
     if (!document.querySelector('link[href*="cookie-consent.css"]')) {
       var ccCss = document.createElement('link');
       ccCss.rel = 'stylesheet';
-      ccCss.href = '/cookie-consent.css?v=20260822rsy1';
+      ccCss.href = '/cookie-consent.css?v=20260824rsyAll1';
       (document.head || document.documentElement).appendChild(ccCss);
     }
     var ccJs = document.createElement('script');
-    ccJs.src = '/cookie-consent.js?v=20260822rsy1';
+    ccJs.src = '/cookie-consent.js?v=20260824rsyAll1';
     ccJs.async = false;
     (document.head || document.documentElement).appendChild(ccJs);
   }

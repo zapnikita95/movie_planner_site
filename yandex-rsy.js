@@ -14,7 +14,7 @@
 
 
 
-  var BUILD = '20260823rsyFixed2';
+  var BUILD = '20260824rsyAll1';
 
   var LAYOUT_ENABLED = true;
 
@@ -44,9 +44,9 @@
 
     staffSidebar: 'R-A-19798904-3',
 
-    staffAfterFilmography: null,
+    staffAfterFilmography: 'R-A-19798904-4',
 
-    articleInline: null,
+    articleInline: 'R-A-19798904-5',
 
   };
 
