@@ -13776,10 +13776,24 @@ body.landing-root-page #landing-root-nav .cabinet-nav-btn {
 body.landing-root-page #landing-root-nav.hidden {
   display: none !important;
 }
-body.landing-guest-home #landing-root-nav,
-body.landing-guest-home #landing-root-nav.hidden {
-  display: flex !important;
-  visibility: visible !important;
+@media (min-width: 861px) {
+  body.landing-guest-home #landing-root-nav,
+  body.landing-guest-home #landing-root-nav.hidden {
+    display: flex !important;
+    visibility: visible !important;
+  }
+}
+@media (max-width: 860px) {
+  body.landing-guest-home #landing-root-nav,
+  body.landing-guest-home #landing-root-nav.hidden {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    visibility: visible !important;
+  }
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/home"],
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/watchlist"] {
+    display: none !important;
+  }
 }
 
 .mp-guest-cabinet-nav {
