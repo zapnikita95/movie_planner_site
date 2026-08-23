@@ -2380,21 +2380,33 @@
   }
 
   function mountStandaloneCabinetNav(mainSelector) {
-    var shell = document.querySelector('.page-shell');
-    var main = shell && shell.querySelector(mainSelector || 'main');
     var old = document.getElementById('film-standalone-nav');
     if (old) old.remove();
-    if (!shell || !main) return;
     var navWrap = document.createElement('div');
     navWrap.innerHTML = standaloneNavHtml();
     var navEl = navWrap.firstElementChild;
-    if (navEl) {
+    if (!navEl) return;
+
+    var inserted = false;
+    var shell = document.querySelector('.page-shell');
+    var main = shell && (shell.querySelector(mainSelector || 'main') || shell.querySelector('main'));
+    if (shell && main) {
       shell.insertBefore(navEl, main);
-      bindStandaloneNavLinks(navEl);
-      try {
-        if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
-      } catch (_e) {}
+      inserted = true;
+    } else {
+      var header = document.getElementById('site-header');
+      var parent = header && header.parentNode;
+      if (header && parent) {
+        parent.insertBefore(navEl, header.nextSibling);
+        inserted = true;
+      }
     }
+    if (!inserted) return;
+
+    bindStandaloneNavLinks(navEl);
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
+    } catch (_e) {}
   }
 
   function bindStandaloneLogoHome() {

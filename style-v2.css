@@ -17926,6 +17926,10 @@ body.in-cabinet .inbox-fab { display: none !important; }
 #cabinet-onboarding > .container > .cabinet-nav {
   order: 1;
 }
+#cabinet-readonly > .container > .cabinet-sections,
+#cabinet-onboarding > .container > .cabinet-sections {
+  order: 3;
+}
 #cabinet-readonly > .container > .cabinet-topbar,
 #cabinet-onboarding > .container > .cabinet-topbar {
   order: 0;
@@ -21376,7 +21380,7 @@ img.mp-poster-placeholder,
   }
 
   body.in-cabinet #cabinet-readonly.cabinet.film-page-mode {
-    padding-bottom: 8px;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
 
   html.mp-film-boot footer.footer,
