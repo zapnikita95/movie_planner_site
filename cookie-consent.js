@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyAll1';
+  var BUILD = '20260824rsyLayout2';
   var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
