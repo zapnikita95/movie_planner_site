@@ -7196,7 +7196,7 @@ body.film-standalone-page .film-page-similar-section,
 }
 .premiere-poster-tile:hover {
   transform: scale(0.98);
-  z-index: 90;
+  z-index: 120;
 }
 .premiere-poster-media { position: relative; }
 .premiere-poster-tile-img {
@@ -7210,7 +7210,8 @@ body.film-standalone-page .film-page-similar-section,
 
 /* SSR /premieres crawl block — только для ботов без JS; в кабинете скрываем */
 body.in-cabinet .seo-premieres-crawl,
-body.guest-cabinet-preview .seo-premieres-crawl {
+body.guest-cabinet-preview .seo-premieres-crawl,
+html.mp-guest-cabinet-boot .seo-premieres-crawl {
   display: none !important;
 }
 
@@ -10313,7 +10314,7 @@ a.link-inline:hover {
   position: absolute;
   left: 62px;
   bottom: calc(100% - 4px);
-  z-index: 200;
+  z-index: 500;
   width: min(360px, calc(100vw - 44px));
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);
@@ -10343,6 +10344,7 @@ a.link-inline:hover {
 }
 .premiere-poster-tile:hover .home-film-preview {
   transform: translateX(-50%) translateY(0) scale(1);
+  z-index: 9999;
 }
 .home-premiere-preview-poster,
 .home-film-preview-poster {
@@ -17899,6 +17901,24 @@ body.in-cabinet .inbox-fab { display: none !important; }
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 0 0 20px;
+  order: 2;
+}
+#cabinet-readonly > .container > .cabinet-nav,
+#cabinet-onboarding > .container > .cabinet-nav {
+  order: 1;
+}
+#cabinet-readonly > .container > .cabinet-topbar,
+#cabinet-onboarding > .container > .cabinet-topbar {
+  order: 0;
+}
+#cabinet-readonly > .container > .inbox-fab,
+#cabinet-onboarding > .container > .inbox-fab {
+  order: 4;
+}
+#cabinet-readonly > .container,
+#cabinet-onboarding > .container {
+  display: flex;
+  flex-direction: column;
 }
 .cabinet-home-stat {
   display: flex;
