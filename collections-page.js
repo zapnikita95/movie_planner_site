@@ -186,21 +186,25 @@
     hydrateIcons(el);
   }
 
-  function filmsGridHtml(films) {
+  function filmsGridHtml(films, opts) {
+    var o = opts || {};
     if (!films || !films.length) {
       return '<p class="cabinet-hint collections-empty">Пока пусто</p>';
     }
     return (
-      '<div class="movies-grid collections-films-grid">'
+      '<div class="movies-grid collections-films-grid' + (o.ranked ? " collections-films-grid--ranked" : "") + '">'
       + films.map(function (f) {
         var kp = f.kp_id != null ? String(f.kp_id) : "";
         var fid = f.id || f.already_in_base_film_id || f.film_id || "";
         var poster = f.poster || posterUrl(kp);
         var path = f.film_path || (kp ? ("/f/" + kp) : "");
+        var rank = f.rank || f.nyt_rank;
+        var rankBadge = rank ? ('<span class="collections-film-rank" aria-label="Место ' + esc(String(rank)) + '">#' + esc(String(rank)) + "</span>") : "";
         return (
           '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
           + '>'
+          + rankBadge
           + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
@@ -209,6 +213,56 @@
       }).join("")
       + "</div>"
     );
+  }
+
+  function nytVotersRailHtml(voters) {
+    if (!voters || !voters.length) return "";
+    return (
+      '<section class="nyt-voters-block" aria-label="Голосующие NY Times">'
+      + '<h2 class="nyt-voters-title">Кто голосовал</h2>'
+      + '<p class="cabinet-hint nyt-voters-lead">Режиссёры и актёры из опроса NY Times — откройте бюллетень с их топом фильмов.</p>'
+      + '<label class="nyt-voters-search-label" for="nyt-voters-search"><span class="visually-hidden">Поиск по имени</span>'
+      + '<input type="search" id="nyt-voters-search" class="collections-search-input nyt-voters-search" placeholder="Найти голосующего…" autocomplete="off"></label>'
+      + '<div class="nyt-voters-rail" id="nyt-voters-rail">'
+      + voters.map(function (v) {
+        var url = v.ballot_url || ("/articles/nyt-ballot-" + esc(v.slug) + ".html");
+        var top = (v.top_picks || []).slice(0, 2).join(", ");
+        return (
+          '<a class="nyt-voter-card" href="' + esc(url) + '" data-voter-name="' + esc((v.name || "").toLowerCase()) + '">'
+          + '<span class="nyt-voter-name">' + esc(v.name || "") + "</span>"
+          + '<span class="nyt-voter-meta">' + esc(String(v.ballot_count || "")) + " фильмов</span>"
+          + (top ? ('<span class="nyt-voter-top">' + esc(top) + "</span>") : "")
+          + "</a>"
+        );
+      }).join("")
+      + "</div></section>"
+    );
+  }
+
+  function bindNytVotersSearch(root) {
+    var input = root && root.querySelector("#nyt-voters-search");
+    var rail = root && root.querySelector("#nyt-voters-rail");
+    if (!input || !rail) return;
+    input.addEventListener("input", function () {
+      var q = String(input.value || "").trim().toLowerCase();
+      rail.querySelectorAll(".nyt-voter-card").forEach(function (card) {
+        var name = card.getAttribute("data-voter-name") || "";
+        card.style.display = !q || name.indexOf(q) !== -1 ? "" : "none";
+      });
+    });
+  }
+
+  function loadNytVotersRail(root) {
+    return apiPublicGet("/api/public/nyt-century/voters?limit=120").then(function (data) {
+      if (!data || !data.success || !data.voters || !data.voters.length) return "";
+      var block = root.querySelector("#nyt-voters-host");
+      if (!block) return "";
+      block.innerHTML = nytVotersRailHtml(data.voters);
+      bindNytVotersSearch(block);
+      return data.voters;
+    }).catch(function () {
+      return "";
+    });
   }
 
   function guestWhatIsHtml() {
@@ -909,6 +963,8 @@
         var hint = (c.films_count || films.length || 0) + " фильмов";
         if (shortCode === "venice-2026") {
           hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
+        } else if (shortCode === "nyt-top100-21c") {
+          hint = "The New York Times · 500+ голосов · " + hint;
         }
         hintEl.textContent = hint;
       }
@@ -922,7 +978,17 @@
           cta = '<button type="button" class="btn btn-primary btn-full" data-coll-action="guest-import">'
             + "Добавить все в базу</button>";
         }
-        body.innerHTML = filmsGridHtml(films) + cta + (hasSiteAuth() ? "" : guestWhatIsHtml());
+        var intro = "";
+        if (shortCode === "nyt-top100-21c") {
+          intro = '<p class="nyt-collection-intro">Список The New York Times по итогам опроса более 500 режиссёров, актёров и других авторитетов кино. '
+            + '<a href="https://www.nytimes.com/interactive/2025/movies/best-movies-21st-century.html" rel="noopener noreferrer">Оригинал NY Times</a></p>'
+            + '<div id="nyt-voters-host"></div>';
+        }
+        var ranked = shortCode === "nyt-top100-21c";
+        body.innerHTML = intro + filmsGridHtml(films, { ranked: ranked }) + cta + (hasSiteAuth() ? "" : guestWhatIsHtml());
+        if (shortCode === "nyt-top100-21c") {
+          loadNytVotersRail(root);
+        }
         try {
           if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
             global.MpPublicPromo.bindRegister(body);
