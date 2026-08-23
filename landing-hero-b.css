@@ -235,6 +235,12 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   body.landing-guest-home #landing-root-nav .mp-nav-tournament {
     display: none !important;
   }
+
+  /* Гость без авторизации: 4 таба — Планы / Смотреть / Премьеры / В тренде */
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/home"],
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/watchlist"] {
+    display: none !important;
+  }
 }
 
 
@@ -1133,6 +1139,31 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
 
   /* 375 / 320: без декоративной «плёнки» — текст strip в одну строку */
   @media (max-width: 480px) {
+    body.landing-guest-home .header-search {
+      --search-left-lane: 36px;
+      --search-right-lane: 40px;
+    }
+
+    body.landing-guest-home .header-search .header-search-input {
+      font-size: 13px !important;
+      line-height: 40px !important;
+      min-height: 40px !important;
+      padding-left: var(--search-left-lane) !important;
+      padding-right: var(--search-right-lane) !important;
+    }
+
+    body.landing-guest-home .header-search .header-search-mic {
+      width: 32px !important;
+      height: 32px !important;
+      right: 6px !important;
+    }
+
+    body.landing-guest-home .header-search .header-search-icon-btn {
+      width: 32px !important;
+      height: 32px !important;
+      left: 4px !important;
+    }
+
     body.landing-guest-home .landing-guest-strip-perf {
       display: none !important;
     }
