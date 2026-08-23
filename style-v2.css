@@ -5612,8 +5612,11 @@ main.film-page .eyebrow + .film-ext-ratings {
   align-items: flex-start;
   gap: 10px;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x;
   scroll-snap-type: x proximity;
   padding-bottom: 6px;
   scrollbar-width: thin;
@@ -11254,6 +11257,9 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
     align-items: flex-start;
     gap: 18px;
     padding: 0 0 18px;
+    overflow-y: visible;
+    overscroll-behavior-y: auto;
+    touch-action: pan-x;
     scroll-snap-type: x mandatory;
     scroll-padding-inline: max(24px, env(safe-area-inset-left, 0px));
   }
@@ -17989,8 +17995,11 @@ body.in-cabinet .inbox-fab { display: none !important; }
   align-items: flex-start;
   gap: 14px;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x;
   scroll-snap-type: x proximity;
   padding: 2px 2px 8px;
   margin: 0;
@@ -18033,7 +18042,7 @@ body.in-cabinet .inbox-fab { display: none !important; }
   color: inherit;
   font: inherit;
   pointer-events: auto;
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
   -webkit-user-select: none;
   user-select: none;
   display: flex;
@@ -18087,7 +18096,10 @@ body.guest-cabinet-preview #section-home .home-prem-rail,
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x;
   scroll-snap-type: x mandatory;
   gap: 12px;
   padding-bottom: 8px;
@@ -18109,7 +18121,9 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   flex-wrap: nowrap;
   align-items: flex-start;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x;
   width: 100%;
   min-width: 0;
 }
@@ -19043,8 +19057,10 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     flex-wrap: nowrap;
     align-items: flex-start;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+    touch-action: pan-x;
     scroll-snap-type: x mandatory;
     gap: 14px;
     width: 100%;
