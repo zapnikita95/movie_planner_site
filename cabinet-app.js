@@ -9672,6 +9672,48 @@
   function saveHomeSectionsHidden(arr) {
     try { localStorage.setItem(HOME_LS_HIDDEN, JSON.stringify(arr)); } catch (_) {}
   }
+
+  function homeDashboardBlockOrderList() {
+    const order = loadHomeSectionsOrder();
+    const hidden = loadHomeSectionsHidden();
+    if (isGuestCabinetPreview()) return ['premieres', 'series'];
+    return order.filter((bid) => hidden.indexOf(bid) < 0);
+  }
+
+  function reorderHomeDashboardBlocks(root) {
+    if (!root) return;
+    homeDashboardBlockOrderList().forEach((bid) => {
+      const el = root.querySelector('[data-home-block="' + bid + '"]');
+      if (el) root.appendChild(el);
+    });
+  }
+
+  function upsertHomeDashboardBlock(root, blockId, html) {
+    if (!root || !html) return;
+    const existing = root.querySelector('[data-home-block="' + blockId + '"]');
+    if (existing) {
+      const liveRail = existing.querySelector('[data-home-rail][data-rail-mounted="1"]');
+      if (liveRail && liveRail.childElementCount > 0) return;
+      existing.outerHTML = html;
+    } else {
+      const order = homeDashboardBlockOrderList();
+      const idx = order.indexOf(blockId);
+      let placed = false;
+      if (idx >= 0) {
+        for (let i = idx + 1; i < order.length; i++) {
+          const nextEl = root.querySelector('[data-home-block="' + order[i] + '"]');
+          if (nextEl) {
+            nextEl.insertAdjacentHTML('beforebegin', html);
+            placed = true;
+            break;
+          }
+        }
+      }
+      if (!placed) root.insertAdjacentHTML('beforeend', html);
+    }
+    reorderHomeDashboardBlocks(root);
+  }
+
   function loadHomeEmojiVis() {
     try {
       const raw = localStorage.getItem(HOME_LS_EMOJI);
@@ -9920,6 +9962,11 @@
     const root = document.getElementById('home-dashboard-root');
     if (!root || isGuestCabinetPreview()) return;
     if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return;
+    if (loadHomeSectionsHidden().indexOf('tournament') >= 0) {
+      const gone = root.querySelector('[data-home-block="tournament"]');
+      if (gone) gone.remove();
+      return;
+    }
     const data = homeTournamentLeaderboardData();
     const activeId = homeTournamentActiveNomId(data);
     _homeTournamentActiveNomId = activeId;
@@ -9936,9 +9983,7 @@
       + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
       + tabsHtml
       + '<div class="home-tourn-rows" id="home-tourn-rows">' + rowsHtml + '</div></section>';
-    const existing = root.querySelector('[data-home-block="tournament"]');
-    if (existing) existing.outerHTML = html;
-    else root.insertAdjacentHTML('beforeend', html);
+    upsertHomeDashboardBlock(root, 'tournament', html);
     bindHomeTournamentTabsOnce();
   }
 
@@ -10861,6 +10906,8 @@
       html = '<p class="cabinet-hint">Все блоки скрыты. Откройте «Настроить главную…», чтобы вернуть превью.</p>';
     }
     root.innerHTML = html;
+    paintHomeTournamentBlock();
+    reorderHomeDashboardBlocks(root);
     renderHomeMoreLinks(hidden);
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
     // Rails mount once from renderHomeDashboardFromCache.finally — not here.
@@ -11139,16 +11186,16 @@
         return;
       }
       if (existing) {
-        // Never wipe a live rail — outerHTML remount was the 2nd/3rd home flicker.
         const liveRail = existing.querySelector('[data-home-rail][data-rail-mounted="1"]');
         if (liveRail && liveRail.childElementCount > 0) {
           return;
         }
         existing.outerHTML = html;
       } else {
-        root.insertAdjacentHTML('beforeend', html);
+        upsertHomeDashboardBlock(root, bid, html);
       }
     });
+    reorderHomeDashboardBlocks(root);
     paintHomeTournamentBlock();
     renderHomeMoreLinks(loadHomeSectionsHidden());
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
