@@ -124,7 +124,7 @@
           if (hasStoredSiteSession()) return;
           var l = document.createElement('link');
           l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix1';
+          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix2';
           document.head.appendChild(l);
         } catch (_) {}
       })();
@@ -169,21 +169,6 @@
         }
       })();
     </script>
-    <style id="mp-landing-critical">
-      html.mp-landing-boot #header-search{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;max-width:none!important;min-width:0!important;margin:0!important;overflow:visible!important}
-      html.mp-landing-boot .header-content{display:flex!important;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:0;box-sizing:border-box}
-      html.mp-landing-boot .logo{flex:0 0 auto;min-width:0;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-size:14px}
-      html.mp-landing-boot .logo img{width:24px;height:24px;flex-shrink:0}
-      html.mp-landing-boot .logo .logo-text,html.mp-landing-boot .logo span{white-space:nowrap}
-      html.mp-landing-boot .header-buttons{flex:0 0 auto;display:flex;justify-content:flex-end;min-width:0}
-      html.mp-landing-boot #header-search{order:3;flex:1 1 100%!important;width:100%!important}
-      @media(min-width:769px){
-        html.mp-landing-boot .header-content{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,min(560px,40vw)) minmax(0,1fr)!important;align-items:center;gap:clamp(12px,2vw,20px);min-height:52px;flex-wrap:unset}
-        html.mp-landing-boot .logo{grid-column:1;grid-row:1;justify-self:start}
-        html.mp-landing-boot .header-buttons{grid-column:3;grid-row:1;justify-self:end;order:unset}
-        html.mp-landing-boot #header-search{grid-column:2;grid-row:1;order:unset!important;flex:unset!important;width:100%!important;max-width:560px!important;justify-self:center;margin-inline:auto!important}
-      }
-    </style>
     <style id="mp-cabinet-critical">
       html.mp-auth-boot #landing{display:none!important}
       html.mp-auth-boot #cabinet-readonly.hidden{display:block!important}
@@ -195,7 +180,7 @@
       html.mp-search-boot #cabinet-readonly.hidden{display:none!important}
       html.mp-guest-cabinet-boot #landing{display:none!important}
       html.mp-guest-cabinet-boot #cabinet-readonly.hidden{display:block!important}
-      html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden{display:flex!important;visibility:visible!important}
+      html.mp-guest-cabinet-boot #landing-root-nav,html.mp-guest-cabinet-boot #landing-root-nav.hidden,body.guest-cabinet-preview #landing-root-nav,body.guest-cabinet-preview #landing-root-nav.hidden{display:flex!important;visibility:visible!important}
       html.mp-auth-boot #landing-root-nav,html.mp-session #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important;visibility:hidden!important}
       html:not(.mp-session) #landing-root-nav .mp-nav-tournament,html:not(.mp-session) #landing-root-nav a[href="/tournament"]{display:none!important}
       #section-buzz.buzz-is-loading #buzz-seo-footer,#section-buzz.buzz-is-loading #buzz-digest,#buzz-seo-footer[hidden],#buzz-digest[hidden]{display:none!important}
@@ -1031,14 +1016,12 @@
       }
       if (cabinetSectionFromPath(path) && hasStoredSiteSession()) {
         document.body.classList.remove('landing-guest-home', 'landing-root-page', 'film-standalone-page');
-        document.documentElement.classList.remove('mp-landing-boot');
         document.documentElement.classList.add('mp-auth-boot', 'mp-session');
         document.body.classList.add('in-cabinet');
         return;
       }
       if (path !== '/' && path !== '/index.html') return;
       document.body.classList.add('landing-root-page', 'film-standalone-page');
-      document.documentElement.classList.add('mp-landing-boot');
       if (!hasStoredSiteSession()) {
         document.body.classList.add('landing-guest-home');
       }
@@ -3722,7 +3705,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestCabinetFix1';
+        var V = '20260823guestCabinetFix2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
