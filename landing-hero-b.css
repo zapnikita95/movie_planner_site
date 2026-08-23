@@ -30,8 +30,13 @@ html.landing-demo-scroll {
 
 body.landing-guest-home {
   background: var(--bg-main, #09090b);
-  --landing-guest-hpad: clamp(16px, 4vw, 56px);
-  --landing-guest-header-max: min(1180px, calc(100% - 2 * var(--landing-guest-hpad)));
+}
+
+@media (min-width: 861px) {
+  body.landing-guest-home {
+    --landing-guest-hpad: clamp(16px, 4vw, 56px);
+    --landing-guest-header-max: min(1180px, calc(100% - 2 * var(--landing-guest-hpad)));
+  }
 }
 
 body.landing-guest-home .content-wrapper {
@@ -45,11 +50,11 @@ body.landing-guest-home #site-header {
   top: 0;
   z-index: 301;
   width: 100%;
-  max-width: var(--landing-guest-header-max, min(1180px, 100%));
-  margin-left: auto !important;
-  margin-right: auto !important;
+  max-width: none;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   margin-bottom: 0 !important;
-  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(16px, 4vw, 48px) 12px !important;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)) !important;
   box-sizing: border-box;
   background: transparent !important;
   border-bottom: none !important;
@@ -59,6 +64,14 @@ body.landing-guest-home #site-header {
 
 /* Гостевая /: шапка не «уезжает» при retract-scroll (десктоп) */
 @media (min-width: 861px) {
+  body.landing-guest-home #site-header {
+    max-width: var(--landing-guest-header-max, min(1180px, 100%)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: clamp(16px, 4vw, 48px) !important;
+    padding-right: clamp(16px, 4vw, 48px) !important;
+  }
+
   body.landing-guest-home #site-header.site-header--retracted {
     transform: none !important;
     opacity: 1 !important;
@@ -214,7 +227,7 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   }
 
   body.landing-guest-home #landing-root-nav .cabinet-nav-btn,
-  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn {
+  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn:not([href="/home"]):not([href="/watchlist"]) {
     flex: unset !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -255,9 +268,13 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   }
 
   /* Гость без авторизации: 4 таба — Планы / Смотреть / Премьеры / В тренде */
-  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/home"],
-  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/watchlist"] {
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/home"],
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href="/watchlist"],
+  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href="/home"],
+  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href="/watchlist"] {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 }
 
