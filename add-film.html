@@ -194,6 +194,14 @@
     body.add-film-page .af-field { margin-bottom: 14px; }
     body.add-film-page .af-field.full { grid-column: 1 / -1; }
     body.add-film-page .af-series-only.hidden { display: none; }
+    body.add-film-page .af-season-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+    body.add-film-page .af-season-grid .af-field { margin-bottom: 0; }
+    body.add-film-page .af-season-grid label { font-size: 12px; }
     body.add-film-page .af-field label {
       display: block;
       margin-bottom: 6px;
@@ -494,10 +502,10 @@
                   <label for="seasons_count">Сезонов</label>
                   <input id="seasons_count" name="seasons_count" type="number" min="1" max="50" placeholder="1">
                 </div>
-                <div class="af-field af-series-only hidden" id="field-episodes">
-                  <label for="episodes_count">Серий</label>
-                  <input id="episodes_count" name="episodes_count" type="number" min="1" max="500" placeholder="6">
-                  <span class="hint">Для сериала — чтобы отмечать просмотренные серии в кабинете.</span>
+                <div class="af-field af-series-only hidden full" id="field-season-episodes">
+                  <label>Серий в каждом сезоне</label>
+                  <div id="season-episodes-grid" class="af-season-grid" aria-live="polite"></div>
+                  <span class="hint">После числа сезонов появятся поля: укажите серии для каждого сезона — так в кабинете отмечается прогресс.</span>
                 </div>
                 <div class="af-field">
                   <label for="director">Режиссёр</label>
@@ -687,16 +695,53 @@
     var verifyCode = document.getElementById('verify-code');
     var filmTypeEl = document.getElementById('film_type');
     var seriesFields = document.querySelectorAll('.af-series-only');
+    var seasonsCountEl = document.getElementById('seasons_count');
+    var seasonEpisodesGrid = document.getElementById('season-episodes-grid');
+
+    function readSeasonEpisodeCounts() {
+      var counts = [];
+      if (!seasonEpisodesGrid) return counts;
+      seasonEpisodesGrid.querySelectorAll('input[data-season]').forEach(function (inp) {
+        counts.push(parseInt(String(inp.value || ''), 10) || 0);
+      });
+      return counts;
+    }
+
+    function renderSeasonEpisodeFields() {
+      if (!seasonEpisodesGrid || !seasonsCountEl) return;
+      var n = parseInt(String(seasonsCountEl.value || ''), 10);
+      if (!n || n < 1 || n > 50) {
+        seasonEpisodesGrid.innerHTML = '';
+        return;
+      }
+      var prev = readSeasonEpisodeCounts();
+      var html = '';
+      for (var i = 1; i <= n; i++) {
+        var val = prev[i - 1] > 0 ? String(prev[i - 1]) : '6';
+        html +=
+          '<div class="af-field">' +
+          '<label for="season_ep_' + i + '">Сезон ' + i + '</label>' +
+          '<input id="season_ep_' + i + '" type="number" min="1" max="200" data-season="' + i + '" value="' + val + '" required>' +
+          '</div>';
+      }
+      seasonEpisodesGrid.innerHTML = html;
+    }
 
     function syncSeriesFields() {
       var isSeries = filmTypeEl && String(filmTypeEl.value || '') === 'series';
       seriesFields.forEach(function (el) {
         el.classList.toggle('hidden', !isSeries);
       });
+      if (isSeries) renderSeasonEpisodeFields();
+      else if (seasonEpisodesGrid) seasonEpisodesGrid.innerHTML = '';
     }
     if (filmTypeEl) {
       filmTypeEl.addEventListener('change', syncSeriesFields);
       syncSeriesFields();
+    }
+    if (seasonsCountEl) {
+      seasonsCountEl.addEventListener('input', renderSeasonEpisodeFields);
+      seasonsCountEl.addEventListener('change', renderSeasonEpisodeFields);
     }
 
     function showStep(id) {
@@ -769,10 +814,32 @@
         }
         var fd = new FormData();
         fd.append('poster', posterFile, posterFile.name || 'poster.jpg');
-        ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone', 'seasons_count', 'episodes_count'].forEach(function (name) {
+        ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
           var el = document.getElementById(name);
           fd.append(name, el ? String(el.value || '').trim() : '');
         });
+        var isSeries = filmTypeEl && String(filmTypeEl.value || '') === 'series';
+        if (isSeries) {
+          var sc = parseInt(String((seasonsCountEl && seasonsCountEl.value) || ''), 10) || 0;
+          var counts = readSeasonEpisodeCounts();
+          if (!sc || sc < 1 || counts.length !== sc) {
+            setStatus(formStatus, 'Укажите сезоны и серии в каждом сезоне', 'err');
+            return;
+          }
+          for (var ci = 0; ci < counts.length; ci++) {
+            if (counts[ci] < 1 || counts[ci] > 200) {
+              setStatus(formStatus, 'Серий в сезоне: от 1 до 200', 'err');
+              return;
+            }
+          }
+          fd.append('seasons_count', String(sc));
+          fd.append('series_episodes', JSON.stringify(counts));
+          var total = counts.reduce(function (a, b) { return a + b; }, 0);
+          fd.append('episodes_count', String(total));
+        } else {
+          fd.append('seasons_count', '');
+          fd.append('episodes_count', '');
+        }
         fd.append('privacy_accepted', '1');
 
         setStatus(formStatus, 'Отправляем…');
