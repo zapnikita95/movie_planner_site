@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <style id="landing-demo-critical">html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important}#site-header,#site-header .header-content{background:#09090b!important}body.landing-guest-home #site-header,#site-header .header-content,#landing-root-nav{background:#09090b!important}</style>
+    <style id="landing-demo-critical">html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important}body.landing-guest-home #landing-root-nav,body.landing-guest-home.landing-root-page #landing-root-nav{display:flex!important;visibility:visible!important}#site-header,#site-header .header-content{background:#09090b!important}body.landing-guest-home #site-header,#site-header .header-content,#landing-root-nav{background:#09090b!important}</style>
     <meta charset="UTF-8">
     <script>
       (function () {
@@ -124,7 +124,7 @@
           if (hasStoredSiteSession()) return;
           var l = document.createElement('link');
           l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix2';
+          l.href = '/landing-hero-b.css?v=20260823guestCabinetFix3';
           document.head.appendChild(l);
         } catch (_) {}
       })();
@@ -3705,7 +3705,7 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260823guestCabinetFix2';
+        var V = '20260823guestCabinetFix3';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

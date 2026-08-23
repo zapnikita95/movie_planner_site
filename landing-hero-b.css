@@ -39,6 +39,22 @@ body.landing-guest-home .content-wrapper {
 
 body.landing-guest-home #site-header {
   z-index: 300;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)) !important;
+  background: #09090b !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.landing-guest-home #site-header .header-content {
+  max-width: var(--site-max, 1600px);
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 0 !important;
+  background: transparent !important;
 }
 
 body.landing-guest-home #landing-root-nav {
@@ -46,54 +62,44 @@ body.landing-guest-home #landing-root-nav {
   margin-bottom: 0 !important;
 }
 
-/* Десктоп: горизонтальное меню под шапкой, без полоски */
+/* Десктоп: горизонтальное меню под шапкой (как /home, /premieres) */
 @media (min-width: 861px) {
-  html.mp-landing-boot body.landing-guest-home #landing-root-nav,
-  body.landing-guest-home #landing-root-nav::-webkit-scrollbar {
-    display: none;
-  }
-
+  body.landing-guest-home #landing-root-nav,
   body.landing-guest-home.landing-root-page #landing-root-nav {
+    display: flex !important;
+    visibility: visible !important;
+    position: static !important;
+    max-width: var(--site-max, 1600px);
+    margin: 0 auto clamp(12px, 1.5vw, 20px) !important;
+    padding: 0 12px 8px !important;
+    background: #09090b !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
-    justify-content: center !important;
+    z-index: 299;
+  }
+
+  body.landing-guest-home #landing-root-nav::-webkit-scrollbar {
+    display: none;
   }
 
   body.landing-guest-home #landing-root-nav .cabinet-nav-btn {
     flex: 0 0 auto !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding: 6px 10px !important;
-    font-size: 13px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
     line-height: 1.2 !important;
     gap: 4px !important;
     white-space: nowrap;
+    border-radius: 0 !important;
+    border-bottom: 3px solid transparent !important;
   }
 
   body.landing-guest-home #landing-root-nav .mp-nav-tournament {
     display: none !important;
-  }
-
-  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn {
-    padding: 6px 10px !important;
-    font-size: 13px !important;
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-  }
-}
-
-@media (min-width: 769px) {
-  body.landing-guest-home #site-header .header-content {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(160px, min(440px, 34vw)) minmax(0, 1fr) !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-  }
-
-  body.landing-guest-home .logo,
-  body.landing-guest-home .header-buttons {
-    min-width: 0;
-    flex-shrink: 0;
   }
 }
 
