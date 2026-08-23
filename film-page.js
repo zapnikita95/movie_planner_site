@@ -792,6 +792,11 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
+    try {
+      if (global.MpRsy && typeof global.MpRsy.mountFilmAfterSimilar === 'function') {
+        global.MpRsy.mountFilmAfterSimilar();
+      }
+    } catch (_rsySim) {}
   }
 
   function mountFilmPageSimilarBlock(kpId, pageRoot) {
@@ -4792,6 +4797,11 @@
           global.MpPublicPromo.mountAfterHero(similarRoot);
         }
       } catch (_promoEnd) {}
+      try {
+        if (global.MpRsy && typeof global.MpRsy.mountFilmPage === 'function') {
+          global.MpRsy.mountFilmPage();
+        }
+      } catch (_rsyFilm) {}
       try {
         if (global.MpMonetization && typeof global.MpMonetization.initFilmPage === 'function' && similarRoot && kpId) {
           var _monTitleEl = document.getElementById('film-title');

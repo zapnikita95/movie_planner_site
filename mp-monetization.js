@@ -128,33 +128,19 @@
   }
 
   function ensureAdSlots(pageRoot) {
+    /* RSY placement: MpRsy / yandex-rsy.js only (fixed + after-section). No inflow slots here. */
     if (!pageRoot || isProUser()) return;
-    var hero = pageRoot.querySelector('.hero-content') || pageRoot;
-    var toolbar = pageRoot.querySelector('.film-page-toolbar');
-    var similar = pageRoot.querySelector('.film-page-similar-section');
-
-    if (toolbar && !pageRoot.querySelector('[data-mp-ad-slot="infeed"]')) {
-      var infeed = document.createElement('div');
-      infeed.className = 'mp-ad-anchor';
-      infeed.setAttribute('data-mp-ad-slot', 'infeed');
-      toolbar.parentNode.insertBefore(infeed, toolbar);
-    }
-    if (similar && !pageRoot.querySelector('[data-mp-ad-slot="horizontal"]')) {
+    if (global.MpRsy) return;
+    fetchConfig().then(function (cfg) {
+      if (!cfg.adsense || !cfg.adsense.enabled) return;
+      var similar = pageRoot.querySelector('.film-page-similar-section');
+      if (!similar || pageRoot.querySelector('[data-mp-ad-slot="horizontal"]')) return;
       var horiz = document.createElement('div');
       horiz.className = 'mp-ad-anchor';
       horiz.setAttribute('data-mp-ad-slot', 'horizontal');
       similar.parentNode.insertBefore(horiz, similar.nextSibling);
-    }
-
-    fetchConfig().then(function (cfg) {
-      mountRsyaBlocks(pageRoot, cfg);
-      if (cfg.adsense && cfg.adsense.enabled) {
-        var horizSlot = pageRoot.querySelector('[data-mp-ad-slot="horizontal"]');
-        if (horizSlot && !horizSlot.querySelector('.mp-ad-slot--adsense')) {
-          horizSlot.innerHTML = adsenseSlotHtml(cfg.adsense.client, cfg.adsense.slot);
-        }
-        mountAdsenseBlocks(pageRoot, cfg);
-      }
+      horiz.innerHTML = adsenseSlotHtml(cfg.adsense.client, cfg.adsense.slot);
+      mountAdsenseBlocks(pageRoot, cfg);
     });
   }
 
