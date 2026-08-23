@@ -951,8 +951,10 @@ body.landing-guest-home #landing > section.landing-articles-section .articles-gr
   padding-inline: 16px;
   scroll-snap-type: none !important;
   cursor: grab;
-  touch-action: pan-x;
+  /* pan-x alone blocks vertical page scroll on mobile — allow both axes */
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 .landing-vitrine-viewport--duo.is-dragging,
@@ -1179,6 +1181,15 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
     height: 10px !important;
   }
 
+  /* iOS Safari: inputs <16px zoom on focus — keep 16px on mobile */
+  @media (max-width: 860px) {
+    body.landing-guest-home .header-search .header-search-input {
+      font-size: 16px !important;
+      line-height: 40px !important;
+      min-height: 44px !important;
+    }
+  }
+
   /* 375 / 320: без декоративной «плёнки» — текст strip в одну строку */
   @media (max-width: 480px) {
     body.landing-guest-home .header-search {
@@ -1187,9 +1198,6 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
     }
 
     body.landing-guest-home .header-search .header-search-input {
-      font-size: 13px !important;
-      line-height: 40px !important;
-      min-height: 40px !important;
       padding-left: var(--search-left-lane) !important;
       padding-right: var(--search-right-lane) !important;
     }
