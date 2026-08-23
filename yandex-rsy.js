@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyLayout3';
+  var BUILD = '20260824rsyLayout4';
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
@@ -149,6 +149,47 @@
     }
   }
 
+  function railAnchorTop() {
+    var gap = 12;
+    var nav = document.querySelector(
+      '#cabinet-readonly .cabinet-nav, .film-standalone-nav, .staff-standalone-nav, body.in-cabinet .cabinet-nav'
+    );
+    if (nav) {
+      var nr = nav.getBoundingClientRect();
+      if (nr.bottom > 40 && nr.bottom < (global.innerHeight || 800)) {
+        return Math.round(nr.bottom + gap);
+      }
+    }
+    var contentTop = document.querySelector(
+      '#section-film > div, #film-page-content > section.hero, main.film-page > section.hero, main.subpage-main .article-content, .article-content h1'
+    );
+    if (contentTop) {
+      var cr = contentTop.getBoundingClientRect();
+      if (cr.top > 20 && cr.top < (global.innerHeight || 800) * 0.55) {
+        return Math.round(cr.top);
+      }
+    }
+    var header = document.getElementById('site-header');
+    if (header) {
+      var hr = header.getBoundingClientRect();
+      if (hr.bottom > 20) return Math.round(hr.bottom + gap);
+    }
+    return 120;
+  }
+
+  function applyRailVertical(rail) {
+    if (!rail) return;
+    var top = railAnchorTop();
+    var bottomPad = 16;
+    rail.style.top = top + 'px';
+    rail.style.height = 'calc(100vh - ' + (top + bottomPad) + 'px)';
+    rail.style.maxHeight = 'calc(100vh - ' + (top + bottomPad) + 'px)';
+    var slot = rail.querySelector('.mp-rsy-slot');
+    if (slot) {
+      slot.style.minHeight = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+    }
+  }
+
   function applyRailPosition(rail, geo) {
     if (!rail) return;
     if (!geo) {
@@ -160,6 +201,7 @@
     rail.style.right = 'auto';
     rail.style.width = geo.width + 'px';
     rail.dataset.mpRsyWidth = String(geo.width);
+    applyRailVertical(rail);
   }
 
   function ensureFixedRail(kind, blockId, side) {
@@ -207,7 +249,9 @@
         rail.hidden = true;
         return;
       }
-      applyRailPosition(rail, railGeometry(side, kind));
+      var geo = railGeometry(side, kind);
+      applyRailPosition(rail, geo);
+      if (geo) applyRailVertical(rail);
     });
   }
 
@@ -262,7 +306,7 @@
     if (sideOk && BLOCKS.articleSidebarLeft) {
       ensureFixedRail('article', BLOCKS.articleSidebarLeft, 'left');
     }
-    if (!sideOk && BLOCKS.articleInline) {
+    if (BLOCKS.articleInline) {
       mountArticleBottom();
     }
   }

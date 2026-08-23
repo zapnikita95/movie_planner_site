@@ -12186,6 +12186,35 @@ main.film-page .hero::after {
   min-width: 0;
   overflow: visible;
 }
+/* Cabinet film hero: no horizontal spill at ~1024–1100 */
+@media (min-width: 861px) and (max-width: 1100px) {
+  #section-film .movie-page,
+  #film-page-content,
+  #film-page-content > section.hero,
+  #section-film .hero {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  #film-page-content > section.hero,
+  #section-film .hero,
+  main.film-page .hero {
+    grid-template-columns: minmax(200px, min(260px, 28vw)) minmax(0, 1fr);
+    gap: clamp(12px, 2vw, 18px);
+    padding: clamp(12px, 2vw, 18px);
+  }
+  #film-page-content .hero-content,
+  #section-film .hero-content {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  #film-page-content .film-page-toolbar,
+  #section-film .film-page-toolbar {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
 .film-hero-poster-wrap,
 .film-hero-main,
 #section-film .poster-wrap,
