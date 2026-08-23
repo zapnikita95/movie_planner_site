@@ -45,9 +45,9 @@ body.landing-guest-home #site-header {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)) !important;
-  background: #09090b !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: max(12px, env(safe-area-inset-top, 0px)) clamp(20px, 3.5vw, 48px) 8px clamp(20px, 3.5vw, 48px) !important;
+  background: transparent !important;
+  border-bottom: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
@@ -65,33 +65,48 @@ body.landing-guest-home #site-header .header-content {
   max-width: var(--site-max, 1600px);
   margin: 0 auto;
   width: 100%;
+  padding-left: 0;
+  padding-right: 0;
   border-radius: 0 !important;
   background: transparent !important;
 }
 
-body.landing-guest-home #landing-root-nav {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+/* Гостевая /: перекрыть style-v2 solid chrome — прозрачная шапка и меню */
+@media (min-width: 861px) {
+  body.landing-guest-home.landing-root-page #site-header,
+  body.landing-guest-home.landing-root-page.film-standalone-page #site-header,
+  body.landing-guest-home #site-header .header-content {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+  }
 }
 
-/* Десктоп: горизонтальное меню под шапкой (как /home, /premieres) */
+/* Десктоп: горизонтальное меню под шапкой (прозрачный фон, розовый hover) */
 @media (min-width: 861px) {
   body.landing-guest-home #landing-root-nav,
   body.landing-guest-home.landing-root-page #landing-root-nav {
     display: flex !important;
     visibility: visible !important;
-    position: sticky !important;
-    top: var(--landing-guest-header-h, 72px);
+    position: relative !important;
+    top: auto !important;
     max-width: var(--site-max, 1600px);
-    margin: 0 auto clamp(12px, 1.5vw, 20px) !important;
-    padding: 0 12px 8px !important;
-    background: #09090b !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    margin: 0 auto 4px !important;
+    padding: 0 clamp(20px, 3.5vw, 48px) 6px !important;
+    background: transparent !important;
+    border-bottom: none !important;
     justify-content: flex-start !important;
-    gap: 6px !important;
+    gap: 4px !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
-    z-index: 300;
+    z-index: 302;
+  }
+
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/home"],
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href="/watchlist"] {
+    display: inline-flex !important;
   }
 
   body.landing-guest-home #landing-root-nav::-webkit-scrollbar {
@@ -102,13 +117,20 @@ body.landing-guest-home #landing-root-nav {
     flex: 0 0 auto !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding: 10px 14px !important;
+    padding: 8px 12px !important;
     font-size: 14px !important;
     line-height: 1.2 !important;
     gap: 4px !important;
     white-space: nowrap;
     border-radius: 0 !important;
     border-bottom: 3px solid transparent !important;
+    background: transparent !important;
+  }
+
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn:hover,
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn:focus-visible {
+    color: #ff7eb6 !important;
+    border-bottom-color: #ff7eb6 !important;
   }
 
   body.landing-guest-home #landing-root-nav .mp-nav-tournament {
