@@ -179,11 +179,15 @@
     var links = root.querySelectorAll('.mp-stream-btn');
     for (var i = 0; i < links.length; i++) {
       links[i].addEventListener('click', function () {
-        metrikaGoal('stream_click', {
-          platform: this.getAttribute('data-platform') || this.getAttribute('data-partner') || 'other',
-          kp_id: String(kpId || ''),
-          has_affiliate: this.getAttribute('data-affiliate') === '1' ? '1' : '0',
-        });
+        var platform = this.getAttribute('data-platform') || this.getAttribute('data-partner') || 'other';
+        trackStreamPartnerClick(
+          {
+            key: platform,
+            has_affiliate: this.getAttribute('data-affiliate') === '1',
+          },
+          kpId,
+          'watch_block'
+        );
       });
     }
   }
@@ -220,10 +224,15 @@
     return '/images/partners/ivi-logo.png';
   }
 
+  function partnerTvigleLogoUrl() {
+    return '/images/partners/tvigle-logo.svg';
+  }
+
   function partnerLogoUrl(partner) {
     if (!partner) return '';
     if (partner.logo) return partner.logo;
     if (partner.key === 'ivi') return partnerIviLogoUrl();
+    if (partner.key === 'tvigle') return partnerTvigleLogoUrl();
     if (partner.key === 'flex') return partnerFlexLogoUrl();
     return '';
   }
@@ -231,17 +240,40 @@
   function partnerAlt(partner) {
     if (!partner) return '';
     if (partner.key === 'ivi') return 'ivi';
+    if (partner.key === 'tvigle') return 'Tvigle';
     if (partner.key === 'flex') return 'FLEX';
     return partner.label || partner.key || '';
   }
 
-  function bindPartnerIconClick(a, partner, kpId) {
+  function partnerLogoDimensions(partner, size) {
+    if (partner && partner.key === 'tvigle') {
+      return size === 'desktop' ? { w: 64, h: 20 } : { w: 56, h: 18 };
+    }
+    if (partner && partner.key === 'ivi') {
+      return size === 'desktop' ? { w: 56, h: 22 } : { w: 48, h: 20 };
+    }
+    return size === 'desktop' ? { w: 72, h: 22 } : { w: 56, h: 20 };
+  }
+
+  function trackStreamPartnerClick(partner, kpId, surface) {
+    var key = (partner && partner.key) || 'other';
+    var params = {
+      partner: key,
+      platform: key,
+      kp_id: String(kpId || ''),
+      surface: surface || 'unknown',
+      placement: 'film_toolbar',
+      has_affiliate: partner && partner.has_affiliate ? '1' : '0',
+    };
+    metrikaGoal('stream_click', params);
+    if (key === 'flex' || key === 'ivi' || key === 'tvigle') {
+      metrikaGoal('stream_partner_' + key, params);
+    }
+  }
+
+  function bindPartnerIconClick(a, partner, kpId, surface) {
     a.addEventListener('click', function () {
-      metrikaGoal('stream_click', {
-        platform: partner.key || 'other',
-        kp_id: String(kpId || ''),
-        has_affiliate: partner.has_affiliate ? '1' : '0',
-      });
+      trackStreamPartnerClick(partner, kpId, surface);
     });
   }
 
@@ -256,11 +288,10 @@
     a.setAttribute('data-partner', partner.key || 'other');
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
     a.setAttribute('aria-label', partnerAlt(partner));
-    var w = size === 'desktop' ? 72 : 56;
-    var h = size === 'desktop' ? 22 : 20;
+    var dims = partnerLogoDimensions(partner, size);
     a.innerHTML =
-      '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + w + '" height="' + h + '" decoding="async" />';
-    bindPartnerIconClick(a, partner, kpId);
+      '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + dims.w + '" height="' + dims.h + '" decoding="async" />';
+    bindPartnerIconClick(a, partner, kpId, size);
     return a;
   }
 
@@ -289,7 +320,17 @@
     block.appendChild(label);
     block.appendChild(logos);
     container.insertBefore(block, container.firstChild);
-    metrikaGoal('stream_block_view', { kp_id: String(kpId || ''), count: String(partners.length) });
+    var partnerKeys = [];
+    for (var j = 0; j < partners.length; j++) {
+      if (partners[j] && partners[j].key) partnerKeys.push(partners[j].key);
+    }
+    metrikaGoal('stream_block_view', {
+      kp_id: String(kpId || ''),
+      count: String(partners.length),
+      surface: mode,
+      partners: partnerKeys.join(','),
+      placement: 'film_toolbar',
+    });
     return block;
   }
 
@@ -321,7 +362,7 @@
         for (var i = 0; i < partners.length; i++) {
           var p = partners[i];
           if (!p || !p.url) continue;
-          if (p.key !== 'flex' && p.key !== 'ivi') continue;
+          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi') continue;
           p.kp_id = kpId;
           usable.push(p);
         }
