@@ -20192,8 +20192,43 @@ body.in-cabinet #section-whattowatch > .cabinet-hint { display: none; }
   .site-pick-result-poster { max-width: 200px; margin: 0 auto; }
 }
 @media (min-width: 901px) {
-  body.in-cabinet #section-whattowatch .section-title {
-    text-align: center;
+  body.in-cabinet #section-whattowatch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr);
+    column-gap: 16px;
+    row-gap: 12px;
+    align-items: center;
+  }
+  body.in-cabinet #section-whattowatch > .section-title {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    text-align: left;
+    margin-bottom: 0;
+  }
+  body.in-cabinet #section-whattowatch > .whattowatch-content {
+    display: contents;
+  }
+  body.in-cabinet #section-whattowatch .wtw-scope-toggle {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    margin: 0;
+    width: max-content;
+    max-width: min(520px, 92vw);
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
+  body.in-cabinet #section-whattowatch .site-wtw-modes,
+  body.in-cabinet #section-whattowatch .whattowatch-result {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  body.in-cabinet #section-whattowatch:not(.whattowatch--collections-scope):not(.whattowatch--collection-detail) .site-wtw-modes,
+  body.in-cabinet #section-whattowatch:not(.whattowatch--collections-scope):not(.whattowatch--collection-detail) .whattowatch-result {
+    max-width: min(920px, 92vw);
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
   }
   .wtw-flip-card { min-height: 260px; }
   .wtw-flip-inner { min-height: 260px; }
@@ -22734,13 +22769,8 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   body.in-cabinet #section-whattowatch .site-wtw-mode-row {
     padding: 16px 18px;
   }
-  body.in-cabinet #section-whattowatch:not(.whattowatch--collections-scope):not(.whattowatch--collection-detail) .whattowatch-content {
-    max-width: min(920px, 92vw);
-    margin-left: auto;
-    margin-right: auto;
-  }
-  body.in-cabinet #section-whattowatch.whattowatch--collections-scope .whattowatch-content,
-  body.in-cabinet #section-whattowatch.whattowatch--collection-detail .whattowatch-content {
+  body.in-cabinet #section-whattowatch.whattowatch--collections-scope .site-wtw-collections-panel,
+  body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-collections-panel {
     max-width: none;
     width: 100%;
     margin-left: 0;
