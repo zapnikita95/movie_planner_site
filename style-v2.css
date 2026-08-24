@@ -25211,33 +25211,28 @@ body.staff-standalone-page .staff-awards-loading {
   }
 }
 
-/* Partner watch (FLEX / IVI) — label outside icons; toolbar icons stay centered */
+/* Partner watch (FLEX / IVI) — separate left slot; toolbar icons stay centered under CTA */
 .film-toolbar-icons-shell {
+  position: relative;
   width: 100%;
   max-width: 720px;
 }
 @media (min-width: 861px) {
-  .film-toolbar-icons-shell {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    column-gap: 12px;
+  .film-toolbar-partners-slot {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .film-toolbar-partners-slot .film-partner-watch-block {
+    pointer-events: auto;
   }
   .film-toolbar-icons-shell > .film-toolbar-icons {
-    grid-column: 2;
+    width: 100%;
+    max-width: 100%;
     justify-content: center;
-    justify-self: center;
-    width: auto;
-  }
-  .film-toolbar-icons-shell > .film-partner-watch-block--desktop {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-    align-self: center;
-    margin-right: 0;
-  }
-  .film-partner-watch-block--desktop {
-    align-items: center;
   }
 }
 .film-partner-watch-block {
