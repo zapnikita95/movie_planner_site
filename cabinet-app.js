@@ -7833,6 +7833,11 @@
     if (rendered && sectionId === 'series-hub') {
       try { renderSeriesHubSection(); } catch (_) {}
     }
+    try {
+      if (window.MpRsy && typeof window.MpRsy.remount === 'function') {
+        window.MpRsy.remount();
+      }
+    } catch (_rsySec) {}
     const homeStats = document.getElementById('cabinet-home-stats');
     if (homeStats) homeStats.classList.toggle('hidden', sectionId !== 'home' || isFilmPageOpen());
     if (rendered) {
