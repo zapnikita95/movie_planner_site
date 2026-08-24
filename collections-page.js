@@ -70,11 +70,75 @@
   function posterUrl(kpId) {
     if (!kpId) return "/images/film-poster-placeholder.png";
     var s = String(kpId);
-    // TMDB catalog keys — never invent Kinopoisk iphone360 stubs (gray "K").
     if (/^(movie|tv)-\d+$/i.test(s) || !/^\d+$/.test(s)) {
       return "/images/film-poster-placeholder.png";
     }
-    return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + s + ".jpg";
+    return "/images/film-poster-placeholder.png";
+  }
+
+  function pickPoster(f) {
+    var p = (f && f.poster) ? String(f.poster).trim() : "";
+    if (p && p.indexOf("iphone360_") === -1 && p.indexOf("film-poster-placeholder") === -1) {
+      return p;
+    }
+    return p || posterUrl(f && f.kp_id);
+  }
+
+  function imgOnErrorAttr() {
+    if (typeof global.mpPosterOnError === "function") {
+      return " onerror=\"mpPosterOnError(this)\"";
+    }
+    return " onerror=\"this.src='/images/film-poster-placeholder.png'\"";
+  }
+
+  function posterMosaicHtml(posters, extraClass) {
+    var urls = (posters || []).filter(function (u) {
+      if (!u) return false;
+      var s = String(u);
+      return s.indexOf("iphone360_") === -1 && s.indexOf("film-poster-placeholder") === -1;
+    }).slice(0, 8);
+    var cls = "collections-poster-mosaic" + (extraClass ? " " + extraClass : "");
+    if (!urls.length) {
+      return '<div class="' + cls + ' collections-poster-mosaic--empty" aria-hidden="true"></div>';
+    }
+    return (
+      '<div class="' + cls + '" aria-hidden="true">'
+      + urls.map(function (u) {
+        var safe = String(u).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        return '<div class="collections-poster-mosaic__cell" style="background-image:url(\'' + safe + '\')"></div>';
+      }).join("")
+      + "</div>"
+    );
+  }
+
+  function discoveryCardHtml(c) {
+    var posters = c.preview_posters || [];
+    var count = Number(c.films_count || 0);
+    return (
+      '<button type="button" class="collections-discovery-card" data-coll-action="wtw-public-open" data-coll-id="'
+      + esc(c.short_code || "") + '">'
+      + posterMosaicHtml(posters, "collections-poster-mosaic--card")
+      + '<div class="collections-discovery-card__overlay">'
+      + '<span class="collections-discovery-card__title">' + cleanTitle(c.name || "") + "</span>"
+      + '<span class="collections-discovery-card__meta">' + esc(String(count)) + " в подборке</span>"
+      + "</div></button>"
+    );
+  }
+
+  function detailHeroHtml(coll, films, hintText) {
+    var posters = (films || []).map(function (f) { return pickPoster(f); });
+    var name = stripHtml(coll.name || "Подборка");
+    var hint = hintText || ((coll.films_count || films.length || 0) + " фильмов");
+    return (
+      '<div class="collections-detail-hero">'
+      + posterMosaicHtml(posters, "collections-poster-mosaic--hero")
+      + '<div class="collections-detail-hero__shade"></div>'
+      + '<div class="collections-detail-hero__inner">'
+      + '<button type="button" class="mp-sub-back collections-detail-hero__back" data-coll-action="wtw-back">← Коллекции</button>'
+      + '<h1 class="collections-detail-hero__title">' + esc(name) + "</h1>"
+      + '<p class="collections-detail-hero__hint">' + esc(hint) + "</p>"
+      + "</div></div>"
+    );
   }
 
   function lockScroll() {
@@ -196,7 +260,7 @@
       + films.map(function (f) {
         var kp = f.kp_id != null ? String(f.kp_id) : "";
         var fid = f.id || f.already_in_base_film_id || f.film_id || "";
-        var poster = f.poster || posterUrl(kp);
+        var poster = pickPoster(f);
         var path = f.film_path || (kp ? ("/f/" + kp) : "");
         var rank = f.rank || f.nyt_rank;
         var rankBadge = rank ? ('<span class="collections-film-rank" aria-label="Место ' + esc(String(rank)) + '">#' + esc(String(rank)) + "</span>") : "";
@@ -205,7 +269,7 @@
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
           + '>'
           + rankBadge
-          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy" onerror="this.src=\'/images/film-poster-placeholder.png\'"></div>'
+          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy"' + imgOnErrorAttr() + "></div>"
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
           + "</a>"
@@ -868,18 +932,15 @@
       }
       _discoveryState.total = Number(data.total || 0) || 0;
       var items = data.collections || [];
-      fillListEl(listEl, items, function (c) {
-        return listItemHtml({
-          action: "wtw-public-open",
-          id: c.short_code,
-          icon: "globe",
-          iconClass: " mp-list-icon--public",
-          title: c.name,
-          hint: (c.films_count || 0) + " в подборке",
-        });
-      }, _discoveryState.q
-        ? '<p class="empty-hint collections-empty-hint">Ничего не найдено — попробуйте другое название</p>'
-        : '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>');
+      if (!items.length) {
+        listEl.className = "collections-empty-wrap";
+        listEl.innerHTML = _discoveryState.q
+          ? '<p class="empty-hint collections-empty-hint">Ничего не найдено — попробуйте другое название</p>'
+          : '<p class="empty-hint collections-empty-hint">Скоро появятся новые подборки</p>';
+      } else {
+        listEl.className = "collections-discovery-grid";
+        listEl.innerHTML = items.map(discoveryCardHtml).join("");
+      }
       if (pagerEl) pagerEl.innerHTML = discoveryPagerHtml();
     }).catch(function () {
       _discoveryState.loading = false;
@@ -941,10 +1002,12 @@
 
   function renderPublicByCode(root, shortCode) {
     if (!root || !shortCode) return;
-    root.innerHTML = detailSkeleton("Подборка", "🌐", "");
+    root.innerHTML =
+      '<div class="collections-page collections-page--detail">'
+      + '<div id="collections-detail-hero-host"></div>'
+      + '<div id="collections-detail-body"><div class="settings-loading">Загружаем…</div></div>'
+      + "</div>";
     bindWtwCollectionsPanel(root);
-    var backBtn = root.querySelector('[data-coll-action="back"]');
-    if (backBtn) backBtn.setAttribute("data-coll-action", "wtw-back");
     apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode)).then(function (data) {
       if (!data || !data.success || !data.collection) {
         root.innerHTML =
@@ -956,18 +1019,16 @@
       var c = data.collection;
       var films = data.films || [];
       applyDetailSeo(c);
-      var titleEl = root.querySelector(".collections-detail-title");
-      var hintEl = root.querySelector(".collections-detail-hint");
-      if (titleEl) titleEl.textContent = stripHtml(c.name || "");
-      if (hintEl) {
-        var hint = (c.films_count || films.length || 0) + " фильмов";
-        if (shortCode === "venice-2026") {
-          hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
-        } else if (shortCode === "nyt-top100-21c") {
-          hint = "The New York Times · 500+ голосов · " + hint;
-        }
-        hintEl.textContent = hint;
+      var hint = (c.films_count || films.length || 0) + " фильмов";
+      if (shortCode === "venice-2026") {
+        hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
+      } else if (shortCode === "italian-stories-2026") {
+        hint = "Фестиваль «Итальянские истории» · 28–30 августа 2026 · Архангельское · " + hint;
+      } else if (shortCode === "nyt-top100-21c") {
+        hint = "The New York Times · 500+ голосов · " + hint;
       }
+      var heroHost = root.querySelector("#collections-detail-hero-host");
+      if (heroHost) heroHost.innerHTML = detailHeroHtml(c, films, hint);
       var body = root.querySelector("#collections-detail-body");
       if (body) {
         var cta;
@@ -1015,4 +1076,10 @@
     collectionCodeFromPath: collectionCodeFromPath,
     SEO: SEO,
   };
+
+  try {
+    if (typeof global.__mpRepaintWtwCollectionsPanel === "function") {
+      global.__mpRepaintWtwCollectionsPanel();
+    }
+  } catch (_) {}
 })(typeof window !== "undefined" ? window : globalThis);
