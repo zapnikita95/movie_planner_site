@@ -20982,11 +20982,11 @@ img.mp-poster-placeholder,
   gap: 14px;
 }
 .collections-films-grid--tiny {
-  gap: 18px;
-  justify-content: center;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .collections-page--detail .collections-films-grid--tiny .collections-film-card {
-  max-width: 360px;
+  max-width: none;
 }
 .collections-page--detail .collections-films-grid--tiny .movie-poster-title {
   font-size: 15px;
@@ -21091,6 +21091,18 @@ img.mp-poster-placeholder,
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n3 {
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr;
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n5 {
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: 1fr;
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n7 {
+  grid-template-columns: repeat(7, 1fr);
   grid-template-rows: 1fr;
 }
 .collections-detail-hero__mosaic-wrap {
@@ -21379,40 +21391,56 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   line-height: 1.3;
 }
 .nyt-century-article .nyt-ballot-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 16px 0;
 }
 .nyt-ballot-pick {
-  display: grid;
-  grid-template-columns: 28px 100px 1fr;
-  gap: 10px;
-  align-items: start;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-surface);
 }
 .nyt-ballot-pick-rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  min-width: 24px;
+  padding: 2px 6px;
+  border-radius: 6px;
   font-family: 'Unbounded', sans-serif;
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-muted);
-  padding-top: 4px;
+  line-height: 1.2;
+  color: #fff;
+  text-align: center;
+  background: rgba(9, 9, 11, 0.82);
+}
+.nyt-ballot-pick-poster {
+  width: 100%;
 }
 .nyt-ballot-pick-poster img {
-  width: 100px;
-  height: 150px;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  height: auto;
   object-fit: cover;
   border-radius: 8px;
   display: block;
 }
 .nyt-ballot-pick-body h2 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.25;
 }
 .nyt-ballot-pick-meta {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 .nyt-pick-overview {
@@ -21502,12 +21530,29 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(124, 60, 255, 0.18), rgba(255, 45, 123, 0.12));
 }
+.collections-films-grid--n2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.collections-films-grid--n3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.collections-films-grid--n4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 639px) {
+  .collections-films-grid--n3,
+  .collections-films-grid--n4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (min-width: 640px) {
-  .collections-films-grid {
+  .nyt-century-article .nyt-ballot-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .collections-films-grid--tiny {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+@media (min-width: 900px) {
+  .nyt-century-article .nyt-ballot-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (min-width: 900px) {
@@ -22686,10 +22731,17 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   body.in-cabinet #section-whattowatch .site-wtw-mode-row {
     padding: 16px 18px;
   }
-  body.in-cabinet #section-whattowatch .whattowatch-content {
-    max-width: 920px;
+  body.in-cabinet #section-whattowatch:not(.whattowatch--collections-scope):not(.whattowatch--collection-detail) .whattowatch-content {
+    max-width: min(920px, 92vw);
     margin-left: auto;
     margin-right: auto;
+  }
+  body.in-cabinet #section-whattowatch.whattowatch--collections-scope .whattowatch-content,
+  body.in-cabinet #section-whattowatch.whattowatch--collection-detail .whattowatch-content {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
