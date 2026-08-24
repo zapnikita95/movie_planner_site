@@ -3223,8 +3223,10 @@
       match = bootKp && keyDigits && bootKp === keyDigits;
     }
     if (!match) return false;
-    if (isGenericFilmTitle(boot.title) && !readNavFilmTitleRu(bootKp || keyDigits)) return false;
     var title = preferRuFilmTitle(boot.title || '', bootKp || keyDigits) || boot.title || 'Фильм';
+    if (isGenericFilmTitle(title) && !readNavFilmTitleRu(bootKp || keyDigits)) {
+      title = 'Загрузка…';
+    }
     // Boot sometimes carries Latin original — never paint that into #film-title when RU exists.
     if (title && !/[а-яА-ЯёЁ]/.test(title)) {
       var navEarly = readNavFilmTitleRu(bootKp || keyDigits);
@@ -3377,10 +3379,17 @@
         var pageRoot = document.getElementById('film-page-content');
         if (!pageRoot) return;
         if (!paintCabinetRouteBoot(pathKey, pageRoot, poster, routeMeta)) {
-          pageRoot.className = 'movie-page loading';
-          pageRoot.innerHTML = (global.MpPageLoading && MpPageLoading.html())
-            ? MpPageLoading.html()
-            : '<div class="mp-page-loading" role="status"><div class="mp-page-loading-spinner"></div></div>';
+          var hasBootHero = pageRoot.querySelector('.film-hero-with-tag, .hero.film-hero-with-tag, .film-page--boot');
+          if (hasBootHero) {
+            pageRoot.className = 'movie-page';
+          } else {
+            var shellKey = (routeMeta && routeMeta.mode === 'kp')
+              ? (kpId || pathKey)
+              : ((routeMeta && routeMeta.catalogId) || pathKey);
+            pageRoot.className = 'movie-page';
+            pageRoot.innerHTML = buildFilmMainInnerHtml(shellKey, poster);
+            setFilmHeroBackdrop(poster, shellKey);
+          }
         }
       } else {
       document.body.innerHTML =
