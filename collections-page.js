@@ -144,6 +144,17 @@
     );
   }
 
+  function discoveryMosaicGrid(n) {
+    if (n <= 1) return { cols: 1, rows: 1 };
+    if (n === 2) return { cols: 2, rows: 1 };
+    if (n === 3) return { cols: 3, rows: 1 };
+    if (n === 4) return { cols: 2, rows: 2 };
+    if (n === 5) return { cols: 5, rows: 1 };
+    if (n === 6) return { cols: 3, rows: 2 };
+    if (n === 7) return { cols: 7, rows: 1 };
+    return { cols: 4, rows: 2 };
+  }
+
   function discoveryCardMosaicHtml(posters) {
     var urls = filterPosterUrls(posters).slice(0, 8);
     var cls = "collections-poster-mosaic collections-poster-mosaic--card";
@@ -151,11 +162,10 @@
       return '<div class="' + cls + ' collections-poster-mosaic--empty" aria-hidden="true"></div>';
     }
     var n = urls.length;
-    var cols = n >= 4 ? 4 : n;
-    var rows = n > 4 ? 2 : 1;
+    var grid = discoveryMosaicGrid(n);
     return (
       '<div class="' + cls + ' collections-poster-mosaic--n' + n + '" aria-hidden="true" style="--mosaic-cols:'
-      + cols + ";--mosaic-rows:" + rows + '">'
+      + grid.cols + ";--mosaic-rows:" + grid.rows + '">'
       + urls.map(function (u) {
         return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
       }).join("")
@@ -358,7 +368,7 @@
       return '<p class="cabinet-hint collections-empty">Пока пусто</p>';
     }
     var sparseCls = films.length <= 8 ? " collections-films-grid--sparse" : "";
-    var tinyCls = films.length <= 4 ? " collections-films-grid--tiny" : "";
+    var tinyCls = films.length <= 4 ? " collections-films-grid--tiny collections-films-grid--n" + films.length : "";
     return (
       '<div class="movies-grid collections-films-grid' + (o.ranked ? " collections-films-grid--ranked" : "")
       + sparseCls + tinyCls + '">'

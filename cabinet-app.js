@@ -7689,6 +7689,8 @@
     try {
       document.documentElement.classList.remove('mp-film-boot', 'mp-staff-boot', 'mp-user-boot');
     } catch (_) {}
+    try { window.__MP_FILM_RENDERED = false; } catch (_) {}
+    try { window.__MP_FILM_ROUTE_LITE_READY = false; } catch (_) {}
     const ro = readonly || document.getElementById('cabinet-readonly');
     if (!ro) return;
     ro.classList.remove('film-page-mode');
@@ -11596,7 +11598,11 @@
         const kp = String(collFilm.getAttribute('data-kp-id') || '').replace(/\D/g, '')
           || String(href.replace(/^\/f\//, '')).replace(/\D/g, '');
         if (kp) {
-          goToStandaloneFilmPage(kp);
+          if (getToken() && isCabinetActive()) {
+            openFilmPageByKp(kp, { replace: false });
+          } else {
+            goToStandaloneFilmPage(kp);
+          }
           return;
         }
         openFilmFromCard(collFilm);
@@ -20756,6 +20762,15 @@
       }
     } catch (_) {}
 
+    const wtwSec = document.getElementById('section-whattowatch');
+    if (wtwSec) {
+      wtwSec.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
+      wtwSec.classList.toggle(
+        'whattowatch--collection-detail',
+        siteWtwScope === 'collections' && !!siteWtwCollectionCode
+      );
+    }
+
     const lib = SITE_WTW_SCOPES.library;
     const world = SITE_WTW_SCOPES.world;
     const collScope = SITE_WTW_SCOPES.collections;
@@ -24615,12 +24630,13 @@
         renderSiteSearchPage({ q });
         return;
       }
-      const pathStaff = staffIdFromPathname(window.location.pathname);
+      const pathname = window.location.pathname || '/';
+      const pathStaff = staffIdFromPathname(pathname);
       if (pathStaff) {
         try { openStaffPage(pathStaff, { skipHistory: true, replace: true }); } catch (e) {}
         return;
       }
-      const pathKp = kpIdFromPathname(window.location.pathname);
+      const pathKp = kpIdFromPathname(pathname);
       if (pathKp) {
         if (getToken()) {
           try { openFilmPageByKp(pathKp, { skipHistory: true, replace: true }); } catch (_) {}
@@ -24629,23 +24645,42 @@
         }
         return;
       }
-      const pathUser = userIdFromPathname(window.location.pathname) || userIdFromLocation();
+      clearFilmBootLayout();
+      const pathUser = userIdFromPathname(pathname) || userIdFromLocation();
       if (pathUser && getToken()) {
         try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
         return;
       }
-      const pathTag = filmTagIdFromPathname(window.location.pathname);
+      const pathTag = filmTagIdFromPathname(pathname);
       if (pathTag && getToken()) {
         try { openFilmTagView(pathTag, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
         return;
       }
-      const pathF = filmIdFromPathname(window.location.pathname);
+      const pathF = filmIdFromPathname(pathname);
       if (pathF) {
         try { openFilmPageFromLegacyPath(pathF, { skipHistory: true, replace: true }); } catch (e) {}
         return;
       }
       try { restoreDocumentTitle(); } catch (e) {}
-      const sec = sectionFromPath(window.location.pathname);
+      const sec = sectionFromPath(pathname);
+      if (sec === 'whattowatch') {
+        const fromPath = typeof wtwStateFromPath === 'function'
+          ? wtwStateFromPath(pathname)
+          : null;
+        if (fromPath) {
+          siteWtwScope = fromPath.scope;
+          siteWtwCollectionCode = fromPath.code;
+          try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
+        }
+        const wtw = document.getElementById('section-whattowatch');
+        if (wtw) {
+          wtw.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
+          wtw.classList.toggle(
+            'whattowatch--collection-detail',
+            siteWtwScope === 'collections' && !!siteWtwCollectionCode
+          );
+        }
+      }
       if (sec) {
         if (!getToken() && sectionNeedsAuthForGuest(sec)) {
           requireAuthForAction('Войдите, чтобы открыть этот раздел');
@@ -24674,16 +24709,6 @@
         }
         showSection(sec, { skipPush: true });
         // Section data load once via afterCabinetSectionShown — do not re-render here.
-        if (sec === 'whattowatch') {
-          const fromPath = typeof wtwStateFromPath === 'function'
-            ? wtwStateFromPath(window.location.pathname)
-            : null;
-          if (fromPath) {
-            siteWtwScope = fromPath.scope;
-            siteWtwCollectionCode = fromPath.code;
-            try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
-          }
-        }
         if (sec === 'collections') {
           openSiteWhattowatch({ scope: 'collections', skipPush: true });
         } else {
