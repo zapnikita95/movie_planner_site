@@ -1,4 +1,4 @@
-/* Yandex RSY — tall vertical sidebar in gutters; never over content column. */
+/* Yandex RSY — sidebar in gutters; film page rail anchored to .film-page-outer (scrolls with page). */
 
 .mp-rsy-fixed-rail {
   position: fixed;
@@ -11,18 +11,46 @@
   box-sizing: border-box;
 }
 
+/* Film/staff card: absolute to the right of content column — NOT viewport-sticky */
+.film-page-outer.mp-rsy-host {
+  position: relative;
+}
+
+.mp-rsy-outer-rail {
+  position: absolute;
+  left: calc(100% + 16px);
+  top: 0;
+  z-index: 40;
+  pointer-events: none;
+  box-sizing: border-box;
+  max-height: min(600px, calc(100vh - 140px));
+  overflow: hidden;
+}
+
+.mp-rsy-outer-rail[hidden] {
+  display: none !important;
+}
+
+.mp-rsy-outer-rail .mp-rsy-slot {
+  pointer-events: auto;
+  width: 100%;
+  max-height: min(600px, calc(100vh - 140px));
+  overflow: hidden;
+  border-radius: 12px;
+}
+
 .mp-rsy-fixed-rail[hidden] {
   display: none !important;
 }
 
-/* Tall slot — Yandex renders vertical multi-ad grid inside */
+/* Tall slot — cabinet / article fixed rails only */
 .mp-rsy-fixed-rail--tall .mp-rsy-slot {
   pointer-events: auto;
   width: 100%;
-  min-height: calc(100vh - 112px);
+  max-height: calc(100vh - 140px);
   height: auto;
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .mp-rsy-fixed-rail .mp-rsy-slot {
@@ -86,8 +114,18 @@
   max-height: 120px;
 }
 
+.mp-rsy-inline--film_bottom {
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.mp-rsy-inline--film_bottom .mp-rsy-slot {
+  max-height: 120px;
+}
+
 @media (max-width: 1279px) {
-  .mp-rsy-fixed-rail {
+  .mp-rsy-fixed-rail,
+  .mp-rsy-outer-rail {
     display: none !important;
   }
 
