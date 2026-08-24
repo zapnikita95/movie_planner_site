@@ -6545,11 +6545,11 @@
       var title = escapeHtml(it.title || 'Видео');
       var ch = escapeHtml(it.channel_title || '');
       var url = escapeHtml(withFilmReviewUtm(it.url, it.channel_title || '', 'film_reviews'));
-      var chBit = ch ? ' <span class="film-review-channel">' + ch + '</span>' : '';
+      var chBit = ch ? '<span class="film-review-channel"> ' + ch + '</span>' : '';
       return '<li class="film-review-item">' + ytSvg +
         '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
         ' data-review-out="1" data-review-platform="youtube" data-review-channel="' + ch + '">' +
-        title + '</a>' + chBit + '</li>';
+        title + chBit + '</a></li>';
     }).filter(Boolean).join('');
     var ytBlock = lis
       ? ('<div class="film-desc-reviews-title">Разборы на YouTube</div><ul class="film-desc-reviews-list">' + lis + '</ul>')

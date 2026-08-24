@@ -7180,11 +7180,11 @@ body.film-standalone-page .film-page-similar-section,
 .film-review-channel {
   color: var(--text-muted);
   font-size: 12px;
-  flex: 0 1 auto;
+  font-weight: 400;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 42%;
+}
+.film-review-link .film-review-channel {
+  text-decoration: none;
 }
 .film-review-link {
   color: var(--accent, #7eb8ff);
@@ -7193,6 +7193,8 @@ body.film-standalone-page .film-page-similar-section,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Premieres */
@@ -25035,7 +25037,7 @@ body.staff-standalone-page .staff-awards-loading {
   }
 }
 
-/* Partner watch pills (FLEX / streaming affiliates) — icons row must not shift */
+/* Partner watch (FLEX / IVI) — label outside icons; toolbar icons stay centered */
 .film-toolbar-icons-shell {
   width: 100%;
   max-width: 720px;
@@ -25050,60 +25052,54 @@ body.staff-standalone-page .staff-awards-loading {
     grid-column: 2;
     justify-content: center;
   }
-  .film-partner-watch--desktop {
+  .film-toolbar-icons-shell > .film-partner-watch-block--desktop {
     grid-column: 1;
     justify-self: end;
-    margin-right: 12px;
+    margin-right: 8px;
   }
 }
-.film-partner-watch {
-  text-decoration: none;
-  color: var(--text-body, #e4e4ec);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  box-sizing: border-box;
-}
-.film-partner-watch:focus-visible {
-  outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
-  outline-offset: 2px;
-}
-.film-partner-watch--desktop {
+.film-partner-watch-block {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-width: 72px;
-  height: 54px;
-  padding: 4px 10px 6px;
-  border-radius: 18px;
-}
-.film-partner-watch--mobile {
-  display: none;
-  width: 100%;
-  max-width: 720px;
-  margin: 10px auto 4px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  align-items: center;
-  justify-content: center;
-}
-.film-partner-watch__row {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 4px;
+  box-sizing: border-box;
 }
 .film-partner-watch__label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted, #b4b4be);
   line-height: 1.2;
+  text-decoration: none;
+  text-align: center;
 }
-.film-partner-watch--desktop .film-partner-watch__label {
-  font-size: 10px;
-  letter-spacing: 0.01em;
+.film-partner-watch__logos {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+.film-partner-watch__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.12s ease;
+  opacity: 0.92;
+}
+.film-partner-watch__icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+.film-partner-watch__icon:focus-visible {
+  outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
+  outline-offset: 2px;
 }
 .film-partner-watch__logo {
   display: block;
@@ -25113,30 +25109,86 @@ body.staff-standalone-page .staff-awards-loading {
   max-width: 88px;
   object-fit: contain;
 }
-.film-partner-watch--desktop .film-partner-watch__logo {
+.film-partner-watch-block--desktop .film-partner-watch__logo {
   max-height: 24px;
   max-width: 72px;
 }
+.film-partner-watch-mobile-anchor {
+  width: 100%;
+  max-width: 720px;
+  margin: 8px auto 6px;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
 @media (min-width: 861px) {
-  .film-partner-watch--desktop {
+  .film-partner-watch-block--desktop {
     display: flex;
   }
-  .film-partner-watch--mobile {
+  .film-partner-watch-block--mobile,
+  .film-partner-watch-mobile-anchor {
     display: none !important;
   }
 }
 @media (max-width: 860px) {
-  .film-partner-watch--desktop {
+  .film-partner-watch-block--desktop {
     display: none !important;
   }
-  .film-partner-watch--mobile {
+  .film-partner-watch-block--mobile {
     display: flex;
-  }
-  #film-page-content .film-partner-watch--mobile,
-  #section-film .film-partner-watch--mobile,
-  main.film-page .film-partner-watch--mobile {
     width: 100%;
-    max-width: 100%;
+  }
+  .film-partner-watch-mobile-anchor {
+    display: block;
+  }
+  .film-partner-watch__logos {
+    gap: 12px;
+  }
+  .cabinet a.film-partner-watch__icon {
+    text-decoration: none;
+  }
+}
+
+/* Cabinet film route: same mobile full-bleed as thin /f/ shell */
+@media (max-width: 860px) {
+  body.in-cabinet #section-film,
+  body.in-cabinet #section-film .film-page-outer,
+  body.in-cabinet #section-film .movie-page,
+  body.in-cabinet #film-page-content.movie-page,
+  body.in-cabinet #film-page-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+  }
+  body.in-cabinet #film-page-content .film-hero-with-tag,
+  body.in-cabinet #section-film .film-hero-with-tag,
+  body.in-cabinet #film-page-content .poster-wrap,
+  body.in-cabinet #section-film .poster-wrap {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  body.in-cabinet #film-page-content .film-hero-with-tag .poster,
+  body.in-cabinet #section-film .film-hero-with-tag .poster,
+  body.in-cabinet #film-page-content #poster.poster {
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+  body.in-cabinet #film-page-content .hero-content,
+  body.in-cabinet #section-film .hero-content,
+  body.in-cabinet #film-page-content .film-page-toolbar,
+  body.in-cabinet #film-page-content .film-desc-wrap,
+  body.in-cabinet #film-page-content .film-desc-reviews-inline,
+  body.in-cabinet #film-page-content .film-hero-crew,
+  body.in-cabinet #film-page-content .mp-public-promo,
+  body.in-cabinet #film-page-content .film-partner-watch-mobile-anchor {
+    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
     box-sizing: border-box;
   }
 }

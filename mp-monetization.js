@@ -205,55 +205,96 @@
     return '/images/partners/flex-logo.png';
   }
 
-  function mountDesktopPartnerPill(shell, partner) {
-    if (!shell || !partner || partner.key !== 'flex') return;
-    if (shell.querySelector('.film-partner-watch--desktop')) return;
-    var a = document.createElement('a');
-    a.className = 'film-partner-watch film-partner-watch--desktop film-partner-watch--flex';
-    a.href = partner.url;
-    a.target = '_blank';
-    a.rel = 'noopener sponsored';
-    a.setAttribute('data-partner', 'flex');
-    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
-    a.innerHTML =
-      '<span class="film-partner-watch__label">Смотреть на</span>' +
-      '<img class="film-partner-watch__logo" src="' + partnerFlexLogoUrl() + '" alt="FLEX" width="72" height="20" decoding="async" />';
-    shell.insertBefore(a, shell.firstChild);
+  function partnerIviLogoUrl() {
+    return '/images/partners/ivi-logo.png';
+  }
+
+  function partnerLogoUrl(partner) {
+    if (!partner) return '';
+    if (partner.logo) return partner.logo;
+    if (partner.key === 'ivi') return partnerIviLogoUrl();
+    if (partner.key === 'flex') return partnerFlexLogoUrl();
+    return '';
+  }
+
+  function partnerAlt(partner) {
+    if (!partner) return '';
+    if (partner.key === 'ivi') return 'ivi';
+    if (partner.key === 'flex') return 'FLEX';
+    return partner.label || partner.key || '';
+  }
+
+  function bindPartnerIconClick(a, partner, kpId) {
     a.addEventListener('click', function () {
       metrikaGoal('stream_click', {
-        platform: 'flex',
-        kp_id: String(partner.kp_id || ''),
+        platform: partner.key || 'other',
+        kp_id: String(kpId || ''),
         has_affiliate: partner.has_affiliate ? '1' : '0',
       });
     });
   }
 
-  function mountMobilePartnerPill(pageRoot, partner) {
-    if (!pageRoot || !partner || partner.key !== 'flex') return;
-    if (pageRoot.querySelector('.film-partner-watch--mobile')) return;
-    var similar = pageRoot.querySelector('.film-page-similar-section');
-    if (!similar || !similar.parentNode) return;
+  function buildPartnerIconLink(partner, kpId, size) {
+    var logo = partnerLogoUrl(partner);
+    if (!logo || !partner.url) return null;
     var a = document.createElement('a');
-    a.className = 'film-partner-watch film-partner-watch--mobile film-partner-watch--flex';
+    a.className = 'film-partner-watch__icon film-partner-watch__icon--' + partner.key;
     a.href = partner.url;
     a.target = '_blank';
     a.rel = 'noopener sponsored';
-    a.setAttribute('data-partner', 'flex');
+    a.setAttribute('data-partner', partner.key || 'other');
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.setAttribute('aria-label', partnerAlt(partner));
+    var w = size === 'desktop' ? 72 : 56;
+    var h = size === 'desktop' ? 22 : 20;
     a.innerHTML =
-      '<span class="film-partner-watch__row">' +
-      '<span class="film-partner-watch__label">Смотреть на</span>' +
-      '<img class="film-partner-watch__logo" src="' + partnerFlexLogoUrl() + '" alt="FLEX" width="64" height="18" decoding="async" />' +
-      '</span>';
-    similar.parentNode.insertBefore(a, similar);
-    a.addEventListener('click', function () {
-      metrikaGoal('stream_click', {
-        platform: 'flex',
-        kp_id: String(partner.kp_id || ''),
-        has_affiliate: partner.has_affiliate ? '1' : '0',
-      });
-    });
-    metrikaGoal('stream_block_view', { kp_id: String(partner.kp_id || ''), count: '1' });
+      '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + w + '" height="' + h + '" decoding="async" />';
+    bindPartnerIconClick(a, partner, kpId);
+    return a;
+  }
+
+  function removePartnerBlocks(scope) {
+    if (!scope) return;
+    scope.querySelectorAll('.film-partner-watch-block').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-partner-watch-mobile-anchor').forEach(function (el) { el.remove(); });
+  }
+
+  function mountPartnerBlock(container, partners, kpId, mode) {
+    if (!container || !partners || !partners.length) return null;
+    removePartnerBlocks(container);
+    var block = document.createElement('div');
+    block.className = 'film-partner-watch-block film-partner-watch-block--' + mode;
+    var label = document.createElement('div');
+    label.className = 'film-partner-watch__label';
+    label.textContent = 'Смотреть на';
+    var logos = document.createElement('div');
+    logos.className = 'film-partner-watch__logos';
+    for (var i = 0; i < partners.length; i++) {
+      var link = buildPartnerIconLink(partners[i], kpId, mode);
+      if (link) logos.appendChild(link);
+    }
+    if (!logos.children.length) return null;
+    block.appendChild(label);
+    block.appendChild(logos);
+    container.insertBefore(block, container.firstChild);
+    metrikaGoal('stream_block_view', { kp_id: String(kpId || ''), count: String(partners.length) });
+    return block;
+  }
+
+  function mountDesktopPartnerBlock(shell, partners, kpId) {
+    if (!shell || !partners.length) return;
+    mountPartnerBlock(shell, partners, kpId, 'desktop');
+  }
+
+  function mountMobilePartnerBlock(pageRoot, partners, kpId) {
+    if (!pageRoot || !partners.length) return;
+    var similar = pageRoot.querySelector('.film-page-similar-section');
+    if (!similar || !similar.parentNode) return;
+    pageRoot.querySelectorAll('.film-partner-watch-mobile-anchor').forEach(function (el) { el.remove(); });
+    var anchor = document.createElement('div');
+    anchor.className = 'film-partner-watch-mobile-anchor';
+    similar.parentNode.insertBefore(anchor, similar);
+    mountPartnerBlock(anchor, partners, kpId, 'mobile');
   }
 
   function mountPartnerWatchPills(pageRoot, kpId) {
@@ -263,18 +304,18 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var partners = (data && data.partners) || [];
-        var flex = null;
+        var usable = [];
         for (var i = 0; i < partners.length; i++) {
-          if (partners[i] && partners[i].key === 'flex' && partners[i].url) {
-            flex = partners[i];
-            break;
-          }
+          var p = partners[i];
+          if (!p || !p.url) continue;
+          if (p.key !== 'flex' && p.key !== 'ivi') continue;
+          p.kp_id = kpId;
+          usable.push(p);
         }
-        if (!flex) return;
-        flex.kp_id = kpId;
+        if (!usable.length) return;
         var shell = wrapToolbarIconsShell(pageRoot);
-        if (shell) mountDesktopPartnerPill(shell, flex);
-        mountMobilePartnerPill(pageRoot, flex);
+        if (shell) mountDesktopPartnerBlock(shell, usable, kpId);
+        mountMobilePartnerBlock(pageRoot, usable, kpId);
       })
       .catch(function () {});
   }
@@ -373,7 +414,7 @@
 
     ensureAdSlots(pageRoot);
     mountPartnerWatchPills(pageRoot, kpId).then(function () {
-      var watch = pageRoot.querySelector('.film-partner-watch');
+      var watch = pageRoot.querySelector('.film-partner-watch-block');
       if (!watch) {
         mountSubscribePrompt(pageRoot, {
           type: isSeries ? 'series' : 'streaming',
