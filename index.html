@@ -3,6 +3,7 @@
 <head>
     <style id="landing-demo-critical">html.mp-session #landing-root-nav,html.mp-auth-boot #landing-root-nav,body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav{display:none!important}@media (min-width:861px){body.landing-guest-home #landing-root-nav,body.landing-guest-home.landing-root-page #landing-root-nav{display:flex!important;visibility:visible!important}}@media (max-width:860px){html:not(.mp-session) body.landing-root-page #landing-root-nav,body.landing-guest-home #landing-root-nav,body.landing-guest-home.landing-root-page #landing-root-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;visibility:visible!important}html:not(.mp-session) #landing-root-nav a.cabinet-nav-btn[href$="/home"],html:not(.mp-session) #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"],body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/home"],body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"],body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/home"],body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"]{display:none!important;visibility:hidden!important;pointer-events:none!important}body.landing-guest-home #site-header{max-width:none!important;margin-left:0!important;margin-right:0!important}}body.landing-guest-home #site-header,body.landing-guest-home #site-header .header-content,body.landing-guest-home #landing-root-nav{background:transparent!important;border-bottom-color:transparent!important}</style>
     <meta charset="UTF-8">
+    <script src="/outage-gate.js?v=20260825outage1"></script>
     <script>
       (function () {
         try {
@@ -3727,7 +3728,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260825collGrid1';
+        var V = '20260825outage1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
