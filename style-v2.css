@@ -13161,7 +13161,15 @@ body.login-only-overlay .parallax-bg {
   main.film-page .hero::before,
   main.film-page .hero::after,
   #film-page-content .hero::before,
-  #film-page-content .hero::after {
+  #film-page-content .hero::after,
+  #film-page-content .film-hero-with-tag::before,
+  #film-page-content .film-hero-with-tag::after,
+  #section-film .film-hero-with-tag::before,
+  #section-film .film-hero-with-tag::after,
+  body.in-cabinet #film-page-content .film-hero-with-tag::before,
+  body.in-cabinet #film-page-content .film-hero-with-tag::after,
+  body.in-cabinet #section-film .film-hero-with-tag::before,
+  body.in-cabinet #section-film .film-hero-with-tag::after {
     display: none !important;
     content: none !important;
   }
@@ -13192,10 +13200,10 @@ body.login-only-overlay .parallax-bg {
   #section-film .poster {
     width: 100% !important;
     max-width: none !important;
-    height: min(62vh, 560px) !important;
-    min-height: 400px !important;
-    max-height: none !important;
-    aspect-ratio: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(58vh, 480px) !important;
+    aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     box-shadow: none !important;
     object-fit: cover;
@@ -24755,9 +24763,10 @@ body.in-cabinet .mp-pick-done {
   body.film-standalone-page .poster-wrap .poster,
   body.film-standalone-page #poster.poster {
     width: 100% !important;
-    height: min(62vh, 560px) !important;
-    min-height: 400px !important;
-    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(58vh, 480px) !important;
+    aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     object-fit: cover !important;
     object-position: center 28% !important;
@@ -25484,7 +25493,13 @@ body.staff-standalone-page .staff-awards-loading {
   body.in-cabinet #film-page-content #poster.poster {
     width: 100% !important;
     max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(58vh, 480px) !important;
+    aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
+    object-fit: cover !important;
+    object-position: center 28% !important;
   }
   body.in-cabinet #film-page-content .hero-content,
   body.in-cabinet #section-film .hero-content,
