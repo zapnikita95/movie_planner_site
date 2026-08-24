@@ -20757,17 +20757,23 @@
             window.MpCollectionsPage.renderPublicByCode(panel, siteWtwCollectionCode);
             return;
           }
-          if (window.MpCollectionsPage && typeof window.MpCollectionsPage.renderDiscoveryHub === 'function') {
+          if (!siteWtwCollectionCode && window.MpCollectionsPage && typeof window.MpCollectionsPage.renderDiscoveryHub === 'function') {
             window.MpCollectionsPage.renderDiscoveryHub(panel);
             return;
           }
-          if (attempt < 60) {
+          if (attempt < 240) {
             setTimeout(function () { tryPaint(attempt + 1); }, 50);
+          } else if (panel && !panel.innerHTML.trim()) {
+            panel.innerHTML = '<div class="settings-loading">Загружаем подборку…</div>';
           }
         } catch (_) {}
       }
       tryPaint(0);
     }
+    window.__mpRepaintWtwCollectionsPanel = function () {
+      if (siteWtwScope !== 'collections') return;
+      paintWtwCollectionsPanel();
+    };
 
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
