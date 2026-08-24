@@ -18,13 +18,20 @@
 
 .mp-rsy-outer-rail {
   position: absolute;
-  left: calc(100% + 16px);
   top: 0;
+  left: 0;
   z-index: 40;
   pointer-events: none;
   box-sizing: border-box;
   max-height: min(600px, calc(100vh - 140px));
   overflow: hidden;
+}
+
+body.mp-rsy-film-page #cabinet-readonly.film-page-mode,
+body.mp-rsy-film-page #cabinet-readonly.film-page-mode .cabinet-sections,
+body.mp-rsy-film-page #section-film,
+body.mp-rsy-film-page #section-film .film-page-outer {
+  overflow: visible !important;
 }
 
 .mp-rsy-outer-rail[hidden] {
