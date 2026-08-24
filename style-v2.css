@@ -21546,6 +21546,9 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   }
 }
 @media (min-width: 640px) {
+  .collections-films-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .nyt-century-article .nyt-ballot-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
