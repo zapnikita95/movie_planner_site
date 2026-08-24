@@ -963,6 +963,8 @@
         var hint = (c.films_count || films.length || 0) + " фильмов";
         if (shortCode === "venice-2026") {
           hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
+        } else if (shortCode === "italian-stories-2026") {
+          hint = "Фестиваль «Итальянские истории» · 28–30 августа 2026 · Архангельское · " + hint;
         } else if (shortCode === "nyt-top100-21c") {
           hint = "The New York Times · 500+ голосов · " + hint;
         }
@@ -1015,4 +1017,10 @@
     collectionCodeFromPath: collectionCodeFromPath,
     SEO: SEO,
   };
+
+  try {
+    if (typeof global.__mpRepaintWtwCollectionsPanel === "function") {
+      global.__mpRepaintWtwCollectionsPanel();
+    }
+  } catch (_) {}
 })(typeof window !== "undefined" ? window : globalThis);

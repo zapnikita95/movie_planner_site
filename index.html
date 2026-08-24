@@ -3725,7 +3725,9 @@
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
-        var V = '20260824rsyFilmAnchor1';
+        var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
+          || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
+        var V = '20260824collDeep1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3778,19 +3780,20 @@
             'cabinet-app.js?v=' + V
           ];
         } else if (hasSiteSession && (isCabinetHome || path === '/')) {
-          /* Logged-in: cabinet-app first — HAR showed ~4s script waterfall before any home API */
-          list = [
+          /* Logged-in: cabinet-app first on /home — collection deep links need collections-page before cabinet-app. */
+          var collPage = 'collections-page.js?v=' + V;
+          var loggedHead = [
             'mp-api-config.js?v=' + V,
             'header-search-scroll.js?v=' + V,
             'mp-icons.js?v=' + V,
             'page-loading.js?v=' + V,
             'home-rails.js?v=' + V,
-            'avatar-crop.js?v=' + V,
-            'cabinet-app.js?v=' + V,
+            'avatar-crop.js?v=' + V
+          ];
+          var loggedTail = [
             'plan-modal.js?v=' + V,
             'film-user-tags.js?v=' + V,
             'onboarding-flow.js?v=' + V,
-            'collections-page.js?v=' + V,
             'user-profile-page.js?v=' + V,
             'user-page.js?v=20260618profile1',
             'app-open-banner.js?v=20260531appstore1',
@@ -3802,6 +3805,11 @@
             'mp-public-promo.js?v=' + V,
             'buzz-page.js?v=' + V
           ];
+          if (isWtwCollectionDetail) {
+            list = loggedHead.concat([collPage, 'cabinet-app.js?v=' + V], loggedTail);
+          } else {
+            list = loggedHead.concat(['cabinet-app.js?v=' + V], loggedTail, [collPage]);
+          }
         } else {
           list = core.concat(isRoute ? [] : cabinet);
         }
