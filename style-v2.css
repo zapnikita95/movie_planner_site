@@ -1057,7 +1057,7 @@ body.in-cabinet #section-inbox {
   opacity: 0.55;
   cursor: wait;
 }
-.cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); overflow-x: auto; padding-bottom: 4px; }
+.cabinet-nav { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; margin-bottom: 24px; border-bottom: none; overflow-x: auto; padding-bottom: 4px; }
 .cabinet-nav-btn { padding: 14px 18px; background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.78); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .cabinet-nav-btn-emoji { flex-shrink: 0; }
 .cabinet-nav-btn.active { color: #ff2d7b; border-bottom-color: #ff2d7b; }
@@ -20978,6 +20978,25 @@ img.mp-poster-placeholder,
 .collections-films-grid {
   margin: 12px 0 16px;
 }
+.collections-films-grid--sparse {
+  gap: 14px;
+}
+.collections-films-grid--tiny {
+  gap: 18px;
+  justify-content: center;
+}
+.collections-page--detail .collections-films-grid--tiny .collections-film-card {
+  max-width: 360px;
+}
+.collections-page--detail .collections-films-grid--tiny .movie-poster-title {
+  font-size: 15px;
+}
+.collections-page--detail .collections-films-grid--sparse .movie-poster-title {
+  font-size: 14px;
+}
+.collections-page--detail .collections-film-card .movie-poster-body {
+  padding: 10px 12px 12px;
+}
 .collections-films-grid--ranked .collections-film-card {
   position: relative;
 }
@@ -21053,8 +21072,8 @@ img.mp-poster-placeholder,
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(var(--mosaic-cols, 4), 1fr);
+  grid-template-rows: repeat(var(--mosaic-rows, 2), 1fr);
   gap: 3px;
   opacity: 0.92;
 }
@@ -21062,16 +21081,74 @@ img.mp-poster-placeholder,
   position: absolute;
   inset: 0;
 }
+.collections-detail-hero__mosaic-wrap {
+  position: absolute;
+  inset: -6% -3%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.collections-detail-hero__fade-l,
+.collections-detail-hero__fade-r {
+  position: absolute;
+  top: -5%;
+  bottom: -5%;
+  width: 22%;
+  z-index: 2;
+  pointer-events: none;
+}
+.collections-detail-hero__fade-l {
+  left: 0;
+  background: linear-gradient(90deg, #09090b 0%, rgba(9, 9, 11, 0.72) 35%, transparent 100%);
+}
+.collections-detail-hero__fade-r {
+  right: 0;
+  background: linear-gradient(270deg, #09090b 0%, rgba(9, 9, 11, 0.72) 35%, transparent 100%);
+}
 .collections-poster-mosaic--hero {
   position: absolute;
-  inset: -8% -4%;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 6px;
-  transform: rotate(-4deg) scale(1.08);
+  inset: 0;
+  grid-template-columns: repeat(var(--mosaic-cols, 8), 1fr);
+  grid-template-rows: repeat(var(--mosaic-rows, 3), 1fr);
+  gap: 5px;
+  transform: rotate(-3deg) scale(1.06);
   transform-origin: center top;
   opacity: 1;
 }
+.collections-poster-spotlight {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 28px);
+  padding: clamp(12px, 3vw, 36px) clamp(16px, 4vw, 48px);
+  box-sizing: border-box;
+}
+.collections-poster-spotlight--empty {
+  background: linear-gradient(135deg, rgba(109, 40, 217, 0.22), rgba(255, 45, 123, 0.14));
+}
+.collections-poster-spotlight__cell {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: min(32vw, 420px);
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
+  background: #1a1a22 center/cover no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+.collections-poster-spotlight--1 .collections-poster-spotlight__cell { max-width: min(48vw, 520px); }
+.collections-poster-spotlight--2 .collections-poster-spotlight__cell { max-width: min(40vw, 460px); }
+.collections-poster-spotlight--3 .collections-poster-spotlight__cell:nth-child(1) { transform: rotate(-5deg) translateY(6px); }
+.collections-poster-spotlight--3 .collections-poster-spotlight__cell:nth-child(2) { transform: rotate(2deg) translateY(-8px); }
+.collections-poster-spotlight--3 .collections-poster-spotlight__cell:nth-child(3) { transform: rotate(4deg) translateY(4px); }
+.collections-poster-spotlight--4 .collections-poster-spotlight__cell:nth-child(odd) { transform: rotate(-3deg); }
+.collections-poster-spotlight--4 .collections-poster-spotlight__cell:nth-child(even) { transform: rotate(3deg); }
+.collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(1) { transform: rotate(-4deg) translateY(8px); }
+.collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(2) { transform: rotate(2deg) translateY(-6px); }
+.collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(3) { transform: rotate(-1deg); }
+.collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(4) { transform: rotate(3deg) translateY(6px); }
+.collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(5) { transform: rotate(-2deg) translateY(-4px); }
 .collections-poster-mosaic--empty {
   background: linear-gradient(135deg, rgba(109, 40, 217, 0.22), rgba(255, 45, 123, 0.14));
 }
@@ -21090,13 +21167,16 @@ img.mp-poster-placeholder,
 }
 .collections-detail-hero {
   position: relative;
-  min-height: clamp(240px, 46vh, 560px);
+  min-height: clamp(280px, calc(32vh + var(--hero-mosaic-rows, 3) * 8vh), 720px);
   margin: 0;
   border: none;
   border-radius: 0;
   overflow: hidden;
   background: #09090b;
   width: 100%;
+}
+.collections-detail-hero--spotlight {
+  min-height: clamp(320px, 52vh, 640px);
 }
 .collections-page--cinematic .collections-detail-hero {
   margin-left: calc(50% - 50vw);
@@ -21110,9 +21190,9 @@ img.mp-poster-placeholder,
   z-index: 1;
   background: linear-gradient(
     180deg,
-    rgba(9, 9, 11, 0.15) 0%,
-    rgba(9, 9, 11, 0.55) 42%,
-    rgba(9, 9, 11, 0.88) 72%,
+    rgba(9, 9, 11, 0.08) 0%,
+    rgba(9, 9, 11, 0.35) 38%,
+    rgba(9, 9, 11, 0.78) 68%,
     #09090b 100%
   );
   pointer-events: none;
@@ -21124,9 +21204,9 @@ img.mp-poster-placeholder,
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   padding: clamp(16px, 3vw, 40px) clamp(16px, 4vw, 56px) clamp(20px, 4vw, 44px);
-  min-height: clamp(240px, 46vh, 560px);
+  min-height: inherit;
   box-sizing: border-box;
   width: 100%;
   max-width: min(1760px, 100vw);
@@ -21134,11 +21214,36 @@ img.mp-poster-placeholder,
   border: none;
   background: transparent;
 }
+.collections-detail-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  width: 100%;
+}
 .collections-detail-hero__back {
   margin: 0;
-  padding: 6px 0;
-  font-size: 14px;
-  color: var(--text-muted, #b4b4be);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #f4f4f5;
+  background: rgba(9, 9, 11, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.collections-detail-hero__back:hover {
+  border-color: rgba(255, 90, 165, 0.45);
+  color: #fff;
+}
+.collections-detail-hero__back:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(109, 40, 217, 0.55));
+  outline-offset: 2px;
 }
 .collections-detail-hero__title {
   margin: 0;
@@ -21148,15 +21253,16 @@ img.mp-poster-placeholder,
   line-height: 0.95;
   letter-spacing: -0.03em;
   color: #fff;
-  max-width: 22ch;
+  max-width: min(100%, 42ch);
   text-wrap: balance;
   text-shadow: 0 8px 40px rgba(0, 0, 0, 0.65);
 }
 .collections-detail-hero__hint {
   margin: 0;
   font-size: clamp(13px, 1.6vw, 16px);
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.88);
   line-height: 1.4;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
 }
 .collections-detail-stage {
   width: 100%;
@@ -21386,7 +21492,10 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
 }
 @media (min-width: 640px) {
   .collections-films-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .collections-films-grid--tiny {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 @media (min-width: 900px) {
@@ -21405,22 +21514,46 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   }
   .collections-detail-hero,
   .collections-detail-hero__inner {
-    min-height: clamp(200px, 38vh, 480px);
+    min-height: clamp(260px, calc(34vh + var(--hero-mosaic-rows, 3) * 7vh), 680px);
   }
   .collections-films-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .collections-films-grid--sparse {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .collections-films-grid--tiny {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
   }
 }
 @media (min-width: 1280px) {
   .collections-films-grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .collections-films-grid--sparse {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .collections-films-grid--tiny {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
+  }
+  .collections-page--detail .collections-film-card .movie-poster-img {
+    border-radius: 12px;
   }
 }
 @media (min-width: 1600px) {
   .collections-films-grid {
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .collections-films-grid--sparse {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+@media (min-width: 1920px) {
+  .collections-films-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 }
 
@@ -25060,17 +25193,25 @@ body.staff-standalone-page .staff-awards-loading {
 @media (min-width: 861px) {
   .film-toolbar-icons-shell {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: auto 1fr;
     align-items: center;
+    column-gap: 12px;
   }
   .film-toolbar-icons-shell > .film-toolbar-icons {
     grid-column: 2;
     justify-content: center;
+    justify-self: center;
+    width: auto;
   }
   .film-toolbar-icons-shell > .film-partner-watch-block--desktop {
     grid-column: 1;
-    justify-self: end;
-    margin-right: 8px;
+    grid-row: 1;
+    justify-self: start;
+    align-self: center;
+    margin-right: 0;
+  }
+  .film-partner-watch-block--desktop {
+    align-items: center;
   }
 }
 .film-partner-watch-block {
