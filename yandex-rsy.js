@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyLayout5';
+  var BUILD = '20260824rsyCabinet1';
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
@@ -26,10 +26,23 @@
     /* Series hub /series|/series-hub — reuse film blocks (same page never coexists with /f/). */
     seriesSidebar: 'R-A-19798904-2',
     seriesInline: 'R-A-19798904-1',
+    /* Cabinet sections (home, premieres, buzz, …) — same blocks, different route guard. */
+    cabinetSidebar: 'R-A-19798904-2',
+    cabinetInline: 'R-A-19798904-1',
+  };
+
+  var CABINET_SECTION_KEYS = {
+    '/home': 'home',
+    '/premieres': 'premieres',
+    '/whattowatch': 'whattowatch',
+    '/buzz': 'buzz',
+    '/tournament': 'tournament',
   };
 
   var rendered = Object.create(null);
   var _observer = null;
+  var _denyKpMap = null;
+  var _denyPromise = null;
 
   function allowsAds() {
     try {
@@ -164,7 +177,7 @@
       }
     }
     var contentTop = document.querySelector(
-      '#section-film > div, #film-page-content > section.hero, main.film-page > section.hero, main.subpage-main .article-content, .article-content h1'
+      '#section-film > div, #film-page-content > section.hero, main.film-page > section.hero, main.subpage-main .article-content, .article-content h1, #section-premieres, #section-buzz, #section-whattowatch, #section-tournament, #section-home'
     );
     if (contentTop) {
       var cr = contentTop.getBoundingClientRect();
@@ -234,11 +247,64 @@
     return path === '/series' || path === '/series-hub' || /^\/series(\/|$)/.test(path);
   }
 
+  function isFilmPath(path) {
+    return /^\/f\/(\d+|mp-\d+|movie-\d+|tv-\d+)/.test(path);
+  }
+
+  function isCabinetSectionPath(path) {
+    if (CABINET_SECTION_KEYS[path]) return true;
+    if (/^\/whattowatch(\/|$)/.test(path)) return true;
+    return false;
+  }
+
+  function cabinetSectionKeyFromPath(path) {
+    if (CABINET_SECTION_KEYS[path]) return CABINET_SECTION_KEYS[path];
+    if (/^\/whattowatch(\/|$)/.test(path)) return 'whattowatch';
+    try {
+      var attr = document.body && document.body.getAttribute('data-cabinet-section');
+      if (attr && document.getElementById('section-' + attr)) return attr;
+    } catch (_e) {}
+    return null;
+  }
+
+  function kpFromFilmPath(path) {
+    var m = String(path || '').match(/^\/f\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  function fetchDenyList() {
+    if (_denyKpMap) return Promise.resolve(_denyKpMap);
+    if (_denyPromise) return _denyPromise;
+    _denyPromise = fetch('/api/public/monetization/config', { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (d) {
+        _denyKpMap = Object.create(null);
+        var list = (d && d.film_ads_deny_kp_ids) || [];
+        list.forEach(function (id) {
+          var kp = String(id || '').replace(/\D/g, '');
+          if (kp) _denyKpMap[kp] = true;
+        });
+        return _denyKpMap;
+      })
+      .catch(function () {
+        _denyKpMap = Object.create(null);
+        return _denyKpMap;
+      });
+    return _denyPromise;
+  }
+
+  function filmAdsBlocked(kp) {
+    if (!kp) return false;
+    if (_denyKpMap && _denyKpMap[String(kp)]) return true;
+    return false;
+  }
+
   function pathKindActive(path, kind) {
-    if (kind === 'film') return /^\/f\/\d+/.test(path) || /^\/f\/mp-\d+/.test(path);
+    if (kind === 'film') return isFilmPath(path);
     if (kind === 'staff') return /^\/s\/\d+/.test(path);
     if (kind === 'article') return /\/articles\//.test(path);
     if (kind === 'series') return isSeriesHubPath(path);
+    if (kind === 'cabinet') return isCabinetSectionPath(path);
     return false;
   }
 
@@ -253,6 +319,7 @@
       if (rail.classList.contains('mp-rsy-fixed-rail--article')) kind = 'article';
       if (rail.classList.contains('mp-rsy-fixed-rail--film')) kind = 'film';
       if (rail.classList.contains('mp-rsy-fixed-rail--series')) kind = 'series';
+      if (rail.classList.contains('mp-rsy-fixed-rail--cabinet')) kind = 'cabinet';
       var side = rail.classList.contains('mp-rsy-fixed-rail--left') ? 'left' : 'right';
       if (!pathKindActive(path, kind)) {
         rail.hidden = true;
@@ -322,9 +389,20 @@
 
   function mountFilmPage() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
-    removeOwnedSlots();
-    if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
-    mountFilmAfterSimilar();
+    var path = String(global.location && global.location.pathname || '');
+    var kp = kpFromFilmPath(path);
+    fetchDenyList().then(function () {
+      if (filmAdsBlocked(kp)) {
+        removeOwnedSlots();
+        document.querySelectorAll('.mp-rsy-fixed-rail--film').forEach(function (r) {
+          r.hidden = true;
+        });
+        return;
+      }
+      removeOwnedSlots();
+      if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
+      mountFilmAfterSimilar();
+    });
   }
 
   function mountStaffPage() {
@@ -354,17 +432,46 @@
     renderBlock(BLOCKS.seriesInline, sid);
   }
 
+  function mountCabinetSectionPage(path) {
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    if (!isCabinetSectionPath(path)) return;
+    var key = cabinetSectionKeyFromPath(path);
+    if (!key) return;
+    var sec = document.getElementById('section-' + key);
+    if (!sec || sec.classList.contains('hidden')) return;
+    if (BLOCKS.cabinetSidebar) ensureFixedRail('cabinet', BLOCKS.cabinetSidebar, 'right');
+    if (!BLOCKS.cabinetInline) return;
+    var wrapId = 'mp_rsy_inline_cabinet_' + key;
+    if (document.getElementById(wrapId)) return;
+    var wrap = document.createElement('div');
+    wrap.id = wrapId;
+    wrap.className = 'mp-rsy-inline mp-rsy-inline--cabinet mp-rsy-inline--cabinet_' + key;
+    var sid = slotId('inline_cabinet_' + key);
+    var slot = document.createElement('div');
+    slot.id = sid;
+    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-cabinet';
+    wrap.appendChild(slot);
+    sec.appendChild(wrap);
+    renderBlock(BLOCKS.cabinetInline, sid);
+  }
+
   function watchLateSections() {
     if (_observer || !LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
     if (typeof MutationObserver === 'undefined') return;
     _observer = new MutationObserver(function () {
       var path = String(global.location && global.location.pathname || '');
-      if (/^\/f\//.test(path)) {
+      if (isFilmPath(path)) {
         mountFilmAfterSimilar();
-        if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
+        fetchDenyList().then(function () {
+          var kp = kpFromFilmPath(path);
+          if (!filmAdsBlocked(kp) && BLOCKS.filmSidebar) {
+            ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
+          }
+        });
       }
       if (/^\/s\//.test(path)) mountStaffAfterFilmography();
       if (isSeriesHubPath(path)) mountSeriesHubPage();
+      if (isCabinetSectionPath(path)) mountCabinetSectionPage(path);
       if (/\/articles\//.test(path)) mountArticlePage();
     });
     _observer.observe(document.body, { childList: true, subtree: true });
@@ -378,7 +485,7 @@
     ensureStyles();
     teardownLegacyWrapper();
     var path = String(global.location && global.location.pathname || '');
-    if (/^\/f\/\d+/.test(path) || /^\/f\/mp-\d+/.test(path)) {
+    if (isFilmPath(path)) {
       mountFilmPage();
       watchLateSections();
       return;
@@ -391,6 +498,13 @@
     if (isSeriesHubPath(path)) {
       removeOwnedSlots();
       mountSeriesHubPage();
+      watchLateSections();
+      updateFixedRailVisibility();
+      return;
+    }
+    if (isCabinetSectionPath(path)) {
+      removeOwnedSlots();
+      mountCabinetSectionPage(path);
       watchLateSections();
       updateFixedRailVisibility();
       return;
@@ -425,7 +539,9 @@
       teardownRails();
       return;
     }
-    mountForRoute();
+    fetchDenyList().finally(function () {
+      mountForRoute();
+    });
     if (!global._mpRsyResizeBound) {
       global._mpRsyResizeBound = true;
       var t;
@@ -446,6 +562,7 @@
     mountStaffPage: mountStaffPage,
     mountStaffAfterFilmography: mountStaffAfterFilmography,
     mountSeriesHubPage: mountSeriesHubPage,
+    mountCabinetSectionPage: mountCabinetSectionPage,
     mountArticleInline: mountArticlePage,
     remount: mountForRoute,
     teardown: teardownRails,

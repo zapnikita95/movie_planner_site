@@ -77,6 +77,15 @@
   max-height: 120px;
 }
 
+.mp-rsy-inline--cabinet {
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.mp-rsy-inline--cabinet .mp-rsy-slot {
+  max-height: 120px;
+}
+
 @media (max-width: 1279px) {
   .mp-rsy-fixed-rail {
     display: none !important;
