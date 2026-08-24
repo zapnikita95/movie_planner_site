@@ -5,7 +5,8 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyFilmAnchor1';
+  var BUILD = '20260824rsyFilmGutter1';
+  var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
@@ -156,6 +157,7 @@
     document.querySelectorAll('.film-page-outer.mp-rsy-host').forEach(function (el) {
       el.classList.remove('mp-rsy-host');
     });
+    setFilmPageOverflowVisible(false);
     rendered = Object.create(null);
   }
 
@@ -240,7 +242,36 @@
     if (!outer) return 0;
     var vw = viewportWidth();
     var or = outer.getBoundingClientRect();
-    return vw - or.right - GUTTER_GAP;
+    return vw - or.right - GUTTER_GAP - VIEWPORT_EDGE_PAD;
+  }
+
+  function layoutFilmOuterRail(rail, outer) {
+    if (!rail || !outer) return null;
+    if (viewportWidth() < DESKTOP_MIN) {
+      rail.hidden = true;
+      return null;
+    }
+    var rect = outer.getBoundingClientRect();
+    var viewLeft = rect.right + GUTTER_GAP;
+    var maxW = viewportWidth() - viewLeft - VIEWPORT_EDGE_PAD;
+    if (maxW < RAIL_MIN_W) {
+      rail.hidden = true;
+      return null;
+    }
+    var w = Math.min(railIdealWidth('film'), maxW);
+    var scrollX = global.pageXOffset || document.documentElement.scrollLeft || 0;
+    var scrollY = global.pageYOffset || document.documentElement.scrollTop || 0;
+    rail.hidden = false;
+    rail.style.left = Math.round(viewLeft + scrollX) + 'px';
+    rail.style.top = Math.round(rect.top + scrollY) + 'px';
+    rail.style.width = Math.round(w) + 'px';
+    return rail;
+  }
+
+  function setFilmPageOverflowVisible(on) {
+    try {
+      document.body.classList.toggle('mp-rsy-film-page', !!on);
+    } catch (_e) {}
   }
 
   function ensureFilmOuterRail(blockId) {
@@ -248,10 +279,9 @@
     if (viewportWidth() < DESKTOP_MIN) return null;
     var outer = findFilmPageOuter();
     if (!outer) return ensureFixedRail('film', blockId, 'right');
-    var gutter = filmOuterGutterWidth(outer);
-    if (gutter < RAIL_MIN_W) return null;
-    var w = Math.min(railIdealWidth('film'), gutter - 8);
+    if (filmOuterGutterWidth(outer) < RAIL_MIN_W) return null;
     outer.classList.add('mp-rsy-host');
+    setFilmPageOverflowVisible(true);
     var railId = 'mp_rsy_outer_film_right';
     var rail = document.getElementById(railId);
     if (!rail) {
@@ -263,10 +293,9 @@
       slot.id = slotId('film', 'right');
       slot.className = 'mp-rsy-slot mp-rsy-slot--outer-film';
       rail.appendChild(slot);
-      outer.appendChild(rail);
+      document.body.appendChild(rail);
     }
-    rail.hidden = false;
-    rail.style.width = w + 'px';
+    layoutFilmOuterRail(rail, outer);
     renderBlock(blockId, slotId('film', 'right'));
     return rail;
   }
@@ -275,22 +304,16 @@
     var path = String(global.location && global.location.pathname || '');
     if (!isFilmPath(path)) {
       document.querySelectorAll('.mp-rsy-outer-rail--film').forEach(function (r) { r.hidden = true; });
+      setFilmPageOverflowVisible(false);
       return;
     }
+    var outer = findFilmPageOuter();
     document.querySelectorAll('.mp-rsy-outer-rail--film').forEach(function (rail) {
-      var outer = rail.parentElement;
-      if (!outer) return;
-      if (viewportWidth() < DESKTOP_MIN) {
+      if (!outer) {
         rail.hidden = true;
         return;
       }
-      var gutter = filmOuterGutterWidth(outer);
-      if (gutter < RAIL_MIN_W) {
-        rail.hidden = true;
-        return;
-      }
-      rail.hidden = false;
-      rail.style.width = Math.min(railIdealWidth('film'), gutter - 8) + 'px';
+      layoutFilmOuterRail(rail, outer);
     });
   }
 

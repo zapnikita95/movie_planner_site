@@ -109,7 +109,7 @@
       loadScriptOnce('/yandex-metrika.js?v=' + BUILD, '__mpMetrikaLoadRequested');
     }
     if (allows('ads')) {
-      loadScriptOnce('/yandex-rsy.js?v=' + BUILD, '__mpRsyLoadRequested');
+      loadScriptOnce('/yandex-rsy.js?v=20260824rsyFilmGutter1', '__mpRsyLoadRequested');
     }
   }
 
