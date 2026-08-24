@@ -20993,6 +20993,151 @@ img.mp-poster-placeholder,
   background: rgba(9, 9, 11, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
+
+/* Discovery grid — large cards with poster mosaic */
+.collections-discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+.collections-discovery-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 148px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: var(--bg-surface-alt, #1a1a22);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.collections-discovery-card:hover {
+  border-color: rgba(255, 90, 165, 0.45);
+  transform: translateY(-1px);
+}
+.collections-discovery-card:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(109, 40, 217, 0.55));
+  outline-offset: 2px;
+}
+.collections-discovery-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 14px 14px 12px;
+  background: linear-gradient(180deg, rgba(9, 9, 11, 0.05) 0%, rgba(9, 9, 11, 0.55) 42%, rgba(9, 9, 11, 0.92) 100%);
+}
+.collections-discovery-card__title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(15px, 2.4vw, 18px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+}
+.collections-discovery-card__meta {
+  font-size: 12px;
+  color: var(--text-muted, #b4b4be);
+}
+
+/* Poster mosaic (cards + detail hero) */
+.collections-poster-mosaic {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 3px;
+  opacity: 0.92;
+}
+.collections-poster-mosaic--card {
+  position: absolute;
+  inset: 0;
+}
+.collections-poster-mosaic--hero {
+  position: absolute;
+  inset: -8% -4%;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  transform: rotate(-4deg) scale(1.08);
+  transform-origin: center top;
+  opacity: 1;
+}
+.collections-poster-mosaic--empty {
+  background: linear-gradient(135deg, rgba(109, 40, 217, 0.22), rgba(255, 45, 123, 0.14));
+}
+.collections-poster-mosaic__cell {
+  background: #1a1a22 center/cover no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Detail hero — giant title, films visible on first screen */
+.collections-page--detail {
+  gap: 10px;
+}
+.collections-detail-hero {
+  position: relative;
+  min-height: clamp(148px, 24vh, 220px);
+  margin: 0 0 4px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #09090b;
+}
+.collections-detail-hero__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(9, 9, 11, 0.35) 0%,
+    rgba(9, 9, 11, 0.72) 55%,
+    rgba(9, 9, 11, 0.96) 100%
+  );
+  pointer-events: none;
+}
+.collections-detail-hero__inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  min-height: clamp(148px, 24vh, 220px);
+  box-sizing: border-box;
+}
+.collections-detail-hero__back {
+  margin: 0;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.collections-detail-hero__title {
+  margin: 0;
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(22px, 4.8vw, 42px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+.collections-detail-hero__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted, #b4b4be);
+  line-height: 1.4;
+}
+.collections-page--detail .collections-films-grid {
+  margin: 0;
+}
 .nyt-collection-intro {
   margin: 0 0 10px;
   font-size: 14px;
@@ -21193,6 +21338,20 @@ img.mp-poster-placeholder,
   }
   .collections-block-head {
     margin-bottom: 10px;
+  }
+  .collections-discovery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .collections-discovery-card {
+    min-height: 200px;
+  }
+  .collections-detail-hero {
+    min-height: clamp(160px, 22vh, 200px);
+  }
+  .collections-detail-hero__inner {
+    min-height: clamp(160px, 22vh, 200px);
+    padding: 14px 18px 16px;
   }
   .collections-films-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
