@@ -16453,12 +16453,31 @@
         window.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_) {}
+    try {
+      if (window.MpRsy && typeof window.MpRsy.mountFilmAfterSimilar === 'function') {
+        window.MpRsy.mountFilmAfterSimilar();
+      } else if (window.MpRsy && typeof window.MpRsy.mountFilmPage === 'function') {
+        window.MpRsy.mountFilmPage();
+      }
+    } catch (_rsySim) {}
+  }
+
+  function mountFilmPageRsyAds() {
+    try {
+      if (window.MpRsy && typeof window.MpRsy.mountFilmPage === 'function') {
+        window.MpRsy.mountFilmPage();
+      }
+    } catch (_rsy) {}
   }
 
   function mountFilmPageSimilarAsync(kpId, pageRoot) {
     const kp = String(kpId || '').replace(/\D/g, '');
-    if (!kp || !pageRoot) return;
+    if (!kp || !pageRoot) {
+      mountFilmPageRsyAds();
+      return;
+    }
     const seq = (mountFilmPageSimilarAsync._seq = (mountFilmPageSimilarAsync._seq || 0) + 1);
+    mountFilmPageRsyAds();
     const fetchOpts = { method: 'GET', mode: 'cors' };
     const token = getToken();
     if (token) fetchOpts.headers = { Authorization: 'Bearer ' + token };
@@ -16467,10 +16486,15 @@
       .then(function (data) {
         if (seq !== mountFilmPageSimilarAsync._seq) return;
         const items = (data && data.items) || [];
-        if (!items.length) return;
+        if (!items.length) {
+          mountFilmPageRsyAds();
+          return;
+        }
         insertFilmPageSimilarSection(pageRoot, buildFilmPageSimilarSectionHtml(items));
       })
-      .catch(function () {});
+      .catch(function () {
+        mountFilmPageRsyAds();
+      });
   }
 
   try {
@@ -16542,6 +16566,7 @@
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
           ensureFilmHeroCastLoaded(cached.film, pageRoot);
           ensureFilmHeroDescription(pageRoot, cached.film);
+          mountFilmPageSimilarAsync(cached.film.kp_id, pageRoot);
         } else {
           renderFilmDetail(cached.film, cached.ratings, cached.similar, cached.me, pageRoot);
         }
@@ -17084,6 +17109,7 @@
       }
       ensureFilmHeroDescription(content, film);
       ensureFilmHeroCastLoaded(film, content);
+      mountFilmPageSimilarAsync(film.kp_id, content);
       return;
     }
     const inBase = ho.inBase !== false;
