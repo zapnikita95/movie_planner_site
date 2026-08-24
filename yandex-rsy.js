@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyLayout4';
+  var BUILD = '20260824rsyLayout5';
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
@@ -23,6 +23,9 @@
     articleSidebarRight: 'R-A-19798904-5',
     articleSidebarLeft: null,
     articleInline: 'R-A-19798904-5',
+    /* Series hub /series|/series-hub — reuse film blocks (same page never coexists with /f/). */
+    seriesSidebar: 'R-A-19798904-2',
+    seriesInline: 'R-A-19798904-1',
   };
 
   var rendered = Object.create(null);
@@ -227,10 +230,15 @@
     return rail;
   }
 
+  function isSeriesHubPath(path) {
+    return path === '/series' || path === '/series-hub' || /^\/series(\/|$)/.test(path);
+  }
+
   function pathKindActive(path, kind) {
     if (kind === 'film') return /^\/f\/\d+/.test(path) || /^\/f\/mp-\d+/.test(path);
     if (kind === 'staff') return /^\/s\/\d+/.test(path);
     if (kind === 'article') return /\/articles\//.test(path);
+    if (kind === 'series') return isSeriesHubPath(path);
     return false;
   }
 
@@ -244,6 +252,7 @@
       var kind = 'staff';
       if (rail.classList.contains('mp-rsy-fixed-rail--article')) kind = 'article';
       if (rail.classList.contains('mp-rsy-fixed-rail--film')) kind = 'film';
+      if (rail.classList.contains('mp-rsy-fixed-rail--series')) kind = 'series';
       var side = rail.classList.contains('mp-rsy-fixed-rail--left') ? 'left' : 'right';
       if (!pathKindActive(path, kind)) {
         rail.hidden = true;
@@ -313,14 +322,36 @@
 
   function mountFilmPage() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    removeOwnedSlots();
     if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
     mountFilmAfterSimilar();
   }
 
   function mountStaffPage() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    removeOwnedSlots();
     if (BLOCKS.staffSidebar) ensureFixedRail('staff', BLOCKS.staffSidebar, 'right');
     mountStaffAfterFilmography();
+  }
+
+  function mountSeriesHubPage() {
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    if (!isSeriesHubPath(String(global.location && global.location.pathname || ''))) return;
+    if (BLOCKS.seriesSidebar) ensureFixedRail('series', BLOCKS.seriesSidebar, 'right');
+    var sec = document.getElementById('section-series-hub') || document.getElementById('section-series');
+    if (!sec || !BLOCKS.seriesInline) return;
+    var wrapId = 'mp_rsy_inline_series_hub';
+    if (document.getElementById(wrapId)) return;
+    var wrap = document.createElement('div');
+    wrap.id = wrapId;
+    wrap.className = 'mp-rsy-inline mp-rsy-inline--series_hub';
+    var sid = slotId('inline_series_hub');
+    var slot = document.createElement('div');
+    slot.id = sid;
+    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-series_hub';
+    wrap.appendChild(slot);
+    sec.appendChild(wrap);
+    renderBlock(BLOCKS.seriesInline, sid);
   }
 
   function watchLateSections() {
@@ -333,6 +364,7 @@
         if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
       }
       if (/^\/s\//.test(path)) mountStaffAfterFilmography();
+      if (isSeriesHubPath(path)) mountSeriesHubPage();
       if (/\/articles\//.test(path)) mountArticlePage();
     });
     _observer.observe(document.body, { childList: true, subtree: true });
@@ -356,7 +388,15 @@
       watchLateSections();
       return;
     }
+    if (isSeriesHubPath(path)) {
+      removeOwnedSlots();
+      mountSeriesHubPage();
+      watchLateSections();
+      updateFixedRailVisibility();
+      return;
+    }
     if (/\/articles\//.test(path)) {
+      removeOwnedSlots();
       mountArticlePage();
       watchLateSections();
       updateFixedRailVisibility();
@@ -405,6 +445,7 @@
     mountFilmAfterSimilar: mountFilmAfterSimilar,
     mountStaffPage: mountStaffPage,
     mountStaffAfterFilmography: mountStaffAfterFilmography,
+    mountSeriesHubPage: mountSeriesHubPage,
     mountArticleInline: mountArticlePage,
     remount: mountForRoute,
     teardown: teardownRails,

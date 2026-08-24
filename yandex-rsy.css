@@ -68,6 +68,15 @@
 }
 
 
+.mp-rsy-inline--series_hub {
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.mp-rsy-inline--series_hub .mp-rsy-slot {
+  max-height: 120px;
+}
+
 @media (max-width: 1279px) {
   .mp-rsy-fixed-rail {
     display: none !important;
