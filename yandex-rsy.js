@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyCabinet1';
+  var BUILD = '20260824rsyFilmAnchor1';
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
   var DESKTOP_MIN = 1280;
@@ -150,8 +150,11 @@
   }
 
   function removeOwnedSlots() {
-    document.querySelectorAll('.mp-rsy-fixed-rail, .mp-rsy-inline').forEach(function (el) {
+    document.querySelectorAll('.mp-rsy-fixed-rail, .mp-rsy-outer-rail, .mp-rsy-inline').forEach(function (el) {
       el.remove();
+    });
+    document.querySelectorAll('.film-page-outer.mp-rsy-host').forEach(function (el) {
+      el.classList.remove('mp-rsy-host');
     });
     rendered = Object.create(null);
   }
@@ -198,11 +201,14 @@
     var top = railAnchorTop();
     var bottomPad = 16;
     rail.style.top = top + 'px';
-    rail.style.height = 'calc(100vh - ' + (top + bottomPad) + 'px)';
+    rail.style.height = 'auto';
     rail.style.maxHeight = 'calc(100vh - ' + (top + bottomPad) + 'px)';
+    rail.style.overflow = 'hidden';
     var slot = rail.querySelector('.mp-rsy-slot');
     if (slot) {
-      slot.style.minHeight = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+      slot.style.minHeight = '0';
+      slot.style.maxHeight = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+      slot.style.overflow = 'hidden';
     }
   }
 
@@ -218,6 +224,74 @@
     rail.style.width = geo.width + 'px';
     rail.dataset.mpRsyWidth = String(geo.width);
     applyRailVertical(rail);
+  }
+
+  function findFilmPageOuter() {
+    var outer = document.querySelector('#section-film .film-page-outer') || document.querySelector('.film-page-outer');
+    if (outer) return outer;
+    var root = document.getElementById('film-page-content');
+    if (root && root.parentElement && root.parentElement.classList.contains('film-page-outer')) {
+      return root.parentElement;
+    }
+    return null;
+  }
+
+  function filmOuterGutterWidth(outer) {
+    if (!outer) return 0;
+    var vw = viewportWidth();
+    var or = outer.getBoundingClientRect();
+    return vw - or.right - GUTTER_GAP;
+  }
+
+  function ensureFilmOuterRail(blockId) {
+    if (!blockId) return null;
+    if (viewportWidth() < DESKTOP_MIN) return null;
+    var outer = findFilmPageOuter();
+    if (!outer) return ensureFixedRail('film', blockId, 'right');
+    var gutter = filmOuterGutterWidth(outer);
+    if (gutter < RAIL_MIN_W) return null;
+    var w = Math.min(railIdealWidth('film'), gutter - 8);
+    outer.classList.add('mp-rsy-host');
+    var railId = 'mp_rsy_outer_film_right';
+    var rail = document.getElementById(railId);
+    if (!rail) {
+      rail = document.createElement('aside');
+      rail.id = railId;
+      rail.className = 'mp-rsy-outer-rail mp-rsy-outer-rail--film';
+      rail.setAttribute('aria-label', 'Реклама');
+      var slot = document.createElement('div');
+      slot.id = slotId('film', 'right');
+      slot.className = 'mp-rsy-slot mp-rsy-slot--outer-film';
+      rail.appendChild(slot);
+      outer.appendChild(rail);
+    }
+    rail.hidden = false;
+    rail.style.width = w + 'px';
+    renderBlock(blockId, slotId('film', 'right'));
+    return rail;
+  }
+
+  function updateFilmOuterRail() {
+    var path = String(global.location && global.location.pathname || '');
+    if (!isFilmPath(path)) {
+      document.querySelectorAll('.mp-rsy-outer-rail--film').forEach(function (r) { r.hidden = true; });
+      return;
+    }
+    document.querySelectorAll('.mp-rsy-outer-rail--film').forEach(function (rail) {
+      var outer = rail.parentElement;
+      if (!outer) return;
+      if (viewportWidth() < DESKTOP_MIN) {
+        rail.hidden = true;
+        return;
+      }
+      var gutter = filmOuterGutterWidth(outer);
+      if (gutter < RAIL_MIN_W) {
+        rail.hidden = true;
+        return;
+      }
+      rail.hidden = false;
+      rail.style.width = Math.min(railIdealWidth('film'), gutter - 8) + 'px';
+    });
   }
 
   function ensureFixedRail(kind, blockId, side) {
@@ -347,11 +421,36 @@
     renderBlock(blockId, sid);
   }
 
-  function mountFilmAfterSimilar() {
+  function mountFilmPageBottom() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
-    var section = document.querySelector('.film-page-similar-section');
-    if (!section || !BLOCKS.filmAfterSimilar) return;
-    mountInlineAfter(section, 'after_similar', BLOCKS.filmAfterSimilar);
+    if (!BLOCKS.filmAfterSimilar) return;
+    var similar = document.querySelector('.film-page-similar-section');
+    var orphanBottom = document.getElementById('mp_rsy_inline_film_bottom');
+    if (similar) {
+      if (orphanBottom) orphanBottom.remove();
+      mountInlineAfter(similar, 'after_similar', BLOCKS.filmAfterSimilar);
+      return;
+    }
+    if (orphanBottom) return;
+    var pageRoot = document.getElementById('film-page-content');
+    if (!pageRoot) return;
+    var hero = pageRoot.querySelector(':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section');
+    var anchor = hero || pageRoot;
+    var wrap = document.createElement('div');
+    wrap.id = 'mp_rsy_inline_film_bottom';
+    wrap.className = 'mp-rsy-inline mp-rsy-inline--film_bottom';
+    var sid = slotId('inline_film_bottom');
+    var slot = document.createElement('div');
+    slot.id = sid;
+    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-film_bottom';
+    wrap.appendChild(slot);
+    if (anchor === pageRoot) pageRoot.appendChild(wrap);
+    else anchor.insertAdjacentElement('afterend', wrap);
+    renderBlock(BLOCKS.filmAfterSimilar, sid);
+  }
+
+  function mountFilmAfterSimilar() {
+    mountFilmPageBottom();
   }
 
   function mountStaffAfterFilmography() {
@@ -394,14 +493,14 @@
     fetchDenyList().then(function () {
       if (filmAdsBlocked(kp)) {
         removeOwnedSlots();
-        document.querySelectorAll('.mp-rsy-fixed-rail--film').forEach(function (r) {
+        document.querySelectorAll('.mp-rsy-fixed-rail--film, .mp-rsy-outer-rail--film').forEach(function (r) {
           r.hidden = true;
         });
         return;
       }
       removeOwnedSlots();
-      if (BLOCKS.filmSidebar) ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
-      mountFilmAfterSimilar();
+      if (BLOCKS.filmSidebar) ensureFilmOuterRail(BLOCKS.filmSidebar);
+      mountFilmPageBottom();
     });
   }
 
@@ -461,11 +560,11 @@
     _observer = new MutationObserver(function () {
       var path = String(global.location && global.location.pathname || '');
       if (isFilmPath(path)) {
-        mountFilmAfterSimilar();
+        mountFilmPageBottom();
         fetchDenyList().then(function () {
           var kp = kpFromFilmPath(path);
           if (!filmAdsBlocked(kp) && BLOCKS.filmSidebar) {
-            ensureFixedRail('film', BLOCKS.filmSidebar, 'right');
+            ensureFilmOuterRail(BLOCKS.filmSidebar);
           }
         });
       }
@@ -523,6 +622,7 @@
   function onResize() {
     if (!allowsAds() || shouldSkip()) return;
     updateFixedRailVisibility();
+    updateFilmOuterRail();
     if (!isDesktop()) {
       document.querySelectorAll('.mp-rsy-fixed-rail').forEach(function (rail) {
         rail.hidden = true;
@@ -558,7 +658,8 @@
     BUILD: BUILD,
     BLOCKS: BLOCKS,
     mountFilmPage: mountFilmPage,
-    mountFilmAfterSimilar: mountFilmAfterSimilar,
+    mountFilmAfterSimilar: mountFilmPageBottom,
+    mountFilmPageBottom: mountFilmPageBottom,
     mountStaffPage: mountStaffPage,
     mountStaffAfterFilmography: mountStaffAfterFilmography,
     mountSeriesHubPage: mountSeriesHubPage,
