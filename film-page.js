@@ -797,6 +797,11 @@
         global.MpRsy.mountFilmAfterSimilar();
       }
     } catch (_rsySim) {}
+    try {
+      if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
+        global.MpMonetization.initFilmPageFromRoot(pageRoot);
+      }
+    } catch (_monSim) {}
   }
 
   function mountFilmPageSimilarBlock(kpId, pageRoot) {
@@ -4523,6 +4528,11 @@
         }
         loadFilmFriendsSocialBlock();
         if (!(opts && opts.inBase)) rebindGuestToolbarActions();
+        try {
+          if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
+            global.MpMonetization.initFilmPageFromRoot(hero, stub.kp_id);
+          }
+        } catch (_monToolbar) {}
       }
 
       function bindAuthToolbar(film, filmState) {
