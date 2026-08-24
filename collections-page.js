@@ -292,12 +292,14 @@
         var url = v.ballot_url || ("/articles/nyt-ballot-" + esc(v.slug) + ".html");
         var top = (v.top_picks || []).slice(0, 2).join(", ");
         var photo = v.photo || "/images/person-avatar-placeholder.png";
+        var displayName = v.display_name || v.name_ru || v.name || "";
+        var searchName = [displayName, v.name_ru, v.name, v.name_en].filter(Boolean).join(" ").toLowerCase();
         return (
-          '<a class="nyt-voter-card" href="' + esc(url) + '" data-voter-name="' + esc((v.name || "").toLowerCase()) + '">'
+          '<a class="nyt-voter-card" href="' + esc(url) + '" data-voter-name="' + esc(searchName) + '">'
           + '<span class="nyt-voter-photo-wrap">'
           + '<img class="nyt-voter-photo" src="' + esc(photo) + '" alt="" loading="lazy" decoding="async" onerror="this.src=\'/images/person-avatar-placeholder.png\'">'
           + "</span>"
-          + '<span class="nyt-voter-name">' + esc(v.name || "") + "</span>"
+          + '<span class="nyt-voter-name">' + esc(displayName) + "</span>"
           + '<span class="nyt-voter-meta">' + esc(String(v.ballot_count || "")) + " фильмов</span>"
           + (top ? ('<span class="nyt-voter-top">' + esc(top) + "</span>") : "")
           + "</a>"
