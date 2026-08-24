@@ -188,6 +188,17 @@
     }
   }
 
+  function ensurePartnersSlot(shell) {
+    if (!shell) return null;
+    var slot = shell.querySelector('.film-toolbar-partners-slot');
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.className = 'film-toolbar-partners-slot';
+      shell.insertBefore(slot, shell.firstChild);
+    }
+    return slot;
+  }
+
   function wrapToolbarIconsShell(pageRoot) {
     var icons = pageRoot.querySelector('.film-toolbar-icons');
     if (!icons) return null;
@@ -257,6 +268,7 @@
     if (!scope) return;
     scope.querySelectorAll('.film-partner-watch-block').forEach(function (el) { el.remove(); });
     scope.querySelectorAll('.film-partner-watch-mobile-anchor').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-toolbar-partners-slot:empty').forEach(function (el) { el.remove(); });
   }
 
   function mountPartnerBlock(container, partners, kpId, mode) {
@@ -283,7 +295,8 @@
 
   function mountDesktopPartnerBlock(shell, partners, kpId) {
     if (!shell || !partners.length) return;
-    mountPartnerBlock(shell, partners, kpId, 'desktop');
+    var slot = ensurePartnersSlot(shell);
+    if (slot) mountPartnerBlock(slot, partners, kpId, 'desktop');
   }
 
   function mountMobilePartnerBlock(pageRoot, partners, kpId) {
