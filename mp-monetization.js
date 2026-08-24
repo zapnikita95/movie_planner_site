@@ -188,39 +188,99 @@
     }
   }
 
-  function mountStreamingBlock(pageRoot, kpId, title) {
+  function wrapToolbarIconsShell(pageRoot) {
+    var icons = pageRoot.querySelector('.film-toolbar-icons');
+    if (!icons) return null;
+    if (icons.parentNode && icons.parentNode.classList.contains('film-toolbar-icons-shell')) {
+      return icons.parentNode;
+    }
+    var shell = document.createElement('div');
+    shell.className = 'film-toolbar-icons-shell';
+    icons.parentNode.insertBefore(shell, icons);
+    shell.appendChild(icons);
+    return shell;
+  }
+
+  function partnerFlexLogoUrl() {
+    return '/images/partners/flex-logo.png';
+  }
+
+  function mountDesktopPartnerPill(shell, partner) {
+    if (!shell || !partner || partner.key !== 'flex') return;
+    if (shell.querySelector('.film-partner-watch--desktop')) return;
+    var a = document.createElement('a');
+    a.className = 'film-partner-watch film-partner-watch--desktop film-partner-watch--flex';
+    a.href = partner.url;
+    a.target = '_blank';
+    a.rel = 'noopener sponsored';
+    a.setAttribute('data-partner', 'flex');
+    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.innerHTML =
+      '<span class="film-partner-watch__label">Смотреть на</span>' +
+      '<img class="film-partner-watch__logo" src="' + partnerFlexLogoUrl() + '" alt="FLEX" width="72" height="20" decoding="async" />';
+    shell.insertBefore(a, shell.firstChild);
+    a.addEventListener('click', function () {
+      metrikaGoal('stream_click', {
+        platform: 'flex',
+        kp_id: String(partner.kp_id || ''),
+        has_affiliate: partner.has_affiliate ? '1' : '0',
+      });
+    });
+  }
+
+  function mountMobilePartnerPill(pageRoot, partner) {
+    if (!pageRoot || !partner || partner.key !== 'flex') return;
+    if (pageRoot.querySelector('.film-partner-watch--mobile')) return;
+    var similar = pageRoot.querySelector('.film-page-similar-section');
+    if (!similar || !similar.parentNode) return;
+    var a = document.createElement('a');
+    a.className = 'film-partner-watch film-partner-watch--mobile film-partner-watch--flex';
+    a.href = partner.url;
+    a.target = '_blank';
+    a.rel = 'noopener sponsored';
+    a.setAttribute('data-partner', 'flex');
+    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.innerHTML =
+      '<span class="film-partner-watch__row">' +
+      '<span class="film-partner-watch__label">Смотреть на</span>' +
+      '<img class="film-partner-watch__logo" src="' + partnerFlexLogoUrl() + '" alt="FLEX" width="64" height="18" decoding="async" />' +
+      '</span>';
+    similar.parentNode.insertBefore(a, similar);
+    a.addEventListener('click', function () {
+      metrikaGoal('stream_click', {
+        platform: 'flex',
+        kp_id: String(partner.kp_id || ''),
+        has_affiliate: partner.has_affiliate ? '1' : '0',
+      });
+    });
+    metrikaGoal('stream_block_view', { kp_id: String(partner.kp_id || ''), count: '1' });
+  }
+
+  function mountPartnerWatchPills(pageRoot, kpId) {
     if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
-    var existing = pageRoot.querySelector('.mp-watch-block');
-    if (existing) return Promise.resolve();
-
-    var q = title ? '?title=' + encodeURIComponent(title) : '';
-    var partnersUrl = API_BASE + '/api/public/monetization/partners?kp_id=' + encodeURIComponent(kpId);
-
-    return Promise.all([
-      fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/watch' + q, { credentials: 'omit' }).then(function (r) { return r.json(); }),
-      fetch(partnersUrl, { credentials: 'omit' }).then(function (r) { return r.json(); }),
-    ])
-      .then(function (pair) {
-        var watch = pair[0] || {};
-        var partners = pair[1] || {};
-        var links = watch.links || [];
-        var niche = partners.items || [];
-        var html = streamingBlockHtml(links, niche);
-        if (!html) return;
-
-        var toolbar = pageRoot.querySelector('.film-page-toolbar');
-        var anchor = document.createElement('div');
-        anchor.className = 'mp-watch-anchor';
-        anchor.innerHTML = html;
-        if (toolbar && toolbar.parentNode) {
-          toolbar.parentNode.insertBefore(anchor, toolbar.nextSibling);
-        } else {
-          pageRoot.appendChild(anchor);
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/watch-partners';
+    return fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var partners = (data && data.partners) || [];
+        var flex = null;
+        for (var i = 0; i < partners.length; i++) {
+          if (partners[i] && partners[i].key === 'flex' && partners[i].url) {
+            flex = partners[i];
+            break;
+          }
         }
-        metrikaGoal('stream_block_view', { kp_id: String(kpId), count: String(links.length + niche.length) });
-        bindStreamClicks(anchor, kpId);
+        if (!flex) return;
+        flex.kp_id = kpId;
+        var shell = wrapToolbarIconsShell(pageRoot);
+        if (shell) mountDesktopPartnerPill(shell, flex);
+        mountMobilePartnerPill(pageRoot, flex);
       })
       .catch(function () {});
+  }
+
+  function mountStreamingBlock(pageRoot, kpId, title) {
+    return mountPartnerWatchPills(pageRoot, kpId);
   }
 
   function subscribePromptHtml(opts) {
@@ -302,8 +362,8 @@
     if (!pageRoot || !kpId) return;
 
     ensureAdSlots(pageRoot);
-    mountStreamingBlock(pageRoot, kpId, title).then(function () {
-      var watch = pageRoot.querySelector('.mp-watch-block');
+    mountPartnerWatchPills(pageRoot, kpId).then(function () {
+      var watch = pageRoot.querySelector('.film-partner-watch');
       if (!watch) {
         mountSubscribePrompt(pageRoot, {
           type: isSeries ? 'series' : 'streaming',
