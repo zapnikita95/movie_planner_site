@@ -91,21 +91,77 @@
     return " onerror=\"this.src='/images/film-poster-placeholder.png'\"";
   }
 
-  function posterMosaicHtml(posters, extraClass) {
-    var urls = (posters || []).filter(function (u) {
+  function filterPosterUrls(posters) {
+    return (posters || []).filter(function (u) {
       if (!u) return false;
       var s = String(u);
       return s.indexOf("iphone360_") === -1 && s.indexOf("film-poster-placeholder") === -1;
-    }).slice(0, 8);
+    });
+  }
+
+  function cyclePosterUrls(urls, count) {
+    if (!urls || !urls.length || count <= 0) return [];
+    var out = [];
+    for (var i = 0; i < count; i++) out.push(urls[i % urls.length]);
+    return out;
+  }
+
+  function heroMosaicLayout(filmCount, titleText) {
+    var n = Math.max(1, Number(filmCount) || 0);
+    var titleLen = String(titleText || "").length;
+    if (n <= 5) return { mode: "spotlight", count: n };
+    var rows = 2;
+    if (n >= 12) rows = 3;
+    if (n >= 25) rows = 4;
+    if (n >= 45) rows = 5;
+    if (n >= 70) rows = 6;
+    if (titleLen > 32) rows += 1;
+    if (titleLen > 52) rows += 1;
+    if (titleLen > 72) rows += 1;
+    rows = Math.min(rows, 7);
+    var cols = n >= 50 ? 12 : n >= 25 ? 10 : 8;
+    return { mode: "wall", cols: cols, rows: rows, cellCount: cols * rows };
+  }
+
+  function posterCellStyle(url) {
+    var safe = String(url).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    return "background-image:url('" + safe + "')";
+  }
+
+  function posterSpotlightHtml(urls) {
+    var list = (urls || []).slice(0, 5);
+    if (!list.length) {
+      return '<div class="collections-poster-spotlight collections-poster-spotlight--empty" aria-hidden="true"></div>';
+    }
+    return (
+      '<div class="collections-poster-spotlight collections-poster-spotlight--'
+      + list.length + '" aria-hidden="true">'
+      + list.map(function (u, i) {
+        return '<div class="collections-poster-spotlight__cell" data-spot="' + i
+          + '" style="' + posterCellStyle(u) + '"></div>';
+      }).join("")
+      + "</div>"
+    );
+  }
+
+  function posterMosaicHtml(posters, extraClass, opts) {
+    var o = opts || {};
+    var urls = filterPosterUrls(posters);
     var cls = "collections-poster-mosaic" + (extraClass ? " " + extraClass : "");
     if (!urls.length) {
       return '<div class="' + cls + ' collections-poster-mosaic--empty" aria-hidden="true"></div>';
     }
+    if (o.mode === "spotlight") {
+      return posterSpotlightHtml(urls);
+    }
+    var cols = o.cols || 4;
+    var rows = o.rows || 2;
+    var cellCount = o.cellCount || cols * rows;
+    var filled = cyclePosterUrls(urls, cellCount);
     return (
-      '<div class="' + cls + '" aria-hidden="true">'
-      + urls.map(function (u) {
-        var safe = String(u).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        return '<div class="collections-poster-mosaic__cell" style="background-image:url(\'' + safe + '\')"></div>';
+      '<div class="' + cls + '" aria-hidden="true" style="--mosaic-cols:' + cols + ";--mosaic-rows:" + rows + '">'
+      + filled.map(function (u) {
+        return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
       }).join("")
       + "</div>"
     );
@@ -117,7 +173,7 @@
     return (
       '<button type="button" class="collections-discovery-card" data-coll-action="wtw-public-open" data-coll-id="'
       + esc(c.short_code || "") + '">'
-      + posterMosaicHtml(posters, "collections-poster-mosaic--card")
+      + posterMosaicHtml(posters, "collections-poster-mosaic--card", { cols: 4, rows: 2, cellCount: 8 })
       + '<div class="collections-discovery-card__overlay">'
       + '<span class="collections-discovery-card__title">' + cleanTitle(c.name || "") + "</span>"
       + '<span class="collections-discovery-card__meta">' + esc(String(count)) + " в подборке</span>"
@@ -126,18 +182,34 @@
   }
 
   function detailHeroHtml(coll, films, hintText) {
-    var posters = (films || []).map(function (f) { return pickPoster(f); });
+    var filmList = films || [];
+    var posters = filterPosterUrls(filmList.map(function (f) { return pickPoster(f); }));
     var name = stripHtml(coll.name || "Подборка");
-    var hint = hintText || ((coll.films_count || films.length || 0) + " фильмов");
+    var filmCount = coll.films_count || filmList.length || 0;
+    var hint = hintText || (filmCount + " фильмов");
+    var layout = heroMosaicLayout(filmCount, name);
+    var mosaic;
+    if (layout.mode === "spotlight") {
+      mosaic = posterMosaicHtml(posters, "collections-poster-mosaic--hero", { mode: "spotlight" });
+    } else {
+      mosaic = posterMosaicHtml(posters, "collections-poster-mosaic--hero", layout);
+    }
+    var heroRows = layout.mode === "wall" ? layout.rows : 2;
     return (
-      '<div class="collections-detail-hero">'
-      + posterMosaicHtml(posters, "collections-poster-mosaic--hero")
+      '<div class="collections-detail-hero collections-detail-hero--'
+      + layout.mode + '" style="--hero-mosaic-rows:' + heroRows + '">'
+      + '<div class="collections-detail-hero__mosaic-wrap">'
+      + mosaic
+      + '<div class="collections-detail-hero__fade-l" aria-hidden="true"></div>'
+      + '<div class="collections-detail-hero__fade-r" aria-hidden="true"></div>'
+      + "</div>"
       + '<div class="collections-detail-hero__shade"></div>'
       + '<div class="collections-detail-hero__inner">'
-      + '<button type="button" class="mp-sub-back collections-detail-hero__back" data-coll-action="wtw-back">← Коллекции</button>'
       + '<h1 class="collections-detail-hero__title">' + esc(name) + "</h1>"
+      + '<div class="collections-detail-hero__meta">'
+      + '<button type="button" class="collections-detail-hero__back" data-coll-action="wtw-back">← Коллекции</button>'
       + '<p class="collections-detail-hero__hint">' + esc(hint) + "</p>"
-      + "</div></div>"
+      + "</div></div></div>"
     );
   }
 
@@ -255,8 +327,11 @@
     if (!films || !films.length) {
       return '<p class="cabinet-hint collections-empty">Пока пусто</p>';
     }
+    var sparseCls = films.length <= 8 ? " collections-films-grid--sparse" : "";
+    var tinyCls = films.length <= 4 ? " collections-films-grid--tiny" : "";
     return (
-      '<div class="movies-grid collections-films-grid' + (o.ranked ? " collections-films-grid--ranked" : "") + '">'
+      '<div class="movies-grid collections-films-grid' + (o.ranked ? " collections-films-grid--ranked" : "")
+      + sparseCls + tinyCls + '">'
       + films.map(function (f) {
         var kp = f.kp_id != null ? String(f.kp_id) : "";
         var fid = f.id || f.already_in_base_film_id || f.film_id || "";
@@ -819,13 +894,34 @@
     if (block) block.classList.add("hidden");
   }
 
+  function collectionsPayloadOk(data) {
+    if (!data || typeof data !== "object") return false;
+    if (data.success === true) return true;
+    if (Array.isArray(data.collections)) return true;
+    if (data.collection && typeof data.collection === "object") return true;
+    return false;
+  }
+
   function apiPublicGet(path) {
-    if (typeof global.apiPublic === "function") {
-      return global.apiPublic(path);
-    }
     var base = global.API_BASE || global.SITE_ORIGIN || "https://movie-planner.ru";
-    return fetch(base + path, { headers: { Accept: "application/json" } })
-      .then(function (r) { return r.json().catch(function () { return {}; }); });
+    function directFetch() {
+      return fetch(base + path, { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (data) {
+            if (!r.ok && data && !data.error) data.error = "HTTP " + r.status;
+            return data;
+          });
+        });
+    }
+    if (typeof global.apiPublic === "function") {
+      return global.apiPublic(path).then(function (data) {
+        if (collectionsPayloadOk(data)) return data;
+        return directFetch();
+      }).catch(function () {
+        return directFetch();
+      });
+    }
+    return directFetch();
   }
 
   function collectionCodeFromPath(pathname) {
@@ -884,7 +980,7 @@
     });
   }
 
-  var _discoveryState = { q: "", page: 1, pageSize: 24, total: 0, loading: false };
+  var _discoveryState = { q: "", page: 1, pageSize: 24, total: 0, loading: false, reqId: 0 };
 
   function discoveryQueryString() {
     var params = ["limit=" + _discoveryState.pageSize, "offset=" + ((_discoveryState.page - 1) * _discoveryState.pageSize)];
@@ -919,13 +1015,15 @@
     if (!listEl) return;
     if (_discoveryState.loading) return;
     _discoveryState.loading = true;
+    var reqId = ++_discoveryState.reqId;
     listEl.className = "collections-list-host";
     listEl.innerHTML = '<div class="settings-loading">Загружаем…</div>';
     if (pagerEl) pagerEl.innerHTML = "";
     apiPublicGet("/api/public/collections?" + discoveryQueryString()).then(function (data) {
+      if (reqId !== _discoveryState.reqId) return;
       _discoveryState.loading = false;
       if (!listEl.isConnected) return;
-      if (!data || !data.success) {
+      if (!collectionsPayloadOk(data)) {
         listEl.className = "collections-empty-wrap";
         listEl.innerHTML = '<p class="cabinet-hint">Не удалось загрузить подборки.</p>';
         return;
@@ -943,6 +1041,7 @@
       }
       if (pagerEl) pagerEl.innerHTML = discoveryPagerHtml();
     }).catch(function () {
+      if (reqId !== _discoveryState.reqId) return;
       _discoveryState.loading = false;
       if (!listEl.isConnected) return;
       listEl.className = "collections-empty-wrap";
@@ -1017,7 +1116,7 @@
     markWtwCollectionDetailOpen();
     bindWtwCollectionsPanel(root);
     apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode)).then(function (data) {
-      if (!data || !data.success || !data.collection) {
+      if (!collectionsPayloadOk(data) || !data.collection) {
         root.innerHTML =
           '<p class="cabinet-hint">Подборка не найдена</p>'
           + '<button type="button" class="mp-sub-back" data-coll-action="wtw-back">← Коллекции</button>';
