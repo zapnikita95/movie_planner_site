@@ -15190,6 +15190,11 @@
       if (preserved.seriesState) newToolbar._mpSeriesToolbarState = preserved.seriesState;
       mountSeriesToolbarPanel(newToolbar, film);
     }
+    try {
+      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function' && film && film.kp_id) {
+        window.MpMonetization.initFilmPageFromRoot(root, film.kp_id);
+      }
+    } catch (_monToolbar) {}
     return newToolbar;
   }
 
@@ -16486,6 +16491,11 @@
         window.MpRsy.mountFilmPage();
       }
     } catch (_rsySim) {}
+    try {
+      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function') {
+        window.MpMonetization.initFilmPageFromRoot(pageRoot);
+      }
+    } catch (_monSim) {}
   }
 
   function mountFilmPageRsyAds() {
@@ -17245,6 +17255,11 @@
     ensureFilmHeroDescription(content, film);
     paintBootFilmDescFacts(film.kp_id, content);
     loadFilmDescFacts(film.kp_id, content);
+    try {
+      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function') {
+        window.MpMonetization.initFilmPageFromRoot(content, film.kp_id);
+      }
+    } catch (_monHero) {}
   }
 
   function loadFilmCastSection(kpId, root, filmFallback) {

@@ -353,6 +353,16 @@
     });
   }
 
+  function initFilmPageFromRoot(pageRoot, kpIdOverride) {
+    var root = pageRoot || document.getElementById('film-page-content') || document.querySelector('main.film-page');
+    if (!root) return Promise.resolve();
+    var hero = root.querySelector('.film-hero-with-tag[data-kp-id]');
+    var kpId = kpIdOverride || (hero && hero.getAttribute('data-kp-id'));
+    if (!kpId) return Promise.resolve();
+    var isSeries = !!(hero && hero.getAttribute('data-is-series') === '1');
+    return initFilmPage({ root: root, kpId: kpId, isSeries: isSeries });
+  }
+
   function initFilmPage(opts) {
     opts = opts || {};
     var pageRoot = opts.root || document.getElementById('film-page-content') || document.querySelector('main.film-page');
@@ -402,6 +412,7 @@
 
   global.MpMonetization = {
     initFilmPage: initFilmPage,
+    initFilmPageFromRoot: initFilmPageFromRoot,
     initStaffPage: initStaffPage,
     metrikaGoal: metrikaGoal,
     fetchConfig: fetchConfig,
