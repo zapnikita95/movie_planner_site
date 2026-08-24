@@ -21216,14 +21216,29 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
 }
 .nyt-voter-card {
   flex: 0 0 auto;
-  width: 168px;
-  padding: 10px;
+  width: 132px;
+  padding: 8px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   background: var(--bg-surface);
   text-decoration: none;
   color: inherit;
   scroll-snap-align: start;
+}
+.nyt-voter-photo-wrap {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 0 0 6px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-surface-alt);
+}
+.nyt-voter-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .nyt-voter-name {
   display: block;
