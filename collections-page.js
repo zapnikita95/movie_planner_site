@@ -144,6 +144,25 @@
     );
   }
 
+  function discoveryCardMosaicHtml(posters) {
+    var urls = filterPosterUrls(posters).slice(0, 8);
+    var cls = "collections-poster-mosaic collections-poster-mosaic--card";
+    if (!urls.length) {
+      return '<div class="' + cls + ' collections-poster-mosaic--empty" aria-hidden="true"></div>';
+    }
+    var n = urls.length;
+    var cols = n >= 4 ? 4 : n;
+    var rows = n > 4 ? 2 : 1;
+    return (
+      '<div class="' + cls + ' collections-poster-mosaic--n' + n + '" aria-hidden="true" style="--mosaic-cols:'
+      + cols + ";--mosaic-rows:" + rows + '">'
+      + urls.map(function (u) {
+        return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
+      }).join("")
+      + "</div>"
+    );
+  }
+
   function posterMosaicHtml(posters, extraClass, opts) {
     var o = opts || {};
     var urls = filterPosterUrls(posters);
@@ -157,7 +176,18 @@
     var cols = o.cols || 4;
     var rows = o.rows || 2;
     var cellCount = o.cellCount || cols * rows;
-    var filled = cyclePosterUrls(urls, cellCount);
+    var filled = urls.slice(0, Math.min(urls.length, cellCount));
+    if (filled.length < cellCount) {
+      if (filled.length <= 3) {
+        cols = Math.max(1, filled.length);
+        rows = 1;
+      } else if (filled.length <= 4) {
+        cols = 2;
+        rows = 2;
+      } else {
+        rows = Math.ceil(filled.length / cols);
+      }
+    }
     return (
       '<div class="' + cls + '" aria-hidden="true" style="--mosaic-cols:' + cols + ";--mosaic-rows:" + rows + '">'
       + filled.map(function (u) {
@@ -173,7 +203,7 @@
     return (
       '<button type="button" class="collections-discovery-card" data-coll-action="wtw-public-open" data-coll-id="'
       + esc(c.short_code || "") + '">'
-      + posterMosaicHtml(posters, "collections-poster-mosaic--card", { cols: 4, rows: 2, cellCount: 8 })
+      + discoveryCardMosaicHtml(posters)
       + '<div class="collections-discovery-card__overlay">'
       + '<span class="collections-discovery-card__title">' + cleanTitle(c.name || "") + "</span>"
       + '<span class="collections-discovery-card__meta">' + esc(String(count)) + " в подборке</span>"
