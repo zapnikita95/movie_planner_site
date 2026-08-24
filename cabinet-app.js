@@ -11589,7 +11589,16 @@
       }
       const collFilm = e.target.closest('#collections-content .collections-film-card, #site-wtw-collections-panel .collections-film-card');
       if (collFilm) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
         e.preventDefault();
+        e.stopPropagation();
+        const href = collFilm.getAttribute('data-film-path') || collFilm.getAttribute('href') || '';
+        const kp = String(collFilm.getAttribute('data-kp-id') || '').replace(/\D/g, '')
+          || String(href.replace(/^\/f\//, '')).replace(/\D/g, '');
+        if (kp) {
+          goToStandaloneFilmPage(kp);
+          return;
+        }
         openFilmFromCard(collFilm);
         return;
       }
@@ -20814,6 +20823,10 @@
     siteWtwScope = 'collections';
     siteWtwCollectionCode = null;
     try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
+    try {
+      const wtw = document.getElementById('section-whattowatch');
+      if (wtw) wtw.classList.remove('whattowatch--collection-detail');
+    } catch (_) {}
     pushWtwUrl({ scope: 'collections', code: null, replace: true });
     renderWhattowatchSection();
   };

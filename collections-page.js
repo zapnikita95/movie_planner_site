@@ -1000,13 +1000,21 @@
     loadDiscoveryList(root);
   }
 
+  function markWtwCollectionDetailOpen() {
+    try {
+      var sec = document.getElementById("section-whattowatch");
+      if (sec) sec.classList.add("whattowatch--collection-detail");
+    } catch (_) {}
+  }
+
   function renderPublicByCode(root, shortCode) {
     if (!root || !shortCode) return;
     root.innerHTML =
-      '<div class="collections-page collections-page--detail">'
+      '<div class="collections-page collections-page--detail collections-page--cinematic">'
       + '<div id="collections-detail-hero-host"></div>'
-      + '<div id="collections-detail-body"><div class="settings-loading">Загружаем…</div></div>'
+      + '<div class="collections-detail-stage"><div id="collections-detail-body"><div class="settings-loading">Загружаем…</div></div></div>'
       + "</div>";
+    markWtwCollectionDetailOpen();
     bindWtwCollectionsPanel(root);
     apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode)).then(function (data) {
       if (!data || !data.success || !data.collection) {
