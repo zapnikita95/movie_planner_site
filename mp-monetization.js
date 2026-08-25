@@ -228,11 +228,16 @@
     return '/images/partners/tvigle-logo.svg';
   }
 
+  function partner2subLogoUrl() {
+    return '/images/partners/2sub-logo.png';
+  }
+
   function partnerLogoUrl(partner) {
     if (!partner) return '';
     if (partner.logo) return partner.logo;
     if (partner.key === 'ivi') return partnerIviLogoUrl();
     if (partner.key === 'tvigle') return partnerTvigleLogoUrl();
+    if (partner.key === '2sub') return partner2subLogoUrl();
     if (partner.key === 'flex') return partnerFlexLogoUrl();
     return '';
   }
@@ -241,6 +246,7 @@
     if (!partner) return '';
     if (partner.key === 'ivi') return 'ivi';
     if (partner.key === 'tvigle') return 'Tvigle';
+    if (partner.key === '2sub') return '2SUB';
     if (partner.key === 'flex') return 'FLEX';
     return partner.label || partner.key || '';
   }
@@ -267,7 +273,7 @@
       commission_model: (partner && partner.commission_model) || 'unknown',
     };
     metrikaGoal('stream_click', params);
-    if (key === 'flex' || key === 'ivi' || key === 'tvigle') {
+    if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub') {
       metrikaGoal('stream_partner_' + key, params);
     }
   }
@@ -363,7 +369,7 @@
         for (var i = 0; i < partners.length; i++) {
           var p = partners[i];
           if (!p || !p.url) continue;
-          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi') continue;
+          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub') continue;
           p.kp_id = kpId;
           usable.push(p);
         }
@@ -462,6 +468,8 @@
   var _productOfferCache = Object.create(null);
   var _productShelfKp = '';
   var _productShelfBound = false;
+  var _adtunePop = null;
+  var _adtuneBtn = null;
 
   function fetchProductOffers(kpId) {
     var key = String(kpId || '').replace(/\D/g, '');
@@ -487,13 +495,89 @@
     var meta = [plat, price].filter(Boolean).join(' · ');
     return (
       '<article class="mp-offer-card">' +
-        '<div class="mp-offer-kicker">Реклама · ' + mp + '</div>' +
+        '<div class="mp-offer-adtune-bar">' +
+          '<span class="mp-offer-ad-label">Реклама</span>' +
+          '<button type="button" class="mp-offer-adtune" aria-label="Сведения о рекламе" aria-expanded="false" data-legal="' + legal + '">' +
+            '<svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+              '<circle cx="2" cy="2" r="1.5"></circle>' +
+              '<circle cx="8" cy="2" r="1.5"></circle>' +
+              '<circle cx="14" cy="2" r="1.5"></circle>' +
+            '</svg>' +
+          '</button>' +
+        '</div>' +
         '<a class="mp-offer-title" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + title + '</a>' +
         (meta ? '<div class="mp-offer-meta">' + meta + '</div>' : '') +
         '<a class="mp-offer-cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">Купить на ' + mp + '</a>' +
-        '<p class="mp-offer-legal">' + legal + '</p>' +
       '</article>'
     );
+  }
+
+  function closeOfferAdtune() {
+    if (_adtunePop) _adtunePop.hidden = true;
+    if (_adtuneBtn) {
+      _adtuneBtn.setAttribute('aria-expanded', 'false');
+      _adtuneBtn = null;
+    }
+    document.querySelectorAll('.mp-product-track.is-looping').forEach(function (t) {
+      t.classList.remove('is-adtune-open');
+    });
+  }
+
+  function ensureOfferAdtunePop() {
+    if (_adtunePop) return _adtunePop;
+    var el = document.createElement('div');
+    el.id = 'mp_offer_adtune_pop';
+    el.className = 'mp-offer-adtune-pop';
+    el.hidden = true;
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'Сведения о рекламе');
+    document.body.appendChild(el);
+    _adtunePop = el;
+    document.addEventListener('click', function (e) {
+      if (!_adtunePop || _adtunePop.hidden) return;
+      if (_adtunePop.contains(e.target)) return;
+      if (_adtuneBtn && _adtuneBtn.contains(e.target)) return;
+      closeOfferAdtune();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeOfferAdtune();
+    });
+    return el;
+  }
+
+  function toggleOfferAdtune(btn) {
+    var pop = ensureOfferAdtunePop();
+    if (_adtuneBtn === btn && !pop.hidden) {
+      closeOfferAdtune();
+      return;
+    }
+    _adtuneBtn = btn;
+    btn.setAttribute('aria-expanded', 'true');
+    pop.textContent = btn.getAttribute('data-legal') || 'Реклама';
+    pop.hidden = false;
+    var r = btn.getBoundingClientRect();
+    var w = Math.min(280, Math.max(180, (window.innerWidth || 360) - 16));
+    var left = r.right - w;
+    if (left < 8) left = 8;
+    if (left + w > (window.innerWidth || 0) - 8) left = Math.max(8, (window.innerWidth || 0) - w - 8);
+    var top = r.bottom + 6;
+    pop.style.left = Math.round(left) + 'px';
+    pop.style.top = Math.round(top) + 'px';
+    pop.style.width = Math.round(w) + 'px';
+    var track = btn.closest('.mp-product-track');
+    if (track) track.classList.add('is-adtune-open');
+  }
+
+  function bindOfferAdtune(root) {
+    if (!root) return;
+    root.querySelectorAll('.mp-offer-adtune').forEach(function (btn) {
+      if (btn.closest('[aria-hidden="true"]')) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleOfferAdtune(btn);
+      });
+    });
   }
 
   function productListHtml(items) {
@@ -623,6 +707,7 @@
     _productShelfKp = kp;
     fetchProductOffers(kp).then(function (items) {
       if (String(_productShelfKp) !== kp) return;
+      closeOfferAdtune();
       document.querySelectorAll('.mp-product-shelf').forEach(function (el) { el.remove(); });
       if (!items || !items.length) return;
       var cards = productListHtml(items);
@@ -634,6 +719,7 @@
       desktop.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + cards + '</div></div>';
       document.body.appendChild(desktop);
       bindProductClicks(desktop, kp);
+      bindOfferAdtune(desktop);
 
       var mobile = document.createElement('aside');
       mobile.id = 'mp_product_shelf_mobile';
@@ -650,6 +736,7 @@
         else root.appendChild(mobile);
       }
       bindProductClicks(mobile, kp);
+      bindOfferAdtune(mobile);
       syncProductLoop(mobile.querySelector('.mp-product-track'));
       ensureProductShelfResize();
       layoutDesktopProductShelf();
@@ -681,6 +768,7 @@
 
     ensureAdSlots(pageRoot);
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
+    /* TAKPRODAM_ADTUNE */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
