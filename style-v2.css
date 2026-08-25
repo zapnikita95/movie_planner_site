@@ -6422,6 +6422,74 @@ main.film-page .film-page-similar-section,
   line-height: 1.45;
   max-width: 52rem;
 }
+/* Buzz — full width grid + cinematic hero (like collections) */
+body.in-cabinet #section-buzz.buzz-section--wide {
+  max-width: none;
+  width: 100%;
+}
+.buzz-section-hero {
+  margin: 0 0 14px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.buzz-section-hero.hidden {
+  display: none !important;
+}
+.buzz-detail-hero.collections-detail-hero {
+  min-height: clamp(200px, 30vw, 340px);
+  border-radius: 18px;
+}
+.buzz-detail-hero__title {
+  font-size: clamp(26px, 4.8vw, 42px);
+}
+.buzz-detail-hero__lead {
+  max-width: 42rem;
+  font-size: clamp(14px, 2.2vw, 17px);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
+}
+#section-buzz.buzz-section--wide .buzz-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  #section-buzz.buzz-section--wide .buzz-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+@media (min-width: 900px) {
+  #section-buzz.buzz-section--wide .buzz-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .buzz-tile-poster {
+    aspect-ratio: 2 / 3;
+    min-height: 220px;
+  }
+}
+@media (min-width: 1200px) {
+  #section-buzz.buzz-section--wide .buzz-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+@media (min-width: 1400px) {
+  #section-buzz.buzz-section--wide .buzz-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.film-buzz-block,
+.film-buzz-head,
+.film-buzz-list,
+.film-buzz-item,
+.film-buzz-title {
+  text-align: left;
+  align-self: stretch;
+}
+.film-buzz-head {
+  justify-content: flex-start;
+}
 .buzz-legal-note {
   margin: 20px 0 4px;
   color: var(--text-muted, #777);
@@ -6711,8 +6779,9 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 .buzz-seo-footer ul { margin: 0 0 10px; padding-left: 1.2em; }
 .buzz-seo-footer a { color: #ff8ab8; }
 .buzz-tile {
-  background: rgba(255,255,255,0.03);
-  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

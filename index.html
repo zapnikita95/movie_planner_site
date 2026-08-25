@@ -2723,8 +2723,9 @@
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
                 </section>
-                <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading" data-buzz-boot="1">
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
+                <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading buzz-section--wide" data-buzz-boot="1">
+                    <div id="buzz-section-hero" class="buzz-section-hero hidden" aria-hidden="true"></div>
+                    <h2 class="section-title buzz-section-title"><span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
                     <p class="buzz-seo-lead">Что обсуждают киноканалы в Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
                     <div class="buzz-filters" id="buzz-filters">
                         <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
@@ -3727,7 +3728,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260825filmOutbound1';
+        var V = '20260825buzzDesc1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

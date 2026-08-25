@@ -516,6 +516,17 @@
     );
   }
 
+  function mergeShellSeedFields(film, kp) {
+    if (!film) return film;
+    const shell = peekFilmShellSeed(kp);
+    if (!shell) return film;
+    if (shell.description && !pickFilmDescription(film)) {
+      film.description = normalizeFilmDescriptionText(shell.description);
+    }
+    if (shell.year && !film.year) film.year = shell.year;
+    return film;
+  }
+
   function mergeBootDescription(film, kp) {
     const bootDesc = pickFilmDescription(filmFromRouteBoot(kp));
     if (!bootDesc || isTruncatedFilmDescription(bootDesc)) return film;
@@ -547,6 +558,48 @@
       rememberFilmHeroDescription(kpNorm, merged);
     }
     return film;
+  }
+
+  function heroDescriptionReady(root, kp) {
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!root || !id) return false;
+    const wrap = root.querySelector('#film-desc-wrap');
+    if (wrap && !wrap.classList.contains('hidden')) {
+      const text = filmDescPlotText(wrap);
+      if (text && !isTruncatedFilmDescription(text)) return true;
+    }
+    const cached = _filmHeroDescCache.get(id) || '';
+    return !!(cached && !isTruncatedFilmDescription(cached) && !descriptionLooksLatinOnly(cached));
+  }
+
+  function clearFilmHeroStateForNavigation(root, kp) {
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!root || !id) return;
+    const heroKp = heroKpIdFromRoot(root);
+    if (heroKp && heroKp !== id) {
+      _filmHeroDescInflight.delete(heroKp);
+    }
+    const wrap = root.querySelector('#film-desc-wrap');
+    if (wrap) {
+      wrap.setAttribute('data-kp', id);
+      if (heroKp && heroKp !== id) {
+        wrap.removeAttribute('data-plot-text');
+        wrap.removeAttribute('data-has-facts');
+        wrap.removeAttribute('data-has-reviews');
+        const factsKp = wrap.getAttribute('data-facts-loaded');
+        const revKp = wrap.getAttribute('data-reviews-loaded');
+        if (factsKp && factsKp !== id) wrap.removeAttribute('data-facts-loaded');
+        if (revKp && revKp !== id) wrap.removeAttribute('data-reviews-loaded');
+      }
+    }
+    const revSlot = root.querySelector('#film-desc-reviews-slot');
+    if (revSlot) {
+      const revKp = revSlot.getAttribute('data-reviews-loaded');
+      if (revKp && revKp !== id) {
+        revSlot.removeAttribute('data-reviews-loaded');
+        revSlot.innerHTML = '';
+      }
+    }
   }
 
   function currentFilmDescriptionFromDom(root) {
@@ -591,7 +644,6 @@
     }
     const next = rememberFilmHeroDescription(kp, resolved);
     if (!next) return false;
-    if (isTruncatedFilmDescription(next) && _filmHeroDescInflight.has(kp)) return false;
     const heroContent = root.querySelector('.hero-content');
     if (!heroContent) return false;
     const wrap = ensureFilmDescWrap(heroContent);
@@ -673,6 +725,7 @@
     }
 
     const promise = enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+      _filmHeroDescInflight.delete(kp);
       rememberFilmHeroDescription(kp, pickFilmDescription(enriched));
       applyFilmDescriptionToHero(root, enriched);
       return enriched;
@@ -1904,6 +1957,7 @@
     closeFilmModal();
     ensureLoggedInHeader();
     const pageRootEarly = document.getElementById('film-page-content');
+    clearFilmHeroStateForNavigation(pageRootEarly, kp);
     const heroKpEarly = heroKpIdFromRoot(pageRootEarly);
     const hasHeroEarly = !!heroKpEarly && heroKpEarly === kp;
     const shellSeed = peekFilmShellSeed(kp);
@@ -1918,7 +1972,10 @@
         /* SSR boot — one paint */
       } else if (shellSeed && shellSeed.title && !isGenericFilmTitle(shellSeed.title)) {
         pageRootEarly.className = 'movie-page';
-        const shellFilm = mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp);
+        const shellFilm = mergeShellSeedFields(
+          mergeBootDescription(mapLiteFilmForHero(shellSeed, kp), kp),
+          kp
+        );
         renderFilmDetailHero(shellFilm, [], [], { user_id: cabinetUserId }, pageRootEarly, {
           inBase: false,
           pendingAction: o.action || '',
@@ -1942,8 +1999,8 @@
     if (!heroReadyNow()) {
       try { window.scrollTo(0, 0); } catch (_) {}
     }
-    /* After first paint: only patch in place — never a 2nd/3rd full hero rebuild. */
-    if (!hasHeroEarly) {
+    /* After first paint: patch in place — re-lite when same-kp hero has no synopsis (buzz → film → buzz → film). */
+    if (!hasHeroEarly || !heroDescriptionReady(pageRootEarly, kp)) {
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
         .then(function (lite) {
           if (!lite || !pageRootEarly) return;
@@ -1953,6 +2010,7 @@
           );
           if (heroReadyNow() || shouldPatchFilmHeroInPlace(pageRootEarly, liteFilm)) {
             patchFilmHeroInPlace(pageRootEarly, liteFilm);
+            ensureFilmHeroDescription(pageRootEarly, liteFilm);
             mountFilmPageSimilarAsync(kp, pageRootEarly);
             return;
           }
@@ -1964,7 +2022,9 @@
           });
           ensureFilmHeroDescription(pageRootEarly, liteFilm);
         })
-        .catch(function () {});
+        .catch(function () {
+          if (pageRootEarly) ensureFilmHeroDescription(pageRootEarly, { kp_id: kp });
+        });
     }
     // URL already updated above — never pushState again in nested openers (double Back).
     const histDone = { skipHistory: true, replace: !!o.replace, action: o.action || '', kpId: kp };
@@ -1973,13 +2033,24 @@
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), histDone);
       }
+      const rootAfterLookup = document.getElementById('film-page-content');
+      const stubFilm = { kp_id: kp, in_library: !!(res && res.in_library) };
+      const ensureP = rootAfterLookup
+        ? ensureFilmHeroDescription(rootAfterLookup, stubFilm)
+        : Promise.resolve(stubFilm);
       if (heroReadyNow()) {
-        return refreshFilmPageAuthFromLiteRoute(kp);
+        return ensureP.then(function () { return refreshFilmPageAuthFromLiteRoute(kp); });
       }
-      return openFilmHeroByKpPublic(kp, histDone);
+      return ensureP.then(function () { return openFilmHeroByKpPublic(kp, histDone); });
     }).catch(function () {
-      if (heroReadyNow()) return refreshFilmPageAuthFromLiteRoute(kp);
-      return openFilmHeroByKpPublic(kp, histDone);
+      const rootErr = document.getElementById('film-page-content');
+      const ensureP = rootErr
+        ? ensureFilmHeroDescription(rootErr, { kp_id: kp })
+        : Promise.resolve();
+      if (heroReadyNow()) {
+        return ensureP.then(function () { return refreshFilmPageAuthFromLiteRoute(kp); });
+      }
+      return ensureP.then(function () { return openFilmHeroByKpPublic(kp, histDone); });
     }).finally(function () {
       if (_openFilmPageByKpInflight && _openFilmPageByKpInflight.kp === kp) {
         _openFilmPageByKpInflight = null;
@@ -6374,7 +6445,8 @@
     if (!wrap) return;
     migrateFilmDescWrap(wrap);
     const text = normalizeFilmDescriptionText(fullText || filmDescPlotText(wrap));
-    wrap.setAttribute('data-plot-text', text);
+    if (text) wrap.setAttribute('data-plot-text', text);
+    else wrap.removeAttribute('data-plot-text');
     const descEl = wrap.querySelector('#film-desc');
     const shortEl = wrap.querySelector('.film-desc-short');
     const fullEl = wrap.querySelector('.film-desc-full');
@@ -6597,7 +6669,7 @@
     return '<div class="film-buzz-block" id="film-buzz-block">' +
       '<div class="film-buzz-head">' +
       '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
-      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
+      '<div class="film-desc-reviews-title film-buzz-title">Обсуждают сейчас:</div>' +
       '<a class="film-buzz-all" href="/buzz">Все</a>' +
       '</div>' +
       '<ul class="film-buzz-list">' + lis + '</ul></div>';
@@ -15121,7 +15193,11 @@
     const kpNorm = String(kp || '').replace(/\D/g, '');
     if (!kpNorm || !getToken()) return Promise.resolve();
     return api('/api/site/film-by-kp/' + kpNorm).then(function (lookup) {
-      if (!lookup || !lookup.in_library || !lookup.film_id) return null;
+      if (!lookup || !lookup.in_library || !lookup.film_id) {
+        const pageRoot = document.getElementById('film-page-content');
+        if (pageRoot) ensureFilmHeroDescription(pageRoot, { kp_id: kpNorm });
+        return null;
+      }
       return api('/api/site/film/' + lookup.film_id).then(function (detail) {
         if (!detail || !detail.success || !detail.film) return null;
         const pageRoot = document.getElementById('film-page-content');
@@ -17258,6 +17334,7 @@
 
     const descWrap = content.querySelector('#film-desc-wrap');
     if (descWrap) {
+      if (film.kp_id) descWrap.setAttribute('data-kp', String(film.kp_id).replace(/\D/g, ''));
       bindFilmDescExpand(descWrap);
       updateFilmDescCollapseState(descWrap, descText, false);
     }
