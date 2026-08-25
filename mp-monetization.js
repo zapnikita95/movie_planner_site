@@ -586,8 +586,14 @@
     rail.style.maxHeight = 'calc(100vh - ' + (top + bottomPad) + 'px)';
     var track = rail.querySelector('.mp-product-track');
     if (track) {
-      track.style.maxHeight = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
-      syncProductLoop(track);
+      var nextMax = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+      var prevMax = track.style.maxHeight;
+      var ready = track.getAttribute('data-mp-loop-ready') === '1';
+      track.style.maxHeight = nextMax;
+      if (!ready || prevMax !== nextMax) {
+        syncProductLoop(track);
+        track.setAttribute('data-mp-loop-ready', '1');
+      }
     }
   }
 
@@ -598,11 +604,16 @@
   function ensureProductShelfResize() {
     if (_productShelfBound) return;
     _productShelfBound = true;
-    var t = 0;
-    window.addEventListener('resize', function () {
-      window.clearTimeout(t);
-      t = window.setTimeout(layoutDesktopProductShelf, 80);
-    });
+    var raf = 0;
+    function schedule() {
+      if (raf) return;
+      raf = window.requestAnimationFrame(function () {
+        raf = 0;
+        layoutDesktopProductShelf();
+      });
+    }
+    window.addEventListener('resize', schedule);
+    window.addEventListener('scroll', schedule, { passive: true });
   }
 
   function mountProductShelf(pageRoot, kpId) {
