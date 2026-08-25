@@ -636,25 +636,35 @@
     return document.querySelector('#section-film .film-page-outer') || document.querySelector('.film-page-outer');
   }
 
-  function visibleTopChromeBottom() {
+  /* TAKPRODAM_GRID2 — never sit on .cabinet-nav / film-standalone-nav */
+  function visibleTopChrome() {
     var bottom = 0;
+    var navLeft = Infinity;
+    var vh = window.innerHeight || 800;
     var header = document.getElementById('site-header');
     if (header && !header.classList.contains('site-header--retracted')) {
       var hr = header.getBoundingClientRect();
       if (hr.height >= 8 && hr.top < 90 && hr.bottom > bottom) bottom = hr.bottom;
     }
-    var navs = document.querySelectorAll('#film-standalone-nav.film-standalone-nav, nav.film-standalone-nav');
+    var navs = document.querySelectorAll('.cabinet-nav, #film-standalone-nav, nav.film-standalone-nav');
     for (var i = 0; i < navs.length; i++) {
       var el = navs[i];
-      if (!el || el.classList.contains('hidden')) continue;
+      if (!el || el.classList.contains('hidden') || el.classList.contains('mp-film-nav-dup-hidden')) continue;
       var st = window.getComputedStyle(el);
-      if (st.display === 'none' || st.visibility === 'hidden') continue;
+      if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) continue;
       var r = el.getBoundingClientRect();
       if (r.height < 16 || r.width < 80) continue;
-      if (r.top > (window.innerHeight || 800) * 0.55) continue;
-      if (r.bottom > bottom) bottom = r.bottom;
+      var pos = st.position;
+      var bottomDock = (pos === 'fixed' || pos === 'sticky') && r.bottom >= (vh - 12);
+      if (bottomDock) continue;
+      if (r.left < navLeft) navLeft = r.left;
+      if (r.top > vh * 0.45) continue;
+      if (r.bottom > 8 && r.bottom > bottom) bottom = r.bottom;
     }
-    return bottom;
+    return {
+      bottom: bottom,
+      navLeft: navLeft < Infinity ? navLeft : null
+    };
   }
 
   function layoutDesktopProductShelf() {
@@ -670,7 +680,10 @@
       return;
     }
     var rect = outer.getBoundingClientRect();
-    var maxW = rect.left - 16 - 12;
+    var chrome = visibleTopChrome();
+    var gutterRight = rect.left;
+    if (chrome.navLeft != null) gutterRight = Math.min(gutterRight, chrome.navLeft);
+    var maxW = gutterRight - 16 - 12;
     if (maxW < PRODUCT_SHELF_MIN_W) {
       rail.hidden = true;
       var mobile = document.getElementById('mp_product_shelf_mobile');
@@ -680,8 +693,8 @@
     var mobileKeep = document.getElementById('mp_product_shelf_mobile');
     if (mobileKeep) mobileKeep.classList.remove('mp-product-shelf--fallback');
     var w = Math.min(220, maxW);
-    var chrome = visibleTopChromeBottom();
-    var top = Math.max(12, Math.round(chrome + 10));
+    var minTop = Math.max(12, Math.round(chrome.bottom + 10));
+    var top = minTop;
     var vh = window.innerHeight || 800;
     var footer = document.querySelector('body > div.content-wrapper > footer')
       || document.querySelector('.content-wrapper > footer.footer')
@@ -692,12 +705,12 @@
       if (fb < floor) floor = fb - 12;
     }
     rail.hidden = false;
-    rail.style.left = Math.round(rect.left - 16 - w) + 'px';
+    rail.style.left = Math.round(gutterRight - 12 - w) + 'px';
     rail.style.width = Math.round(w) + 'px';
     rail.style.maxHeight = Math.max(96, Math.round(floor - top)) + 'px';
     var h = rail.offsetHeight || 0;
     if (h && top + h > floor) {
-      top = Math.max(12, Math.round(floor - h));
+      top = Math.max(minTop, Math.round(floor - h));
     }
     rail.style.top = top + 'px';
     var track = rail.querySelector('.mp-product-track');
@@ -801,7 +814,7 @@
     ensureAdSlots(pageRoot);
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     /* TAKPRODAM_ADTUNE */
-    /* TAKPRODAM_JUICY2 */
+    /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
