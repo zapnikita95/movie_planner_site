@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260731landingAuth1';
+  var BUILD = '20260825androidApp1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -29,6 +29,27 @@
     if (document.querySelector('link[rel="stylesheet"][href="' + href + '"]')) return;
     var link = document.createElement('link');
     link.rel = 'stylesheet';
+    link.href = href;
+    (document.head || document.documentElement).appendChild(link);
+  }
+
+  function ensureAndroidAppAlternate() {
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var path = '/';
+    if (canonical && canonical.getAttribute('href')) {
+      try {
+        var u = new URL(canonical.getAttribute('href'), global.location.origin);
+        if (/movie-planner\.ru$/i.test(u.hostname)) path = u.pathname + u.search;
+      } catch (_e) { /* keep path from location */ }
+    }
+    if (path === '/') {
+      path = global.location.pathname + global.location.search;
+    }
+    var href = 'android-app://com.movie_planner/https/movie-planner.ru' + (path || '/');
+    var sel = 'link[rel="alternate"][href^="android-app://com.movie_planner/"]';
+    if (document.querySelector(sel)) return;
+    var link = document.createElement('link');
+    link.rel = 'alternate';
     link.href = href;
     (document.head || document.documentElement).appendChild(link);
   }
@@ -379,6 +400,7 @@
     } catch (_e) {}
 
     bumpArticleStylesheet();
+    ensureAndroidAppAlternate();
     upgradeHeader();
     ensureSearchChromeIcons();
     mountArticleNav();
