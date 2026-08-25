@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825rsyPrePosterStrip1';
+  var BUILD = '20260826rsyMobileBanner1';
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
