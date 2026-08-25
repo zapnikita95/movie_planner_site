@@ -28,54 +28,7 @@
     <title>Movie Planner — приложение-трекер для фильмов и сериалов, список кино</title>
     <meta name="description" content="Movie Planner — приложение, где можно составить список кино и отслеживать просмотренное: трекер фильмов и сериалов, watchlist, оценки, планы. iOS, Android, веб-кабинет movie-planner.ru.">
     <meta name="keywords" content="приложение трекер для фильмов, приложение где можно составить список кино, трекер фильмов и сериалов, трекер просмотренных фильмов и сериалов, приложение для списка фильмов, приложение для отметки фильмов которые посмотрел, приложение для списка просмотренных фильмов, приложения для отмечания фильмов, приложение где можно отмечать просмотренные фильмы и сериалы, подборка фильмов на основе просмотренных, подборка фильма по вопросам, генератор фильмов по вкусам, watchlist кино, watch list, вотчлист, to watch list, список фильмов, составить список кино, movie planner, movie-planner.ru, планер фильмов, отметить просмотренные фильмы, отмечать просмотренные фильмы, общий список фильмов с друзьями, портал для составления списков фильмов, трекер сериалов">
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Какое приложение-трекер для фильмов?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Movie Planner — приложение-трекер для фильмов и сериалов: личная база, отметка просмотренного, прогресс по эпизодам, оценки и общий watchlist. Доступно на iOS, Android и movie-planner.ru."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Где можно составить список кино?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "В Movie Planner — приложении и веб-кабинете. Добавляйте фильмы с Кинопоиска, через поиск или расширение Chrome; группируйте по коллекциям и ведите общий список с друзьями."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Где отмечать просмотренные фильмы?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "В Movie Planner на сайте movie-planner.ru или в приложении iOS/Android: откройте карточку, нажмите «Просмотрено» и поставьте оценку. Подробнее: https://movie-planner.ru/articles/gde-otmechat-prosmotrennye-filmy.html"
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Как вести учёт просмотренных фильмов?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "В Movie Planner: список просмотра, оценки и коллекции-папки синхронизируются между сайтом и приложением. Гайд: https://movie-planner.ru/articles/uchet-prosmotrennyh-filmov.html"
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Где можно вести совместный список фильмов?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Создайте группу в Movie Planner — для пары, друзей, киноклуба или подписчиков блогера. Общая база непросмотренных, предложения фильмов и совместные планы просмотра."
-          }
-        }
-      ]
-    }
-    </script>
+    <link rel="alternate" href="android-app://com.movie_planner/https/movie-planner.ru/">
     <meta property="og:title" content="Movie Planner — приложение-трекер для фильмов и список кино">
     <meta property="og:description" content="Movie Planner — приложение-трекер для фильмов и сериалов: составьте список кино, отмечайте просмотренное, ведите watchlist с друзьями. iOS, Android, веб-кабинет.">
     <meta property="og:type" content="website">
@@ -911,10 +864,26 @@
           "url": "https://movie-planner.ru/",
           "sameAs": [
             "https://t.me/movie_planner_bot",
+            "https://play.google.com/store/apps/details?id=com.movie_planner",
+            "https://apps.apple.com/ru/app/movie-planner/id6769016073",
+            "https://www.rustore.ru/catalog/app/com.movie_planner",
             "https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol",
             "https://github.com/zapnikita95/movie_planner_bot",
             "https://github.com/zapnikita95/movie_planner_site",
             "https://github.com/zapnikita95/movieplanner-mobile"
+          ]
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "@id": "https://movie-planner.ru/#sitelinks-nav",
+          "name": "Разделы Movie Planner",
+          "hasPart": [
+            { "@type": "WebPage", "name": "Скачать приложение", "url": "https://movie-planner.ru/download" },
+            { "@type": "WebPage", "name": "Помощь", "url": "https://movie-planner.ru/help" },
+            { "@type": "WebPage", "name": "Тарифы", "url": "https://movie-planner.ru/pricing" },
+            { "@type": "WebPage", "name": "Премьеры", "url": "https://movie-planner.ru/premieres" },
+            { "@type": "WebPage", "name": "О сервисе", "url": "https://movie-planner.ru/about" },
+            { "@type": "WebPage", "name": "Что посмотреть", "url": "https://movie-planner.ru/whattowatch" }
           ]
         },
         {
@@ -3570,6 +3539,15 @@
                     <p><a href="https://habr.com/ru/articles/1053204/" target="_blank" rel="noopener">Хабр — ИИ в киносервисе</a></p>
                     <p><a href="https://dtf.ru/cinema/5195749-haip-kinokanala-i-trendy-kino-v-edinoi-setke" target="_blank" rel="noopener">DTF — Хайп киноканалов — в единой сетке Трендов</a></p>
                     <p><a href="https://dzen.ru/movie_planner" target="_blank" rel="noopener">Дзен — Movie Planner</a></p>
+                </div>
+                <div class="footer-info footer-guides">
+                    <h3>Сервис</h3>
+                    <p><a href="/download">Скачать приложение</a></p>
+                    <p><a href="/help">Помощь</a></p>
+                    <p><a href="/pricing">Тарифы</a></p>
+                    <p><a href="/premieres">Премьеры</a></p>
+                    <p><a href="/about">О сервисе</a></p>
+                    <p><a href="/whattowatch">Что посмотреть</a></p>
                 </div>
                 <div class="footer-info footer-guides">
                     <h3>Трекер кино</h3>
