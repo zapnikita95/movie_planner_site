@@ -3027,22 +3027,24 @@
         '<a class="logo" href="/"><img src="/images/icon48.png" alt="Movie Planner"><span>Movie Planner</span></a>' +
         standaloneHeaderSearchHtml() +
         '<div class="header-buttons">' +
-          '<button type="button" class="header-chrome-search-btn" id="header-chrome-search-btn" aria-label="Поиск" title="Поиск">' +
-            '<svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' +
-          '</button>' +
           '<div class="header-user-wrap account-switcher" id="header-user-wrap" style="position:relative">' +
-            '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
-              '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
-              '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
-            '</button>' +
-            '<div class="header-util-row">' +
-              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
-                '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
+            '<div class="header-util-row" id="header-util-row">' +
+              '<button type="button" class="header-chrome-search-btn" id="header-chrome-search-btn" aria-label="Поиск" title="Поиск">' +
+                '<svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' +
               '</button>' +
               '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
                 '<span class="header-coins-sprite"></span><span id="header-coins-val">' + escapeHtml(coinsVal) + '</span>' +
               '</button>' +
+              '<div class="header-inbox-wrap" id="header-inbox-wrap">' +
+                '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
+                  '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
+                '</button>' +
+              '</div>' +
             '</div>' +
+            '<button type="button" class="header-profile-pill" id="header-profile-pill" aria-label="Профиль">' +
+              '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
+              '<span class="header-profile-name" id="header-profile-name">' + escapeHtml(name) + '</span>' +
+            '</button>' +
             '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">' +
               '<span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>' +
             '</button>' +

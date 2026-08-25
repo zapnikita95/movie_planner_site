@@ -18114,34 +18114,92 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   outline-offset: 2px;
 }
 .header-chrome-search-glyph { display: block; }
+
+/* Mobile header chrome: лупа + колокольчик + аватар — одна сетка, без absolute overlay */
 @media (max-width: 860px) {
-  body.staff-standalone-page .header-buttons,
-  body.film-standalone-page .header-buttons {
-    position: relative;
+  body.in-cabinet .header-user-wrap,
+  body.cabinet-film-page .header-user-wrap,
+  body.film-standalone-page .header-user-wrap,
+  body.staff-standalone-page .header-user-wrap {
+    display: grid;
+    grid-template-columns: auto 28px 28px;
+    align-items: center;
+    column-gap: 4px;
+    row-gap: 0;
   }
-  body.staff-standalone-page #header-chrome-search-btn,
-  body.film-standalone-page #header-chrome-search-btn {
-    display: inline-flex !important;
-    position: absolute;
-    top: 50%;
-    right: var(--mp-chrome-right, 82px);
-    transform: translateY(-50%);
+
+  body.in-cabinet .header-util-row,
+  body.cabinet-film-page .header-util-row,
+  body.film-standalone-page .header-util-row,
+  body.staff-standalone-page .header-util-row {
+    display: contents;
+  }
+
+  body.in-cabinet #header-chrome-search-btn,
+  body.cabinet-film-page #header-chrome-search-btn,
+  body.film-standalone-page #header-chrome-search-btn,
+  body.staff-standalone-page #header-chrome-search-btn {
+    display: none;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    position: static !important;
+    transform: none !important;
     width: 28px;
     height: 28px;
-    opacity: 0;
-    visibility: hidden;
+    min-height: 28px;
+    opacity: 1;
+    visibility: visible;
     pointer-events: none;
-    z-index: 4;
   }
+
+  body.in-cabinet #header-coins-btn,
+  body.cabinet-film-page #header-coins-btn,
+  body.film-standalone-page #header-coins-btn,
+  body.staff-standalone-page #header-coins-btn {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: start;
+    min-height: 28px;
+    height: 28px;
+  }
+
+  body.in-cabinet .header-inbox-wrap,
+  body.cabinet-film-page .header-inbox-wrap,
+  body.film-standalone-page .header-inbox-wrap,
+  body.staff-standalone-page .header-inbox-wrap {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  body.in-cabinet .header-profile-pill,
+  body.cabinet-film-page .header-profile-pill,
+  body.film-standalone-page .header-profile-pill,
+  body.staff-standalone-page .header-profile-pill {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+    min-height: 28px !important;
+    height: 28px;
+    width: 28px;
+    padding: 0 !important;
+  }
+
   body.mp-header-chrome-search #header-chrome-search-btn {
-    opacity: 1 !important;
-    visibility: visible !important;
+    display: inline-flex !important;
     pointer-events: auto !important;
   }
-  /* Keep coins box size — avatar/bell stay put; 🔍 overlays the slot */
+
   body.mp-header-chrome-search #header-coins-btn {
-    visibility: hidden !important;
-    pointer-events: none !important;
+    display: none !important;
   }
 }
 body.header-search-dropdown-open.mp-header-chrome-search #header-chrome-search-btn {
@@ -24868,7 +24926,8 @@ body.in-cabinet .mp-pick-done {
   /* Compact sticky: MUST leave flex flow. flex:0 0 0 kept a zero-width item on row 1
      → space-between parked it on the right and shoved Войти/avatar left. */
   body.mp-header-chrome-search.staff-header-title-on #header-search.header-search--retracted,
-  body.mp-header-chrome-search.film-header-title-on #header-search.header-search--retracted {
+  body.mp-header-chrome-search.film-header-title-on #header-search.header-search--retracted,
+  body.mp-header-chrome-search.cabinet-film-page.film-header-title-on #header-search.header-search--retracted {
     display: none !important;
   }
   body.mp-header-chrome-search .header-inbox-btn {
@@ -24964,7 +25023,8 @@ body.in-cabinet .mp-pick-done {
     text-overflow: ellipsis;
     max-height: 29px;
   }
-  body.film-standalone-page.film-header-title-on #header-film-title {
+  body.film-standalone-page.film-header-title-on #header-film-title,
+  body.cabinet-film-page.film-header-title-on #header-film-title {
     display: flex;
     margin-top: 2px !important;
     min-height: 0 !important;
