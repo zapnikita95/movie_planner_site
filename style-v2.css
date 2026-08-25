@@ -25677,7 +25677,7 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 /* TAKPRODAM_SHELF_VERTICAL_LOOP — left gutter desktop, after similar on mobile */
-/* TAKPRODAM_JUICY2 TAKPRODAM_GRID1 */
+/* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 */
 .mp-product-shelf--desktop {
   position: fixed;
   z-index: 20;
@@ -25714,6 +25714,8 @@ body.staff-standalone-page .staff-awards-loading {
 }
 .mp-offer-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-surface-alt, #1a1a22);
   border: 1px solid #2c2c36;
   border-radius: 8px;
