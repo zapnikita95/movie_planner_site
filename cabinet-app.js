@@ -7676,6 +7676,8 @@
       const m = String(window.location.pathname || '').match(/^\/f\/(\d+)/);
       if (root && m && typeof mountFilmPageSimilarAsync === 'function') {
         mountFilmPageSimilarAsync(m[1], root);
+      } else if (window.MpRsy && typeof window.MpRsy.mountFilmMobileStrips === 'function') {
+        window.MpRsy.mountFilmMobileStrips();
       } else if (window.MpRsy && typeof window.MpRsy.remount === 'function') {
         window.MpRsy.remount();
       }

@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260824rsyFilmGutter1';
+  var BUILD = '20260825rsyMobile1';
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
@@ -122,9 +122,13 @@
   }
 
   function renderBlock(blockId, renderToId) {
-    if (!blockId || !renderToId || rendered[renderToId]) return;
+    if (!blockId || !renderToId) return;
     var node = document.getElementById(renderToId);
     if (!node) return;
+    if (rendered[renderToId]) {
+      if (node.isConnected) return;
+      delete rendered[renderToId];
+    }
     rendered[renderToId] = true;
     loadContext();
     global.yaContextCb.push(function () {
@@ -431,7 +435,9 @@
   function mountInlineAfter(anchor, kind, blockId) {
     if (!anchor || !blockId) return;
     var wrapId = 'mp_rsy_inline_' + kind;
-    if (document.getElementById(wrapId)) return;
+    var existing = document.getElementById(wrapId);
+    if (existing && existing.isConnected) return;
+    if (existing) existing.remove();
     var wrap = document.createElement('div');
     wrap.id = wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--' + kind;
@@ -444,6 +450,43 @@
     renderBlock(blockId, sid);
   }
 
+  function mountInlineStrip(opts) {
+    var o = opts || {};
+    if (!o.anchor || !o.blockId || !o.wrapId || !o.kind) return;
+    var existing = document.getElementById(o.wrapId);
+    if (existing && existing.isConnected) return;
+    if (existing) existing.remove();
+    var wrap = document.createElement('div');
+    wrap.id = o.wrapId;
+    wrap.className = 'mp-rsy-inline mp-rsy-inline--' + o.kind + (o.mobileOnly ? ' mp-rsy-inline--mobile' : '');
+    var sid = slotId('inline_' + o.kind);
+    var slot = document.createElement('div');
+    slot.id = sid;
+    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-' + o.kind;
+    wrap.appendChild(slot);
+    if (o.position === 'before') o.anchor.insertAdjacentElement('beforebegin', wrap);
+    else if (o.position === 'append') o.anchor.appendChild(wrap);
+    else o.anchor.insertAdjacentElement('afterend', wrap);
+    renderBlock(o.blockId, sid);
+  }
+
+  function mountFilmPrePoster() {
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip() || isDesktop()) return;
+    if (!BLOCKS.filmAfterSimilar) return;
+    var poster = document.getElementById('poster');
+    if (!poster) return;
+    var anchor = poster.closest('.poster-wrap') || poster.parentElement;
+    if (!anchor) return;
+    mountInlineStrip({
+      wrapId: 'mp_rsy_inline_film_pre_poster',
+      kind: 'film_pre_poster',
+      blockId: BLOCKS.filmAfterSimilar,
+      anchor: anchor,
+      position: 'before',
+      mobileOnly: true,
+    });
+  }
+
   function mountFilmPageBottom() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
     if (!BLOCKS.filmAfterSimilar) return;
@@ -451,29 +494,37 @@
     var orphanBottom = document.getElementById('mp_rsy_inline_film_bottom');
     if (similar) {
       if (orphanBottom) orphanBottom.remove();
-      mountInlineAfter(similar, 'after_similar', BLOCKS.filmAfterSimilar);
+      mountInlineStrip({
+        wrapId: 'mp_rsy_inline_after_similar',
+        kind: 'after_similar',
+        blockId: BLOCKS.filmAfterSimilar,
+        anchor: similar,
+        position: 'after',
+      });
       return;
     }
-    if (orphanBottom) return;
+    if (orphanBottom && orphanBottom.isConnected) return;
+    if (orphanBottom) orphanBottom.remove();
     var pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return;
     var hero = pageRoot.querySelector(':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section');
     var anchor = hero || pageRoot;
-    var wrap = document.createElement('div');
-    wrap.id = 'mp_rsy_inline_film_bottom';
-    wrap.className = 'mp-rsy-inline mp-rsy-inline--film_bottom';
-    var sid = slotId('inline_film_bottom');
-    var slot = document.createElement('div');
-    slot.id = sid;
-    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-film_bottom';
-    wrap.appendChild(slot);
-    if (anchor === pageRoot) pageRoot.appendChild(wrap);
-    else anchor.insertAdjacentElement('afterend', wrap);
-    renderBlock(BLOCKS.filmAfterSimilar, sid);
+    mountInlineStrip({
+      wrapId: 'mp_rsy_inline_film_bottom',
+      kind: 'film_bottom',
+      blockId: BLOCKS.filmAfterSimilar,
+      anchor: anchor,
+      position: anchor === pageRoot ? 'append' : 'after',
+    });
+  }
+
+  function mountFilmMobileStrips() {
+    mountFilmPrePoster();
+    mountFilmPageBottom();
   }
 
   function mountFilmAfterSimilar() {
-    mountFilmPageBottom();
+    mountFilmMobileStrips();
   }
 
   function mountStaffAfterFilmography() {
@@ -523,7 +574,7 @@
       }
       removeOwnedSlots();
       if (BLOCKS.filmSidebar) ensureFilmOuterRail(BLOCKS.filmSidebar);
-      mountFilmPageBottom();
+      mountFilmMobileStrips();
     });
   }
 
@@ -561,10 +612,12 @@
     if (!key) return;
     var sec = document.getElementById('section-' + key);
     if (!sec || sec.classList.contains('hidden')) return;
-    if (BLOCKS.cabinetSidebar) ensureFixedRail('cabinet', BLOCKS.cabinetSidebar, 'right');
+    if (isDesktop() && BLOCKS.cabinetSidebar) ensureFixedRail('cabinet', BLOCKS.cabinetSidebar, 'right');
     if (!BLOCKS.cabinetInline) return;
     var wrapId = 'mp_rsy_inline_cabinet_' + key;
-    if (document.getElementById(wrapId)) return;
+    var existingCab = document.getElementById(wrapId);
+    if (existingCab && existingCab.isConnected) return;
+    if (existingCab) existingCab.remove();
     var wrap = document.createElement('div');
     wrap.id = wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--cabinet mp-rsy-inline--cabinet_' + key;
@@ -583,7 +636,7 @@
     _observer = new MutationObserver(function () {
       var path = String(global.location && global.location.pathname || '');
       if (isFilmPath(path)) {
-        mountFilmPageBottom();
+        mountFilmMobileStrips();
         fetchDenyList().then(function () {
           var kp = kpFromFilmPath(path);
           if (!filmAdsBlocked(kp) && BLOCKS.filmSidebar) {
@@ -646,10 +699,19 @@
     if (!allowsAds() || shouldSkip()) return;
     updateFixedRailVisibility();
     updateFilmOuterRail();
+    var path = String(global.location && global.location.pathname || '');
+    if (isFilmPath(path)) {
+      fetchDenyList().then(function () {
+        var kp = kpFromFilmPath(path);
+        if (!filmAdsBlocked(kp)) mountFilmMobileStrips();
+      });
+    }
     if (!isDesktop()) {
       document.querySelectorAll('.mp-rsy-fixed-rail').forEach(function (rail) {
         rail.hidden = true;
       });
+      if (isCabinetSectionPath(path)) mountCabinetSectionPage(path);
+      if (/^\/s\/\d+/.test(path)) mountStaffAfterFilmography();
       return;
     }
     mountForRoute();
@@ -681,8 +743,10 @@
     BUILD: BUILD,
     BLOCKS: BLOCKS,
     mountFilmPage: mountFilmPage,
-    mountFilmAfterSimilar: mountFilmPageBottom,
+    mountFilmAfterSimilar: mountFilmMobileStrips,
     mountFilmPageBottom: mountFilmPageBottom,
+    mountFilmPrePoster: mountFilmPrePoster,
+    mountFilmMobileStrips: mountFilmMobileStrips,
     mountStaffPage: mountStaffPage,
     mountStaffAfterFilmography: mountStaffAfterFilmography,
     mountSeriesHubPage: mountSeriesHubPage,
