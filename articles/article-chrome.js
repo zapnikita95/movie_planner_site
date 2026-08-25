@@ -33,6 +33,27 @@
     (document.head || document.documentElement).appendChild(link);
   }
 
+  function ensureAndroidAppAlternate() {
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var path = '/';
+    if (canonical && canonical.getAttribute('href')) {
+      try {
+        var u = new URL(canonical.getAttribute('href'), global.location.origin);
+        if (/movie-planner\.ru$/i.test(u.hostname)) path = u.pathname + u.search;
+      } catch (_e) { /* keep path from location */ }
+    }
+    if (path === '/') {
+      path = global.location.pathname + global.location.search;
+    }
+    var href = 'android-app://com.movie_planner/https/movie-planner.ru' + (path || '/');
+    var sel = 'link[rel="alternate"][href^="android-app://com.movie_planner/"]';
+    if (document.querySelector(sel)) return;
+    var link = document.createElement('link');
+    link.rel = 'alternate';
+    link.href = href;
+    (document.head || document.documentElement).appendChild(link);
+  }
+
   function ensureIconAssets(done) {
     ensureStylesheet('https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css');
     ensureStylesheet('https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css');
@@ -379,6 +400,7 @@
     } catch (_e) {}
 
     bumpArticleStylesheet();
+    ensureAndroidAppAlternate();
     upgradeHeader();
     ensureSearchChromeIcons();
     mountArticleNav();
