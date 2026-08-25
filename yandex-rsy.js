@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825rsyMobile1';
+  var BUILD = '20260825rsyMobileStrip1';
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
@@ -482,7 +482,7 @@
       kind: 'film_pre_poster',
       blockId: BLOCKS.filmAfterSimilar,
       anchor: anchor,
-      position: 'before',
+      position: 'after',
       mobileOnly: true,
     });
   }

@@ -131,14 +131,38 @@ body.mp-rsy-film-page #section-film .film-page-outer {
 }
 
 .mp-rsy-inline--film_pre_poster {
-  margin: 0 0 10px;
-  padding: 0;
+  margin: 8px 0 6px;
+  padding: 0 12px;
   max-width: 100%;
+  max-height: 64px;
+  overflow: hidden;
+  contain: layout style paint;
 }
 
 .mp-rsy-inline--film_pre_poster .mp-rsy-slot {
-  min-height: 80px;
-  max-height: 100px;
+  min-height: 0;
+  max-height: 64px;
+  height: 64px;
+  overflow: hidden;
+  line-height: 0;
+  border-radius: 8px;
+}
+
+.mp-rsy-inline--film_pre_poster .mp-rsy-slot iframe,
+.mp-rsy-inline--film_pre_poster .mp-rsy-slot > div,
+.mp-rsy-inline--film_pre_poster .mp-rsy-slot [id^="yandex_rtb"] {
+  max-height: 64px !important;
+  height: 64px !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 1279px) {
+  .mp-rsy-inline--film_bottom .mp-rsy-slot,
+  .mp-rsy-inline--after_similar .mp-rsy-slot {
+    min-height: 90px;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (min-width: 1280px) {
