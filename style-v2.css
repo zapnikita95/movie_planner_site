@@ -24964,7 +24964,8 @@ body.in-cabinet .mp-pick-done {
     text-overflow: ellipsis;
     max-height: 29px;
   }
-  body.film-standalone-page.film-header-title-on #header-film-title {
+  body.film-standalone-page.film-header-title-on #header-film-title,
+  body.cabinet-film-page.film-header-title-on #header-film-title {
     display: flex;
     margin-top: 2px !important;
     min-height: 0 !important;
