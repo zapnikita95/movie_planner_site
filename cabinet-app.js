@@ -1837,6 +1837,7 @@
     const pageRoot = document.getElementById('film-page-content');
     if (!pageRoot) return Promise.resolve();
     const targetKp = String(kp || '').replace(/\D/g, '');
+    if (!isFilmRouteActiveForKp(targetKp)) return Promise.resolve();
     const existingHero = pageRoot.querySelector('.film-hero-with-tag');
     const existingKp = heroKpIdFromRoot(pageRoot);
     const loadingNow = pageRoot.classList.contains('loading') || !!pageRoot.querySelector('.mp-page-loading');
@@ -1849,6 +1850,7 @@
         return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (data) {
+            if (!isFilmRouteActiveForKp(kp)) return;
             if (!data || !data.film) return;
             const film = applyPreferredFilmTitle(mergeBootPoster(mapPublicFilmForHero(data.film, kp), kp), kp);
             patchFilmHeroInPlace(pageRoot, film);
@@ -1872,8 +1874,10 @@
     dismissStaffHoverPreview();
     try {
       const path = '/f/' + kp;
-      if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
-      else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+      const returnSection = cabinetReturnSectionForFilmNav();
+      const st = { view: 'film', kpId: kp, returnSection };
+      if (o.replace) history.replaceState(st, '', path);
+      else if (!o.skipHistory) history.pushState(st, '', path);
     } catch (_) {}
     /* Never wipe an already-painted same-kp hero with a loading spinner. */
     if (!sameKpHero) {
@@ -1890,6 +1894,7 @@
         return r.json();
       })
       .then(function (data) {
+        if (!isFilmRouteActiveForKp(kp)) return;
         if (!data || !data.film) {
           showToast('Не удалось загрузить фильм', { type: 'error' });
           return;
@@ -1993,8 +1998,10 @@
     showFilmPageLayout();
     try {
       const path = '/f/' + kp;
-      if (o.replace) history.replaceState({ view: 'film', kpId: kp }, '', path);
-      else if (!o.skipHistory) history.pushState({ view: 'film', kpId: kp }, '', path);
+      const returnSection = cabinetReturnSectionForFilmNav();
+      const st = { view: 'film', kpId: kp, returnSection };
+      if (o.replace) history.replaceState(st, '', path);
+      else if (!o.skipHistory) history.pushState(st, '', path);
     } catch (_) {}
     if (!heroReadyNow()) {
       try { window.scrollTo(0, 0); } catch (_) {}
@@ -2003,6 +2010,7 @@
     if (!hasHeroEarly || !heroDescriptionReady(pageRootEarly, kp)) {
       api('/api/miniapp/film/' + encodeURIComponent(kp) + '/lite', { timeoutMs: 8000 })
         .then(function (lite) {
+          if (!isFilmRouteActiveForKp(kp)) return;
           if (!lite || !pageRootEarly) return;
           const liteFilm = applyPreferredFilmTitle(
             mergeBootDescription(mapLiteFilmForHero(lite, kp), kp),
@@ -2029,6 +2037,7 @@
     // URL already updated above — never pushState again in nested openers (double Back).
     const histDone = { skipHistory: true, replace: !!o.replace, action: o.action || '', kpId: kp };
     const inflight = api('/api/site/film-by-kp/' + kp, { timeoutMs: 15000 }).then(function (res) {
+      if (!isFilmRouteActiveForKp(kp)) return null;
       if (_staffPageKpId) return null;
       if (res && res.success && res.film_id) {
         return openFilmPage(Number(res.film_id), histDone);
@@ -2043,6 +2052,7 @@
       }
       return ensureP.then(function () { return openFilmHeroByKpPublic(kp, histDone); });
     }).catch(function () {
+      if (!isFilmRouteActiveForKp(kp)) return null;
       const rootErr = document.getElementById('film-page-content');
       const ensureP = rootErr
         ? ensureFilmHeroDescription(rootErr, { kp_id: kp })
@@ -5805,6 +5815,28 @@
     const p = (pathname || '').split('?')[0].replace(/\/$/, '') || '/';
     const m = p.match(_filmKpPathRe);
     return m ? m[1] : null;
+  }
+
+  /** URL still on /f/:kp — async film open must not repaint after browser Back. */
+  function isFilmRouteActiveForKp(kp) {
+    const want = String(kp || '').replace(/\D/g, '');
+    if (!want) return false;
+    const pathKp = kpIdFromPathname(window.location.pathname || '');
+    return pathKp && pathKp === want;
+  }
+
+  function cabinetReturnSectionForFilmNav() {
+    const vis = visibleCabinetSectionId();
+    if (vis && vis !== 'film') return vis;
+    const fromPath = sectionFromPath(window.location.pathname || '');
+    if (fromPath && fromPath !== 'film') return fromPath;
+    return 'home';
+  }
+
+  function dismissFilmPageFromHistoryNav() {
+    _filmModalCurrentId = null;
+    _openFilmPageByKpInflight = null;
+    clearFilmBootLayout();
   }
   /** TMDB-only public cards: /f/movie-123, /f/tv-456 (no Kinopoisk id). */
   function catalogFilmFromPathname(pathname) {
@@ -15191,7 +15223,7 @@
 
   function refreshFilmPageAuthFromLiteRoute(kp) {
     const kpNorm = String(kp || '').replace(/\D/g, '');
-    if (!kpNorm || !getToken()) return Promise.resolve();
+    if (!kpNorm || !getToken() || !isFilmRouteActiveForKp(kpNorm)) return Promise.resolve();
     return api('/api/site/film-by-kp/' + kpNorm).then(function (lookup) {
       if (!lookup || !lookup.in_library || !lookup.film_id) {
         const pageRoot = document.getElementById('film-page-content');
@@ -16663,6 +16695,15 @@
     }
     closeAddFilmModal();
     closeFilmModal();
+    const kpNavGuard = String(
+      o.kpId || (_filmModalCache[filmId] && _filmModalCache[filmId].film && _filmModalCache[filmId].film.kp_id) || ''
+    ).replace(/\D/g, '');
+    if (o.skipHistory) {
+      const legacyOnUrl = filmIdFromPathname(window.location.pathname);
+      const stillOnFilmUrl = (kpNavGuard && isFilmRouteActiveForKp(kpNavGuard))
+        || (legacyOnUrl && String(legacyOnUrl) === String(filmId));
+      if (!stillOnFilmUrl) return;
+    }
     _filmModalCurrentId = filmId;
     ensureLoggedInHeader();
     if (!isCabinetActive()) {
@@ -24723,7 +24764,7 @@
     void handleAddFriendFromUrl();
 
     // P4.3: History API — кабинет, /film/:id, разделы
-    window.addEventListener('popstate', () => {
+    window.addEventListener('popstate', (ev) => {
       if (handleHash()) return;
       if (isSearchLocation()) {
         const q = searchQueryFromLocation();
@@ -24745,7 +24786,7 @@
         }
         return;
       }
-      clearFilmBootLayout();
+      dismissFilmPageFromHistoryNav();
       const pathUser = userIdFromPathname(pathname) || userIdFromLocation();
       if (pathUser && getToken()) {
         try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
@@ -24762,7 +24803,12 @@
         return;
       }
       try { restoreDocumentTitle(); } catch (e) {}
-      const sec = sectionFromPath(pathname);
+      let sec = sectionFromPath(pathname);
+      if (!sec) {
+        const st = (ev && ev.state) || history.state || {};
+        if (st.section && SECTION_TO_PATH[st.section]) sec = st.section;
+        else if (st.returnSection && SECTION_TO_PATH[st.returnSection]) sec = st.returnSection;
+      }
       if (sec === 'whattowatch') {
         const fromPath = typeof wtwStateFromPath === 'function'
           ? wtwStateFromPath(pathname)
