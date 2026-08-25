@@ -264,6 +264,7 @@
       surface: surface || 'unknown',
       placement: 'film_toolbar',
       has_affiliate: partner && partner.has_affiliate ? '1' : '0',
+      commission_model: (partner && partner.commission_model) || 'unknown',
     };
     metrikaGoal('stream_click', params);
     if (key === 'flex' || key === 'ivi' || key === 'tvigle') {
