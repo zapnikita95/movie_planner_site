@@ -5799,12 +5799,14 @@ a.collections-film-card { color: inherit; text-decoration: none; }
   min-width: 0;
   align-items: flex-start;
   justify-content: flex-start;
-  /* Desktop: keep a usable scroll affordance even with grab-drag. */
   cursor: grab;
   scrollbar-width: thin;
-  /* Never draw under side arrows — cards stay between arrow gutters. */
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y;
 }
 .film-page-similar-rail::-webkit-scrollbar {
   height: 6px;
@@ -5956,7 +5958,9 @@ main.film-page .film-page-similar-section,
   .film-page-similar-rail.similar-rail {
     gap: 10px !important;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-y: auto;
   }
   .film-page-similar-rail .similar-rail-card {
     /* min-width:0 — intrinsic KP posters must not blow flex basis (Perfume vs Leon). */
@@ -5991,7 +5995,9 @@ main.film-page .film-page-similar-section,
   .film-page-similar-rail.similar-rail {
     gap: 10px !important;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-y: auto;
   }
   .film-page-similar-rail .similar-rail-card {
     flex: 0 0 calc((100% - 10px) / 2) !important;

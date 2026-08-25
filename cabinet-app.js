@@ -16583,12 +16583,6 @@
       });
     }
     rail.addEventListener('scroll', syncNav, { passive: true });
-    rail.addEventListener('wheel', function (e) {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      if (rail.scrollWidth <= rail.clientWidth + 8) return;
-      e.preventDefault();
-      rail.scrollLeft += e.deltaY;
-    }, { passive: false });
     try {
       if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(syncNav).observe(rail);
