@@ -175,5 +175,27 @@ body.mp-rsy-film-page #section-film .film-page-outer {
 
   .mp-rsy-inline {
     padding: 0 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .mp-rsy-inline .mp-rsy-slot {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .mp-rsy-inline .mp-rsy-slot iframe,
+  .mp-rsy-inline .mp-rsy-slot > div {
+    max-width: 100% !important;
+  }
+
+  .mp-rsy-inline--cabinet,
+  .mp-rsy-inline--cabinet .mp-rsy-slot {
+    max-height: 132px;
   }
 }

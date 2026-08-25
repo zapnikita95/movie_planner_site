@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260826rsyHorizontalClip1';
+  var BUILD = '20260826cabinetHoriz1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -527,7 +527,9 @@
       clampHorizontalSlot(slot);
     }
     wrap.appendChild(slot);
-    if (o.position === 'before') o.anchor.insertAdjacentElement('beforebegin', wrap);
+    if (o.position === 'prepend') {
+      o.anchor.insertBefore(wrap, o.anchor.firstChild || null);
+    } else if (o.position === 'before') o.anchor.insertAdjacentElement('beforebegin', wrap);
     else if (o.position === 'append') o.anchor.appendChild(wrap);
     else o.anchor.insertAdjacentElement('afterend', wrap);
     renderBlock(o.blockId, sid);
@@ -707,6 +709,17 @@
     var existingCab = document.getElementById(wrapId);
     if (existingCab && existingCab.isConnected) return;
     if (existingCab) existingCab.remove();
+    if (viewportWidth() < 768) {
+      mountInlineStrip({
+        wrapId: wrapId,
+        kind: 'cabinet_' + key,
+        blockId: BLOCKS.cabinetInline,
+        anchor: sec,
+        position: 'prepend',
+        horizontal: true,
+      });
+      return;
+    }
     var wrap = document.createElement('div');
     wrap.id = wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--cabinet mp-rsy-inline--cabinet_' + key;
