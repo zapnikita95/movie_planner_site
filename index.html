@@ -51,8 +51,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260826mobHeader1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260826mobHeader1">
+    <link rel="preload" href="/style-v2.css?v=20260826mobHeader2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260826mobHeader2">
     <script>
       (function () {
         try {
@@ -1015,12 +1015,12 @@
           <div class="header-search-dropdown hidden" id="header-search-dropdown" role="listbox"></div>
         </div>
         <div class="header-buttons">
-          <button type="button" class="header-chrome-search-btn" id="header-chrome-search-btn" aria-label="Поиск" title="Поиск">
-            <svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>
-          </button>
           <button type="button" class="header-login-btn" data-action="login">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
             <div class="header-util-row" id="header-util-row">
+              <button type="button" class="header-chrome-search-btn" id="header-chrome-search-btn" aria-label="Поиск" title="Поиск">
+                <svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>
+              </button>
               <button type="button" class="header-coins-btn hidden" id="header-coins-btn" aria-label="Монетки" title="Ваши монетки">
                 <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
                 <span id="header-coins-delta" class="hidden" aria-hidden="true"></span>
@@ -3706,7 +3706,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260826mobHeader1';
+        var V = '20260826mobHeader2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

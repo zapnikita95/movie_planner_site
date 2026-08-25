@@ -7783,6 +7783,7 @@
       ro.classList.remove('hidden');
     }
     ro.classList.add('film-page-mode');
+    try { document.body.classList.add('cabinet-film-page'); } catch (_) {}
     ro.querySelectorAll('.cabinet-section').forEach((el) => {
       el.classList.toggle('hidden', el.id !== 'section-film');
     });
@@ -7821,6 +7822,7 @@
     const ro = readonly || document.getElementById('cabinet-readonly');
     if (!ro) return;
     ro.classList.remove('film-page-mode');
+    try { document.body.classList.remove('cabinet-film-page'); } catch (_) {}
     const filmSec = ro.querySelector('#section-film');
     if (filmSec) filmSec.classList.add('hidden');
   }

@@ -73,7 +73,8 @@
   }
 
   function heroTitlePastHeader(doc, header, wasPast, selector, pageClass) {
-    if (!doc || !doc.body || !doc.body.classList.contains(pageClass)) return false;
+    if (!doc || !doc.body) return false;
+    if (!filmCompactPageActive(doc.body, pageClass)) return false;
     var nameEl = doc.querySelector(selector);
     if (!nameEl) return false;
     var chromeBottom = stickyChromeBottom(header);
@@ -92,6 +93,18 @@
     );
   }
 
+  function isFilmCompactBody(body) {
+    if (!body || !body.classList) return false;
+    return body.classList.contains('film-standalone-page')
+      || body.classList.contains('cabinet-film-page');
+  }
+
+  function filmCompactPageActive(body, pageClass) {
+    if (!body || !body.classList) return false;
+    if (body.classList.contains(pageClass)) return true;
+    return pageClass === 'film-standalone-page' && isFilmCompactBody(body);
+  }
+
   function applyStickyHeaderTitle(doc, opts) {
     opts = opts || {};
     var body = doc.body;
@@ -100,7 +113,7 @@
     var onClass = opts.onClass || '';
     var onlyClass = opts.onlyClass || '';
     var withSearchClass = opts.withSearchClass || '';
-    if (!pageClass || !body.classList.contains(pageClass)) {
+    if (!pageClass || !filmCompactPageActive(body, pageClass)) {
       if (onClass) body.classList.remove(onClass);
       if (onlyClass) body.classList.remove(onlyClass);
       if (withSearchClass) body.classList.remove(withSearchClass);
@@ -118,7 +131,7 @@
     var body = doc.body;
     if (!body || !body.classList) return { onStaff: false, onFilm: false };
     var onStaff = body.classList.contains('staff-standalone-page');
-    var onFilm = body.classList.contains('film-standalone-page');
+    var onFilm = isFilmCompactBody(body);
     if (onStaff && onFilm) {
       // Prefer staff when both present (common /s/ bug leftover).
       body.classList.remove('film-standalone-page');
@@ -135,9 +148,14 @@
 
   function ensureChromeSearchBtn(doc) {
     var btn = doc.getElementById('header-chrome-search-btn');
+    var utilRow = doc.getElementById('header-util-row');
+    if (btn && utilRow && btn.parentNode !== utilRow) {
+      var coins = doc.getElementById('header-coins-btn');
+      if (coins && coins.parentNode === utilRow) utilRow.insertBefore(btn, coins);
+      else utilRow.insertBefore(btn, utilRow.firstChild);
+    }
     if (btn) return btn;
-    var buttons = doc.querySelector('#site-header .header-buttons');
-    if (!buttons) return null;
+    if (!utilRow) return null;
     btn = doc.createElement('button');
     btn.type = 'button';
     btn.className = 'header-chrome-search-btn';
@@ -145,65 +163,14 @@
     btn.setAttribute('aria-label', 'Поиск');
     btn.title = 'Поиск';
     btn.innerHTML = '<svg class="header-chrome-search-glyph" width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>';
-    var login = buttons.querySelector('[data-action="login"]');
-    var userWrap = doc.getElementById('header-user-wrap');
-    if (login && login.parentNode === buttons) buttons.insertBefore(btn, login);
-    else if (userWrap && userWrap.parentNode === buttons) buttons.insertBefore(btn, userWrap);
-    else buttons.insertBefore(btn, buttons.firstChild);
+    var coins = doc.getElementById('header-coins-btn');
+    if (coins && coins.parentNode === utilRow) utilRow.insertBefore(btn, coins);
+    else utilRow.insertBefore(btn, utilRow.firstChild);
     return btn;
   }
 
-  function syncChromeSearchPosition(doc) {
-    var buttons = doc.querySelector('#site-header .header-buttons');
-    var btn = doc.getElementById('header-chrome-search-btn');
-    if (!buttons || !btn) return;
-    var br = buttons.getBoundingClientRect();
-    if (!(br.width > 0)) return;
-    var compact = !!(doc.body && doc.body.classList.contains(CHROME_SEARCH_CLASS));
-    var coins = doc.getElementById('header-coins-btn');
-    var coinsVisible = !!(
-      coins
-      && !coins.classList.contains('hidden')
-      && coins.offsetParent !== null
-      && coins.getBoundingClientRect().width > 0
-    );
-    var anchor = null;
-    var gap = 6;
-    var chromeW = 28;
-    if (compact && coinsVisible) {
-      // Overlay coins slot — trail (bell/avatar) never moves.
-      anchor = coins;
-      gap = 0;
-    } else {
-      var login = buttons.querySelector('[data-action="login"]');
-      var loginVisible = !!(
-        login
-        && !login.classList.contains('hidden')
-        && login.offsetParent !== null
-        && getComputedStyle(login).display !== 'none'
-      );
-      var userWrap = doc.getElementById('header-user-wrap');
-      var userVisible = !!(
-        userWrap
-        && !userWrap.classList.contains('hidden')
-        && userWrap.offsetParent !== null
-      );
-      if (loginVisible) anchor = login;
-      else if (userVisible) anchor = userWrap;
-    }
-    if (!anchor) {
-      buttons.style.setProperty('--mp-chrome-right', '82px');
-      return;
-    }
-    var ar = anchor.getBoundingClientRect();
-    // css `right` = distance from buttons' right edge to chrome button's right edge.
-    var rightPx;
-    if (compact && coinsVisible) {
-      rightPx = Math.max(0, br.right - ar.right + (ar.width - chromeW) / 2);
-    } else {
-      rightPx = Math.max(0, br.right - ar.left + gap);
-    }
-    buttons.style.setProperty('--mp-chrome-right', Math.round(rightPx * 10) / 10 + 'px');
+  function syncChromeSearchPosition(_doc) {
+    /* Grid layout in #header-util-row — no absolute overlay math. */
   }
 
   function syncChromeSearchBtn(doc, compactOn, searchOpen) {
