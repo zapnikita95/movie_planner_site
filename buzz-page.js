@@ -85,6 +85,7 @@
     var id = String(kp || '').replace(/\D/g, '');
     if (!id) return;
     stashShellFromEl(fromEl, id);
+    prefetchFilmDescToShell(id);
     if (typeof window.openFilmPageByKp === 'function') {
       window.openFilmPageByKp(id);
       return;
@@ -146,8 +147,118 @@
   }
 
   function cacheKey() {
-    return 'mp_buzz_v3:' + state.view + ':' + state.days + ':' + state.sort + ':' +
+    return 'mp_buzz_v4:' + state.view + ':' + state.days + ':' + state.sort + ':' +
       (state.kind || '') + ':' + (state.videoOnly ? 'yt' : '');
+  }
+
+  function buzzItemsFingerprint(items) {
+    return (items || []).slice(0, 16).map(function (it) {
+      return String(it.kp_id || it.film_title || '') + ':' +
+        String(it.last_posted || it.posted_at || it.mention_count || '');
+    }).join('|');
+  }
+
+  function posterCellStyle(url) {
+    var safe = String(url || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return "background-image:url('" + safe + "')";
+  }
+
+  function buzzHeroMosaicHtml(posters) {
+    var urls = (posters || []).filter(Boolean).slice(0, 8);
+    if (!urls.length) {
+      return '<div class="collections-poster-mosaic collections-poster-mosaic--hero collections-poster-mosaic--empty" aria-hidden="true"></div>';
+    }
+    if (urls.length <= 5) {
+      return (
+        '<div class="collections-poster-spotlight collections-poster-spotlight--' + urls.length + '" aria-hidden="true">' +
+        urls.map(function (u, i) {
+          return '<div class="collections-poster-spotlight__cell" data-spot="' + i + '" style="' + posterCellStyle(u) + '"></div>';
+        }).join('') +
+        '</div>'
+      );
+    }
+    var cols = urls.length >= 6 ? 4 : 3;
+    var rows = Math.ceil(urls.length / cols);
+    return (
+      '<div class="collections-poster-mosaic collections-poster-mosaic--hero" aria-hidden="true" style="--mosaic-cols:' +
+      cols + ';--mosaic-rows:' + rows + '">' +
+      urls.map(function (u) {
+        return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
+      }).join('') +
+      '</div>'
+    );
+  }
+
+  function mountBuzzSectionHero(items) {
+    var sec = document.getElementById('section-buzz');
+    var heroMount = document.getElementById('buzz-section-hero');
+    var titleEl = sec && sec.querySelector('.buzz-section-title, .section-title');
+    var leadEl = sec && sec.querySelector('.buzz-seo-lead');
+    if (!sec || !heroMount) return;
+    var fp = buzzItemsFingerprint(items);
+    if (state._heroFp === fp && heroMount.innerHTML.trim()) return;
+    state._heroFp = fp;
+    var posters = [];
+    var seen = {};
+    (items || []).forEach(function (it) {
+      var u = posterUrl(it);
+      if (!u || u.indexOf('placeholder') >= 0 || seen[u]) return;
+      seen[u] = 1;
+      posters.push(u);
+    });
+    var titleText = 'В тренде';
+    if (titleEl) {
+      var tNode = titleEl.querySelector('.section-title-text');
+      if (tNode && tNode.textContent) titleText = String(tNode.textContent).trim();
+    }
+    var leadText = leadEl ? String(leadEl.textContent || '').trim() : '';
+    if (!posters.length) {
+      heroMount.classList.add('hidden');
+      heroMount.setAttribute('aria-hidden', 'true');
+      heroMount.innerHTML = '';
+      if (titleEl) titleEl.classList.remove('hidden');
+      if (leadEl) leadEl.classList.remove('hidden');
+      return;
+    }
+    heroMount.innerHTML =
+      '<div class="collections-detail-hero collections-detail-hero--spotlight buzz-detail-hero" style="--hero-mosaic-rows:2">' +
+        '<div class="collections-detail-hero__mosaic-wrap">' +
+          buzzHeroMosaicHtml(posters) +
+          '<div class="collections-detail-hero__fade-l" aria-hidden="true"></div>' +
+          '<div class="collections-detail-hero__fade-r" aria-hidden="true"></div>' +
+        '</div>' +
+        '<div class="collections-detail-hero__shade"></div>' +
+        '<div class="collections-detail-hero__inner">' +
+          '<h1 class="collections-detail-hero__title buzz-detail-hero__title">' + esc(titleText) + '</h1>' +
+          (leadText ? '<p class="collections-detail-hero__hint buzz-detail-hero__lead">' + esc(leadText) + '</p>' : '') +
+        '</div>' +
+      '</div>';
+    heroMount.classList.remove('hidden');
+    heroMount.removeAttribute('aria-hidden');
+    if (titleEl) titleEl.classList.add('hidden');
+    if (leadEl) leadEl.classList.add('hidden');
+  }
+
+  function prefetchFilmDescToShell(kp) {
+    var id = String(kp || '').replace(/\D/g, '');
+    if (!id) return;
+    fetch(API_BASE + '/api/public/film/' + encodeURIComponent(id), { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var f = d && d.film;
+        var desc = f && (f.description || f.plot || f.shortDescription);
+        if (!desc) return;
+        try {
+          var key = 'mp_film_shell_kp_' + id;
+          var raw = sessionStorage.getItem(key);
+          var j = raw ? JSON.parse(raw) : { kp_id: id };
+          if (!j.description) {
+            j.description = String(desc).trim();
+            sessionStorage.setItem(key, JSON.stringify(j));
+          }
+        } catch (_) {}
+      })
+      .catch(function () {});
   }
 
   function readClientCache() {
@@ -165,7 +276,11 @@
 
   function writeClientCache(items) {
     try {
-      sessionStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), items: items || [] }));
+      sessionStorage.setItem(cacheKey(), JSON.stringify({
+        ts: Date.now(),
+        fp: buzzItemsFingerprint(items),
+        items: items || [],
+      }));
     } catch (_) {}
   }
 
@@ -585,6 +700,7 @@
     grid.innerHTML = html;
     ensureGridDelegation();
     if (sec) sec.classList.add('buzz-has-content');
+    mountBuzzSectionHero(list);
     /* SEO только после реальных карточек — не вместо них */
     setSeoVisible(true);
 
@@ -671,6 +787,7 @@
         state.loaded = true;
         state._lastPaintedKey = qKey;
         paint({ noAnimate: true });
+        mountBuzzSectionHero(cached);
         hadContent = true;
       } else if (hadContent) {
         /* Keep current tiles while fetching (YouTube toggle / days) — no strobe. */

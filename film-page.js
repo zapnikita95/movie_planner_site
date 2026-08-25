@@ -1485,7 +1485,7 @@
     return '<div class="film-buzz-block" id="film-buzz-block">' +
       '<div class="film-buzz-head">' +
       '<span class="film-buzz-chip" aria-hidden="true">●</span>' +
-      '<div class="film-desc-reviews-title film-buzz-title">В тренде</div>' +
+      '<div class="film-desc-reviews-title film-buzz-title">Обсуждают сейчас:</div>' +
       '<a class="film-buzz-all" href="/buzz">Все</a>' +
       '</div>' +
       '<ul class="film-buzz-list">' + lis + '</ul></div>';
