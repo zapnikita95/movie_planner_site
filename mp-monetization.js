@@ -1,5 +1,6 @@
 /**
  * Movie Planner monetization: RSYA, streaming affiliates, niche partners, film alerts.
+ * POSTER_2SUB_OVERLAY_V1
  * Loaded on /f/ and /s/ thin shell.
  */
 (function (global) {
@@ -358,6 +359,41 @@
     mountPartnerBlock(anchor, partners, kpId, 'mobile');
   }
 
+  function removePosterPartnerCtas(scope) {
+    if (!scope) return;
+    scope.querySelectorAll('.film-poster-2sub-cta').forEach(function (el) { el.remove(); });
+  }
+
+  function mountPoster2subCta(pageRoot, partner, kpId) {
+    if (!pageRoot || !partner || partner.key !== '2sub' || !partner.url) return;
+    var wrap = pageRoot.querySelector('.poster-wrap');
+    if (!wrap) return;
+    removePosterPartnerCtas(pageRoot);
+    var a = document.createElement('a');
+    a.className = 'film-poster-2sub-cta';
+    a.href = partner.url;
+    a.target = '_blank';
+    a.rel = 'noopener sponsored';
+    a.setAttribute('data-partner', '2sub');
+    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.setAttribute('aria-label', 'Смотреть с субтитрами на 2SUB');
+    a.innerHTML =
+      '<span class="film-poster-2sub-cta__line">Смотреть с субтитрами</span>' +
+      '<span class="film-poster-2sub-cta__line film-poster-2sub-cta__brand">' +
+        '<span class="film-poster-2sub-cta__on">на</span>' +
+        '<img class="film-partner-watch__logo" src="' + partner2subLogoUrl() + '" alt="" width="56" height="20" decoding="async" />' +
+      '</span>';
+    bindPartnerIconClick(a, partner, kpId, 'poster_overlay');
+    wrap.appendChild(a);
+    metrikaGoal('stream_block_view', {
+      kp_id: String(kpId || ''),
+      count: '1',
+      surface: 'poster_overlay',
+      partners: '2sub',
+      placement: 'film_poster',
+    });
+  }
+
   function mountPartnerWatchPills(pageRoot, kpId) {
     if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
     var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/watch-partners';
@@ -374,6 +410,14 @@
           usable.push(p);
         }
         if (!usable.length) return;
+        var twosub = null;
+        for (var t = 0; t < usable.length; t++) {
+          if (usable[t] && usable[t].key === '2sub') {
+            twosub = usable[t];
+            break;
+          }
+        }
+        if (twosub) mountPoster2subCta(pageRoot, twosub, kpId);
         var shell = wrapToolbarIconsShell(pageRoot);
         if (shell) mountDesktopPartnerBlock(shell, usable, kpId);
         mountMobilePartnerBlock(pageRoot, usable, kpId);

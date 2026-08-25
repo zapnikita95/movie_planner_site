@@ -1,11 +1,13 @@
 /**
  * Yandex RSY — movie-planner.ru
+ * RSY_HORIZONTAL_CLIP_V1
  * Tall vertical sidebar in side gutters; width scales down; hidden if no room.
  */
 (function (global) {
   'use strict';
 
-  var BUILD = '20260826rsyMobileBanner2';
+  var BUILD = '20260826rsyHorizontalClip1';
+  var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
@@ -129,6 +131,31 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  function clampHorizontalSlot(slot) {
+    if (!slot || slot.getAttribute('data-mp-rsy-format') !== 'horizontal') return;
+    var wrap = slot.closest('.mp-rsy-inline');
+    function apply() {
+      slot.style.overflow = 'hidden';
+      slot.style.maxHeight = HORIZONTAL_SLOT_MAX_PX + 'px';
+      if (wrap) {
+        wrap.style.overflow = 'hidden';
+        wrap.style.maxHeight = (HORIZONTAL_SLOT_MAX_PX + 12) + 'px';
+      }
+      var kids = slot.querySelectorAll('iframe, div, a');
+      for (var i = 0; i < kids.length; i++) {
+        var el = kids[i];
+        if (!el || el === slot) continue;
+        el.style.maxHeight = HORIZONTAL_SLOT_MAX_PX + 'px';
+        el.style.overflow = 'hidden';
+      }
+    }
+    apply();
+    if (slot._mpRsyClampRo) return;
+    if (typeof ResizeObserver === 'undefined') return;
+    slot._mpRsyClampRo = new ResizeObserver(apply);
+    slot._mpRsyClampRo.observe(slot);
+  }
+
   function renderBlock(blockId, renderToId) {
     if (!blockId || !renderToId) return;
     var node = document.getElementById(renderToId);
@@ -138,11 +165,19 @@
       delete rendered[renderToId];
     }
     rendered[renderToId] = true;
+    if (node.getAttribute('data-mp-rsy-format') === 'horizontal') {
+      clampHorizontalSlot(node);
+    }
     loadContext();
     global.yaContextCb.push(function () {
       try {
         if (!global.Ya || !Ya.Context || !Ya.Context.AdvManager) return;
         Ya.Context.AdvManager.render({ blockId: blockId, renderTo: renderToId });
+        if (node.getAttribute('data-mp-rsy-format') === 'horizontal') {
+          clampHorizontalSlot(node);
+          setTimeout(function () { clampHorizontalSlot(node); }, 400);
+          setTimeout(function () { clampHorizontalSlot(node); }, 1500);
+        }
       } catch (_e) {}
     });
   }
@@ -487,7 +522,10 @@
     var slot = document.createElement('div');
     slot.id = sid;
     slot.className = 'mp-rsy-slot mp-rsy-slot--inline-' + o.kind;
-    if (o.horizontal) slot.setAttribute('data-mp-rsy-format', 'horizontal');
+    if (o.horizontal) {
+      slot.setAttribute('data-mp-rsy-format', 'horizontal');
+      clampHorizontalSlot(slot);
+    }
     wrap.appendChild(slot);
     if (o.position === 'before') o.anchor.insertAdjacentElement('beforebegin', wrap);
     else if (o.position === 'append') o.anchor.appendChild(wrap);
