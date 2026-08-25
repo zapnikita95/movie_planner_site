@@ -130,6 +130,24 @@ body.mp-rsy-film-page #section-film .film-page-outer {
   max-height: 120px;
 }
 
+.mp-rsy-inline--film_pre_poster {
+  margin: 0 0 10px;
+  padding: 0;
+  max-width: 100%;
+}
+
+.mp-rsy-inline--film_pre_poster .mp-rsy-slot {
+  min-height: 80px;
+  max-height: 100px;
+}
+
+@media (min-width: 1280px) {
+  .mp-rsy-inline--mobile,
+  .mp-rsy-inline--film_pre_poster {
+    display: none !important;
+  }
+}
+
 @media (max-width: 1279px) {
   .mp-rsy-fixed-rail,
   .mp-rsy-outer-rail {
