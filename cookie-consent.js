@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825cookieRsyPrePoster1';
+  var BUILD = '20260826cookieRsyBanner1';
   var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
@@ -109,7 +109,7 @@
       loadScriptOnce('/yandex-metrika.js?v=' + BUILD, '__mpMetrikaLoadRequested');
     }
     if (allows('ads')) {
-      loadScriptOnce('/yandex-rsy.js?v=20260825rsyPrePosterStrip1', '__mpRsyLoadRequested');
+      loadScriptOnce('/yandex-rsy.js?v=20260826rsyMobileBanner1', '__mpRsyLoadRequested');
     }
   }
 
