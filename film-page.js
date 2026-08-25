@@ -626,10 +626,11 @@
     var dragging = false;
     var startX = 0;
     var startScroll = 0;
-    // Match home-rail fix: 6px + early setPointerCapture killed clicks on Win
-    // (micro-move during click → capture handler preventDefault). Capture only
-    // after real drag; higher thresh so similar <a> always navigates.
-    var THRESH = 12;
+    // Win/Playwright: micro-move during click used to set dragging + capture-phase
+    // preventDefault → dead similar links. Only suppress clicks after a real drag
+    // (timestamp), never kill the click via a live `dragging` flag race.
+    var THRESH = 18;
+    var suppressClickUntil = 0;
     rail.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return;
       if (e.button != null && e.button !== 0) return;
@@ -655,15 +656,14 @@
       var wasActive = active;
       var wasDragging = dragging;
       active = false;
+      dragging = false;
       rail.classList.remove('is-dragging');
       if (wasActive) {
         try {
           if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
         } catch (_r) {}
       }
-      if (wasDragging) {
-        setTimeout(function () { dragging = false; }, 0);
-      }
+      if (wasDragging) suppressClickUntil = Date.now() + 450;
     }
     rail.addEventListener('pointerup', endDrag);
     rail.addEventListener('pointercancel', endDrag);
@@ -671,10 +671,9 @@
     // Kill native image/link drag ghost that steals the gesture on posters.
     rail.addEventListener('dragstart', function (e) { e.preventDefault(); });
     rail.addEventListener('click', function (e) {
-      if (!dragging) return;
+      if (Date.now() >= suppressClickUntil) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      dragging = false;
     }, true);
     rail.addEventListener('wheel', function (e) {
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
