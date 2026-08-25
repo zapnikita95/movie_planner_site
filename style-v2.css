@@ -1907,8 +1907,9 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     min-width: 0;
   }
   body.in-cabinet .header-user-wrap {
-    width: 100%;
+    width: auto;
     max-width: 100%;
+    min-width: 0;
     justify-content: flex-end;
     gap: 8px;
   }
@@ -13319,6 +13320,7 @@ body.login-only-overlay .parallax-bg {
   #film-page-content .poster-wrap {
     overflow: hidden;
     border-radius: 18px 18px 0 0;
+    position: relative;
   }
   .film-hero-poster-wrap .poster,
   #section-film .poster-wrap .poster,
@@ -13330,7 +13332,7 @@ body.login-only-overlay .parallax-bg {
     max-width: none !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: min(58vh, 480px) !important;
+    max-height: 480px !important;
     aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     box-shadow: none !important;
@@ -16150,6 +16152,32 @@ body.film-standalone-page {
     overflow-x: clip;
   }
 
+  #site-header {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    box-sizing: border-box;
+  }
+
+  #site-header > .header-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    box-sizing: border-box;
+  }
+
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-buttons,
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-user-wrap,
+  body.in-cabinet .header-buttons,
+  body.landing-root-page .header-buttons,
+  body.in-cabinet .header-user-wrap,
+  body.landing-root-page .header-user-wrap {
+    min-width: 0 !important;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+
   body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-content {
     display: flex !important;
     flex-wrap: wrap;
@@ -16227,8 +16255,9 @@ body.film-standalone-page {
   body.user-standalone-page .header-user-wrap,
   body.in-cabinet .header-user-wrap,
   body.in-search-page .header-user-wrap {
-    width: 100%;
+    width: auto;
     max-width: 100%;
+    min-width: 0;
     justify-content: flex-end;
     gap: 8px;
     justify-self: unset !important;
@@ -17544,10 +17573,12 @@ body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone
   box-sizing: border-box;
 }
 
-body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-buttons,
-body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-user-wrap {
-  min-width: max-content;
-  flex-shrink: 0;
+@media (min-width: 769px) {
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-buttons,
+  body:not(.film-standalone-page):not(.staff-standalone-page):not(.user-standalone-page) .header-user-wrap {
+    min-width: max-content;
+    flex-shrink: 0;
+  }
 }
 
 #landing,
@@ -23656,7 +23687,7 @@ body.film-standalone-page:not(.mp-authed) .film-hero-tag-btn {
     max-width: none !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: min(58vh, 480px) !important;
+    max-height: 480px !important;
     aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     object-fit: cover;
@@ -24893,7 +24924,7 @@ body.in-cabinet .mp-pick-done {
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: min(58vh, 480px) !important;
+    max-height: 480px !important;
     aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     object-fit: cover !important;
@@ -25541,6 +25572,67 @@ body.staff-standalone-page .staff-awards-loading {
   padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-right, 0px));
   box-sizing: border-box;
 }
+
+/* 2SUB CTA overlay on film poster (mobile) */
+.film-poster-2sub-cta {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  max-width: min(46%, 168px);
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(9, 9, 11, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.film-poster-2sub-cta:hover {
+  background: rgba(18, 18, 24, 0.9);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.film-poster-2sub-cta:focus-visible {
+  outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
+  outline-offset: 2px;
+}
+.film-poster-2sub-cta__line {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-body, #e4e4ec);
+  text-align: right;
+  text-decoration: none;
+}
+.film-poster-2sub-cta__brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.film-poster-2sub-cta__on {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #b4b4be);
+  line-height: 1;
+}
+.film-poster-2sub-cta .film-partner-watch__logo {
+  max-height: 18px;
+  max-width: 52px;
+}
+@media (min-width: 861px) {
+  .film-poster-2sub-cta {
+    display: none !important;
+  }
+}
+
 @media (min-width: 861px) {
   .film-partner-watch-block--desktop {
     display: flex;
@@ -25623,7 +25715,7 @@ body.staff-standalone-page .staff-awards-loading {
     max-width: none !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: min(58vh, 480px) !important;
+    max-height: 480px !important;
     aspect-ratio: 2 / 3;
     border-radius: 20px 20px 0 0 !important;
     object-fit: cover !important;

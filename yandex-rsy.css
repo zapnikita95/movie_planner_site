@@ -76,11 +76,20 @@ body.mp-rsy-film-page #section-film .film-page-outer {
 .mp-rsy-slot[data-mp-rsy-format="horizontal"] {
   width: 100%;
   aspect-ratio: 1000 / 120;
+  height: auto;
   max-height: 120px;
   min-height: 0;
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
   line-height: 0;
+  contain: layout paint;
+  isolation: isolate;
+}
+
+.mp-rsy-slot[data-mp-rsy-format="horizontal"] > *,
+.mp-rsy-slot[data-mp-rsy-format="horizontal"] iframe {
+  max-height: 120px !important;
+  overflow: hidden !important;
 }
 
 .mp-rsy-inline .mp-rsy-slot:not([data-mp-rsy-format="horizontal"]) {
@@ -134,11 +143,20 @@ body.mp-rsy-film-page #section-film .film-page-outer {
     margin: 8px 0 10px;
     padding: 0 12px;
     box-sizing: border-box;
+    max-height: 132px;
+    overflow: hidden;
   }
 
   .mp-rsy-inline--film_pre_poster {
     margin-top: 4px;
     margin-bottom: 8px;
+  }
+
+  .mp-rsy-inline--film_pre_poster .mp-rsy-slot,
+  .mp-rsy-inline--film_bottom .mp-rsy-slot,
+  .mp-rsy-inline--after_similar .mp-rsy-slot {
+    max-height: 120px;
+    overflow: hidden;
   }
 }
 
