@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825rsyMobileStrip1';
+  var BUILD = '20260825takprodamShelf1';
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
@@ -491,14 +491,15 @@
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
     if (!BLOCKS.filmAfterSimilar) return;
     var similar = document.querySelector('.film-page-similar-section');
+    var shelf = document.getElementById('mp_product_shelf_mobile');
     var orphanBottom = document.getElementById('mp_rsy_inline_film_bottom');
-    if (similar) {
+    if (similar || shelf) {
       if (orphanBottom) orphanBottom.remove();
       mountInlineStrip({
         wrapId: 'mp_rsy_inline_after_similar',
         kind: 'after_similar',
         blockId: BLOCKS.filmAfterSimilar,
-        anchor: similar,
+        anchor: shelf || similar,
         position: 'after',
       });
       return;

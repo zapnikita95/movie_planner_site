@@ -449,6 +449,207 @@
     });
   }
 
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  var PRODUCT_SHELF_DESKTOP_MIN = 1100;
+  var PRODUCT_SHELF_MIN_W = 168;
+  var _productOfferCache = Object.create(null);
+  var _productShelfKp = '';
+  var _productShelfBound = false;
+
+  function fetchProductOffers(kpId) {
+    var key = String(kpId || '').replace(/\D/g, '');
+    if (!key) return Promise.resolve([]);
+    if (_productOfferCache[key]) return Promise.resolve(_productOfferCache[key]);
+    return fetch(API_BASE + '/api/public/film/' + encodeURIComponent(key) + '/product-offers', { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var items = (d && d.items) || [];
+        _productOfferCache[key] = items;
+        return items;
+      })
+      .catch(function () { return []; });
+  }
+
+  function productCardHtml(it) {
+    var href = escapeHtml(it.url || '#');
+    var title = escapeHtml(it.title || '');
+    var plat = escapeHtml(it.platform || '');
+    var price = escapeHtml(it.price || '');
+    var mp = escapeHtml(it.marketplace || 'Ozon');
+    var legal = escapeHtml(it.legal || 'Реклама');
+    var meta = [plat, price].filter(Boolean).join(' · ');
+    return (
+      '<article class="mp-offer-card">' +
+        '<div class="mp-offer-kicker">Реклама · ' + mp + '</div>' +
+        '<a class="mp-offer-title" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + title + '</a>' +
+        (meta ? '<div class="mp-offer-meta">' + meta + '</div>' : '') +
+        '<a class="mp-offer-cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">Купить на ' + mp + '</a>' +
+        '<p class="mp-offer-legal">' + legal + '</p>' +
+      '</article>'
+    );
+  }
+
+  function productListHtml(items) {
+    return '<div class="mp-product-list">' + items.map(productCardHtml).join('') + '</div>';
+  }
+
+  function bindProductClicks(root, kpId) {
+    if (!root) return;
+    root.querySelectorAll('a[href*="takprdm.ru"]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        metrikaGoal('takprodam_click', {
+          kp_id: String(kpId || ''),
+          placement: root.classList.contains('mp-product-shelf--desktop') ? 'film_left' : 'film_after_similar',
+        });
+      });
+    });
+  }
+
+  function syncProductLoop(track) {
+    if (!track || track.closest('.mp-product-shelf--mobile')) return;
+    var loop = track.querySelector('.mp-product-loop');
+    var list = track.querySelector('.mp-product-list');
+    if (!list) return;
+    if (!loop) {
+      loop = document.createElement('div');
+      loop.className = 'mp-product-loop';
+      list.parentNode.insertBefore(loop, list);
+      loop.appendChild(list);
+    }
+    loop.querySelectorAll('.mp-product-list').forEach(function (el, idx) {
+      if (idx > 0) el.remove();
+    });
+    track.classList.remove('is-looping');
+    track.style.removeProperty('--mp-product-loop-ms');
+    var n = list.querySelectorAll('.mp-offer-card').length;
+    if (n < 3) return;
+    if (list.scrollHeight <= track.clientHeight + 8) return;
+    var dup = list.cloneNode(true);
+    dup.setAttribute('aria-hidden', 'true');
+    loop.appendChild(dup);
+    track.classList.add('is-looping');
+    track.style.setProperty('--mp-product-loop-ms', String(Math.max(18000, n * 7000)) + 'ms');
+  }
+
+  function findFilmPageOuter() {
+    return document.querySelector('#section-film .film-page-outer') || document.querySelector('.film-page-outer');
+  }
+
+  function layoutDesktopProductShelf() {
+    var rail = document.getElementById('mp_product_shelf_desktop');
+    if (!rail) return;
+    if (viewportIsDesktop() !== true) {
+      rail.hidden = true;
+      return;
+    }
+    var outer = findFilmPageOuter();
+    if (!outer) {
+      rail.hidden = true;
+      return;
+    }
+    var rect = outer.getBoundingClientRect();
+    var maxW = rect.left - 16 - 12;
+    if (maxW < PRODUCT_SHELF_MIN_W) {
+      rail.hidden = true;
+      var mobile = document.getElementById('mp_product_shelf_mobile');
+      if (mobile) mobile.classList.add('mp-product-shelf--fallback');
+      return;
+    }
+    var mobileKeep = document.getElementById('mp_product_shelf_mobile');
+    if (mobileKeep) mobileKeep.classList.remove('mp-product-shelf--fallback');
+    var w = Math.min(220, maxW);
+    var nav = document.querySelector(
+      '#cabinet-readonly .cabinet-nav, .film-standalone-nav, #film-standalone-nav'
+    );
+    var footer = document.querySelector('.content-wrapper > footer, footer.site-footer, #site-footer');
+    var top = 120;
+    if (nav) {
+      var nb = nav.getBoundingClientRect().bottom;
+      if (nb > 40 && nb < (window.innerHeight || 800)) top = Math.round(nb + 12);
+    }
+    var bottomPad = 16;
+    if (footer) {
+      var fb = footer.getBoundingClientRect().top;
+      if (fb > top + 80) bottomPad = Math.max(16, Math.round((window.innerHeight || 0) - fb + 8));
+    }
+    rail.hidden = false;
+    rail.style.left = Math.round(rect.left - 16 - w) + 'px';
+    rail.style.width = Math.round(w) + 'px';
+    rail.style.top = top + 'px';
+    rail.style.maxHeight = 'calc(100vh - ' + (top + bottomPad) + 'px)';
+    var track = rail.querySelector('.mp-product-track');
+    if (track) {
+      track.style.maxHeight = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+      syncProductLoop(track);
+    }
+  }
+
+  function viewportIsDesktop() {
+    return (window.innerWidth || 0) >= PRODUCT_SHELF_DESKTOP_MIN;
+  }
+
+  function ensureProductShelfResize() {
+    if (_productShelfBound) return;
+    _productShelfBound = true;
+    var t = 0;
+    window.addEventListener('resize', function () {
+      window.clearTimeout(t);
+      t = window.setTimeout(layoutDesktopProductShelf, 80);
+    });
+  }
+
+  function mountProductShelf(pageRoot, kpId) {
+    var root = pageRoot || document.getElementById('film-page-content') || document.querySelector('main.film-page');
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!root || !kp) return;
+    _productShelfKp = kp;
+    fetchProductOffers(kp).then(function (items) {
+      if (String(_productShelfKp) !== kp) return;
+      document.querySelectorAll('.mp-product-shelf').forEach(function (el) { el.remove(); });
+      if (!items || !items.length) return;
+      var cards = productListHtml(items);
+
+      var desktop = document.createElement('aside');
+      desktop.id = 'mp_product_shelf_desktop';
+      desktop.className = 'mp-product-shelf mp-product-shelf--desktop';
+      desktop.setAttribute('aria-label', 'Игры по мотивам');
+      desktop.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + cards + '</div></div>';
+      document.body.appendChild(desktop);
+      bindProductClicks(desktop, kp);
+
+      var mobile = document.createElement('aside');
+      mobile.id = 'mp_product_shelf_mobile';
+      mobile.className = 'mp-product-shelf mp-product-shelf--mobile';
+      mobile.setAttribute('aria-label', 'Игры по мотивам');
+      mobile.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + cards + '</div></div>';
+      var similar = root.querySelector('.film-page-similar-section');
+      var rsy = document.getElementById('mp_rsy_inline_after_similar');
+      if (rsy && rsy.parentNode) rsy.parentNode.insertBefore(mobile, rsy);
+      else if (similar && similar.parentNode) similar.parentNode.insertBefore(mobile, similar.nextSibling);
+      else {
+        var hero = root.querySelector(':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section');
+        if (hero) hero.insertAdjacentElement('afterend', mobile);
+        else root.appendChild(mobile);
+      }
+      bindProductClicks(mobile, kp);
+      syncProductLoop(mobile.querySelector('.mp-product-track'));
+      ensureProductShelfResize();
+      layoutDesktopProductShelf();
+      try {
+        if (global.MpRsy && typeof global.MpRsy.mountFilmAfterSimilar === 'function') {
+          global.MpRsy.mountFilmAfterSimilar();
+        }
+      } catch (_rsy) {}
+    });
+  }
+
   function initFilmPageFromRoot(pageRoot, kpIdOverride) {
     var root = pageRoot || document.getElementById('film-page-content') || document.querySelector('main.film-page');
     if (!root) return Promise.resolve();
@@ -468,6 +669,8 @@
     if (!pageRoot || !kpId) return;
 
     ensureAdSlots(pageRoot);
+    /* TAKPRODAM_SHELF_VERTICAL_LOOP */
+    mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
         el.remove();
@@ -519,7 +722,14 @@
     initFilmPage: initFilmPage,
     initFilmPageFromRoot: initFilmPageFromRoot,
     initStaffPage: initStaffPage,
+    mountProductShelf: mountProductShelf,
     metrikaGoal: metrikaGoal,
     fetchConfig: fetchConfig,
   };
+
+  try {
+    if (document.body && document.body.classList.contains('film-standalone-page')) {
+      initFilmPageFromRoot();
+    }
+  } catch (_bootShelf) {}
 })(typeof window !== 'undefined' ? window : this);
