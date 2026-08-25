@@ -626,9 +626,10 @@
     var dragging = false;
     var startX = 0;
     var startScroll = 0;
-    var THRESH = 6;
-    // Allow drag starting on poster cards (including <a.similar-rail-card>).
-    // Exclude only true nested controls / side arrows.
+    // Match home-rail fix: 6px + early setPointerCapture killed clicks on Win
+    // (micro-move during click → capture handler preventDefault). Capture only
+    // after real drag; higher thresh so similar <a> always navigates.
+    var THRESH = 12;
     rail.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return;
       if (e.button != null && e.button !== 0) return;
@@ -637,7 +638,6 @@
       dragging = false;
       startX = e.clientX;
       startScroll = rail.scrollLeft;
-      try { rail.setPointerCapture(e.pointerId); } catch (_c) {}
     });
     rail.addEventListener('pointermove', function (e) {
       if (!active) return;
@@ -645,19 +645,23 @@
       if (!dragging && Math.abs(dx) > THRESH) {
         dragging = true;
         rail.classList.add('is-dragging');
+        try { rail.setPointerCapture(e.pointerId); } catch (_c) {}
       }
       if (!dragging) return;
       e.preventDefault();
       rail.scrollLeft = startScroll - dx;
     });
     function endDrag(e) {
-      if (!active) return;
+      var wasActive = active;
+      var wasDragging = dragging;
       active = false;
       rail.classList.remove('is-dragging');
-      try {
-        if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
-      } catch (_r) {}
-      if (dragging) {
+      if (wasActive) {
+        try {
+          if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+        } catch (_r) {}
+      }
+      if (wasDragging) {
         setTimeout(function () { dragging = false; }, 0);
       }
     }
@@ -669,7 +673,8 @@
     rail.addEventListener('click', function (e) {
       if (!dragging) return;
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
+      dragging = false;
     }, true);
     rail.addEventListener('wheel', function (e) {
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
@@ -2386,6 +2391,18 @@
     }
   }
 
+  function hideCabinetSectionNavWhenStandalone() {
+    // Guest /f/: #film-standalone-nav + #cabinet-readonly .cabinet-nav both painted
+    // (Win/guest thin shell) → two menu rows. Prefer standalone hrefs nav.
+    document.querySelectorAll(
+      '#cabinet-readonly > .container > .cabinet-nav, #cabinet-readonly > .cabinet-nav'
+    ).forEach(function (el) {
+      el.classList.add('mp-film-nav-dup-hidden');
+      el.setAttribute('hidden', '');
+      el.setAttribute('aria-hidden', 'true');
+    });
+  }
+
   function mountStandaloneCabinetNav(mainSelector) {
     var old = document.getElementById('film-standalone-nav');
     if (old) old.remove();
@@ -2410,6 +2427,7 @@
     }
     if (!inserted) return;
 
+    hideCabinetSectionNavWhenStandalone();
     bindStandaloneNavLinks(navEl);
     try {
       if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
@@ -2957,6 +2975,7 @@
         navWrap.innerHTML = standaloneNavHtml();
         var navEl = navWrap.firstElementChild;
         shell.insertBefore(navEl, main);
+        hideCabinetSectionNavWhenStandalone();
         bindStandaloneNavLinks(navEl);
         try {
           if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(navEl);
@@ -3036,6 +3055,7 @@
       navWrap.innerHTML = standaloneNavHtml();
       var navEl = navWrap.firstElementChild;
       shell.insertBefore(navEl, main);
+      hideCabinetSectionNavWhenStandalone();
       bindStandaloneNavLinks(navEl);
     }
     bindStandaloneSearch(apiBase, opts.loginNow);

@@ -467,13 +467,22 @@
     if (!pageRoot || !kpId) return;
 
     ensureAdSlots(pageRoot);
+    try {
+      pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
+        el.remove();
+      });
+    } catch (_rm) {}
     mountPartnerWatchPills(pageRoot, kpId).then(function () {
+      // Never show email "notify when online" for movies — empty watch-partners
+      // is normal for theatrical releases; the prompt looked broken (guest Win).
+      // Series keep the new-episode alert when no partner CTA is present.
+      if (!isSeries) return;
       var watch = pageRoot.querySelector('.film-partner-watch-block');
       if (!watch) {
         mountSubscribePrompt(pageRoot, {
-          type: isSeries ? 'series' : 'streaming',
+          type: 'series',
           kpId: kpId,
-          copy: isSeries ? 'Уведомите о новых сериях' : 'Сообщите, когда фильм появится онлайн',
+          copy: 'Уведомите о новых сериях',
           placement: 'film',
         });
       }
