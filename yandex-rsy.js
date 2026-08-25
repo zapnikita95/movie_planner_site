@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825takprodamAd1';
+  var BUILD = '20260825rsyPrePosterStrip1';
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
   var CONTEXT_SRC = 'https://yandex.ru/ads/system/context.js';
@@ -473,6 +473,20 @@
   function mountFilmPrePoster() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip() || isDesktop()) return;
     if (!BLOCKS.filmAfterSimilar) return;
+    var pageRoot = document.getElementById('film-page-content')
+      || document.querySelector('#section-film .movie-page, main.film-page');
+    var hero = pageRoot && pageRoot.querySelector(':scope > section.film-hero-with-tag, :scope > section.hero, :scope > section');
+    if (hero) {
+      mountInlineStrip({
+        wrapId: 'mp_rsy_inline_film_pre_poster',
+        kind: 'film_pre_poster',
+        blockId: BLOCKS.filmAfterSimilar,
+        anchor: hero,
+        position: 'before',
+        mobileOnly: true,
+      });
+      return;
+    }
     var poster = document.getElementById('poster');
     if (!poster) return;
     var anchor = poster.closest('.poster-wrap') || poster.parentElement;
@@ -482,7 +496,7 @@
       kind: 'film_pre_poster',
       blockId: BLOCKS.filmAfterSimilar,
       anchor: anchor,
-      position: 'after',
+      position: 'before',
       mobileOnly: true,
     });
   }
@@ -502,6 +516,10 @@
         anchor: shelf || similar,
         position: 'after',
       });
+      return;
+    }
+    if (!isDesktop()) {
+      if (orphanBottom) orphanBottom.remove();
       return;
     }
     if (orphanBottom && orphanBottom.isConnected) return;
