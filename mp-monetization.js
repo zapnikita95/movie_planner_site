@@ -228,11 +228,16 @@
     return '/images/partners/tvigle-logo.svg';
   }
 
+  function partner2subLogoUrl() {
+    return '/images/partners/2sub-logo.png';
+  }
+
   function partnerLogoUrl(partner) {
     if (!partner) return '';
     if (partner.logo) return partner.logo;
     if (partner.key === 'ivi') return partnerIviLogoUrl();
     if (partner.key === 'tvigle') return partnerTvigleLogoUrl();
+    if (partner.key === '2sub') return partner2subLogoUrl();
     if (partner.key === 'flex') return partnerFlexLogoUrl();
     return '';
   }
@@ -241,6 +246,7 @@
     if (!partner) return '';
     if (partner.key === 'ivi') return 'ivi';
     if (partner.key === 'tvigle') return 'Tvigle';
+    if (partner.key === '2sub') return '2SUB';
     if (partner.key === 'flex') return 'FLEX';
     return partner.label || partner.key || '';
   }
@@ -267,7 +273,7 @@
       commission_model: (partner && partner.commission_model) || 'unknown',
     };
     metrikaGoal('stream_click', params);
-    if (key === 'flex' || key === 'ivi' || key === 'tvigle') {
+    if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub') {
       metrikaGoal('stream_partner_' + key, params);
     }
   }
@@ -363,7 +369,7 @@
         for (var i = 0; i < partners.length; i++) {
           var p = partners[i];
           if (!p || !p.url) continue;
-          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi') continue;
+          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub') continue;
           p.kp_id = kpId;
           usable.push(p);
         }
