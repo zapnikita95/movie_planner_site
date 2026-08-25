@@ -25662,12 +25662,11 @@ body.staff-standalone-page .staff-awards-loading {
   #section-film .film-hero-with-tag .poster,
   #film-page-content .film-hero-with-tag .poster,
   body.in-cabinet #film-page-content .film-hero-with-tag .poster,
-  body.in-cabinet #section-film .film-hero-with-tag .poster,
-  body.in-cabinet #film-page-content #poster.poster {
+  body.in-cabinet #section-film .film-hero-with-tag .poster {
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: min(52vh, 420px) !important;
+    max-height: none !important;
     aspect-ratio: 2 / 3;
     border-radius: 16px !important;
     object-fit: cover !important;
@@ -25678,10 +25677,10 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 /* TAKPRODAM_SHELF_VERTICAL_LOOP — left gutter desktop, after similar on mobile */
-/* TAKPRODAM_JUICY2 */
+/* TAKPRODAM_JUICY2 TAKPRODAM_GRID1 */
 .mp-product-shelf--desktop {
   position: fixed;
-  z-index: 40;
+  z-index: 20;
   box-sizing: border-box;
   pointer-events: none;
 }
@@ -25757,8 +25756,10 @@ body.staff-standalone-page .staff-awards-loading {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  flex: 1 1 auto;
   gap: 8px;
   padding: 10px 10px 12px;
+  min-height: 0;
 }
 .mp-offer-adtune-bar {
   position: absolute;
@@ -25819,6 +25820,7 @@ body.staff-standalone-page .staff-awards-loading {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: calc(1.3em * 3);
   color: var(--text-primary, #f4f4f5);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -25833,6 +25835,7 @@ body.staff-standalone-page .staff-awards-loading {
   line-height: 1.2;
   margin: 0;
   text-align: center;
+  flex-shrink: 0;
 }
 .mp-offer-meta {
   color: var(--text-muted, #b4b4be);
@@ -25859,6 +25862,8 @@ body.staff-standalone-page .staff-awards-loading {
   font-size: 13px;
   line-height: 1;
   text-align: center;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 .cabinet a.mp-offer-cta:hover,
 .mp-product-shelf a.mp-offer-cta:hover {
@@ -25888,6 +25893,7 @@ body.staff-standalone-page .staff-awards-loading {
 .mp-product-shelf--mobile .mp-product-loop,
 .mp-product-shelf--mobile .mp-product-list {
   flex-direction: row;
+  align-items: stretch;
 }
 .mp-product-shelf--mobile .mp-product-list {
   gap: 8px;
