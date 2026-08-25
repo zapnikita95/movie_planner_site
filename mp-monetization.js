@@ -509,6 +509,8 @@
 
   var PRODUCT_SHELF_DESKTOP_MIN = 1100;
   var PRODUCT_SHELF_MIN_W = 168;
+  var PRODUCT_SHELF_GUTTER_GAP = 16;
+  var PRODUCT_SHELF_EDGE_PAD = 12;
   var _productOfferCache = Object.create(null);
   var _productShelfKp = '';
   var _productShelfBound = false;
@@ -680,7 +682,7 @@
     return document.querySelector('#section-film .film-page-outer') || document.querySelector('.film-page-outer');
   }
 
-  /* TAKPRODAM_GRID2 — never sit on .cabinet-nav / film-standalone-nav */
+  /* TAKPRODAM_GUTTER1 — same 16px gap to film card as RSY; stay below .cabinet-nav */
   function visibleTopChrome() {
     var bottom = 0;
     var navLeft = Infinity;
@@ -725,9 +727,9 @@
     }
     var rect = outer.getBoundingClientRect();
     var chrome = visibleTopChrome();
-    var gutterRight = rect.left;
-    if (chrome.navLeft != null) gutterRight = Math.min(gutterRight, chrome.navLeft);
-    var maxW = gutterRight - 16 - 12;
+    var gap = PRODUCT_SHELF_GUTTER_GAP;
+    var edge = PRODUCT_SHELF_EDGE_PAD;
+    var maxW = rect.left - gap - edge;
     if (maxW < PRODUCT_SHELF_MIN_W) {
       rail.hidden = true;
       var mobile = document.getElementById('mp_product_shelf_mobile');
@@ -737,6 +739,8 @@
     var mobileKeep = document.getElementById('mp_product_shelf_mobile');
     if (mobileKeep) mobileKeep.classList.remove('mp-product-shelf--fallback');
     var w = Math.min(220, maxW);
+    var left = Math.round(rect.left - gap - w);
+    if (left < edge) left = edge;
     var minTop = Math.max(12, Math.round(chrome.bottom + 10));
     var top = minTop;
     var vh = window.innerHeight || 800;
@@ -749,7 +753,7 @@
       if (fb < floor) floor = fb - 12;
     }
     rail.hidden = false;
-    rail.style.left = Math.round(gutterRight - 12 - w) + 'px';
+    rail.style.left = left + 'px';
     rail.style.width = Math.round(w) + 'px';
     rail.style.maxHeight = Math.max(96, Math.round(floor - top)) + 'px';
     var h = rail.offsetHeight || 0;
@@ -858,7 +862,7 @@
     ensureAdSlots(pageRoot);
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     /* TAKPRODAM_ADTUNE */
-    /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 */
+    /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
