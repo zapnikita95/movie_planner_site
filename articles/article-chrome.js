@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260731landingAuth1';
+  var BUILD = '20260825androidApp1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
