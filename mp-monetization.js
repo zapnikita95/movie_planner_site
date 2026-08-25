@@ -486,9 +486,17 @@
     var price = escapeHtml(it.price || '');
     var mp = escapeHtml(it.marketplace || 'Ozon');
     var legal = escapeHtml(it.legal || 'Реклама');
-    var meta = [plat, price].filter(Boolean).join(' · ');
+    var image = String(it.image || it.image_url || '');
+    if (image.indexOf('https://') !== 0) image = '';
+    var cover = image
+      ? ('<a class="mp-offer-cover-link" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' +
+          '<img class="mp-offer-cover" src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'is-broken\')">' +
+          (plat ? '<span class="mp-offer-plat">' + plat + '</span>' : '') +
+        '</a>')
+      : (plat ? '<div class="mp-offer-cover-link mp-offer-cover-link--empty"><span class="mp-offer-plat">' + plat + '</span></div>' : '');
     return (
       '<article class="mp-offer-card">' +
+        cover +
         '<div class="mp-offer-adtune-bar">' +
           '<span class="mp-offer-ad-label">Реклама</span>' +
           '<button type="button" class="mp-offer-adtune" aria-label="Сведения о рекламе" aria-expanded="false" data-legal="' + legal + '">' +
@@ -499,9 +507,11 @@
             '</svg>' +
           '</button>' +
         '</div>' +
-        '<a class="mp-offer-title" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + title + '</a>' +
-        (meta ? '<div class="mp-offer-meta">' + meta + '</div>' : '') +
-        '<a class="mp-offer-cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">Купить на ' + mp + '</a>' +
+        '<div class="mp-offer-body">' +
+          '<a class="mp-offer-title" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + title + '</a>' +
+          (price ? '<div class="mp-offer-price">' + price + '</div>' : '') +
+          '<a class="mp-offer-cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">Купить на ' + mp + '</a>' +
+        '</div>' +
       '</article>'
     );
   }
@@ -620,6 +630,27 @@
     return document.querySelector('#section-film .film-page-outer') || document.querySelector('.film-page-outer');
   }
 
+  function visibleTopChromeBottom() {
+    var bottom = 0;
+    var header = document.getElementById('site-header');
+    if (header && !header.classList.contains('site-header--retracted')) {
+      var hr = header.getBoundingClientRect();
+      if (hr.height >= 8 && hr.top < 90 && hr.bottom > bottom) bottom = hr.bottom;
+    }
+    var navs = document.querySelectorAll('#film-standalone-nav.film-standalone-nav, nav.film-standalone-nav');
+    for (var i = 0; i < navs.length; i++) {
+      var el = navs[i];
+      if (!el || el.classList.contains('hidden')) continue;
+      var st = window.getComputedStyle(el);
+      if (st.display === 'none' || st.visibility === 'hidden') continue;
+      var r = el.getBoundingClientRect();
+      if (r.height < 16 || r.width < 80) continue;
+      if (r.top > (window.innerHeight || 800) * 0.55) continue;
+      if (r.bottom > bottom) bottom = r.bottom;
+    }
+    return bottom;
+  }
+
   function layoutDesktopProductShelf() {
     var rail = document.getElementById('mp_product_shelf_desktop');
     if (!rail) return;
@@ -643,28 +674,29 @@
     var mobileKeep = document.getElementById('mp_product_shelf_mobile');
     if (mobileKeep) mobileKeep.classList.remove('mp-product-shelf--fallback');
     var w = Math.min(220, maxW);
-    var nav = document.querySelector(
-      '#cabinet-readonly .cabinet-nav, .film-standalone-nav, #film-standalone-nav'
-    );
-    var footer = document.querySelector('.content-wrapper > footer, footer.site-footer, #site-footer');
-    var top = 120;
-    if (nav) {
-      var nb = nav.getBoundingClientRect().bottom;
-      if (nb > 40 && nb < (window.innerHeight || 800)) top = Math.round(nb + 12);
-    }
-    var bottomPad = 16;
+    var chrome = visibleTopChromeBottom();
+    var top = Math.max(12, Math.round(chrome + 10));
+    var vh = window.innerHeight || 800;
+    var footer = document.querySelector('body > div.content-wrapper > footer')
+      || document.querySelector('.content-wrapper > footer.footer')
+      || document.querySelector('footer.footer');
+    var floor = vh - 12;
     if (footer) {
       var fb = footer.getBoundingClientRect().top;
-      if (fb > top + 80) bottomPad = Math.max(16, Math.round((window.innerHeight || 0) - fb + 8));
+      if (fb < floor) floor = fb - 12;
     }
     rail.hidden = false;
     rail.style.left = Math.round(rect.left - 16 - w) + 'px';
     rail.style.width = Math.round(w) + 'px';
+    rail.style.maxHeight = Math.max(96, Math.round(floor - top)) + 'px';
+    var h = rail.offsetHeight || 0;
+    if (h && top + h > floor) {
+      top = Math.max(12, Math.round(floor - h));
+    }
     rail.style.top = top + 'px';
-    rail.style.maxHeight = 'calc(100vh - ' + (top + bottomPad) + 'px)';
     var track = rail.querySelector('.mp-product-track');
     if (track) {
-      var nextMax = 'calc(100vh - ' + (top + bottomPad + 8) + 'px)';
+      var nextMax = Math.max(88, Math.round(floor - top - 4)) + 'px';
       var prevMax = track.style.maxHeight;
       var ready = track.getAttribute('data-mp-loop-ready') === '1';
       track.style.maxHeight = nextMax;
@@ -763,6 +795,7 @@
     ensureAdSlots(pageRoot);
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     /* TAKPRODAM_ADTUNE */
+    /* TAKPRODAM_JUICY2 */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
