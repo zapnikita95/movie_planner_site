@@ -25678,9 +25678,10 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 /* TAKPRODAM_SHELF_VERTICAL_LOOP — left gutter desktop, after similar on mobile */
+/* TAKPRODAM_JUICY2 */
 .mp-product-shelf--desktop {
   position: fixed;
-  z-index: 45;
+  z-index: 40;
   box-sizing: border-box;
   pointer-events: none;
 }
@@ -25717,7 +25718,47 @@ body.staff-standalone-page .staff-awards-loading {
   background: var(--bg-surface-alt, #1a1a22);
   border: 1px solid #2c2c36;
   border-radius: 8px;
-  padding: 28px 10px 12px;
+  padding: 0;
+  overflow: hidden;
+}
+.mp-offer-cover-link {
+  position: relative;
+  display: block;
+  background: #121218;
+}
+.mp-offer-cover-link.is-broken,
+.mp-offer-cover-link--empty {
+  min-height: 0;
+}
+.mp-offer-cover-link.is-broken .mp-offer-cover {
+  display: none;
+}
+.mp-offer-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: center top;
+}
+.mp-offer-plat {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 1;
+  background: rgba(9, 9, 11, 0.82);
+  color: var(--text-primary, #f4f4f5);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+.mp-offer-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 10px 12px;
 }
 .mp-offer-adtune-bar {
   position: absolute;
@@ -25774,35 +25815,64 @@ body.staff-standalone-page .staff-awards-loading {
   animation-play-state: paused;
 }
 .mp-offer-title {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   color: var(--text-primary, #f4f4f5);
   text-decoration: underline;
   text-underline-offset: 2px;
   font-weight: 650;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.3;
+}
+.mp-offer-price {
+  color: var(--text-primary, #f4f4f5);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.2;
+  margin: 0;
+  text-align: center;
 }
 .mp-offer-meta {
   color: var(--text-muted, #b4b4be);
   font-size: 13px;
   margin: 6px 0 10px;
 }
-.mp-offer-cta {
-  display: inline-flex;
+.mp-offer-cta,
+.cabinet a.mp-offer-cta,
+.mp-product-shelf a.mp-offer-cta {
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 36px;
+  margin: 0;
   padding: 0 12px;
-  border-radius: 8px;
-  background: var(--cta-grad);
-  color: #fff;
-  text-decoration: none;
+  border: 0;
+  border-radius: 6px;
+  background: #c2185b;
+  color: #fff !important;
+  text-decoration: none !important;
   font-weight: 650;
   font-size: 13px;
+  line-height: 1;
+  text-align: center;
+}
+.cabinet a.mp-offer-cta:hover,
+.mp-product-shelf a.mp-offer-cta:hover {
+  color: #fff !important;
+  text-decoration: none !important;
+  background: #a9144e;
 }
 .mp-offer-cta:focus-visible {
   outline: 2px solid var(--focus-ring, #f9a8d4);
   outline-offset: 2px;
+}
+.mp-product-shelf a.mp-offer-cover-link {
+  color: inherit;
+  text-decoration: none !important;
 }
 .mp-product-shelf--mobile {
   width: 100%;
