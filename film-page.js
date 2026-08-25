@@ -797,15 +797,16 @@
       }
     } catch (_e) {}
     try {
-      if (global.MpRsy && typeof global.MpRsy.mountFilmAfterSimilar === 'function') {
-        global.MpRsy.mountFilmAfterSimilar();
-      }
-    } catch (_rsySim) {}
-    try {
       if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
         global.MpMonetization.initFilmPageFromRoot(pageRoot);
       }
     } catch (_monSim) {}
+    /* TAKPRODAM_SHELF_VERTICAL_LOOP */
+    try {
+      if (global.MpRsy && typeof global.MpRsy.mountFilmAfterSimilar === 'function') {
+        global.MpRsy.mountFilmAfterSimilar();
+      }
+    } catch (_rsySim) {}
   }
 
   function mountFilmPageSimilarBlock(kpId, pageRoot) {
