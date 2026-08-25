@@ -540,12 +540,13 @@
     var legal = escapeHtml(it.legal || 'Реклама');
     var image = String(it.image || it.image_url || '');
     if (image.indexOf('https://') !== 0) image = '';
+    var platHtml = plat ? '<span class="mp-offer-plat">' + plat + '</span>' : '';
     var cover = image
       ? ('<a class="mp-offer-cover-link" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' +
           '<img class="mp-offer-cover" src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'is-broken\')">' +
-          (plat ? '<span class="mp-offer-plat">' + plat + '</span>' : '') +
+          platHtml +
         '</a>')
-      : (plat ? '<div class="mp-offer-cover-link mp-offer-cover-link--empty"><span class="mp-offer-plat">' + plat + '</span></div>' : '');
+      : ('<div class="mp-offer-cover-link mp-offer-cover-link--empty">' + platHtml + '</div>');
     return (
       '<article class="mp-offer-card">' +
         cover +
@@ -652,6 +653,68 @@
     });
   }
 
+  /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 — native scroll, hover pauses auto only */
+  var _productScrollBound = typeof WeakSet === 'function' ? new WeakSet() : null;
+
+  function bindDesktopProductScroll(track) {
+    if (!track || (_productScrollBound && _productScrollBound.has(track))) return;
+    if (_productScrollBound) _productScrollBound.add(track);
+    var lastTs = 0;
+    var userUntil = 0;
+    function firstListHeight() {
+      var list = track.querySelector('.mp-product-list');
+      return list ? list.offsetHeight : 0;
+    }
+    function wrapForward() {
+      var half = firstListHeight();
+      if (half <= 8) return;
+      if (track.scrollTop >= half) track.scrollTop -= half;
+    }
+    function onUser() {
+      userUntil = Date.now() + 600;
+    }
+    track.addEventListener('wheel', onUser, { passive: true });
+    track.addEventListener('pointerdown', onUser);
+    track.addEventListener('scroll', function () {
+      if (track._mpAutoScrolling) return;
+      wrapForward();
+    }, { passive: true });
+    function tick(ts) {
+      if (!track.isConnected) {
+        if (_productScrollBound) _productScrollBound.delete(track);
+        return;
+      }
+      requestAnimationFrame(tick);
+      if (!track.classList.contains('is-looping')) {
+        lastTs = ts;
+        return;
+      }
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        lastTs = ts;
+        return;
+      }
+      var hover = false;
+      try { hover = track.matches(':hover'); } catch (_m) {}
+      if (hover || track.classList.contains('is-adtune-open') || Date.now() < userUntil) {
+        lastTs = ts;
+        return;
+      }
+      var half = firstListHeight();
+      if (half <= 8) {
+        lastTs = ts;
+        return;
+      }
+      var ms = parseFloat(String(track.style.getPropertyValue('--mp-product-loop-ms') || '24000')) || 24000;
+      var dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
+      lastTs = ts;
+      track._mpAutoScrolling = true;
+      track.scrollTop += Math.max(0.35, (half / (ms / 1000)) * dt);
+      wrapForward();
+      track._mpAutoScrolling = false;
+    }
+    requestAnimationFrame(tick);
+  }
+
   function syncProductLoop(track) {
     if (!track || track.closest('.mp-product-shelf--mobile')) return;
     var loop = track.querySelector('.mp-product-loop');
@@ -669,13 +732,20 @@
     track.classList.remove('is-looping');
     track.style.removeProperty('--mp-product-loop-ms');
     var n = list.querySelectorAll('.mp-offer-card').length;
-    if (n < 3) return;
-    if (list.scrollHeight <= track.clientHeight + 8) return;
+    if (n < 3) {
+      bindDesktopProductScroll(track);
+      return;
+    }
+    if (list.scrollHeight <= track.clientHeight + 8) {
+      bindDesktopProductScroll(track);
+      return;
+    }
     var dup = list.cloneNode(true);
     dup.setAttribute('aria-hidden', 'true');
     loop.appendChild(dup);
     track.classList.add('is-looping');
     track.style.setProperty('--mp-product-loop-ms', String(Math.max(18000, n * 7000)) + 'ms');
+    bindDesktopProductScroll(track);
   }
 
   function findFilmPageOuter() {
@@ -863,6 +933,7 @@
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     /* TAKPRODAM_ADTUNE */
     /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
+    /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
