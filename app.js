@@ -9962,10 +9962,11 @@
             : '';
           const clickAttr = 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
           const em = s.is_series ? '📺 ' : '🎬 ';
+          const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(s)) || '';
           return (
             '<button type="button" class="similar-rail-card" ' + clickAttr +
             ' title="' + escapeHtml(s.title || '') + '" role="listitem">' +
-              '<div class="similar-rail-poster">' + img + reasonPill + inBase + '</div>' +
+              '<div class="similar-rail-poster' + sensCls + '">' + img + reasonPill + inBase + '</div>' +
               '<div class="similar-rail-title">' + em + escapeHtml(s.title || '') + '</div>' +
             '</button>'
           );

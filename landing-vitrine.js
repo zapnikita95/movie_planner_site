@@ -145,8 +145,9 @@
     var bell = global.renderPremiereNotifyButton
       ? global.renderPremiereNotifyButton(it, "premiere-poster-bell")
       : "";
+    var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(it)) || "";
     return '<a class="landing-pre-card" href="' + href + '">'
-      + '<div class="landing-pre-card-poster premiere-poster-media">'
+      + '<div class="landing-pre-card-poster premiere-poster-media' + sensCls + '">'
       + '<img class="landing-pre-card-poster-img" src="' + esc(poster) + '" alt="" loading="lazy" decoding="async"'
       + ' onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
       + (datePill ? '<span class="premiere-poster-date-pill">' + esc(datePill) + "</span>" : "")

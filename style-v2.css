@@ -5476,12 +5476,26 @@ body.in-public-stats .header-search {
 .film-modal-poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Adult catalog (KP «для взрослых»): soft blur + 18+ — RSYA-safe public display */
+.home-poster-tile-img.mp-media-sensitive,
+.film-card-v2-poster.mp-media-sensitive,
+.home-pre-card-poster.mp-media-sensitive,
+.film-modal-poster-wrap.mp-media-sensitive,
+.home-poster-preview-pop-poster.mp-media-sensitive,
+.landing-pre-card-poster.mp-media-sensitive {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
 .mp-media-sensitive,
 .similar-rail-poster.mp-media-sensitive,
 .mp-seo-poster-card.mp-media-sensitive,
 .add-search-result-poster-wrap.mp-media-sensitive,
 .home-poster-tile-img.mp-media-sensitive,
-.film-card-v2-poster.mp-media-sensitive {
+.film-card-v2-poster.mp-media-sensitive,
+.home-pre-card-poster.mp-media-sensitive,
+.film-modal-poster-wrap.mp-media-sensitive,
+.home-poster-preview-pop-poster.mp-media-sensitive,
+.landing-pre-card-poster.mp-media-sensitive {
   position: relative;
   overflow: hidden;
   border-radius: inherit;
@@ -5492,7 +5506,13 @@ body.in-public-stats .header-search {
 .mp-seo-poster-card.mp-media-sensitive img,
 .add-search-result-poster-wrap.mp-media-sensitive img,
 .home-poster-tile-img.mp-media-sensitive img,
-.film-card-v2-poster.mp-media-sensitive img {
+.film-card-v2-poster.mp-media-sensitive img,
+.home-pre-card-poster.mp-media-sensitive img,
+.home-pre-card-poster.mp-media-sensitive .home-pre-card-poster-img,
+.film-modal-poster-wrap.mp-media-sensitive img,
+.home-poster-preview-pop-poster.mp-media-sensitive img,
+.landing-pre-card-poster.mp-media-sensitive img,
+.landing-pre-card-poster.mp-media-sensitive .landing-pre-card-poster-img {
   filter: blur(26px) saturate(0.65);
   transform: scale(1.12);
   transform-origin: center center;
@@ -5500,7 +5520,13 @@ body.in-public-stats .header-search {
 .mp-media-sensitive::after,
 .similar-rail-poster.mp-media-sensitive::after,
 .mp-seo-poster-card.mp-media-sensitive::after,
-.add-search-result-poster-wrap.mp-media-sensitive::after {
+.add-search-result-poster-wrap.mp-media-sensitive::after,
+.home-poster-tile-img.mp-media-sensitive::after,
+.film-card-v2-poster.mp-media-sensitive::after,
+.home-pre-card-poster.mp-media-sensitive::after,
+.film-modal-poster-wrap.mp-media-sensitive::after,
+.home-poster-preview-pop-poster.mp-media-sensitive::after,
+.landing-pre-card-poster.mp-media-sensitive::after {
   content: '18+';
   position: absolute;
   inset: 0;
