@@ -391,8 +391,14 @@
       }
     }
     if (hero && display !== MP_POSTER_PLACEHOLDER) {
-      const backdrop = filmBackdropCssValue(display);
-      if (backdrop) hero.style.setProperty('--film-backdrop', backdrop);
+      const boot = filmFromRouteBoot(kp);
+      const sensitive = boot && (boot.media_sensitive || String(boot.genres || '').toLowerCase().includes('для взрослых'));
+      if (!sensitive) {
+        const backdrop = filmBackdropCssValue(display);
+        if (backdrop) hero.style.setProperty('--film-backdrop', backdrop);
+      } else {
+        hero.style.setProperty('--film-backdrop', 'none');
+      }
     }
   }
 
@@ -16924,6 +16930,11 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
+    if (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) {
+      const t = String(film.title || 'Фильм').trim() || 'Фильм';
+      const y = film.year ? ` (${film.year})` : '';
+      return `${t}${y}. Картина каталога 18+. Описание сюжета на Movie Planner не публикуется.`;
+    }
     // Prefer KP `description` / plot (matches SSR boot). Do not pick a longer
     // conflicting TMDB overview_ru — that swapped the synopsis after first paint.
     const ordered = [
@@ -17329,7 +17340,9 @@
     if (descText) rememberFilmHeroDescription(film.kp_id, descText);
 
     content.className = 'movie-page';
-    const backdropCss = filmBackdropCssValue(poster);
+    const backdropCss = (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых'))
+      ? ''
+      : filmBackdropCssValue(poster);
     const isAuthedHero = !!getToken();
     const tagBtnHtml = isAuthedHero
       ? ('<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
@@ -17340,7 +17353,7 @@
       '<section class="hero film-hero-with-tag' + (isAuthedHero ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(String(film.kp_id || '')) + '"' +
         (backdropCss ? ' style="--film-backdrop:' + backdropCss + '"' : '') + '>' +
         tagBtnHtml +
-        '<div class="poster-wrap">' +
+        '<div class="poster-wrap' + ((film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) ? ' mp-media-sensitive' : '') + '">' +
           '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>' +
         '</div>' +
         '<div class="hero-content">' +
@@ -17368,6 +17381,14 @@
     } catch (_) {}
 
     mountFilmPageSimilarAsync(film.kp_id, content);
+
+    try {
+      if (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) {
+        document.body.classList.add('mp-film-media-sensitive');
+      } else {
+        document.body.classList.remove('mp-film-media-sensitive');
+      }
+    } catch (_) {}
 
     const descWrap = content.querySelector('#film-desc-wrap');
     if (descWrap) {
@@ -18018,8 +18039,9 @@
     const addBtn = inBase
       ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
       : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
+    const sensitiveCls = (it.media_sensitive || String(it.genres || '').toLowerCase().includes('для взрослых')) ? ' mp-media-sensitive' : '';
     return `<div class="add-search-result">
-      <div class="add-search-result-poster-wrap" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
+      <div class="add-search-result-poster-wrap${sensitiveCls}" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
         ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
         ${addBtn}
         <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title="Поделиться" aria-label="Поделиться">↗</button>

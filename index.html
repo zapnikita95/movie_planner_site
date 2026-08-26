@@ -51,8 +51,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260826takprodamFinite1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260826takprodamFinite1">
+    <link rel="preload" href="/style-v2.css?v=20260826adultBlur2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260826adultBlur2">
     <script>
       (function () {
         try {
@@ -609,7 +609,11 @@
             var poster = String(boot.poster_url || '').trim();
             var genres = String(boot.genres || '').trim();
             var country = String(boot.country || '').trim();
+            var isAdultBoot = !!(boot.media_sensitive || genres.toLowerCase().indexOf('для взрослых') >= 0);
             var desc = String(boot.description || '').trim();
+            if (isAdultBoot) {
+              desc = title + year + '. Картина каталога 18+. Описание сюжета на Movie Planner не публикуется.';
+            }
             var descHtml = '';
             if (desc) {
               var preview = desc.length > 220 ? desc.slice(0, 217).replace(/\s+\S*$/, '') + '…' : desc;
@@ -634,9 +638,13 @@
             var posterHtml = poster
               ? '<img class="poster" id="poster" src="' + esc(poster) + '" alt="Постер" decoding="async" referrerpolicy="no-referrer">'
               : '<div class="poster poster-empty" id="poster" aria-hidden="true">🎬</div>';
+            var sensCls = isAdultBoot ? ' mp-media-sensitive' : '';
+            if (sensCls) {
+              try { document.body.classList.add('mp-film-media-sensitive'); } catch (_) {}
+            }
             return (
               '<section class="hero film-hero-with-tag film-page--boot" data-kp-id="' + esc(boot.kp_id || '') + '">' +
-                '<div class="poster-wrap">' + posterHtml + '</div>' +
+                '<div class="poster-wrap' + sensCls + '">' + posterHtml + '</div>' +
                 '<div class="hero-content">' +
                   '<h1 id="film-title">' + esc(title + year) + '</h1>' +
                   '<div class="film-hero-meta-stack">' +
@@ -3706,7 +3714,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260826takprodamFinite1';
+        var V = '20260826adultBlur2';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
