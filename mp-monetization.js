@@ -653,32 +653,61 @@
     });
   }
 
-  /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 — native scroll, hover pauses auto only */
+  /* TAKPRODAM_FINITE1 — auto-loop only; hover/wheel/drag is a finite list */
   var _productScrollBound = typeof WeakSet === 'function' ? new WeakSet() : null;
+
+  function productLoopEl(track) {
+    return track && track.querySelector('.mp-product-loop');
+  }
+
+  function productFirstList(track) {
+    var loop = productLoopEl(track);
+    return (loop && loop.querySelector('.mp-product-list')) || (track && track.querySelector('.mp-product-list'));
+  }
+
+  function productFirstListHeight(track) {
+    var list = productFirstList(track);
+    return list ? list.offsetHeight : 0;
+  }
+
+  function stripProductDup(track) {
+    var loop = productLoopEl(track);
+    if (!loop) return;
+    var lists = loop.querySelectorAll('.mp-product-list');
+    if (lists.length < 2) return;
+    var half = lists[0].offsetHeight;
+    if (half > 8 && track.scrollTop >= half) track.scrollTop -= half;
+    for (var i = 1; i < lists.length; i++) lists[i].remove();
+  }
+
+  function ensureProductDup(track) {
+    if (!track || !track.classList.contains('is-looping')) return;
+    var loop = productLoopEl(track);
+    var list = productFirstList(track);
+    if (!loop || !list) return;
+    if (loop.querySelectorAll('.mp-product-list').length > 1) return;
+    var dup = list.cloneNode(true);
+    dup.setAttribute('aria-hidden', 'true');
+    loop.appendChild(dup);
+  }
+
+  function wrapProductAuto(track) {
+    var half = productFirstListHeight(track);
+    if (half <= 8) return;
+    if (track.scrollTop >= half) track.scrollTop -= half;
+  }
 
   function bindDesktopProductScroll(track) {
     if (!track || (_productScrollBound && _productScrollBound.has(track))) return;
     if (_productScrollBound) _productScrollBound.add(track);
     var lastTs = 0;
     var userUntil = 0;
-    function firstListHeight() {
-      var list = track.querySelector('.mp-product-list');
-      return list ? list.offsetHeight : 0;
-    }
-    function wrapForward() {
-      var half = firstListHeight();
-      if (half <= 8) return;
-      if (track.scrollTop >= half) track.scrollTop -= half;
-    }
     function onUser() {
-      userUntil = Date.now() + 600;
+      userUntil = Date.now() + 800;
+      stripProductDup(track);
     }
     track.addEventListener('wheel', onUser, { passive: true });
     track.addEventListener('pointerdown', onUser);
-    track.addEventListener('scroll', function () {
-      if (track._mpAutoScrolling) return;
-      wrapForward();
-    }, { passive: true });
     function tick(ts) {
       if (!track.isConnected) {
         if (_productScrollBound) _productScrollBound.delete(track);
@@ -686,20 +715,24 @@
       }
       requestAnimationFrame(tick);
       if (!track.classList.contains('is-looping')) {
+        stripProductDup(track);
         lastTs = ts;
         return;
       }
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        stripProductDup(track);
         lastTs = ts;
         return;
       }
       var hover = false;
       try { hover = track.matches(':hover'); } catch (_m) {}
       if (hover || track.classList.contains('is-adtune-open') || Date.now() < userUntil) {
+        stripProductDup(track);
         lastTs = ts;
         return;
       }
-      var half = firstListHeight();
+      ensureProductDup(track);
+      var half = productFirstListHeight(track);
       if (half <= 8) {
         lastTs = ts;
         return;
@@ -709,7 +742,7 @@
       lastTs = ts;
       track._mpAutoScrolling = true;
       track.scrollTop += Math.max(0.35, (half / (ms / 1000)) * dt);
-      wrapForward();
+      wrapProductAuto(track);
       track._mpAutoScrolling = false;
     }
     requestAnimationFrame(tick);
@@ -933,7 +966,7 @@
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     /* TAKPRODAM_ADTUNE */
     /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
-    /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 */
+    /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 TAKPRODAM_FINITE1 */
     mountProductShelf(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
