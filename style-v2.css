@@ -5474,6 +5474,86 @@ body.in-public-stats .header-search {
 .film-modal-content.loading { grid-template-columns: 1fr; text-align: center; color: #aaa; padding: 40px 0; }
 .film-modal-poster-wrap { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 2 / 3; background: #0a0818; }
 .film-modal-poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Adult catalog (KP «для взрослых»): soft blur + 18+ — RSYA-safe public display */
+.mp-media-sensitive,
+.similar-rail-poster.mp-media-sensitive,
+.mp-seo-poster-card.mp-media-sensitive,
+.add-search-result-poster-wrap.mp-media-sensitive,
+.home-poster-tile-img.mp-media-sensitive,
+.film-card-v2-poster.mp-media-sensitive {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.mp-media-sensitive > img,
+.mp-media-sensitive img.poster,
+.similar-rail-poster.mp-media-sensitive > img,
+.mp-seo-poster-card.mp-media-sensitive img,
+.add-search-result-poster-wrap.mp-media-sensitive img,
+.home-poster-tile-img.mp-media-sensitive img,
+.film-card-v2-poster.mp-media-sensitive img {
+  filter: blur(26px) saturate(0.65);
+  transform: scale(1.12);
+  transform-origin: center center;
+}
+.mp-media-sensitive::after,
+.similar-rail-poster.mp-media-sensitive::after,
+.mp-seo-poster-card.mp-media-sensitive::after,
+.add-search-result-poster-wrap.mp-media-sensitive::after {
+  content: '18+';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.85rem, 3.2vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+  background: rgba(9, 9, 11, 0.22);
+  pointer-events: none;
+  border-radius: inherit;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap {
+  position: relative;
+  overflow: hidden;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap::after {
+  content: '18+';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+  background: rgba(9, 9, 11, 0.2);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap .poster {
+  filter: blur(26px) saturate(0.65);
+  transform: scale(1.12);
+  transform-origin: center center;
+}
+body.mp-film-media-sensitive .film-hero-with-tag::before,
+body.mp-film-media-sensitive #section-film .hero::before,
+body.mp-film-media-sensitive main.film-page .hero::before {
+  background:
+    linear-gradient(90deg, rgba(7,7,17,.96) 0%, rgba(7,7,17,.84) 44%, rgba(7,7,17,.42) 100%),
+    none;
+}
+body.mp-film-media-sensitive .film-hero-with-tag,
+body.mp-film-media-sensitive #section-film .hero,
+body.mp-film-media-sensitive main.film-page .hero {
+  --film-backdrop: none;
+}
 .film-modal-poster-play {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.1));

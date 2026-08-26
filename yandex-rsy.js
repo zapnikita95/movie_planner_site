@@ -431,10 +431,14 @@
     }
   }
 
+  var _denyGenreSet = null;
+
   function fetchDenyList() {
     if (_denyKpMap) return Promise.resolve(_denyKpMap);
     if (_denyPromise) return _denyPromise;
-    _denyPromise = fetch('/api/public/monetization/config', { credentials: 'omit' })
+    var kpOnPath = kpFromFilmPath(String(global.location && global.location.pathname || ''));
+    var cfgUrl = '/api/public/monetization/config' + (kpOnPath ? ('?kp_id=' + encodeURIComponent(kpOnPath)) : '');
+    _denyPromise = fetch(cfgUrl, { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (d) {
         _denyKpMap = Object.create(null);
@@ -444,6 +448,13 @@
           var kp = String(id || '').replace(/\D/g, '');
           if (kp) _denyKpMap[kp] = true;
         });
+        _denyGenreSet = Object.create(null);
+        var genres = (d && d.film_ads_deny_genres) || [];
+        genres.forEach(function (g) {
+          var key = String(g || '').trim().toLowerCase();
+          if (key) _denyGenreSet[key] = true;
+        });
+        if (d && d.film_ads_denied && kpOnPath) _denyKpMap[kpOnPath] = true;
         return _denyKpMap;
       })
       .catch(function () {
@@ -455,7 +466,32 @@
 
   function filmAdsBlocked(kp) {
     if (!kp) return false;
+    try {
+      var el = document.getElementById('mp-route-boot');
+      if (el) {
+        var boot = JSON.parse(el.textContent || '');
+        if (boot && boot.type === 'film' && (boot.media_sensitive || String(boot.genres || '').toLowerCase().indexOf('для взрослых') >= 0)) {
+          return true;
+        }
+      }
+    } catch (_boot) {}
     if (_denyKpMap && _denyKpMap[String(kp)]) return true;
+    try {
+      if (_denyGenreSet) {
+        var el2 = document.getElementById('mp-route-boot');
+        if (el2) {
+          var boot2 = JSON.parse(el2.textContent || '');
+          var g2 = String((boot2 && boot2.genres) || '').toLowerCase();
+          if (g2) {
+            var parts = g2.split(/[,;]+/);
+            for (var gi = 0; gi < parts.length; gi++) {
+              var tok = String(parts[gi] || '').trim().toLowerCase();
+              if (tok && _denyGenreSet[tok]) return true;
+            }
+          }
+        }
+      }
+    } catch (_g) {}
     return false;
   }
 
