@@ -111,4 +111,16 @@
     track: trackFilmOutbound,
     bind: bindFilmOutboundLinks,
   };
+
+  global.MpAdultMedia = {
+    isSensitive: function (item) {
+      if (!item) return false;
+      if (item.media_sensitive) return true;
+      var g = String(item.genres || '').toLowerCase();
+      return g.indexOf('для взрослых') >= 0;
+    },
+    posterClass: function (item) {
+      return global.MpAdultMedia.isSensitive(item) ? ' mp-media-sensitive' : '';
+    },
+  };
 })(typeof window !== 'undefined' ? window : this);

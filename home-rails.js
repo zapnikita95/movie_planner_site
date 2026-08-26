@@ -239,10 +239,11 @@
     var ratedCls = opts.rated ? " home-poster-tile--rated" : "";
     var kpNav = m.kp_id != null ? String(m.kp_id).replace(/\D/g, "") : "";
     var hrefAttr = kpNav ? (' href="/f/' + encodeURIComponent(kpNav) + '"') : "";
+    var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(m)) || "";
     return (
       '<div class="home-poster-tile-wrap">' +
       '<a class="home-poster-tile' + ratedCls + '"' + hrefAttr + ' role="listitem"' + siteFilmAttrs(m) + ">" +
-      '<div class="home-poster-tile-img">' + img + rating + "</div>" +
+      '<div class="home-poster-tile-img' + sensCls + '">' + img + rating + "</div>" +
       '<div class="home-poster-tile-title">' + esc(m.title || "") + "</div>" +
       '<div class="home-poster-tile-year">' + (m.year ? esc(String(m.year)) : "—") + "</div>" +
       "</a></div>"
@@ -299,9 +300,10 @@
       ? '<span class="premiere-poster-date-pill">' + esc(datePill) + "</span>"
       : "";
     var attrs = siteFilmAttrs(p);
+    var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(p)) || "";
     return (
       '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
-      '<div class="home-pre-card-poster premiere-poster-media">' +
+      '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">' +
       img + datePillHtml +
       (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
