@@ -12734,6 +12734,165 @@ main.film-page .film-hero-crew {
 .film-toolbar-plan-wrap .action-dropdown-caret {
   margin-left: 4px;
 }
+
+/* T-Афиша: desktop toolbar grid (без наезда на watchlist) + mobile poster overlay */
+.film-toolbar-plan-wrap:has(.film-t-afisha-btn) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  max-width: min(100%, 520px);
+  margin: 0 auto;
+}
+.film-t-afisha-btn,
+.film-poster-t-afisha-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 4px 8px 4px 4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary, #f4f4f5);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-decoration: none;
+  box-shadow: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  opacity: 0.92;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.film-t-afisha-btn {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+  z-index: 4;
+  max-width: 104px;
+  overflow: hidden;
+}
+.film-t-afisha-btn:hover,
+.film-poster-t-afisha-cta:hover {
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+  color: #fff;
+}
+.film-t-afisha-btn:focus-visible,
+.film-poster-t-afisha-cta:focus-visible {
+  outline: 2px solid var(--focus-ring-soft, rgba(255, 221, 45, 0.55));
+  outline-offset: 2px;
+}
+.film-t-afisha-btn__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  border-radius: 7px;
+  background: #ffdd2d;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.film-t-afisha-btn__icon img {
+  display: block;
+  width: 18px;
+  height: auto;
+}
+.film-t-afisha-btn__label {
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 860px) {
+  .film-toolbar-plan-wrap .film-t-afisha-btn {
+    display: none !important;
+  }
+}
+.film-poster-t-afisha-cta {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: 10px;
+  z-index: 5;
+}
+@media (min-width: 861px) {
+  .film-poster-t-afisha-cta {
+    display: none !important;
+  }
+}
+@media (max-width: 520px) {
+  .film-poster-t-afisha-cta {
+    min-height: 38px;
+    border-radius: 11px;
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__icon {
+    width: 26px;
+    height: 30px;
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__icon img {
+    width: 16px;
+  }
+}
+
+/* App promo dialogs (T-Афишa + cinema plan) */
+.mp-app-promo-card {
+  text-align: left;
+  max-width: 360px;
+  padding-top: 24px;
+}
+.mp-app-promo-title {
+  margin: 0 28px 10px 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-primary, #f4f4f5);
+}
+.mp-app-promo-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-body, #e4e4ec);
+}
+.mp-app-promo-download {
+  margin: 0 0 14px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.mp-app-promo-download__label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #f4f4f5);
+}
+.mp-app-promo-stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.mp-app-promo-stores--android,
+.mp-app-promo-stores--all {
+  justify-content: flex-start;
+}
+.mp-app-promo-stores__badge {
+  display: inline-flex;
+  line-height: 0;
+  text-decoration: none;
+}
+.mp-app-promo-stores__badge img {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 130px;
+}
+.mp-app-promo-ok {
+  margin-top: 4px;
+}
+
 main.film-page .hero-content,
 #section-film .hero-content,
 main.film-page .film-page-toolbar,
