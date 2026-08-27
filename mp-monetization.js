@@ -385,10 +385,18 @@
           }
         }
         if (!partner || !partner.url) return;
-        pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) {
-          el.remove();
-        });
-        mountPosterTafishaCta(pageRoot, partner, kpId);
+        if (isMobileFilmLayout()) {
+          pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) {
+            el.remove();
+          });
+          mountPosterTafishaCta(pageRoot, partner, kpId);
+        } else {
+          pageRoot.querySelectorAll('.film-poster-t-afisha-cta').forEach(function (el) {
+            el.remove();
+          });
+          var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
+          if (planWrap) mountToolbarTafishaBtn(planWrap, partner, kpId);
+        }
       })
       .catch(function () {});
   }
