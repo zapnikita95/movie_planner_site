@@ -385,12 +385,10 @@
           }
         }
         if (!partner || !partner.url) return;
-        if (isMobileFilmLayout()) {
-          mountPosterTafishaCta(pageRoot, partner, kpId);
-        } else {
-          var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
-          if (planWrap) mountToolbarTafishaBtn(planWrap, partner, kpId);
-        }
+        pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) {
+          el.remove();
+        });
+        mountPosterTafishaCta(pageRoot, partner, kpId);
       })
       .catch(function () {});
   }
@@ -479,6 +477,7 @@
     if (!scope) return;
     scope.querySelectorAll('.film-poster-2sub-cta').forEach(function (el) { el.remove(); });
     scope.querySelectorAll('.film-poster-t-afisha-cta').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) { el.remove(); });
   }
 
   function mountPoster2subCta(pageRoot, partner, kpId) {

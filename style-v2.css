@@ -12764,17 +12764,12 @@ main.film-page .film-hero-crew {
   margin-left: 4px;
 }
 
-/* T-Афиша: desktop toolbar grid (без наезда на watchlist) + mobile poster overlay */
-.film-toolbar-plan-wrap:has(.film-t-afisha-btn) {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  max-width: min(100%, 520px);
-  margin: 0 auto;
-}
-.film-t-afisha-btn,
+/* T-Афиша: только оверлей на постере — toolbar «В список» не трогаем */
 .film-poster-t-afisha-cta {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: 10px;
+  z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -12796,15 +12791,6 @@ main.film-page .film-hero-crew {
   opacity: 0.92;
   transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
 }
-.film-t-afisha-btn {
-  position: static;
-  transform: none;
-  flex-shrink: 0;
-  z-index: 4;
-  max-width: 104px;
-  overflow: hidden;
-}
-.film-t-afisha-btn:hover,
 .film-poster-t-afisha-cta:hover {
   background: rgba(19, 19, 24, 0.88);
   border-color: rgba(255, 255, 255, 0.2);
@@ -12812,7 +12798,6 @@ main.film-page .film-hero-crew {
   color: #fff;
   text-decoration: none !important;
 }
-.film-t-afisha-btn:focus-visible,
 .film-poster-t-afisha-cta:focus-visible {
   outline: 2px solid var(--focus-ring-soft, rgba(255, 221, 45, 0.55));
   outline-offset: 2px;
@@ -12840,22 +12825,6 @@ main.film-page .film-hero-crew {
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none !important;
-}
-@media (max-width: 860px) {
-  .film-toolbar-plan-wrap .film-t-afisha-btn {
-    display: none !important;
-  }
-}
-.film-poster-t-afisha-cta {
-  position: absolute;
-  right: max(10px, env(safe-area-inset-right, 0px));
-  bottom: 10px;
-  z-index: 5;
-}
-@media (min-width: 861px) {
-  .film-poster-t-afisha-cta {
-    display: none !important;
-  }
 }
 @media (max-width: 520px) {
   .film-poster-t-afisha-cta {
