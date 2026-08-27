@@ -3714,7 +3714,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260826adultBlur3';
+        var V = '20260827filmLoginModal1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3961,16 +3961,32 @@
 
       startTaglineRotation();
 
-      function openCabinet() {
-        window.open('https://movie-planner.ru/?open_login=1', '_blank', 'noopener');
-      }
-      document.querySelectorAll('[data-demo-login], [data-action="login"]').forEach(function (node) {
-        node.addEventListener('click', function (e) {
+      function openCabinetLogin(e) {
+        if (e) {
           e.preventDefault();
           e.stopPropagation();
-          openCabinet();
+        }
+        if (window.MpPublicFilmLogin && typeof window.MpPublicFilmLogin.open === 'function') {
+          window.MpPublicFilmLogin.open('');
+          return;
+        }
+        if (typeof window.showLoginModalOverlay === 'function') {
+          window.showLoginModalOverlay();
+          return;
+        }
+        var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (/^\/f\//i.test(path) || /^\/s\//i.test(path)) return;
+        try { window.location.href = '/?open_login=1'; } catch (_e) {}
+      }
+      (function bindLandingLoginButtons() {
+        var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (/^\/f\//i.test(path) || /^\/s\//i.test(path)) return;
+        document.querySelectorAll('[data-demo-login], [data-action="login"]').forEach(function (node) {
+          if (node.dataset.mpLandingLoginBound) return;
+          node.dataset.mpLandingLoginBound = '1';
+          node.addEventListener('click', openCabinetLogin);
         });
-      });
+      })();
 
       (function setupExtensionLinks() {
         var chrome = document.getElementById('landing-ext-chrome');

@@ -1033,6 +1033,7 @@
       var loginBtn = target.closest('[data-action="login"]');
       if (loginBtn) {
         ev.preventDefault();
+        ev.stopPropagation();
         open('', 'login');
       }
     }, true);
