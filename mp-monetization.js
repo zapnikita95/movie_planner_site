@@ -285,6 +285,128 @@
     }
   }
 
+  function ticketPartnerLogoUrl() {
+    return '/images/partners/tbank-afisha-t.svg';
+  }
+
+  function isMobileFilmLayout() {
+    try {
+      return window.matchMedia('(max-width: 860px)').matches;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function buildTafishaBtnHtml() {
+    return (
+      '<span class="film-t-afisha-btn__icon" aria-hidden="true">' +
+        '<img src="' + ticketPartnerLogoUrl() + '" alt="" width="18" height="22" decoding="async" />' +
+      '</span>' +
+      '<span class="film-t-afisha-btn__label">Билеты</span>'
+    );
+  }
+
+  function bindTafishaClick(a, partner, kpId, surface) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      trackStreamPartnerClick(partner, kpId, surface);
+      var url = partner && partner.url;
+      if (url) {
+        try {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        } catch (_o) {
+          window.location.href = url;
+        }
+      }
+      try {
+        if (global.MpAppPromoDialog && typeof global.MpAppPromoDialog.showTafishaTicketHint === 'function') {
+          global.MpAppPromoDialog.showTafishaTicketHint();
+        }
+      } catch (_d) {}
+    });
+  }
+
+  function mountPosterTafishaCta(pageRoot, partner, kpId) {
+    if (!pageRoot || !partner || !partner.url) return;
+    var wrap = pageRoot.querySelector('.poster-wrap');
+    if (!wrap || wrap.querySelector('.film-poster-t-afisha-cta')) return;
+
+    var a = document.createElement('a');
+    a.className = 'film-poster-t-afisha-cta';
+    a.href = partner.url;
+    a.setAttribute('role', 'button');
+    a.setAttribute('data-partner', 't_afisha');
+    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.setAttribute('aria-label', 'Билеты на T-Афише');
+    a.innerHTML = buildTafishaBtnHtml();
+    bindTafishaClick(a, partner, kpId, 'poster_overlay_tickets');
+    wrap.appendChild(a);
+    metrikaGoal('stream_block_view', {
+      kp_id: String(kpId || ''),
+      count: '1',
+      surface: 'poster_overlay_tickets',
+      partners: 't_afisha',
+      placement: 'film_poster',
+    });
+  }
+
+  function mountToolbarTafishaBtn(planWrap, partner, kpId) {
+    if (!planWrap || !partner || !partner.url || planWrap.querySelector('.film-t-afisha-btn')) return;
+
+    var a = document.createElement('a');
+    a.className = 'film-t-afisha-btn';
+    a.href = partner.url;
+    a.setAttribute('role', 'button');
+    a.setAttribute('data-partner', 't_afisha');
+    a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
+    a.setAttribute('aria-label', 'Билеты на T-Афише');
+    a.innerHTML = buildTafishaBtnHtml();
+    bindTafishaClick(a, partner, kpId, 'film_toolbar_tickets');
+    planWrap.insertBefore(a, planWrap.firstChild);
+    metrikaGoal('stream_block_view', {
+      kp_id: String(kpId || ''),
+      count: '1',
+      surface: 'film_toolbar_tickets',
+      partners: 't_afisha',
+      placement: 'film_toolbar',
+    });
+  }
+
+  function mountTicketPartnerButton(pageRoot, kpId, opts) {
+    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
+    opts = opts || {};
+    if (opts.isSeries) return Promise.resolve();
+
+    var city = (opts.city || 'moscow').toLowerCase();
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/ticket-partners?city=' + encodeURIComponent(city);
+    return fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var partners = (data && data.partners) || [];
+        var partner = null;
+        for (var i = 0; i < partners.length; i++) {
+          if (partners[i] && partners[i].key === 't_afisha' && partners[i].url) {
+            partner = partners[i];
+            break;
+          }
+        }
+        if (!partner || !partner.url) return;
+        if (isMobileFilmLayout()) {
+          pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) {
+            el.remove();
+          });
+          mountPosterTafishaCta(pageRoot, partner, kpId);
+        } else {
+          pageRoot.querySelectorAll('.film-poster-t-afisha-cta').forEach(function (el) {
+            el.remove();
+          });
+          var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
+          if (planWrap) mountToolbarTafishaBtn(planWrap, partner, kpId);
+        }
+      })
+      .catch(function () {});
+  }
+
   function bindPartnerIconClick(a, partner, kpId, surface) {
     a.addEventListener('click', function () {
       trackStreamPartnerClick(partner, kpId, surface);
@@ -373,13 +495,15 @@
   function removePosterPartnerCtas(scope) {
     if (!scope) return;
     scope.querySelectorAll('.film-poster-2sub-cta').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-poster-t-afisha-cta').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) { el.remove(); });
   }
 
   function mountPoster2subCta(pageRoot, partner, kpId) {
     if (!pageRoot || !partner || partner.key !== '2sub' || !partner.url) return;
     var wrap = pageRoot.querySelector('.poster-wrap');
     if (!wrap) return;
-    removePosterPartnerCtas(pageRoot);
+    wrap.querySelectorAll('.film-poster-2sub-cta').forEach(function (el) { el.remove(); });
     var a = document.createElement('a');
     a.className = 'film-poster-2sub-cta';
     a.href = partner.url;
@@ -1124,6 +1248,7 @@
       });
     } catch (_rm) {}
     mountPartnerWatchPills(pageRoot, kpId).then(function () {
+      mountTicketPartnerButton(pageRoot, kpId, { isSeries: isSeries, city: 'moscow' });
       // Never show email "notify when online" for movies — empty watch-partners
       // is normal for theatrical releases; the prompt looked broken (guest Win).
       // Series keep the new-episode alert when no partner CTA is present.

@@ -845,6 +845,13 @@
             .then(function (res) {
               close();
               onToast(isCinema ? 'План в кино сохранён' : 'План дома сохранён');
+              if (isCinema) {
+                try {
+                  if (global.MpAppPromoDialog && typeof global.MpAppPromoDialog.showCinemaPlanAppHint === 'function') {
+                    global.MpAppPromoDialog.showCinemaPlanAppHint();
+                  }
+                } catch (_promo) {}
+              }
               onSuccess(res);
             })
             .catch(function (e) {

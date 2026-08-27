@@ -5474,6 +5474,112 @@ body.in-public-stats .header-search {
 .film-modal-content.loading { grid-template-columns: 1fr; text-align: center; color: #aaa; padding: 40px 0; }
 .film-modal-poster-wrap { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 2 / 3; background: #0a0818; }
 .film-modal-poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Adult catalog (KP «для взрослых»): soft blur + 18+ — RSYA-safe public display */
+.home-poster-tile-img.mp-media-sensitive,
+.film-card-v2-poster.mp-media-sensitive,
+.home-pre-card-poster.mp-media-sensitive,
+.film-modal-poster-wrap.mp-media-sensitive,
+.home-poster-preview-pop-poster.mp-media-sensitive,
+.landing-pre-card-poster.mp-media-sensitive {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.mp-media-sensitive,
+.similar-rail-poster.mp-media-sensitive,
+.mp-seo-poster-card.mp-media-sensitive,
+.add-search-result-poster-wrap.mp-media-sensitive,
+.home-poster-tile-img.mp-media-sensitive,
+.film-card-v2-poster.mp-media-sensitive,
+.home-pre-card-poster.mp-media-sensitive,
+.film-modal-poster-wrap.mp-media-sensitive,
+.home-poster-preview-pop-poster.mp-media-sensitive,
+.landing-pre-card-poster.mp-media-sensitive {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.mp-media-sensitive > img,
+.mp-media-sensitive img.poster,
+.similar-rail-poster.mp-media-sensitive > img,
+.mp-seo-poster-card.mp-media-sensitive img,
+.add-search-result-poster-wrap.mp-media-sensitive img,
+.home-poster-tile-img.mp-media-sensitive img,
+.film-card-v2-poster.mp-media-sensitive img,
+.home-pre-card-poster.mp-media-sensitive img,
+.home-pre-card-poster.mp-media-sensitive .home-pre-card-poster-img,
+.film-modal-poster-wrap.mp-media-sensitive img,
+.home-poster-preview-pop-poster.mp-media-sensitive img,
+.landing-pre-card-poster.mp-media-sensitive img,
+.landing-pre-card-poster.mp-media-sensitive .landing-pre-card-poster-img {
+  filter: blur(26px) saturate(0.65);
+  transform: scale(1.12);
+  transform-origin: center center;
+}
+.mp-media-sensitive::after,
+.similar-rail-poster.mp-media-sensitive::after,
+.mp-seo-poster-card.mp-media-sensitive::after,
+.add-search-result-poster-wrap.mp-media-sensitive::after,
+.home-poster-tile-img.mp-media-sensitive::after,
+.film-card-v2-poster.mp-media-sensitive::after,
+.home-pre-card-poster.mp-media-sensitive::after,
+.film-modal-poster-wrap.mp-media-sensitive::after,
+.home-poster-preview-pop-poster.mp-media-sensitive::after,
+.landing-pre-card-poster.mp-media-sensitive::after {
+  content: '18+';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.85rem, 3.2vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+  background: rgba(9, 9, 11, 0.22);
+  pointer-events: none;
+  border-radius: inherit;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap {
+  position: relative;
+  overflow: hidden;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap::after {
+  content: '18+';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+  background: rgba(9, 9, 11, 0.2);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
+}
+body.mp-film-media-sensitive .film-hero-with-tag .poster-wrap .poster {
+  filter: blur(26px) saturate(0.65);
+  transform: scale(1.12);
+  transform-origin: center center;
+}
+body.mp-film-media-sensitive .film-hero-with-tag::before,
+body.mp-film-media-sensitive #section-film .hero::before,
+body.mp-film-media-sensitive main.film-page .hero::before {
+  background:
+    linear-gradient(90deg, rgba(7,7,17,.96) 0%, rgba(7,7,17,.84) 44%, rgba(7,7,17,.42) 100%),
+    none;
+}
+body.mp-film-media-sensitive .film-hero-with-tag,
+body.mp-film-media-sensitive #section-film .hero,
+body.mp-film-media-sensitive main.film-page .hero {
+  --film-backdrop: none;
+}
 .film-modal-poster-play {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.1));
@@ -11175,7 +11281,27 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card,
 #section-film a.similar-rail-card,
 #film-page-content a.staff-cast-link,
 #film-page-content a.similar-rail-card,
-#staff-roles-root a.staff-film-card {
+#staff-roles-root a.staff-film-card,
+.cabinet a.film-t-afisha-btn,
+.cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-2sub-cta,
+.cabinet a.film-partner-watch__icon,
+.cabinet a.mp-stream-btn,
+#section-film a.film-t-afisha-btn,
+#section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-2sub-cta,
+#section-film a.film-partner-watch__icon,
+#section-film a.mp-stream-btn,
+#film-page-content a.film-t-afisha-btn,
+#film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-2sub-cta,
+#film-page-content a.film-partner-watch__icon,
+#film-page-content a.mp-stream-btn,
+body.film-standalone-page .cabinet a.film-t-afisha-btn,
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta,
+body.film-standalone-page .cabinet a.film-partner-watch__icon,
+body.film-standalone-page .cabinet a.mp-stream-btn {
   color: inherit;
   text-decoration: none !important;
   text-underline-offset: 0;
@@ -11204,6 +11330,51 @@ body.staff-standalone-page .cabinet a.staff-film-card .staff-film-year,
 body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
 #staff-roles-root a.staff-film-card .staff-film-year {
   color: #b4b4be;
+  text-decoration: none !important;
+}
+.cabinet a.film-t-afisha-btn,
+.cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-2sub-cta,
+.cabinet a.film-partner-watch__icon,
+.cabinet a.mp-stream-btn,
+#section-film a.film-t-afisha-btn,
+#section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-2sub-cta,
+#section-film a.film-partner-watch__icon,
+#section-film a.mp-stream-btn,
+#film-page-content a.film-t-afisha-btn,
+#film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-2sub-cta,
+#film-page-content a.film-partner-watch__icon,
+#film-page-content a.mp-stream-btn,
+body.film-standalone-page .cabinet a.film-t-afisha-btn,
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta,
+body.film-standalone-page .cabinet a.film-partner-watch__icon,
+body.film-standalone-page .cabinet a.mp-stream-btn {
+  color: var(--text-primary, #f4f4f5);
+}
+.cabinet a.film-t-afisha-btn:hover,
+.cabinet a.film-poster-t-afisha-cta:hover,
+.cabinet a.film-poster-2sub-cta:hover,
+.cabinet a.film-partner-watch__icon:hover,
+.cabinet a.mp-stream-btn:hover,
+#section-film a.film-t-afisha-btn:hover,
+#section-film a.film-poster-t-afisha-cta:hover,
+#section-film a.film-poster-2sub-cta:hover,
+#section-film a.film-partner-watch__icon:hover,
+#section-film a.mp-stream-btn:hover,
+#film-page-content a.film-t-afisha-btn:hover,
+#film-page-content a.film-poster-t-afisha-cta:hover,
+#film-page-content a.film-poster-2sub-cta:hover,
+#film-page-content a.film-partner-watch__icon:hover,
+#film-page-content a.mp-stream-btn:hover,
+body.film-standalone-page .cabinet a.film-t-afisha-btn:hover,
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta:hover,
+body.film-standalone-page .cabinet a.film-partner-watch__icon:hover,
+body.film-standalone-page .cabinet a.mp-stream-btn:hover {
+  color: #fff;
   text-decoration: none !important;
 }
 /* Глобальный section-стиль landing не должен сжимать секции кабинета */
@@ -12598,6 +12769,7 @@ main.film-page .film-hero-crew {
   overflow: visible;
 }
 .film-toolbar-plan-wrap {
+  position: relative;
   display: flex;
   justify-content: center;
   width: 100%;
@@ -12628,6 +12800,164 @@ main.film-page .film-hero-crew {
 .film-toolbar-plan-wrap .action-dropdown-caret {
   margin-left: 4px;
 }
+
+/* T-Афиша: desktop — слева от CTA (absolute, CTA не двигается); mobile — оверлей на постере */
+.film-t-afisha-btn,
+.film-poster-t-afisha-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(9, 9, 11, 0.62);
+  color: var(--text-primary, #f4f4f5);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.1;
+  text-decoration: none !important;
+  box-shadow: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  opacity: 0.92;
+  transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+.film-t-afisha-btn:hover,
+.film-poster-t-afisha-cta:hover {
+  background: rgba(19, 19, 24, 0.88);
+  border-color: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+  color: #fff;
+  text-decoration: none !important;
+}
+.film-t-afisha-btn:focus-visible,
+.film-poster-t-afisha-cta:focus-visible {
+  outline: 2px solid var(--focus-ring-soft, rgba(255, 221, 45, 0.55));
+  outline-offset: 2px;
+}
+@media (min-width: 861px) {
+  .film-toolbar-plan-wrap > .film-t-afisha-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: calc(50% + min(260px, 50%) + 8px);
+    z-index: 4;
+    max-width: 104px;
+    overflow: hidden;
+  }
+  .film-poster-t-afisha-cta {
+    display: none !important;
+  }
+}
+@media (max-width: 860px) {
+  .film-toolbar-plan-wrap > .film-t-afisha-btn {
+    display: none !important;
+  }
+}
+.film-poster-t-afisha-cta {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: 10px;
+  z-index: 5;
+}
+.film-t-afisha-btn__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  border-radius: 7px;
+  background: #ffdd2d;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.film-t-afisha-btn__icon img {
+  display: block;
+  width: 18px;
+  height: auto;
+}
+.film-t-afisha-btn__label {
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none !important;
+}
+@media (max-width: 520px) {
+  .film-poster-t-afisha-cta {
+    min-height: 38px;
+    border-radius: 11px;
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__icon {
+    width: 26px;
+    height: 30px;
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__icon img {
+    width: 16px;
+  }
+}
+
+/* App promo dialogs (T-Афишa + cinema plan) */
+.mp-app-promo-card {
+  text-align: left;
+  max-width: 360px;
+  padding-top: 24px;
+}
+.mp-app-promo-title {
+  margin: 0 28px 10px 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-primary, #f4f4f5);
+}
+.mp-app-promo-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-body, #e4e4ec);
+}
+.mp-app-promo-download {
+  margin: 0 0 14px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.mp-app-promo-download__label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #f4f4f5);
+}
+.mp-app-promo-stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.mp-app-promo-stores--android,
+.mp-app-promo-stores--all {
+  justify-content: flex-start;
+}
+.mp-app-promo-stores__badge {
+  display: inline-flex;
+  line-height: 0;
+  text-decoration: none;
+}
+.mp-app-promo-stores__badge img {
+  display: block;
+  height: 36px;
+  width: auto;
+  max-width: 130px;
+}
+.mp-app-promo-ok {
+  margin-top: 4px;
+}
+
 main.film-page .hero-content,
 #section-film .hero-content,
 main.film-page .film-page-toolbar,
@@ -25684,13 +26014,14 @@ body.staff-standalone-page .staff-awards-loading {
   background: rgba(9, 9, 11, 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  text-decoration: none;
+  text-decoration: none !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
 }
 .film-poster-2sub-cta:hover {
   background: rgba(18, 18, 24, 0.9);
   border-color: rgba(255, 255, 255, 0.22);
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta:focus-visible {
   outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
@@ -25703,7 +26034,7 @@ body.staff-standalone-page .staff-awards-loading {
   line-height: 1.2;
   color: var(--text-body, #e4e4ec);
   text-align: right;
-  text-decoration: none;
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta__brand {
   display: inline-flex;
@@ -25716,6 +26047,7 @@ body.staff-standalone-page .staff-awards-loading {
   font-weight: 600;
   color: var(--text-muted, #b4b4be);
   line-height: 1;
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta .film-partner-watch__logo {
   max-height: 18px;

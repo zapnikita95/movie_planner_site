@@ -601,9 +601,10 @@
         : '';
       var em = s.is_series ? '📺 ' : '🎬 ';
       var href = s.kp_id ? ('/f/' + encodeURIComponent(String(s.kp_id))) : '#';
+      var sensCls = filmMediaSensitive(s) ? ' mp-media-sensitive' : '';
       return (
         '<a href="' + href + '" class="similar-rail-card" data-similar-kp="' + filmSimilarEscape(String(s.kp_id || '')) + '" title="' + filmSimilarEscape(title) + '" role="listitem">' +
-          '<div class="similar-rail-poster">' + img + reasonPill + inBase + '</div>' +
+          '<div class="similar-rail-poster' + sensCls + '">' + img + reasonPill + inBase + '</div>' +
           '<div class="similar-rail-title">' + em + filmSimilarEscape(title) + '</div>' +
         '</a>'
       );
@@ -851,6 +852,15 @@
   }
 
   function setFilmHeroBackdrop(posterUrl, kpId) {
+    try {
+      var boot = readMpRouteBoot();
+      if (boot && filmMediaSensitive(boot)) {
+        var heroSkip = document.querySelector('.film-hero-with-tag, main.film-page .hero, #section-film .hero');
+        if (heroSkip) heroSkip.style.setProperty('--film-backdrop', 'none');
+        document.documentElement.style.setProperty('--film-backdrop', 'none');
+        return;
+      }
+    } catch (_s) {}
     var display = resolveFilmPosterDisplay(posterUrl, kpId);
     if (display === MP_POSTER_PLACEHOLDER && isGoodFilmPosterUrl(currentFilmPosterFromDom())) {
       display = currentFilmPosterFromDom();
@@ -971,6 +981,11 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
+    if (filmMediaSensitive(film)) {
+      var t = String(film.title || 'Фильм').trim() || 'Фильм';
+      var y = film.year ? ' (' + film.year + ')' : '';
+      return t + y + '. Картина каталога 18+. Описание сюжета на Movie Planner не публикуется.';
+    }
     // Same order as SSR boot (`description`/`plot` first). Do NOT prefer a longer
     // TMDB overview_ru — that swapped the plot under the user's eyes after paint.
     var ordered = [
@@ -3163,7 +3178,26 @@
     }
   }
 
-  function buildFilmMainInnerHtml(kpId, poster) {
+  function filmMediaSensitive(source) {
+    if (!source) return false;
+    if (source.media_sensitive) return true;
+    var g = String(source.genres || '').toLowerCase();
+    return g.indexOf('для взрослых') >= 0;
+  }
+
+  function applyFilmMediaSensitive(root, sensitive) {
+    sensitive = !!sensitive;
+    try {
+      if (document.body) document.body.classList.toggle('mp-film-media-sensitive', sensitive);
+    } catch (_b) {}
+    if (!root) return;
+    root.classList.toggle('mp-film-media-sensitive', sensitive);
+    root.querySelectorAll('.poster-wrap').forEach(function (wrap) {
+      wrap.classList.toggle('mp-media-sensitive', sensitive);
+    });
+  }
+
+  function buildFilmMainInnerHtml(kpId, poster, mediaSensitive) {
     var kpNumeric = numericKpFilmId(kpId);
     var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
@@ -3174,10 +3208,11 @@
           (global.MPIcons ? global.MPIcons.html('bookmark', { className: 'film-hero-tag-ico', weight: 'fill' }) : '<span data-tag-emoji>🔖</span>') +
         '</button>')
       : '';
+    var sensitiveCls = mediaSensitive ? ' mp-media-sensitive' : '';
     return (
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
-        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="film-hero-meta-stack">' +
@@ -3279,7 +3314,8 @@
       ? (meta.catalogId || key)
       : (bootKp || keyDigits);
     pageRoot.className = 'movie-page';
-    pageRoot.innerHTML = buildFilmMainInnerHtml(heroKey, bootPoster);
+    pageRoot.innerHTML = buildFilmMainInnerHtml(heroKey, bootPoster, filmMediaSensitive(boot));
+    applyFilmMediaSensitive(pageRoot, filmMediaSensitive(boot));
     setFilmHeroBackdrop(bootPoster, heroKey);
     var titleEl = document.getElementById('film-title');
     if (titleEl) titleEl.textContent = title;
@@ -4222,6 +4258,7 @@
           }
           syncFilmHeroMeta(document, f);
           syncFilmExtRatings(document, f);
+          applyFilmMediaSensitive(document.querySelector('.film-page') || document.getElementById('film-page-content') || document, filmMediaSensitive(f));
 
           if (f.is_series) {
             try { global.__mpFilmPageSeriesKp = pathKey; } catch (_e) {}

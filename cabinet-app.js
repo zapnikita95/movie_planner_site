@@ -391,8 +391,14 @@
       }
     }
     if (hero && display !== MP_POSTER_PLACEHOLDER) {
-      const backdrop = filmBackdropCssValue(display);
-      if (backdrop) hero.style.setProperty('--film-backdrop', backdrop);
+      const boot = filmFromRouteBoot(kp);
+      const sensitive = boot && (boot.media_sensitive || String(boot.genres || '').toLowerCase().includes('для взрослых'));
+      if (!sensitive) {
+        const backdrop = filmBackdropCssValue(display);
+        if (backdrop) hero.style.setProperty('--film-backdrop', backdrop);
+      } else {
+        hero.style.setProperty('--film-backdrop', 'none');
+      }
     }
   }
 
@@ -10292,7 +10298,8 @@
     const poster = meta.poster || '';
     const desc = shortPremiereDescription(meta.description || '', 220);
     const chips = homePosterPreviewChipsHtml(meta);
-    return '<div class="home-poster-preview-pop-poster">'
+    const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(meta)) || '';
+    return '<div class="home-poster-preview-pop-poster' + sensCls + '">'
       + (poster
         ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
         : ('<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" class="mp-poster-placeholder" loading="lazy">'))
@@ -10748,9 +10755,10 @@
         rating_kp: m.rating_kp,
       };
       const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
+      const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || '';
       return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
         + '<a' + hrefAttr + ' class="home-poster-tile' + (rated ? ' home-poster-tile--rated' : '') + '" role="listitem"' + attrs + '>'
-        + '<div class="home-poster-tile-img">' + img + rating + '</div>'
+        + '<div class="home-poster-tile-img' + sensCls + '">' + img + rating + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(m.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + year + '</div>'
         + '</a>' + preview + '</div>';
@@ -10793,9 +10801,10 @@
         rating_kp: p.rating_kp,
       };
       const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
+      const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(p)) || '';
       return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
         + '<a' + hrefAttr + ' class="home-poster-tile home-poster-tile--plan" role="listitem"' + attrs + '>'
-        + '<div class="home-poster-tile-img">' + img + badge + '</div>'
+        + '<div class="home-poster-tile-img' + sensCls + '">' + img + badge + '</div>'
         + '<div class="home-poster-tile-title">' + escapeHtml(p.title || '') + '</div>'
         + '<div class="home-poster-tile-year">' + escapeHtml(sub) + '</div>'
         + '</a>' + preview + '</div>';
@@ -10814,8 +10823,9 @@
         ? '<img class="home-pre-card-poster-img premiere-poster-tile-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
         : '<div class="home-pre-card-poster-img premiere-poster-tile-img premiere-poster-tile-img--ph"></div>';
       // div, not button — nested bell controls must not split the card out of the rail (invalid nested buttons).
+      const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
       return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + '>'
-        + '<div class="home-pre-card-poster premiere-poster-media">'
+        + '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">'
         + img
         + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
         + '<span data-stop-card-click="1">' + bell + '</span>'
@@ -12314,7 +12324,7 @@
       : '';
     return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
-            <div class="film-card-v2-poster">
+            <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(p)) || ''}">
               ${filmCardPosterHtml(p.kp_id, poster)}
               ${buildFilmTelegramTriangle(link)}
               ${buildFilmRateStar(p.film_id, 0)}
@@ -12598,8 +12608,7 @@
     const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
     return `
       <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched">
-        <div class="film-card-v2-poster">
-          ${filmCardPosterHtml(m.kp_id, poster)}
+        <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || ''}">
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(m.film_id, 0)}
         </div>
@@ -12694,7 +12703,7 @@
       : '';
     return `
       <div class="card series-card film-card-v2" data-film-id="${s.film_id || ''}" data-kp-id="${s.kp_id || ''}" data-context="series">
-        <div class="film-card-v2-poster">
+        <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(s)) || ''}">
           ${filmCardPosterHtml(s.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(s.film_id, 0)}
@@ -12726,7 +12735,7 @@
     metaParts.push('Сериал');
     const meta = metaParts.join(' · ');
     return '<div class="card series-card film-card-v2 series-hub-discovery-card" data-kp-id="' + escapeHtml(kp) + '">'
-      + '<div class="film-card-v2-poster">' + filmCardPosterHtml(it.kp_id, poster) + '</div>'
+      + '<div class="film-card-v2-poster' + ((window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '') + '">' + filmCardPosterHtml(it.kp_id, poster) + '</div>'
       + '<div class="film-card-v2-body">'
       + '<div class="film-card-v2-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="film-card-v2-status">' + escapeHtml(meta) + '</div>'
@@ -12945,7 +12954,7 @@
       : '';
     return `
       <div class="card film-card film-card-v2" data-film-id="${r.film_id || ''}" data-kp-id="${r.kp_id || ''}" data-context="ratings">
-        <div class="film-card-v2-poster">
+        <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(r)) || ''}">
           ${filmCardPosterHtml(r.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(r.film_id, r.rating)}
@@ -16340,9 +16349,10 @@
     const poster = cleanPosterUrl(film.poster) || posterUrl(film.kp_id);
     const year = film.year ? '(' + film.year + ')' : '';
     const genres = film.genres ? '<span>' + escapeHtml(film.genres) + '</span>' : '';
+    const modalSensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(film)) || '';
     content.className = 'film-modal-content';
     content.innerHTML =
-      '<div class="film-modal-poster-wrap">'
+      '<div class="film-modal-poster-wrap' + modalSensCls + '">'
       + (poster ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy">' : '<div style="color:#665;">🎬</div>')
       + '</div><div class="film-modal-info">'
       + '<h2>' + escapeHtml(film.title || 'Фильм') + ' <span style="opacity:.6;font-weight:400;">' + escapeHtml(String(year)) + '</span></h2>'
@@ -16435,10 +16445,11 @@
       : '';
     const clickAttr = 'data-similar-kp="' + escapeHtml(String(s.kp_id)) + '"';
     const em = s.is_series ? '📺 ' : '🎬 ';
+    const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(s)) || '';
     return (
       '<button type="button" class="similar-rail-card" ' + clickAttr +
       ' title="' + escapeHtml(title) + '" role="listitem">' +
-        '<div class="similar-rail-poster">' + img + reasonPill + inBase + '</div>' +
+        '<div class="similar-rail-poster' + sensCls + '">' + img + reasonPill + inBase + '</div>' +
         '<div class="similar-rail-title">' + em + escapeHtml(title) + '</div>' +
       '</button>'
     );
@@ -16924,6 +16935,11 @@
 
   function pickFilmDescription(film) {
     if (!film) return '';
+    if (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) {
+      const t = String(film.title || 'Фильм').trim() || 'Фильм';
+      const y = film.year ? ` (${film.year})` : '';
+      return `${t}${y}. Картина каталога 18+. Описание сюжета на Movie Planner не публикуется.`;
+    }
     // Prefer KP `description` / plot (matches SSR boot). Do not pick a longer
     // conflicting TMDB overview_ru — that swapped the synopsis after first paint.
     const ordered = [
@@ -17329,7 +17345,9 @@
     if (descText) rememberFilmHeroDescription(film.kp_id, descText);
 
     content.className = 'movie-page';
-    const backdropCss = filmBackdropCssValue(poster);
+    const backdropCss = (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых'))
+      ? ''
+      : filmBackdropCssValue(poster);
     const isAuthedHero = !!getToken();
     const tagBtnHtml = isAuthedHero
       ? ('<button type="button" class="film-hero-tag-btn" id="film-user-tag-btn" aria-label="В список" title="В список">' +
@@ -17340,7 +17358,7 @@
       '<section class="hero film-hero-with-tag' + (isAuthedHero ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(String(film.kp_id || '')) + '"' +
         (backdropCss ? ' style="--film-backdrop:' + backdropCss + '"' : '') + '>' +
         tagBtnHtml +
-        '<div class="poster-wrap">' +
+        '<div class="poster-wrap' + ((film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) ? ' mp-media-sensitive' : '') + '">' +
           '<img class="poster" src="' + escapeHtml(poster) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>' +
         '</div>' +
         '<div class="hero-content">' +
@@ -17368,6 +17386,14 @@
     } catch (_) {}
 
     mountFilmPageSimilarAsync(film.kp_id, content);
+
+    try {
+      if (film.media_sensitive || String(film.genres || '').toLowerCase().includes('для взрослых')) {
+        document.body.classList.add('mp-film-media-sensitive');
+      } else {
+        document.body.classList.remove('mp-film-media-sensitive');
+      }
+    } catch (_) {}
 
     const descWrap = content.querySelector('#film-desc-wrap');
     if (descWrap) {
@@ -17642,9 +17668,10 @@
     const similarHtml = (myRating >= HIGH_RATING_SIMILAR_MIN && similar && similar.length)
       ? buildSimilarRailHtml(similar)
       : '';
+    const modalSensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(film)) || '';
 
     content.innerHTML = `
-      <div class="film-modal-poster-wrap">
+      <div class="film-modal-poster-wrap${modalSensCls}">
         ${poster ? `<img src="${escapeHtml(poster)}" alt="" loading="lazy">` : '<div style="color:#665;">🎬</div>'}
       </div>
       ${similarHtml}
@@ -18018,8 +18045,9 @@
     const addBtn = inBase
       ? `<button type="button" class="add-search-poster-action is-open" data-action="open-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase))}" title="Открыть" aria-label="Открыть">✓</button>`
       : `<button type="button" class="add-search-poster-action" data-action="add-film-pick" data-kp="${escapeHtml(String(it.kp_id))}" title="Добавить" aria-label="Добавить">＋</button>`;
+    const sensitiveCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
     return `<div class="add-search-result">
-      <div class="add-search-result-poster-wrap" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
+      <div class="add-search-result-poster-wrap${sensitiveCls}" data-action="open-add-search-card" data-kp="${escapeHtml(String(it.kp_id || ''))}" role="button" tabindex="0">
         ${poster ? `<img class="add-search-result-poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="add-search-result-poster"></div>'}
         ${addBtn}
         <button type="button" class="add-search-share-action" data-action="share-film-modal" data-kp="${escapeHtml(String(it.kp_id || ''))}" data-film-id="${escapeHtml(String(inBase || ''))}" data-title="${escapeHtml(it.title || '')}" data-poster="${escapeHtml(poster)}" data-year="${escapeHtml(String(it.year || ''))}" data-genres="${escapeHtml(String(it.genres || ''))}" title="Поделиться" aria-label="Поделиться">↗</button>
@@ -18850,7 +18878,8 @@
     const kpAttr = escapeHtml(String(it.kp_id || ''));
     const imgSrc = poster || MP_POSTER_PLACEHOLDER;
     const img = '<img src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
-    const body = '<div class="home-poster-tile-img">' + img + '</div>'
+    const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
+    const body = '<div class="home-poster-tile-img' + sensCls + '">' + img + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
     if (getToken()) {
