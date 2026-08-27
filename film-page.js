@@ -458,6 +458,10 @@
     setReservedLine(slots.enEl, pickFilmTitleEn(film));
     setReservedLine(slots.genresEl, buildFilmGenresLineText(film && film.genres, film && film.is_series));
     setReservedLine(slots.metaEl, buildFilmMetaLineText(film));
+    var heroTag = scope.querySelector && scope.querySelector('.film-hero-with-tag');
+    if (heroTag && film && film.genres) {
+      heroTag.setAttribute('data-genres', String(film.genres));
+    }
   }
 
   function cleanPosterUrl(src) {
@@ -3951,6 +3955,17 @@
         root.innerHTML = html || '';
         markCastRootResolved(root, !!html);
         if (html) bindPublicCastLinks(root);
+        /* COURSE_OFFERS_SYNC_V1 */
+        var hero = document.querySelector('.film-hero-with-tag');
+        var dirKp = d.director && d.director.kp_person_id != null
+          ? String(d.director.kp_person_id).replace(/\D/g, '')
+          : '';
+        if (hero && dirKp) hero.setAttribute('data-director-id', dirKp);
+        try {
+          if (global.MpMonetization && typeof global.MpMonetization.mountCourseOffers === 'function') {
+            global.MpMonetization.mountCourseOffers(document.getElementById('film-page-content') || document.querySelector('main.film-page'), kpId);
+          }
+        } catch (_courseRemount) {}
       }
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');

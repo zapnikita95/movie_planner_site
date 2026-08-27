@@ -26127,3 +26127,133 @@ body.staff-standalone-page .staff-awards-loading {
   }
 }
 
+.mp-course-banner-anchor,
+.mp-ticket-banner-anchor {
+  width: 100%;
+  max-width: 720px;
+  margin: 6px auto 4px;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+.mp-course-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-surface, #131318);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.mp-course-banner + .mp-course-banner {
+  margin-top: 8px;
+}
+.mp-course-banner__kicker {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #b4b4be);
+}
+.mp-course-banner__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--text-primary, #f4f4f5);
+}
+.mp-course-banner__lead {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-body, #e4e4ec);
+}
+.mp-course-banner__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 132px;
+}
+.mp-course-banner__cta,
+.cabinet a.mp-course-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #c2185b;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cabinet a.mp-course-banner__cta:hover,
+.mp-course-banner__cta:hover {
+  background: #a9144e;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+.mp-course-banner__cta:focus-visible {
+  outline: 2px solid var(--focus-ring, #f9a8d4);
+  outline-offset: 2px;
+}
+.mp-course-banner__legal {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted, #b4b4be);
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mp-ticket-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.mp-ticket-banner__label {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-muted, #b4b4be);
+  flex-shrink: 0;
+}
+.mp-ticket-banner__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.mp-ticket-banner__link,
+.cabinet a.mp-ticket-banner__link {
+  color: #f9a8d4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.film-partner-watch__icon--text {
+  color: var(--text-primary, #f4f4f5);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 560px) {
+  .mp-course-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mp-course-banner__actions {
+    min-width: 0;
+  }
+}
+
+
