@@ -11284,12 +11284,24 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card,
 #staff-roles-root a.staff-film-card,
 .cabinet a.film-t-afisha-btn,
 .cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-2sub-cta,
+.cabinet a.film-partner-watch__icon,
+.cabinet a.mp-stream-btn,
 #section-film a.film-t-afisha-btn,
 #section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-2sub-cta,
+#section-film a.film-partner-watch__icon,
+#section-film a.mp-stream-btn,
 #film-page-content a.film-t-afisha-btn,
 #film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-2sub-cta,
+#film-page-content a.film-partner-watch__icon,
+#film-page-content a.mp-stream-btn,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta,
+body.film-standalone-page .cabinet a.film-partner-watch__icon,
+body.film-standalone-page .cabinet a.mp-stream-btn {
   color: inherit;
   text-decoration: none !important;
   text-underline-offset: 0;
@@ -11322,22 +11334,46 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
 }
 .cabinet a.film-t-afisha-btn,
 .cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-2sub-cta,
+.cabinet a.film-partner-watch__icon,
+.cabinet a.mp-stream-btn,
 #section-film a.film-t-afisha-btn,
 #section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-2sub-cta,
+#section-film a.film-partner-watch__icon,
+#section-film a.mp-stream-btn,
 #film-page-content a.film-t-afisha-btn,
 #film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-2sub-cta,
+#film-page-content a.film-partner-watch__icon,
+#film-page-content a.mp-stream-btn,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta,
+body.film-standalone-page .cabinet a.film-partner-watch__icon,
+body.film-standalone-page .cabinet a.mp-stream-btn {
   color: var(--text-primary, #f4f4f5);
 }
 .cabinet a.film-t-afisha-btn:hover,
 .cabinet a.film-poster-t-afisha-cta:hover,
+.cabinet a.film-poster-2sub-cta:hover,
+.cabinet a.film-partner-watch__icon:hover,
+.cabinet a.mp-stream-btn:hover,
 #section-film a.film-t-afisha-btn:hover,
 #section-film a.film-poster-t-afisha-cta:hover,
+#section-film a.film-poster-2sub-cta:hover,
+#section-film a.film-partner-watch__icon:hover,
+#section-film a.mp-stream-btn:hover,
 #film-page-content a.film-t-afisha-btn:hover,
 #film-page-content a.film-poster-t-afisha-cta:hover,
+#film-page-content a.film-poster-2sub-cta:hover,
+#film-page-content a.film-partner-watch__icon:hover,
+#film-page-content a.mp-stream-btn:hover,
 body.film-standalone-page .cabinet a.film-t-afisha-btn:hover,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover,
+body.film-standalone-page .cabinet a.film-poster-2sub-cta:hover,
+body.film-standalone-page .cabinet a.film-partner-watch__icon:hover,
+body.film-standalone-page .cabinet a.mp-stream-btn:hover {
   color: #fff;
   text-decoration: none !important;
 }
@@ -25978,13 +26014,14 @@ body.staff-standalone-page .staff-awards-loading {
   background: rgba(9, 9, 11, 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  text-decoration: none;
+  text-decoration: none !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
 }
 .film-poster-2sub-cta:hover {
   background: rgba(18, 18, 24, 0.9);
   border-color: rgba(255, 255, 255, 0.22);
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta:focus-visible {
   outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
@@ -25997,7 +26034,7 @@ body.staff-standalone-page .staff-awards-loading {
   line-height: 1.2;
   color: var(--text-body, #e4e4ec);
   text-align: right;
-  text-decoration: none;
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta__brand {
   display: inline-flex;
@@ -26010,6 +26047,7 @@ body.staff-standalone-page .staff-awards-loading {
   font-weight: 600;
   color: var(--text-muted, #b4b4be);
   line-height: 1;
+  text-decoration: none !important;
 }
 .film-poster-2sub-cta .film-partner-watch__logo {
   max-height: 18px;
