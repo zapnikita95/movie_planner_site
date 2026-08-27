@@ -233,6 +233,10 @@
     return '/images/partners/2sub-logo.png';
   }
 
+  function partnerStartLogoUrl() {
+    return '/images/partners/start-logo.svg';
+  }
+
   function partnerLogoUrl(partner) {
     if (!partner) return '';
     if (partner.logo) return partner.logo;
@@ -240,6 +244,7 @@
     if (partner.key === 'tvigle') return partnerTvigleLogoUrl();
     if (partner.key === '2sub') return partner2subLogoUrl();
     if (partner.key === 'flex') return partnerFlexLogoUrl();
+    if (partner.key === 'start') return partnerStartLogoUrl();
     return '';
   }
 
@@ -249,6 +254,7 @@
     if (partner.key === 'tvigle') return 'Tvigle';
     if (partner.key === '2sub') return '2SUB';
     if (partner.key === 'flex') return 'FLEX';
+    if (partner.key === 'start') return 'START';
     return partner.label || partner.key || '';
   }
 
@@ -274,7 +280,7 @@
       commission_model: (partner && partner.commission_model) || 'unknown',
     };
     metrikaGoal('stream_click', params);
-    if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub') {
+    if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub' || key === 'start') {
       metrikaGoal('stream_partner_' + key, params);
     }
   }
@@ -408,19 +414,24 @@
   }
 
   function buildPartnerIconLink(partner, kpId, size) {
+    if (!partner || !partner.url) return null;
     var logo = partnerLogoUrl(partner);
-    if (!logo || !partner.url) return null;
     var a = document.createElement('a');
-    a.className = 'film-partner-watch__icon film-partner-watch__icon--' + partner.key;
+    a.className = 'film-partner-watch__icon film-partner-watch__icon--' + (partner.key || 'other');
     a.href = partner.url;
     a.target = '_blank';
     a.rel = 'noopener sponsored';
     a.setAttribute('data-partner', partner.key || 'other');
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
     a.setAttribute('aria-label', partnerAlt(partner));
-    var dims = partnerLogoDimensions(partner, size);
-    a.innerHTML =
-      '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + dims.w + '" height="' + dims.h + '" decoding="async" />';
+    if (logo) {
+      var dims = partnerLogoDimensions(partner, size);
+      a.innerHTML =
+        '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + dims.w + '" height="' + dims.h + '" decoding="async" />';
+    } else {
+      a.className += ' film-partner-watch__icon--text';
+      a.textContent = partnerAlt(partner);
+    }
     bindPartnerIconClick(a, partner, kpId, size);
     return a;
   }
@@ -529,7 +540,7 @@
         for (var i = 0; i < partners.length; i++) {
           var p = partners[i];
           if (!p || !p.url) continue;
-          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub') continue;
+          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub' && p.key !== 'start') continue;
           p.kp_id = kpId;
           usable.push(p);
         }
@@ -1068,6 +1079,143 @@
     });
   }
 
+  function filmHeroEl(pageRoot) {
+    var scope = pageRoot && pageRoot.querySelector ? pageRoot : document;
+    return scope.querySelector('.film-hero-with-tag') || document.querySelector('.film-hero-with-tag');
+  }
+
+  function filmDirectorId(pageRoot) {
+    var hero = filmHeroEl(pageRoot);
+    var fromHero = hero && hero.getAttribute('data-director-id');
+    if (fromHero && /^\d+$/.test(fromHero)) return fromHero;
+    var dirRow = (pageRoot || document).querySelector('.film-cast-row .staff-cast-link[data-staff-kp]');
+    var kp = dirRow && dirRow.getAttribute('data-staff-kp');
+    return (kp && /^\d+$/.test(kp)) ? kp : '';
+  }
+
+  function filmGenresParam(pageRoot) {
+    var hero = filmHeroEl(pageRoot);
+    var fromHero = hero && hero.getAttribute('data-genres');
+    if (fromHero) return fromHero;
+    var line = (pageRoot || document).querySelector('#film-genres-line, .film-genres-line');
+    return line ? String(line.textContent || '').trim() : '';
+  }
+
+  function filmTitleParam(pageRoot) {
+    var el = document.getElementById('film-title');
+    return el ? String(el.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim() : '';
+  }
+
+  function courseBannerHtml(item) {
+    /* COURSE_OFFERS_SYNC_V1 */
+    var href = escapeHtml(item.url || item.destination_url || '#');
+    var title = escapeHtml(item.title || '');
+    var lead = escapeHtml(item.lead || '');
+    var cta = escapeHtml(item.cta || 'Откройте курс');
+    var legal = escapeHtml(item.legal || 'Реклама');
+    return (
+      '<aside class="mp-course-banner" data-course-id="' + escapeHtml(item.id || '') + '">' +
+        '<div class="mp-course-banner__copy">' +
+          '<p class="mp-course-banner__kicker">Курс</p>' +
+          '<p class="mp-course-banner__title">' + title + '</p>' +
+          (lead ? '<p class="mp-course-banner__lead">' + lead + '</p>' : '') +
+        '</div>' +
+        '<div class="mp-course-banner__actions">' +
+          '<a class="mp-course-banner__cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + cta + '</a>' +
+          '<button type="button" class="mp-course-banner__legal" data-legal="' + legal + '">Реклама</button>' +
+        '</div>' +
+      '</aside>'
+    );
+  }
+
+  function mountCourseOffers(pageRoot, kpId) {
+    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
+    var directorId = filmDirectorId(pageRoot);
+    var genres = filmGenresParam(pageRoot);
+    var qs = '';
+    if (directorId) qs += '&director_id=' + encodeURIComponent(directorId);
+    if (genres) qs += '&genres=' + encodeURIComponent(genres);
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/course-offers?' + qs.replace(/^&/, '');
+    return fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var items = (data && data.items) || [];
+        pageRoot.querySelectorAll('.mp-course-banner-anchor').forEach(function (el) { el.remove(); });
+        if (!items.length) return;
+        var html = items.map(courseBannerHtml).join('');
+        var similar = pageRoot.querySelector('.film-page-similar-section');
+        var anchor = document.createElement('div');
+        anchor.className = 'mp-course-banner-anchor';
+        anchor.innerHTML = html;
+        if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
+        else pageRoot.appendChild(anchor);
+        anchor.querySelectorAll('.mp-course-banner__cta').forEach(function (a) {
+          a.addEventListener('click', function () {
+            var card = a.closest('.mp-course-banner');
+            metrikaGoal('course_click', {
+              kp_id: String(kpId || ''),
+              course: card ? (card.getAttribute('data-course-id') || '') : '',
+              placement: 'film_before_similar',
+            });
+          });
+        });
+        anchor.querySelectorAll('.mp-course-banner__legal').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            toggleOfferAdtune(btn);
+          });
+        });
+      })
+      .catch(function () {});
+  }
+
+  function mountTicketPartners(pageRoot, kpId) {
+    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
+    var title = filmTitleParam(pageRoot);
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/ticket-partners?city=moscow';
+    if (title) url += '&title=' + encodeURIComponent(title);
+    return fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var partners = (data && data.partners) || [];
+        pageRoot.querySelectorAll('.mp-ticket-banner-anchor').forEach(function (el) { el.remove(); });
+        var usable = [];
+        for (var i = 0; i < partners.length; i++) {
+          if (partners[i] && partners[i].url) usable.push(partners[i]);
+        }
+        if (!usable.length) return;
+        var links = usable.map(function (p) {
+          return (
+            '<a class="mp-ticket-banner__link" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener sponsored nofollow" data-partner="' + escapeHtml(p.key || '') + '">' +
+              escapeHtml(p.label || 'Билеты') +
+            '</a>'
+          );
+        }).join('');
+        var anchor = document.createElement('div');
+        anchor.className = 'mp-ticket-banner-anchor';
+        anchor.innerHTML =
+          '<aside class="mp-ticket-banner">' +
+            '<span class="mp-ticket-banner__label">Билеты</span>' +
+            '<div class="mp-ticket-banner__links">' + links + '</div>' +
+          '</aside>';
+        var similar = pageRoot.querySelector('.film-page-similar-section');
+        var courses = pageRoot.querySelector('.mp-course-banner-anchor');
+        if (courses && courses.parentNode) courses.parentNode.insertBefore(anchor, courses);
+        else if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
+        else pageRoot.appendChild(anchor);
+        anchor.querySelectorAll('.mp-ticket-banner__link').forEach(function (a) {
+          a.addEventListener('click', function () {
+            metrikaGoal('ticket_click', {
+              kp_id: String(kpId || ''),
+              partner: a.getAttribute('data-partner') || '',
+              placement: 'film_before_similar',
+            });
+          });
+        });
+      })
+      .catch(function () {});
+  }
+
   function initFilmPageFromRoot(pageRoot, kpIdOverride) {
     var root = pageRoot || document.getElementById('film-page-content') || document.querySelector('main.film-page');
     if (!root) return Promise.resolve();
@@ -1092,6 +1240,8 @@
     /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
     /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 TAKPRODAM_FINITE1 */
     mountProductShelf(pageRoot, kpId);
+    mountCourseOffers(pageRoot, kpId);
+    mountTicketPartners(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
         el.remove();
@@ -1145,6 +1295,8 @@
     initFilmPageFromRoot: initFilmPageFromRoot,
     initStaffPage: initStaffPage,
     mountProductShelf: mountProductShelf,
+    mountCourseOffers: mountCourseOffers,
+    mountTicketPartners: mountTicketPartners,
     metrikaGoal: metrikaGoal,
     fetchConfig: fetchConfig,
   };
