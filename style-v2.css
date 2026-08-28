@@ -12905,10 +12905,11 @@ a.film-t-afisha-btn:focus-visible {
   max-height: 34px;
 }
 .film-ticket-btn__logo--ticketland {
-  width: auto;
-  height: 36px;
-  max-height: 36px;
-  max-width: 110px;
+  width: 34px;
+  height: 34px;
+  max-height: 34px;
+  max-width: 34px;
+  object-fit: contain;
 }
 /* legacy wrappers — без жёлтого/тёмного бокса поверх лого */
 .film-t-afisha-btn__icon,
@@ -12935,19 +12936,6 @@ a.film-t-afisha-btn:focus-visible {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-  }
-  .film-ticket-btns--toolbar.film-ticket-btns--inline-label {
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
-  }
-  .film-ticket-btns--toolbar.film-ticket-btns--inline-label .film-ticket-btns__logos {
-    gap: 10px;
-  }
-  .film-ticket-btns--toolbar.film-ticket-btns--inline-label .film-ticket-btns__label {
-    margin: 0;
-    flex-shrink: 0;
-    white-space: nowrap;
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .film-ticket-btns--toolbar {
     right: calc(50% + min(168px, 50%) + 20px);
@@ -13027,7 +13015,7 @@ a.film-t-afisha-btn:focus-visible {
     border-color: rgba(255, 255, 255, 0.22);
     opacity: 1;
   }
-  /* Ticketland badge already shaped — fill the whole slot, no padded frame */
+  /* Ticketland square badge fills the slot (no wide-SVG crop «огрызок») */
   .film-ticket-btns--poster .film-ticket-btn--ticketland,
   .film-poster-ticket-stack .film-ticket-btn--ticketland {
     border: 0;
@@ -13042,8 +13030,8 @@ a.film-t-afisha-btn:focus-visible {
     height: 100%;
     max-width: none;
     max-height: none;
-    object-fit: cover;
-    object-position: 18% 50%;
+    object-fit: contain;
+    object-position: center;
   }
   /* TICKET_ABOVE_2SUB1 — tickets sit above subtitle CTA, not on top of it */
   .poster-wrap:has(.film-poster-2sub-cta) .film-ticket-btns--poster,
@@ -13083,8 +13071,8 @@ a.film-t-afisha-btn:focus-visible {
     height: 100%;
     max-width: none;
     max-height: none;
-    object-fit: cover;
-    object-position: 18% 50%;
+    object-fit: contain;
+    object-position: center;
   }
 }
 
