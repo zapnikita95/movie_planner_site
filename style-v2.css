@@ -12987,6 +12987,7 @@ a.film-t-afisha-btn:focus-visible {
 }
 /* single partner: same footprint as list btn */
 @media (max-width: 860px) {
+  /* Dark pill like list btn / pressed state — logos readable as active CTAs */
   .film-ticket-btns--poster .film-ticket-btn,
   .film-poster-ticket-stack > .film-ticket-btn,
   .film-poster-t-afisha-cta {
@@ -12996,6 +12997,19 @@ a.film-t-afisha-btn:focus-visible {
     min-height: 54px;
     padding: 0;
     border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(12, 14, 24, 0.82);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+  .film-ticket-btns--poster .film-ticket-btn:hover,
+  .film-ticket-btns--poster .film-ticket-btn:active,
+  .film-poster-ticket-stack > .film-ticket-btn:hover,
+  .film-poster-ticket-stack > .film-ticket-btn:active,
+  .film-poster-t-afisha-cta:hover,
+  .film-poster-t-afisha-cta:active {
+    background: rgba(12, 14, 24, 0.92);
+    border-color: rgba(255, 255, 255, 0.22);
+    opacity: 1;
   }
   .poster-wrap[data-ticket-partners="1"] .film-ticket-btns--poster,
   .poster-wrap[data-ticket-partners="1"] .film-poster-ticket-stack {
@@ -13026,7 +13040,7 @@ a.film-t-afisha-btn:focus-visible {
   }
 }
 
-/* MARKER:20260829planUi1 */
+/* MARKER:20260829ticketPill1 */
 /* App promo dialogs (tickets + cinema plan) */
 .mp-app-promo-card {
   text-align: left;
