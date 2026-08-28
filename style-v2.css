@@ -1508,6 +1508,25 @@ body.in-cabinet .mp-lang-toggle {
   margin-bottom: 16px;
 }
 
+/* Guest landing hero — never inherit marketing 6rem clamp (FOUC if landing-hero-b late) */
+#landing .landing-hero-b .hero-title,
+#landing .landing-hero-tagline {
+  font-size: clamp(2rem, 3.2vw, 2.85rem);
+  line-height: 1.14;
+  text-align: left;
+  max-width: 42ch;
+  margin: 0 0 10px;
+}
+
+@media (max-width: 860px) {
+  body.landing-guest-home #landing .landing-hero-b .hero-title,
+  body.landing-guest-home #landing .landing-hero-tagline,
+  html.mp-landing-guest-boot #landing .landing-hero-b .hero-title,
+  html.mp-landing-guest-boot #landing .landing-hero-tagline {
+    font-size: clamp(1.28rem, 5.4vw, 1.72rem);
+  }
+}
+
 .hero-title .gradient {
   background: none;
   -webkit-text-fill-color: #ffd67a;
