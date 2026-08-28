@@ -413,6 +413,7 @@
     });
     var stack = buildTicketPartnersBlock(partners, kpId, 'poster');
     stack.classList.add('film-poster-ticket-stack');
+    wrap.setAttribute('data-ticket-partners', String(partners.length));
     wrap.appendChild(stack);
     metrikaGoal('stream_block_view', {
       kp_id: String(kpId || ''),
