@@ -26572,6 +26572,49 @@ body.staff-standalone-page .staff-awards-loading {
   font-size: 13px;
   font-weight: 600;
 }
+.mp-ticket-banner__link--ticketland,
+.cabinet a.mp-ticket-banner__link--ticketland,
+.mp-ticket-banner__link--t_afisha,
+.cabinet a.mp-ticket-banner__link--t_afisha {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.mp-ticket-banner__link--ticketland:hover,
+.mp-ticket-banner__link--t_afisha:hover {
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+.mp-ticket-banner__logo {
+  display: block;
+  height: 18px;
+  width: auto;
+  max-width: 88px;
+  object-fit: contain;
+}
+.mp-offer-cover-link--course {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-height: 96px;
+  padding: 10px;
+  box-sizing: border-box;
+  background: #1a1a22;
+  border-radius: 8px 8px 0 0;
+}
+.mp-offer-course-lead {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-body, #e4e4ec);
+}
+.mp-product-shelf--course .mp-offer-card--course {
+  min-height: 0;
+}
 .film-partner-watch__icon--text {
   color: var(--text-primary, #f4f4f5);
   font-size: 12px;

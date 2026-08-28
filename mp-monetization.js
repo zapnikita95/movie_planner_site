@@ -237,6 +237,10 @@
     return '/images/partners/start-logo.svg';
   }
 
+  function partnerTicketlandLogoUrl() {
+    return '/images/partners/ticketland-logo.svg';
+  }
+
   function partnerLogoUrl(partner) {
     if (!partner) return '';
     if (partner.logo) return partner.logo;
@@ -245,6 +249,7 @@
     if (partner.key === '2sub') return partner2subLogoUrl();
     if (partner.key === 'flex') return partnerFlexLogoUrl();
     if (partner.key === 'start') return partnerStartLogoUrl();
+    if (partner.key === 'ticketland') return partnerTicketlandLogoUrl();
     return '';
   }
 
@@ -255,6 +260,7 @@
     if (partner.key === '2sub') return '2SUB';
     if (partner.key === 'flex') return 'FLEX';
     if (partner.key === 'start') return 'START';
+    if (partner.key === 'ticketland') return 'Ticketland';
     return partner.label || partner.key || '';
   }
 
@@ -536,13 +542,23 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var partners = (data && data.partners) || [];
-        var usable = [];
+        var primary = [];
+        var startPartner = null;
         for (var i = 0; i < partners.length; i++) {
           var p = partners[i];
           if (!p || !p.url) continue;
-          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub' && p.key !== 'start') continue;
+          if (p.key === 'start') {
+            startPartner = p;
+            continue;
+          }
+          if (p.key !== 'flex' && p.key !== 'tvigle' && p.key !== 'ivi' && p.key !== '2sub') continue;
           p.kp_id = kpId;
-          usable.push(p);
+          primary.push(p);
+        }
+        var usable = primary.slice(0, WATCH_PARTNER_SLOT_MAX);
+        if (usable.length < WATCH_PARTNER_SLOT_MAX && startPartner) {
+          startPartner.kp_id = kpId;
+          usable.push(startPartner);
         }
         if (!usable.length) return;
         var twosub = null;
@@ -646,7 +662,9 @@
   var PRODUCT_SHELF_MIN_W = 168;
   var PRODUCT_SHELF_GUTTER_GAP = 16;
   var PRODUCT_SHELF_EDGE_PAD = 12;
+  var WATCH_PARTNER_SLOT_MAX = 3;
   var _productOfferCache = Object.create(null);
+  var _courseOfferCache = Object.create(null);
   var _productShelfKp = '';
   var _productShelfBound = false;
   var _adtunePop = null;
@@ -661,6 +679,26 @@
       .then(function (d) {
         var items = (d && d.items) || [];
         _productOfferCache[key] = items;
+        return items;
+      })
+      .catch(function () { return []; });
+  }
+
+  function fetchCourseOffers(pageRoot, kpId) {
+    var key = String(kpId || '').replace(/\D/g, '');
+    if (!key) return Promise.resolve([]);
+    if (_courseOfferCache[key]) return Promise.resolve(_courseOfferCache[key]);
+    var directorId = filmDirectorId(pageRoot);
+    var genres = filmGenresParam(pageRoot);
+    var qs = '';
+    if (directorId) qs += '&director_id=' + encodeURIComponent(directorId);
+    if (genres) qs += '&genres=' + encodeURIComponent(genres);
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(key) + '/course-offers' + (qs ? ('?' + qs.replace(/^&/, '')) : '');
+    return fetch(url, { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var items = (d && d.items) || [];
+        _courseOfferCache[key] = items;
         return items;
       })
       .catch(function () { return []; });
@@ -702,6 +740,55 @@
         '</div>' +
       '</article>'
     );
+  }
+
+  function courseCardHtml(item) {
+    /* COURSE_OFFERS_SYNC_V2 — same shelf slot as games; Sync CPC wins on collision */
+    var href = escapeHtml(item.url || item.destination_url || '#');
+    var title = escapeHtml(item.title || '');
+    var lead = escapeHtml(item.lead || '');
+    var cta = escapeHtml(item.cta || 'Откройте курс');
+    var legal = escapeHtml(item.legal || 'Реклама');
+    return (
+      '<article class="mp-offer-card mp-offer-card--course" data-course-id="' + escapeHtml(item.id || '') + '">' +
+        '<div class="mp-offer-cover-link mp-offer-cover-link--course">' +
+          '<span class="mp-offer-plat">Курс</span>' +
+        '</div>' +
+        '<div class="mp-offer-adtune-bar">' +
+          '<span class="mp-offer-ad-label">Реклама</span>' +
+          '<button type="button" class="mp-offer-adtune" aria-label="Сведения о рекламе" aria-expanded="false" data-legal="' + legal + '">' +
+            '<svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+              '<circle cx="2" cy="2" r="1.5"></circle>' +
+              '<circle cx="8" cy="2" r="1.5"></circle>' +
+              '<circle cx="14" cy="2" r="1.5"></circle>' +
+            '</svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="mp-offer-body">' +
+          '<a class="mp-offer-title" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + title + '</a>' +
+          (lead ? '<p class="mp-offer-course-lead">' + lead + '</p>' : '') +
+          '<a class="mp-offer-cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + cta + '</a>' +
+        '</div>' +
+      '</article>'
+    );
+  }
+
+  function courseListHtml(items) {
+    return '<div class="mp-product-list">' + items.map(courseCardHtml).join('') + '</div>';
+  }
+
+  function bindCourseClicks(root, kpId) {
+    if (!root) return;
+    root.querySelectorAll('.mp-offer-card--course a[href]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        var card = a.closest('.mp-offer-card--course');
+        metrikaGoal('course_click', {
+          kp_id: String(kpId || ''),
+          course: card ? (card.getAttribute('data-course-id') || '') : '',
+          placement: 'film_product_shelf',
+        });
+      });
+    });
   }
 
   function closeOfferAdtune() {
@@ -1036,27 +1123,34 @@
     var kp = String(kpId || '').replace(/\D/g, '');
     if (!root || !kp) return;
     _productShelfKp = kp;
-    fetchProductOffers(kp).then(function (items) {
+    /* Sync CPC courses take the games shelf slot; no collision with Takprodam. */
+    Promise.all([fetchCourseOffers(root, kp), fetchProductOffers(kp)]).then(function (pair) {
       if (String(_productShelfKp) !== kp) return;
+      var courses = pair[0] || [];
+      var games = pair[1] || [];
       closeOfferAdtune();
       document.querySelectorAll('.mp-product-shelf').forEach(function (el) { el.remove(); });
-      if (!items || !items.length) return;
-      var cards = productListHtml(items);
+      document.querySelectorAll('.mp-course-banner-anchor').forEach(function (el) { el.remove(); });
+      var useCourses = courses.length > 0;
+      var itemsHtml = useCourses ? courseListHtml(courses) : productListHtml(games);
+      if (!useCourses && (!games || !games.length)) return;
+      var aria = useCourses ? 'Курсы' : 'Игры по мотивам';
 
       var desktop = document.createElement('aside');
       desktop.id = 'mp_product_shelf_desktop';
-      desktop.className = 'mp-product-shelf mp-product-shelf--desktop';
-      desktop.setAttribute('aria-label', 'Игры по мотивам');
-      desktop.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + cards + '</div></div>';
+      desktop.className = 'mp-product-shelf mp-product-shelf--desktop' + (useCourses ? ' mp-product-shelf--course' : '');
+      desktop.setAttribute('aria-label', aria);
+      desktop.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + itemsHtml + '</div></div>';
       document.body.appendChild(desktop);
-      bindProductClicks(desktop, kp);
+      if (useCourses) bindCourseClicks(desktop, kp);
+      else bindProductClicks(desktop, kp);
       bindOfferAdtune(desktop);
 
       var mobile = document.createElement('aside');
       mobile.id = 'mp_product_shelf_mobile';
-      mobile.className = 'mp-product-shelf mp-product-shelf--mobile';
-      mobile.setAttribute('aria-label', 'Игры по мотивам');
-      mobile.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + cards + '</div></div>';
+      mobile.className = 'mp-product-shelf mp-product-shelf--mobile' + (useCourses ? ' mp-product-shelf--course' : '');
+      mobile.setAttribute('aria-label', aria);
+      mobile.innerHTML = '<div class="mp-product-track"><div class="mp-product-loop">' + itemsHtml + '</div></div>';
       var similar = root.querySelector('.film-page-similar-section');
       var rsy = document.getElementById('mp_rsy_inline_after_similar');
       if (rsy && rsy.parentNode) rsy.parentNode.insertBefore(mobile, rsy);
@@ -1066,7 +1160,8 @@
         if (hero) hero.insertAdjacentElement('afterend', mobile);
         else root.appendChild(mobile);
       }
-      bindProductClicks(mobile, kp);
+      if (useCourses) bindCourseClicks(mobile, kp);
+      else bindProductClicks(mobile, kp);
       bindOfferAdtune(mobile);
       syncProductLoop(mobile.querySelector('.mp-product-track'));
       ensureProductShelfResize();
@@ -1107,66 +1202,15 @@
   }
 
   function courseBannerHtml(item) {
-    /* COURSE_OFFERS_SYNC_V1 */
-    var href = escapeHtml(item.url || item.destination_url || '#');
-    var title = escapeHtml(item.title || '');
-    var lead = escapeHtml(item.lead || '');
-    var cta = escapeHtml(item.cta || 'Откройте курс');
-    var legal = escapeHtml(item.legal || 'Реклама');
-    return (
-      '<aside class="mp-course-banner" data-course-id="' + escapeHtml(item.id || '') + '">' +
-        '<div class="mp-course-banner__copy">' +
-          '<p class="mp-course-banner__kicker">Курс</p>' +
-          '<p class="mp-course-banner__title">' + title + '</p>' +
-          (lead ? '<p class="mp-course-banner__lead">' + lead + '</p>' : '') +
-        '</div>' +
-        '<div class="mp-course-banner__actions">' +
-          '<a class="mp-course-banner__cta" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' + cta + '</a>' +
-          '<button type="button" class="mp-course-banner__legal" data-legal="' + legal + '">Реклама</button>' +
-        '</div>' +
-      '</aside>'
-    );
+    return courseCardHtml(item);
   }
 
   function mountCourseOffers(pageRoot, kpId) {
-    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
-    var directorId = filmDirectorId(pageRoot);
-    var genres = filmGenresParam(pageRoot);
-    var qs = '';
-    if (directorId) qs += '&director_id=' + encodeURIComponent(directorId);
-    if (genres) qs += '&genres=' + encodeURIComponent(genres);
-    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/course-offers?' + qs.replace(/^&/, '');
-    return fetch(url, { credentials: 'omit' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        var items = (data && data.items) || [];
-        pageRoot.querySelectorAll('.mp-course-banner-anchor').forEach(function (el) { el.remove(); });
-        if (!items.length) return;
-        var html = items.map(courseBannerHtml).join('');
-        var similar = pageRoot.querySelector('.film-page-similar-section');
-        var anchor = document.createElement('div');
-        anchor.className = 'mp-course-banner-anchor';
-        anchor.innerHTML = html;
-        if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
-        else pageRoot.appendChild(anchor);
-        anchor.querySelectorAll('.mp-course-banner__cta').forEach(function (a) {
-          a.addEventListener('click', function () {
-            var card = a.closest('.mp-course-banner');
-            metrikaGoal('course_click', {
-              kp_id: String(kpId || ''),
-              course: card ? (card.getAttribute('data-course-id') || '') : '',
-              placement: 'film_before_similar',
-            });
-          });
-        });
-        anchor.querySelectorAll('.mp-course-banner__legal').forEach(function (btn) {
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            toggleOfferAdtune(btn);
-          });
-        });
-      })
-      .catch(function () {});
+    /* Remount shelf after cast loads director_id — Sync takes games slot. */
+    var key = String(kpId || '').replace(/\D/g, '');
+    if (key) delete _courseOfferCache[key];
+    mountProductShelf(pageRoot, kpId);
+    return Promise.resolve();
   }
 
   function mountTicketPartners(pageRoot, kpId) {
@@ -1185,9 +1229,14 @@
         }
         if (!usable.length) return;
         var links = usable.map(function (p) {
+          var logo = partnerLogoUrl(p);
+          var label = escapeHtml(p.label || 'Билеты');
+          var inner = logo
+            ? ('<img class="mp-ticket-banner__logo" src="' + escapeHtml(logo) + '" alt="" width="72" height="22" decoding="async" />')
+            : label;
           return (
-            '<a class="mp-ticket-banner__link" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener sponsored nofollow" data-partner="' + escapeHtml(p.key || '') + '">' +
-              escapeHtml(p.label || 'Билеты') +
+            '<a class="mp-ticket-banner__link mp-ticket-banner__link--' + escapeHtml(p.key || 'other') + '" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener sponsored nofollow" data-partner="' + escapeHtml(p.key || '') + '" aria-label="' + label + '">' +
+              inner +
             '</a>'
           );
         }).join('');
@@ -1199,9 +1248,7 @@
             '<div class="mp-ticket-banner__links">' + links + '</div>' +
           '</aside>';
         var similar = pageRoot.querySelector('.film-page-similar-section');
-        var courses = pageRoot.querySelector('.mp-course-banner-anchor');
-        if (courses && courses.parentNode) courses.parentNode.insertBefore(anchor, courses);
-        else if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
+        if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
         else pageRoot.appendChild(anchor);
         anchor.querySelectorAll('.mp-ticket-banner__link').forEach(function (a) {
           a.addEventListener('click', function () {
@@ -1240,7 +1287,6 @@
     /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
     /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 TAKPRODAM_FINITE1 */
     mountProductShelf(pageRoot, kpId);
-    mountCourseOffers(pageRoot, kpId);
     mountTicketPartners(pageRoot, kpId);
     try {
       pageRoot.querySelectorAll('.mp-subscribe-prompt[data-mp-subscribe="streaming"]').forEach(function (el) {
