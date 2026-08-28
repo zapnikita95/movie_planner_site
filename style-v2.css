@@ -1511,11 +1511,11 @@ body.in-cabinet .mp-lang-toggle {
 /* Guest landing hero — never inherit marketing 6rem clamp (FOUC if landing-hero-b late) */
 #landing .landing-hero-b .hero-title,
 #landing .landing-hero-tagline {
-  font-size: clamp(2rem, 3.2vw, 2.85rem);
-  line-height: 1.14;
-  text-align: left;
-  max-width: 42ch;
-  margin: 0 0 10px;
+  font-size: clamp(2rem, 3.2vw, 2.85rem) !important;
+  line-height: 1.14 !important;
+  text-align: left !important;
+  max-width: 42ch !important;
+  margin: 0 0 10px !important;
 }
 
 @media (max-width: 860px) {
@@ -18322,7 +18322,8 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   }
 }
 
-#landing > section:first-of-type {
+/* Guest landing hero is .landing-hero-b — do NOT center it (FOUC / layout jump). */
+#landing > section:first-of-type:not(.landing-hero-b) {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18336,22 +18337,44 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
   text-align: center;
 }
 
-#landing > section:first-of-type .hero-label,
-#landing > section:first-of-type .hero-title,
-#landing > section:first-of-type .hero-subtitle,
-#landing > section:first-of-type .hero-description,
-#landing > section:first-of-type .hero-buttons,
-#landing > section:first-of-type .hero-subtext {
+#landing > section:first-of-type:not(.landing-hero-b) .hero-label,
+#landing > section:first-of-type:not(.landing-hero-b) .hero-title,
+#landing > section:first-of-type:not(.landing-hero-b) .hero-subtitle,
+#landing > section:first-of-type:not(.landing-hero-b) .hero-description,
+#landing > section:first-of-type:not(.landing-hero-b) .hero-buttons,
+#landing > section:first-of-type:not(.landing-hero-b) .hero-subtext {
   width: 100%;
   max-width: 960px;
   margin-inline: auto;
   text-align: center;
 }
 
-#landing > section:first-of-type .hero-buttons {
+#landing > section:first-of-type:not(.landing-hero-b) .hero-buttons {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* Belt: even if an older rule matches, hero stays left/block from first paint */
+#landing > section.landing-hero-b,
+#landing > section.landing-hero-b:first-of-type {
+  display: block !important;
+  align-items: stretch !important;
+  text-align: left !important;
+  margin-inline: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+}
+
+#landing > section.landing-hero-b .hero-title,
+#landing > section.landing-hero-b .hero-subtitle,
+#landing > section.landing-hero-b .hero-description,
+#landing > section.landing-hero-b .hero-buttons,
+#landing > section.landing-hero-b .hero-label,
+#landing > section.landing-hero-b .hero-subtext {
+  margin-inline: 0 !important;
+  text-align: left !important;
+  width: auto !important;
 }
 
 /* App download platform picker (site profile + shared with miniapp pattern) */

@@ -325,9 +325,12 @@ body.landing-guest-home #landing {
 }
 
 #landing > section.landing-hero-b {
+  display: block !important;
+  align-items: stretch !important;
   padding: 0 !important;
   max-width: none !important;
   margin: 0 !important;
+  text-align: left !important;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
