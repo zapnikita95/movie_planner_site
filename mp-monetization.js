@@ -1269,7 +1269,10 @@
   }
 
   function filmTitleParam(pageRoot) {
-    var el = document.getElementById('film-title');
+    var el =
+      (pageRoot && pageRoot.querySelector && pageRoot.querySelector('#film-title')) ||
+      document.getElementById('film-title') ||
+      (pageRoot && pageRoot.querySelector && pageRoot.querySelector('h1.film-title, .film-hero-title, h1'));
     return el ? String(el.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim() : '';
   }
 
@@ -1286,53 +1289,10 @@
   }
 
   function mountTicketPartners(pageRoot, kpId) {
-    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
-    var title = filmTitleParam(pageRoot);
-    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/ticket-partners?city=moscow';
-    if (title) url += '&title=' + encodeURIComponent(title);
-    return fetch(url, { credentials: 'omit' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        var partners = (data && data.partners) || [];
-        pageRoot.querySelectorAll('.mp-ticket-banner-anchor').forEach(function (el) { el.remove(); });
-        var usable = [];
-        for (var i = 0; i < partners.length; i++) {
-          if (partners[i] && partners[i].url) usable.push(partners[i]);
-        }
-        if (!usable.length) return;
-        var links = usable.map(function (p) {
-          var logo = partnerLogoUrl(p);
-          var label = escapeHtml(p.label || 'Билеты');
-          var inner = logo
-            ? ('<img class="mp-ticket-banner__logo" src="' + escapeHtml(logo) + '" alt="" width="72" height="22" decoding="async" />')
-            : label;
-          return (
-            '<a class="mp-ticket-banner__link mp-ticket-banner__link--' + escapeHtml(p.key || 'other') + '" href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener sponsored nofollow" data-partner="' + escapeHtml(p.key || '') + '" aria-label="' + label + '">' +
-              inner +
-            '</a>'
-          );
-        }).join('');
-        var anchor = document.createElement('div');
-        anchor.className = 'mp-ticket-banner-anchor';
-        anchor.innerHTML =
-          '<aside class="mp-ticket-banner">' +
-            '<span class="mp-ticket-banner__label">Билеты</span>' +
-            '<div class="mp-ticket-banner__links">' + links + '</div>' +
-          '</aside>';
-        var similar = pageRoot.querySelector('.film-page-similar-section');
-        if (similar && similar.parentNode) similar.parentNode.insertBefore(anchor, similar);
-        else pageRoot.appendChild(anchor);
-        anchor.querySelectorAll('.mp-ticket-banner__link').forEach(function (a) {
-          a.addEventListener('click', function () {
-            metrikaGoal('ticket_click', {
-              kp_id: String(kpId || ''),
-              partner: a.getAttribute('data-partner') || '',
-              placement: 'film_before_similar',
-            });
-          });
-        });
-      })
-      .catch(function () {});
+    /* TICKET_BANNER_KILL1 — tickets live next to plan CTA / poster; no orphan aside before similar */
+    if (!pageRoot) return Promise.resolve();
+    pageRoot.querySelectorAll('.mp-ticket-banner-anchor').forEach(function (el) { el.remove(); });
+    return Promise.resolve();
   }
 
   function initFilmPageFromRoot(pageRoot, kpIdOverride) {
