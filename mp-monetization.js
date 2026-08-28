@@ -391,14 +391,24 @@
     label.textContent = 'Билеты';
     var logos = document.createElement('div');
     logos.className = 'film-ticket-btns__logos';
-    partners.forEach(function (partner) {
+    function appendLogo(partner) {
       var key = (partner && partner.key) || 't_afisha';
       var cls =
         mode === 'poster'
           ? 'film-ticket-btn film-poster-t-afisha-cta film-ticket-btn--' + key
           : 'film-ticket-btn film-ticket-btn--' + key;
       logos.appendChild(createTicketPartnerLink(partner, kpId, cls));
-    });
+    }
+    /* TICKET_INLINE_LABEL1 — desktop: [T] Билеты [Ticketland] */
+    if (mode === 'toolbar' && partners.length >= 2) {
+      block.classList.add('film-ticket-btns--inline-label');
+      appendLogo(partners[0]);
+      logos.appendChild(label);
+      for (var i = 1; i < partners.length; i++) appendLogo(partners[i]);
+      block.appendChild(logos);
+      return block;
+    }
+    partners.forEach(appendLogo);
     block.appendChild(label);
     block.appendChild(logos);
     return block;
@@ -432,6 +442,8 @@
     var group = buildTicketPartnersBlock(partners, kpId, 'toolbar');
     planWrap.insertBefore(group, planWrap.firstChild);
     planWrap.setAttribute('data-ticket-partners', String(partners.length));
+    var toolbar = planWrap.closest('.film-page-toolbar');
+    if (toolbar) toolbar.setAttribute('data-ticket-partners', String(partners.length));
     metrikaGoal('stream_block_view', {
       kp_id: String(kpId || ''),
       count: String(partners.length),
@@ -456,6 +468,8 @@
         var usable = collectTicketPartners((data && data.partners) || []);
         var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
         if (planWrap) planWrap.removeAttribute('data-ticket-partners');
+        var toolbar = pageRoot.querySelector('.film-page-toolbar');
+        if (toolbar) toolbar.removeAttribute('data-ticket-partners');
         if (!usable.length) return;
         if (isMobileFilmLayout()) {
           pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-ticket-btns, .film-toolbar-plan-wrap .film-t-afisha-btn, .film-toolbar-plan-wrap .film-ticket-btn').forEach(function (el) {
