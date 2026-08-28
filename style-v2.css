@@ -12926,19 +12926,28 @@ a.film-t-afisha-btn:focus-visible {
   display: none;
 }
 @media (min-width: 861px) {
+  /* TICKET_CENTER_GUTTER1 — «Билеты» ровно по центру между афишей (лево wrap) и CTA */
   .film-ticket-btns--toolbar {
     position: absolute;
     top: 50%;
+    left: 0;
+    right: calc(50% + min(260px, 50%) + 12px);
+    width: auto;
     transform: translateY(-50%);
-    right: calc(50% + min(260px, 50%) + 16px);
     z-index: 4;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+  .film-ticket-btns--toolbar .film-ticket-btn {
+    pointer-events: auto;
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .film-ticket-btns--toolbar {
-    right: calc(50% + min(168px, 50%) + 20px);
+    right: calc(50% + min(168px, 50%) + 12px);
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .action-dropdown {
     width: min(100%, 336px);
@@ -12954,8 +12963,12 @@ a.film-t-afisha-btn:focus-visible {
   .film-toolbar-plan-wrap > .film-ticket-btn {
     position: absolute;
     top: 50%;
+    left: 0;
+    right: calc(50% + min(260px, 50%) + 12px);
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
     transform: translateY(-50%);
-    right: calc(50% + min(260px, 50%) + 16px);
     z-index: 4;
   }
   .film-poster-t-afisha-cta,
@@ -26200,14 +26213,19 @@ body.staff-standalone-page .staff-awards-loading {
     max-width: 100%;
     justify-content: center;
   }
-  /* TICKET_STREAM_GRID1 — stream logos share the tickets column (same right edge) */
+  /* TICKET_CENTER_GUTTER1 — stream logos в том же gutter, по центру как «Билеты» */
   .film-page-toolbar[data-ticket-partners] .film-toolbar-partners-slot {
-    left: auto;
-    right: calc(50% + min(260px, 50%) + 16px);
+    left: 0;
+    right: calc(50% + min(260px, 50%) + 12px);
+    width: auto;
     max-width: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
   }
   .film-page-toolbar[data-ticket-partners="2"] .film-toolbar-partners-slot {
-    right: calc(50% + min(168px, 50%) + 20px);
+    right: calc(50% + min(168px, 50%) + 12px);
   }
   .film-page-toolbar[data-ticket-partners] .film-toolbar-partners-slot .film-partner-watch-block {
     align-items: center;
