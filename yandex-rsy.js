@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260826cabinetHoriz1';
+  var BUILD = '20260829noHomeAds1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -22,6 +22,7 @@
    * RSY blocks (movie-planner.ru, site 19798904):
    * - filmBannerHorizontal (-1): баннер 1000×120 «MP f после похожих» — mobile top/bottom + inline
    * - filmSidebar (-2): вертикальный сайдбар — ТОЛЬКО desktop ≥1280, НИКОГДА mobile strips
+   * - /home: NO ads (rails full-bleed; sidebar overlapped content)
    */
   var BLOCKS = {
     filmBannerHorizontal: 'R-A-19798904-1',
@@ -42,8 +43,8 @@
     return BLOCKS.filmBannerHorizontal || BLOCKS.filmAfterSimilar || null;
   }
 
+  /* /home intentionally omitted — never mount RSY on cabinet home */
   var CABINET_SECTION_KEYS = {
-    '/home': 'home',
     '/premieres': 'premieres',
     '/whattowatch': 'whattowatch',
     '/buzz': 'buzz',
@@ -734,9 +735,10 @@
 
   function mountCabinetSectionPage(path) {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    if (path === '/home' || path === '/') return;
     if (!isCabinetSectionPath(path)) return;
     var key = cabinetSectionKeyFromPath(path);
-    if (!key) return;
+    if (!key || key === 'home') return;
     var sec = document.getElementById('section-' + key);
     if (!sec || sec.classList.contains('hidden')) return;
     if (isDesktop() && BLOCKS.cabinetSidebar) ensureFixedRail('cabinet', BLOCKS.cabinetSidebar, 'right');
