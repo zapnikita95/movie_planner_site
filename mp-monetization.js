@@ -238,7 +238,8 @@
   }
 
   function partnerTicketlandLogoUrl() {
-    return '/images/partners/ticketland-logo.svg';
+    /* Square badge for toolbar/poster slots — full wordmark SVG crops as «огрызок» */
+    return '/images/partners/ticketland-badge.svg';
   }
 
   function partnerLogoUrl(partner) {
@@ -311,7 +312,7 @@
   }
 
   function ticketPartnerLogoDims(partner) {
-    if (partner && partner.key === 'ticketland') return { w: 96, h: 36 };
+    if (partner && partner.key === 'ticketland') return { w: 54, h: 54 };
     return { w: 28, h: 34 };
   }
 
@@ -383,6 +384,7 @@
   }
 
   function buildTicketPartnersBlock(partners, kpId, mode) {
+    /* TICKET_LABEL_ABOVE1 — same as «Смотреть на»: label on top, logos below */
     var block = document.createElement('div');
     block.className = 'film-ticket-btns film-ticket-btns--' + mode;
     block.setAttribute('data-ticket-count', String(partners.length));
@@ -391,24 +393,14 @@
     label.textContent = 'Билеты';
     var logos = document.createElement('div');
     logos.className = 'film-ticket-btns__logos';
-    function appendLogo(partner) {
+    partners.forEach(function (partner) {
       var key = (partner && partner.key) || 't_afisha';
       var cls =
         mode === 'poster'
           ? 'film-ticket-btn film-poster-t-afisha-cta film-ticket-btn--' + key
           : 'film-ticket-btn film-ticket-btn--' + key;
       logos.appendChild(createTicketPartnerLink(partner, kpId, cls));
-    }
-    /* TICKET_INLINE_LABEL1 — desktop: [T] Билеты [Ticketland] */
-    if (mode === 'toolbar' && partners.length >= 2) {
-      block.classList.add('film-ticket-btns--inline-label');
-      appendLogo(partners[0]);
-      logos.appendChild(label);
-      for (var i = 1; i < partners.length; i++) appendLogo(partners[i]);
-      block.appendChild(logos);
-      return block;
-    }
-    partners.forEach(appendLogo);
+    });
     block.appendChild(label);
     block.appendChild(logos);
     return block;
