@@ -65,9 +65,11 @@
             '<div class="mp-app-promo-download__label">Скачать приложение</div>' +
             storeBadgesHtml(platform) +
           '</div>' +
-          '<button type="button" class="btn btn-primary btn-full mp-app-promo-ok" data-mp-promo-ok>' +
-            escapeHtml(primaryLabel) +
-          '</button>' +
+          '<div class="mp-app-promo-actions">' +
+            '<button type="button" class="mp-app-promo-ok" data-mp-promo-ok>' +
+              escapeHtml(primaryLabel) +
+            '</button>' +
+          '</div>' +
         '</div>';
 
       function close() {
@@ -86,15 +88,37 @@
     });
   }
 
-  function showTafishaTicketHint() {
-    return showDialog({
-      title: 'Билеты на T-Афише',
+  function ticketHintCopy(partnerKey) {
+    var key = String(partnerKey || '').toLowerCase();
+    if (key === 'ticketland') {
+      return {
+        title: 'Билеты на Ticketland',
+        body:
+          'После покупки билета нажмите «Запланировать просмотр» и выберите «В кино». ' +
+          'Билет можно будет добавить к вашему плану, а в приложении Movie Planner вам может прийти ' +
+          'напоминание о фильме с билетами.',
+      };
+    }
+    return {
+      title: 'Билеты на Т-Афише',
       body:
         'После покупки билета нажмите «Запланировать просмотр» и выберите «В кино». ' +
         'Билет можно будет добавить к вашему плану, а в приложении Movie Planner вам может прийти ' +
         'напоминание о фильме с билетами.',
+    };
+  }
+
+  function showTicketPartnerHint(partnerKey) {
+    var copy = ticketHintCopy(partnerKey);
+    return showDialog({
+      title: copy.title,
+      body: copy.body,
       primaryLabel: 'Понятно',
     });
+  }
+
+  function showTafishaTicketHint() {
+    return showTicketPartnerHint('t_afisha');
   }
 
   function showCinemaPlanAppHint() {
@@ -109,6 +133,7 @@
 
   global.MpAppPromoDialog = {
     showDialog: showDialog,
+    showTicketPartnerHint: showTicketPartnerHint,
     showTafishaTicketHint: showTafishaTicketHint,
     showCinemaPlanAppHint: showCinemaPlanAppHint,
     detectPlatform: detectPlatform,
