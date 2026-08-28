@@ -310,13 +310,18 @@
     return 'Билеты на Т-Афише';
   }
 
-  function buildTicketBtnHtml(partner) {
+  function ticketPartnerLogoDims(partner) {
+    if (partner && partner.key === 'ticketland') return { w: 96, h: 36 };
+    return { w: 28, h: 34 };
+  }
+
+  function buildTicketLogoHtml(partner) {
     var key = (partner && partner.key) || 't_afisha';
+    var dims = ticketPartnerLogoDims(partner);
     return (
-      '<span class="film-t-afisha-btn__icon film-t-afisha-btn__icon--' + escapeHtml(key) + '" aria-hidden="true">' +
-        '<img src="' + escapeHtml(ticketPartnerLogoUrl(partner)) + '" alt="" width="18" height="22" decoding="async" />' +
-      '</span>' +
-      '<span class="film-t-afisha-btn__label">Билеты</span>'
+      '<img class="film-ticket-btn__logo film-ticket-btn__logo--' + escapeHtml(key) + '" src="' +
+      escapeHtml(ticketPartnerLogoUrl(partner)) +
+      '" alt="" width="' + dims.w + '" height="' + dims.h + '" decoding="async" />'
     );
   }
 
@@ -344,15 +349,17 @@
   }
 
   function createTicketPartnerLink(partner, kpId, className) {
+    var key = (partner && partner.key) || 't_afisha';
     var a = document.createElement('a');
-    a.className = className;
+    a.className = className || ('film-ticket-btn film-ticket-btn--' + key);
     a.href = partner.url;
-    a.setAttribute('role', 'button');
+    a.target = '_blank';
+    a.rel = 'noopener sponsored';
     a.setAttribute('data-partner', partner.key || '');
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
     a.setAttribute('aria-label', ticketPartnerAriaLabel(partner));
-    a.innerHTML = buildTicketBtnHtml(partner);
-    bindTicketPartnerClick(a, partner, kpId, className.indexOf('poster') >= 0 ? 'poster_overlay_tickets' : 'film_toolbar_tickets');
+    a.innerHTML = buildTicketLogoHtml(partner);
+    bindTicketPartnerClick(a, partner, kpId, (className || '').indexOf('poster') >= 0 ? 'poster_overlay_tickets' : 'film_toolbar_tickets');
     return a;
   }
 
@@ -375,18 +382,37 @@
     return out;
   }
 
+  function buildTicketPartnersBlock(partners, kpId, mode) {
+    var block = document.createElement('div');
+    block.className = 'film-ticket-btns film-ticket-btns--' + mode;
+    block.setAttribute('data-ticket-count', String(partners.length));
+    var label = document.createElement('div');
+    label.className = 'film-ticket-btns__label';
+    label.textContent = 'Билеты';
+    var logos = document.createElement('div');
+    logos.className = 'film-ticket-btns__logos';
+    partners.forEach(function (partner) {
+      var key = (partner && partner.key) || 't_afisha';
+      var cls =
+        mode === 'poster'
+          ? 'film-ticket-btn film-poster-t-afisha-cta film-ticket-btn--' + key
+          : 'film-ticket-btn film-ticket-btn--' + key;
+      logos.appendChild(createTicketPartnerLink(partner, kpId, cls));
+    });
+    block.appendChild(label);
+    block.appendChild(logos);
+    return block;
+  }
+
   function mountPosterTicketCtas(pageRoot, partners, kpId) {
     if (!pageRoot || !partners || !partners.length) return;
     var wrap = pageRoot.querySelector('.poster-wrap');
     if (!wrap) return;
-    wrap.querySelectorAll('.film-poster-t-afisha-cta, .film-poster-ticket-stack').forEach(function (el) {
+    wrap.querySelectorAll('.film-poster-t-afisha-cta, .film-poster-ticket-stack, .film-ticket-btns--poster').forEach(function (el) {
       el.remove();
     });
-    var stack = document.createElement('div');
-    stack.className = 'film-poster-ticket-stack';
-    partners.forEach(function (partner) {
-      stack.appendChild(createTicketPartnerLink(partner, kpId, 'film-poster-t-afisha-cta film-ticket-btn--' + (partner.key || '')));
-    });
+    var stack = buildTicketPartnersBlock(partners, kpId, 'poster');
+    stack.classList.add('film-poster-ticket-stack');
     wrap.appendChild(stack);
     metrikaGoal('stream_block_view', {
       kp_id: String(kpId || ''),
@@ -399,17 +425,10 @@
 
   function mountToolbarTicketBtns(planWrap, partners, kpId) {
     if (!planWrap || !partners || !partners.length) return;
-    planWrap.querySelectorAll('.film-ticket-btns, .film-t-afisha-btn').forEach(function (el) {
+    planWrap.querySelectorAll('.film-ticket-btns, .film-t-afisha-btn, .film-ticket-btn').forEach(function (el) {
       el.remove();
     });
-    var group = document.createElement('div');
-    group.className = 'film-ticket-btns';
-    group.setAttribute('data-ticket-count', String(partners.length));
-    partners.forEach(function (partner) {
-      group.appendChild(
-        createTicketPartnerLink(partner, kpId, 'film-t-afisha-btn film-ticket-btn--' + (partner.key || ''))
-      );
-    });
+    var group = buildTicketPartnersBlock(partners, kpId, 'toolbar');
     planWrap.insertBefore(group, planWrap.firstChild);
     planWrap.setAttribute('data-ticket-partners', String(partners.length));
     metrikaGoal('stream_block_view', {
@@ -438,12 +457,12 @@
         if (planWrap) planWrap.removeAttribute('data-ticket-partners');
         if (!usable.length) return;
         if (isMobileFilmLayout()) {
-          pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-ticket-btns, .film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) {
+          pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-ticket-btns, .film-toolbar-plan-wrap .film-t-afisha-btn, .film-toolbar-plan-wrap .film-ticket-btn').forEach(function (el) {
             el.remove();
           });
           mountPosterTicketCtas(pageRoot, usable, kpId);
         } else {
-          pageRoot.querySelectorAll('.film-poster-t-afisha-cta, .film-poster-ticket-stack').forEach(function (el) {
+          pageRoot.querySelectorAll('.film-poster-t-afisha-cta, .film-poster-ticket-stack, .film-ticket-btns--poster').forEach(function (el) {
             el.remove();
           });
           if (planWrap) mountToolbarTicketBtns(planWrap, usable, kpId);
@@ -541,7 +560,8 @@
     if (!scope) return;
     scope.querySelectorAll('.film-poster-2sub-cta').forEach(function (el) { el.remove(); });
     scope.querySelectorAll('.film-poster-t-afisha-cta').forEach(function (el) { el.remove(); });
-    scope.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-poster-ticket-stack, .film-ticket-btns').forEach(function (el) { el.remove(); });
+    scope.querySelectorAll('.film-toolbar-plan-wrap .film-t-afisha-btn, .film-toolbar-plan-wrap .film-ticket-btn').forEach(function (el) { el.remove(); });
   }
 
   function mountPoster2subCta(pageRoot, partner, kpId) {
@@ -782,17 +802,29 @@
   }
 
   function courseCardHtml(item) {
-    /* COURSE_OFFERS_SYNC_V2 — same shelf slot as games; Sync CPC wins on collision */
+    /* COURSE_OFFERS_SYNC_COVER_V1 — vertical 3:4 cover from partner_sync_courses.image */
     var href = escapeHtml(item.url || item.destination_url || '#');
     var title = escapeHtml(item.title || '');
     var lead = escapeHtml(item.lead || '');
     var cta = escapeHtml(item.cta || 'Откройте курс');
     var legal = escapeHtml(item.legal || 'Реклама');
+    var image = String(item.image || item.image_url || '');
+    if (image.indexOf('https://') !== 0 && image.indexOf('/') !== 0) image = '';
+    var cover = image
+      ? (
+          '<a class="mp-offer-cover-link" href="' + href + '" target="_blank" rel="noopener sponsored nofollow">' +
+            '<img class="mp-offer-cover" src="' + escapeHtml(image) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'is-broken\')">' +
+            '<span class="mp-offer-plat">Курс</span>' +
+          '</a>'
+        )
+      : (
+          '<div class="mp-offer-cover-link mp-offer-cover-link--course">' +
+            '<span class="mp-offer-plat">Курс</span>' +
+          '</div>'
+        );
     return (
       '<article class="mp-offer-card mp-offer-card--course" data-course-id="' + escapeHtml(item.id || '') + '">' +
-        '<div class="mp-offer-cover-link mp-offer-cover-link--course">' +
-          '<span class="mp-offer-plat">Курс</span>' +
-        '</div>' +
+        cover +
         '<div class="mp-offer-adtune-bar">' +
           '<span class="mp-offer-ad-label">Реклама</span>' +
           '<button type="button" class="mp-offer-adtune" aria-label="Сведения о рекламе" aria-expanded="false" data-legal="' + legal + '">' +
