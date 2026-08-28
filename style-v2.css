@@ -11283,21 +11283,25 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card,
 #film-page-content a.similar-rail-card,
 #staff-roles-root a.staff-film-card,
 .cabinet a.film-t-afisha-btn,
+.cabinet a.film-ticket-btn,
 .cabinet a.film-poster-t-afisha-cta,
 .cabinet a.film-poster-2sub-cta,
 .cabinet a.film-partner-watch__icon,
 .cabinet a.mp-stream-btn,
 #section-film a.film-t-afisha-btn,
+#section-film a.film-ticket-btn,
 #section-film a.film-poster-t-afisha-cta,
 #section-film a.film-poster-2sub-cta,
 #section-film a.film-partner-watch__icon,
 #section-film a.mp-stream-btn,
 #film-page-content a.film-t-afisha-btn,
+#film-page-content a.film-ticket-btn,
 #film-page-content a.film-poster-t-afisha-cta,
 #film-page-content a.film-poster-2sub-cta,
 #film-page-content a.film-partner-watch__icon,
 #film-page-content a.mp-stream-btn,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
+body.film-standalone-page .cabinet a.film-ticket-btn,
 body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
 body.film-standalone-page .cabinet a.film-poster-2sub-cta,
 body.film-standalone-page .cabinet a.film-partner-watch__icon,
@@ -11333,21 +11337,25 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
   text-decoration: none !important;
 }
 .cabinet a.film-t-afisha-btn,
+.cabinet a.film-ticket-btn,
 .cabinet a.film-poster-t-afisha-cta,
 .cabinet a.film-poster-2sub-cta,
 .cabinet a.film-partner-watch__icon,
 .cabinet a.mp-stream-btn,
 #section-film a.film-t-afisha-btn,
+#section-film a.film-ticket-btn,
 #section-film a.film-poster-t-afisha-cta,
 #section-film a.film-poster-2sub-cta,
 #section-film a.film-partner-watch__icon,
 #section-film a.mp-stream-btn,
 #film-page-content a.film-t-afisha-btn,
+#film-page-content a.film-ticket-btn,
 #film-page-content a.film-poster-t-afisha-cta,
 #film-page-content a.film-poster-2sub-cta,
 #film-page-content a.film-partner-watch__icon,
 #film-page-content a.mp-stream-btn,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
+body.film-standalone-page .cabinet a.film-ticket-btn,
 body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
 body.film-standalone-page .cabinet a.film-poster-2sub-cta,
 body.film-standalone-page .cabinet a.film-partner-watch__icon,
@@ -11355,21 +11363,25 @@ body.film-standalone-page .cabinet a.mp-stream-btn {
   color: var(--text-primary, #f4f4f5);
 }
 .cabinet a.film-t-afisha-btn:hover,
+.cabinet a.film-ticket-btn:hover,
 .cabinet a.film-poster-t-afisha-cta:hover,
 .cabinet a.film-poster-2sub-cta:hover,
 .cabinet a.film-partner-watch__icon:hover,
 .cabinet a.mp-stream-btn:hover,
 #section-film a.film-t-afisha-btn:hover,
+#section-film a.film-ticket-btn:hover,
 #section-film a.film-poster-t-afisha-cta:hover,
 #section-film a.film-poster-2sub-cta:hover,
 #section-film a.film-partner-watch__icon:hover,
 #section-film a.mp-stream-btn:hover,
 #film-page-content a.film-t-afisha-btn:hover,
+#film-page-content a.film-ticket-btn:hover,
 #film-page-content a.film-poster-t-afisha-cta:hover,
 #film-page-content a.film-poster-2sub-cta:hover,
 #film-page-content a.film-partner-watch__icon:hover,
 #film-page-content a.mp-stream-btn:hover,
 body.film-standalone-page .cabinet a.film-t-afisha-btn:hover,
+body.film-standalone-page .cabinet a.film-ticket-btn:hover,
 body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover,
 body.film-standalone-page .cabinet a.film-poster-2sub-cta:hover,
 body.film-standalone-page .cabinet a.film-partner-watch__icon:hover,
@@ -12801,99 +12813,154 @@ main.film-page .film-hero-crew {
   margin-left: 4px;
 }
 
-/* T-Афиша / Ticketland: desktop — слева от CTA; mobile — оверлей на постере */
-.film-t-afisha-btn,
-.film-poster-t-afisha-cta {
+/* Билеты: как «Смотреть на» — подпись + логотипы без рамок */
+.film-ticket-btns {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.film-ticket-btns__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #b4b4be);
+  line-height: 1.2;
+  text-align: center;
+}
+.film-ticket-btns__logos {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.film-ticket-btn,
+.film-poster-t-afisha-cta,
+a.film-t-afisha-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
+  justify-content: center;
+  min-height: 44px;
   min-width: 44px;
-  padding: 4px 8px 4px 4px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 4px 6px;
+  border: none;
   border-radius: 10px;
-  background: rgba(9, 9, 11, 0.62);
+  background: transparent;
   color: var(--text-primary, #f4f4f5);
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.1;
   text-decoration: none !important;
   box-shadow: none;
-  white-space: nowrap;
   box-sizing: border-box;
-  opacity: 0.92;
-  transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+  opacity: 0.94;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
-.film-t-afisha-btn:hover,
-.film-poster-t-afisha-cta:hover {
-  background: rgba(19, 19, 24, 0.88);
-  border-color: rgba(255, 255, 255, 0.2);
+.film-ticket-btn:hover,
+.film-poster-t-afisha-cta:hover,
+a.film-t-afisha-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
   opacity: 1;
   color: #fff;
   text-decoration: none !important;
 }
-.film-t-afisha-btn:focus-visible,
-.film-poster-t-afisha-cta:focus-visible {
+.film-ticket-btn:focus-visible,
+.film-poster-t-afisha-cta:focus-visible,
+a.film-t-afisha-btn:focus-visible {
   outline: 2px solid var(--focus-ring-soft, rgba(255, 221, 45, 0.55));
   outline-offset: 2px;
 }
-.film-ticket-btns {
+.film-ticket-btn__logo {
+  display: block;
+  width: auto;
+  height: auto;
+  max-height: 34px;
+  object-fit: contain;
+}
+.film-ticket-btn__logo--t_afisha {
+  width: 28px;
+  height: 34px;
+  max-height: 34px;
+}
+.film-ticket-btn__logo--ticketland {
+  width: auto;
+  height: 36px;
+  max-height: 36px;
+  max-width: 110px;
+}
+/* legacy wrappers — без жёлтого/тёмного бокса поверх лого */
+.film-t-afisha-btn__icon,
+.film-t-afisha-btn__icon--ticketland {
+  display: contents;
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: auto;
+  height: auto;
+  padding: 0;
+}
+.film-t-afisha-btn__label {
   display: none;
 }
 @media (min-width: 861px) {
-  .film-ticket-btns {
+  .film-ticket-btns--toolbar {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    right: calc(50% + min(260px, 50%) + 8px);
+    right: calc(50% + min(260px, 50%) + 16px);
     z-index: 4;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: flex;
   }
-  .film-toolbar-plan-wrap[data-ticket-partners="2"] .film-ticket-btns {
-    right: calc(50% + min(190px, 50%) + 8px);
+  .film-toolbar-plan-wrap[data-ticket-partners="2"] .film-ticket-btns--toolbar {
+    right: calc(50% + min(168px, 50%) + 20px);
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .action-dropdown {
-    width: min(100%, 380px);
+    width: min(100%, 336px);
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .action-dropdown-btn,
   .film-toolbar-plan-wrap[data-ticket-partners="2"] > .film-toolbar-plan {
-    min-height: 52px;
-    padding: 0 16px;
-    font-size: 15px;
-    gap: 8px;
+    min-height: 48px;
+    padding: 0 14px;
+    font-size: 14px;
+    gap: 6px;
   }
-  .film-toolbar-plan-wrap > .film-t-afisha-btn {
+  .film-toolbar-plan-wrap > .film-t-afisha-btn,
+  .film-toolbar-plan-wrap > .film-ticket-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    right: calc(50% + min(260px, 50%) + 8px);
+    right: calc(50% + min(260px, 50%) + 16px);
     z-index: 4;
-    max-width: 104px;
-    overflow: hidden;
   }
   .film-poster-t-afisha-cta,
-  .film-poster-ticket-stack {
+  .film-poster-ticket-stack,
+  .film-ticket-btns--poster {
     display: none !important;
   }
 }
 @media (max-width: 860px) {
   .film-toolbar-plan-wrap > .film-t-afisha-btn,
-  .film-toolbar-plan-wrap > .film-ticket-btns {
+  .film-toolbar-plan-wrap > .film-ticket-btns,
+  .film-toolbar-plan-wrap > .film-ticket-btn {
     display: none !important;
   }
 }
-.film-poster-ticket-stack {
+.film-poster-ticket-stack,
+.film-ticket-btns--poster {
   position: absolute;
   right: max(10px, env(safe-area-inset-right, 0px));
   bottom: 10px;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   align-items: flex-end;
+}
+.film-ticket-btns--poster .film-ticket-btns__label {
+  text-align: right;
+  padding-right: 4px;
+}
+.film-ticket-btns--poster .film-ticket-btns__logos {
+  gap: 8px;
 }
 .film-poster-t-afisha-cta {
   position: absolute;
@@ -12901,56 +12968,20 @@ main.film-page .film-hero-crew {
   bottom: 10px;
   z-index: 5;
 }
-.film-poster-ticket-stack .film-poster-t-afisha-cta {
+.film-poster-ticket-stack .film-poster-t-afisha-cta,
+.film-ticket-btns--poster .film-poster-t-afisha-cta {
   position: static;
   right: auto;
   bottom: auto;
 }
-.film-t-afisha-btn__icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 32px;
-  border-radius: 7px;
-  background: #ffdd2d;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-}
-.film-t-afisha-btn__icon--ticketland {
-  background: #1a1a22;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-.film-t-afisha-btn__icon--ticketland img {
-  width: 20px;
-  height: auto;
-  max-height: 18px;
-  object-fit: contain;
-}
-.film-t-afisha-btn__icon img {
-  display: block;
-  width: 18px;
-  height: auto;
-}
-.film-t-afisha-btn__label {
-  font-family: inherit;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none !important;
-}
 @media (max-width: 520px) {
-  .film-poster-t-afisha-cta {
-    min-height: 38px;
-    border-radius: 11px;
-  }
-  .film-poster-t-afisha-cta .film-t-afisha-btn__icon {
-    width: 26px;
+  .film-ticket-btns--poster .film-ticket-btn__logo--t_afisha {
+    width: 24px;
     height: 30px;
   }
-  .film-poster-t-afisha-cta .film-t-afisha-btn__icon img {
-    width: 16px;
+  .film-ticket-btns--poster .film-ticket-btn__logo--ticketland {
+    height: 30px;
+    max-width: 92px;
   }
 }
 
@@ -26685,11 +26716,15 @@ body.staff-standalone-page .staff-awards-loading {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  min-height: 96px;
+  aspect-ratio: 3 / 4;
+  min-height: 0;
   padding: 10px;
   box-sizing: border-box;
   background: #1a1a22;
   border-radius: 8px 8px 0 0;
+}
+.mp-offer-card--course .mp-offer-cover-link:not(.mp-offer-cover-link--course) {
+  aspect-ratio: 3 / 4;
 }
 .mp-offer-course-lead {
   margin: 6px 0 10px;
