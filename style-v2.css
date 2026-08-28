@@ -12932,6 +12932,22 @@ a.film-t-afisha-btn:focus-visible {
     right: calc(50% + min(260px, 50%) + 16px);
     z-index: 4;
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .film-ticket-btns--toolbar.film-ticket-btns--inline-label {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+  .film-ticket-btns--toolbar.film-ticket-btns--inline-label .film-ticket-btns__logos {
+    gap: 10px;
+  }
+  .film-ticket-btns--toolbar.film-ticket-btns--inline-label .film-ticket-btns__label {
+    margin: 0;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
   .film-toolbar-plan-wrap[data-ticket-partners="2"] .film-ticket-btns--toolbar {
     right: calc(50% + min(168px, 50%) + 20px);
@@ -13011,10 +13027,38 @@ a.film-t-afisha-btn:focus-visible {
     border-color: rgba(255, 255, 255, 0.22);
     opacity: 1;
   }
+  /* Ticketland badge already shaped — fill the whole slot, no padded frame */
+  .film-ticket-btns--poster .film-ticket-btn--ticketland,
+  .film-poster-ticket-stack .film-ticket-btn--ticketland {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+    padding: 0;
+  }
+  .film-ticket-btns--poster .film-ticket-btn__logo--ticketland,
+  .film-poster-ticket-stack .film-ticket-btn__logo--ticketland {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    object-position: 18% 50%;
+  }
+  /* TICKET_ABOVE_2SUB1 — tickets sit above subtitle CTA, not on top of it */
+  .poster-wrap:has(.film-poster-2sub-cta) .film-ticket-btns--poster,
+  .poster-wrap:has(.film-poster-2sub-cta) .film-poster-ticket-stack {
+    bottom: 78px;
+    z-index: 6;
+  }
+  .poster-wrap:has(.film-ticket-btns--poster) .film-poster-2sub-cta,
+  .poster-wrap:has(.film-poster-ticket-stack) .film-poster-2sub-cta {
+    bottom: 10px;
+    z-index: 4;
+  }
   .poster-wrap[data-ticket-partners="1"] .film-ticket-btns--poster,
   .poster-wrap[data-ticket-partners="1"] .film-poster-ticket-stack {
     right: 12px;
-    bottom: 12px;
   }
 }
 .film-poster-t-afisha-cta {
@@ -13034,9 +13078,13 @@ a.film-t-afisha-btn:focus-visible {
     width: 24px;
     height: 30px;
   }
-  .film-ticket-btns--poster .film-ticket-btn__logo--ticketland {
-    height: 30px;
-    max-width: 92px;
+  .film-ticket-btns--poster .film-ticket-btn--ticketland .film-ticket-btn__logo--ticketland {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    object-position: 18% 50%;
   }
 }
 
@@ -26163,6 +26211,18 @@ body.staff-standalone-page .staff-awards-loading {
     width: 100%;
     max-width: 100%;
     justify-content: center;
+  }
+  /* TICKET_STREAM_GRID1 — stream logos share the tickets column (same right edge) */
+  .film-page-toolbar[data-ticket-partners] .film-toolbar-partners-slot {
+    left: auto;
+    right: calc(50% + min(260px, 50%) + 16px);
+    max-width: none;
+  }
+  .film-page-toolbar[data-ticket-partners="2"] .film-toolbar-partners-slot {
+    right: calc(50% + min(168px, 50%) + 20px);
+  }
+  .film-page-toolbar[data-ticket-partners] .film-toolbar-partners-slot .film-partner-watch-block {
+    align-items: center;
   }
 }
 .film-partner-watch-block {
