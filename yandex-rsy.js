@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829noHomeAds1';
+  var BUILD = '20260829rsyAuthMobile1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -572,6 +572,42 @@
     renderBlock(o.blockId, sid);
   }
 
+  function filmSectionVisible() {
+    var sec = document.getElementById('section-film');
+    if (!sec) return true;
+    return !sec.classList.contains('hidden') && !sec.hasAttribute('hidden');
+  }
+
+  function clearFilmMobileStrips() {
+    ['mp_rsy_inline_film_pre_poster', 'mp_rsy_inline_after_similar', 'mp_rsy_inline_film_bottom'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var slot = el.querySelector('.mp-rsy-slot');
+      if (slot && slot.id) delete rendered[slot.id];
+      el.remove();
+    });
+  }
+
+  function watchFilmSectionVisibility() {
+    if (global._mpRsyFilmSectionWatch) return;
+    var sec = document.getElementById('section-film');
+    if (!sec || typeof MutationObserver === 'undefined') return;
+    global._mpRsyFilmSectionWatch = true;
+    var wasHidden = sec.classList.contains('hidden') || sec.hasAttribute('hidden');
+    var mo = new MutationObserver(function () {
+      if (!allowsAds() || shouldSkip() || isDesktop()) return;
+      if (!isFilmPath(String(global.location && global.location.pathname || ''))) return;
+      var nowHidden = sec.classList.contains('hidden') || sec.hasAttribute('hidden');
+      if (wasHidden && !nowHidden) {
+        clearFilmMobileStrips();
+        mountFilmPrePoster();
+        mountFilmPageBottom();
+      }
+      wasHidden = nowHidden;
+    });
+    mo.observe(sec, { attributes: true, attributeFilter: ['class', 'hidden'] });
+  }
+
   function mountFilmPrePoster() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip() || isDesktop()) return;
     var bannerId = horizontalBannerBlock();
@@ -647,6 +683,10 @@
   }
 
   function mountFilmMobileStrips() {
+    watchFilmSectionVisibility();
+    /* Auth cabinet: #section-film is .hidden until route shows it.
+       Rendering RSY into a hidden host leaves a blank slot forever. */
+    if (!isDesktop() && !filmSectionVisible()) return;
     mountFilmPrePoster();
     mountFilmPageBottom();
   }
@@ -692,6 +732,7 @@
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
     var path = String(global.location && global.location.pathname || '');
     var kp = kpFromFilmPath(path);
+    watchFilmSectionVisibility();
     fetchDenyList().then(function () {
       if (filmAdsBlocked(kp)) {
         removeOwnedSlots();
