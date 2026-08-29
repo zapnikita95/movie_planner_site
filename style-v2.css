@@ -6573,22 +6573,47 @@ main.film-page .film-page-similar-section,
   line-height: 1.45;
   max-width: 52rem;
 }
-/* Buzz — full width grid + cinematic hero (like collections) */
+/* Buzz — full width grid + cinematic hero (same as collections detail: NO card frame) */
 body.in-cabinet #section-buzz.buzz-section--wide {
   max-width: none;
   width: 100%;
 }
-.buzz-section-hero {
+#buzz-section-hero.buzz-section-hero {
+  /* Break out of cabinet padding — edge-to-edge like #collections-detail-hero-host */
   margin: 0 0 14px;
-  border-radius: 18px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  width: 100vw;
+  max-width: 100vw;
+  border: none;
+  border-radius: 0;
   overflow: hidden;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
-.buzz-section-hero.hidden {
+#buzz-section-hero.buzz-section-hero.hidden {
   display: none !important;
 }
-.buzz-detail-hero.collections-detail-hero {
-  min-height: clamp(200px, 30vw, 340px);
-  border-radius: 18px;
+#buzz-section-hero .buzz-detail-hero.collections-detail-hero,
+#buzz-section-hero > .collections-detail-hero {
+  min-height: clamp(280px, 42vh, 560px);
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  box-shadow: none;
+  outline: none;
+}
+#buzz-section-hero .collections-detail-hero__mosaic-wrap {
+  inset: -6% -3%;
+}
+#buzz-section-hero .collections-detail-hero__inner {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
 }
 .buzz-detail-hero__title {
   font-size: clamp(26px, 4.8vw, 42px);

@@ -21,9 +21,8 @@
 
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
-  /* Short TTL: after scrape, 3d must not stay empty from sessionStorage. */
+  /* MARKER:20260829buzzHeroBleed1 */
   var CLIENT_CACHE_TTL_MS = 15 * 60 * 1000;
-  /* MARKER:20260829buzzDays3Cache1 */
   var BELL_SVG =
     '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>' +
@@ -166,25 +165,23 @@
   }
 
   function buzzHeroMosaicHtml(posters) {
-    var urls = (posters || []).filter(Boolean).slice(0, 8);
+    /* Always wall mosaic like BAFTA collections — never spotlight (padded framed cards). */
+    var urls = (posters || []).filter(Boolean).slice(0, 12);
     if (!urls.length) {
       return '<div class="collections-poster-mosaic collections-poster-mosaic--hero collections-poster-mosaic--empty" aria-hidden="true"></div>';
     }
-    if (urls.length <= 5) {
-      return (
-        '<div class="collections-poster-spotlight collections-poster-spotlight--' + urls.length + '" aria-hidden="true">' +
-        urls.map(function (u, i) {
-          return '<div class="collections-poster-spotlight__cell" data-spot="' + i + '" style="' + posterCellStyle(u) + '"></div>';
-        }).join('') +
-        '</div>'
-      );
+    var cols = urls.length >= 8 ? 4 : (urls.length >= 5 ? 4 : Math.max(2, urls.length));
+    var rows = Math.max(2, Math.ceil(Math.min(urls.length, cols * 3) / cols));
+    var cellCount = cols * rows;
+    var filled = urls.slice();
+    while (filled.length < cellCount && urls.length) {
+      filled.push(urls[filled.length % urls.length]);
     }
-    var cols = urls.length >= 6 ? 4 : 3;
-    var rows = Math.ceil(urls.length / cols);
+    filled = filled.slice(0, cellCount);
     return (
       '<div class="collections-poster-mosaic collections-poster-mosaic--hero" aria-hidden="true" style="--mosaic-cols:' +
       cols + ';--mosaic-rows:' + rows + '">' +
-      urls.map(function (u) {
+      filled.map(function (u) {
         return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
       }).join('') +
       '</div>'
@@ -223,7 +220,7 @@
       return;
     }
     heroMount.innerHTML =
-      '<div class="collections-detail-hero collections-detail-hero--spotlight buzz-detail-hero" style="--hero-mosaic-rows:2">' +
+      '<div class="collections-detail-hero collections-detail-hero--wall buzz-detail-hero" style="--hero-mosaic-rows:2">' +
         '<div class="collections-detail-hero__mosaic-wrap">' +
           buzzHeroMosaicHtml(posters) +
           '<div class="collections-detail-hero__fade-l" aria-hidden="true"></div>' +
