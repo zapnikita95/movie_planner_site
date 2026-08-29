@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Yandex RSY — movie-planner.ru
  * RSY_HORIZONTAL_CLIP_V1
  * Tall vertical sidebar in side gutters; width scales down; hidden if no room.
@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829posterFs2sub1';
+  var BUILD = '20260829twosubBig1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;

@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Lightweight /f/:kp and /s/:id boot — film-page/staff-page instead of cabinet-app.js on first paint.
  * Full cabinet-app.js loads on idle or when user opens another section (never on thin shell).
  */
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829posterFs2sub1';
+  var BUILD = '20260829twosubBig1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;

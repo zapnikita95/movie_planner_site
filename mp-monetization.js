@@ -1,6 +1,7 @@
-/**
+﻿/**
  * Movie Planner monetization: RSYA, streaming affiliates, niche partners, film alerts.
  * POSTER_2SUB_INLINE_SVG1
+ * TWOSUB_BIG1
  * Loaded on /f/ and /s/ thin shell.
  */
 (function (global) {
@@ -233,15 +234,20 @@
     return '/images/partners/2sub-logo.png';
   }
 
-  function partner2subLogoMarkup() {
-    /* Inline SVG: PNG via jsDelivr 302 left an empty slot after CTA paint (RF). POSTER_2SUB_INLINE_SVG1 */
+  function partner2subLogoMarkup(size) {
+    /* Inline white badge (PNG via jsDelivr 302 was empty). Keep juicy size vs FLEX. TWOSUB_BIG1 */
+    var dims = partnerLogoDimensions({ key: '2sub' }, size || 'desktop');
+    var w = dims.w;
+    var h = dims.h;
     return (
-      '<svg class="film-partner-watch__logo film-partner-watch__logo--2sub" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 147 51" width="56" height="20" focusable="false" aria-hidden="true">' +
-        '<rect x="4" y="8" width="35" height="35" rx="8" fill="#fff"/>' +
-        '<text x="21.5" y="35" text-anchor="middle" fill="#111" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="800">2</text>' +
-        '<rect x="50" y="12" width="90" height="2" fill="#fff"/>' +
-        '<rect x="50" y="37" width="90" height="2" fill="#fff"/>' +
-        '<text x="95" y="35" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="800" letter-spacing="2">SUB</text>' +
+      '<svg class="film-partner-watch__logo film-partner-watch__logo--2sub" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 147 51" width="' +
+      w +
+      '" height="' +
+      h +
+      '" focusable="false" aria-hidden="true">' +
+        '<rect x="1" y="1" width="145" height="49" rx="12" fill="#ffffff"/>' +
+        '<text x="36" y="35" text-anchor="middle" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="800">2</text>' +
+        '<text x="98" y="35" text-anchor="middle" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="800" letter-spacing="1.5">SUB</text>' +
       '</svg>'
     );
   }
@@ -279,6 +285,10 @@
   }
 
   function partnerLogoDimensions(partner, size) {
+    if (partner && partner.key === '2sub') {
+      if (size === 'poster_overlay') return { w: 84, h: 28 };
+      return size === 'desktop' ? { w: 108, h: 34 } : { w: 96, h: 30 };
+    }
     if (partner && partner.key === 'tvigle') {
       return size === 'desktop' ? { w: 64, h: 20 } : { w: 56, h: 18 };
     }
@@ -522,7 +532,7 @@
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
     a.setAttribute('aria-label', partnerAlt(partner));
     if (partner.key === '2sub') {
-      a.innerHTML = partner2subLogoMarkup();
+      a.innerHTML = partner2subLogoMarkup(size);
     } else if (logo) {
       var dims = partnerLogoDimensions(partner, size);
       a.innerHTML =
@@ -616,7 +626,7 @@
       '<span class="film-poster-2sub-cta__line">Смотреть с субтитрами</span>' +
       '<span class="film-poster-2sub-cta__line film-poster-2sub-cta__brand">' +
         '<span class="film-poster-2sub-cta__on">на</span>' +
-        partner2subLogoMarkup() +
+        partner2subLogoMarkup('poster_overlay') +
       '</span>';
     bindPartnerIconClick(a, partner, kpId, 'poster_overlay');
     wrap.appendChild(a);
