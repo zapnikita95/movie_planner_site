@@ -454,8 +454,18 @@
     var title = filmTitleParam(pageRoot);
     var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/ticket-partners?city=' + encodeURIComponent(city);
     if (title) url += '&title=' + encodeURIComponent(title);
-    return fetch(url, { credentials: 'omit' })
-      .then(function (r) { return r.json(); })
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      timer = setTimeout(function () {
+        try { ctrl.abort(); } catch (_e) {}
+      }, 12000);
+    }
+    return fetch(url, { credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) {
+        if (!r.ok) throw new Error('ticket-partners ' + r.status);
+        return r.json();
+      })
       .then(function (data) {
         var usable = collectTicketPartners((data && data.partners) || []);
         var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
@@ -475,7 +485,10 @@
           if (planWrap) mountToolbarTicketBtns(planWrap, usable, kpId);
         }
       })
-      .catch(function () {});
+      .catch(function () {})
+      .finally(function () {
+        if (timer) clearTimeout(timer);
+      });
   }
 
   function bindPartnerIconClick(a, partner, kpId, surface) {
@@ -604,8 +617,18 @@
   function mountPartnerWatchPills(pageRoot, kpId) {
     if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
     var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/watch-partners';
-    return fetch(url, { credentials: 'omit' })
-      .then(function (r) { return r.json(); })
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      timer = setTimeout(function () {
+        try { ctrl.abort(); } catch (_e) {}
+      }, 10000);
+    }
+    return fetch(url, { credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) {
+        if (!r.ok) throw new Error('watch-partners ' + r.status);
+        return r.json();
+      })
       .then(function (data) {
         var partners = (data && data.partners) || [];
         var primary = [];
@@ -639,7 +662,10 @@
         if (shell) mountDesktopPartnerBlock(shell, usable, kpId);
         mountMobilePartnerBlock(pageRoot, usable, kpId);
       })
-      .catch(function () {});
+      .catch(function () {})
+      .finally(function () {
+        if (timer) clearTimeout(timer);
+      });
   }
 
   function mountStreamingBlock(pageRoot, kpId, title) {
@@ -1324,6 +1350,7 @@
     /* TAKPRODAM_ADTUNE */
     /* TAKPRODAM_JUICY2 TAKPRODAM_GRID2 TAKPRODAM_GUTTER1 */
     /* TAKPRODAM_COVER1 TAKPRODAM_HOVERSCROLL1 TAKPRODAM_FINITE1 */
+    /* TICKETS_PARALLEL1 — tickets must not wait on watch-partners (was 2min when 500) */
     mountProductShelf(pageRoot, kpId);
     mountTicketPartners(pageRoot, kpId);
     try {
@@ -1331,8 +1358,8 @@
         el.remove();
       });
     } catch (_rm) {}
+    mountTicketPartnerButton(pageRoot, kpId, { isSeries: isSeries, city: 'moscow' });
     mountPartnerWatchPills(pageRoot, kpId).then(function () {
-      mountTicketPartnerButton(pageRoot, kpId, { isSeries: isSeries, city: 'moscow' });
       // Never show email "notify when online" for movies — empty watch-partners
       // is normal for theatrical releases; the prompt looked broken (guest Win).
       // Series keep the new-episode alert when no partner CTA is present.
