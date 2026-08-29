@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829noCabinetAds1';
+  var BUILD = '20260829premFillSortAds1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -393,12 +393,33 @@
   }
 
   function isCabinetSectionPath(path) {
-    /* Owner: no RSY on any cabinet section (2026-08-29 noCabinetAds1). */
-    return false;
+    var p = String(path || '').split('?')[0];
+    if (!p || p === '/') return false;
+    if (isFilmPath(p) || /^\/s\/\d+/.test(p) || isSeriesHubPath(p) || /\/articles\//.test(p)) return false;
+    return (
+      p === '/home' ||
+      p === '/plans' ||
+      p === '/watchlist' ||
+      p === '/premieres' ||
+      p === '/buzz' ||
+      p === '/whattowatch' ||
+      p.indexOf('/whattowatch/') === 0 ||
+      p === '/tournament' ||
+      p === '/ratings' ||
+      p === '/series' ||
+      p === '/stats' ||
+      p === '/inbox' ||
+      p === '/search' ||
+      p.indexOf('/features/') === 0
+    );
   }
 
   function cabinetSectionKeyFromPath(path) {
-    return null;
+    if (!isCabinetSectionPath(path)) return null;
+    var p = String(path || '').split('?')[0];
+    if (p.indexOf('/whattowatch') === 0 || p.indexOf('/features/collections') === 0) return 'whattowatch';
+    if (p === '/watchlist' || p === '/ratings' || p === '/series') return 'base';
+    return p.replace(/^\//, '').split('/')[0] || 'cabinet';
   }
 
   function kpFromFilmPath(path) {
@@ -765,7 +786,9 @@
 
   function mountCabinetSectionPage(path) {
     /* noCabinetAds1: cabinet SPA must stay ad-free (sidebar + inline). */
-    return;
+    removeOwnedSlots();
+    updateFixedRailVisibility();
+    try { document.body.classList.remove('mp-rsy-film-page'); } catch (_e) {}
   }
 
   function watchLateSections() {

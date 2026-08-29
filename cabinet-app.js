@@ -24072,7 +24072,8 @@
   let _premieresLoadInflight = null;
   let _premieresLoadGen = 0;
   const PREMIERES_PAGE_SIZE = 24;
-  const PREMIERES_MIN_VISIBLE = 18;
+  /** Минимум карточек «от сегодня» в сетке (не сырой ответ API с прошедшими датами). */
+  const PREMIERES_MIN_VISIBLE = 24;
 
   function dedupePremieresByKp(items) {
     const seen = new Set();
@@ -24087,6 +24088,11 @@
       out.push(it);
     });
     return out;
+  }
+
+  function premieresVisibleUpcoming(raw) {
+    const opts = !getToken() ? { guestFallback: true, keepUndated: true } : { keepUndated: false };
+    return filterPremieresUpcomingMsk(dedupePremieresByKp(raw || []), opts);
   }
 
   function fetchPremieresPage(offset, limit) {
@@ -24109,6 +24115,17 @@
       has_more: !!(data && data.has_more),
       total: Number(data && data.total) || 0,
     }));
+  }
+
+  /** Если site-лента тонкая (хвост месяца) — добираем публичный upcoming (сент+). */
+  function topUpPremieresFromPublic() {
+    return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
+      const extra = (prem && prem.items) ? prem.items : [];
+      if (!extra.length) return 0;
+      const before = premieresVisibleUpcoming(_premieresData).length;
+      _premieresData = dedupePremieresByKp(_premieresData.concat(extra));
+      return premieresVisibleUpcoming(_premieresData).length - before;
+    }).catch(() => 0);
   }
 
   function bindPremieresInfiniteScroll() {
@@ -24155,20 +24172,20 @@
             errorEl.classList.remove('hidden');
           }
           _premieresHasMore = false;
-          return;
+          return topUpPremieresFromPublic().then(() => { renderPremieresList(); });
         }
         const before = _premieresData.length;
         _premieresData = dedupePremieresByKp(_premieresData.concat(batch));
-        // Backend may ignore offset and re-send the same page — advance by request size
-        // when dedupe ate everything, otherwise we loop forever on duplicates.
         const added = _premieresData.length - before;
-        _premieresOffset = reqOffset + (added > 0 ? batch.length : PREMIERES_PAGE_SIZE);
+        _premieresOffset = reqOffset + (added > 0 ? Math.max(batch.length, 1) : PREMIERES_PAGE_SIZE);
         _premieresHasMore = !!page.has_more && (added > 0 || batch.length >= PREMIERES_PAGE_SIZE);
         if (added === 0 && batch.length) _premieresHasMore = false;
+        const visible = premieresVisibleUpcoming(_premieresData).length;
         renderPremieresList();
-        // Near month-end / thin first page: keep pulling upcoming (future months) until dense.
-        if (_premieresHasMore && _premieresData.length < PREMIERES_MIN_VISIBLE) {
-          return loadMorePremieres(false);
+        // Важно: порог по видимым (от сегодня), не по сырому API с прошедшими датами.
+        if (visible < PREMIERES_MIN_VISIBLE) {
+          if (_premieresHasMore) return loadMorePremieres(false);
+          return topUpPremieresFromPublic().then(() => { renderPremieresList(); });
         }
       })
       .catch(() => {
@@ -24179,6 +24196,7 @@
           errorEl.textContent = 'Ошибка сети.';
           errorEl.classList.remove('hidden');
         }
+        return topUpPremieresFromPublic().then(() => { renderPremieresList(); });
       });
     return _premieresLoadInflight;
   }
