@@ -199,3 +199,12 @@ body.mp-rsy-film-page #section-film .film-page-outer {
     max-height: 132px;
   }
 }
+
+/* Cabinet SPA sections: never show leftover RSY rails over content (whattowatch/premieres/…). Film page keeps .mp-rsy-film-page. */
+body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-fixed-rail,
+body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-outer-rail,
+body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-inline {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

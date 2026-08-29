@@ -7407,7 +7407,24 @@ body.film-standalone-page .film-page-similar-section,
 
 /* Premieres */
 .premieres-toolbar { display: flex; gap: 8px; }
-.premieres-period-select, .premieres-sort-select { padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 13px; }
+.premieres-period-select,
+.premieres-sort-select,
+#premieres-sort {
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #131318;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f4f4f5;
+  font-size: 13px;
+  /* Native popup: dark scheme makes option text white on white Windows menu — force readable options */
+  color-scheme: light;
+}
+.premieres-period-select option,
+.premieres-sort-select option,
+#premieres-sort option {
+  color: #111827;
+  background-color: #ffffff;
+}
 .premieres-loading, .premieres-error { padding: 16px; color: var(--text-muted); font-size: 14px; }
 .premieres-error { color: #ff6b6b; }
 .premieres-sentinel {
