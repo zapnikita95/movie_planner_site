@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public /buzz («В тренде») — сетка по фильмам или лента постов.
  */
 (function () {
@@ -22,6 +22,7 @@
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
   var CLIENT_CACHE_TTL_MS = 6 * 60 * 60 * 1000; /* 6h — контент обновляется раз в ~2–3 дня */
+  /* MARKER:20260829buzzNoFrame1 */
   var BELL_SVG =
     '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>' +
@@ -147,7 +148,7 @@
   }
 
   function cacheKey() {
-    return 'mp_buzz_v4:' + state.view + ':' + state.days + ':' + state.sort + ':' +
+    return 'mp_buzz_v5:' + state.view + ':' + state.days + ':' + state.sort + ':' +
       (state.kind || '') + ':' + (state.videoOnly ? 'yt' : '');
   }
 
@@ -276,6 +277,10 @@
 
   function writeClientCache(items) {
     try {
+      if (!items || !items.length) {
+        sessionStorage.removeItem(cacheKey());
+        return;
+      }
       sessionStorage.setItem(cacheKey(), JSON.stringify({
         ts: Date.now(),
         fp: buzzItemsFingerprint(items),
