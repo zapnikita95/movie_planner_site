@@ -1,5 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
+ * MARKER:20260830descBuzzVenue1
  */
 (function (global) {
   'use strict';
@@ -1387,6 +1388,25 @@
       filmDescPlotText(wrap),
       true
     );
+    // Facts/buzz can land before plot (SPA from /buzz) — refill description from public API.
+    if (!filmDescPlotText(wrap)) {
+      var heroEl = document.querySelector('.film-hero-with-tag');
+      var kpMiss = numericKpFilmId(wrap.getAttribute('data-kp')) ||
+        numericKpFilmId(heroEl && heroEl.getAttribute('data-kp-id'));
+      if (kpMiss) {
+        fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kpMiss), {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+        })
+          .then(function (r) { return r && r.ok ? r.json() : null; })
+          .then(function (d) {
+            var desc = pickFilmDescription(d && d.film);
+            if (desc) setFilmDescription(desc);
+          })
+          .catch(function () {});
+      }
+    }
   }
 
   function withReviewUtm(url, channelTitle, medium, kpId, view) {
@@ -4260,6 +4280,14 @@
           if (tEl) tEl.textContent = title;
           setFilmHeaderTitle(title);
           setFilmDescription(pickFilmDescription(f));
+          // DoD: never leave hero without plot when public API already has it.
+          try {
+            var wrapCheck = document.getElementById('film-desc-wrap');
+            var plotNow = wrapCheck ? filmDescPlotText(wrapCheck) : '';
+            if (!plotNow && pickFilmDescription(f)) {
+              setFilmDescription(pickFilmDescription(f));
+            }
+          } catch (_descWatch) {}
           if (isTmdbOnly || isFest || isMp) {
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
               ? data.web_facts

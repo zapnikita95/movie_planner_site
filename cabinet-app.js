@@ -726,6 +726,14 @@
     if (_filmHeroDescInflight.has(kp)) {
       return _filmHeroDescInflight.get(kp).then(function () {
         applyFilmDescriptionToHero(root, film);
+        // Inflight may have resolved empty while DOM still blank — force public once.
+        if (!currentFilmDescriptionFromDom(root) && !pickFilmDescription(film)) {
+          return enrichFilmDescriptionFromPublic(kp, film).then(function (enriched) {
+            rememberFilmHeroDescription(kp, pickFilmDescription(enriched));
+            applyFilmDescriptionToHero(root, enriched);
+            return enriched;
+          }).catch(function () { return film; });
+        }
         return film;
       });
     }
@@ -6590,10 +6598,22 @@
       btn.classList.add('hidden');
       shortEl.classList.add('hidden');
     }
-    const kp = String(wrap.getAttribute('data-kp') || '').replace(/\D/g, '');
+    const kp = String(wrap.getAttribute('data-kp') || '').replace(/\D/g, '')
+      || String((payload && payload.kp_id) || '').replace(/\D/g, '');
     const cachedDesc = kp ? (_filmHeroDescCache.get(kp) || '') : '';
     if (!plotForCollapse && cachedDesc) {
       updateFilmDescCollapseState(wrap, cachedDesc, true);
+    } else if (!plotForCollapse && kp) {
+      // Facts arrived before plot (buzz/home → /f/) — pull public description now.
+      enrichFilmDescriptionFromPublic(kp, { kp_id: kp }).then(function (enriched) {
+        const desc = pickFilmDescription(enriched);
+        if (!desc) return;
+        rememberFilmHeroDescription(kp, desc);
+        applyFilmDescriptionToHero(
+          wrap.closest('#film-page-content') || document.getElementById('film-page-content') || wrap.parentElement,
+          enriched
+        );
+      }).catch(function () {});
     }
   }
 
