@@ -1,6 +1,6 @@
 /**
  * Movie Planner monetization: RSYA, streaming affiliates, niche partners, film alerts.
- * POSTER_2SUB_OVERLAY_V1
+ * POSTER_2SUB_INLINE_SVG1
  * Loaded on /f/ and /s/ thin shell.
  */
 (function (global) {
@@ -231,6 +231,19 @@
 
   function partner2subLogoUrl() {
     return '/images/partners/2sub-logo.png';
+  }
+
+  function partner2subLogoMarkup() {
+    /* Inline SVG: PNG via jsDelivr 302 left an empty slot after CTA paint (RF). POSTER_2SUB_INLINE_SVG1 */
+    return (
+      '<svg class="film-partner-watch__logo film-partner-watch__logo--2sub" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 147 51" width="56" height="20" focusable="false" aria-hidden="true">' +
+        '<rect x="4" y="8" width="35" height="35" rx="8" fill="#fff"/>' +
+        '<text x="21.5" y="35" text-anchor="middle" fill="#111" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="800">2</text>' +
+        '<rect x="50" y="12" width="90" height="2" fill="#fff"/>' +
+        '<rect x="50" y="37" width="90" height="2" fill="#fff"/>' +
+        '<text x="95" y="35" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="800" letter-spacing="2">SUB</text>' +
+      '</svg>'
+    );
   }
 
   function partnerStartLogoUrl() {
@@ -508,7 +521,9 @@
     a.setAttribute('data-partner', partner.key || 'other');
     a.setAttribute('data-affiliate', partner.has_affiliate ? '1' : '0');
     a.setAttribute('aria-label', partnerAlt(partner));
-    if (logo) {
+    if (partner.key === '2sub') {
+      a.innerHTML = partner2subLogoMarkup();
+    } else if (logo) {
       var dims = partnerLogoDimensions(partner, size);
       a.innerHTML =
         '<img class="film-partner-watch__logo" src="' + logo + '" alt="" width="' + dims.w + '" height="' + dims.h + '" decoding="async" />';
@@ -601,7 +616,7 @@
       '<span class="film-poster-2sub-cta__line">Смотреть с субтитрами</span>' +
       '<span class="film-poster-2sub-cta__line film-poster-2sub-cta__brand">' +
         '<span class="film-poster-2sub-cta__on">на</span>' +
-        '<img class="film-partner-watch__logo" src="' + partner2subLogoUrl() + '" alt="" width="56" height="20" decoding="async" />' +
+        partner2subLogoMarkup() +
       '</span>';
     bindPartnerIconClick(a, partner, kpId, 'poster_overlay');
     wrap.appendChild(a);
