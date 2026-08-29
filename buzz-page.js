@@ -21,7 +21,7 @@
 
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
-  /* MARKER:20260829buzzHeroWall1 */
+  /* MARKER:20260830descBuzzVenue1 */
   var CLIENT_CACHE_TTL_MS = 15 * 60 * 1000;
   var BELL_SVG =
     '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
