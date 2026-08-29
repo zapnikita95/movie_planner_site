@@ -1573,7 +1573,7 @@
       );
       if (tile) {
         const titleEl = tile.querySelector(
-          '.buzz-tile-title, .buzz-feed-film, .home-poster-title, .film-card-title, h3, .title'
+          '.buzz-tile-title, .buzz-feed-film, .home-poster-title, .film-card-v2-title, .film-card-title, .premiere-poster-tile-title, h3, .title'
         );
         if (titleEl) title = String(titleEl.textContent || '').trim();
         if (!poster) {
@@ -12594,10 +12594,9 @@
   function renderUnwatchedCard(m) {
     const link = filmDeepLink(m.film_id, m.kp_id, m.is_series);
     const year = m.year ? ` (${m.year})` : '';
-    const poster = posterUrl(m.kp_id);
+    const poster = cleanPosterUrl(m.poster) || posterUrl(m.kp_id);
     const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
     const desc = (m.description || '').trim();
-    const descHtml = desc ? '<div class="film-description">' + escapeHtml(desc.slice(0, 200)) + (desc.length > 200 ? '…' : '') + '</div>' : '';
     const streamingUrl = (m.online_link || '').trim();
     const streamingBtn = streamingUrl
       ? '<a href="' + escapeHtml(streamingUrl) + '" target="_blank" rel="noopener" class="btn btn-small btn-secondary film-streaming-btn" onclick="event.stopPropagation()"><span class="streaming-btn-text">На стриминг</span><span class="streaming-btn-emoji"> ▶️</span></a>'
@@ -12606,9 +12605,13 @@
       ? (m.progress ? 'Прогресс: ' + escapeHtml(m.progress) : 'Не начат')
       : '';
     const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
+    const descAttr = desc ? (' data-description="' + escapeHtml(desc.slice(0, 500)) + '"') : '';
+    const posterAttr = poster ? (' data-poster="' + escapeHtml(poster) + '"') : '';
+    const titleAttr = m.title ? (' data-title="' + escapeHtml(String(m.title)) + '"') : '';
     return `
-      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched">
+      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched"${titleAttr}${posterAttr}${descAttr}>
         <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || ''}">
+          ${filmCardPosterHtml(m.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(m.film_id, 0)}
         </div>
@@ -24067,12 +24070,29 @@
   let _premieresOffset = 0;
   let _premieresHasMore = true;
   let _premieresLoadInflight = null;
+  let _premieresLoadGen = 0;
   const PREMIERES_PAGE_SIZE = 24;
+  const PREMIERES_MIN_VISIBLE = 18;
+
+  function dedupePremieresByKp(items) {
+    const seen = new Set();
+    const out = [];
+    (items || []).forEach((it) => {
+      if (!it || typeof it !== 'object') return;
+      const kp = String(it.kp_id || it.kp || '').replace(/\D/g, '');
+      const key = kp || ('t:' + String(it.title || '').trim().toLowerCase() + '|' + String(it.premiere_date || ''));
+      if (!key || key === 't:|') return;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(it);
+    });
+    return out;
+  }
 
   function fetchPremieresPage(offset, limit) {
     if (!getToken()) {
       return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
-        const all = (prem && prem.items) ? prem.items.slice() : [];
+        const all = dedupePremieresByKp((prem && prem.items) ? prem.items.slice() : []);
         const page = all.slice(offset, offset + limit);
         return {
           items: page,
@@ -24085,7 +24105,7 @@
       '/api/site/premieres?period=upcoming&offset=' + encodeURIComponent(offset) + '&limit=' + encodeURIComponent(limit),
       { timeoutMs: 32000 }
     ).then((data) => ({
-      items: (data && data.success && Array.isArray(data.items)) ? data.items : [],
+      items: dedupePremieresByKp((data && data.success && Array.isArray(data.items)) ? data.items : []),
       has_more: !!(data && data.has_more),
       total: Number(data && data.total) || 0,
     }));
@@ -24108,6 +24128,7 @@
       _premieresOffset = 0;
       _premieresHasMore = true;
       _premieresData = [];
+      _premieresLoadGen += 1;
       _premieresLoadInflight = null;
     }
     if (_premieresLoadInflight) return _premieresLoadInflight;
@@ -24120,8 +24141,11 @@
       if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
       if (grid) grid.innerHTML = '';
     }
-    _premieresLoadInflight = fetchPremieresPage(_premieresOffset, PREMIERES_PAGE_SIZE)
+    const gen = _premieresLoadGen;
+    const reqOffset = _premieresOffset;
+    _premieresLoadInflight = fetchPremieresPage(reqOffset, PREMIERES_PAGE_SIZE)
       .then((page) => {
+        if (gen !== _premieresLoadGen) return;
         _premieresLoadInflight = null;
         if (loading) loading.classList.add('hidden');
         const batch = page.items || [];
@@ -24133,12 +24157,22 @@
           _premieresHasMore = false;
           return;
         }
-        _premieresData = _premieresData.concat(batch);
-        _premieresOffset += batch.length;
-        _premieresHasMore = !!page.has_more;
+        const before = _premieresData.length;
+        _premieresData = dedupePremieresByKp(_premieresData.concat(batch));
+        // Backend may ignore offset and re-send the same page — advance by request size
+        // when dedupe ate everything, otherwise we loop forever on duplicates.
+        const added = _premieresData.length - before;
+        _premieresOffset = reqOffset + (added > 0 ? batch.length : PREMIERES_PAGE_SIZE);
+        _premieresHasMore = !!page.has_more && (added > 0 || batch.length >= PREMIERES_PAGE_SIZE);
+        if (added === 0 && batch.length) _premieresHasMore = false;
         renderPremieresList();
+        // Near month-end / thin first page: keep pulling upcoming (future months) until dense.
+        if (_premieresHasMore && _premieresData.length < PREMIERES_MIN_VISIBLE) {
+          return loadMorePremieres(false);
+        }
       })
       .catch(() => {
+        if (gen !== _premieresLoadGen) return;
         _premieresLoadInflight = null;
         if (loading) loading.classList.add('hidden');
         if (!_premieresData.length && errorEl) {
@@ -24230,13 +24264,14 @@
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
-    let items = (_premieresData || []).slice();
+    let items = dedupePremieresByKp((_premieresData || []).slice());
     if (_premieresSort === 'genre') {
       items.sort((a, b) => (a.genres || '').localeCompare(b.genres || ''));
     } else {
       items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
     }
     items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
+    items = dedupePremieresByKp(items);
     if (!items.length) {
       grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
       return;
