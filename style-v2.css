@@ -748,6 +748,13 @@ body.in-cabinet #section-inbox {
   color: var(--text-primary);
   font-size: 15px;
 }
+.base-search-input.section-search,
+.base-search-wrap .section-search.base-search-input,
+#section-search-unwatched,
+#section-search-series,
+#section-search-ratings {
+  padding: 12px 14px 12px 42px;
+}
 .base-search-input::placeholder { color: var(--text-placeholder); }
 .base-sort-select {
   width: auto;
@@ -7421,8 +7428,8 @@ body.film-standalone-page .film-page-similar-section,
     gap: 16px;
   }
   body.in-cabinet #section-premieres .premieres-grid {
-    grid-template-columns: repeat(auto-fill, minmax(clamp(180px, 14vw, 240px), 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(128px, 11vw, 168px), 1fr));
+    gap: 12px;
   }
   body.in-cabinet #section-premieres .premiere-poster-tile-title {
     font-size: 14px;
@@ -9359,13 +9366,13 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   color: #fff;
 }
 
-/* Сетка карточек теперь тяготеет к более крупным плиткам, чтобы постер действительно доминировал */
-.cards-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
-.plans-today-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+/* Сетка Базы / планов: плотнее на десктопе (как buzz / премьеры), не 3 гигантские плитки */
+.cards-list { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+.plans-today-list { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
 
 /* Внутри .plans-split (две колонки) карточки всё ещё крупные, но их умещается 2 в ряд */
 .plans-split .cards-list,
-.plans-split [class*="plan"] + .cards-list { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.plans-split [class*="plan"] + .cards-list { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 
 /* v2 полностью заменяет стили старой .plan-card — обнуляем их в контексте v2 */
 .plan-card.film-card-v2 .plan-card-poster,
@@ -9378,8 +9385,8 @@ footer.footer .footer-bottom a:hover { color: #fff; }
 .film-card-v2 .card-poster-wrap { all: unset; }
 
 @media (max-width: 480px) {
-  .cards-list { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-  .plans-today-list { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .cards-list { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .plans-today-list { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .film-card-v2-body { padding: 10px 12px 12px; }
   .film-card-v2-title { font-size: 13px; }
   .action-dropdown { flex-basis: 100%; min-width: 0; }
