@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260830descAllRoutes1
+ * MARKER:20260830descAllRoutes2
  */
 (function (global) {
   'use strict';
@@ -956,6 +956,8 @@
     var s = String(text || '').trim().toLowerCase();
     if (!s) return true;
     if (s === '—' || s === '-' || s === '–') return true;
+    if (s === 'ещё' || s === 'еще' || s === 'свернуть' || s === '…' || s === '...') return true;
+    if (s.length < 12) return true; // UI crumbs, not a synopsis
     if (s === 'нет описания' || s === 'no description') return true;
     if (s.indexOf('откройте в movie planner') === 0) return true;
     if (s.indexOf('откройте фильм в movie planner') === 0) return true;
@@ -1402,14 +1404,15 @@
   function scheduleFilmPageDescWatchdog(kp) {
     var id = numericKpFilmId(kp);
     if (!id) return;
-    // MARKER:20260830descAllRoutes1
-    [400, 1200, 2500, 5000].forEach(function (ms) {
+    // MARKER:20260830descAllRoutes2
+    [300, 800, 1600, 3200, 6000].forEach(function (ms) {
       setTimeout(function () {
         try {
           if (String(location.pathname || '').indexOf('/f/' + id) !== 0) return;
         } catch (_p) { return; }
         var wrapNow = document.getElementById('film-desc-wrap');
-        if (filmDescPlotText(wrapNow)) {
+        var plot = filmDescPlotText(wrapNow);
+        if (plot && !isFilmDescPlaceholder(plot) && !(isTruncatedFilmDescription(plot) && plot.length < 80)) {
           var shortOk = wrapNow && wrapNow.querySelector('.film-desc-short');
           if (shortOk) shortOk.classList.remove('hidden');
           if (wrapNow) wrapNow.classList.remove('hidden');
@@ -1423,7 +1426,7 @@
           .then(function (r) { return r && r.ok ? r.json() : null; })
           .then(function (d) {
             var desc = pickFilmDescription(d && d.film);
-            if (desc) setFilmDescription(desc);
+            if (desc && !isFilmDescPlaceholder(desc)) setFilmDescription(desc);
           })
           .catch(function () {});
       }, ms);
