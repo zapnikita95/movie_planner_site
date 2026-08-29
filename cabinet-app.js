@@ -680,6 +680,68 @@
     return true;
   }
 
+  /** All SPA entries (home / premieres / collections / buzz) — never leave hero without plot. */
+  function forceRefillFilmHeroDescription(root, kp) {
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!root || !id) return Promise.resolve(false);
+    const wrap = root.querySelector('#film-desc-wrap');
+    const plotNow = filmDescPlotText(wrap);
+    if (plotNow && !isTruncatedFilmDescription(plotNow) && !descriptionLooksLatinOnly(plotNow)) {
+      if (wrap) {
+        const shortEl = wrap.querySelector('.film-desc-short');
+        if (shortEl) shortEl.classList.remove('hidden');
+        wrap.classList.remove('hidden');
+      }
+      return Promise.resolve(true);
+    }
+    return fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(id), {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    })
+      .then(function (r) { return r && r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!isFilmRouteActiveForKp(id)) return false;
+        const desc = normalizeFilmDescriptionText(pickFilmDescription(data && data.film));
+        if (!desc) return false;
+        rememberFilmHeroDescription(id, desc);
+        applyFilmDescriptionToHero(root, { kp_id: id, description: desc });
+        const wrap2 = root.querySelector('#film-desc-wrap');
+        if (wrap2) {
+          const shortEl2 = wrap2.querySelector('.film-desc-short');
+          if (shortEl2) shortEl2.classList.remove('hidden');
+          wrap2.classList.remove('hidden');
+        }
+        return true;
+      })
+      .catch(function () { return false; });
+  }
+
+  function scheduleFilmHeroDescWatchdog(kp) {
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!id) return;
+    // MARKER:20260830descAllRoutes1 — home/premieres/collections/buzz → /f/ plot refill
+    [400, 1200, 2500, 5000].forEach(function (ms) {
+      setTimeout(function () {
+        if (!isFilmRouteActiveForKp(id)) return;
+        const root = document.getElementById('film-page-content');
+        if (!root) return;
+        const wrap = root.querySelector('#film-desc-wrap');
+        const plot = filmDescPlotText(wrap);
+        if (plot && !isTruncatedFilmDescription(plot) && !descriptionLooksLatinOnly(plot)) {
+          if (wrap) {
+            const shortEl = wrap.querySelector('.film-desc-short');
+            if (shortEl && shortEl.classList.contains('hidden') && wrap.querySelector('.film-desc-full')?.classList.contains('hidden')) {
+              shortEl.classList.remove('hidden');
+            }
+          }
+          return;
+        }
+        forceRefillFilmHeroDescription(root, id);
+      }, ms);
+    });
+  }
+
   function ensureFilmHeroDescription(root, film) {
     if (!root || !film) return Promise.resolve(film);
     const kp = String(film.kp_id || '').replace(/\D/g, '');
@@ -2081,6 +2143,7 @@
       }
     });
     _openFilmPageByKpInflight = { kp: kp, promise: inflight };
+    scheduleFilmHeroDescWatchdog(kp);
     return inflight;
   }
 
@@ -6592,28 +6655,17 @@
     const plotForCollapse = filmDescPlotText(wrap)
       || normalizeFilmDescriptionText(wrap.getAttribute('data-plot-text') || '');
     updateFilmDescCollapseState(wrap, plotForCollapse, true);
-    const btn = wrap.querySelector('.film-desc-more-btn');
-    const shortEl = wrap.querySelector('.film-desc-short');
-    if (btn && shortEl && !plotForCollapse && btn.classList.contains('hidden') === false) {
-      btn.classList.add('hidden');
-      shortEl.classList.add('hidden');
-    }
+    // Never hide .film-desc-short just because facts landed first — that left empty hero
+    // from home / premieres / collections / buzz until a hard refresh.
     const kp = String(wrap.getAttribute('data-kp') || '').replace(/\D/g, '')
       || String((payload && payload.kp_id) || '').replace(/\D/g, '');
     const cachedDesc = kp ? (_filmHeroDescCache.get(kp) || '') : '';
     if (!plotForCollapse && cachedDesc) {
       updateFilmDescCollapseState(wrap, cachedDesc, true);
     } else if (!plotForCollapse && kp) {
-      // Facts arrived before plot (buzz/home → /f/) — pull public description now.
-      enrichFilmDescriptionFromPublic(kp, { kp_id: kp }).then(function (enriched) {
-        const desc = pickFilmDescription(enriched);
-        if (!desc) return;
-        rememberFilmHeroDescription(kp, desc);
-        applyFilmDescriptionToHero(
-          wrap.closest('#film-page-content') || document.getElementById('film-page-content') || wrap.parentElement,
-          enriched
-        );
-      }).catch(function () {});
+      const root = wrap.closest('#film-page-content') || document.getElementById('film-page-content');
+      forceRefillFilmHeroDescription(root || wrap.parentElement, kp);
+      scheduleFilmHeroDescWatchdog(kp);
     }
   }
 

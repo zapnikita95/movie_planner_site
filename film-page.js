@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260830descBuzzVenue1
+ * MARKER:20260830descAllRoutes1
  */
 (function (global) {
   'use strict';
@@ -1388,13 +1388,34 @@
       filmDescPlotText(wrap),
       true
     );
-    // Facts/buzz can land before plot (SPA from /buzz) — refill description from public API.
+    // Facts can land before plot (SPA from /buzz / home / premieres / collections).
     if (!filmDescPlotText(wrap)) {
       var heroEl = document.querySelector('.film-hero-with-tag');
       var kpMiss = numericKpFilmId(wrap.getAttribute('data-kp')) ||
         numericKpFilmId(heroEl && heroEl.getAttribute('data-kp-id'));
       if (kpMiss) {
-        fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kpMiss), {
+        scheduleFilmPageDescWatchdog(kpMiss);
+      }
+    }
+  }
+
+  function scheduleFilmPageDescWatchdog(kp) {
+    var id = numericKpFilmId(kp);
+    if (!id) return;
+    // MARKER:20260830descAllRoutes1
+    [400, 1200, 2500, 5000].forEach(function (ms) {
+      setTimeout(function () {
+        try {
+          if (String(location.pathname || '').indexOf('/f/' + id) !== 0) return;
+        } catch (_p) { return; }
+        var wrapNow = document.getElementById('film-desc-wrap');
+        if (filmDescPlotText(wrapNow)) {
+          var shortOk = wrapNow && wrapNow.querySelector('.film-desc-short');
+          if (shortOk) shortOk.classList.remove('hidden');
+          if (wrapNow) wrapNow.classList.remove('hidden');
+          return;
+        }
+        fetch(API_BASE + '/api/public/film/' + encodeURIComponent(id), {
           method: 'GET',
           mode: 'cors',
           credentials: 'omit',
@@ -1405,8 +1426,8 @@
             if (desc) setFilmDescription(desc);
           })
           .catch(function () {});
-      }
-    }
+      }, ms);
+    });
   }
 
   function withReviewUtm(url, channelTitle, medium, kpId, view) {
@@ -4286,6 +4307,9 @@
             var plotNow = wrapCheck ? filmDescPlotText(wrapCheck) : '';
             if (!plotNow && pickFilmDescription(f)) {
               setFilmDescription(pickFilmDescription(f));
+            }
+            if (!filmDescPlotText(document.getElementById('film-desc-wrap'))) {
+              scheduleFilmPageDescWatchdog(pathKey || kpId);
             }
           } catch (_descWatch) {}
           if (isTmdbOnly || isFest || isMp) {
