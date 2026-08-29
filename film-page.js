@@ -3985,12 +3985,18 @@
         else root.classList.add('is-empty');
       }
       function applyPublicCastPayload(d) {
-        var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
-        if (!root || !d) return;
+        var roots = [];
+        var a = document.getElementById('film-cast-root');
+        var b = document.getElementById('film-hero-cast-root');
+        if (a) roots.push(a);
+        if (b && b !== a) roots.push(b);
+        if (!roots.length || !d) return;
         var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
-        root.innerHTML = html || '';
-        markCastRootResolved(root, !!html);
-        if (html) bindPublicCastLinks(root);
+        roots.forEach(function (root) {
+          root.innerHTML = html || '';
+          markCastRootResolved(root, !!html);
+          if (html) bindPublicCastLinks(root);
+        });
         /* COURSE_OFFERS_SYNC_V1 */
         var hero = document.querySelector('.film-hero-with-tag');
         var dirKp = d.director && d.director.kp_person_id != null
@@ -4020,7 +4026,13 @@
         apiGet(publicCastApi)
           .then(function (d) {
             root.removeAttribute('data-mp-cast-pending');
-            if (!d || !d.success) { return; }
+            if (!d || !d.success) {
+              if (root.querySelector('.film-cast-skeleton')) {
+                root.innerHTML = '';
+                markCastRootResolved(root, false);
+              }
+              return;
+            }
             if (d.director || (d.actors && d.actors.length)) {
               applyPublicCastPayload(d);
               root.setAttribute('data-mp-cast-loaded', castKey);
@@ -4032,6 +4044,10 @@
           .catch(function () {
             root.removeAttribute('data-mp-cast-pending');
             var root2 = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
+            if (root2 && root2.querySelector('.film-cast-skeleton')) {
+              root2.innerHTML = '';
+              markCastRootResolved(root2, false);
+            }
             if (root2 && !root2.querySelector('.staff-cast-link, .film-cast-row')) {
               root2.innerHTML = '';
               markCastRootResolved(root2, false);

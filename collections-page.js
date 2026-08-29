@@ -73,15 +73,16 @@
     if (/^(movie|tv)-\d+$/i.test(s) || !/^\d+$/.test(s)) {
       return "/images/film-poster-placeholder.png";
     }
-    return "/images/film-poster-placeholder.png";
+    // Same KP CDN as /f/ — 302→avatars when art exists. Never invent popcorn first.
+    return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + s + ".jpg";
   }
 
   function pickPoster(f) {
     var p = (f && f.poster) ? String(f.poster).trim() : "";
-    if (p && p.indexOf("iphone360_") === -1 && p.indexOf("film-poster-placeholder") === -1) {
+    if (p && p.indexOf("film-poster-placeholder") === -1) {
       return p;
     }
-    return p || posterUrl(f && f.kp_id);
+    return posterUrl(f && (f.kp_id || f.id));
   }
 
   function imgOnErrorAttr() {
@@ -95,7 +96,7 @@
     return (posters || []).filter(function (u) {
       if (!u) return false;
       var s = String(u);
-      return s.indexOf("iphone360_") === -1 && s.indexOf("film-poster-placeholder") === -1;
+      return s.indexOf("film-poster-placeholder") === -1;
     });
   }
 
