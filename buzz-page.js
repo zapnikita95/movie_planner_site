@@ -21,8 +21,9 @@
 
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
-  var CLIENT_CACHE_TTL_MS = 6 * 60 * 60 * 1000; /* 6h — контент обновляется раз в ~2–3 дня */
-  /* MARKER:20260829buzzNoFrame1 */
+  /* Short TTL: after scrape, 3d must not stay empty from sessionStorage. */
+  var CLIENT_CACHE_TTL_MS = 15 * 60 * 1000;
+  /* MARKER:20260829buzzDays3Cache1 */
   var BELL_SVG =
     '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>' +
@@ -148,7 +149,7 @@
   }
 
   function cacheKey() {
-    return 'mp_buzz_v5:' + state.view + ':' + state.days + ':' + state.sort + ':' +
+    return 'mp_buzz_v6:' + state.view + ':' + state.days + ':' + state.sort + ':' +
       (state.kind || '') + ':' + (state.videoOnly ? 'yt' : '');
   }
 
@@ -750,8 +751,17 @@
     return q;
   }
 
-  function fetchBuzz(limit) {
-    return fetch(API_BASE + buzzQuery(limit), { method: 'GET', mode: 'cors', credentials: 'omit' })
+  function fetchBuzz(limit, opts) {
+    var o = opts || {};
+    var q = buzzQuery(limit);
+    /* Bust CDN/edge stale empty after scrape (days=3 was empty for a week). */
+    if (o.bust) q += '&_=' + Date.now();
+    return fetch(API_BASE + q, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      cache: o.bust ? 'no-store' : 'default',
+    })
       .then(function (r) {
         if (!r.ok) throw new Error('api_' + r.status);
         return r.json();
@@ -805,10 +815,24 @@
     }
 
     state._inflightKey = qKey;
-    var p = fetchBuzz(fullLimit)
+    var bust = !!force || !!o.bust;
+    var p = fetchBuzz(fullLimit, { bust: bust })
       .then(function (items) {
         if (loadGen !== state._loadGen) return null;
-        state.items = items || [];
+        items = items || [];
+        /* One retry with cache-bust if period looks empty but we just had tiles. */
+        if (!items.length && hadContent && !bust && !o._retriedEmpty) {
+          return fetchBuzz(fullLimit, { bust: true }).then(function (again) {
+            if (loadGen !== state._loadGen) return null;
+            state.items = again || [];
+            state.loaded = true;
+            state._lastPaintedKey = qKey;
+            writeClientCache(state.items);
+            paint({ noAnimate: true });
+            return state.items;
+          });
+        }
+        state.items = items;
         state.loaded = true;
         state._lastPaintedKey = qKey;
         writeClientCache(state.items);
@@ -939,14 +963,14 @@
         if (state._suppressDaysChange) return;
         state.days = parseInt(daysSel.value, 10) || 7;
         state.loaded = false;
-        load();
+        load({ force: true, bust: true });
       });
     }
     if (kindSel) {
       kindSel.addEventListener('change', function () {
         state.kind = kindSel.value || '';
         state.loaded = false;
-        load();
+        load({ force: true, bust: true });
       });
     }
     var sortTabs = document.getElementById('buzz-sort-tabs');
