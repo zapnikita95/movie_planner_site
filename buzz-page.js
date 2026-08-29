@@ -21,7 +21,7 @@
 
   var PLACEHOLDER = '/images/film-poster-placeholder.png';
   var CHIPS_COLLAPSED = 4;
-  /* MARKER:20260829buzzHeroBleed1 */
+  /* MARKER:20260829buzzHeroWall1 */
   var CLIENT_CACHE_TTL_MS = 15 * 60 * 1000;
   var BELL_SVG =
     '<svg class="mp-icon-svg-fallback" width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
@@ -164,23 +164,38 @@
     return "background-image:url('" + safe + "')";
   }
 
-  function buzzHeroMosaicHtml(posters) {
-    /* Always wall mosaic like BAFTA collections — never spotlight (padded framed cards). */
-    var urls = (posters || []).filter(Boolean).slice(0, 12);
+  /* Same math as collections-page.js heroMosaicLayout — portrait wall, not wide strips. */
+  function buzzHeroMosaicLayout(posterCount, titleText) {
+    var n = Math.max(1, Number(posterCount) || 0);
+    var titleLen = String(titleText || '').length;
+    var rows = 2;
+    if (n >= 12) rows = 3;
+    if (n >= 25) rows = 4;
+    if (n >= 45) rows = 5;
+    if (titleLen > 32) rows += 1;
+    if (titleLen > 52) rows += 1;
+    rows = Math.min(rows, 7);
+    var cols = n >= 50 ? 12 : n >= 25 ? 10 : 8;
+    return { cols: cols, rows: rows, cellCount: cols * rows };
+  }
+
+  function cyclePosterUrls(urls, count) {
+    if (!urls || !urls.length || count <= 0) return [];
+    var out = [];
+    for (var i = 0; i < count; i++) out.push(urls[i % urls.length]);
+    return out;
+  }
+
+  function buzzHeroMosaicHtml(posters, titleText) {
+    var urls = (posters || []).filter(Boolean).slice(0, 40);
     if (!urls.length) {
       return '<div class="collections-poster-mosaic collections-poster-mosaic--hero collections-poster-mosaic--empty" aria-hidden="true"></div>';
     }
-    var cols = urls.length >= 8 ? 4 : (urls.length >= 5 ? 4 : Math.max(2, urls.length));
-    var rows = Math.max(2, Math.ceil(Math.min(urls.length, cols * 3) / cols));
-    var cellCount = cols * rows;
-    var filled = urls.slice();
-    while (filled.length < cellCount && urls.length) {
-      filled.push(urls[filled.length % urls.length]);
-    }
-    filled = filled.slice(0, cellCount);
+    var layout = buzzHeroMosaicLayout(urls.length, titleText);
+    var filled = cyclePosterUrls(urls, layout.cellCount);
     return (
       '<div class="collections-poster-mosaic collections-poster-mosaic--hero" aria-hidden="true" style="--mosaic-cols:' +
-      cols + ';--mosaic-rows:' + rows + '">' +
+      layout.cols + ';--mosaic-rows:' + layout.rows + '">' +
       filled.map(function (u) {
         return '<div class="collections-poster-mosaic__cell" style="' + posterCellStyle(u) + '"></div>';
       }).join('') +
@@ -219,10 +234,12 @@
       if (leadEl) leadEl.classList.remove('hidden');
       return;
     }
+    var layout = buzzHeroMosaicLayout(posters.length, titleText);
     heroMount.innerHTML =
-      '<div class="collections-detail-hero collections-detail-hero--wall buzz-detail-hero" style="--hero-mosaic-rows:2">' +
+      '<div class="collections-detail-hero collections-detail-hero--wall buzz-detail-hero" style="--hero-mosaic-rows:' +
+      layout.rows + '">' +
         '<div class="collections-detail-hero__mosaic-wrap">' +
-          buzzHeroMosaicHtml(posters) +
+          buzzHeroMosaicHtml(posters, titleText) +
           '<div class="collections-detail-hero__fade-l" aria-hidden="true"></div>' +
           '<div class="collections-detail-hero__fade-r" aria-hidden="true"></div>' +
         '</div>' +
