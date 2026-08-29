@@ -681,12 +681,20 @@
   }
 
   /** All SPA entries (home / premieres / collections / buzz) — never leave hero without plot. */
+  function filmHeroPlotLooksReady(text) {
+    const plot = normalizeFilmDescriptionText(text || '');
+    if (!plot || isFilmDescPlaceholder(plot)) return false;
+    if (isTruncatedFilmDescription(plot) && plot.length < 80) return false;
+    if (descriptionLooksLatinOnly(plot)) return false;
+    return true;
+  }
+
   function forceRefillFilmHeroDescription(root, kp) {
     const id = String(kp || '').replace(/\D/g, '');
     if (!root || !id) return Promise.resolve(false);
     const wrap = root.querySelector('#film-desc-wrap');
     const plotNow = filmDescPlotText(wrap);
-    if (plotNow && !isTruncatedFilmDescription(plotNow) && !descriptionLooksLatinOnly(plotNow)) {
+    if (filmHeroPlotLooksReady(plotNow)) {
       if (wrap) {
         const shortEl = wrap.querySelector('.film-desc-short');
         if (shortEl) shortEl.classList.remove('hidden');
@@ -703,7 +711,7 @@
       .then(function (data) {
         if (!isFilmRouteActiveForKp(id)) return false;
         const desc = normalizeFilmDescriptionText(pickFilmDescription(data && data.film));
-        if (!desc) return false;
+        if (!desc || isFilmDescPlaceholder(desc)) return false;
         rememberFilmHeroDescription(id, desc);
         applyFilmDescriptionToHero(root, { kp_id: id, description: desc });
         const wrap2 = root.querySelector('#film-desc-wrap');
@@ -720,15 +728,15 @@
   function scheduleFilmHeroDescWatchdog(kp) {
     const id = String(kp || '').replace(/\D/g, '');
     if (!id) return;
-    // MARKER:20260830descAllRoutes1 — home/premieres/collections/buzz → /f/ plot refill
-    [400, 1200, 2500, 5000].forEach(function (ms) {
+    // MARKER:20260830descAllRoutes2 — reject orphan «ещё»; refill on all SPA entries
+    [300, 800, 1600, 3200, 6000].forEach(function (ms) {
       setTimeout(function () {
         if (!isFilmRouteActiveForKp(id)) return;
         const root = document.getElementById('film-page-content');
         if (!root) return;
         const wrap = root.querySelector('#film-desc-wrap');
         const plot = filmDescPlotText(wrap);
-        if (plot && !isTruncatedFilmDescription(plot) && !descriptionLooksLatinOnly(plot)) {
+        if (filmHeroPlotLooksReady(plot)) {
           if (wrap) {
             const shortEl = wrap.querySelector('.film-desc-short');
             if (shortEl && shortEl.classList.contains('hidden') && wrap.querySelector('.film-desc-full')?.classList.contains('hidden')) {
@@ -16981,6 +16989,8 @@
     const s = String(text || '').trim().toLowerCase();
     if (!s) return true;
     if (s === '—' || s === '-' || s === '–') return true;
+    if (s === 'ещё' || s === 'еще' || s === 'свернуть' || s === '…' || s === '...') return true;
+    if (s.length < 12) return true; // UI crumbs, not a synopsis
     if (s === 'нет описания' || s === 'no description') return true;
     if (s.startsWith('откройте в movie planner')) return true;
     if (s.startsWith('откройте фильм в movie planner')) return true;
