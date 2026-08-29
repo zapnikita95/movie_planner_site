@@ -6597,7 +6597,8 @@ body.in-cabinet #section-buzz.buzz-section--wide {
 }
 #buzz-section-hero .buzz-detail-hero.collections-detail-hero,
 #buzz-section-hero > .collections-detail-hero {
-  min-height: clamp(280px, 42vh, 560px);
+  /* Same height formula as collections wall hero */
+  min-height: clamp(280px, calc(32vh + var(--hero-mosaic-rows, 3) * 8vh), 720px);
   border: none !important;
   border-radius: 0 !important;
   margin: 0;
@@ -6608,6 +6609,15 @@ body.in-cabinet #section-buzz.buzz-section--wide {
 }
 #buzz-section-hero .collections-detail-hero__mosaic-wrap {
   inset: -6% -3%;
+}
+/* Portrait wall: many columns, zero gutters — like BAFTA, not 4×2 landscape strips */
+#buzz-section-hero .collections-poster-mosaic--hero {
+  gap: 0 !important;
+}
+#buzz-section-hero .collections-poster-mosaic__cell {
+  border: none !important;
+  background-position: center center;
+  background-size: cover;
 }
 #buzz-section-hero .collections-detail-hero__inner {
   border: none !important;
