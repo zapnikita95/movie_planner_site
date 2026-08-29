@@ -4939,8 +4939,95 @@
       } catch (_monEnd) {}
   }
 
+  /* POSTER_FS_MOBILE_TAP1 — tap poster on mobile opens fullscreen; swipe/scroll and overlay CTAs ignored */
+  var POSTER_FS_MOVE_PX = 12;
+  var _posterFsPtr = null;
+  var _posterFsBound = false;
+
+  function filmPosterFsIsMobile() {
+    try {
+      return window.matchMedia('(max-width: 860px)').matches;
+    } catch (_e) {
+      return (window.innerWidth || 0) <= 860;
+    }
+  }
+
+  function filmPosterFsIgnoreEl(el) {
+    if (!el || !el.closest) return true;
+    return !!el.closest(
+      'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .mp-poster-fs-overlay'
+    );
+  }
+
+  function onFilmPosterFsKey(e) {
+    if (e.key === 'Escape') closeFilmPosterFullscreen();
+  }
+
+  function closeFilmPosterFullscreen() {
+    var ov = document.getElementById('mp-poster-fs-overlay');
+    if (!ov) return;
+    try { ov.remove(); } catch (_e) {}
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onFilmPosterFsKey);
+  }
+
+  function openFilmPosterFullscreen(img, wrap) {
+    if (!img) return;
+    var src = img.currentSrc || img.src || '';
+    if (!src) return;
+    closeFilmPosterFullscreen();
+    var ov = document.createElement('div');
+    ov.id = 'mp-poster-fs-overlay';
+    ov.className = 'mp-poster-fs-overlay';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Постер');
+    var sensitive = !!(wrap && wrap.classList && wrap.classList.contains('mp-media-sensitive'));
+    ov.innerHTML =
+      '<button type="button" class="mp-poster-fs-close" aria-label="Закрыть">×</button>' +
+      '<div class="mp-poster-fs-frame' + (sensitive ? ' mp-media-sensitive' : '') + '">' +
+        '<img src="' + escapeHtml(src) + '" alt="">' +
+      '</div>';
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', onFilmPosterFsKey);
+    ov.addEventListener('click', function () {
+      closeFilmPosterFullscreen();
+    });
+  }
+
+  function bindFilmPosterFullscreenTap() {
+    if (_posterFsBound) return;
+    _posterFsBound = true;
+    document.addEventListener('pointerdown', function (e) {
+      if (!filmPosterFsIsMobile()) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (filmPosterFsIgnoreEl(e.target)) return;
+      var wrap = e.target.closest && e.target.closest('.poster-wrap');
+      if (!wrap) return;
+      var img = wrap.querySelector('img.poster, img#poster');
+      if (!img) return;
+      _posterFsPtr = { x: e.clientX, y: e.clientY, wrap: wrap, img: img };
+    }, true);
+    document.addEventListener('pointerup', function (e) {
+      var start = _posterFsPtr;
+      _posterFsPtr = null;
+      if (!start) return;
+      if (!filmPosterFsIsMobile()) return;
+      if (filmPosterFsIgnoreEl(e.target)) return;
+      var dx = Math.abs((e.clientX || 0) - start.x);
+      var dy = Math.abs((e.clientY || 0) - start.y);
+      if (dx > POSTER_FS_MOVE_PX || dy > POSTER_FS_MOVE_PX) return;
+      openFilmPosterFullscreen(start.img, start.wrap);
+    }, true);
+    document.addEventListener('pointercancel', function () {
+      _posterFsPtr = null;
+    }, true);
+  }
+
   function bootstrap(opts) {
     opts = opts || {};
+    bindFilmPosterFullscreenTap();
     try {
       document.documentElement.classList.remove('mp-route-pending');
       document.documentElement.classList.add('mp-route-ready');

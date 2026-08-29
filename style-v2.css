@@ -13046,10 +13046,10 @@ a.film-t-afisha-btn:focus-visible {
     object-fit: contain;
     object-position: center;
   }
-  /* TICKET_ABOVE_2SUB1 — tickets sit above subtitle CTA, not on top of it */
+  /* TICKET_ABOVE_2SUB2 — tickets above 2SUB, modest gap (not 78px). Logos row gap unchanged. */
   .poster-wrap:has(.film-poster-2sub-cta) .film-ticket-btns--poster,
   .poster-wrap:has(.film-poster-2sub-cta) .film-poster-ticket-stack {
-    bottom: 78px;
+    bottom: 66px;
     z-index: 6;
   }
   .poster-wrap:has(.film-ticket-btns--poster) .film-poster-2sub-cta,
@@ -26350,9 +26350,75 @@ body.staff-standalone-page .staff-awards-loading {
   line-height: 1;
   text-decoration: none !important;
 }
-.film-poster-2sub-cta .film-partner-watch__logo {
+.film-poster-2sub-cta .film-partner-watch__logo,
+.film-poster-2sub-cta .film-partner-watch__logo--2sub {
+  display: block;
+  flex-shrink: 0;
   max-height: 18px;
   max-width: 52px;
+  height: 18px;
+  width: auto;
+}
+.film-partner-watch__logo--2sub {
+  display: block;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .poster-wrap {
+    cursor: pointer;
+  }
+}
+.mp-poster-fs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.88);
+  overflow: hidden;
+}
+.mp-poster-fs-frame {
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mp-poster-fs-overlay img {
+  max-width: 100%;
+  max-height: min(100%, 100dvh);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.mp-poster-fs-close {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-primary, #f4f4f5);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.mp-poster-fs-close:focus-visible {
+  outline: 2px solid var(--focus-ring-soft, rgba(255, 122, 180, 0.55));
+  outline-offset: 2px;
 }
 @media (min-width: 861px) {
   .film-poster-2sub-cta {
