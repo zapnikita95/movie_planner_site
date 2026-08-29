@@ -6762,10 +6762,18 @@ body.in-cabinet #section-buzz.buzz-section--wide {
   display: none !important;
 }
 .buzz-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; align-items: center; }
-.buzz-days-select, .buzz-kind-select {
+.buzz-days-select, .buzz-kind-select,
+#buzz-days, #buzz-kind, #buzz-digest-freq {
   padding: 10px 14px; border-radius: 999px;
-  background: rgba(255,255,255,0.05); border: 1px solid var(--border-color, rgba(255,255,255,0.08));
-  color: var(--text-primary); font-size: 14px; font-weight: 600; font-family: inherit;
+  background: #131318; border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f4f4f5; font-size: 14px; font-weight: 600; font-family: inherit;
+  /* Native popup: dark scheme → white option text on white Windows menu */
+  color-scheme: light;
+}
+.buzz-days-select option, .buzz-kind-select option,
+#buzz-days option, #buzz-kind option, #buzz-digest-freq option {
+  color: #111827;
+  background-color: #ffffff;
 }
 .buzz-loading, .buzz-error, .buzz-empty { padding: 16px; color: var(--text-muted); font-size: 14px; }
 .buzz-error { color: #ff6b6b; }
@@ -6935,20 +6943,22 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
 .buzz-seo-footer p { margin: 0 0 10px; }
 .buzz-seo-footer ul { margin: 0 0 10px; padding-left: 1.2em; }
 .buzz-seo-footer a { color: #ff8ab8; }
+/* MARKER:20260829buzzNoFrame1 — buzz posters like collections, no card frame */
+/* Как collections / .movie-poster: афиша без карточной «рамки» */
 .buzz-tile {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: none;
 }
 .buzz-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  transform: none;
+  box-shadow: none;
 }
 .buzz-tile-poster-wrap { position: relative; }
 .buzz-tile-poster-wrap .premiere-poster-bell,
@@ -6977,7 +6987,7 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   pointer-events: none;
 }
 .buzz-tile--video {
-  box-shadow: inset 0 0 0 1px rgba(255, 68, 68, 0.18);
+  box-shadow: none;
 }
 .buzz-tile-kinds { display: none !important; }
 .buzz-tile-link {
@@ -6991,14 +7001,16 @@ body[data-cabinet-section]:not([data-cabinet-section="buzz"]) #section-buzz.hidd
   display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
-  background: rgba(255,255,255,0.06);
+  background: #222;
   overflow: hidden;
+  border-radius: 12px;
 }
 .buzz-tile-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 12px;
 }
 .buzz-tile-link--text {
   /* Title/meta must sit flush under the poster — never float mid-card. */
