@@ -1,4 +1,4 @@
-/* Compatibility with app.js */
+﻿/* Compatibility with app.js */
 .hidden { display: none !important; }
 #landing.hidden, #cabinet-readonly.hidden, #cabinet-onboarding.hidden, #public-stats.hidden { display: none !important; }
 
@@ -26286,6 +26286,18 @@ body.staff-standalone-page .staff-awards-loading {
   max-height: 24px;
   max-width: 72px;
 }
+/* TWOSUB_BIG1 — white badge size like Pulp Fiction, not 56x20 stub */
+.film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
+  max-height: 34px;
+  max-width: 118px;
+  height: 34px;
+  width: auto;
+}
+.film-partner-watch-block--desktop .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
+  max-height: 36px;
+  max-width: 124px;
+  height: 36px;
+}
 .film-partner-watch__icon--tvigle .film-partner-watch__logo {
   max-width: 64px;
   max-height: 20px;
@@ -26354,9 +26366,9 @@ body.staff-standalone-page .staff-awards-loading {
 .film-poster-2sub-cta .film-partner-watch__logo--2sub {
   display: block;
   flex-shrink: 0;
-  max-height: 18px;
-  max-width: 52px;
-  height: 18px;
+  max-height: 28px;
+  max-width: 90px;
+  height: 28px;
   width: auto;
 }
 .film-partner-watch__logo--2sub {
