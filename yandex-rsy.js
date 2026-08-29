@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829twosubBig1';
+  var BUILD = '20260829noCabinetAds1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -22,7 +22,8 @@
    * RSY blocks (movie-planner.ru, site 19798904):
    * - filmBannerHorizontal (-1): баннер 1000×120 «MP f после похожих» — mobile top/bottom + inline
    * - filmSidebar (-2): вертикальный сайдбар — ТОЛЬКО desktop ≥1280, НИКОГДА mobile strips
-   * - /home: NO ads (rails full-bleed; sidebar overlapped content)
+   * - Cabinet SPA (/home, /whattowatch, /premieres, …): NO ads (owner 2026-08-29)
+   * - Ads only on /f/, /s/, articles (and series hub if enabled below)
    */
   var BLOCKS = {
     filmBannerHorizontal: 'R-A-19798904-1',
@@ -35,21 +36,16 @@
     articleInline: 'R-A-19798904-5',
     seriesSidebar: 'R-A-19798904-2',
     seriesInline: 'R-A-19798904-1',
-    cabinetSidebar: 'R-A-19798904-2',
-    cabinetInline: 'R-A-19798904-1',
+    cabinetSidebar: null,
+    cabinetInline: null,
   };
 
   function horizontalBannerBlock() {
     return BLOCKS.filmBannerHorizontal || BLOCKS.filmAfterSimilar || null;
   }
 
-  /* /home intentionally omitted — never mount RSY on cabinet home */
-  var CABINET_SECTION_KEYS = {
-    '/premieres': 'premieres',
-    '/whattowatch': 'whattowatch',
-    '/buzz': 'buzz',
-    '/tournament': 'tournament',
-  };
+  /* Cabinet SPA: never mount RSY (home/whattowatch/premieres/plans/base/…) */
+  var CABINET_SECTION_KEYS = {};
 
   var rendered = Object.create(null);
   var _observer = null;
@@ -397,18 +393,11 @@
   }
 
   function isCabinetSectionPath(path) {
-    if (CABINET_SECTION_KEYS[path]) return true;
-    if (/^\/whattowatch(\/|$)/.test(path)) return true;
+    /* Owner: no RSY on any cabinet section (2026-08-29 noCabinetAds1). */
     return false;
   }
 
   function cabinetSectionKeyFromPath(path) {
-    if (CABINET_SECTION_KEYS[path]) return CABINET_SECTION_KEYS[path];
-    if (/^\/whattowatch(\/|$)/.test(path)) return 'whattowatch';
-    try {
-      var attr = document.body && document.body.getAttribute('data-cabinet-section');
-      if (attr && document.getElementById('section-' + attr)) return attr;
-    } catch (_e) {}
     return null;
   }
 
@@ -775,40 +764,8 @@
   }
 
   function mountCabinetSectionPage(path) {
-    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
-    if (path === '/home' || path === '/') return;
-    if (!isCabinetSectionPath(path)) return;
-    var key = cabinetSectionKeyFromPath(path);
-    if (!key || key === 'home') return;
-    var sec = document.getElementById('section-' + key);
-    if (!sec || sec.classList.contains('hidden')) return;
-    if (isDesktop() && BLOCKS.cabinetSidebar) ensureFixedRail('cabinet', BLOCKS.cabinetSidebar, 'right');
-    if (!BLOCKS.cabinetInline) return;
-    var wrapId = 'mp_rsy_inline_cabinet_' + key;
-    var existingCab = document.getElementById(wrapId);
-    if (existingCab && existingCab.isConnected) return;
-    if (existingCab) existingCab.remove();
-    if (viewportWidth() < 768) {
-      mountInlineStrip({
-        wrapId: wrapId,
-        kind: 'cabinet_' + key,
-        blockId: BLOCKS.cabinetInline,
-        anchor: sec,
-        position: 'prepend',
-        horizontal: true,
-      });
-      return;
-    }
-    var wrap = document.createElement('div');
-    wrap.id = wrapId;
-    wrap.className = 'mp-rsy-inline mp-rsy-inline--cabinet mp-rsy-inline--cabinet_' + key;
-    var sid = slotId('inline_cabinet_' + key);
-    var slot = document.createElement('div');
-    slot.id = sid;
-    slot.className = 'mp-rsy-slot mp-rsy-slot--inline-cabinet';
-    wrap.appendChild(slot);
-    sec.appendChild(wrap);
-    renderBlock(BLOCKS.cabinetInline, sid);
+    /* noCabinetAds1: cabinet SPA must stay ad-free (sidebar + inline). */
+    return;
   }
 
   function watchLateSections() {

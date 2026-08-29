@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829twosubBig1';
+  var BUILD = '20260829noCabinetAds1';
   var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
@@ -109,7 +109,7 @@
       loadScriptOnce('/yandex-metrika.js?v=' + BUILD, '__mpMetrikaLoadRequested');
     }
     if (allows('ads')) {
-      loadScriptOnce('/yandex-rsy.js?v=20260829twosubBig1', '__mpRsyLoadRequested');
+      loadScriptOnce('/yandex-rsy.js?v=20260829noCabinetAds1', '__mpRsyLoadRequested');
     }
   }
 
