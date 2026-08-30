@@ -121,6 +121,13 @@
     if (titleLen > 72) rows += 1;
     rows = Math.min(rows, 7);
     var cols = n >= 50 ? 12 : n >= 25 ? 10 : 8;
+    
+    try {
+      if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
+        cols = n >= 25 ? 6 : 5;
+        rows = Math.min(Math.max(rows, 4), 7);
+      }
+    } catch (e) {}
     return { mode: "wall", cols: cols, rows: rows, cellCount: cols * rows };
   }
 
