@@ -6610,7 +6610,7 @@ body.in-cabinet #section-buzz.buzz-section--wide {
 #buzz-section-hero .collections-detail-hero__mosaic-wrap {
   inset: -6% -3%;
 }
-/* Portrait wall: many columns, zero gutters — like BAFTA, not 4×2 landscape strips */
+/* Square wall (same as desktop): cells keep 1:1, cover via scale — never stretch tall on mobile */
 #buzz-section-hero .collections-poster-mosaic--hero {
   gap: 0 !important;
 }
@@ -6618,6 +6618,7 @@ body.in-cabinet #section-buzz.buzz-section--wide {
   border: none !important;
   background-position: center center;
   background-size: cover;
+  aspect-ratio: 1 / 1;
 }
 #buzz-section-hero .collections-detail-hero__inner {
   border: none !important;
@@ -22088,7 +22089,8 @@ img.mp-poster-placeholder,
   position: relative;
   display: block;
   width: 100%;
-  min-height: 148px;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -22129,15 +22131,24 @@ img.mp-poster-placeholder,
   color: var(--text-muted, #b4b4be);
 }
 
-/* Poster mosaic (cards + detail hero) */
+/* Poster mosaic (cards + detail hero) — cells ALWAYS square (1:1). Never stretch tall on mobile. */
 .collections-poster-mosaic {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(var(--mosaic-cols, 4), 1fr);
-  grid-template-rows: repeat(var(--mosaic-rows, 2), 1fr);
+  grid-template-columns: repeat(var(--mosaic-cols, 4), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--mosaic-rows, 2), auto);
+  align-content: center;
   gap: 3px;
   opacity: 0.92;
+}
+.collections-poster-mosaic__cell {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: #1a1a22 center/cover no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .collections-poster-mosaic--card {
   position: absolute;
@@ -22146,26 +22157,31 @@ img.mp-poster-placeholder,
 .collections-poster-mosaic--card.collections-poster-mosaic--n1 {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
+  align-content: stretch;
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n1 .collections-poster-mosaic__cell {
+  aspect-ratio: auto;
+  height: 100%;
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n2 {
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
+  grid-template-rows: auto;
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n3 {
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 1fr;
+  grid-template-rows: auto;
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n5 {
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: 1fr;
+  grid-template-rows: auto;
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n6 {
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-rows: repeat(2, auto);
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n7 {
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: 1fr;
+  grid-template-rows: auto;
 }
 .collections-detail-hero__mosaic-wrap {
   position: absolute;
@@ -22190,15 +22206,28 @@ img.mp-poster-placeholder,
   right: 0;
   background: linear-gradient(270deg, #09090b 0%, rgba(9, 9, 11, 0.72) 35%, transparent 100%);
 }
+/* Hero wall: mosaic box aspect = cols/rows → 1fr tracks are square; cover via width+scale */
 .collections-poster-mosaic--hero {
   position: absolute;
-  inset: 0;
-  grid-template-columns: repeat(var(--mosaic-cols, 8), 1fr);
-  grid-template-rows: repeat(var(--mosaic-rows, 3), 1fr);
+  inset: unset;
+  left: 50%;
+  top: 50%;
+  width: 128%;
+  height: auto;
+  aspect-ratio: var(--mosaic-cols, 8) / var(--mosaic-rows, 3);
+  grid-template-columns: repeat(var(--mosaic-cols, 8), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--mosaic-rows, 3), minmax(0, 1fr));
+  align-content: stretch;
   gap: 5px;
-  transform: rotate(-3deg) scale(1.06);
-  transform-origin: center top;
+  transform: translate(-50%, -50%) rotate(-3deg) scale(1.12);
+  transform-origin: center center;
   opacity: 1;
+}
+@media (max-width: 640px) {
+  .collections-poster-mosaic--hero {
+    width: 165%;
+    transform: translate(-50%, -50%) rotate(-3deg) scale(1.28);
+  }
 }
 .collections-poster-spotlight {
   position: absolute;
@@ -22237,10 +22266,6 @@ img.mp-poster-placeholder,
 .collections-poster-spotlight--5 .collections-poster-spotlight__cell:nth-child(5) { transform: rotate(-2deg) translateY(-4px); }
 .collections-poster-mosaic--empty {
   background: linear-gradient(135deg, rgba(109, 40, 217, 0.22), rgba(255, 45, 123, 0.14));
-}
-.collections-poster-mosaic__cell {
-  background: #1a1a22 center/cover no-repeat;
-  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Detail hero — full-bleed cinematic */
@@ -22651,7 +22676,8 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
     gap: 14px;
   }
   .collections-discovery-card {
-    min-height: 200px;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
   }
   .collections-detail-hero,
   .collections-detail-hero__inner {

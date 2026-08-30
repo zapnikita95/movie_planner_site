@@ -164,7 +164,7 @@
     return "background-image:url('" + safe + "')";
   }
 
-  /* Same math as collections-page.js heroMosaicLayout — portrait wall, not wide strips. */
+  /* Same math as collections-page.js heroMosaicLayout — square wall (CSS aspect-ratio 1:1). */
   function buzzHeroMosaicLayout(posterCount, titleText) {
     var n = Math.max(1, Number(posterCount) || 0);
     var titleLen = String(titleText || '').length;
@@ -176,6 +176,13 @@
     if (titleLen > 52) rows += 1;
     rows = Math.min(rows, 7);
     var cols = n >= 50 ? 12 : n >= 25 ? 10 : 8;
+    
+    try {
+      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+        cols = n >= 25 ? 6 : 5;
+        rows = Math.min(Math.max(rows, 4), 7);
+      }
+    } catch (e) {}
     return { cols: cols, rows: rows, cellCount: cols * rows };
   }
 
