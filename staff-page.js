@@ -7,6 +7,7 @@
   var SITE_ORIGIN = (global.MpApiConfig && global.MpApiConfig.SITE_ORIGIN) || 'https://movie-planner.ru';
   var API_BASE = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
 
+  var STAFF_RATING_STAR_TL_V1 = true;
   var PERSON_FILMS_PREVIEW_PRIMARY = 21;
   var PERSON_FILMS_PREVIEW_OTHER = 14;
   var PERSON_FILM_BATCH_PRIMARY = 21;
@@ -223,7 +224,7 @@
   function staffRatingStarSvg() {
     return (
       '<span class="staff-film-rating-star" aria-hidden="true">' +
-        '<svg viewBox="0 0 256 256" width="11" height="11" fill="currentColor">' +
+        '<svg viewBox="0 0 256 256" width="12" height="12" fill="currentColor">' +
           '<path d="M234.29,114.24l-45.13,39.36,13.51,58.57a16,16,0,0,1-23.84,17.34l-51.11-31-51.11,31A16,16,0,0,1,53.33,212.16L66.84,153.6,21.71,114.24a16,16,0,0,1,9.11-28.19l59.46-5.15,23.21-55.36a15.95,15.95,0,0,1,29.22,0L144.72,80.9l59.46,5.15a16,16,0,0,1,9.11,28.19Z"/>' +
         '</svg>' +
       '</span>'
@@ -393,7 +394,9 @@
     return _staffSortMode === 'rating_desc' ||
       _staffSortMode === 'year_desc' ||
       _staffSortMode === 'year_asc' ||
-      staffFilterActive();
+      staffFilterActive() ||
+      !!_staffFilterState.mainRolesOnly ||
+      !!_staffFilterState.friendsRatedOnly;
   }
 
   /** Prefetch remainder after first page (sort/filter or client-only filters). */
@@ -440,6 +443,8 @@
       var rmin = parseFloat(_staffFilterState.ratingMin);
       if (!isNaN(rmin) && rmin > 0) parts.push('rating_min=' + rmin);
     }
+    if (_staffFilterState.mainRolesOnly) parts.push('main_roles=1');
+    if (_staffFilterState.friendsRatedOnly) parts.push('friends_rated=1');
     return parts.join('&');
   }
 
@@ -2224,8 +2229,10 @@
       var ratingTxt = staffFormatRating(ratingNum);
       var top = ratingTxt !== '' && staffIsTopRatedFilm(f, roleKey);
       var rating = ratingTxt !== ''
-        ? ('<span class="staff-film-rating' + (top ? ' staff-film-rating--top' : '') + '">' +
-          (top ? staffRatingStarSvg() : '') + escapeHtml(ratingTxt) + '</span>')
+        ? ('<span class="staff-film-rating">' + escapeHtml(ratingTxt) + '</span>')
+        : '';
+      var star = top
+        ? staffRatingStarSvg()
         : '';
       var title = String(f.title || '—');
       var selected = !!(kp && _staffPickSelected.has(kp));
@@ -2256,7 +2263,7 @@
           ' data-title="' + escapeHtml(title) + '"' +
           (title && /[а-яА-ЯёЁ]/.test(title) ? (' data-film-title-ru="' + escapeHtml(title) + '"') : '') +
           '>' +
-          '<div class="staff-film-media">' + poster + rating + check + bell + buzzBadge + '</div>' +
+          '<div class="staff-film-media">' + poster + star + rating + check + bell + buzzBadge + '</div>' +
           '<div class="staff-film-title">' + escapeHtml(title) + '</div>' +
           (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
         '</a>'
@@ -3445,9 +3452,19 @@
     var off = Math.max(0, parseInt(offset, 10) || 0);
     var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
     if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
-    var base = staffPublicApiBase(personId);
-    var url = base + '/films?' + staffFilmsQueryParams(roleKey, off, lim);
-    return fetch(url, { method: 'GET', mode: 'cors' })
+    var qs = staffFilmsQueryParams(roleKey, off, lim);
+    var authed = !!mpToken() && !isCatalogPersonId(personId);
+    var url = authed
+      ? (API_BASE + '/api/site/persons/' + encodeURIComponent(personId) + '/films?' + qs)
+      : (staffPublicApiBase(personId) + '/films?' + qs);
+    var headers = authed ? mpAuthHeaders() : {};
+    return fetch(url, { method: 'GET', mode: 'cors', headers: headers })
+      .then(function (r) {
+        if (r.status === 401 && authed) {
+          return fetch(staffPublicApiBase(personId) + '/films?' + qs, { method: 'GET', mode: 'cors' });
+        }
+        return r;
+      })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);
         return r.json();
