@@ -10157,7 +10157,7 @@
       return '<button type="button" class="home-tourn-row tourn-lb-row' + (item.is_me ? ' home-tourn-row-me' : '') + '"' + uidAttr + '>'
         + '<span class="home-tourn-rank">' + medal(i) + '</span>'
         + '<span class="home-tourn-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-        + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(nom.unit) + '</span>'
+        + '<span class="home-tourn-score">' + score + ' ' + escapeHtml(tournamentUnitLabelSite(nom, score)) + '</span>'
         + '</button>';
     }).join('');
   }
@@ -11194,13 +11194,13 @@
   }
 
   function fetchPublicPremieresForDisplay(period) {
-    const cacheKey = 'mp_guest_premieres_v6_' + String(period || 'current_month');
+    const cacheKey = 'mp_guest_premieres_v7_' + String(period || 'current_month');
     const cached = readBrowserCache(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length) {
       return Promise.resolve(cached);
     }
     const apiPeriod = (period === 'next_month' || period === 'current_month') ? 'upcoming' : (period || 'upcoming');
-    const url = getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=36';
+    const url = getPublicApiBase() + '/api/public/premieres?period=' + encodeURIComponent(apiPeriod) + '&limit=120';
     return fetchPublicJson(url, 8000)
       .then((data) => {
         let items = (data && data.success && data.items) ? data.items.slice() : [];
@@ -11511,6 +11511,24 @@
     return tournamentMskPartsSite().day >= TOURNAMENT_CURRENT_FROM_DAY ? 'current' : 'previous';
   }
 
+  function tournamentUnitLabelSite(nom, score) {
+    const n = Math.abs(Number(score) || 0);
+    const n100 = n % 100;
+    const n10 = n % 10;
+    const pick = (one, few, many) => {
+      if (n100 > 10 && n100 < 20) return many;
+      if (n10 > 1 && n10 < 5) return few;
+      if (n10 === 1) return one;
+      return many;
+    };
+    if (!nom) return '';
+    if (nom.id === 'cinema_month') return pick('поход', 'похода', 'походов');
+    if (nom.id === 'ratings_month') return pick('оценка', 'оценки', 'оценок');
+    if (nom.id === 'watch_series_month') return pick('день', 'дня', 'дней');
+    if (nom.id === 'episodes_watched_month') return pick('серия', 'серии', 'серий');
+    return nom.unit || '';
+  }
+
   function tournamentNomScoreSite(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
@@ -11598,7 +11616,7 @@
       + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(w) + '</span>'
       + '<span class="tourn-podium-body">'
       + '<span class="tourn-podium-name">' + escapeHtml(w.name || '—') + (w.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-      + '<span class="tourn-podium-score">' + Number(w.score || 0) + ' ' + escapeHtml((nom && nom.unit) || '') + '</span>'
+      + '<span class="tourn-podium-score">' + Number(w.score || 0) + ' ' + escapeHtml(tournamentUnitLabelSite(nom, w.score)) + '</span>'
       + '</span></button>';
   }
 
@@ -11612,7 +11630,7 @@
       + '<span class="tourn-podium-avatar">' + tournamentPodiumAvatarHtml(item) + '</span>'
       + '<span class="tourn-podium-body">'
       + '<span class="tourn-podium-name">' + escapeHtml(item.name || '—') + (item.is_me ? ' <span class="muted">(вы)</span>' : '') + '</span>'
-      + '<span class="tourn-podium-score">' + score + ' ' + escapeHtml((nom && nom.unit) || '') + '</span>'
+      + '<span class="tourn-podium-score">' + score + ' ' + escapeHtml(tournamentUnitLabelSite(nom, score)) + '</span>'
       + '</span></button>';
   }
 
@@ -24149,13 +24167,14 @@
   let _premieresData = [];
   let _premieresPeriod = 'upcoming';
   let _premieresSort = 'date';
+  let _premieresType = 'any';
   let _premieresOffset = 0;
   let _premieresHasMore = true;
   let _premieresLoadInflight = null;
   let _premieresLoadGen = 0;
-  const PREMIERES_PAGE_SIZE = 24;
-  /** Минимум карточек «от сегодня» в сетке (не сырой ответ API с прошедшими датами). */
-  const PREMIERES_MIN_VISIBLE = 24;
+  const PREMIERES_PAGE_SIZE = 36;
+  /** Минимум карточек в сетке после фильтров (не сырой ответ API). */
+  const PREMIERES_MIN_VISIBLE = 80;
 
   function dedupePremieresByKp(items) {
     const seen = new Set();
@@ -24172,15 +24191,65 @@
     return out;
   }
 
-  function premieresVisibleUpcoming(raw) {
+  function premiereItemIsSeries(it) {
+    if (!it || typeof it !== 'object') return false;
+    if (it.is_series === true || it.is_series === 1 || it.is_series === '1') return true;
+    if (it.is_series === false || it.is_series === 0 || it.is_series === '0') return false;
+    const tp = String(it.type || it.film_type || it.filmType || '').toUpperCase();
+    if (tp === 'TV_SERIES' || tp === 'MINI_SERIES' || tp === 'TV_SHOW') return true;
+    if (tp === 'FILM' || tp === 'VIDEO' || tp === 'MOVIE') return false;
+    const g = String(it.genres || '').toLowerCase();
+    return g.includes('сериал');
+  }
+
+  function filterPremieresByType(items) {
+    const mode = String(_premieresType || 'any');
+    if (mode === 'film') return (items || []).filter((it) => !premiereItemIsSeries(it));
+    if (mode === 'series') return (items || []).filter((it) => premiereItemIsSeries(it));
+    return items || [];
+  }
+
+  function premieresVisibleForGrid(raw) {
     const opts = !getToken() ? { guestFallback: true, keepUndated: true } : { keepUndated: false };
-    return filterPremieresUpcomingMsk(dedupePremieresByKp(raw || []), opts);
+    let items = dedupePremieresByKp(raw || []);
+    if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
+      items = filterPremieresUpcomingMsk(items, opts);
+    }
+    return filterPremieresByType(items);
+  }
+
+  function premieresVisibleUpcoming(raw) {
+    return premieresVisibleForGrid(raw);
   }
 
   function fetchPremieresPage(offset, limit) {
+    const period = _premieresPeriod || 'upcoming';
     if (!getToken()) {
-      return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
-        const all = dedupePremieresByKp((prem && prem.items) ? prem.items.slice() : []);
+      return fetchPublicPremieresForDisplay(period === 'in_theaters' ? 'in_theaters' : 'upcoming').then((prem) => {
+        let all = dedupePremieresByKp((prem && prem.items) ? prem.items.slice() : []);
+        if (period !== 'upcoming' && period !== 'in_theaters') {
+          // Guest public feed is upcoming-only; month filter applied client-side below.
+          all = all.filter((it) => {
+            const ymd = String(it.premiere_date || '').slice(0, 10);
+            if (!/^\d{4}-\d{2}/.test(ymd)) return false;
+            const ym = ymd.slice(0, 7);
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const shift = (dy, dm) => {
+              let mm = m + dm;
+              let yy = y + dy;
+              while (mm > 12) { mm -= 12; yy += 1; }
+              while (mm < 1) { mm += 12; yy -= 1; }
+              return yy + '-' + String(mm).padStart(2, '0');
+            };
+            if (period === 'current_month') return ym === shift(0, 0);
+            if (period === 'next_month') return ym === shift(0, 1);
+            if (period === 'prev_month') return ym === shift(0, -1);
+            if (period === 'after_next_month') return ym === shift(0, 2);
+            return true;
+          });
+        }
         const page = all.slice(offset, offset + limit);
         return {
           items: page,
@@ -24190,7 +24259,9 @@
       });
     }
     return api(
-      '/api/site/premieres?period=upcoming&offset=' + encodeURIComponent(offset) + '&limit=' + encodeURIComponent(limit),
+      '/api/site/premieres?period=' + encodeURIComponent(period)
+        + '&offset=' + encodeURIComponent(offset)
+        + '&limit=' + encodeURIComponent(limit),
       { timeoutMs: 32000 }
     ).then((data) => ({
       items: dedupePremieresByKp((data && data.success && Array.isArray(data.items)) ? data.items : []),
@@ -24199,14 +24270,14 @@
     }));
   }
 
-  /** Если site-лента тонкая (хвост месяца) — добираем публичный upcoming (сент+). */
+  /** Если site-лента тонкая — добираем публичный upcoming. */
   function topUpPremieresFromPublic() {
     return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
       const extra = (prem && prem.items) ? prem.items : [];
       if (!extra.length) return 0;
-      const before = premieresVisibleUpcoming(_premieresData).length;
+      const before = premieresVisibleForGrid(_premieresData).length;
       _premieresData = dedupePremieresByKp(_premieresData.concat(extra));
-      return premieresVisibleUpcoming(_premieresData).length - before;
+      return premieresVisibleForGrid(_premieresData).length - before;
     }).catch(() => 0);
   }
 
@@ -24262,9 +24333,9 @@
         _premieresOffset = reqOffset + (added > 0 ? Math.max(batch.length, 1) : PREMIERES_PAGE_SIZE);
         _premieresHasMore = !!page.has_more && (added > 0 || batch.length >= PREMIERES_PAGE_SIZE);
         if (added === 0 && batch.length) _premieresHasMore = false;
-        const visible = premieresVisibleUpcoming(_premieresData).length;
+        const visible = premieresVisibleForGrid(_premieresData).length;
         renderPremieresList();
-        // Важно: порог по видимым (от сегодня), не по сырому API с прошедшими датами.
+        // Важно: порог по видимым после фильтров, не по сырому API.
         if (visible < PREMIERES_MIN_VISIBLE) {
           if (_premieresHasMore) return loadMorePremieres(false);
           return topUpPremieresFromPublic().then(() => { renderPremieresList(); });
@@ -24347,11 +24418,47 @@
   }
 
   function renderPremieresSection(forceReload) {
+    const periodSel = document.getElementById('premieres-period');
+    const typeSel = document.getElementById('premieres-type');
     const sortSel = document.getElementById('premieres-sort');
-    _premieresPeriod = 'upcoming';
-    if (sortSel && !sortSel._bound) {
-      sortSel._bound = true;
-      sortSel.addEventListener('change', () => { _premieresSort = sortSel.value; renderPremieresList(); });
+    if (periodSel) {
+      if (!periodSel.value) periodSel.value = 'upcoming';
+      _premieresPeriod = periodSel.value || 'upcoming';
+      if (!periodSel._bound) {
+        periodSel._bound = true;
+        periodSel.addEventListener('change', () => {
+          _premieresPeriod = periodSel.value || 'upcoming';
+          loadMorePremieres(true);
+        });
+      }
+    } else {
+      _premieresPeriod = 'upcoming';
+    }
+    if (typeSel) {
+      if (!typeSel.value) typeSel.value = 'any';
+      _premieresType = typeSel.value || 'any';
+      if (!typeSel._bound) {
+        typeSel._bound = true;
+        typeSel.addEventListener('change', () => {
+          _premieresType = typeSel.value || 'any';
+          renderPremieresList();
+          const visible = premieresVisibleForGrid(_premieresData).length;
+          if (visible < PREMIERES_MIN_VISIBLE && _premieresHasMore) loadMorePremieres(false);
+        });
+      }
+    } else {
+      _premieresType = 'any';
+    }
+    if (sortSel) {
+      if (!sortSel.value) sortSel.value = 'date';
+      _premieresSort = sortSel.value || 'date';
+      if (!sortSel._bound) {
+        sortSel._bound = true;
+        sortSel.addEventListener('change', () => {
+          _premieresSort = sortSel.value || 'date';
+          renderPremieresList();
+        });
+      }
     }
     bindPremieresInfiniteScroll();
     if (forceReload || !_premieresData.length) {
@@ -24370,7 +24477,10 @@
     } else {
       items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
     }
-    items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
+    if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
+      items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
+    }
+    items = filterPremieresByType(items);
     items = dedupePremieresByKp(items);
     if (!items.length) {
       grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
