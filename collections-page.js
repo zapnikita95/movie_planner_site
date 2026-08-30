@@ -440,7 +440,7 @@
       var q = String(input.value || "").trim().toLowerCase();
       rail.querySelectorAll(".nyt-voter-card").forEach(function (card) {
         var name = card.getAttribute("data-voter-name") || "";
-        card.style.display = !q || name.indexOf(q) !== -1 ? "" : "none";
+        card.style.display = !q || name.indexOf(q) !== -1 ? "block" : "none";
       });
     });
   }
