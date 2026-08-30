@@ -1,4 +1,4 @@
-﻿/* Compatibility with app.js */
+/* Compatibility with app.js */
 .hidden { display: none !important; }
 #landing.hidden, #cabinet-readonly.hidden, #cabinet-onboarding.hidden, #public-stats.hidden { display: none !important; }
 
@@ -2280,7 +2280,7 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   }
   body.in-cabinet #section-premieres .premieres-toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
   }
   body.in-cabinet #section-premieres .premieres-toolbar > * {
@@ -7472,9 +7472,16 @@ body.film-standalone-page .film-page-similar-section,
 }
 
 /* Premieres */
-.premieres-toolbar { display: flex; gap: 8px; }
+.premieres-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .premieres-period-select,
+.premieres-type-select,
 .premieres-sort-select,
+#premieres-period,
+#premieres-type,
 #premieres-sort {
   padding: 7px 10px;
   border-radius: 10px;
@@ -7482,11 +7489,14 @@ body.film-standalone-page .film-page-similar-section,
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #f4f4f5;
   font-size: 13px;
-  /* Native popup: dark scheme makes option text white on white Windows menu — force readable options */
+  /* Native popup: dark scheme → white-on-white on Windows; force readable options */
   color-scheme: light;
 }
 .premieres-period-select option,
+.premieres-type-select option,
 .premieres-sort-select option,
+#premieres-period option,
+#premieres-type option,
 #premieres-sort option {
   color: #111827;
   background-color: #ffffff;
@@ -7498,7 +7508,6 @@ body.film-standalone-page .film-page-similar-section,
   width: 100%;
   pointer-events: none;
 }
-#premieres-period { display: none !important; }
 .premieres-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
