@@ -51,37 +51,92 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260827tafisha4" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260827tafisha4">
-    <script>
-      (function () {
-        try {
-          var path = (location.pathname || '/').replace(/\/$/, '') || '/';
-          if (path === '/index.html') path = '/';
-          if (path !== '/') return;
-          function hasStoredSiteSession() {
-            try {
-              var active = localStorage.getItem('mp_site_active_chat_id');
-              var sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
-              if (Array.isArray(sessions)) {
-                for (var i = 0; i < sessions.length; i++) {
-                  if (String(sessions[i].chat_id) === String(active) && sessions[i].token) return true;
-                }
-                for (var j = 0; j < sessions.length; j++) {
-                  if (sessions[j] && sessions[j].token) return true;
-                }
-              }
-              return !!localStorage.getItem('mp_site_token');
-            } catch (_) { return false; }
-          }
-          if (hasStoredSiteSession()) return;
-          var l = document.createElement('link');
-          l.rel = 'stylesheet';
-          l.href = '/landing-hero-b.css?v=20260823guestNav4fix1';
-          document.head.appendChild(l);
-        } catch (_) {}
-      })();
-    </script>
+    <link rel="preload" href="/style-v2.css?v=20260830staffFilmBadges1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260830staffFilmBadges1">
+    <link rel="preload" href="/landing-hero-b.css?v=20260830staffFilmBadges1" as="style">
+    <link rel="stylesheet" href="/landing-hero-b.css?v=20260830staffFilmBadges1">
+    <style id="landing-hero-critical">
+      /* MARKER:20260830staffFilmBadges1 — first paint: hero size/align before style-v2 / hero CSS */
+      #landing > section.landing-hero-b {
+        padding: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+        text-align: left !important;
+      }
+      #landing .landing-hero-b-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(48px, 8vh, 88px) clamp(20px, 4vw, 48px);
+        max-width: min(820px, 72vw);
+        text-align: left !important;
+        box-sizing: border-box;
+      }
+      @media (min-width: 861px) {
+        #landing .landing-hero-b-copy {
+          min-height: 100dvh;
+          min-height: 100vh;
+        }
+      }
+      #landing .landing-hero-tagline,
+      #landing .landing-hero-b .hero-title {
+        font-family: Unbounded, sans-serif !important;
+        font-weight: 900 !important;
+        text-align: left !important;
+        font-size: clamp(2rem, 3.2vw, 2.85rem) !important;
+        line-height: 1.14 !important;
+        margin: 0 0 10px !important;
+        max-width: 42ch !important;
+        letter-spacing: -0.02em;
+      }
+      #landing .landing-hero-subline {
+        font-family: Unbounded, sans-serif;
+        font-weight: 500;
+        font-size: clamp(1rem, 2vw, 1.28rem) !important;
+        line-height: 1.3;
+        color: var(--text-muted, #b4b4be);
+        margin: 0 0 8px !important;
+        max-width: 34ch;
+        text-align: left !important;
+      }
+      #landing .landing-hero-b .hero-subtitle {
+        text-align: left !important;
+        margin: 0 0 22px !important;
+        max-width: 40rem;
+        font-size: 16px !important;
+        line-height: 1.65;
+        color: var(--text-body, #e4e4ec);
+      }
+      #landing .landing-cta-row {
+        justify-content: flex-start !important;
+      }
+      #landing .landing-tagline-line.is-visible {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none;
+      }
+      @media (max-width: 860px) {
+        #landing .landing-hero-b-copy {
+          min-height: calc(100dvh - 120px);
+          justify-content: flex-end !important;
+          padding: 8px 16px 16px !important;
+          max-width: 100% !important;
+        }
+        #landing .landing-hero-tagline,
+        #landing .landing-hero-b .hero-title {
+          font-size: clamp(1.28rem, 5.4vw, 1.72rem) !important;
+          max-width: 100% !important;
+        }
+        #landing .landing-hero-subline {
+          font-size: 0.88rem !important;
+          max-width: 100% !important;
+        }
+        #landing .landing-hero-b .hero-subtitle {
+          font-size: 12.5px !important;
+          max-width: 100% !important;
+        }
+      }
+    </style>
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -3714,7 +3769,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260827tafisha4';
+        var V = '20260830staffFilmBadges1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

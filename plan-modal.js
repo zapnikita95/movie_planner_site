@@ -420,6 +420,67 @@
       }).join('');
     }
 
+    /** Own HH:MM selects — Chrome Android native time picker clips «Установить». MARKER:20260829planUi1 */
+    function buildTimeSelectsHtml(timeStr) {
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      var parts = String(timeStr || '20:00').split(':');
+      var h = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10);
+      if (isNaN(h) || h < 0 || h > 23) h = 20;
+      if (isNaN(m) || m < 0 || m > 59) m = 0;
+      m = Math.round(m / 5) * 5;
+      if (m >= 60) { m = 0; h = (h + 1) % 24; }
+      var hours = '';
+      for (var i = 0; i < 24; i++) {
+        var hs = pad(i);
+        hours += '<option value="' + hs + '"' + (i === h ? ' selected' : '') + '>' + hs + '</option>';
+      }
+      var mins = '';
+      for (var j = 0; j < 60; j += 5) {
+        var ms = pad(j);
+        mins += '<option value="' + ms + '"' + (j === m ? ' selected' : '') + '>' + ms + '</option>';
+      }
+      var val = pad(h) + ':' + pad(m);
+      return (
+        '<div class="dt-time-pair" id="mp-plan-time-pair">' +
+          '<select id="mp-plan-hour" class="input dt-time-sel plan-modal-input" aria-label="Часы">' + hours + '</select>' +
+          '<span class="dt-time-colon" aria-hidden="true">:</span>' +
+          '<select id="mp-plan-minute" class="input dt-time-sel plan-modal-input" aria-label="Минуты">' + mins + '</select>' +
+          '<input type="hidden" id="mp-plan-time" value="' + escapeHtml(val) + '">' +
+        '</div>'
+      );
+    }
+
+    function syncTimeFromSelects() {
+      var hourEl = card && card.querySelector('#mp-plan-hour');
+      var minEl = card && card.querySelector('#mp-plan-minute');
+      var timeEl = card && card.querySelector('#mp-plan-time');
+      if (!hourEl || !minEl || !timeEl) return state.time;
+      var val = hourEl.value + ':' + minEl.value;
+      timeEl.value = val;
+      state.time = val;
+      return val;
+    }
+
+    function setTimeSelects(timeStr) {
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      var parts = String(timeStr || state.time || '20:00').split(':');
+      var h = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10);
+      if (isNaN(h) || h < 0 || h > 23) h = 20;
+      if (isNaN(m) || m < 0 || m > 59) m = 0;
+      m = Math.round(m / 5) * 5;
+      if (m >= 60) { m = 0; h = (h + 1) % 24; }
+      var hourEl = card && card.querySelector('#mp-plan-hour');
+      var minEl = card && card.querySelector('#mp-plan-minute');
+      var timeEl = card && card.querySelector('#mp-plan-time');
+      if (hourEl) hourEl.value = pad(h);
+      if (minEl) minEl.value = pad(m);
+      var val = pad(h) + ':' + pad(m);
+      if (timeEl) timeEl.value = val;
+      state.time = val;
+    }
+
     function renderForm() {
       abortVoice();
       if (!card) return;
@@ -462,7 +523,7 @@
         '<div id="mp-plan-natural-preview" class="muted small plan-natural-preview-line"></div>' +
         '<div class="dt-row plan-dt-row">' +
         '<input id="mp-plan-date" type="date" class="input dt-date plan-modal-input" value="' + escapeHtml(state.date) + '">' +
-        '<input id="mp-plan-time" type="time" class="input dt-time plan-modal-input" step="300" value="' + escapeHtml(state.time) + '">' +
+        buildTimeSelectsHtml(state.time) +
         '</div>' +
         '<div class="dt-quick" id="mp-plan-day-chips">' + buildDayChipsHtml() + '</div>' +
         '<div class="dt-quick" id="mp-plan-time-chips">' +
@@ -473,10 +534,8 @@
           '<div class="field plan-tickets-field"><label class="field-label">Билеты</label>' +
           '<div id="mp-plan-tickets-list" class="plan-pending-tickets"></div>' +
           '<div class="ticket-upload-row">' +
-          '<button type="button" class="btn btn-secondary btn-full" id="mp-plan-file-btn">＋ Прикрепить билет</button>' +
-          '<button type="button" class="btn btn-secondary ticket-upload-cam" id="mp-plan-cam-btn" aria-label="Сфотографировать билет">📷</button></div>' +
-          '<input type="file" id="mp-plan-file-inp" class="hidden" accept="image/*,.pdf,application/pdf" multiple>' +
-          '<input type="file" id="mp-plan-cam-inp" class="hidden" accept="image/*" capture="environment"></div>' +
+          '<button type="button" class="btn btn-secondary btn-full" id="mp-plan-file-btn">＋ Прикрепить билет</button></div>' +
+          '<input type="file" id="mp-plan-file-inp" class="hidden" accept="image/*,.pdf,application/pdf,image/jpeg,image/png,image/heic" multiple capture="environment"></div>' +
           '<div class="field"><label class="field-label">Кинотеатр</label>' +
           '<div class="search-relative"><span class="search-icon">📍</span>' +
           '<input id="mp-cinema-input" class="search-input plan-modal-input" placeholder="Например, «Каро 11 Октябрь»" autocomplete="off">' +
@@ -553,9 +612,8 @@
           var m = btn.getAttribute('data-mode');
           if (m === state.mode) return;
           var dateEl = card.querySelector('#mp-plan-date');
-          var timeEl = card.querySelector('#mp-plan-time');
           if (dateEl) state.date = dateEl.value || state.date;
-          if (timeEl) state.time = timeEl.value || state.time;
+          syncTimeFromSelects();
           if (m === 'home') pendingTicketFiles.length = 0;
           state.mode = m;
           renderForm();
@@ -564,6 +622,8 @@
 
       var dateEl = card.querySelector('#mp-plan-date');
       var timeEl = card.querySelector('#mp-plan-time');
+      var hourEl = card.querySelector('#mp-plan-hour');
+      var minEl = card.querySelector('#mp-plan-minute');
       var naturalEl = card.querySelector('#mp-plan-natural');
       var naturalClear = card.querySelector('#mp-plan-natural-clear');
       var naturalPreview = card.querySelector('#mp-plan-natural-preview');
@@ -580,7 +640,7 @@
         state.date = parsed.getFullYear() + '-' + pad(parsed.getMonth() + 1) + '-' + pad(parsed.getDate());
         state.time = pad(parsed.getHours()) + ':' + pad(parsed.getMinutes());
         if (dateEl) dateEl.value = state.date;
-        if (timeEl) timeEl.value = state.time;
+        setTimeSelects(state.time);
         if (naturalPreview) naturalPreview.innerHTML = '→ <b>' + escapeHtml(formatDtRu(parsed)) + '</b>';
       }
       var debNatural = debounce(applyNatural, 300);
@@ -615,13 +675,14 @@
       if (timeWrap) {
         timeWrap.addEventListener('click', function (ev) {
           var btn = ev.target.closest('.chip[data-time]');
-          if (!btn || !timeEl) return;
-          timeEl.value = btn.getAttribute('data-time');
-          state.time = timeEl.value;
+          if (!btn) return;
+          setTimeSelects(btn.getAttribute('data-time'));
         });
       }
       if (dateEl) dateEl.addEventListener('change', function () { state.date = dateEl.value; });
-      if (timeEl) timeEl.addEventListener('change', function () { state.time = timeEl.value; });
+      if (hourEl) hourEl.addEventListener('change', syncTimeFromSelects);
+      if (minEl) minEl.addEventListener('change', syncTimeFromSelects);
+      if (timeEl && hourEl && minEl) syncTimeFromSelects();
 
       // Voice
       if (!guestMode) {
@@ -719,16 +780,10 @@
           refreshTickets();
         }
         var pfBtn = card.querySelector('#mp-plan-file-btn');
-        var pcBtn = card.querySelector('#mp-plan-cam-btn');
         var pfInp = card.querySelector('#mp-plan-file-inp');
-        var pcInp = card.querySelector('#mp-plan-cam-inp');
         if (pfBtn && pfInp) {
           pfBtn.addEventListener('click', function () { pfInp.click(); });
           pfInp.addEventListener('change', function () { addFiles(pfInp.files); pfInp.value = ''; });
-        }
-        if (pcBtn && pcInp) {
-          pcBtn.addEventListener('click', function () { pcInp.click(); });
-          pcInp.addEventListener('change', function () { addFiles(pcInp.files); pcInp.value = ''; });
         }
         refreshTickets();
 
@@ -805,7 +860,7 @@
         submit.addEventListener('click', function () {
           if (!state.selected) { onToast('Выберите фильм'); return; }
           var dVal = (dateEl && dateEl.value) || state.date;
-          var tVal = (timeEl && timeEl.value) || state.time;
+          var tVal = syncTimeFromSelects() || (timeEl && timeEl.value) || state.time;
           if (!dVal || !tVal) { onToast('Укажите дату и время'); return; }
           var dt = new Date(dVal + 'T' + tVal);
           if (isNaN(dt.getTime())) { onToast('Некорректная дата'); return; }

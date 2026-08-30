@@ -11284,12 +11284,16 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card,
 #staff-roles-root a.staff-film-card,
 .cabinet a.film-t-afisha-btn,
 .cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-ticket-cta,
 #section-film a.film-t-afisha-btn,
 #section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-ticket-cta,
 #film-page-content a.film-t-afisha-btn,
 #film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-ticket-cta,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-ticket-cta {
   color: inherit;
   text-decoration: none !important;
   text-underline-offset: 0;
@@ -11322,22 +11326,30 @@ body.staff-standalone-page #cabinet-readonly a.staff-film-card .staff-film-year,
 }
 .cabinet a.film-t-afisha-btn,
 .cabinet a.film-poster-t-afisha-cta,
+.cabinet a.film-poster-ticket-cta,
 #section-film a.film-t-afisha-btn,
 #section-film a.film-poster-t-afisha-cta,
+#section-film a.film-poster-ticket-cta,
 #film-page-content a.film-t-afisha-btn,
 #film-page-content a.film-poster-t-afisha-cta,
+#film-page-content a.film-poster-ticket-cta,
 body.film-standalone-page .cabinet a.film-t-afisha-btn,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta,
+body.film-standalone-page .cabinet a.film-poster-ticket-cta {
   color: var(--text-primary, #f4f4f5);
 }
 .cabinet a.film-t-afisha-btn:hover,
 .cabinet a.film-poster-t-afisha-cta:hover,
+.cabinet a.film-poster-ticket-cta:hover,
 #section-film a.film-t-afisha-btn:hover,
 #section-film a.film-poster-t-afisha-cta:hover,
+#section-film a.film-poster-ticket-cta:hover,
 #film-page-content a.film-t-afisha-btn:hover,
 #film-page-content a.film-poster-t-afisha-cta:hover,
+#film-page-content a.film-poster-ticket-cta:hover,
 body.film-standalone-page .cabinet a.film-t-afisha-btn:hover,
-body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover {
+body.film-standalone-page .cabinet a.film-poster-t-afisha-cta:hover,
+body.film-standalone-page .cabinet a.film-poster-ticket-cta:hover {
   color: #fff;
   text-decoration: none !important;
 }
@@ -12765,9 +12777,10 @@ main.film-page .film-hero-crew {
   margin-left: 4px;
 }
 
-/* T-Афиша: desktop — слева от CTA (absolute, CTA не двигается); mobile — оверлей на постере */
+/* T-Афиша / ticket partner: desktop — слева от CTA; mobile — оверлей на постере */
 .film-t-afisha-btn,
-.film-poster-t-afisha-cta {
+.film-poster-t-afisha-cta,
+.film-poster-ticket-cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -12776,29 +12789,34 @@ main.film-page .film-hero-crew {
   padding: 4px 8px 4px 4px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
-  background: rgba(9, 9, 11, 0.62);
+  background: rgba(12, 14, 24, 0.82);
   color: var(--text-primary, #f4f4f5);
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.1;
   text-decoration: none !important;
-  box-shadow: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   white-space: nowrap;
   box-sizing: border-box;
-  opacity: 0.92;
+  opacity: 1;
   transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
 }
 .film-t-afisha-btn:hover,
-.film-poster-t-afisha-cta:hover {
-  background: rgba(19, 19, 24, 0.88);
-  border-color: rgba(255, 255, 255, 0.2);
+.film-poster-t-afisha-cta:hover,
+.film-poster-ticket-cta:hover,
+.film-t-afisha-btn:active,
+.film-poster-t-afisha-cta:active,
+.film-poster-ticket-cta:active {
+  background: rgba(12, 14, 24, 0.92);
+  border-color: rgba(255, 255, 255, 0.22);
   opacity: 1;
   color: #fff;
   text-decoration: none !important;
 }
 .film-t-afisha-btn:focus-visible,
-.film-poster-t-afisha-cta:focus-visible {
+.film-poster-t-afisha-cta:focus-visible,
+.film-poster-ticket-cta:focus-visible {
   outline: 2px solid var(--focus-ring-soft, rgba(255, 221, 45, 0.55));
   outline-offset: 2px;
 }
@@ -12812,7 +12830,8 @@ main.film-page .film-hero-crew {
     max-width: 104px;
     overflow: hidden;
   }
-  .film-poster-t-afisha-cta {
+  .film-poster-t-afisha-cta,
+  .film-poster-ticket-cta {
     display: none !important;
   }
 }
@@ -12820,11 +12839,42 @@ main.film-page .film-hero-crew {
   .film-toolbar-plan-wrap > .film-t-afisha-btn {
     display: none !important;
   }
+  /* Icon-only: same inset/size as .film-hero-tag-btn (list) */
+  .film-poster-t-afisha-cta,
+  .film-poster-ticket-cta {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5;
+    width: 58px;
+    height: 54px;
+    min-width: 58px;
+    min-height: 54px;
+    padding: 0;
+    border-radius: 18px;
+    justify-content: center;
+    gap: 0;
+    background: rgba(12, 14, 24, 0.82);
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__label,
+  .film-poster-ticket-cta .film-t-afisha-btn__label {
+    display: none;
+  }
+  .film-poster-t-afisha-cta .film-t-afisha-btn__icon,
+  .film-poster-ticket-cta .film-t-afisha-btn__icon {
+    width: 28px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  /* Two ticket partners stacked, same right inset as list btn */
+  .poster-wrap:has(> .film-poster-t-afisha-cta):has(> .film-poster-ticket-cta) > .film-poster-ticket-cta {
+    bottom: calc(12px + 54px + 8px);
+  }
 }
 .film-poster-t-afisha-cta {
   position: absolute;
-  right: max(10px, env(safe-area-inset-right, 0px));
-  bottom: 10px;
+  right: 12px;
+  bottom: 12px;
   z-index: 5;
 }
 .film-t-afisha-btn__icon {
@@ -12850,19 +12900,6 @@ main.film-page .film-hero-crew {
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none !important;
-}
-@media (max-width: 520px) {
-  .film-poster-t-afisha-cta {
-    min-height: 38px;
-    border-radius: 11px;
-  }
-  .film-poster-t-afisha-cta .film-t-afisha-btn__icon {
-    width: 26px;
-    height: 30px;
-  }
-  .film-poster-t-afisha-cta .film-t-afisha-btn__icon img {
-    width: 16px;
-  }
 }
 
 /* App promo dialogs (T-Афишa + cinema plan) */
@@ -12899,24 +12936,38 @@ main.film-page .film-hero-crew {
 }
 .mp-app-promo-stores {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
 }
 .mp-app-promo-stores--android,
 .mp-app-promo-stores--all {
-  justify-content: flex-start;
+  justify-content: stretch;
+}
+.mp-app-promo-stores--all {
+  flex-wrap: wrap;
 }
 .mp-app-promo-stores__badge {
-  display: inline-flex;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
   line-height: 0;
   text-decoration: none;
 }
+.mp-app-promo-stores--all .mp-app-promo-stores__badge {
+  flex: 1 1 calc(50% - 4px);
+}
 .mp-app-promo-stores__badge img {
   display: block;
-  height: 36px;
-  width: auto;
-  max-width: 130px;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  max-height: 44px;
+  object-fit: contain;
+  object-position: center;
 }
 .mp-app-promo-ok {
   margin-top: 4px;
@@ -15241,33 +15292,45 @@ button.staff-import-btn:hover {
 .staff-film-poster.mp-poster-placeholder { object-fit: cover; }
 .staff-film-ph { display: flex; align-items: center; justify-content: center; font-size: 28px; }
 .staff-film-rating {
-  position: absolute; right: 6px; top: 6px; z-index: 2;
-  padding: 2px 7px; border-radius: 8px; font-size: 11px; font-weight: 800;
-  background: rgba(0,0,0,.72); color: #fff;
+  /* staff-rating-star-tl-v1: circle bottom-right, star top-left */
+  position: absolute; right: 5px; bottom: 5px; top: auto; z-index: 2;
+  width: 22px; height: 22px; min-width: 22px; padding: 0;
+  border-radius: 50%; font-size: 10px; font-weight: 800;
+  background: rgba(0,0,0,.78); color: #fff;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 0;
   line-height: 1;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.staff-film-rating-star {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  z-index: 2;
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  color: #ffcc5c;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+.staff-film-rating-star svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.is-pick-mode .staff-film-rating-star {
+  display: none;
 }
 .staff-film-rating--top {
-  color: #ffcc5c;
-  background: none;
+  color: #fff;
+  background: rgba(0,0,0,.78);
   padding: 0;
-  border-radius: 0;
-}
-.staff-film-rating--top .staff-film-rating-star {
-  display: inline-flex;
-  width: 11px;
-  height: 11px;
-  flex-shrink: 0;
-  color: #ffcc5c;
-}
-.staff-film-rating--top .staff-film-rating-star svg {
-  width: 11px;
-  height: 11px;
-  display: block;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+  border-radius: 50%;
 }
 .staff-film-bell {
   position: absolute;
@@ -20160,7 +20223,8 @@ body.mp-scroll-lock {
 .search-input,
 .plan-modal-input,
 .mp-plan-modal-body input[type="date"],
-.mp-plan-modal-body input[type="time"] {
+.mp-plan-modal-body input[type="time"],
+.mp-plan-modal-body select.plan-modal-input {
   width: 100%;
   box-sizing: border-box;
   background: rgba(255,255,255,.06);
@@ -20175,12 +20239,40 @@ body.mp-scroll-lock {
 .search-input:focus,
 .plan-modal-input:focus,
 .mp-plan-modal-body input[type="date"]:focus,
-.mp-plan-modal-body input[type="time"]:focus {
+.mp-plan-modal-body input[type="time"]:focus,
+.mp-plan-modal-body select.plan-modal-input:focus {
   border-color: rgba(255,45,123,.55);
 }
-.dt-row { display: flex; gap: 8px; margin-top: 6px; }
+.dt-row { display: flex; gap: 8px; margin-top: 6px; align-items: stretch; }
 .dt-row .dt-date { flex: 2 1 auto; min-width: 0; }
 .dt-row .dt-time { flex: 1 1 auto; min-width: 96px; }
+.dt-row .dt-time-pair {
+  flex: 1 1 auto;
+  min-width: 108px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dt-row .dt-time-sel {
+  flex: 1 1 0;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  color-scheme: dark;
+}
+.dt-row .dt-time-colon {
+  flex: 0 0 auto;
+  color: var(--text-muted, #b4b4be);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
+}
 .dt-row input[type="date"],
 .dt-row input[type="time"] {
   color-scheme: dark;
@@ -20320,12 +20412,9 @@ body.mp-scroll-lock {
   gap: 10px;
   align-items: stretch;
 }
-.ticket-upload-row .ticket-upload-cam {
-  flex-shrink: 0;
-  width: 52px;
-  padding-left: 0;
-  padding-right: 0;
-  font-size: 22px;
+.ticket-upload-row .btn-full {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .mp-plan-modal-body .btn-full { width: 100%; }
 .mp-plan-modal-body .muted.small { font-size: 12px; color: var(--text-muted); }

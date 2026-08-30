@@ -1,0 +1,2 @@
+# Movie Planner ads.txt — replace YANDEX_RSYA_PARTNER_ID / GOOGLE_ADSENSE_PUBLISHER_ID in Railway env.
+# Dynamic version: GET https://movie-planner.ru/ads.txt (Flask route reads env).

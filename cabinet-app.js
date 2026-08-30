@@ -6235,7 +6235,68 @@
     );
   }
 
-  function filterPersonFilmsSite(films, state) {
+  var STAFF_MAIN_ROLE_KEYS_SITE = { ACTOR: 1, DIRECTOR: 1, WRITER: 1, PRODUCER: 1 };
+  var STAFF_SELF_ROLE_RE_SITE = /играет сам|сам себя|herself|himself|cameo|камео|uncredited|не указан/i;
+  var STAFF_CRAFT_ROLE_KEYS_SITE = {
+    ACTOR: 1, DIRECTOR: 1, WRITER: 1, PRODUCER: 1,
+    OPERATOR: 1, COMPOSER: 1, DESIGN: 1, EDITOR: 1,
+  };
+
+  function staffLooksMainCreditSite(f, roleKey) {
+    if (!f) return false;
+    var rk = String(roleKey || f.role_key || '').toUpperCase();
+    var cr = f.cast_rank;
+    if (cr != null && cr !== '') {
+      var n = parseInt(cr, 10);
+      return !isNaN(n) && n > 0 && n <= 3;
+    }
+    var desc = String(f.role_description || f.description || f.character || '').trim();
+    if (!desc) return !!(STAFF_MAIN_ROLE_KEYS_SITE[rk] || !rk);
+    if (STAFF_SELF_ROLE_RE_SITE.test(desc)) return false;
+    return true;
+  }
+
+  function staffFilmDisplayRatingSite(f) {
+    if (!f) return null;
+    var r = parseFloat(f.rating);
+    if (!isNaN(r) && r > 0) return r;
+    var kp = parseFloat(f.rating_kp);
+    if (!isNaN(kp) && kp > 0) return kp;
+    return null;
+  }
+
+  function staffFormatRatingSite(r) {
+    var n = typeof r === 'number' ? r : parseFloat(r);
+    if (isNaN(n) || n <= 0) return '';
+    var up = Math.ceil(n * 10 - 1e-9) / 10;
+    if (Math.abs(up - Math.round(up)) < 1e-9) return String(Math.round(up));
+    return up.toFixed(1);
+  }
+
+  function staffPercentileThresholdSite(values, p) {
+    var arr = (values || []).filter(function (n) {
+      return typeof n === 'number' && !isNaN(n) && n > 0;
+    }).slice().sort(function (a, b) { return a - b; });
+    if (!arr.length) return null;
+    if (arr.length === 1) return arr[0];
+    var rank = (Math.max(0, Math.min(100, p)) / 100) * (arr.length - 1);
+    var lo = Math.floor(rank);
+    var hi = Math.ceil(rank);
+    if (lo === hi) return arr[lo];
+    return arr[lo] + (arr[hi] - arr[lo]) * (rank - lo);
+  }
+
+  function staffRatingStarSvgSite() {
+    return (
+      '<span class="staff-film-rating-star" aria-hidden="true">' +
+        '<svg viewBox="0 0 256 256" width="12" height="12" fill="currentColor">' +
+          '<path d="M234.29,114.24l-45.13,39.36,13.51,58.57a16,16,0,0,1-23.84,17.34l-51.11-31-51.11,31A16,16,0,0,1,53.33,212.16L66.84,153.6,21.71,114.24a16,16,0,0,1,9.11-28.19l59.46-5.15,23.21-55.36a15.95,15.95,0,0,1,29.22,0L144.72,80.9l59.46,5.15a16,16,0,0,1,9.11,28.19Z"/>' +
+        '</svg>' +
+      '</span>'
+    );
+  }
+
+  function filterPersonFilmsSite(films, state, roleKey) {
     const st = state || {};
     const genreL = String(st.genre || '').trim().toLowerCase();
     const yearExact = st.year != null && st.year !== '' ? parseInt(st.year, 10) : null;
@@ -6247,10 +6308,7 @@
         const gblob = (f.genres || []).join(' ').toLowerCase();
         if (!gblob.includes(genreL)) return false;
       }
-      if (st.mainRolesOnly) {
-        const cr = f.cast_rank;
-        if (cr == null || parseInt(cr, 10) > 3) return false;
-      }
+      if (st.mainRolesOnly && !staffLooksMainCreditSite(f, roleKey)) return false;
       if (st.friendsRatedOnly) {
         if (!f.friend_rated_high) return false;
         if (f.watched || f.has_rating) return false;
@@ -6290,7 +6348,7 @@
   function countStaffFilmsSite(roles, state) {
     let total = 0;
     (roles || []).forEach(function (block) {
-      total += filterPersonFilmsSite(block.films || [], state).length;
+      total += filterPersonFilmsSite(block.films || [], state, block.role_key).length;
     });
     return total;
   }
@@ -6303,8 +6361,8 @@
       friendsRatedOnly: !!state.friendsRatedOnly,
     };
     return {
-      mainDisabled: !base.mainRolesOnly && countStaffFilmsSite(roles, Object.assign({}, base, { mainRolesOnly: true })) === 0,
-      friendsDisabled: !base.friendsRatedOnly && countStaffFilmsSite(roles, Object.assign({}, base, { friendsRatedOnly: true })) === 0,
+      mainDisabled: false,
+      friendsDisabled: false,
     };
   }
 
@@ -7290,9 +7348,23 @@
         return '<option value="' + escapeHtml(g) + '"' + sel + '>' + escapeHtml(g) + '</option>';
       })).join('');
     }
-    function gridHtml(films) {
+    function staffTopThresholdSite() {
+      var vals = [];
+      (roles || []).forEach(function (block) {
+        var rk = String(block.role_key || '').toUpperCase();
+        if (!STAFF_CRAFT_ROLE_KEYS_SITE[rk]) return;
+        (block.films || []).forEach(function (f) {
+          var r = staffFilmDisplayRatingSite(f);
+          if (r != null) vals.push(r);
+        });
+      });
+      return staffPercentileThresholdSite(vals, 90);
+    }
+    function gridHtml(films, roleKey) {
       const chunk = sortPersonFilmsSite(films, _staffPageSortMode).slice(0, 80);
       if (!chunk.length) return '';
+      const thresh = staffTopThresholdSite();
+      const rk = String(roleKey || '').toUpperCase();
       return '<div class="staff-film-grid">' + chunk.map(function (f) {
         const fid = f.already_in_base_film_id || f.film_id;
         const kpClean = String(f.kp_id || '').replace(/\D/g, '');
@@ -7307,12 +7379,16 @@
         const poster = posterSrc
           ? '<img class="staff-film-poster" src="' + escapeHtml(posterSrc) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + mpPosterOnErrorAttr() + '>'
           : '<img class="staff-film-poster mp-poster-placeholder" src="' + escapeHtml(MP_POSTER_PLACEHOLDER) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + (kpClean ? (' data-kp="' + escapeHtml(kpClean) + '"') : '') + '>';
-        const rating = f.rating != null && !isNaN(Number(f.rating))
-          ? '<span class="staff-film-rating">' + escapeHtml(String(f.rating)) + '</span>'
+        const ratingNum = staffFilmDisplayRatingSite(f);
+        const ratingTxt = staffFormatRatingSite(ratingNum);
+        const top = !!(ratingTxt && thresh != null && ratingNum >= thresh - 1e-9 && STAFF_CRAFT_ROLE_KEYS_SITE[rk]);
+        const rating = ratingTxt
+          ? '<span class="staff-film-rating">' + escapeHtml(ratingTxt) + '</span>'
           : '';
+        const star = top ? staffRatingStarSvgSite() : '';
         return (
           '<button type="button" class="staff-film-card" ' + clickAttr + '>' +
-            '<div class="staff-film-media">' + poster + rating + '</div>' +
+            '<div class="staff-film-media">' + poster + star + rating + '</div>' +
             '<div class="staff-film-title">' + escapeHtml(f.title || '—') + '</div>' +
             (f.year ? '<div class="staff-film-year">' + escapeHtml(String(f.year)) + '</div>' : '') +
           '</button>'
@@ -7321,7 +7397,7 @@
     }
     function roleFilmsBodyHtml(films, roleKey) {
       const split = splitPersonFilmsByUpcoming(films);
-      const releasedHtml = gridHtml(split.released);
+      const releasedHtml = gridHtml(split.released, roleKey);
       let upcomingHtml = '';
       if (split.upcoming.length > 0) {
         const rkEnc = escapeHtml(roleKey || '');
@@ -7333,7 +7409,7 @@
               '<span class="staff-upcoming-chevron" aria-hidden="true">▾</span>' +
             '</button>' +
             '<div class="staff-upcoming-panel hidden" data-upcoming-panel="' + rkEnc + '">' +
-              gridHtml(split.upcoming) +
+              gridHtml(split.upcoming, roleKey) +
             '</div>' +
           '</div>';
       }
@@ -7346,7 +7422,7 @@
       root.querySelectorAll('.staff-role-block').forEach(function (sec, idx) {
         const block = roles[idx];
         if (!block) return;
-        const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const filtered = filterPersonFilmsSite(block.films || [], filterState, block.role_key);
         const pendingLoad = (block.total > 0) && !(block.films && block.films.length);
         sec.classList.toggle('hidden', !filtered.length && !pendingLoad);
         if (!filtered.length) {
@@ -7470,7 +7546,7 @@
           '<button type="button" class="chip' + (_staffPageSortMode === 'year_asc' ? ' chip-on' : '') + '" id="staff-sort-year-asc" aria-pressed="' + (_staffPageSortMode === 'year_asc' ? 'true' : 'false') + '">Сначала старые</button>' +
         '</div></div>' +
       roles.map(function (block, idx) {
-        const filtered = filterPersonFilmsSite(block.films || [], filterState);
+        const filtered = filterPersonFilmsSite(block.films || [], filterState, block.role_key);
         const pendingLoad = (block.total > 0) && !(block.films && block.films.length);
         const hiddenCls = (!filtered.length && !pendingLoad) ? ' hidden' : '';
         const importable = filtered.filter(function (f) { return f.importable; });
