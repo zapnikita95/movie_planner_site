@@ -2079,13 +2079,18 @@
       showScreen('cabinet-readonly');
     }
     prepareFilmOpenFromOverlay();
+    // Push /f/:kp BEFORE layout so Back always has a stack entry (filmBack20260830).
+    ensureFilmHistoryEntry(kp, {
+      replace: !!o.replace,
+      skipHistory: !!o.skipHistory,
+      returnSection: cabinetReturnSectionForFilmNav(),
+    });
     showFilmPageLayout();
     try {
-      const path = '/f/' + kp;
-      const returnSection = cabinetReturnSectionForFilmNav();
-      const st = { view: 'film', kpId: kp, returnSection };
-      if (o.replace) history.replaceState(st, '', path);
-      else if (!o.skipHistory) history.pushState(st, '', path);
+      const nowPath = (window.location.pathname || '').replace(/\/$/, '') || '/';
+      if (!o.skipHistory && nowPath !== ('/f/' + kp)) {
+        ensureFilmHistoryEntry(kp, { replace: !!o.replace, skipHistory: false });
+      }
     } catch (_) {}
     if (!heroReadyNow()) {
       try { window.scrollTo(0, 0); } catch (_) {}
@@ -5910,18 +5915,86 @@
     return pathKp && pathKp === want;
   }
 
+  function isFilmPageUiOpen() {
+    try {
+      const ro = document.getElementById('cabinet-readonly');
+      if (ro && ro.classList.contains('film-page-mode')) return true;
+      if (document.body.classList.contains('cabinet-film-page')) return true;
+      if (document.documentElement.classList.contains('mp-film-boot')) return true;
+      const filmSec = document.getElementById('section-film');
+      if (filmSec && !filmSec.classList.contains('hidden')) {
+        const cs = window.getComputedStyle(filmSec);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden') return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function cabinetReturnSectionForFilmNav() {
-    const vis = visibleCabinetSectionId();
-    if (vis && vis !== 'film') return vis;
+    try {
+      const stored = sessionStorage.getItem('mp_film_return_section');
+      if (stored && SECTION_TO_PATH[stored]) return stored;
+    } catch (_) {}
     const fromPath = sectionFromPath(window.location.pathname || '');
     if (fromPath && fromPath !== 'film') return fromPath;
+    const vis = visibleCabinetSectionId();
+    if (vis && vis !== 'film') return vis;
     return 'home';
+  }
+
+  function rememberFilmReturnSection(sectionId) {
+    const sec = (sectionId && SECTION_TO_PATH[sectionId])
+      ? sectionId
+      : cabinetReturnSectionForFilmNav();
+    try { sessionStorage.setItem('mp_film_return_section', sec); } catch (_) {}
+    return sec;
+  }
+
+  /** Always land on /f/:kp so browser Back leaves film UI (filmBack20260830). */
+  function ensureFilmHistoryEntry(kp, opts) {
+    const o = opts || {};
+    const id = String(kp || '').replace(/\D/g, '');
+    if (!id) return null;
+    const filmPath = '/f/' + id;
+    const returnSection = rememberFilmReturnSection(o.returnSection);
+    const st = { view: 'film', kpId: id, returnSection: returnSection };
+    try {
+      if (o.replace) {
+        history.replaceState(st, '', filmPath);
+      } else if (!o.skipHistory) {
+        const cur = (window.location.pathname || '').replace(/\/$/, '') || '/';
+        if (cur !== filmPath) history.pushState(st, '', filmPath);
+        else history.replaceState(st, '', filmPath);
+      }
+    } catch (_) {}
+    try {
+      const now = (window.location.pathname || '').replace(/\/$/, '') || '/';
+      if (!o.skipHistory && now !== filmPath) history.pushState(st, '', filmPath);
+    } catch (_) {}
+    return returnSection;
   }
 
   function dismissFilmPageFromHistoryNav() {
     _filmModalCurrentId = null;
     _openFilmPageByKpInflight = null;
-    clearFilmBootLayout();
+    try { clearFilmBootLayout(); } catch (_) {}
+    try {
+      document.documentElement.classList.remove('mp-film-boot', 'mp-staff-boot', 'mp-user-boot');
+    } catch (_) {}
+    try {
+      document.body.classList.remove('cabinet-film-page', 'film-page-mode');
+    } catch (_) {}
+    try {
+      const ro = document.getElementById('cabinet-readonly');
+      if (ro) ro.classList.remove('film-page-mode');
+      const filmSec = document.getElementById('section-film');
+      if (filmSec) {
+        filmSec.classList.add('hidden');
+        filmSec.style.removeProperty('display');
+      }
+      const pageRoot = document.getElementById('film-page-content');
+      if (pageRoot) pageRoot.classList.add('hidden');
+    } catch (_) {}
   }
   /** TMDB-only public cards: /f/movie-123, /f/tv-456 (no Kinopoisk id). */
   function catalogFilmFromPathname(pathname) {
@@ -25057,6 +25130,9 @@
         return;
       }
       dismissFilmPageFromHistoryNav();
+      if (isFilmPageUiOpen() && !kpIdFromPathname(pathname)) {
+        try { dismissFilmPageFromHistoryNav(); } catch (_) {}
+      }
       const pathUser = userIdFromPathname(pathname) || userIdFromLocation();
       if (pathUser && getToken()) {
         try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
@@ -25078,6 +25154,12 @@
         const st = (ev && ev.state) || history.state || {};
         if (st.section && SECTION_TO_PATH[st.section]) sec = st.section;
         else if (st.returnSection && SECTION_TO_PATH[st.returnSection]) sec = st.returnSection;
+        else {
+          try {
+            const stored = sessionStorage.getItem('mp_film_return_section');
+            if (stored && SECTION_TO_PATH[stored]) sec = stored;
+          } catch (_) {}
+        }
       }
       if (sec === 'whattowatch') {
         const fromPath = typeof wtwStateFromPath === 'function'
