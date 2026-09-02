@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260830descAllRoutes2
+ * MARKER:20260902recentRatedSync1
  */
 (function (global) {
   'use strict';
@@ -4143,6 +4143,21 @@
         clearTimeout(el._hideTimer);
         el._hideTimer = setTimeout(function () { el.classList.remove('show'); }, 2800);
       }
+      /** After rate: drop session rail cache so home «Недавние оценки» refetches. */
+      function bustHomeRailsAfterRating() {
+        try {
+          if (global.MPHomeRails && typeof global.MPHomeRails.clearRailCache === 'function') {
+            global.MPHomeRails.clearRailCache('recent-rated');
+            global.MPHomeRails.clearRailCache('unwatched');
+            global.MPHomeRails.clearRailCache('watched');
+          }
+        } catch (_e) {}
+        try {
+          if (typeof global.bustHomeRailsForLibraryRev === 'function') {
+            global.bustHomeRailsForLibraryRev();
+          }
+        } catch (_e2) {}
+      }
       function showPublicCoinPop(anchor, delta) {
         var rect = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
         if (!rect) return;
@@ -4509,6 +4524,7 @@
               hint.textContent = 'Оценка ' + String(v) + '/10 сохранена';
               if (anchor) showPublicCoinPop(anchor, Number(d.coins_added) || 40);
               showPublicToast('Оценка сохранена. Начислили монетки за активность.');
+              bustHomeRailsAfterRating();
               loadAuthFilmState();
             } else hint.textContent = d.error || 'Не удалось поставить оценку';
           })
@@ -4797,6 +4813,7 @@
                 }).then(function (r) { return r.json(); }).then(function (d) {
                   if (d && d.success) {
                     showPublicToast('Оценка сохранена');
+                    bustHomeRailsAfterRating();
                     if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
                     filmState.toolbarOpts.myRating = v;
                     filmState.toolbarOpts.inBase = true;
@@ -4821,6 +4838,7 @@
                 }).then(function (r) { return r.json(); }).then(function (d) {
                   if (d && d.success) {
                     showPublicToast('Оценка ' + v + '/10 сохранена');
+                    bustHomeRailsAfterRating();
                     if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
                     filmState.toolbarOpts.myRating = v;
                     filmState.toolbarOpts.inBase = true;
@@ -4841,6 +4859,7 @@
             rem.addEventListener('click', function () {
               fetch(apiBase + '/api/site/film/' + film.film_id + '/rating', { method: 'DELETE', headers: authHeaders() })
                 .then(function (r) { return r.json(); }).then(function () {
+                  bustHomeRailsAfterRating();
                   if (!filmState.toolbarOpts) filmState.toolbarOpts = {};
                   filmState.toolbarOpts.myRating = 0;
                   filmState.toolbarOpts.inBase = true;

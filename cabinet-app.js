@@ -10195,6 +10195,7 @@
     try { mountHomeDashboardRails(); } catch (_) {}
     try { scheduleHomeDashboardRefresh(); } catch (_) {}
   }
+  try { window.bustHomeRailsForLibraryRev = bustHomeRailsForLibraryRev; } catch (_) {}
   function applyHomeLibraryRevDelta(delta) {
     var n = 0;
     try {
@@ -18117,6 +18118,14 @@
       }
       applyCoinsFeedback(anchorBtn, Number(res.coins_added) || 0);
       applyRatingToLists(filmId, rating);
+      try {
+        if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
+          MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('unwatched');
+          MPHomeRails.clearRailCache('watched');
+        }
+      } catch (_) {}
+      try { bustHomeRailsForLibraryRev(); } catch (_) {}
       if (rating >= HIGH_RATING_SIMILAR_MIN && res.similar && _filmModalCache[filmId]) {
         _filmModalCache[filmId].similar = res.similar;
       }
@@ -18138,6 +18147,14 @@
         return;
       }
       removeRatingFromLists(filmId);
+      try {
+        if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
+          MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('unwatched');
+          MPHomeRails.clearRailCache('watched');
+        }
+      } catch (_) {}
+      try { bustHomeRailsForLibraryRev(); } catch (_) {}
       refreshFilmDetailFromApi(filmId);
     }).catch(() => {
       showToast('Сервер не отвечает', { type: 'error' });
