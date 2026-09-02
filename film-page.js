@@ -1696,17 +1696,44 @@
     return html;
   }
 
-  function buildFilmPlanDropdown(item) {
+  function formatFilmPlanCtaLabel(hints, item) {
+    var h = hints || {};
+    var iso = h.next_plan_start_iso || (item && item.next_plan_start_iso) || '';
+    var has = !!(h.has_upcoming || iso);
+    if (!has) return 'Запланировать просмотр';
+    var d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return 'Запланировано';
+    var isCinema = String(h.upcoming_plan_type || (item && item.plan_type) || '').toLowerCase() === 'cinema';
+    var dateStr = d.toLocaleString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return (isCinema ? 'Сеанс · ' : 'План · ') + dateStr;
+  }
+
+  function buildFilmPlanDropdown(item, opts) {
     if (!item || !item.kp_id) return '';
     var kp = String(item.kp_id).replace(/\D/g, '');
     if (!kp) return '';
     var titleAttr = escapeHtml(item.title || '');
     var yearAttr = escapeHtml(String(item.year || ''));
-    var showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
+    var hints = (opts && opts.planHints) || item.plan_hints || {};
+    var showCinemaWatch =
+      item.plan_type === 'cinema' ||
+      item.in_cinema === true ||
+      String(hints.upcoming_plan_type || '').toLowerCase() === 'cinema' ||
+      hints.cinema_plan_id != null;
+    var planLabel = formatFilmPlanCtaLabel(hints, item);
     var planItems = [
       '<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>',
       '<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>',
     ].join('');
+    if (hints.has_upcoming || hints.next_plan_start_iso) {
+      planItems =
+        '<a class="action-dropdown-item" href="/plans">📋 Открыть в планах</a>' + planItems;
+    }
     var watchItems = [];
     if (item.online_link) {
       watchItems.push('<a class="action-dropdown-item" href="' + escapeHtml(item.online_link) + '" target="_blank" rel="noopener">🎞 Онлайн-кинотеатр</a>');
@@ -1717,9 +1744,9 @@
     var menuItems = planItems + watchItems.join('');
     return '<div class="action-dropdown" data-dropdown-root="plan">' +
       buildGlassCtaButtonHtml({
-        className: 'action-dropdown-btn film-toolbar-plan',
+        className: 'action-dropdown-btn film-toolbar-plan' + (hints.has_upcoming ? ' film-toolbar-plan--scheduled' : ''),
         icon: 'calendar',
-        label: 'Запланировать просмотр',
+        label: planLabel,
         caret: true,
         dropdownToggle: true,
       }) +
@@ -1760,6 +1787,9 @@
     }
     if (text === 'Запланировать просмотр') {
       return 'Запланировать <br class="glass-cta__br">просмотр';
+    }
+    if (text.indexOf('Сеанс · ') === 0 || text.indexOf('План · ') === 0 || text === 'Запланировано') {
+      return escapeHtml(text);
     }
     return escapeHtml(text);
   }
@@ -2286,14 +2316,16 @@
       );
     }
 
+    var planHints = opts.planHints || item.plan_hints || {};
+    var planCtaLabel = formatFilmPlanCtaLabel(planHints, item);
     var planBlock = inBase
-      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
+      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item, { planHints: planHints }) + '</div>'
       : '<div class="film-toolbar-plan-wrap">' +
           buildGlassCtaButtonHtml({
             id: 'plan-watch-btn',
-            className: 'film-toolbar-plan',
+            className: 'film-toolbar-plan' + (planHints.has_upcoming ? ' film-toolbar-plan--scheduled' : ''),
             icon: 'calendar',
-            label: 'Запланировать просмотр',
+            label: planCtaLabel,
           }) +
         '</div>';
     var addIconBtn = !inBase
@@ -4660,6 +4692,7 @@
         }
         if (!stub.kp_id) stub.kp_id = kpId;
         var opts = filmState.toolbarOpts || {};
+        var planHints = opts.planHints || {};
         var sig = [
           String(stub.kp_id || ''),
           String(stub.film_id || ''),
@@ -4667,6 +4700,8 @@
           opts.watched ? '1' : '0',
           String(opts.myRating || 0),
           stub.is_series ? '1' : '0',
+          planHints.has_upcoming ? '1' : '0',
+          String(planHints.next_plan_start_iso || ''),
         ].join('|');
         var old = hero.querySelector('.film-page-toolbar');
         if (old && old.getAttribute('data-mp-toolbar-sig') === sig) {
@@ -4899,23 +4934,32 @@
               applyAuthToolbar({ film: { kp_id: kpId }, toolbarOpts: { inBase: false, authenticated: true } });
               return;
             }
-            // Сразу показываем "в базе", даже если детальная карточка подвиснет.
-            applyAuthToolbar({
-              film: { kp_id: kpId, film_id: lookup.film_id },
-              toolbarOpts: { inBase: true, authenticated: true },
-            });
-            return fetchJsonAuth('/api/site/film/' + encodeURIComponent(String(lookup.film_id)), 8500)
+            // Не рисуем «в базе» с myRating=0 до detail — иначе после refresh ★ мигает
+            // пустой звездой, а при таймауте detail оценка «пропадает» навсегда.
+            return fetchJsonAuth('/api/site/film/' + encodeURIComponent(String(lookup.film_id)), 20000)
               .then(function (detail) {
                 if (!detail || !detail.success || !detail.film) {
-                  if (hint) hint.textContent = 'Не удалось загрузить ваши данные по сериалу';
+                  applyAuthToolbar({
+                    film: { kp_id: kpId, film_id: lookup.film_id, watched: !!lookup.watched },
+                    toolbarOpts: {
+                      inBase: true,
+                      authenticated: true,
+                      watched: !!lookup.watched,
+                    },
+                  });
+                  if (hint) hint.textContent = 'Не удалось загрузить ваши данные по фильму';
                   return;
                 }
                 var f = detail.film;
-                var myRating = 0;
-                var uid = detail.me && detail.me.user_id;
-                (detail.ratings || []).forEach(function (r) {
-                  if (uid && String(r.user_id) === String(uid)) myRating = Number(r.rating) || 0;
-                });
+                var myRating = Number(f.my_rating) || 0;
+                if (!(myRating >= 1 && myRating <= 10)) {
+                  var uid = detail.me && detail.me.user_id;
+                  (detail.ratings || []).forEach(function (r) {
+                    if (uid != null && String(r.user_id) === String(uid)) {
+                      myRating = Number(r.rating) || 0;
+                    }
+                  });
+                }
                 var desc = pickFilmDescription(f);
                 if (desc) setFilmDescription(desc);
                 applyAuthToolbar({
@@ -4927,10 +4971,19 @@
                     myRating: myRating,
                     canRate: !(f.is_virtual_room && f.can_rate_in_group === false),
                     ratingLocked: f.is_virtual_room && f.can_rate_in_group === false,
+                    planHints: detail.plan_hints || {},
                   },
                 });
               })
               .catch(function (_e) {
+                applyAuthToolbar({
+                  film: { kp_id: kpId, film_id: lookup.film_id, watched: !!lookup.watched },
+                  toolbarOpts: {
+                    inBase: true,
+                    authenticated: true,
+                    watched: !!lookup.watched,
+                  },
+                });
                 return fetchJsonAuth('/api/site/series/' + encodeURIComponent(String(lookup.film_id)) + '/progress', 5000)
                   .then(function (progressData) {
                   if (!progressData || !progressData.success) return;
@@ -4942,7 +4995,7 @@
                       progress: progressData.progress || null,
                       series_progress: progressData,
                     },
-                    toolbarOpts: { inBase: true, authenticated: true },
+                    toolbarOpts: { inBase: true, authenticated: true, watched: !!lookup.watched },
                   });
                 })
                   .catch(function () {});
