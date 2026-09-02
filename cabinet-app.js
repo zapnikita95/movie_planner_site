@@ -16595,7 +16595,7 @@
         content.innerHTML = 'Не удалось загрузить фильм';
         return null;
       }
-      const myRating = filmMyRating(detail.ratings || [], detail.me);
+      const myRating = filmMyRating(detail.ratings || [], detail.me, detail.film);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         const data = {
@@ -17088,7 +17088,7 @@
       if (_filmModalCurrentId !== filmId) return;
       upgradeGenericFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
       applyPreferredFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
-      const myRating = filmMyRating(detail.ratings || [], detail.me);
+      const myRating = filmMyRating(detail.ratings || [], detail.me, detail.film);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         if (_filmModalCurrentId !== filmId) return;
@@ -17180,7 +17180,7 @@
       cache.film = detail.film;
       cache.ratings = detail.ratings || [];
       if (detail.me) cache.me = detail.me;
-      const myRating = filmMyRating(cache.ratings, cache.me);
+      const myRating = filmMyRating(cache.ratings, cache.me, cache.film);
       const finish = function () {
         const root = getFilmRenderRoot();
         if (root && _filmModalCurrentId === filmId) {
