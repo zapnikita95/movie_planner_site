@@ -16595,7 +16595,7 @@
         content.innerHTML = 'Не удалось загрузить фильм';
         return null;
       }
-      const myRating = filmMyRating(detail.ratings || [], detail.me, detail.film);
+      const myRating = filmMyRating(detail.ratings || [], detail.me);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         const data = {
@@ -16694,10 +16694,12 @@
 
   const HIGH_RATING_SIMILAR_MIN = 9;
 
-  function filmMyRating(ratings, me) {
+  function filmMyRating(ratings, me, film) {
+    let myRating = Number(film && film.my_rating) || 0;
+    if (myRating >= 1 && myRating <= 10) return myRating;
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = (ratings || []).find(function (r) {
-      return r.user_id && myUserId && String(r.user_id) === String(myUserId);
+      return r.user_id != null && myUserId != null && String(r.user_id) === String(myUserId);
     });
     return myRatingObj ? Number(myRatingObj.rating) : 0;
   }
@@ -17088,7 +17090,7 @@
       if (_filmModalCurrentId !== filmId) return;
       upgradeGenericFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
       applyPreferredFilmTitle(detail.film, o.kpId || (detail.film && detail.film.kp_id));
-      const myRating = filmMyRating(detail.ratings || [], detail.me, detail.film);
+      const myRating = filmMyRating(detail.ratings || [], detail.me);
       const simPromise = fetchFilmSimilarPaginated(detail.film, filmId, myRating);
       return simPromise.then(function (sim) {
         if (_filmModalCurrentId !== filmId) return;
@@ -17180,7 +17182,7 @@
       cache.film = detail.film;
       cache.ratings = detail.ratings || [];
       if (detail.me) cache.me = detail.me;
-      const myRating = filmMyRating(cache.ratings, cache.me, cache.film);
+      const myRating = filmMyRating(cache.ratings, cache.me);
       const finish = function () {
         const root = getFilmRenderRoot();
         if (root && _filmModalCurrentId === filmId) {
