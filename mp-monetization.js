@@ -231,24 +231,20 @@
   }
 
   function partner2subLogoUrl() {
-    return '/images/partners/2sub-logo.png';
+    return '/images/partners/2sub-logo.svg?v=20260902twosub1';
   }
 
   function partner2subLogoMarkup(size) {
-    /* Inline white badge (PNG via jsDelivr 302 was empty). Keep juicy size vs FLEX. TWOSUB_BIG1 */
+    /* Official 2SUB wordmark (white on transparent). Same slot sizes as before — no layout grow. */
     var dims = partnerLogoDimensions({ key: '2sub' }, size || 'desktop');
-    var w = dims.w;
-    var h = dims.h;
     return (
-      '<svg class="film-partner-watch__logo film-partner-watch__logo--2sub" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 147 51" width="' +
-      w +
+      '<img class="film-partner-watch__logo film-partner-watch__logo--2sub" src="' +
+      partner2subLogoUrl() +
+      '" alt="" width="' +
+      dims.w +
       '" height="' +
-      h +
-      '" focusable="false" aria-hidden="true">' +
-        '<rect x="1" y="1" width="145" height="49" rx="12" fill="#ffffff"/>' +
-        '<text x="36" y="35" text-anchor="middle" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="800">2</text>' +
-        '<text x="98" y="35" text-anchor="middle" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="800" letter-spacing="1.5">SUB</text>' +
-      '</svg>'
+      dims.h +
+      '" decoding="async" />'
     );
   }
 
@@ -482,7 +478,7 @@
     if (ctrl) {
       timer = setTimeout(function () {
         try { ctrl.abort(); } catch (_e) {}
-      }, 12000);
+      }, 8000);
     }
     return fetch(url, { credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
       .then(function (r) {

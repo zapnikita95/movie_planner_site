@@ -200,7 +200,8 @@ body.mp-rsy-film-page #section-film .film-page-outer {
   }
 }
 
-/* Cabinet SPA sections: never show leftover RSY rails over content (whattowatch/premieres/…). Film page keeps .mp-rsy-film-page. */
+/* Cabinet SPA sections: never show leftover RSY rails over home/premieres/etc.
+   Film page (/f/) keeps ads via body.mp-rsy-film-page (desktop rail + mobile strips). */
 body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-fixed-rail,
 body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-outer-rail,
 body.in-cabinet:not(.mp-rsy-film-page) .mp-rsy-inline {
