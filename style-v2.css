@@ -26545,17 +26545,19 @@ body.staff-standalone-page .staff-awards-loading {
   max-height: 24px;
   max-width: 72px;
 }
-/* TWOSUB_BIG1 — white badge size like Pulp Fiction, not 56x20 stub */
+/* 2SUB official wordmark — same footprint as prior badge; object-fit keeps aspect */
 .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
   max-height: 34px;
   max-width: 118px;
   height: 34px;
   width: auto;
+  object-fit: contain;
 }
 .film-partner-watch-block--desktop .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
   max-height: 36px;
   max-width: 124px;
   height: 36px;
+  object-fit: contain;
 }
 .film-partner-watch__icon--tvigle .film-partner-watch__logo {
   max-width: 64px;
@@ -26629,6 +26631,7 @@ body.staff-standalone-page .staff-awards-loading {
   max-width: 90px;
   height: 28px;
   width: auto;
+  object-fit: contain;
 }
 .film-partner-watch__logo--2sub {
   display: block;

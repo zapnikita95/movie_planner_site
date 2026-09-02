@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260829premFillSortAds1';
+  var BUILD = '20260902rsyMobileFilm1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -547,7 +547,8 @@
     var wrap = document.createElement('div');
     wrap.id = wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--' + kind;
-    var sid = slotId('inline_' + kind);
+    /* Slot id must differ from wrap id — duplicate ids broke Ya.Context renderTo. */
+    var sid = 'mp_rsy_slot_inline_' + kind;
     var slot = document.createElement('div');
     slot.id = sid;
     slot.className = 'mp-rsy-slot mp-rsy-slot--inline-' + kind;
@@ -565,7 +566,8 @@
     var wrap = document.createElement('div');
     wrap.id = o.wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--' + o.kind + (o.mobileOnly ? ' mp-rsy-inline--mobile' : '');
-    var sid = slotId('inline_' + o.kind);
+    /* Unique from wrapId (was mp_rsy_inline_* for both → empty mobile ads). */
+    var sid = 'mp_rsy_slot_' + o.kind;
     var slot = document.createElement('div');
     slot.id = sid;
     slot.className = 'mp-rsy-slot mp-rsy-slot--inline-' + o.kind;
@@ -595,6 +597,9 @@
       var slot = el.querySelector('.mp-rsy-slot');
       if (slot && slot.id) delete rendered[slot.id];
       el.remove();
+    });
+    ['mp_rsy_slot_film_pre_poster', 'mp_rsy_slot_after_similar', 'mp_rsy_slot_film_bottom'].forEach(function (sid) {
+      delete rendered[sid];
     });
   }
 
@@ -697,6 +702,9 @@
     /* Auth cabinet: #section-film is .hidden until route shows it.
        Rendering RSY into a hidden host leaves a blank slot forever. */
     if (!isDesktop() && !filmSectionVisible()) return;
+    /* Logged-in cabinet CSS hides .mp-rsy-inline unless body.mp-rsy-film-page.
+       Desktop sets it via ensureFilmOuterRail; mobile must set it here. */
+    setFilmPageOverflowVisible(true);
     mountFilmPrePoster();
     mountFilmPageBottom();
   }
@@ -746,12 +754,15 @@
     fetchDenyList().then(function () {
       if (filmAdsBlocked(kp)) {
         removeOwnedSlots();
+        setFilmPageOverflowVisible(false);
         document.querySelectorAll('.mp-rsy-fixed-rail--film, .mp-rsy-outer-rail--film').forEach(function (r) {
           r.hidden = true;
         });
         return;
       }
       removeOwnedSlots();
+      /* Enable film-page exception for cabinet hide-rule before mounting strips. */
+      setFilmPageOverflowVisible(true);
       if (BLOCKS.filmSidebar) ensureFilmOuterRail(BLOCKS.filmSidebar);
       mountFilmMobileStrips();
     });
@@ -775,7 +786,7 @@
     var wrap = document.createElement('div');
     wrap.id = wrapId;
     wrap.className = 'mp-rsy-inline mp-rsy-inline--series_hub';
-    var sid = slotId('inline_series_hub');
+    var sid = 'mp_rsy_slot_series_hub';
     var slot = document.createElement('div');
     slot.id = sid;
     slot.className = 'mp-rsy-slot mp-rsy-slot--inline-series_hub';
