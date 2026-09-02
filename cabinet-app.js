@@ -15250,7 +15250,26 @@
     if (text === 'Запланировать просмотр') {
       return 'Запланировать <br class="glass-cta__br">просмотр';
     }
+    if (text.indexOf('Сеанс · ') === 0 || text.indexOf('План · ') === 0 || text === 'Запланировано') {
+      return escapeHtml(text);
+    }
     return escapeHtml(text);
+  }
+  function formatFilmPlanCtaLabel(hints, item) {
+    const h = hints || {};
+    const iso = h.next_plan_start_iso || (item && item.next_plan_start_iso) || '';
+    const has = !!(h.has_upcoming || iso);
+    if (!has) return 'Запланировать просмотр';
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return 'Запланировано';
+    const isCinema = String(h.upcoming_plan_type || (item && item.plan_type) || '').toLowerCase() === 'cinema';
+    const dateStr = d.toLocaleString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return (isCinema ? 'Сеанс · ' : 'План · ') + dateStr;
   }
   function buildGlassCtaButtonHtml(opts) {
     opts = opts || {};
@@ -15286,12 +15305,20 @@
     if (!kp) return '';
     const titleAttr = escapeHtml(item.title || '');
     const yearAttr = escapeHtml(String(item.year || ''));
-    const planLabel = opts.label || 'Запланировать просмотр';
-    const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
-    const planItems = [
+    const hints = opts.planHints || item.plan_hints || {};
+    const planLabel = opts.label || formatFilmPlanCtaLabel(hints, item);
+    const showCinemaWatch =
+      item.plan_type === 'cinema' ||
+      item.in_cinema === true ||
+      String(hints.upcoming_plan_type || '').toLowerCase() === 'cinema' ||
+      hints.cinema_plan_id != null;
+    let planItems = [
       `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
       `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">${mpActionLabel('ticket', 'В кино')}</button>`,
     ].join('');
+    if (hints.has_upcoming || hints.next_plan_start_iso) {
+      planItems = `<a class="action-dropdown-item" href="/plans">📋 Открыть в планах</a>` + planItems;
+    }
     const watchItems = [];
     if (item.online_link) {
       watchItems.push(
@@ -15312,7 +15339,7 @@
     return (
       `<div class="action-dropdown" data-dropdown-root="plan">` +
         buildGlassCtaButtonHtml({
-          className: 'action-dropdown-btn film-toolbar-plan',
+          className: 'action-dropdown-btn film-toolbar-plan' + (hints.has_upcoming ? ' film-toolbar-plan--scheduled' : ''),
           icon: 'calendar',
           label: planLabel,
           caret: true,
@@ -15386,14 +15413,16 @@
       );
     }
 
+    const planHints = opts.planHints || item.plan_hints || {};
+    const planCtaLabel = formatFilmPlanCtaLabel(planHints, item);
     const planBlock = inBase
-      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item) + '</div>'
+      ? '<div class="film-toolbar-plan-wrap">' + buildFilmPlanDropdown(item, { planHints: planHints }) + '</div>'
       : '<div class="film-toolbar-plan-wrap">' +
           buildGlassCtaButtonHtml({
             id: 'plan-watch-btn',
-            className: 'film-toolbar-plan',
+            className: 'film-toolbar-plan' + (planHints.has_upcoming ? ' film-toolbar-plan--scheduled' : ''),
             icon: 'calendar',
-            label: 'Запланировать просмотр',
+            label: planCtaLabel,
           }) +
         '</div>';
     const addIconBtn = !inBase
@@ -15475,10 +15504,15 @@
     return heroKpIdFromRoot(root);
   }
 
-  function filmToolbarOptsFromDetail(film, ratings, me) {
+  function filmToolbarOptsFromDetail(film, ratings, me, planHints) {
     const myUserId = (me && me.user_id) || cabinetUserId;
-    const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
-    const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    let myRating = Number(film && film.my_rating) || 0;
+    if (!(myRating >= 1 && myRating <= 10)) {
+      const myRatingObj = (ratings || []).find(
+        (r) => r.user_id != null && myUserId != null && String(r.user_id) === String(myUserId),
+      );
+      myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    }
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
     return {
@@ -15490,6 +15524,7 @@
       ratingLocked: isVirtualRoom && !canRateInGroup,
       isVirtualRoom,
       kpId: film.kp_id,
+      planHints: planHints || (film && film.plan_hints) || {},
     };
   }
 
@@ -15517,7 +15552,7 @@
             detail.film,
             detail.ratings || [],
             detail.me,
-            filmToolbarOptsFromDetail(detail.film, detail.ratings || [], detail.me)
+            filmToolbarOptsFromDetail(detail.film, detail.ratings || [], detail.me, detail.plan_hints || {})
           );
           bindFilmModalInteractions(detail.film, pageRoot);
           try { loadFilmFriendsSocial(detail.film); } catch (_) {}
@@ -15538,6 +15573,7 @@
 
   function filmToolbarSignature(film, opts) {
     const o = opts || {};
+    const hints = o.planHints || {};
     return [
       String((film && film.kp_id) || ''),
       String((film && film.film_id) || ''),
@@ -15548,6 +15584,8 @@
       String((film && film.next_episode && (film.next_episode.code || film.next_episode.label)) || ''),
       film && film.is_upcoming_premiere ? '1' : '0',
       film && film.premiere_reminder_set ? '1' : '0',
+      hints.has_upcoming ? '1' : '0',
+      String(hints.next_plan_start_iso || ''),
     ].join('|');
   }
 
@@ -16566,7 +16604,7 @@
           me: detail.me || { user_id: cabinetUserId },
           similar: (sim && sim.items) || [],
         };
-        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
+        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me, plan_hints: data.plan_hints || {} };
         finish(data);
         return data;
       });
@@ -16656,10 +16694,12 @@
 
   const HIGH_RATING_SIMILAR_MIN = 9;
 
-  function filmMyRating(ratings, me) {
+  function filmMyRating(ratings, me, film) {
+    let myRating = Number(film && film.my_rating) || 0;
+    if (myRating >= 1 && myRating <= 10) return myRating;
     const myUserId = (me && me.user_id) || cabinetUserId;
     const myRatingObj = (ratings || []).find(function (r) {
-      return r.user_id && myUserId && String(r.user_id) === String(myUserId);
+      return r.user_id != null && myUserId != null && String(r.user_id) === String(myUserId);
     });
     return myRatingObj ? Number(myRatingObj.rating) : 0;
   }
@@ -17011,7 +17051,7 @@
           mergeBootDescription(cached.film, cached.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(cached.film, pageRoot));
           syncFilmExtRatings(pageRoot, cached.film);
-          replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me));
+          replaceFilmPageToolbarInHero(pageRoot, cached.film, cached.ratings, cached.me, filmToolbarOptsFromDetail(cached.film, cached.ratings, cached.me, cached.plan_hints || {}));
           bindFilmModalInteractions(cached.film, pageRoot);
           try { loadFilmFriendsSocial(cached.film); } catch (_) {}
           ensureFilmHeroCastLoaded(cached.film, pageRoot);
@@ -17061,7 +17101,7 @@
           similar: (sim && sim.items) || [],
         };
         try { pushHeaderFilmRecent(detail.film); } catch (e) {}
-        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me };
+        _filmModalCache[filmId] = { film: data.film, ratings: data.ratings, similar: data.similar, me: data.me, plan_hints: data.plan_hints || {} };
         try { document.title = (data.film && data.film.title ? data.film.title + ' · Movie Planner' : DEFAULT_DOC_TITLE); } catch (e) {}
         if (!o.skipHistory && data.film && data.film.kp_id) {
           try {
@@ -17085,7 +17125,7 @@
           mergeBootDescription(data.film, data.film.kp_id);
           applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(data.film, pageRoot));
           syncFilmExtRatings(pageRoot, data.film);
-          replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me));
+          replaceFilmPageToolbarInHero(pageRoot, data.film, data.ratings, data.me, filmToolbarOptsFromDetail(data.film, data.ratings, data.me, data.plan_hints || {}));
           bindFilmModalInteractions(data.film, pageRoot);
           try { loadFilmFriendsSocial(data.film); } catch (_) {}
           ensureFilmHeroCastLoaded(data.film, pageRoot);
@@ -17562,7 +17602,7 @@
           film,
           ratings,
           me,
-          filmToolbarOptsFromDetail(film, ratings, me)
+          filmToolbarOptsFromDetail(film, ratings, me, (ho && ho.planHints) || {})
         );
       }
       ensureFilmHeroDescription(content, film);
@@ -17572,8 +17612,11 @@
     }
     const inBase = ho.inBase !== false;
     const myUserId = (me && me.user_id) || cabinetUserId;
-    const myRatingObj = (ratings || []).find((r) => r.user_id && myUserId && String(r.user_id) === String(myUserId));
-    const myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    let myRating = Number(film && film.my_rating) || 0;
+    if (!(myRating >= 1 && myRating <= 10)) {
+      const myRatingObj = (ratings || []).find((r) => r.user_id != null && myUserId != null && String(r.user_id) === String(myUserId));
+      myRating = myRatingObj ? Number(myRatingObj.rating) : 0;
+    }
     const isVirtualRoom = !!film.is_virtual_room;
     const canRateInGroup = film.can_rate_in_group !== false;
     const poster = pickFilmPosterUrl(film, content);
@@ -17808,7 +17851,7 @@
         film,
         ratings,
         me,
-        filmToolbarOptsFromDetail(film, ratings, me)
+        filmToolbarOptsFromDetail(film, ratings, me, {})
       );
       enrichFilmDescriptionFromPublic(film.kp_id, film).then(function (enriched) {
         if (!enriched) return;
@@ -18205,7 +18248,7 @@
             cache.film,
             cache.ratings,
             cache.me,
-            filmToolbarOptsFromDetail(cache.film, cache.ratings, cache.me)
+            filmToolbarOptsFromDetail(cache.film, cache.ratings, cache.me, cache.plan_hints || {})
           );
           bindFilmModalInteractions(cache.film, pageRoot);
         } else {
