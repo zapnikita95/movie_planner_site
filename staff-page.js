@@ -484,7 +484,7 @@
 
   function webFactBodyHtml(wf) {
     if (wf && wf.fact_html) return String(wf.fact_html);
-    return formatWebFactHtml(wf && wf.fact);
+    return formatWebFactHtml(wf && (wf.fact || wf.text));
   }
 
   function _staffFactNormKey(text) {
@@ -513,27 +513,54 @@
     return inter / Math.min(wa.length, wb.length) >= 0.78;
   }
 
+  function staffFactKindSkip(f) {
+    if (!f || typeof f !== 'object') return false;
+    var k = String(f.kind || '').toLowerCase();
+    return k === 'author_socials' || k === 'watch';
+  }
+
+  function staffFactBodyText(f) {
+    if (f == null) return '';
+    if (typeof f === 'string') return f;
+    return String(f.fact || f.text || '');
+  }
+
+  function staffNormalizeFactItem(item) {
+    if (!item) return null;
+    if (typeof item === 'string') {
+      var t0 = item.trim();
+      return t0 ? { fact: t0 } : null;
+    }
+    if (typeof item !== 'object' || staffFactKindSkip(item)) return null;
+    var t = String(item.fact || item.text || '').trim();
+    if (!t) return null;
+    if (item.fact) return item;
+    var copy = {};
+    for (var k in item) {
+      if (Object.prototype.hasOwnProperty.call(item, k)) copy[k] = item[k];
+    }
+    copy.fact = t;
+    return copy;
+  }
+
   /** web_facts (with sources) first, then KP strings — same «Интересные факты» list. */
   function staffFactsItemsFromPayload(d) {
     var web = (d && Array.isArray(d.web_facts))
-      ? d.web_facts.filter(function (f) { return f && f.fact; })
+      ? d.web_facts.map(staffNormalizeFactItem).filter(Boolean)
       : [];
     var kpRaw = (d && Array.isArray(d.kp_facts)) ? d.kp_facts : [];
     var kp = [];
     kpRaw.forEach(function (item) {
-      if (!item) return;
-      if (typeof item === 'string') {
-        var t = item.trim();
-        if (t) kp.push({ fact: t });
-        return;
-      }
-      if (item.fact) kp.push(item);
+      var n = staffNormalizeFactItem(item);
+      if (n) kp.push(n);
     });
     if (!web.length) return kp.slice(0, 8);
     var out = web.slice();
     kp.forEach(function (f) {
       if (out.length >= 8) return;
-      var dup = out.some(function (x) { return _staffFactsNearDup(f.fact, x.fact); });
+      var dup = out.some(function (x) {
+        return _staffFactsNearDup(staffFactBodyText(f), staffFactBodyText(x));
+      });
       if (!dup) out.push(f);
     });
     return out.slice(0, 8);
@@ -544,7 +571,7 @@
     var list = document.getElementById('staff-facts-list');
     if (!section || !list) return;
     var facts = Array.isArray(factsOrPayload)
-      ? factsOrPayload.filter(function (f) { return f && f.fact; })
+      ? factsOrPayload.map(staffNormalizeFactItem).filter(Boolean)
       : staffFactsItemsFromPayload(factsOrPayload || {});
     if (!facts.length) {
       section.classList.add('hidden');
@@ -1161,10 +1188,114 @@
     );
   }
 
-  function staffBioPaneHtml(metaHtml) {
+  function staffSocialHref(raw) {
+    var url = String(raw || '').trim();
+    if (!url) return '';
+    if (/^@[\w.]{2,}$/i.test(url)) return 'https://t.me/' + url.slice(1);
+    if (/^(vk\.com|m\.vk\.com|t\.me|telegram\.me)\//i.test(url)) return 'https://' + url;
+    if (!/^https?:\/\//i.test(url)) return '';
+    return url;
+  }
+
+  function staffSocialKind(url) {
+    var u = String(url || '').toLowerCase();
+    if (/vk\.com/.test(u)) return 'vk';
+    if (/(?:^|\.)t\.me\b|telegram\.me|telegram\.org/.test(u)) return 'tg';
+    return '';
+  }
+
+  function staffPushSocial(out, seen, raw, label) {
+    var href = staffSocialHref(raw);
+    if (!href) return;
+    var kind = staffSocialKind(href);
+    if (!kind) return;
+    var key = href.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push({
+      url: href,
+      kind: kind,
+      label: label || (kind === 'vk' ? 'ВКонтакте' : 'Telegram'),
+    });
+  }
+
+  function staffCollectSocials(person) {
+    var out = [];
+    var seen = {};
+    if (!person) return out;
+    var raw = person.socials != null ? person.socials : person.social_links;
+    function fromValue(v, label) {
+      if (!v) return;
+      if (typeof v === 'string') {
+        var re = /https?:\/\/[^\s<>"']+|vk\.com\/[^\s<>"']+|t\.me\/[^\s<>"']+/gi;
+        var m;
+        var found = false;
+        while ((m = re.exec(v))) {
+          staffPushSocial(out, seen, m[0], label);
+          found = true;
+        }
+        if (!found) staffPushSocial(out, seen, v, label);
+        return;
+      }
+      if (Array.isArray(v)) {
+        v.forEach(function (x) { fromValue(x, label); });
+        return;
+      }
+      if (typeof v === 'object') {
+        staffPushSocial(out, seen, v.url || v.href || v.link || v.value, v.label || v.title || v.name || label);
+      }
+    }
+    if (typeof raw === 'object' && raw && !Array.isArray(raw)) {
+      ['vk', 'vkontakte', 'telegram', 'tg', 'tme'].forEach(function (k) {
+        if (raw[k]) fromValue(raw[k], k === 'vk' || k === 'vkontakte' ? 'ВКонтакте' : 'Telegram');
+      });
+    }
+    fromValue(raw);
+    return out;
+  }
+
+  function staffLinkifyAbout(escaped) {
+    return String(escaped || '').replace(
+      /(https?:\/\/[^\s<]+|(?:vk\.com|t\.me)\/[^\s<]+)/gi,
+      function (url) {
+        var href = staffSocialHref(url);
+        if (!href || !staffSocialKind(href)) return url;
+        return '<a class="staff-about-link" href="' + escapeHtml(href) +
+          '" target="_blank" rel="noopener nofollow">' + url + '</a>';
+      }
+    );
+  }
+
+  function staffAboutBlockHtml(person) {
+    if (!person) return '';
+    var text = String(person.biography || person.about || '').trim();
+    var socials = staffCollectSocials(person);
+    if (!text && !socials.length) return '';
+    var html = '<section class="staff-about" id="staff-about" aria-label="О себе">';
+    html += '<h2 class="staff-facts-heading staff-about-heading">О себе</h2>';
+    if (text) {
+      html += '<div class="staff-about-text">' +
+        staffLinkifyAbout(escapeHtml(text)).replace(/\n/g, '<br>') +
+        '</div>';
+    }
+    if (socials.length) {
+      html += '<ul class="staff-about-socials">';
+      socials.forEach(function (s) {
+        html += '<li><a class="staff-about-social staff-about-social--' + s.kind +
+          '" href="' + escapeHtml(s.url) + '" target="_blank" rel="noopener nofollow">' +
+          escapeHtml(s.label) + '</a></li>';
+      });
+      html += '</ul>';
+    }
+    html += '</section>';
+    return html;
+  }
+
+  function staffBioPaneHtml(metaHtml, aboutHtml) {
     return (
       '<div id="staff-bio-root" class="staff-bio-root hidden" data-pane="bio">' +
         (metaHtml || '') +
+        (aboutHtml || '') +
         staffFactsSectionHtml() +
       '</div>'
     );
@@ -2881,7 +3012,7 @@
     return staffPageLayoutHtml({
       boot: true,
       heroInner: heroInner,
-      mainInner: staffBioPaneHtml(bootMeta) + staffLoadingHtml('Фильмография…'),
+      mainInner: staffBioPaneHtml(bootMeta, staffAboutBlockHtml(boot)) + staffLoadingHtml('Фильмография…'),
     });
   }
 
@@ -3389,7 +3520,7 @@
         main.innerHTML =
           staffPickBannerHtml() + filtersBarHtml() +
           staffDeskPaneTabsHtml() +
-          staffBioPaneHtml(metaHtml || '') +
+          staffBioPaneHtml(metaHtml || '', staffAboutBlockHtml(person)) +
           '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
           '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>';
         root._staffFiltersBound = false;
@@ -3423,7 +3554,7 @@
       heroInner: heroInner,
       mainInner: staffPickBannerHtml() + filtersBarHtml() +
         staffDeskPaneTabsHtml() +
-        staffBioPaneHtml(metaHtml || '') +
+        staffBioPaneHtml(metaHtml || '', staffAboutBlockHtml(person)) +
         '<div id="staff-roles-root">' + rolesHtml(data.films_by_role || []) + '</div>' +
         '<div id="staff-awards-root" class="hidden" data-person-id="' + pidAttr + '"></div>',
     });

@@ -1263,7 +1263,7 @@
     if (typeof wf === 'string') {
       return wf ? '<li>' + escapeHtml(wf) + '</li>' : '';
     }
-    if (!wf || !wf.fact) return '';
+    if (!wf || !(wf.fact || wf.text)) return '';
     function esc(c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     }
@@ -1272,7 +1272,7 @@
     }
     function webFactBodyHtml(item) {
       if (item && item.fact_html) return String(item.fact_html);
-      return formatWebFactHtml(item && item.fact);
+      return formatWebFactHtml(item && (item.fact || item.text));
     }
     function webFactSourceUrl(item) {
       var url = String((item && item.source_url) || '').trim();
@@ -1299,12 +1299,74 @@
     return stripWikiFootnotesClient(text).toLowerCase();
   }
 
+  function filmFactKindSkip(f) {
+    if (!f || typeof f !== 'object') return false;
+    var k = String(f.kind || '').toLowerCase();
+    return k === 'author_socials' || k === 'watch';
+  }
+
+  function filmFactBodyText(f) {
+    if (f == null) return '';
+    if (typeof f === 'string') return f;
+    return String(f.fact || f.text || '');
+  }
+
+  function filmPayloadIsMp(d) {
+    if (!d) return false;
+    if (d.isMp || d.is_mp) return true;
+    var mode = String(d.catalog || d.mode || d.source || '').toLowerCase();
+    if (mode === 'mp') return true;
+    var cid = String(d.catalog_id || d.mp_catalog_id || '').toLowerCase();
+    return cid.indexOf('mp-') === 0;
+  }
+
+  function splitMpFactBlob(text) {
+    var raw = String(text || '').replace(/\r\n/g, '\n').trim();
+    if (!raw) return [];
+    var parts = raw.split(/\n\s*\n/);
+    if (parts.length === 1) parts = raw.split('\n');
+    return parts.map(function (p) { return String(p || '').trim(); }).filter(Boolean);
+  }
+
+  function collectFilmFactPlainItems(facts, isMp) {
+    var kp = [];
+    function addPlain(text) {
+      var s = String(text || '').trim();
+      if (!s) return;
+      if (isMp && /[\n\r]/.test(s)) {
+        splitMpFactBlob(s).forEach(function (chunk) { if (chunk) kp.push(chunk); });
+        return;
+      }
+      kp.push(s);
+    }
+    if (facts == null || facts === '') return kp;
+    if (typeof facts === 'string') {
+      if (isMp) splitMpFactBlob(facts).forEach(function (chunk) { if (chunk) kp.push(chunk); });
+      else addPlain(facts);
+      return kp;
+    }
+    if (!Array.isArray(facts)) return kp;
+    facts.forEach(function (item) {
+      if (item == null || item === '') return;
+      if (typeof item === 'string') {
+        addPlain(item);
+        return;
+      }
+      if (typeof item !== 'object' || filmFactKindSkip(item) || item.is_spoiler) return;
+      addPlain(filmFactBodyText(item));
+    });
+    return kp;
+  }
+
   function filmFactsItemsFromPayload(d) {
     // Web enrich first (with sources), then Kinopoisk trivia — never drop KP when web exists.
     var web = (d && Array.isArray(d.web_facts))
-      ? d.web_facts.filter(function (f) { return f && f.fact && !f.is_spoiler; })
+      ? d.web_facts.filter(function (f) {
+          return f && (f.fact || f.text) && !f.is_spoiler && !filmFactKindSkip(f);
+        })
       : [];
-    var kp = (d && Array.isArray(d.facts)) ? d.facts : [];
+    var isMp = filmPayloadIsMp(d);
+    var kp = collectFilmFactPlainItems(d && d.facts, isMp);
     var out = [];
     var seen = {};
 
@@ -1321,7 +1383,7 @@
     }
 
     function pushWeb(item) {
-      var raw = stripWikiFootnotesClient(item && item.fact);
+      var raw = stripWikiFootnotesClient(filmFactBodyText(item));
       if (!raw) return;
       var key = filmFactDedupeKey(raw);
       if (alreadyHave(key)) return;
@@ -3417,7 +3479,12 @@
     if (descWrapBoot) {
       bindFilmDescExpand(descWrapBoot);
       if (boot.facts && boot.facts.length || boot.web_facts && boot.web_facts.length) {
-        paintFilmDescFacts(descWrapBoot, { facts: boot.facts || [], web_facts: boot.web_facts || [] });
+        paintFilmDescFacts(descWrapBoot, {
+          facts: boot.facts || [],
+          web_facts: boot.web_facts || [],
+          isMp: meta.mode === 'mp',
+          catalog: meta.mode || '',
+        });
       }
     }
     try {
@@ -4366,11 +4433,20 @@
             var wf = (Array.isArray(data.web_facts) && data.web_facts.length)
               ? data.web_facts
               : (Array.isArray(f.web_facts) ? f.web_facts : []);
-            if (wf.length) {
+            var mpFacts = (f.facts != null) ? f.facts : (data.facts != null ? data.facts : []);
+            var hasMpFacts = (typeof mpFacts === 'string')
+              ? !!String(mpFacts).trim()
+              : (Array.isArray(mpFacts) && mpFacts.length);
+            if (wf.length || hasMpFacts) {
               var descWrapFacts = document.getElementById('film-desc-wrap');
               if (descWrapFacts) {
                 bindFilmDescExpand(descWrapFacts);
-                paintFilmDescFacts(descWrapFacts, { web_facts: wf });
+                paintFilmDescFacts(descWrapFacts, {
+                  web_facts: wf,
+                  facts: mpFacts,
+                  isMp: !!isMp,
+                  catalog: isMp ? 'mp' : (isFest ? 'fest' : (isTmdbOnly ? 'tmdb' : '')),
+                });
               }
             }
           }
