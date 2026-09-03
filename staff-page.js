@@ -2775,9 +2775,21 @@
 
   function bootMatchesPerson(boot, personId) {
     if (!boot || boot.type !== 'staff') return false;
+    var want = String(personId || _staffPersonId || '');
+    if (isMpPersonId(want) || String(boot.catalog || '') === 'mp' || boot.mp_person_id) {
+      if (!isMpPersonId(want) && String(boot.catalog || '') !== 'mp' && !boot.mp_person_id) return false;
+      if (!isMpPersonId(want)) return false;
+      var wantN = mpPersonNumericId(want);
+      var bootN = String(boot.mp_person_id || boot.mp_person_slug || '').replace(/\D/g, '');
+      if (!bootN) {
+        var pid = String(boot.person_id || '');
+        bootN = /^mp-/i.test(pid) ? pid.replace(/\D/g, '') : '';
+      }
+      return !!(wantN && bootN && wantN === bootN);
+    }
     var bootKp = String(boot.kp_person_id || boot.kp_id || boot.person_id || '').replace(/\D/g, '');
-    var want = String(personId || _staffPersonId || '').replace(/\D/g, '');
-    return !!(bootKp && want && bootKp === want);
+    var wantKp = want.replace(/\D/g, '');
+    return !!(bootKp && wantKp && bootKp === wantKp);
   }
 
   function staffLoadingHtml(label) {
@@ -3718,7 +3730,7 @@
   }
 
   function loadStaffProgressive(personId) {
-    if (isFestPersonId(personId) || isTmdbPersonId(personId)) {
+    if (isFestPersonId(personId) || isTmdbPersonId(personId) || isMpPersonId(personId)) {
       return fetch(staffPublicApiBase(personId), { method: 'GET', mode: 'cors' })
         .then(function (r) {
           if (!r.ok) throw new Error('http_' + r.status);
@@ -3729,7 +3741,7 @@
             try { global.location.replace(d.redirect); } catch (_e) {}
             return;
           }
-          if (!d || !d.success) throw new Error(isTmdbPersonId(personId) ? 'tmdb_person' : 'fest_person');
+          if (!d || !d.success) throw new Error(isMpPersonId(personId) ? 'mp_person' : (isTmdbPersonId(personId) ? 'tmdb_person' : 'fest_person'));
           renderStaffData(d, personId);
         });
     }
