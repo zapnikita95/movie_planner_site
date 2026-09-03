@@ -127,8 +127,60 @@
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
   function buildFilmShareUrl(kpId) {
+    const cat = catalogIdFromSearchHit(kpId);
+    if (cat) return FILM_SHARE_SITE + '/f/' + cat;
     const k = String(kpId || '').replace(/\D/g, '');
     return k ? FILM_SHARE_SITE + '/f/' + k : '';
+  }
+
+  function catalogIdFromSearchHit(raw) {
+    if (raw && typeof raw === 'object') {
+      const cat = String(raw.catalog || '').toLowerCase();
+      const cid = String(raw.catalog_id || raw.id || '').trim();
+      if (cat === 'mp' || /^mp-\d+$/i.test(cid)) {
+        if (/^mp-\d+$/i.test(cid)) return cid.toLowerCase();
+        const mid = parseInt(raw.mp_film_id, 10);
+        if (mid > 0) return 'mp-' + mid;
+      }
+      const path = String(raw.url || raw.film_url || '').trim();
+      const m = path.match(/\/f\/(mp-\d+)/i);
+      if (m) return m[1].toLowerCase();
+      const personPath = String(raw.person_url || raw.person_path || '').trim();
+      const pm = personPath.match(/\/s\/(mp-\d+)/i);
+      if (pm) return pm[1].toLowerCase();
+      return '';
+    }
+    const s = String(raw || '').trim();
+    if (/^mp-\d+$/i.test(s)) return s.toLowerCase();
+    const m = s.match(/\/(?:f|s)\/(mp-\d+)/i);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  function personCatalogIdFromSearchHit(raw) {
+    if (raw && typeof raw === 'object') {
+      const cat = String(raw.catalog || '').toLowerCase();
+      const cid = String(raw.catalog_id || raw.id || '').trim();
+      if (cat === 'mp' || /^mp-\d+$/i.test(cid) || raw.mp_person_id) {
+        if (/^mp-\d+$/i.test(cid)) return cid.toLowerCase();
+        const mid = parseInt(raw.mp_person_id, 10);
+        if (mid > 0) return 'mp-' + mid;
+      }
+      const path = String(raw.person_url || raw.person_path || '').trim();
+      const m = path.match(/\/s\/(mp-\d+)/i);
+      if (m) return m[1].toLowerCase();
+      const kp = String(raw.kp_person_id || '').replace(/\D/g, '');
+      return kp;
+    }
+    const s = String(raw || '').trim();
+    if (/^mp-\d+$/i.test(s)) return s.toLowerCase();
+    const m = s.match(/\/s\/(mp-\d+|\d+)/i);
+    if (m) return m[1];
+    return String(s).replace(/\D/g, '');
+  }
+
+  function buildPersonShareUrl(raw) {
+    const id = personCatalogIdFromSearchHit(raw);
+    return id ? FILM_SHARE_SITE + '/s/' + id : '';
   }
 
   function cleanPosterUrl(src) {
@@ -10962,7 +11014,8 @@
   }
 
   function openHeaderSearchResult(kp) {
-    const k = String(kp || '').replace(/\D/g, '');
+    const cat = catalogIdFromSearchHit(kp);
+    const k = cat || String(kp || '').replace(/\D/g, '');
     if (!k) return;
     const dd = document.getElementById('header-search-dropdown');
     const input = document.getElementById('header-search-input');
@@ -10970,6 +11023,10 @@
     hideHeaderSearchDropdown();
     if (input) input.value = '';
     if (clearBtn) clearBtn.classList.add('hidden');
+    if (/^mp-\d+$/i.test(k)) {
+      window.location.href = FILM_SHARE_SITE + '/f/' + k.toLowerCase();
+      return;
+    }
     if (!getToken()) {
       window.location.href = buildFilmShareUrl(k);
       return;
@@ -10977,28 +11034,58 @@
     openFilmPageByKp(k);
   }
 
-  function renderHeaderSearchDropdown(items, query) {
+  function openHeaderPersonResult(raw) {
+    const id = personCatalogIdFromSearchHit(raw);
+    if (!id) return;
+    const input = document.getElementById('header-search-input');
+    const clearBtn = document.getElementById('header-search-clear');
+    hideHeaderSearchDropdown();
+    if (input) input.value = '';
+    if (clearBtn) clearBtn.classList.add('hidden');
+    window.location.href = '/s/' + id;
+  }
+
+  function renderHeaderSearchDropdown(items, query, persons) {
     const dd = document.getElementById('header-search-dropdown');
     if (!dd) return;
-    if (!items || !items.length) {
+    const films = items || [];
+    const people = persons || [];
+    if (!films.length && !people.length) {
       dd.innerHTML = `<div class="header-search-empty">Ничего не нашлось по «${escapeHtml(query)}»</div>`;
       dd.classList.remove('hidden');
       setHeaderSearchDropdownOpen(true);
       return;
     }
-    const top = items.slice(0, 6);
-    dd.innerHTML = top.map((it) => {
+    const top = films.slice(0, 6);
+    const personHtml = people.slice(0, 2).map((p) => {
+      const pid = personCatalogIdFromSearchHit(p);
+      const href = pid ? '/s/' + pid : '';
+      const photo = cleanPosterUrl(p.photo);
+      const name = p.display_name || p.name_ru || p.name_en || '';
+      return `<a class="hs-result" role="option" href="${escapeHtml(href)}" data-hs-row-person="${escapeHtml(pid)}">
+        ${siteSearchPosterHtml(photo, 'hs-result-poster')}
+        <div class="hs-result-info">
+          <div class="hs-result-title">${escapeHtml(name)}</div>
+          <div class="hs-result-meta"><span>Персона</span></div>
+        </div>
+      </a>`;
+    }).join('');
+    dd.innerHTML = personHtml + top.map((it) => {
       const poster = cleanPosterUrl(it.poster);
       const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
       const year = it.year && String(it.year) !== 'null' ? String(it.year) : '';
       const inBase = it.already_in_base_film_id;
       const isPublicSearch = !getToken();
-      const actionBtn = isPublicSearch
-        ? `<a class="hs-result-btn hs-btn-open" href="${buildFilmShareUrl(it.kp_id)}" data-stop-hs-row="1">Открыть</a>`
+      const cat = catalogIdFromSearchHit(it);
+      const href = cat ? (FILM_SHARE_SITE + '/f/' + cat) : buildFilmShareUrl(it.kp_id);
+      const rowId = cat || String(it.kp_id || '');
+      const isMp = /^mp-\d+$/i.test(cat);
+      const actionBtn = isPublicSearch || isMp
+        ? `<a class="hs-result-btn hs-btn-open" href="${href}" data-stop-hs-row="1">Открыть</a>`
         : inBase
         ? `<button type="button" class="hs-result-btn hs-btn-open">Открыть</button>`
         : `<button type="button" class="hs-result-btn hs-btn-add" data-hs-add-kp="${escapeHtml(String(it.kp_id))}" data-stop-hs-row="1">＋ Добавить</button>`;
-      return `<div class="hs-result" role="option" tabindex="0" data-hs-row-kp="${escapeHtml(String(it.kp_id || ''))}">
+      return `<div class="hs-result" role="option" tabindex="0" data-hs-row-kp="${escapeHtml(rowId)}">
         ${siteSearchPosterHtml(poster, 'hs-result-poster')}
         <div class="hs-result-info">
           <div class="hs-result-title">${escapeHtml(it.title || '')}</div>
@@ -11006,8 +11093,8 @@
         </div>
         ${actionBtn}
       </div>`;
-    }).join('') + (items.length > 6
-      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${items.length})</button></div>`
+    }).join('') + (films.length > 6
+      ? `<div class="hs-result-more"><button type="button" data-hs-show-all>Показать все результаты (${films.length})</button></div>`
       : '');
     dd.classList.remove('hidden');
     setHeaderSearchDropdownOpen(true);
@@ -11047,7 +11134,7 @@
           return;
         }
         if ((data.items || []).length) pushHeaderSearchQuery(query);
-        renderHeaderSearchDropdown(data.items || [], query);
+        renderHeaderSearchDropdown(data.items || [], query, data.persons || []);
       })
       .catch((err) => {
         if (seq !== _headerSearchSeq) return;
@@ -11091,17 +11178,19 @@
     const poster = cleanPosterUrl(it.poster);
     const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
     const year = it.year && String(it.year) !== 'null' ? String(it.year) : '—';
-    const kpAttr = escapeHtml(String(it.kp_id || ''));
+    const cat = catalogIdFromSearchHit(it);
+    const kpAttr = escapeHtml(cat || String(it.kp_id || ''));
+    const href = cat ? (FILM_SHARE_SITE + '/f/' + cat) : buildFilmShareUrl(it.kp_id);
     const img = poster
       ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
       : '';
     const body = '<div class="home-poster-tile-img">' + img + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
-    if (getToken()) {
+    if (getToken() && !/^mp-\d+$/i.test(cat)) {
       return '<div class="home-poster-tile-wrap"><button type="button" class="home-poster-tile site-search-card" data-site-search-kp="' + kpAttr + '">' + body + '</button></div>';
     }
-    return '<div class="home-poster-tile-wrap"><a class="home-poster-tile site-search-card" href="' + buildFilmShareUrl(it.kp_id) + '">' + body + '</a></div>';
+    return '<div class="home-poster-tile-wrap"><a class="home-poster-tile site-search-card" href="' + href + '">' + body + '</a></div>';
   }
 
   function siteSearchCloseExpandPanel() {
@@ -11457,7 +11546,12 @@
         results.querySelectorAll('[data-site-search-kp]').forEach((btn) => {
           btn.addEventListener('click', () => {
             const kp = btn.getAttribute('data-site-search-kp');
-            if (kp) openFilmPageByKp(kp);
+            if (!kp) return;
+            if (/^mp-\d+$/i.test(kp)) {
+              window.location.href = '/f/' + kp.toLowerCase();
+              return;
+            }
+            openFilmPageByKp(kp);
           });
         });
       })
@@ -11625,6 +11719,13 @@
               }
             })
             .catch(() => { addBtn.disabled = false; addBtn.textContent = prev; });
+          return;
+        }
+        const personRow = e.target.closest('.hs-result[data-hs-row-person]');
+        if (personRow) {
+          e.preventDefault();
+          e.stopPropagation();
+          openHeaderPersonResult(personRow.getAttribute('data-hs-row-person'));
           return;
         }
         const row = e.target.closest('.hs-result[data-hs-row-kp]');
