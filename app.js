@@ -26,7 +26,7 @@
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
-  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 250;
+  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 300;
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
@@ -10909,6 +10909,7 @@
   // ————————————————————————————————————————————————————
 
   let _headerSearchSeq = 0;
+  let _headerSearchAbort = null;
   let _headerSearchDebounce = null;
 
   function _readJsonLs(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -11014,6 +11015,11 @@
 
   function runHeaderSearch(query) {
     const seq = ++_headerSearchSeq;
+    if (_headerSearchAbort) {
+      try { _headerSearchAbort.abort(); } catch (_) {}
+    }
+    _headerSearchAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const fetchSignal = _headerSearchAbort ? _headerSearchAbort.signal : undefined;
     const dd = document.getElementById('header-search-dropdown');
     if (!query || query.length < 2) {
       hideHeaderSearchDropdown();
@@ -11031,8 +11037,8 @@
       return;
     }
     const searchPromise = getToken()
-      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any')
-      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6', { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=any&limit=6&person_limit=1', { signal: fetchSignal })
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&person_limit=1', { method: 'GET', mode: 'cors', signal: fetchSignal }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
@@ -11043,8 +11049,9 @@
         if ((data.items || []).length) pushHeaderSearchQuery(query);
         renderHeaderSearchDropdown(data.items || [], query);
       })
-      .catch(() => {
+      .catch((err) => {
         if (seq !== _headerSearchSeq) return;
+        if (err && (err.name === 'AbortError' || err.code === 'TIMEOUT')) return;
         if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка сети</div>';
       });
   }

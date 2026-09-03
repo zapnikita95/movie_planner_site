@@ -31,7 +31,7 @@
   let _chromeExtUrl = 'https://chromewebstore.google.com/detail/movie-planner-bot/fldeclcfcngcjphhklommcebkpfipdol?authuser=0&hl=ru';
   const LS_SEARCH_RECENT = 'mp_header_search_recent_v1';
   const LS_FILM_RECENT = 'mp_film_open_recent_v1';
-  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 250;
+  const SITE_SEARCH_INPUT_DEBOUNCE_MS = 300;
   let cabinetHasData = false;
   let cabinetUserId = null; // user_id текущей сессии (для подсветки «моей» оценки в группах)
   // Состояние TV-подключения (tv_type и токен агента), подгружается после входа.
@@ -18603,6 +18603,7 @@
 
   let _headerSearchSeq = 0;
   let _headerSearchDebounce = null;
+  let _headerSearchAbort = null;
   let _headerSearchHubType = 'any';
   let _headerSearchHubCache = null;
   /** Последняя выдача header-search — для «К результатам» без повторного API. */
@@ -19036,6 +19037,11 @@
 
   function runHeaderSearch(query) {
     const seq = ++_headerSearchSeq;
+    if (_headerSearchAbort) {
+      try { _headerSearchAbort.abort(); } catch (_) {}
+    }
+    _headerSearchAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const fetchSignal = _headerSearchAbort ? _headerSearchAbort.signal : undefined;
     const dd = document.getElementById('header-search-dropdown');
     if (!query || query.length < 2) {
       showHeaderSearchHub(dd);
@@ -19054,8 +19060,8 @@
     }
     const typeParam = _headerSearchHubType || 'any';
     const searchPromise = getToken()
-      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(typeParam) + '&person_limit=1')
-      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&type=' + encodeURIComponent(typeParam) + '&person_limit=1', { method: 'GET', mode: 'cors' }).then((r) => r.json());
+      ? api('/api/site/search?q=' + encodeURIComponent(query) + '&type=' + encodeURIComponent(typeParam) + '&limit=6&person_limit=1', { signal: fetchSignal })
+      : fetch(API_BASE + '/api/public/search?q=' + encodeURIComponent(query.slice(0, 60)) + '&limit=6&type=' + encodeURIComponent(typeParam) + '&person_limit=1', { method: 'GET', mode: 'cors', signal: fetchSignal }).then((r) => r.json());
     searchPromise
       .then((data) => {
         if (seq !== _headerSearchSeq) return;
@@ -19072,8 +19078,9 @@
         };
         renderHeaderSearchDropdown(data.items || [], query, data.persons || []);
       })
-      .catch(() => {
+      .catch((err) => {
         if (seq !== _headerSearchSeq) return;
+        if (err && (err.name === 'AbortError' || err.code === 'TIMEOUT')) return;
         if (dd) dd.innerHTML = '<div class="header-search-empty">Ошибка сети</div>';
       });
   }
