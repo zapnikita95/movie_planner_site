@@ -356,6 +356,146 @@
       line-height: 1.55;
       font-size: 15px;
     }
+
+    body.add-film-page .af-person-list { display: flex; flex-direction: column; gap: 10px; }
+    body.add-film-page .af-person-row { position: relative; }
+    body.add-film-page .af-person-row-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    body.add-film-page .af-person-row-main .af-person-name { flex: 1 1 auto; min-width: 0; }
+    body.add-film-page .af-person-add,
+    body.add-film-page .af-person-remove {
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--af-line);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    body.add-film-page .af-person-add:hover,
+    body.add-film-page .af-person-remove:hover {
+      border-color: rgba(255,77,141,.55);
+      background: rgba(255,77,141,.12);
+    }
+    body.add-film-page .af-person-remove {
+      font-size: 20px;
+      color: var(--af-muted);
+    }
+    body.add-film-page .af-person-dd {
+      position: absolute;
+      left: 0;
+      right: 44px;
+      top: calc(100% + 4px);
+      z-index: 20;
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 14px;
+      border: 1px solid var(--af-line);
+      background: #16161f;
+      box-shadow: 0 12px 32px rgba(0,0,0,.45);
+      display: none;
+    }
+    body.add-film-page .af-person-dd.is-on { display: block; }
+    body.add-film-page .af-person-opt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      text-align: left;
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    body.add-film-page .af-person-opt:hover,
+    body.add-film-page .af-person-opt:focus {
+      background: rgba(255,77,141,.14);
+      outline: none;
+    }
+    body.add-film-page .af-person-opt img,
+    body.add-film-page .af-person-ph {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--af-line);
+    }
+    body.add-film-page .af-person-ph {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--af-muted);
+    }
+    body.add-film-page .af-person-opt-meta { min-width: 0; flex: 1; }
+    body.add-film-page .af-person-opt-name { display: block; font-size: 14px; font-weight: 600; }
+    body.add-film-page .af-person-opt-sub {
+      display: block;
+      font-size: 11px;
+      color: var(--af-muted);
+      margin-top: 1px;
+    }
+    body.add-film-page .af-person-opt.is-create {
+      border-top: 1px solid var(--af-line);
+      color: var(--af-accent2);
+      font-weight: 700;
+    }
+    body.add-film-page .af-person-photo {
+      margin-top: 8px;
+      border: 1.5px dashed rgba(246,241,232,.22);
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+      background: rgba(0,0,0,.22);
+      cursor: pointer;
+    }
+    body.add-film-page .af-person-photo:hover,
+    body.add-film-page .af-person-photo.is-drag {
+      border-color: rgba(255,77,141,.55);
+      background: rgba(255,77,141,.08);
+    }
+    body.add-film-page .af-person-photo input { display: none; }
+    body.add-film-page .af-person-photo-preview {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 8px;
+      display: none;
+      border: 1px solid var(--af-line);
+    }
+    body.add-film-page .af-person-photo-preview.is-on { display: block; }
+    body.add-film-page .af-person-photo-title {
+      margin: 0 0 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+    body.add-film-page .af-person-photo-sub {
+      margin: 0;
+      font-size: 12px;
+      color: var(--af-muted);
+    }
+    body.add-film-page .af-person-picked {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--af-ok);
+    }
     @media (max-width: 640px) {
       body.add-film-page .af-grid { grid-template-columns: 1fr; }
       body.add-film-page .af-btn { flex: 1 1 100%; }
@@ -507,18 +647,21 @@
                   <div id="season-episodes-grid" class="af-season-grid" aria-live="polite"></div>
                   <span class="hint">После числа сезонов появятся поля: укажите серии для каждого сезона — так в кабинете отмечается прогресс.</span>
                 </div>
-                <div class="af-field">
-                  <label for="director">Режиссёр</label>
-                  <input id="director" name="director" required maxlength="300" placeholder="Имя режиссёра">
+                <div class="af-field full">
+                  <label>Режиссёр</label>
+                  <div id="directors-rows" class="af-person-list" data-kind="director"></div>
+                  <input type="hidden" id="director" name="director" value="">
+                  <span class="hint">Хотя бы один режиссёр. Если человек уже есть на Movie Planner — выберите его из списка, чтобы не создать вторую страницу.</span>
                 </div>
                 <div class="af-field full">
                   <label for="genres">Жанры</label>
                   <input id="genres" name="genres" required maxlength="300" placeholder="Например: драма, комедия, анимация">
                 </div>
                 <div class="af-field full">
-                  <label for="actors">Актёры <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
-                  <input id="actors" name="actors" maxlength="1000" placeholder="Через запятую — для мультфильма можно не указывать">
-                  <span class="hint">Для мультиков и анимации актёров указывать не обязательно.</span>
+                  <label>Актёры <span style="font-weight:500;opacity:.7">(по желанию)</span></label>
+                  <div id="actors-rows" class="af-person-list" data-kind="actor"></div>
+                  <input type="hidden" id="actors" name="actors" value="">
+                  <span class="hint">Для мультиков актёров можно не указывать. Если режиссёр ещё и играет — выберите его сверху списка.</span>
                 </div>
                 <div class="af-field full">
                   <label for="description">Описание</label>
@@ -744,6 +887,447 @@
       seasonsCountEl.addEventListener('change', renderSeasonEpisodeFields);
     }
 
+    var directorsWrap = document.getElementById('directors-rows');
+    var actorsWrap = document.getElementById('actors-rows');
+    var personState = { director: [], actor: [] };
+    var personSeq = { director: 0, actor: 0 };
+    var personTimers = {};
+    var personAborts = {};
+
+    function personPrefix(kind) { return kind === 'director' ? 'd' : 'a'; }
+    function personPlaceholder(kind) { return kind === 'director' ? 'Имя режиссёра' : 'Имя актёра'; }
+    function personAddLabel(kind) { return kind === 'director' ? 'Добавить режиссёра' : 'Добавить актёра'; }
+
+    function newPersonRow(kind) {
+      var id = personPrefix(kind) + personSeq[kind];
+      personSeq[kind] += 1;
+      return {
+        tempId: id,
+        kind: kind,
+        name: '',
+        mp_person_id: null,
+        create_new: false,
+        photoFile: null,
+        photoUrl: '',
+        showPhoto: false,
+        pickedLabel: ''
+      };
+    }
+
+    function getRow(kind, tempId) {
+      var list = personState[kind] || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].tempId === tempId) return list[i];
+      }
+      return null;
+    }
+
+    function formPeopleExcept(kind, tempId) {
+      var out = [];
+      ['director', 'actor'].forEach(function (k) {
+        (personState[k] || []).forEach(function (row) {
+          if (!row || row.tempId === tempId) return;
+          var name = String(row.name || '').trim();
+          if (name.length < 2) return;
+          out.push({
+            tempId: row.tempId,
+            kind: row.kind,
+            name: name,
+            mp_person_id: row.mp_person_id || null,
+            create_new: !!row.create_new,
+            photoUrl: row.photoUrl || '',
+            roleLabel: row.kind === 'director' ? 'режиссёр в этой заявке' : 'актёр в этой заявке'
+          });
+        });
+      });
+      return out;
+    }
+
+    function parseSearchPersons(d) {
+      var list = [];
+      if (!d) return list;
+      if (Array.isArray(d)) list = d;
+      else list = d.persons || d.items || d.results || d.data || [];
+      if (!Array.isArray(list)) list = [];
+      return list.map(function (p) {
+        if (!p || typeof p !== 'object') return null;
+        var id = p.mp_person_id != null ? p.mp_person_id : (p.id != null ? p.id : p.person_id);
+        var name = p.name || p.full_name || p.title || '';
+        var photo = p.photo_url || p.photo || p.image || p.avatar || p.poster_url || '';
+        if (!String(name).trim()) return null;
+        return { id: id != null && id !== '' ? id : null, name: String(name).trim(), photo: String(photo || '') };
+      }).filter(Boolean);
+    }
+
+    function personInitials(name) {
+      var parts = String(name || '').trim().split(/\s+/).slice(0, 2);
+      return parts.map(function (w) { return w.charAt(0); }).join('').toUpperCase() || '?';
+    }
+
+    function closeAllPersonDd(except) {
+      document.querySelectorAll('.af-person-dd').forEach(function (dd) {
+        if (except && dd === except) return;
+        dd.classList.remove('is-on');
+        dd.innerHTML = '';
+      });
+    }
+
+    function renderPersonPhoto(row) {
+      if (!row.showPhoto) return '';
+      var prev = row.photoUrl
+        ? '<img class="af-person-photo-preview is-on" alt="" src="' + String(row.photoUrl).replace(/"/g, '') + '">'
+        : '<img class="af-person-photo-preview" alt="">';
+      return (
+        '<div class="af-person-photo" data-photo-drop="' + row.tempId + '">' +
+          prev +
+          '<p class="af-person-photo-title">Фото</p>' +
+          '<p class="af-person-photo-sub">Перетащите файл или нажмите · JPEG, PNG, WebP</p>' +
+          '<input type="file" accept="image/jpeg,image/png,image/webp" data-photo-file="' + row.tempId + '">' +
+        '</div>'
+      );
+    }
+
+    function renderPersonList(kind) {
+      var wrap = kind === 'director' ? directorsWrap : actorsWrap;
+      if (!wrap) return;
+      var rows = personState[kind];
+      var html = '';
+      rows.forEach(function (row, idx) {
+        var isLast = idx === rows.length - 1;
+        var canRemove = rows.length > 1;
+        html +=
+          '<div class="af-person-row" data-kind="' + kind + '" data-temp="' + row.tempId + '">' +
+            '<div class="af-person-row-main">' +
+              '<input class="af-person-name" type="text" maxlength="200" autocomplete="off" ' +
+                'placeholder="' + personPlaceholder(kind) + '" value="' + String(row.name || '').replace(/"/g, '&quot;') + '" ' +
+                'aria-label="' + personPlaceholder(kind) + '">' +
+              (canRemove
+                ? '<button type="button" class="af-person-remove" data-remove="' + row.tempId + '" aria-label="Убрать">×</button>'
+                : '') +
+              (isLast
+                ? '<button type="button" class="af-person-add" data-add="' + kind + '" aria-label="' + personAddLabel(kind) + '">+</button>'
+                : '') +
+            '</div>' +
+            '<div class="af-person-dd" role="listbox"></div>' +
+            (row.pickedLabel ? '<div class="af-person-picked">' + row.pickedLabel + '</div>' : '') +
+            renderPersonPhoto(row) +
+          '</div>';
+      });
+      wrap.innerHTML = html;
+      bindPersonPhotoDrops(wrap);
+    }
+
+    function bindPersonPhotoDrops(wrap) {
+      wrap.querySelectorAll('[data-photo-drop]').forEach(function (drop) {
+        var tempId = drop.getAttribute('data-photo-drop');
+        var input = drop.querySelector('input[type="file"]');
+        var rowEl = drop.closest('.af-person-row');
+        var kind = rowEl && rowEl.getAttribute('data-kind');
+        function applyFile(file) {
+          var row = getRow(kind, tempId);
+          if (!row || !file) return;
+          if (!/^image\/(jpeg|png|webp)$/i.test(file.type || '')) {
+            setStatus(formStatus, 'Фото: нужен JPEG, PNG или WebP', 'err');
+            return;
+          }
+          if (file.size > 8 * 1024 * 1024) {
+            setStatus(formStatus, 'Фото больше 8 МБ', 'err');
+            return;
+          }
+          row.photoFile = file;
+          if (row.photoUrl && row.photoUrl.indexOf('blob:') === 0) {
+            try { URL.revokeObjectURL(row.photoUrl); } catch (e) {}
+          }
+          row.photoUrl = URL.createObjectURL(file);
+          var img = drop.querySelector('.af-person-photo-preview');
+          if (img) {
+            img.src = row.photoUrl;
+            img.classList.add('is-on');
+          }
+        }
+        drop.addEventListener('click', function (e) {
+          if (e.target && e.target.closest && e.target.closest('input')) return;
+          if (input) input.click();
+        });
+        if (input) {
+          input.addEventListener('change', function () {
+            if (input.files && input.files[0]) applyFile(input.files[0]);
+          });
+        }
+        ['dragenter', 'dragover'].forEach(function (ev) {
+          drop.addEventListener(ev, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            drop.classList.add('is-drag');
+          });
+        });
+        ['dragleave', 'drop'].forEach(function (ev) {
+          drop.addEventListener(ev, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            drop.classList.remove('is-drag');
+            if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+              applyFile(e.dataTransfer.files[0]);
+            }
+          });
+        });
+      });
+    }
+
+    function optHtml(item, extraClass, dataAttrs, sub) {
+      var photo = item.photoUrl || item.photo || '';
+      var thumb = photo
+        ? '<img src="' + String(photo).replace(/"/g, '') + '" alt="">'
+        : '<span class="af-person-ph">' + personInitials(item.name) + '</span>';
+      var subHtml = sub ? '<span class="af-person-opt-sub">' + sub + '</span>' : '';
+      return (
+        '<button type="button" class="af-person-opt' + (extraClass ? ' ' + extraClass : '') + '" ' + dataAttrs + '>' +
+          thumb +
+          '<span class="af-person-opt-meta">' +
+            '<span class="af-person-opt-name"></span>' +
+            subHtml +
+          '</span>' +
+        '</button>'
+      );
+    }
+
+    function fillOptNames(dd) {
+      dd.querySelectorAll('.af-person-opt').forEach(function (btn) {
+        var nameEl = btn.querySelector('.af-person-opt-name');
+        if (nameEl && btn.getAttribute('data-name')) nameEl.textContent = btn.getAttribute('data-name');
+      });
+    }
+
+    function openPersonDd(rowEl, row, hits, localHits) {
+      var dd = rowEl.querySelector('.af-person-dd');
+      if (!dd) return;
+      var html = '';
+      (localHits || []).forEach(function (p) {
+        html += optHtml(
+          p,
+          '',
+          'data-pick="local" data-temp="' + p.tempId + '" data-name="' + String(p.name).replace(/"/g, '&quot;') + '"',
+          p.roleLabel
+        );
+      });
+      (hits || []).forEach(function (p) {
+        var idAttr = p.id != null ? String(p.id) : '';
+        html += optHtml(
+          p,
+          '',
+          'data-pick="mp" data-mp="' + idAttr.replace(/"/g, '') + '" data-name="' + String(p.name).replace(/"/g, '&quot;') + '" data-photo="' + String(p.photo || '').replace(/"/g, '') + '"',
+          'в Movie Planner'
+        );
+      });
+      html +=
+        '<button type="button" class="af-person-opt is-create" data-pick="new">' +
+          '<span class="af-person-ph">+</span>' +
+          '<span class="af-person-opt-meta"><span class="af-person-opt-name">Создать нового</span></span>' +
+        '</button>';
+      dd.innerHTML = html;
+      fillOptNames(dd);
+      var createName = dd.querySelector('.is-create .af-person-opt-name');
+      if (createName) createName.textContent = 'Создать нового';
+      dd.classList.add('is-on');
+      closeAllPersonDd(dd);
+    }
+
+    function searchPersons(q, cb) {
+      var url = API + '/api/public/film-submit/persons/search?q=' + encodeURIComponent(q);
+      var ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      fetch(url, { method: 'GET', signal: ac ? ac.signal : undefined })
+        .then(function (r) {
+          if (!r.ok) return { items: [] };
+          return r.json().catch(function () { return {}; });
+        })
+        .then(function (d) { cb(parseSearchPersons(d)); })
+        .catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          cb([]);
+        });
+      return ac;
+    }
+
+    function onPersonNameInput(input) {
+      var rowEl = input.closest('.af-person-row');
+      if (!rowEl) return;
+      var kind = rowEl.getAttribute('data-kind');
+      var tempId = rowEl.getAttribute('data-temp');
+      var row = getRow(kind, tempId);
+      if (!row) return;
+      row.name = input.value;
+      if (row.mp_person_id || row.create_new) {
+        row.mp_person_id = null;
+        row.create_new = false;
+        row.pickedLabel = '';
+        var label = rowEl.querySelector('.af-person-picked');
+        if (label) label.remove();
+      }
+      var q = String(input.value || '').trim();
+      var key = kind + ':' + tempId;
+      if (personTimers[key]) clearTimeout(personTimers[key]);
+      if (personAborts[key]) {
+        try { personAborts[key].abort(); } catch (e) {}
+        personAborts[key] = null;
+      }
+      if (q.length < 2) {
+        closeAllPersonDd();
+        return;
+      }
+      personTimers[key] = setTimeout(function () {
+        var localHits = formPeopleExcept(kind, tempId);
+        var ac = searchPersons(q, function (hits) {
+          var seen = {};
+          localHits.forEach(function (p) {
+            if (p.mp_person_id != null) seen[String(p.mp_person_id)] = true;
+          });
+          hits = (hits || []).filter(function (p) {
+            if (p.id == null) return true;
+            if (seen[String(p.id)]) return false;
+            seen[String(p.id)] = true;
+            return true;
+          });
+          openPersonDd(rowEl, row, hits, localHits);
+        });
+        personAborts[key] = ac;
+      }, 280);
+    }
+
+    function pickPerson(rowEl, pick, btn) {
+      var kind = rowEl.getAttribute('data-kind');
+      var tempId = rowEl.getAttribute('data-temp');
+      var row = getRow(kind, tempId);
+      if (!row) return;
+      var input = rowEl.querySelector('.af-person-name');
+      closeAllPersonDd();
+      if (pick === 'new') {
+        row.create_new = true;
+        row.mp_person_id = null;
+        row.showPhoto = true;
+        row.pickedLabel = 'Новый человек — можно добавить фото';
+        if (input) row.name = input.value;
+        renderPersonList(kind);
+        var fresh = (kind === 'director' ? directorsWrap : actorsWrap).querySelector('[data-temp="' + tempId + '"] .af-person-name');
+        if (fresh) fresh.focus();
+        return;
+      }
+      if (pick === 'mp') {
+        row.create_new = false;
+        row.mp_person_id = btn.getAttribute('data-mp') || null;
+        row.name = btn.getAttribute('data-name') || (input ? input.value : row.name);
+        row.showPhoto = false;
+        row.photoFile = null;
+        row.pickedLabel = 'Выбран из Movie Planner';
+        if (input) input.value = row.name;
+        renderPersonList(kind);
+        return;
+      }
+      if (pick === 'local') {
+        var src = null;
+        ['director', 'actor'].forEach(function (k) {
+          var found = getRow(k, btn.getAttribute('data-temp'));
+          if (found) src = found;
+        });
+        if (!src) return;
+        row.name = src.name;
+        row.mp_person_id = src.mp_person_id;
+        row.create_new = false;
+        row.showPhoto = false;
+        row.photoFile = null;
+        row.reuse_temp_id = src.tempId;
+        row.pickedLabel = src.kind === 'director' ? 'Тот же, что режиссёр в заявке' : 'Тот же, что актёр в заявке';
+        if (src.create_new && !src.mp_person_id) {
+          row.reuse_temp_id = src.tempId;
+        }
+        renderPersonList(kind);
+      }
+    }
+
+    function collectCredits() {
+      function mapKind(kind) {
+        return (personState[kind] || []).map(function (row) {
+          var name = String(row.name || '').trim();
+          if (!name) return null;
+          var createNew = !!row.create_new && !row.mp_person_id && !row.reuse_temp_id;
+          if (!row.mp_person_id && !row.create_new && !row.reuse_temp_id) createNew = true;
+          var item = {
+            name: name,
+            mp_person_id: row.mp_person_id || null,
+            create_new: createNew,
+            photo_key: createNew ? row.tempId : null,
+            temp_id: row.tempId
+          };
+          if (row.reuse_temp_id) item.reuse_temp_id = row.reuse_temp_id;
+          return item;
+        }).filter(Boolean);
+      }
+      return { directors: mapKind('director'), actors: mapKind('actor') };
+    }
+
+    function appendPersonPhotos(fd, credits) {
+      function walk(list) {
+        (list || []).forEach(function (c) {
+          if (!c || !c.photo_key) return;
+          var kind = c.temp_id && c.temp_id.charAt(0) === 'd' ? 'director' : 'actor';
+          var row = getRow(kind, c.temp_id);
+          if (row && row.photoFile) {
+            fd.append('person_photo_' + c.photo_key, row.photoFile, row.photoFile.name || (c.photo_key + '.jpg'));
+          }
+        });
+      }
+      walk(credits.directors);
+      walk(credits.actors);
+    }
+
+    function bindPersonLists() {
+      [directorsWrap, actorsWrap].forEach(function (wrap) {
+        if (!wrap) return;
+        wrap.addEventListener('click', function (e) {
+          var addBtn = e.target.closest('[data-add]');
+          if (addBtn) {
+            var kind = addBtn.getAttribute('data-add');
+            personState[kind].push(newPersonRow(kind));
+            renderPersonList(kind);
+            var last = wrap.querySelector('.af-person-row:last-child .af-person-name');
+            if (last) last.focus();
+            return;
+          }
+          var rm = e.target.closest('[data-remove]');
+          if (rm) {
+            var rowEl = rm.closest('.af-person-row');
+            var kind = rowEl && rowEl.getAttribute('data-kind');
+            var tempId = rm.getAttribute('data-remove');
+            personState[kind] = personState[kind].filter(function (r) { return r.tempId !== tempId; });
+            if (!personState[kind].length) personState[kind].push(newPersonRow(kind));
+            renderPersonList(kind);
+            return;
+          }
+          var opt = e.target.closest('.af-person-opt');
+          if (opt) {
+            pickPerson(opt.closest('.af-person-row'), opt.getAttribute('data-pick'), opt);
+          }
+        });
+        wrap.addEventListener('input', function (e) {
+          if (e.target && e.target.classList.contains('af-person-name')) onPersonNameInput(e.target);
+        });
+        wrap.addEventListener('focusin', function (e) {
+          if (e.target && e.target.classList.contains('af-person-name')) {
+            var v = String(e.target.value || '').trim();
+            if (v.length >= 2) onPersonNameInput(e.target);
+          }
+        });
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.af-person-row')) closeAllPersonDd();
+      });
+    }
+
+    personState.director = [newPersonRow('director')];
+    personState.actor = [newPersonRow('actor')];
+    renderPersonList('director');
+    renderPersonList('actor');
+    bindPersonLists();
+
     function showStep(id) {
       ['step-form', 'step-code', 'step-done'].forEach(function (sid) {
         var el = document.getElementById(sid);
@@ -812,12 +1396,25 @@
           setStatus(formStatus, 'Нужно согласие с политикой конфиденциальности', 'err');
           return;
         }
+        var credits = collectCredits();
+        if (!credits.directors.length) {
+          setStatus(formStatus, 'Укажите хотя бы одного режиссёра', 'err');
+          return;
+        }
+        var directorJoined = credits.directors.map(function (c) { return c.name; }).join(', ');
+        var actorsJoined = credits.actors.map(function (c) { return c.name; }).join(', ');
+        var directorHidden = document.getElementById('director');
+        var actorsHidden = document.getElementById('actors');
+        if (directorHidden) directorHidden.value = directorJoined;
+        if (actorsHidden) actorsHidden.value = actorsJoined;
         var fd = new FormData();
         fd.append('poster', posterFile, posterFile.name || 'poster.jpg');
         ['title', 'year', 'film_type', 'director', 'genres', 'actors', 'description', 'facts', 'author_socials', 'watch_url', 'contact_email', 'contact_phone'].forEach(function (name) {
           var el = document.getElementById(name);
           fd.append(name, el ? String(el.value || '').trim() : '');
         });
+        fd.append('credits', JSON.stringify(credits));
+        appendPersonPhotos(fd, credits);
         var isSeries = filmTypeEl && String(filmTypeEl.value || '') === 'series';
         if (isSeries) {
           var sc = parseInt(String((seasonsCountEl && seasonsCountEl.value) || ''), 10) || 0;
