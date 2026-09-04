@@ -352,7 +352,7 @@
       ? global.posterUrl
       : function (kpId) {
           if (!kpId) return "";
-          return "https://st.kp.yandex.net/images/film_big/" + String(kpId).replace(/\D/g, "") + ".jpg";
+          return "/api/public/poster/kp/st/images/film_big/" + String(kpId).replace(/\D/g, "") + ".jpg";
         };
     if (!films || !films.length) {
       return '<p class="empty-hint">Пока нет фильмов с этим тегом</p>';

@@ -11,7 +11,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 12;
+  var RAIL_CACHE_VERSION = 13;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -32,6 +32,10 @@
     if (!u) return "";
     var m = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
     if (m) return "/api/public/poster/tmdb/" + m[1] + "/" + m[2];
+    m = u.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
+    if (m) return "/api/public/poster/kp/mds/" + m[1];
+    m = u.match(/^https?:\/\/st\.kp\.yandex\.net\/(images\/(?:film_iphone|film_big|actor_iphone|actor_big|film_poster)\/[^?#]+)/i);
+    if (m) return "/api/public/poster/kp/st/" + m[1];
     return u;
   }
 

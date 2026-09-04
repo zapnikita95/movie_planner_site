@@ -339,7 +339,7 @@
     var fid = film.film_id != null ? Number(film.film_id) : null;
     var title = film.title || opts.title || 'Фильм';
     var year = film.year != null ? String(film.year) : '';
-    var poster = film.poster || film.poster_url || (kp ? ('https://st.kp.yandex.net/images/film_big/' + kp + '.jpg') : '');
+    var poster = film.poster || film.poster_url || (kp ? ('/api/public/poster/kp/st/images/film_big/' + kp + '.jpg') : '');
 
     var def = defaultScheduledAt();
     var state = {

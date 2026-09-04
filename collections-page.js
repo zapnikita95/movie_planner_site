@@ -74,7 +74,7 @@
       return "/images/film-poster-placeholder.png";
     }
     // Same KP CDN as /f/ — 302→avatars when art exists. Never invent popcorn first.
-    return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + s + ".jpg";
+    return "/api/public/poster/kp/st/images/film_iphone/iphone360_" + s + ".jpg";
   }
 
   function pickPoster(f) {

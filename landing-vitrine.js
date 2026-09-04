@@ -106,7 +106,7 @@
       var via = global.posterUrl(kp);
       if (via && !isBadPosterUrl(via)) return via;
     }
-    if (kp) return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kp + ".jpg";
+    if (kp) return "/api/public/poster/kp/st/images/film_iphone/iphone360_" + kp + ".jpg";
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -119,7 +119,7 @@
       if (via && !isBadPosterUrl(via)) return via;
     }
     var kp = String((it && it.kp_id) || "").replace(/\D/g, "");
-    if (kp) return "https://st.kp.yandex.net/images/film_iphone/iphone360_" + kp + ".jpg";
+    if (kp) return "/api/public/poster/kp/st/images/film_iphone/iphone360_" + kp + ".jpg";
     return "";
   }
 

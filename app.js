@@ -122,7 +122,9 @@
 
   function posterUrl(kpId) {
     if (!kpId) return '';
-    return 'https://st.kp.yandex.net/images/film_big/' + String(kpId).replace(/\D/g, '') + '.jpg';
+    var kp = String(kpId).replace(/\D/g, '');
+    if (!kp) return '';
+    return '/api/public/poster/kp/st/images/film_big/' + kp + '.jpg';
   }
 
   const FILM_SHARE_SITE = 'https://movie-planner.ru';
@@ -184,8 +186,21 @@
   }
 
   function cleanPosterUrl(src) {
-    const s = String(src || '');
+    let s = String(src || '');
     if (!s || /\/no-poster(?:\.|\/|$)/i.test(s) || /no-poster/i.test(s)) return '';
+    s = mpProxyKpCdnUrl(s);
+    const tmdb = s.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (tmdb) s = '/api/public/poster/tmdb/' + tmdb[1] + '/' + tmdb[2];
+    return s;
+  }
+
+  function mpProxyKpCdnUrl(url) {
+    var s = String(url || '').trim();
+    if (!s) return s;
+    var m = s.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
+    if (m) return '/api/public/poster/kp/mds/' + m[1];
+    m = s.match(/^https?:\/\/st\.kp\.yandex\.net\/(images\/(?:film_iphone|film_big|actor_iphone|actor_big|film_poster)\/[^?#]+)/i);
+    if (m) return '/api/public/poster/kp/st/' + m[1];
     return s;
   }
 
@@ -14077,7 +14092,7 @@
   }
 
   function _wtPosterUrl(kp) {
-    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + encodeURIComponent(String(kp)) + '.jpg';
+    return '/api/public/poster/kp/st/images/film_iphone/iphone360_' + encodeURIComponent(String(kp)) + '.jpg';
   }
 
   function _wtFilmTileHtml(f, mode) {

@@ -98,7 +98,7 @@
     var p = String((item && (item.poster || item.poster_url)) || '').trim();
     if (/^https?:\/\//i.test(p) || (p && p.charAt(0) === '/')) return p;
     var kid = item && item.kp_id;
-    if (kid) return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + String(kid).replace(/\D/g, '') + '.jpg';
+    if (kid) return '/api/public/poster/kp/st/images/film_iphone/iphone360_' + String(kid).replace(/\D/g, '') + '.jpg';
     return PLACEHOLDER;
   }
 

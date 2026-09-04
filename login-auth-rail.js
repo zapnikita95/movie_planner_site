@@ -62,7 +62,11 @@
     if (poster.indexOf('image.tmdb.org') === 0 || poster.indexOf('https://image.tmdb.org') === 0) {
       var m = poster.match(/\/(w\d+|original)\/([^/?#]+)/);
       if (m) poster = '/api/public/poster/tmdb/' + m[1] + '/' + m[2];
-    }
+
+    var mKp = poster.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
+    if (mKp) poster = '/api/public/poster/kp/mds/' + mKp[1];
+    mKp = poster.match(/^https?:\/\/st\.kp\.yandex\.net\/(images\/(?:film_iphone|film_big|actor_iphone|actor_big|film_poster)\/[^?#]+)/i);
+    if (mKp) poster = '/api/public/poster/kp/st/' + mKp[1];    }
     if (poster.charAt(0) === '/') poster = apiBase() + poster;
     return {
       kp_id: kpOf(raw),
