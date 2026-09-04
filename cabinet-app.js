@@ -213,12 +213,12 @@
     const kp = String(kpId).replace(/\D/g, '');
     if (!kp) return MP_POSTER_PLACEHOLDER;
     // Real KP art for most titles; API sends branded only when stub confirmed.
-    return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + kp + '.jpg';
+    return '/api/public/poster/kp/st/images/film_iphone/iphone360_' + kp + '.jpg';
   }
 
   function isKpFilmCdnTemplateUrl(src, kpId) {
     const s = String(src || '').trim().toLowerCase();
-    if (!s || s.indexOf('st.kp.yandex.net') < 0) return false;
+    if (!s || (s.indexOf('st.kp.yandex.net') < 0 && s.indexOf('/api/public/poster/kp/st/') < 0)) return false;
     const kp = String(kpId || '').replace(/\D/g, '');
     if (kp && s.indexOf('iphone360_' + kp + '.jpg') >= 0) return true;
     if (kp && s.indexOf('/film_big/' + kp + '.jpg') >= 0) return true;
@@ -268,6 +268,11 @@
     // image.tmdb.org is blocked in RU — always use our apex mirror.
     const tmdb = s.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
     if (tmdb) s = '/api/public/poster/tmdb/' + tmdb[1] + '/' + tmdb[2];
+    // KP / Yandex CDN — proxy (some networks need VPN for raw hosts).
+    const mds = s.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
+    if (mds) s = '/api/public/poster/kp/mds/' + mds[1];
+    const st = s.match(/^https?:\/\/st\.kp\.yandex\.net\/(images\/(?:film_iphone|film_big|actor_iphone|actor_big|film_poster)\/[^?#]+)/i);
+    if (st) s = '/api/public/poster/kp/st/' + st[1];
     if (/film-poster-placeholder|person-avatar-placeholder/i.test(s)) return s;
     return s;
   }
@@ -295,7 +300,7 @@
     if (!s) return false;
     // Real KP art often lives on iphone360 CDN; only reject empty/no-poster.
     if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/(?:tmdb|kp)\/|film-poster-placeholder|person-avatar-placeholder|st\.kp\.yandex\.net|\/images\/posters\//i.test(s);
   }
 
   function isKpIphonePosterUrl(src, kpId) {
@@ -316,7 +321,7 @@
     const raw = cleanPosterUrl(item && item.poster);
     if (raw && /image\.tmdb\.org|\/api\/public\/poster\/tmdb\//i.test(raw)) return raw;
     if (raw && isGoodFilmPosterUrl(raw)) return raw;
-    if (kp) return 'https://st.kp.yandex.net/images/film_iphone/iphone360_' + String(kp).replace(/\D/g, '') + '.jpg';
+    if (kp) return '/api/public/poster/kp/st/images/film_iphone/iphone360_' + String(kp).replace(/\D/g, '') + '.jpg';
     return MP_POSTER_PLACEHOLDER;
   }
 

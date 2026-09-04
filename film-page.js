@@ -468,6 +468,12 @@
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
     if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters/i.test(s)) return '';
+    var m = s.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
+    if (m) return '/api/public/poster/kp/mds/' + m[1];
+    m = s.match(/^https?:\/\/st\.kp\.yandex\.net\/(images\/(?:film_iphone|film_big|actor_iphone|actor_big|film_poster)\/[^?#]+)/i);
+    if (m) return '/api/public/poster/kp/st/' + m[1];
+    m = s.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (m) return '/api/public/poster/tmdb/' + m[1] + '/' + m[2];
     return s;
   }
 
@@ -492,7 +498,8 @@
   /** KP CDN template path — often redirects to gray «K» (HTTP 200), so onerror never fires. */
   function isKpFilmCdnTemplateUrl(src, kpId) {
     var s = String(src || '').trim().toLowerCase();
-    if (!s || s.indexOf('st.kp.yandex.net') < 0) return false;
+    if (!s) return false;
+    if (s.indexOf('st.kp.yandex.net') < 0 && s.indexOf('/api/public/poster/kp/st/') < 0) return false;
     var kp = String(kpId || '').replace(/\D/g, '');
     if (kp && s.indexOf('iphone360_' + kp + '.jpg') >= 0) return true;
     if (kp && s.indexOf('/film_big/' + kp + '.jpg') >= 0) return true;
@@ -509,7 +516,7 @@
     var s = cleanPosterUrl(src);
     if (!s) return false;
     if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
-    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/tmdb\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
+    return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/(?:tmdb|kp)\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
   function currentFilmPosterFromDom() {
