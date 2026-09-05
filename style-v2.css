@@ -27773,3 +27773,14 @@ body.in-cabinet #section-whattowatch .site-wtw-mode-card { min-height: 208px; pa
 @media (min-width: 1680px) {
   .collections-discovery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* WTW audit: use the full cabinet canvas for desktop chrome, not the picker result cap. */
+@media (min-width: 901px) {
+  body.in-cabinet #section-whattowatch .site-wtw-modes,
+  body.in-cabinet #section-whattowatch .whattowatch-result,
+  body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
+  body.in-cabinet #section-whattowatch .site-wtw-clubs-panel {
+    max-width: none;
+    width: 100%;
+  }
+}
