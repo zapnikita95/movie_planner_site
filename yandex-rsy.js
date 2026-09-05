@@ -404,6 +404,7 @@
       p === '/buzz' ||
       p === '/whattowatch' ||
       p.indexOf('/whattowatch/') === 0 ||
+      p === '/clubs' ||
       p === '/tournament' ||
       p === '/ratings' ||
       p === '/series' ||
@@ -417,7 +418,7 @@
   function cabinetSectionKeyFromPath(path) {
     if (!isCabinetSectionPath(path)) return null;
     var p = String(path || '').split('?')[0];
-    if (p.indexOf('/whattowatch') === 0 || p.indexOf('/features/collections') === 0) return 'whattowatch';
+    if (p.indexOf('/whattowatch') === 0 || p === '/clubs' || p.indexOf('/features/collections') === 0) return 'whattowatch';
     if (p === '/watchlist' || p === '/ratings' || p === '/series') return 'base';
     return p.replace(/^\//, '').split('/')[0] || 'cabinet';
   }

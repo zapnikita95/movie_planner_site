@@ -344,7 +344,7 @@
             if (!p || p === '/') return null;
             if (p.indexOf('/settings') === 0) return 'settings';
             if (p.indexOf('/features/collections') === 0) return 'whattowatch';
-            if (p === '/whattowatch' || p.indexOf('/whattowatch/') === 0) return 'whattowatch';
+            if (p === '/clubs' || p === '/whattowatch' || p.indexOf('/whattowatch/') === 0) return 'whattowatch';
             var map = {
               '/home': 'home',
               '/plans': 'plans',
@@ -474,6 +474,7 @@
         try {
           var path = (window.location.pathname || '').replace(/\/$/, '') || '/';
           var isWtw = path === '/whattowatch' || path.indexOf('/whattowatch/') === 0
+            || path === '/clubs'
             || path === '/features/collections' || !!path.match(/^\/features\/collections\/[A-Za-z0-9_-]+$/);
           if (!isWtw) return;
           function paintCollectionsDeep() {
@@ -485,6 +486,22 @@
               b.classList.remove('active');
               if (b.getAttribute('data-section') === 'whattowatch') b.classList.add('active');
             });
+            if (path === '/clubs' || path === '/whattowatch/clubs') {
+              var content = document.getElementById('whattowatch-content');
+              if (content && !content.getAttribute('data-clubs-boot')) {
+                content.setAttribute('data-clubs-boot', '1');
+                content.innerHTML =
+                  '<div class="plan-mode-toggle wtw-scope-toggle" aria-hidden="true">'
+                  + '<span class="plan-mode">Непросмотренные</span>'
+                  + '<span class="plan-mode">Со всего мира</span>'
+                  + '<span class="plan-mode">Коллекции</span>'
+                  + '<span class="plan-mode active">Киноклубы</span>'
+                  + '</div>'
+                  + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
+                  + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
+                  + '<p class="clubs-loading-label">Загружаем киноклубы…</p></div>';
+              }
+            }
           }
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', paintCollectionsDeep);
@@ -2202,6 +2219,11 @@
                     <span class="article-card-title">Совместный список фильмов</span>
                     <span class="article-card-desc">Группы для пары, друзей и киноклуба</span>
                 </a>
+                <a href="/articles/kinokluby-movie-planner.html" class="article-card">
+                    <span class="article-card-icon mp-icon" data-mp-icon="popcorn"></span>
+                    <span class="article-card-title">Киноклуб в Movie Planner</span>
+                    <span class="article-card-desc">Каталог клубов, общая база и планы</span>
+                </a>
                 <a href="/articles/treker-serialov-telegram.html" class="article-card">
                     <span class="article-card-icon mp-icon" data-mp-icon="series"></span>
                     <span class="article-card-title">Трекер сериалов в Telegram</span>
@@ -2871,6 +2893,7 @@
                             <button type="button" class="btn btn-primary groups-create-btn" id="groups-create-room-btn">
                                 <span>＋</span> Создать группу
                             </button>
+                            <a class="btn btn-secondary" href="/whattowatch/clubs" id="groups-open-clubs-catalog">Каталог киноклубов</a>
                         </div>
                         <div id="groups-list" class="groups-list"></div>
                         <div class="groups-howto">
@@ -3148,6 +3171,11 @@
           <div id="create-room-kind-extra" class="create-room-kind-extra"></div>
           <label class="create-room-label" for="create-room-name">Название</label>
           <input type="text" id="create-room-name" class="add-film-input" placeholder="Например: Четверг — это пятница" maxlength="60" autocomplete="off">
+          <div id="create-room-desc-wrap" class="create-room-desc-wrap hidden">
+            <label class="create-room-label" for="create-room-desc">Описание</label>
+            <textarea id="create-room-desc" class="add-film-input create-room-desc" maxlength="200" rows="3" placeholder="О чём клуб и как часто смотрите. До 200 знаков."></textarea>
+            <div class="create-room-desc-count" id="create-room-desc-count">0 / 200</div>
+          </div>
           <div id="create-room-status" class="add-film-status"></div>
           <div class="create-room-actions">
             <button type="button" class="btn btn-secondary" data-action="close-create-room-modal">Отмена</button>
@@ -3717,12 +3745,13 @@
         var isCabinetHome = path === '/home' || path === '/plans' || path === '/watchlist'
           || path === '/series' || path === '/series-hub' || path === '/settings'
           || path === '/whattowatch' || path.indexOf('/whattowatch/') === 0
+          || path === '/clubs'
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260903searchFast1';
+        var V = '20260905clubs3';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3745,6 +3774,7 @@
           'app-download.js?v=20260808inviteApp1',
           'onboarding-flow.js?v=' + V,
           'collections-page.js?v=' + V,
+          'clubs-page.js?v=' + V,
           'home-rails.js?v=' + V,
           'landing-articles.js?v=20260627articles1',
           ];
@@ -3778,6 +3808,8 @@
         } else if (hasSiteSession && (isCabinetHome || path === '/')) {
           /* Logged-in: cabinet-app first on /home — collection deep links need collections-page before cabinet-app. */
           var collPage = 'collections-page.js?v=' + V;
+          var clubsPage = 'clubs-page.js?v=' + V;
+          var isWtwClubs = path === '/whattowatch/clubs' || path === '/clubs';
           var loggedHead = [
             'mp-api-config.js?v=' + V,
             'header-search-scroll.js?v=' + V,
@@ -3802,9 +3834,11 @@
             'buzz-page.js?v=' + V
           ];
           if (isWtwCollectionDetail) {
-            list = loggedHead.concat([collPage, 'cabinet-app.js?v=' + V], loggedTail);
+            list = loggedHead.concat([collPage, clubsPage, 'cabinet-app.js?v=' + V], loggedTail);
+          } else if (isWtwClubs) {
+            list = loggedHead.concat([clubsPage, 'cabinet-app.js?v=' + V], loggedTail, [collPage]);
           } else {
-            list = loggedHead.concat(['cabinet-app.js?v=' + V], loggedTail, [collPage]);
+            list = loggedHead.concat(['cabinet-app.js?v=' + V], loggedTail, [collPage, clubsPage]);
           }
         } else {
           list = core.concat(isRoute ? [] : cabinet);
