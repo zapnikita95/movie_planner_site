@@ -4677,6 +4677,18 @@
     return 'Группа друзей';
   }
 
+  function isTelegramLinkedSettingsError(r) {
+    const code = String((r && (r.error || r.code || r.detail)) || '');
+    return code === 'telegram_linked' || /telegram_linked/i.test(code);
+  }
+
+  function convertClubFailText(r) {
+    if (isTelegramLinkedSettingsError(r)) {
+      return 'Группу Telegram в киноклуб так не перевести. Создайте виртуальный киноклуб.';
+    }
+    return (r && r.error) || 'Не удалось сменить тип';
+  }
+
   const MODAL_SHEET_HANDLE_HTML =
     '<' + 'div class="modal-sheet-handle" aria-hidden="true"><span class="modal-sheet-handle-bar"></span></' + 'div>';
 
@@ -23472,17 +23484,28 @@
       if (gk === 'friends') {
         body.innerHTML = `
           <p class="cabinet-hint">Группа друзей закрытая: её нет в каталоге киноклубов.</p>
-          <button type="button" class="btn btn-primary" id="room-convert-club">Сделать киноклубом</button>
-          <p class="cabinet-hint" style="margin-top:10px">После смены типа можно открыть клуб в каталоге «Смотреть → Киноклубы» и настроить описание, поиск и заявки.</p>
+          <label class="create-room-label" for="room-convert-desc">Описание киноклуба</label>
+          <textarea id="room-convert-desc" class="add-film-input create-room-desc" maxlength="200" rows="3" placeholder="О чём клуб и как часто смотрите. До 200 знаков."></textarea>
+          <div class="create-room-desc-count" id="room-convert-desc-count">0 / 200</div>
+          <button type="button" class="btn btn-primary" id="room-convert-club" style="margin-top:10px">Сделать киноклубом</button>
+          <p class="cabinet-hint" style="margin-top:10px">Задайте описание. Клуб появится в каталоге «Смотреть → Киноклубы».</p>
         `;
+        const convDesc = document.getElementById('room-convert-desc');
+        const convCount = document.getElementById('room-convert-desc-count');
+        if (convDesc && convCount) {
+          convDesc.addEventListener('input', () => {
+            convCount.textContent = String(convDesc.value.length) + ' / 200';
+          });
+        }
         const conv = document.getElementById('room-convert-club');
         if (conv) {
           conv.addEventListener('click', () => {
             conv.disabled = true;
             conv.textContent = 'Сохраняем…';
+            const description = convDesc ? String(convDesc.value || '').trim().slice(0, 200) : '';
             api('/api/site/rooms/' + mid + '/settings', {
               method: 'PATCH',
-              body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true }),
+              body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true, description: description }),
             }).then((r) => {
               if (r && r.success) {
                 showToast('Теперь это киноклуб');
@@ -23490,7 +23513,7 @@
               } else {
                 conv.disabled = false;
                 conv.textContent = 'Сделать киноклубом';
-                alert((r && r.error) || 'Не удалось сменить тип. Попробуйте ещё раз после обновления сервера.');
+                alert(convertClubFailText(r));
               }
             }).catch(() => {
               conv.disabled = false;
@@ -24122,8 +24145,9 @@
     out.classList.remove('hidden');
     out.innerHTML = '<div class="soc-search-state">Ищем…</div>';
     try {
-      const qs = q ? ('?q=' + encodeURIComponent(q)) : '';
-      const data = await api('/api/site/groups/discover' + qs);
+      const params = ['discoverable_only=1', 'limit=24', 'offset=0'];
+      if (q) params.push('q=' + encodeURIComponent(q));
+      const data = await api('/api/site/groups/discover?' + params.join('&'));
       if (!data || data.success === false) {
         out.innerHTML = '<div class="soc-search-state error">' + escapeHtml((data && data.error) || 'Не удалось выполнить поиск') + '</div>';
         return;
@@ -24236,14 +24260,14 @@
           b.disabled = true;
           api('/api/site/rooms/' + encodeURIComponent(cid) + '/settings', {
             method: 'PATCH',
-            body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true }),
+            body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true, description: '' }),
           }).then((r) => {
             if (r && r.success) {
               showToast('Группа стала киноклубом');
               renderGroupsSection();
             } else {
               b.disabled = false;
-              alert((r && r.error) || 'Не удалось сменить тип');
+              alert(convertClubFailText(r));
             }
           }).catch(() => { b.disabled = false; alert('Ошибка сети'); });
         });
@@ -24433,7 +24457,7 @@
       body.is_discoverable = !!_createRoomDiscover;
       body.join_approval_mode = _createRoomApproval;
     }
-    if (groupKind === 'cinema_club' && description) body.description = description;
+    if (groupKind === 'cinema_club') body.description = description;
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = groupKind === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу'; }

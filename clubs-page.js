@@ -1,8 +1,14 @@
 /**
  * Киноклубы — каталог в «Смотреть» (/whattowatch/clubs, alias /clubs).
  *
- * Поля description / frequency / next_plan / recent_watched могут отсутствовать,
- * пока не приземлится PR бота. Карточка деградирует: показывает то, что есть.
+ * Контракт (bot PR #961):
+ *   GET /api/public/cinema-clubs?limit=24&offset=0&q=          — гости, без auth
+ *   GET /api/site/groups/discover?kind=cinema_club&discoverable_only=1&limit=&offset=&q=
+ * groups[]: chat_id, name, emoji, group_kind, is_discoverable, join_approval_mode,
+ *   members_count, description, watch_frequency_label,
+ *   next_plan {kp_id,title,poster,plan_datetime}|null,
+ *   recent_watched до 3 {kp_id,title,poster,watched_at}
+ * Пока прод без деплоя — 404/401: пустой каталог, карточка деградирует без полей.
  *
  * TODO later: per-user «что я оценил в этом клубе» и полная статистика клуба.
  */
@@ -35,7 +41,8 @@
     "пока мало данных",
   ];
 
-  var _state = { q: "", loading: false, reqId: 0 };
+  var PAGE_SIZE = 24;
+  var _state = { q: "", page: 1, pageSize: PAGE_SIZE, total: 0, loading: false, reqId: 0 };
   var _myClubs = [];
   var _paintGen = 0;
 
@@ -128,40 +135,48 @@
 
   function clubsFromPayload(data) {
     if (!data || typeof data !== "object") return null;
-    if (data.success === false && !Array.isArray(data.groups) && !Array.isArray(data.items)) return null;
-    var raw = data.groups || data.items || data.clubs || [];
+    var raw = data.groups || data.items || data.clubs;
     if (!Array.isArray(raw)) return null;
+    if (data.success === false) return null;
     return raw.filter(function (g) {
       if (!g) return false;
-      var kind = String(g.group_kind || g.kind || "cinema_club");
-      return kind === "cinema_club" || kind === "club";
+      if (g.group_kind == null && g.kind == null) return true;
+      var kind = String(g.group_kind || g.kind || "");
+      return kind === "cinema_club" || kind === "club" || kind === "";
     });
   }
 
-  function fetchDiscover(q) {
-    var params = ["kind=cinema_club", "group_kind=cinema_club"];
-    if (q) params.push("q=" + encodeURIComponent(q));
-    var qs = "?" + params.join("&");
-    var paths = [
-      "/api/public/groups/discover" + qs,
-      "/api/site/groups/discover" + qs,
-      "/api/site/groups/discover" + (q ? "?q=" + encodeURIComponent(q) : ""),
-    ];
+  function discoverPaths(authed, q, offset) {
+    var off = Math.max(0, parseInt(offset, 10) || 0);
+    var page = "limit=" + PAGE_SIZE + "&offset=" + off + "&q=" + encodeURIComponent(q || "");
+    var publicClubs = "/api/public/cinema-clubs?" + page;
+    var siteDiscover = "/api/site/groups/discover?kind=cinema_club&discoverable_only=1&" + page;
+    var legacyPublic = "/api/public/groups/discover?kind=cinema_club&group_kind=cinema_club&" + page;
+    var legacySite = "/api/site/groups/discover?kind=cinema_club&" + page;
+    if (authed) return [siteDiscover, publicClubs, legacySite, legacyPublic];
+    return [publicClubs, legacyPublic, siteDiscover, legacySite];
+  }
+
+  function payloadTotal(data, listLen) {
+    var n = Number(data && (data.total != null ? data.total : data.count));
+    if (isFinite(n) && n >= 0) return n;
+    return listLen;
+  }
+
+  function fetchDiscover(q, offset) {
+    var paths = discoverPaths(hasSiteAuth(), q, offset);
     function tryPath(i) {
       if (i >= paths.length) {
-        return Promise.resolve({ success: true, groups: [], unauthorized: true });
+        return Promise.resolve({ success: true, groups: [], total: 0, unauthorized: true });
       }
       var path = paths[i];
       var req = path.indexOf("/api/site/") === 0 ? apiGet(path) : apiPublicGet(path);
       return req.then(function (data) {
         var list = clubsFromPayload(data);
-        if (list) return { success: true, groups: list, raw: data };
-        var err = String((data && (data.error || data.detail)) || "");
-        if (/unauthor|auth|401/i.test(err) || (data && data.success === false && i < paths.length - 1)) {
-          return tryPath(i + 1);
+        if (list) {
+          return { success: true, groups: list, total: payloadTotal(data, list.length), raw: data };
         }
-        if (i < paths.length - 1) return tryPath(i + 1);
-        return { success: true, groups: [], unauthorized: /unauthor|auth|401/i.test(err) };
+        return tryPath(i + 1);
       }).catch(function () {
         return tryPath(i + 1);
       });
@@ -313,15 +328,16 @@
     if (!title) return null;
     return {
       title: title,
-      when: formatWhen(p.when || p.date || p.planned_at || p.starts_at || p.watch_at),
+      when: formatWhen(p.plan_datetime || p.when || p.date || p.planned_at || p.starts_at || p.watch_at),
       poster: p.poster || p.poster_url || "",
+      kpId: p.kp_id || p.id,
     };
   }
 
   function recentWatched(club) {
     var raw = (club && (club.recent_watched || club.last_watched || club.recent_films)) || [];
     if (!Array.isArray(raw)) raw = raw ? [raw] : [];
-    return raw.slice(0, 4).map(function (f) {
+    return raw.slice(0, 3).map(function (f) {
       return {
         title: String((f && (f.title || f.film_title || f.name)) || "").trim(),
         when: formatWhen(f && (f.watched_at || f.when || f.date || f.watched_on)),
@@ -550,6 +566,16 @@
         openCreateClub();
         return;
       }
+      var pageBtn = e.target.closest("[data-clubs-action='page']");
+      if (pageBtn && root.contains(pageBtn) && !pageBtn.disabled) {
+        e.preventDefault();
+        var pageRaw = parseInt(pageBtn.getAttribute("data-page") || "0", 10);
+        if (!pageRaw || pageRaw < 1) return;
+        _state.page = pageRaw;
+        loadCatalog(root);
+        try { root.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (_) {}
+        return;
+      }
       var openBtn = e.target.closest("[data-clubs-action='open']");
       if (openBtn && root.contains(openBtn)) {
         e.preventDefault();
@@ -566,25 +592,64 @@
     });
   }
 
+  function pickMyCinemaClubs(data) {
+    var profiles = (data && data.profiles) || [];
+    _myClubs = profiles.filter(function (p) {
+      return p && !p.is_personal && String(p.group_kind || "") === "cinema_club";
+    });
+    return _myClubs;
+  }
+
   function loadMyClubs() {
     _myClubs = [];
     if (!hasSiteAuth() || typeof global.api !== "function") return Promise.resolve([]);
-    return global.api("/api/site/profiles?lite=1").then(function (data) {
-      var profiles = (data && data.profiles) || [];
-      _myClubs = profiles.filter(function (p) {
-        return p && !p.is_personal && String(p.group_kind || "") === "cinema_club";
-      });
-      return _myClubs;
+    return global.api("/api/site/profiles").then(function (data) {
+      if (data && Array.isArray(data.profiles)) return pickMyCinemaClubs(data);
+      return global.api("/api/site/profiles?lite=1").then(pickMyCinemaClubs);
     }).catch(function () {
-      _myClubs = [];
-      return [];
+      return global.api("/api/site/profiles?lite=1").then(pickMyCinemaClubs).catch(function () {
+        _myClubs = [];
+        return [];
+      });
     });
+  }
+
+  function clubsWord(n) {
+    var abs = Math.abs(n) % 100;
+    var last = abs % 10;
+    if (abs > 10 && abs < 20) return "киноклубов";
+    if (last === 1) return "киноклуб";
+    if (last >= 2 && last <= 4) return "киноклуба";
+    return "киноклубов";
+  }
+
+  function pagerHtml() {
+    var total = _state.total || 0;
+    var pages = Math.max(1, Math.ceil(total / _state.pageSize));
+    var page = Math.min(Math.max(1, _state.page), pages);
+    _state.page = page;
+    if (total <= _state.pageSize) {
+      return total
+        ? '<p class="collections-pager-meta">' + total + " " + clubsWord(total) + "</p>"
+        : "";
+    }
+    return (
+      '<div class="collections-pager" role="navigation" aria-label="Страницы киноклубов">'
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-clubs-action="page" data-page="'
+      + (page - 1) + '"' + (page <= 1 ? " disabled" : "") + ">Назад</button>"
+      + '<span class="collections-pager-meta">Стр. ' + page + " из " + pages + " · " + total + "</span>"
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-clubs-action="page" data-page="'
+      + (page + 1) + '"' + (page >= pages ? " disabled" : "") + ">Далее</button>"
+      + "</div>"
+    );
   }
 
   function paintList(root, groups) {
     var mineHost = root.querySelector("#wtw-clubs-mine");
     var listEl = root.querySelector("#wtw-clubs-list");
+    var pagerEl = root.querySelector("#wtw-clubs-pager");
     if (mineHost) mineHost.innerHTML = myClubsHtml();
+    if (pagerEl) pagerEl.innerHTML = (groups.length || _state.total) ? pagerHtml() : "";
     if (!listEl) return;
     if (!groups.length) {
       listEl.className = "clubs-list-host";
@@ -602,9 +667,12 @@
     var reqId = ++_state.reqId;
     listEl.className = "clubs-list-host";
     listEl.innerHTML = skeletonHtml() + '<p class="clubs-loading-label">Загружаем киноклубы…</p>';
-    fetchDiscover(_state.q).then(function (data) {
+    var pagerEl = root.querySelector("#wtw-clubs-pager");
+    if (pagerEl) pagerEl.innerHTML = "";
+    fetchDiscover(_state.q, (_state.page - 1) * _state.pageSize).then(function (data) {
       if (reqId !== _state.reqId) return;
       _state.loading = false;
+      _state.total = (data && data.total) || 0;
       if (!listEl.isConnected) return;
       paintList(root, (data && data.groups) || []);
     }).catch(function () {
@@ -630,6 +698,8 @@
     var paintId = ++_paintGen;
     applyClubsSeo();
     _state.q = "";
+    _state.page = 1;
+    _state.total = 0;
     _state.loading = false;
     root.innerHTML =
       '<div class="clubs-page">'
@@ -644,6 +714,7 @@
       + "</div>"
       + '<div id="wtw-clubs-mine"></div>'
       + '<div class="clubs-list-host" id="wtw-clubs-list">' + skeletonHtml() + "</div>"
+      + '<div class="collections-pager-host" id="wtw-clubs-pager"></div>'
       + '<p class="clubs-article-link">Как это работает: <a href="' + ARTICLE_HREF + '">киноклуб в Movie Planner</a></p>'
       + "</div>";
     bindCatalog(root);
@@ -656,6 +727,7 @@
         if (searchTimer) clearTimeout(searchTimer);
         searchTimer = setTimeout(function () {
           _state.q = val;
+          _state.page = 1;
           loadCatalog(root);
         }, 280);
       });
@@ -664,6 +736,7 @@
           e.preventDefault();
           if (searchTimer) clearTimeout(searchTimer);
           _state.q = String(searchInput.value || "").trim();
+          _state.page = 1;
           loadCatalog(root);
         }
       });
@@ -679,6 +752,11 @@
     renderCatalog: renderCatalog,
     openCreate: openCreateClub,
     watchFrequencyLabel: watchFrequencyLabel,
+    nextPlan: nextPlan,
+    recentWatched: recentWatched,
+    clubsFromPayload: clubsFromPayload,
+    discoverPaths: discoverPaths,
+    PAGE_SIZE: PAGE_SIZE,
     SEO: SEO,
     ARTICLE_HREF: ARTICLE_HREF,
   };
