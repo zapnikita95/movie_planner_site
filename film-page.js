@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260902recentRatedSync1
+ * MARKER:20260905heroPoster1
  */
 (function (global) {
   'use strict';
@@ -516,6 +516,7 @@
     var s = cleanPosterUrl(src);
     if (!s) return false;
     if (/\/no-poster(?:\.|\/|$)/i.test(s)) return false;
+    if (isKpFilmCdnTemplateUrl(s)) return false;
     return /avatars\.mds\.yandex\.net|get-kinopoisk-image|image\.tmdb\.org|\/api\/public\/poster\/(?:tmdb|kp)\/|st\.kp\.yandex\.net|film-poster-placeholder|person-avatar-placeholder/i.test(s);
   }
 
@@ -844,13 +845,14 @@
     var boot = readMpRouteBoot();
     if (boot && boot.poster_url) {
       var bootPoster = cleanPosterUrl(boot.poster_url);
-      if (bootPoster) return bootPoster;
+      if (bootPoster && !isKpFilmCdnTemplateUrl(bootPoster, kp)) return bootPoster;
     }
     return MP_POSTER_PLACEHOLDER;
   }
 
   function resolveFilmPosterDisplay(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
+    if (next && isKpFilmCdnTemplateUrl(next, kpId)) next = '';
     if (next) return next;
     var cur = currentFilmPosterFromDom();
     if (cur) return cur;
@@ -917,6 +919,11 @@
     if (pEl) {
       pEl.src = display;
       pEl.setAttribute('referrerpolicy', 'no-referrer');
+      if (!pEl.getAttribute('width')) pEl.setAttribute('width', '400');
+      if (!pEl.getAttribute('height')) pEl.setAttribute('height', '600');
+      pEl.setAttribute('loading', 'eager');
+      pEl.setAttribute('fetchpriority', 'high');
+      pEl.setAttribute('decoding', 'async');
       pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
       pEl.onerror = function () {
         if (global.mpPosterOnError) global.mpPosterOnError(this);
@@ -3357,7 +3364,7 @@
     return (
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
-        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" width="400" height="600" loading="eager" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="film-hero-meta-stack">' +
@@ -3639,7 +3646,7 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+              '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" width="400" height="600" loading="eager" fetchpriority="high" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="film-hero-meta-stack">' +
@@ -5287,6 +5294,9 @@
     renderFilmPage: renderFilmPage,
     parseFilmRoute: parseFilmRoute,
     buildFilmPageToolbar: buildFilmPageToolbar,
+    isKpFilmCdnTemplateUrl: isKpFilmCdnTemplateUrl,
+    isGoodFilmPosterUrl: isGoodFilmPosterUrl,
+    resolveFilmPosterDisplay: resolveFilmPosterDisplay,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
     standaloneNavHtml: standaloneNavHtml,
     mountStandaloneCabinetNav: mountStandaloneCabinetNav,
