@@ -27542,3 +27542,188 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 
+
+/* WTW sexy chrome: frameless poster scopes + roomy picker cards. */
+body.in-cabinet #section-whattowatch .wtw-scope-toggle {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 16px 0 22px;
+  padding: 0;
+  background: transparent;
+}
+body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 148px;
+  padding: 18px 18px 17px;
+  border: 0;
+  border-radius: 20px;
+  color: #fff;
+  text-align: left;
+  background: #16141b;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .18);
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, .32);
+}
+body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode.active {
+  color: #fff;
+  background: #17141b;
+  box-shadow: 0 0 0 2px rgba(239, 28, 122, .9), 0 18px 42px rgba(239, 28, 122, .2);
+}
+.wtw-scope-bg,
+.wtw-scope-shade { position: absolute; inset: 0; pointer-events: none; }
+.wtw-scope-bg {
+  z-index: -2;
+  background-image: var(--wtw-poster, none);
+  background-size: cover;
+  background-position: center 28%;
+  filter: saturate(1.06) brightness(.72);
+  transform: scale(1.02);
+  transition: transform .35s ease, filter .35s ease;
+}
+.wtw-scope-shade {
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(8, 8, 12, .08) 0%, rgba(8, 8, 12, .28) 36%, rgba(8, 8, 12, .9) 100%);
+}
+.plan-mode.active .wtw-scope-shade {
+  background: linear-gradient(180deg, rgba(239, 28, 122, .16), rgba(8, 8, 12, .24) 36%, rgba(8, 8, 12, .9) 100%);
+}
+.plan-mode:hover .wtw-scope-bg { transform: scale(1.06); filter: saturate(1.12) brightness(.78); }
+body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode-icon {
+  position: absolute;
+  top: 16px;
+  right: 17px;
+  z-index: 1;
+  font-size: 24px;
+  opacity: .9;
+}
+.wtw-scope-copy { position: relative; z-index: 1; min-width: 0; }
+body.in-cabinet #section-whattowatch .wtw-scope-label {
+  display: block;
+  max-width: 100%;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wtw-scope-hint {
+  display: block;
+  max-width: 100%;
+  margin-top: 7px;
+  color: rgba(255, 255, 255, .72);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.in-cabinet #section-whattowatch .site-wtw-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 0 auto 12px;
+}
+body.in-cabinet #section-whattowatch .site-wtw-modes--world {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 168px;
+  padding: 20px 18px;
+  border: 0;
+  border-radius: 22px;
+  color: #fff;
+  text-align: left;
+  background: #15141b;
+  box-shadow: none;
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), radial-gradient(ellipse 72% 68% at 84% 88%, rgba(255,255,255,.07), transparent 64%), linear-gradient(145deg, #3a1a5c, #1a0f28 55%, #120e18);
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:nth-child(2)::before { background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), linear-gradient(145deg, #5a1848, #1c0e22 55%, #120e18); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:nth-child(3)::before { background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), linear-gradient(145deg, #1f3a5c, #101828 55%, #0e1218); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:nth-child(4)::before { background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), linear-gradient(145deg, #4a2030, #1a1018 55%, #120e14); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:nth-child(5)::before { background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), linear-gradient(145deg, #3a2a10, #18140e 55%, #12100c); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:nth-child(6)::before { background: radial-gradient(ellipse 80% 72% at 18% 12%, rgba(255,255,255,.13), transparent 62%), linear-gradient(145deg, #1a3a38, #0e1a1c 55%, #0c1214); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,.34); }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(6px);
+  font-size: 32px;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-text { display: block; min-width: 0; }
+body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-title {
+  display: block;
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-hint {
+  display: block;
+  max-width: 30ch;
+  color: rgba(255,255,255,.72);
+  font-size: 13px;
+  line-height: 1.4;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  color: rgba(255,255,255,.78);
+  font-size: 21px;
+  line-height: 1;
+}
+@media (min-width: 901px) {
+  body.in-cabinet #section-whattowatch { display: block; }
+  body.in-cabinet #section-whattowatch > .section-title { margin-bottom: 4px; text-align: left; }
+  body.in-cabinet #section-whattowatch > .whattowatch-content { display: block; width: 100%; }
+}
+@media (max-width: 900px) {
+  body.in-cabinet #section-whattowatch .wtw-scope-toggle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.in-cabinet #section-whattowatch .site-wtw-modes,
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  body.in-cabinet #section-whattowatch .wtw-scope-toggle,
+  body.in-cabinet #section-whattowatch .site-wtw-modes,
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world { grid-template-columns: 1fr; }
+  body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode { min-height: 126px; }
+}

@@ -20228,11 +20228,18 @@
     { label: '8+', value: 8 },
     { label: '9+', value: 9 },
   ];
+  const SITE_WTW_SCOPE_FALLBACKS = {
+    library: 'https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/d9d353ab-f01a-4797-8a3a-c06457e47c06/600x900',
+    world: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10592371/20b18cde-faf5-47e3-b192-db9ae8c3d4ff/600x900',
+    collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
+    clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
+  };
   const SITE_WTW_SCOPES = {
     library: {
       key: 'library',
       icon: 'watchlist',
       label: 'Непросмотренные',
+      scopeHint: 'Подбор из вашего списка',
       modes: [
         { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
@@ -20244,6 +20251,7 @@
       key: 'world',
       icon: 'globe',
       label: 'Со всего мира',
+      scopeHint: 'За пределами базы',
       modes: [
         { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
@@ -20257,20 +20265,82 @@
       key: 'collections',
       icon: 'folder',
       label: 'Коллекции',
+      scopeHint: 'Подборки фильмов',
       modes: [],
     },
     clubs: {
       key: 'clubs',
       icon: 'popcorn',
       label: 'Киноклубы',
+      scopeHint: 'Планы и заявки',
       modes: [],
     },
   };
   let siteWtwScope = 'library';
   let siteWtwCollectionCode = null;
+  let siteWtwPosterPromise = null;
 
   function siteWtwScopeLabelHtml(label) {
     return '<span class="plan-mode-label wtw-scope-label">' + escapeHtml(label) + '</span>';
+  }
+
+  function siteWtwPosterFromFilm(film) {
+    if (!film) return '';
+    return cleanPosterUrl(film.poster || film.poster_url || film.cover_url || film.cover)
+      || (film.kp_id ? posterUrl(film.kp_id) : '');
+  }
+
+  function siteWtwPostersFromClubs(data) {
+    const clubs = Array.isArray(data && data.groups) ? data.groups
+      : (Array.isArray(data && data.items) ? data.items : (Array.isArray(data && data.clubs) ? data.clubs : []));
+    const urls = [];
+    clubs.forEach((club) => {
+      const recent = club && (club.recent_watched || club.last_watched || club.recent_films);
+      const films = Array.isArray(recent) ? recent : (recent ? [recent] : []);
+      films.concat([club && (club.next_plan || club.upcoming_plan || club.next_watch)]).forEach((film) => {
+        const url = siteWtwPosterFromFilm(film);
+        if (url && urls.indexOf(url) < 0) urls.push(url);
+      });
+      const cover = siteWtwPosterFromFilm(club);
+      if (cover && urls.indexOf(cover) < 0) urls.push(cover);
+    });
+    return urls;
+  }
+
+  function siteWtwApplyScopePosters(posters) {
+    const root = document.getElementById('whattowatch-content');
+    if (!root) return;
+    Object.keys(posters || {}).forEach((scope) => {
+      const card = root.querySelector('[data-site-wtw-scope="' + scope + '"]');
+      const url = posters[scope] || SITE_WTW_SCOPE_FALLBACKS[scope];
+      if (card && url) card.style.setProperty('--wtw-poster', 'url("' + String(url).replace(/"/g, '%22') + '")');
+    });
+  }
+
+  function loadSiteWtwScopePosters() {
+    if (siteWtwPosterPromise) return siteWtwPosterPromise;
+    const cachedLibrary = Array.isArray(unwatchedItems) ? unwatchedItems : [];
+    const libraryRequest = cachedLibrary.length
+      ? Promise.resolve({ items: cachedLibrary })
+      : api('/api/site/unwatched', { timeoutMs: 10000 }).catch(() => ({ items: [] }));
+    const worldRequest = api('/api/site/premieres?period=in_theaters&limit=24', { timeoutMs: 10000 }).catch(() => ({}));
+    const collectionsRequest = api('/api/public/collections?limit=12&offset=0', { timeoutMs: 10000 }).catch(() => ({}));
+    const clubsRequest = api('/api/public/cinema-clubs?limit=24&offset=0&q=', { timeoutMs: 10000 }).catch(() => ({}));
+    siteWtwPosterPromise = Promise.all([libraryRequest, worldRequest, collectionsRequest, clubsRequest]).then((results) => {
+      const library = (results[0] && results[0].items) || [];
+      const world = (results[1] && (results[1].items || results[1].premieres || results[1].results)) || [];
+      const collections = (results[2] && (results[2].items || results[2].collections || results[2].results)) || [];
+      const collectionPosters = collections.reduce((all, item) => all.concat(item && item.preview_posters || []), []);
+      const posters = {
+        library: siteWtwPosterFromFilm(library[0]),
+        world: siteWtwPosterFromFilm(world[0]),
+        collections: String(collectionPosters[0] || ''),
+        clubs: siteWtwPostersFromClubs(results[3])[0] || '',
+      };
+      siteWtwApplyScopePosters(posters);
+      return posters;
+    }).catch(() => ({}));
+    return siteWtwPosterPromise;
   }
 
   function siteWtwModesForScope(scopeKey) {
@@ -20479,11 +20549,11 @@
     return siteWtwModesForScope(scopeKey).map((m) => {
       const iconKey = m.icon || 'watch';
       const weight = iconKey === 'random' ? 'duotone' : 'regular';
-      return '<button type="button" class="site-wtw-mode-row" data-wtw-id="' + escapeHtml(m.id) + '">'
-        + '<span class="site-wtw-mode-icon">' + mpIcon(iconKey, { size: 'md', weight: weight }) + '</span>'
+      return '<button type="button" class="site-wtw-mode-row site-wtw-mode-card" data-wtw-id="' + escapeHtml(m.id) + '">'
+        + '<span class="site-wtw-mode-icon">' + mpIcon(iconKey, { size: 'lg', weight: weight }) + '</span>'
         + '<span class="site-wtw-mode-text"><span class="site-wtw-mode-title">' + escapeHtml(m.title) + '</span>'
         + '<span class="site-wtw-mode-hint">' + escapeHtml(m.hint) + '</span></span>'
-        + '<span class="site-wtw-mode-arrow">›</span></button>';
+        + '<span class="site-wtw-mode-arrow">↗</span></button>';
     }).join('');
   }
 
@@ -21338,6 +21408,7 @@
     } catch (_) {}
 
     syncWtwSectionClasses();
+    loadSiteWtwScopePosters();
     if (siteWtwScope !== 'clubs') {
       try { restoreDocumentTitle(); } catch (_) {}
     }
@@ -21351,19 +21422,19 @@
     const hidePickers = isColl || isClubs;
     root.innerHTML =
       '<div class="plan-mode-toggle wtw-scope-toggle">'
-      + '<button type="button" class="plan-mode' + (siteWtwScope === 'library' ? ' active' : '') + '" data-site-wtw-scope="library">'
-      + '<span class="plan-mode-icon">' + mpIcon(lib.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(lib.label) + '</button>'
-      + '<button type="button" class="plan-mode' + (siteWtwScope === 'world' ? ' active' : '') + '" data-site-wtw-scope="world">'
-      + '<span class="plan-mode-icon">' + mpIcon(world.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(world.label) + '</button>'
-      + '<button type="button" class="plan-mode' + (isColl ? ' active' : '') + '" data-site-wtw-scope="collections">'
-      + '<span class="plan-mode-icon">' + mpIcon(collScope.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(collScope.label) + '</button>'
-      + '<button type="button" class="plan-mode' + (isClubs ? ' active' : '') + '" data-site-wtw-scope="clubs">'
-      + '<span class="plan-mode-icon">' + mpIcon(clubsScope.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(clubsScope.label) + '</button>'
+      + [lib, world, collScope, clubsScope].map((scope) => {
+        const active = siteWtwScope === scope.key;
+        return '<button type="button" class="plan-mode' + (active ? ' active' : '') + '" data-site-wtw-scope="' + scope.key + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
+          + '<span class="wtw-scope-bg" aria-hidden="true"></span><span class="wtw-scope-shade" aria-hidden="true"></span>'
+          + '<span class="plan-mode-icon">' + mpIcon(scope.icon, { size: 'lg' }) + '</span>'
+          + '<span class="wtw-scope-copy">' + siteWtwScopeLabelHtml(scope.label) + '<span class="wtw-scope-hint">' + escapeHtml(scope.scopeHint || '') + '</span></span>'
+          + '</button>';
+      }).join('')
       + '</div>'
       + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
       + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
       + (!hidePickers
-        ? '<div class="site-wtw-modes" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
+        ? '<div class="site-wtw-modes site-wtw-modes--' + siteWtwScope + '" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
           + '<div id="whattowatch-result" class="whattowatch-result"></div>'
         : '');
 
