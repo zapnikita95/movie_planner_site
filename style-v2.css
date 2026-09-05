@@ -22179,6 +22179,8 @@ img.mp-poster-placeholder,
 .collections-poster-mosaic--card {
   position: absolute;
   inset: 0;
+  align-content: stretch;
+  grid-template-rows: repeat(var(--mosaic-rows, 2), minmax(0, 1fr));
 }
 .collections-poster-mosaic--card.collections-poster-mosaic--n1 {
   grid-template-columns: 1fr;
@@ -27726,4 +27728,48 @@ body.in-cabinet #section-whattowatch .site-wtw-mode-card .site-wtw-mode-arrow {
   body.in-cabinet #section-whattowatch .site-wtw-modes,
   body.in-cabinet #section-whattowatch .site-wtw-modes--world { grid-template-columns: 1fr; }
   body.in-cabinet #section-whattowatch .wtw-scope-toggle .plan-mode { min-height: 126px; }
+}
+
+/* WTW follow-up: full-bleed collection card mosaics and demo scope chrome. */
+.collections-poster-mosaic--card {
+  align-content: stretch;
+  grid-template-rows: repeat(var(--mosaic-rows, 2), minmax(0, 1fr));
+}
+.collections-poster-mosaic--card .collections-poster-mosaic__cell {
+  aspect-ratio: auto;
+  height: 100%;
+  width: 100%;
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n2,
+.collections-poster-mosaic--card.collections-poster-mosaic--n3,
+.collections-poster-mosaic--card.collections-poster-mosaic--n5,
+.collections-poster-mosaic--card.collections-poster-mosaic--n7 {
+  grid-template-rows: minmax(0, 1fr);
+}
+.collections-poster-mosaic--card.collections-poster-mosaic--n6 {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+body.in-cabinet #section-whattowatch { width: 100%; max-width: none; }
+body.in-cabinet #section-whattowatch .wtw-scope-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, .78);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+body.in-cabinet #section-whattowatch .wtw-scope-hint {
+  color: rgba(255, 255, 255, .82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-card { min-height: 208px; padding: 24px 22px; }
+@media (min-width: 1280px) {
+  .collections-discovery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+}
+@media (min-width: 1680px) {
+  .collections-discovery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

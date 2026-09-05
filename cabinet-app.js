@@ -20240,6 +20240,7 @@
       icon: 'watchlist',
       label: 'Непросмотренные',
       scopeHint: 'Подбор из вашего списка',
+      kicker: 'ИЗ БАЗЫ',
       modes: [
         { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
@@ -20252,6 +20253,7 @@
       icon: 'globe',
       label: 'Со всего мира',
       scopeHint: 'За пределами базы',
+      kicker: 'КАТАЛОГ',
       modes: [
         { id: 'ai_assistant', kind: 'ai_assistant', icon: 'robot', title: 'AI-помощник', hint: 'Подбор и вопросы по вашей базе' },
         { id: 'emotion', kind: 'emotion', icon: 'sparkle', title: 'По эмоции', hint: 'ИИ-диалог: опишите настроение — подберём фильмы' },
@@ -20266,6 +20268,7 @@
       icon: 'folder',
       label: 'Коллекции',
       scopeHint: 'Подборки фильмов',
+      kicker: 'РЕДАКЦИОННОЕ',
       modes: [],
     },
     clubs: {
@@ -20273,6 +20276,7 @@
       icon: 'popcorn',
       label: 'Киноклубы',
       scopeHint: 'Планы и заявки',
+      kicker: 'ВМЕСТЕ',
       modes: [],
     },
   };
@@ -20280,8 +20284,20 @@
   let siteWtwCollectionCode = null;
   let siteWtwPosterPromise = null;
 
-  function siteWtwScopeLabelHtml(label) {
-    return '<span class="plan-mode-label wtw-scope-label">' + escapeHtml(label) + '</span>';
+  function siteWtwScopeLabelHtml(scope) {
+    const item = scope || {};
+    return '<span class="wtw-scope-kicker">' + escapeHtml(item.kicker || '') + '</span>'
+      + '<span class="plan-mode-label wtw-scope-label">' + escapeHtml(item.label || '') + '</span>';
+  }
+
+  function siteWtwAbsolutePosterUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+      return new URL(raw, 'https://movie-planner.ru').href;
+    } catch (_) {
+      return raw;
+    }
   }
 
   function siteWtwPosterFromFilm(film) {
@@ -20310,9 +20326,9 @@
   function siteWtwApplyScopePosters(posters) {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
-    Object.keys(posters || {}).forEach((scope) => {
+    Object.keys(SITE_WTW_SCOPE_FALLBACKS).forEach((scope) => {
       const card = root.querySelector('[data-site-wtw-scope="' + scope + '"]');
-      const url = posters[scope] || SITE_WTW_SCOPE_FALLBACKS[scope];
+      const url = siteWtwAbsolutePosterUrl((posters && posters[scope]) || SITE_WTW_SCOPE_FALLBACKS[scope]);
       if (card && url) card.style.setProperty('--wtw-poster', 'url("' + String(url).replace(/"/g, '%22') + '")');
     });
   }
@@ -20334,7 +20350,7 @@
       const posters = {
         library: siteWtwPosterFromFilm(library[0]),
         world: siteWtwPosterFromFilm(world[0]),
-        collections: String(collectionPosters[0] || ''),
+        collections: siteWtwAbsolutePosterUrl(collectionPosters[0]),
         clubs: siteWtwPostersFromClubs(results[3])[0] || '',
       };
       siteWtwApplyScopePosters(posters);
@@ -21408,7 +21424,6 @@
     } catch (_) {}
 
     syncWtwSectionClasses();
-    loadSiteWtwScopePosters();
     if (siteWtwScope !== 'clubs') {
       try { restoreDocumentTitle(); } catch (_) {}
     }
@@ -21426,8 +21441,7 @@
         const active = siteWtwScope === scope.key;
         return '<button type="button" class="plan-mode' + (active ? ' active' : '') + '" data-site-wtw-scope="' + scope.key + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
           + '<span class="wtw-scope-bg" aria-hidden="true"></span><span class="wtw-scope-shade" aria-hidden="true"></span>'
-          + '<span class="plan-mode-icon">' + mpIcon(scope.icon, { size: 'lg' }) + '</span>'
-          + '<span class="wtw-scope-copy">' + siteWtwScopeLabelHtml(scope.label) + '<span class="wtw-scope-hint">' + escapeHtml(scope.scopeHint || '') + '</span></span>'
+          + '<span class="wtw-scope-copy">' + siteWtwScopeLabelHtml(scope) + '<span class="wtw-scope-hint">' + escapeHtml(scope.scopeHint || '') + '</span></span>'
           + '</button>';
       }).join('')
       + '</div>'
@@ -21437,6 +21451,9 @@
         ? '<div class="site-wtw-modes site-wtw-modes--' + siteWtwScope + '" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
           + '<div id="whattowatch-result" class="whattowatch-result"></div>'
         : '');
+
+    siteWtwApplyScopePosters({});
+    loadSiteWtwScopePosters().then(siteWtwApplyScopePosters);
 
     function paintWtwCollectionsPanel() {
       const panel = root.querySelector('#site-wtw-collections-panel');
