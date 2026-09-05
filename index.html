@@ -486,6 +486,22 @@
               b.classList.remove('active');
               if (b.getAttribute('data-section') === 'whattowatch') b.classList.add('active');
             });
+            if (path === '/clubs' || path === '/whattowatch/clubs') {
+              var content = document.getElementById('whattowatch-content');
+              if (content && !content.getAttribute('data-clubs-boot')) {
+                content.setAttribute('data-clubs-boot', '1');
+                content.innerHTML =
+                  '<div class="plan-mode-toggle wtw-scope-toggle" aria-hidden="true">'
+                  + '<span class="plan-mode">Непросмотренные</span>'
+                  + '<span class="plan-mode">Со всего мира</span>'
+                  + '<span class="plan-mode">Коллекции</span>'
+                  + '<span class="plan-mode active">Киноклубы</span>'
+                  + '</div>'
+                  + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
+                  + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
+                  + '<p class="clubs-loading-label">Загружаем киноклубы…</p></div>';
+              }
+            }
           }
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', paintCollectionsDeep);

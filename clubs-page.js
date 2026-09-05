@@ -37,6 +37,7 @@
 
   var _state = { q: "", loading: false, reqId: 0 };
   var _myClubs = [];
+  var _paintGen = 0;
 
   function esc(s) {
     if (global.escapeHtml) return global.escapeHtml(s);
@@ -626,6 +627,7 @@
 
   function renderCatalog(root) {
     if (!root) return;
+    var paintId = ++_paintGen;
     applyClubsSeo();
     _state.q = "";
     _state.loading = false;
@@ -667,6 +669,7 @@
       });
     }
     loadMyClubs().then(function () {
+      if (paintId !== _paintGen) return;
       loadCatalog(root);
     });
     consumeCreateFlag();
