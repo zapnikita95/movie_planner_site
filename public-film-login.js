@@ -1,6 +1,76 @@
 (function (global) {
   'use strict';
 
+  /* Login vs onboarding/coachmark: never stack. Login wins; tour waits. */
+  function ensureMpLayerGate() {
+    if (global.MpLayerGate) return global.MpLayerGate;
+    var ONBOARD_SEL = [
+      '.mp-onboard-overlay',
+      '.mp-onboard-dialog-overlay',
+      '.mp-first-onboard-overlay',
+      '.mp-onboard-picker-overlay',
+      '.mp-intro-carousel-overlay',
+      '.home-tour-overlay-root',
+    ].join(', ');
+    var gate = {
+      isLoginOpen: function () {
+        var m = document.getElementById('login-modal');
+        if (!m || m.classList.contains('hidden')) return false;
+        if (m.getAttribute('aria-hidden') === 'true') return false;
+        return true;
+      },
+      isOnboardingOpen: function () {
+        if (document.getElementById('site-home-tour-overlay')) return true;
+        if (document.getElementById('site-content-tour-overlay')) return true;
+        if (document.getElementById('site-first-onboard-overlay')) return true;
+        try {
+          return !!document.querySelector(ONBOARD_SEL);
+        } catch (_e) {
+          return false;
+        }
+      },
+      hideOnboardingLayers: function () {
+        ['site-home-tour-overlay', 'site-content-tour-overlay', 'site-first-onboard-overlay'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          if (el._tourAbort) {
+            try { el._tourAbort.abort(); } catch (_a) {}
+          }
+          try { el.remove(); } catch (_r) {}
+        });
+        try {
+          document.querySelectorAll(ONBOARD_SEL).forEach(function (el) {
+            if (el._tourAbort) {
+              try { el._tourAbort.abort(); } catch (_a2) {}
+            }
+            try { el.remove(); } catch (_r2) {}
+          });
+        } catch (_q) {}
+        try {
+          document.querySelectorAll('.tour-highlight').forEach(function (el) {
+            el.classList.remove('tour-highlight');
+          });
+        } catch (_h) {}
+        try { document.documentElement.classList.remove('mp-site-home-tour-active'); } catch (_c) {}
+      },
+      queueOnboarding: function () {
+        try { sessionStorage.setItem('mp_onboard_queued_after_login', '1'); } catch (_s) {}
+      },
+      consumeOnboardingQueue: function () {
+        try {
+          if (sessionStorage.getItem('mp_onboard_queued_after_login') === '1') {
+            sessionStorage.removeItem('mp_onboard_queued_after_login');
+            return true;
+          }
+        } catch (_s2) {}
+        return false;
+      },
+    };
+    global.MpLayerGate = gate;
+    return gate;
+  }
+  ensureMpLayerGate();
+
   function isPublicFilmRoute() {
     try {
       var path = (global.location.pathname || '').replace(/\/$/, '') || '/';
@@ -428,6 +498,11 @@
   }
 
   function showLoginModal(railOpts) {
+    var gate = ensureMpLayerGate();
+    if (gate.isOnboardingOpen()) {
+      gate.queueOnboarding();
+    }
+    gate.hideOnboardingLayers();
     var modal = mountLoginModalPortal();
     if (!modal) return;
     try {
@@ -475,6 +550,12 @@
       if (cabinet && !hasStoredSiteSession()) cabinet.classList.add('hidden');
     }
     restorePublicRouteShellAfterDismiss();
+    try {
+      document.dispatchEvent(new CustomEvent('mp:login-modal-dismissed'));
+    } catch (_d) {}
+    if (typeof global.__mpOnLoginModalDismissed === 'function') {
+      try { global.__mpOnLoginModalDismissed(); } catch (_h) {}
+    }
   }
 
   function ensureLoginModal() {

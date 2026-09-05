@@ -12761,7 +12761,10 @@ main.film-page .poster-wrap {
   align-self: center;
 }
 .film-hero-poster,
-#section-film .poster {
+#section-film .poster,
+#film-page-content .poster,
+main.film-page .poster,
+#poster.poster {
   width: 100%;
   aspect-ratio: 2 / 3;
   border-radius: 30px;
@@ -14032,7 +14035,7 @@ body.login-only-overlay .parallax-bg {
     margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
-    background: transparent !important;
+    background: #12121c !important;
     box-shadow: none !important;
   }
   .film-hero-poster-wrap,
@@ -14041,6 +14044,8 @@ body.login-only-overlay .parallax-bg {
   #film-page-content .poster-wrap {
     overflow: hidden;
     border-radius: 18px 18px 0 0;
+    aspect-ratio: 2 / 3;
+    min-height: min(48vw, 260px);
     position: relative;
   }
   .film-hero-poster-wrap .poster,
@@ -14052,9 +14057,10 @@ body.login-only-overlay .parallax-bg {
     width: 100% !important;
     max-width: none !important;
     height: auto !important;
-    min-height: 0 !important;
+    min-height: min(48vw, 260px) !important;
     max-height: 480px !important;
     aspect-ratio: 2 / 3;
+    background: #12121c;
     border-radius: 20px 20px 0 0 !important;
     box-shadow: none !important;
     object-fit: cover;
@@ -27539,6 +27545,24 @@ body.staff-standalone-page .staff-awards-loading {
   .clubs-toolbar { flex-direction: column; }
   .clubs-card { grid-template-columns: 56px minmax(0, 1fr); }
   .clubs-card-cover { width: 56px; height: 56px; }
+}
+
+/* Film hero: reserved poster box on mobile so KP CDN lag never leaves a blank void */
+@media (max-width: 860px) {
+  #film-page-content .film-hero-with-tag .poster-wrap,
+  #section-film .film-hero-with-tag .poster-wrap,
+  main.film-page .film-hero-with-tag .poster-wrap {
+    background: #12121c !important;
+    aspect-ratio: 2 / 3;
+    min-height: min(48vw, 260px);
+  }
+  #film-page-content .film-hero-with-tag .poster,
+  #section-film .film-hero-with-tag .poster,
+  main.film-page .film-hero-with-tag .poster,
+  #poster.poster {
+    background: #12121c;
+    min-height: min(48vw, 260px) !important;
+  }
 }
 
 

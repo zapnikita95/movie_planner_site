@@ -51,8 +51,8 @@
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="16x16">
     <link rel="icon" type="image/png" href="/images/favicon-120.png" sizes="120x120">
     <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="preload" href="/style-v2.css?v=20260902rsyTwosubTickets1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260902rsyTwosubTickets1">
+    <link rel="preload" href="/style-v2.css?v=20260905uxLayers1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260905uxLayers1">
     <script>
       (function () {
         try {
@@ -624,6 +624,13 @@
             var en = String(boot.title_en || boot.name_en || '').trim();
             if (en && en === title) en = '';
             var poster = String(boot.poster_url || '').trim();
+            var posterLow = poster.toLowerCase();
+            var posterIsStub = !poster
+              || posterLow.indexOf('no-poster') >= 0
+              || /\/film_iphone\/iphone360_\d+\.jpg/.test(posterLow)
+              || /\/images\/film_big\/\d+\.jpg/.test(posterLow);
+            var posterSrc = posterIsStub ? '/images/film-poster-placeholder.png' : poster;
+            var posterPh = posterSrc.indexOf('film-poster-placeholder') >= 0;
             var genres = String(boot.genres || '').trim();
             var country = String(boot.country || '').trim();
             var isAdultBoot = !!(boot.media_sensitive || genres.toLowerCase().indexOf('для взрослых') >= 0);
@@ -652,16 +659,14 @@
             var ratingBits = [];
             if (boot.rating_kp != null && boot.rating_kp !== '') ratingBits.push('КП ' + boot.rating_kp);
             if (boot.rating_imdb != null && boot.rating_imdb !== '') ratingBits.push('IMDb ' + boot.rating_imdb);
-            var posterHtml = poster
-              ? '<img class="poster" id="poster" src="' + esc(poster) + '" alt="Постер" decoding="async" referrerpolicy="no-referrer">'
-              : '<div class="poster poster-empty" id="poster" aria-hidden="true">🎬</div>';
+            var posterHtml = '<img class="poster' + (posterPh ? ' mp-poster-placeholder' : '') + '" id="poster" src="' + esc(posterSrc) + '" alt="Постер" width="400" height="600" loading="eager" fetchpriority="high" decoding="async" referrerpolicy="no-referrer">';
             var sensCls = isAdultBoot ? ' mp-media-sensitive' : '';
             if (sensCls) {
               try { document.body.classList.add('mp-film-media-sensitive'); } catch (_) {}
             }
             return (
               '<section class="hero film-hero-with-tag film-page--boot" data-kp-id="' + esc(boot.kp_id || '') + '">' +
-                '<div class="poster-wrap' + sensCls + '">' + posterHtml + '</div>' +
+                '<div class="poster-wrap' + (posterPh ? ' film-poster-has-placeholder' : '') + sensCls + '">' + posterHtml + '</div>' +
                 '<div class="hero-content">' +
                   '<h1 id="film-title">' + esc(title + year) + '</h1>' +
                   '<div class="film-hero-meta-stack">' +
@@ -3751,7 +3756,7 @@
           || path.indexOf('/features/collections') === 0;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260905clubs3';
+        var V = '20260905uxLayers1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

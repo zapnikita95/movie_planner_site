@@ -242,6 +242,30 @@
     } catch (_e) {}
   }
 
+  function loginModalIsOpen() {
+    try {
+      if (global.MpLayerGate && typeof global.MpLayerGate.isLoginOpen === "function") {
+        return !!global.MpLayerGate.isLoginOpen();
+      }
+    } catch (_g) {}
+    const modal = document.getElementById("login-modal");
+    if (!modal || modal.classList.contains("hidden")) return false;
+    if (modal.getAttribute("aria-hidden") === "true") return false;
+    return true;
+  }
+
+  function queueOnboardingUntilLoginSettled() {
+    try {
+      if (global.MpLayerGate && typeof global.MpLayerGate.queueOnboarding === "function") {
+        global.MpLayerGate.queueOnboarding();
+        return;
+      }
+    } catch (_q) {}
+    try {
+      sessionStorage.setItem("mp_onboard_queued_after_login", "1");
+    } catch (_s) {}
+  }
+
   function dismissAllOnboardingLayers(deps) {
     try {
       document
@@ -2856,6 +2880,10 @@
   };
 
   global.__mpMountExtendedOnboarding = function (deps, onComplete) {
+    if (loginModalIsOpen()) {
+      queueOnboardingUntilLoginSettled();
+      return;
+    }
     deps = resolveOnboardingDeps(deps);
     Promise.resolve(runFlow(deps, onComplete)).catch(function (err) {
       obClientLog(deps, "flow.crash", { err: String((err && err.message) || err).slice(0, 300) });
@@ -3168,6 +3196,10 @@
   }
 
   global.__mpMountGuestOnboarding = function (deps, onComplete) {
+    if (loginModalIsOpen()) {
+      queueOnboardingUntilLoginSettled();
+      return;
+    }
     deps = resolveOnboardingDeps(deps);
     Promise.resolve(runGuestOnboardingFlow(deps, onComplete || function () {})).catch(function (err) {
       obClientLog(deps, "guest.flow.crash", {
