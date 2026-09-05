@@ -866,8 +866,9 @@
     try {
       const path = (pathname || '').replace(/\/$/, '') || '/';
       if (
-        /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api)$/.test(path)
+        /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api|clubs)$/.test(path)
         || path.indexOf('/settings/') === 0
+        || path === '/whattowatch/clubs'
       ) {
         sessionStorage.setItem('mp_post_login_path', path);
       }
@@ -994,7 +995,9 @@
   function guestCabinetBottomNavPath() {
     try {
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz' || bootPath === '/whattowatch'
+      if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
+        || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
+        || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0) {
         return true;
       }
@@ -1070,6 +1073,7 @@
       if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch') return false;
       const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
+        || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0;
       if (!guestPathOk) return false;
 
@@ -5685,9 +5689,12 @@
 
   const PATH_TO_SECTION = Object.fromEntries(Object.entries(SECTION_TO_PATH).map(([k, v]) => [v, k]));
   PATH_TO_SECTION['/whattowatch'] = 'whattowatch';
+  PATH_TO_SECTION['/clubs'] = 'whattowatch';
+  PATH_TO_SECTION['/whattowatch/clubs'] = 'whattowatch';
 
   function wtwPathForScope(scope, collectionCode) {
     if (scope === 'world') return '/whattowatch/overtheworld';
+    if (scope === 'clubs') return '/whattowatch/clubs';
     if (scope === 'collections') {
       const code = collectionCode ? String(collectionCode) : '';
       return code
@@ -5700,6 +5707,7 @@
   function wtwStateFromPath(pathname) {
     const p = (pathname || '/').replace(/\/$/, '') || '/';
     if (p === '/whattowatch/overtheworld') return { scope: 'world', code: null };
+    if (p === '/whattowatch/clubs' || p === '/clubs') return { scope: 'clubs', code: null };
     if (p === '/whattowatch/collections' || p === '/features/collections') {
       return { scope: 'collections', code: null };
     }
@@ -5736,6 +5744,7 @@
     if (normalized === '/') return null;
     if (normalized.startsWith('/settings')) return 'settings';
     if (normalized === '/whattowatch' || normalized.startsWith('/whattowatch/')) return 'whattowatch';
+    if (normalized === '/clubs') return 'whattowatch';
     if (normalized.startsWith('/features/collections/')) return 'whattowatch';
     if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
@@ -8106,7 +8115,7 @@
   function openSiteWhattowatch(opts) {
     const o = opts || {};
     const scope = o.scope;
-    if (scope === 'library' || scope === 'world' || scope === 'collections') {
+    if (scope === 'library' || scope === 'world' || scope === 'collections' || scope === 'clubs') {
       siteWtwScope = scope;
       try { sessionStorage.setItem('mp_wtw_scope', scope); } catch (_) {}
     }
@@ -8142,6 +8151,12 @@
     exitSearchToCabinet();
     // Снимаем ДО toggle hidden — иначе прошлый /buzz остаётся снизу планов/главной
     clearCabinetSectionBootCss();
+    try {
+      const landing = document.getElementById('landing');
+      if (landing) landing.classList.add('hidden');
+      document.body.classList.add('in-cabinet');
+      document.documentElement.classList.remove('mp-landing-guest-boot');
+    } catch (_) {}
     const prevSection = visibleCabinetSectionId();
     if (prevSection === 'settings' && sectionId !== 'settings') {
       _siteOnboardingResumeAfterImportLeave();
@@ -20007,6 +20022,19 @@
     if (typeof openCreateRoomModal === 'function') openCreateRoomModal();
   }
 
+  function openCreateCinemaClubFromMenu() {
+    closeProfileMenu();
+    if (typeof openSiteWhattowatch === 'function') {
+      openSiteWhattowatch({ scope: 'clubs' });
+    } else {
+      siteWtwScope = 'clubs';
+      showSection('whattowatch');
+    }
+    if (typeof openCreateRoomModal === 'function') {
+      setTimeout(function () { openCreateRoomModal({ kind: 'cinema_club' }); }, 0);
+    }
+  }
+
   function renderProfileMenuItems(profiles, activeChatId) {
     const menu = getProfileMenuEl();
     if (!menu) return;
@@ -20040,6 +20068,8 @@
         </div>`;
     }).join('');
     menu.innerHTML = '<div class="profile-menu-scroll">' + itemsHtml + '</div>'
+      + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-open-clubs">Киноклубы</button>'
+      + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-club">＋ Создать киноклуб</button>'
       + '<button type="button" class="profile-menu-create-group" data-action="profile-menu-create-group">＋ Создать группу</button>';
 
     menu.querySelectorAll('.profile-menu-item').forEach((el) => {
@@ -20051,6 +20081,11 @@
       });
     });
     menu.querySelector('[data-action="profile-menu-create-group"]')?.addEventListener('click', openCreateGroupFromProfileMenu);
+    menu.querySelector('[data-action="profile-menu-create-club"]')?.addEventListener('click', openCreateCinemaClubFromMenu);
+    menu.querySelector('[data-action="profile-menu-open-clubs"]')?.addEventListener('click', () => {
+      closeProfileMenu();
+      if (typeof openSiteWhattowatch === 'function') openSiteWhattowatch({ scope: 'clubs' });
+    });
   }
 
   function updateProfileSwitcherUI(me) {
@@ -20210,6 +20245,12 @@
       key: 'collections',
       icon: 'folder',
       label: 'Коллекции',
+      modes: [],
+    },
+    clubs: {
+      key: 'clubs',
+      icon: 'popcorn',
+      label: 'Киноклубы',
       modes: [],
     },
   };
@@ -21234,6 +21275,17 @@
     })();
   }
 
+  function syncWtwSectionClasses() {
+    const wtwSec = document.getElementById('section-whattowatch');
+    if (!wtwSec) return;
+    wtwSec.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
+    wtwSec.classList.toggle('whattowatch--clubs-scope', siteWtwScope === 'clubs');
+    wtwSec.classList.toggle(
+      'whattowatch--collection-detail',
+      siteWtwScope === 'collections' && !!siteWtwCollectionCode
+    );
+  }
+
   function renderWhattowatchSection() {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
@@ -21246,47 +21298,59 @@
       siteAiUnmount = null;
     }
     try {
+      const landing = document.getElementById('landing');
+      if (landing) landing.classList.add('hidden');
+    } catch (_) {}
+    try {
       const fromPath = typeof wtwStateFromPath === 'function'
         ? wtwStateFromPath(window.location.pathname)
         : null;
       if (fromPath) {
         siteWtwScope = fromPath.scope;
         siteWtwCollectionCode = fromPath.code;
-        // Canonicalize legacy /features/collections* and bare /whattowatch
+        // Canonicalize /clubs, legacy /features/collections* and bare /whattowatch
         const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-        if (bootPath === '/whattowatch' || bootPath.indexOf('/features/collections') === 0) {
+        if (
+          bootPath === '/whattowatch'
+          || bootPath === '/clubs'
+          || bootPath.indexOf('/features/collections') === 0
+        ) {
           pushWtwUrl({ scope: siteWtwScope, code: siteWtwCollectionCode, replace: true });
         }
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
-        if (saved === 'world' || saved === 'library' || saved === 'collections') siteWtwScope = saved;
+        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs') {
+          siteWtwScope = saved;
+        }
       }
     } catch (_) {}
 
-    const wtwSec = document.getElementById('section-whattowatch');
-    if (wtwSec) {
-      wtwSec.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
-      wtwSec.classList.toggle(
-        'whattowatch--collection-detail',
-        siteWtwScope === 'collections' && !!siteWtwCollectionCode
-      );
-    }
+    syncWtwSectionClasses();
 
     const lib = SITE_WTW_SCOPES.library;
     const world = SITE_WTW_SCOPES.world;
     const collScope = SITE_WTW_SCOPES.collections;
+    const clubsScope = SITE_WTW_SCOPES.clubs;
+    const isColl = siteWtwScope === 'collections';
+    const isClubs = siteWtwScope === 'clubs';
+    const hidePickers = isColl || isClubs;
     root.innerHTML =
       '<div class="plan-mode-toggle wtw-scope-toggle">'
       + '<button type="button" class="plan-mode' + (siteWtwScope === 'library' ? ' active' : '') + '" data-site-wtw-scope="library">'
       + '<span class="plan-mode-icon">' + mpIcon(lib.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(lib.label) + '</button>'
       + '<button type="button" class="plan-mode' + (siteWtwScope === 'world' ? ' active' : '') + '" data-site-wtw-scope="world">'
       + '<span class="plan-mode-icon">' + mpIcon(world.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(world.label) + '</button>'
-      + '<button type="button" class="plan-mode' + (siteWtwScope === 'collections' ? ' active' : '') + '" data-site-wtw-scope="collections">'
+      + '<button type="button" class="plan-mode' + (isColl ? ' active' : '') + '" data-site-wtw-scope="collections">'
       + '<span class="plan-mode-icon">' + mpIcon(collScope.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(collScope.label) + '</button>'
+      + '<button type="button" class="plan-mode' + (isClubs ? ' active' : '') + '" data-site-wtw-scope="clubs">'
+      + '<span class="plan-mode-icon">' + mpIcon(clubsScope.icon, { size: 'md' }) + '</span>' + siteWtwScopeLabelHtml(clubsScope.label) + '</button>'
       + '</div>'
-      + '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel' + (siteWtwScope === 'collections' ? '' : ' hidden') + '"></div>'
-      + '<div class="site-wtw-modes' + (siteWtwScope === 'collections' ? ' hidden' : '') + '" id="site-wtw-modes">' + (siteWtwScope === 'collections' ? '' : renderSiteWtwModesList(siteWtwScope)) + '</div>'
-      + '<div id="whattowatch-result" class="whattowatch-result' + (siteWtwScope === 'collections' ? ' hidden' : '') + '"></div>';
+      + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
+      + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
+      + (!hidePickers
+        ? '<div class="site-wtw-modes" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
+          + '<div id="whattowatch-result" class="whattowatch-result"></div>'
+        : '');
 
     function paintWtwCollectionsPanel() {
       const panel = root.querySelector('#site-wtw-collections-panel');
@@ -21310,43 +21374,49 @@
       }
       tryPaint(0);
     }
+    function paintWtwClubsPanel() {
+      const panel = root.querySelector('#site-wtw-clubs-panel');
+      if (!panel || siteWtwScope !== 'clubs') return;
+      function tryPaint(attempt) {
+        try {
+          if (window.MpClubsPage && typeof window.MpClubsPage.renderCatalog === 'function') {
+            window.MpClubsPage.renderCatalog(panel);
+            return;
+          }
+          if (attempt < 240) {
+            setTimeout(function () { tryPaint(attempt + 1); }, 50);
+          } else if (panel && !panel.innerHTML.trim()) {
+            panel.innerHTML = '<div class="settings-loading">Загружаем киноклубы…</div>';
+          }
+        } catch (_) {}
+      }
+      tryPaint(0);
+    }
     window.__mpRepaintWtwCollectionsPanel = function () {
       if (siteWtwScope !== 'collections') return;
       paintWtwCollectionsPanel();
+    };
+    window.__mpRepaintWtwClubsPanel = function () {
+      if (siteWtwScope !== 'clubs') return;
+      paintWtwClubsPanel();
     };
 
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sc = btn.getAttribute('data-site-wtw-scope');
-        if (sc !== 'library' && sc !== 'world' && sc !== 'collections') return;
+        if (sc !== 'library' && sc !== 'world' && sc !== 'collections' && sc !== 'clubs') return;
+        if (sc === siteWtwScope && !(sc === 'collections' && siteWtwCollectionCode)) return;
         siteWtwScope = sc;
         // «Коллекции» always returns to hub list (not stuck on detail).
         siteWtwCollectionCode = null;
         try { sessionStorage.setItem('mp_wtw_scope', sc); } catch (_) {}
         pushWtwUrl({ scope: sc, code: null, replace: false });
-        root.querySelectorAll('[data-site-wtw-scope]').forEach((b) => {
-          b.classList.toggle('active', b.getAttribute('data-site-wtw-scope') === sc);
-        });
-        const modesEl = root.querySelector('#site-wtw-modes');
-        const resultEl = root.querySelector('#whattowatch-result');
-        const collPanel = root.querySelector('#site-wtw-collections-panel');
-        const isColl = sc === 'collections';
-        if (modesEl) {
-          modesEl.classList.toggle('hidden', isColl);
-          if (!isColl) modesEl.innerHTML = renderSiteWtwModesList(sc);
-          if (!isColl) bindSiteWtwModeRows(modesEl);
-        }
-        if (resultEl) {
-          resultEl.classList.toggle('hidden', isColl);
-          if (isColl) resultEl.innerHTML = '';
-        }
-        if (collPanel) {
-          collPanel.classList.toggle('hidden', !isColl);
-          if (isColl) paintWtwCollectionsPanel();
-        }
+        // Полная перерисовка панели: иначе прошлый scope (промо «что такое», режимы) остаётся снизу.
+        renderWhattowatchSection();
       });
     });
-    if (siteWtwScope === 'collections') paintWtwCollectionsPanel();
+    if (isColl) paintWtwCollectionsPanel();
+    else if (isClubs) paintWtwClubsPanel();
     else bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
   }
 
@@ -23397,7 +23467,35 @@
         return;
       }
       if (gk === 'friends') {
-        body.innerHTML = '<p class="cabinet-hint">Для группы друзей поиск и отдельные заявки здесь не настраиваются.</p>';
+        body.innerHTML = `
+          <p class="cabinet-hint">Группа друзей закрытая: её нет в каталоге киноклубов.</p>
+          <button type="button" class="btn btn-primary" id="room-convert-club">Сделать киноклубом</button>
+          <p class="cabinet-hint" style="margin-top:10px">После смены типа можно открыть клуб в каталоге «Смотреть → Киноклубы» и настроить описание, поиск и заявки.</p>
+        `;
+        const conv = document.getElementById('room-convert-club');
+        if (conv) {
+          conv.addEventListener('click', () => {
+            conv.disabled = true;
+            conv.textContent = 'Сохраняем…';
+            api('/api/site/rooms/' + mid + '/settings', {
+              method: 'PATCH',
+              body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true }),
+            }).then((r) => {
+              if (r && r.success) {
+                showToast('Теперь это киноклуб');
+                openRoomAccessModal(chatId);
+              } else {
+                conv.disabled = false;
+                conv.textContent = 'Сделать киноклубом';
+                alert((r && r.error) || 'Не удалось сменить тип. Попробуйте ещё раз после обновления сервера.');
+              }
+            }).catch(() => {
+              conv.disabled = false;
+              conv.textContent = 'Сделать киноклубом';
+              alert('Ошибка сети');
+            });
+          });
+        }
         return;
       }
 
@@ -23411,6 +23509,7 @@
       ];
       const curMode = room.join_approval_mode || 'any_admin';
       const discover = !!room.is_discoverable;
+      const roomDesc = String(room.description || room.short_description || '').slice(0, 200);
       const approverIds = (room.join_approver_user_ids || []).map(Number);
 
       const pending = (jr && jr.success && jr.items)
@@ -23451,9 +23550,15 @@
         : '<p class="cabinet-hint" style="margin-top:14px">Нет активных заявок.</p>';
 
       body.innerHTML = `
+        ${gk === 'cinema_club' ? `
+        <div class="create-room-label">Описание киноклуба</div>
+        <textarea id="room-access-desc" class="add-film-input create-room-desc" maxlength="200" rows="3" placeholder="О чём клуб, как часто смотрите">${escapeHtml(roomDesc)}</textarea>
+        <div class="create-room-desc-count" id="room-access-desc-count">${roomDesc.length} / 200</div>
+        <button type="button" class="btn btn-small btn-secondary" id="room-access-desc-save" style="margin:8px 0 12px">Сохранить описание</button>
+        ` : ''}
         <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:4px;font-size:14px">
           <input type="checkbox" id="room-access-discover" ${discover ? 'checked' : ''} style="margin-top:3px">
-          <span>Показывать группу в поиске</span>
+          <span>${gk === 'cinema_club' ? 'Показывать в каталоге киноклубов' : 'Показывать группу в поиске'}</span>
         </label>
         <div class="create-room-label" style="margin-top:14px">Режим заявок</div>
         <div class="create-room-approval-row" id="room-access-mode-row">
@@ -23472,6 +23577,31 @@
           }).then((r) => {
             if (r && r.success) showToast('Сохранено');
             else { disEl.checked = !disEl.checked; alert((r && r.error) || 'Ошибка'); }
+          });
+        });
+      }
+      const descEl = document.getElementById('room-access-desc');
+      const descCount = document.getElementById('room-access-desc-count');
+      const descSave = document.getElementById('room-access-desc-save');
+      if (descEl && descCount) {
+        descEl.addEventListener('input', () => {
+          descCount.textContent = String(descEl.value.length) + ' / 200';
+        });
+      }
+      if (descSave && descEl) {
+        descSave.addEventListener('click', () => {
+          const text = String(descEl.value || '').trim().slice(0, 200);
+          descSave.disabled = true;
+          api('/api/site/rooms/' + mid + '/settings', {
+            method: 'PATCH',
+            body: JSON.stringify({ description: text }),
+          }).then((r) => {
+            descSave.disabled = false;
+            if (r && r.success) showToast('Описание сохранено');
+            else alert((r && r.error) || 'Не удалось сохранить описание');
+          }).catch(() => {
+            descSave.disabled = false;
+            alert('Ошибка сети');
           });
         });
       }
@@ -23972,6 +24102,14 @@
     if (grpSearchBtn) grpSearchBtn.addEventListener('click', () => void _runGroupDiscover());
     if (grpSearchInput) grpSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') void _runGroupDiscover(); });
     void _loadFriendsPane();
+    const clubsCat = document.getElementById('groups-open-clubs-catalog');
+    if (clubsCat && !clubsCat._mpBound) {
+      clubsCat._mpBound = true;
+      clubsCat.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof openSiteWhattowatch === 'function') openSiteWhattowatch({ scope: 'clubs' });
+      });
+    }
   }
 
   async function _runGroupDiscover() {
@@ -24068,6 +24206,7 @@
             ${shareBtn}
             ${showManage ? '<button type="button" class="group-card-manage" data-action="group-manage" data-cid="' + escapeHtml(String(p.chat_id)) + '">Участники</button>' : ''}
             ${showManage ? '<button type="button" class="group-card-manage" data-action="group-access" data-cid="' + escapeHtml(String(p.chat_id)) + '">Заявки и доступ</button>' : ''}
+            ${showManage && type === 'Группа друзей' ? '<button type="button" class="group-card-manage" data-action="group-to-club" data-cid="' + escapeHtml(String(p.chat_id)) + '">Сделать киноклубом</button>' : ''}
           </div>
         </div>`;
       }).join('');
@@ -24087,6 +24226,25 @@
       list.querySelectorAll('[data-action="group-access"]').forEach((b) => {
         b.addEventListener('click', () => openRoomAccessModal(b.getAttribute('data-cid')));
       });
+      list.querySelectorAll('[data-action="group-to-club"]').forEach((b) => {
+        b.addEventListener('click', () => {
+          const cid = b.getAttribute('data-cid');
+          if (!cid) return;
+          b.disabled = true;
+          api('/api/site/rooms/' + encodeURIComponent(cid) + '/settings', {
+            method: 'PATCH',
+            body: JSON.stringify({ group_kind: 'cinema_club', is_discoverable: true }),
+          }).then((r) => {
+            if (r && r.success) {
+              showToast('Группа стала киноклубом');
+              renderGroupsSection();
+            } else {
+              b.disabled = false;
+              alert((r && r.error) || 'Не удалось сменить тип');
+            }
+          }).catch(() => { b.disabled = false; alert('Ошибка сети'); });
+        });
+      });
       list.querySelectorAll('[data-action="switch-profile"]').forEach((b) => {
         b.addEventListener('click', () => switchProfileTo(b.getAttribute('data-chat-id')));
       });
@@ -24102,6 +24260,12 @@
 
   let _createRoomDiscover = false;
   let _createRoomApproval = 'any_admin';
+  let _createRoomPresetKind = null;
+
+  function syncCreateRoomDescVisibility(kind) {
+    const wrap = document.getElementById('create-room-desc-wrap');
+    if (wrap) wrap.classList.toggle('hidden', kind !== 'cinema_club');
+  }
 
   function renderCreateRoomKindExtra() {
     const box = document.getElementById('create-room-kind-extra');
@@ -24123,7 +24287,7 @@
     box.innerHTML = `
       <label class="create-room-discover" style="display:flex;align-items:flex-start;gap:10px;margin-top:8px;cursor:pointer;font-size:14px;color:var(--text-body,#eee)">
         <input type="checkbox" id="create-room-discoverable" style="margin-top:3px" ${_createRoomDiscover ? 'checked' : ''}>
-        <span>Показывать в поиске групп</span>
+        <span>${kind === 'cinema_club' ? 'Показывать в каталоге киноклубов' : 'Показывать в поиске групп'}</span>
       </label>
       <div class="create-room-label" style="margin-top:12px">Заявки на вступление</div>
       <div class="create-room-approval-row" id="create-room-approval-row">
@@ -24144,22 +24308,41 @@
     });
   }
 
-  function openCreateRoomModal() {
+  function openCreateRoomModal(opts) {
+    const o = opts || {};
     const modal = document.getElementById('create-room-modal');
     if (!modal) return;
     const input = document.getElementById('create-room-name');
     const statusEl = document.getElementById('create-room-status');
     const kindRow = document.getElementById('create-room-kind-row');
+    const descEl = document.getElementById('create-room-desc');
+    const preset = o.kind === 'cinema_club' || o.kind === 'blogger' || o.kind === 'friends' ? o.kind : null;
+    _createRoomPresetKind = preset;
     if (kindRow) {
       kindRow.querySelectorAll('.create-room-kind-btn').forEach((b) => b.classList.remove('active'));
-      const f = kindRow.querySelector('.create-room-kind-btn[data-kind="friends"]');
+      const want = preset || 'friends';
+      const f = kindRow.querySelector('.create-room-kind-btn[data-kind="' + want + '"]');
       if (f) f.classList.add('active');
     }
-    _createRoomDiscover = false;
-    _createRoomApproval = 'any_admin';
+    if (preset === 'cinema_club') {
+      _createRoomDiscover = o.discoverable !== false;
+      _createRoomApproval = o.approval || 'any_admin';
+    } else if (preset === 'blogger') {
+      _createRoomDiscover = !!o.discoverable;
+      _createRoomApproval = o.approval || 'any_admin';
+    } else {
+      _createRoomDiscover = false;
+      _createRoomApproval = 'any_admin';
+    }
+    if (descEl) descEl.value = '';
+    syncCreateRoomDescVisibility(preset || 'friends');
     renderCreateRoomKindExtra();
     if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
+    const titleEl = modal.querySelector('.add-film-title');
+    if (titleEl) titleEl.textContent = preset === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу';
+    const submitBtn = document.getElementById('create-room-submit');
+    if (submitBtn) submitBtn.textContent = preset === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу';
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -24200,6 +24383,7 @@
         } else {
           _createRoomDiscover = false;
         }
+        syncCreateRoomDescVisibility(kind);
         renderCreateRoomKindExtra();
       });
     }
@@ -24216,6 +24400,14 @@
     if (submitBtn) submitBtn.addEventListener('click', submitCreateRoom);
     const nameInput = document.getElementById('create-room-name');
     if (nameInput) nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitCreateRoom(); });
+    const descInput = document.getElementById('create-room-desc');
+    const descCount = document.getElementById('create-room-desc-count');
+    if (descInput && descCount && !descInput._mpBound) {
+      descInput._mpBound = true;
+      descInput.addEventListener('input', () => {
+        descCount.textContent = String(descInput.value.length) + ' / 200';
+      });
+    }
   }
 
   function submitCreateRoom() {
@@ -24228,6 +24420,8 @@
     if (!name) { if (statusEl) { statusEl.textContent = 'Введите название группы'; statusEl.className = 'add-film-status error'; } return; }
     const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
     const groupKind = (kindBtn && kindBtn.getAttribute('data-kind')) || 'friends';
+    const descEl = document.getElementById('create-room-desc');
+    const description = descEl ? String(descEl.value || '').trim().slice(0, 200) : '';
     const body = { name, emoji, group_kind: groupKind };
     if (groupKind === 'friends') {
       body.is_discoverable = false;
@@ -24236,9 +24430,10 @@
       body.is_discoverable = !!_createRoomDiscover;
       body.join_approval_mode = _createRoomApproval;
     }
+    if (groupKind === 'cinema_club' && description) body.description = description;
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = groupKind === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу'; }
       if (!data || !data.success) {
         if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать группу'; statusEl.className = 'add-film-status error'; }
         return;
@@ -24260,6 +24455,15 @@
       if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'add-film-status error'; }
     });
   }
+
+  try {
+    window.openCreateRoomModal = openCreateRoomModal;
+    window.switchProfileTo = switchProfileTo;
+    window.__mpOpenCreateCinemaClub = function () {
+      openCreateRoomModal({ kind: 'cinema_club' });
+    };
+    window.apiPublic = apiPublic;
+  } catch (_) {}
 
   function generateRoomInvite(chatId, isVirtual) {
     if (!chatId) return;
@@ -25329,14 +25533,7 @@
           siteWtwCollectionCode = fromPath.code;
           try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
         }
-        const wtw = document.getElementById('section-whattowatch');
-        if (wtw) {
-          wtw.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
-          wtw.classList.toggle(
-            'whattowatch--collection-detail',
-            siteWtwScope === 'collections' && !!siteWtwCollectionCode
-          );
-        }
+        if (typeof syncWtwSectionClasses === 'function') syncWtwSectionClasses();
       }
       if (sec) {
         if (!getToken() && sectionNeedsAuthForGuest(sec)) {
@@ -25394,7 +25591,7 @@
             siteWtwScope = fromPath.scope;
             siteWtwCollectionCode = fromPath.code;
             try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
-          } else {
+          } else if (siteWtwScope !== 'world' && siteWtwScope !== 'collections' && siteWtwScope !== 'clubs') {
             siteWtwScope = 'library';
             siteWtwCollectionCode = null;
             try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
@@ -25711,6 +25908,8 @@
   try {
     window.getToken = getToken;
     window.api = api;
+    window.apiPublic = apiPublic;
+    window.requireAuthForAction = requireAuthForAction;
     window.escapeHtml = escapeHtml;
     window.posterUrl = posterUrl;
     window.renderPremiereNotifyButton = renderPremiereNotifyButton;
