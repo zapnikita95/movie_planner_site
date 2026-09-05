@@ -5131,6 +5131,7 @@
   function resolveMediaUrl(url) {
     const raw = rewriteApexMediaUrl(String(url || '').trim());
     if (!raw) return '';
+    if (raw.toLowerCase().indexOf('jsdelivr.net') >= 0) return '';
     if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
     if (raw.startsWith('/api/')) return MEDIA_ORIGIN + raw;
     return raw;
@@ -17344,6 +17345,7 @@
   function localizeGenreLabel(label) {
     const raw = String(label || '').trim();
     if (!raw) return '';
+    if (raw.toLowerCase().indexOf('jsdelivr.net') >= 0) return '';
     if (/[а-яА-ЯёЁ]/.test(raw)) return raw;
     if (TMDB_GENRE_EN_RU[raw]) return TMDB_GENRE_EN_RU[raw];
     const titled = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
@@ -20293,6 +20295,7 @@
   function siteWtwAbsolutePosterUrl(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
+    if (raw.toLowerCase().indexOf('jsdelivr.net') >= 0) return '';
     try {
       return new URL(raw, 'https://movie-planner.ru').href;
     } catch (_) {
@@ -20934,6 +20937,7 @@
   function formatSiteAiText(text) {
     const raw = String(text || '');
     if (!raw) return '';
+    if (raw.toLowerCase().indexOf('jsdelivr.net') >= 0) return '';
     let html = escapeHtml(raw);
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\n/g, '<br>');
