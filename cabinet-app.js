@@ -21326,6 +21326,9 @@
     } catch (_) {}
 
     syncWtwSectionClasses();
+    if (siteWtwScope !== 'clubs') {
+      try { restoreDocumentTitle(); } catch (_) {}
+    }
 
     const lib = SITE_WTW_SCOPES.library;
     const world = SITE_WTW_SCOPES.world;
