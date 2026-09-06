@@ -28345,3 +28345,35 @@ a.plan-place-link {
 }
 .premieres-donations-link:hover { text-decoration: underline; }
 .landing-frame--donations { margin-top: 8px; }
+
+/* Clubs feed UX release: one selectable poll row, monochrome voting CTA, reactions and comment pill. */
+.club-poll-vote{margin-top:0;padding-top:0;border-top:0}
+.club-poll-q{font-family:Unbounded,Inter,sans-serif;font-size:14px;line-height:1.35;margin:0 0 10px}
+.club-poll-choices{display:grid;gap:7px}
+.club-poll-choice{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 9px;border:1px solid var(--club-line);border-radius:11px;background:rgba(0,0,0,.18);cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.club-poll-choice:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.04)}
+.club-poll-choice input{appearance:none;-webkit-appearance:none;width:18px;height:18px;flex:0 0 18px;margin:0;border:2px solid #8f8198;border-radius:50%;background:transparent;cursor:pointer}
+.club-poll-choice input:checked{border-color:var(--club-pink);box-shadow:inset 0 0 0 4px var(--club-card);background:var(--club-pink)}
+.club-poll-vote.is-multiple .club-poll-choice input{border-radius:5px}
+.club-poll-vote.is-multiple .club-poll-choice input:checked{box-shadow:inset 0 0 0 3px var(--club-card)}
+.club-poll-choice-text{font-size:13px;line-height:1.35;min-width:0}
+.club-poll-film-link{display:block;min-width:0;flex:1;color:#fff;text-decoration:none}
+.club-poll-film{padding:0;gap:10px}
+.club-poll-film img,.club-poll-film-ph{width:56px;height:76px;flex-basis:56px}
+.club-poll-vote-btn{display:block;margin:12px 0 0 auto;padding:10px 16px;border:1.5px solid rgba(255,255,255,.92);border-radius:8px;background:transparent;color:#fff;font-family:Unbounded,Inter,sans-serif;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1;cursor:pointer;transition:background .12s ease,color .12s ease,opacity .12s ease}
+.club-poll-vote-btn:hover,.club-poll-vote-btn:focus-visible{background:#fff;color:#09090b;outline:none}
+.club-poll-vote-btn:disabled{opacity:.35;cursor:default}
+.club-poll-vote-btn:disabled:hover{background:transparent;color:#fff}
+.club-poll-login{padding:10px 0 0;text-align:right}
+.club-post-comments{display:flex;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06)}
+.club-comments-toggle{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:36px;min-height:32px;padding:5px 9px;border:1px solid var(--club-line);border-radius:999px;background:rgba(255,255,255,.04);color:#d8d4e2;cursor:pointer}
+.club-comments-toggle:hover,.club-comments-toggle:focus-visible{border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.08);color:#fff;outline:none}
+.club-comments-icon{display:inline-flex;align-items:center;color:#d8d4e2}.club-comments-icon .mp-icon{font-size:16px;line-height:1}.club-comments-count{font-size:12px;font-weight:700;line-height:1}
+.club-post-comments>.club-comments{width:100%;box-sizing:border-box;margin:8px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.14);border:1px solid var(--club-line)}
+.club-reactions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px}
+.club-reaction-list{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.club-reaction-pill,.club-reaction-plus,.club-reaction-flyout button{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--club-line);border-radius:999px;background:rgba(255,255,255,.04);color:#e8e4f0;cursor:pointer}
+.club-reaction-pill{min-height:28px;padding:3px 8px;font-size:13px}.club-reaction-pill b{font-size:11px;color:var(--club-muted)}
+.club-reaction-pill[aria-pressed=true]{border-color:rgba(239,28,122,.65);background:rgba(239,28,122,.16)}
+.club-reaction-plus{width:30px;height:28px;padding:0;font-size:18px;color:var(--club-muted)}
+.club-reaction-add{position:relative}.club-reaction-flyout{position:absolute;left:0;bottom:calc(100% + 7px);z-index:5;display:flex;gap:4px;padding:6px;border:1px solid var(--club-line);border-radius:12px;background:#1b1a22;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease,visibility .12s ease}.club-reaction-add:hover .club-reaction-flyout,.club-reaction-add:focus-within .club-reaction-flyout{opacity:1;visibility:visible;transform:none}.club-reaction-flyout button{width:30px;height:30px;padding:0;border:0;background:transparent;font-size:17px}.club-reaction-flyout button:hover,.club-reaction-flyout button:focus-visible{background:rgba(255,255,255,.1);outline:none}
