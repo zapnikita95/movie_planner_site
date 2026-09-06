@@ -2808,6 +2808,10 @@
         return;
       }
       clearTimeout(timer);
+      // Drop stale results immediately while debounce waits.
+      dd.innerHTML = searchLoadingHtml();
+      dd.classList.remove('hidden');
+      setDropdownOpen(true);
       timer = setTimeout(function () {
         var mySeq = ++seq;
         if (controller) controller.abort();

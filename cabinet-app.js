@@ -909,11 +909,6 @@
 
   function showLoginModalOverlay(preferredTab) {
     try {
-      const gate = ensureMpLayerGate();
-      if (gate.isOnboardingOpen()) {
-        gate.queueOnboarding();
-        gate.hideOnboardingLayers();
-      }
       const tab = preferredTab === 'register' || preferredTab === 'login'
         ? preferredTab
         : loginTabFromQuery();
@@ -1300,7 +1295,6 @@
       sessionStorage.removeItem('mp_pending_kp_open');
       sessionStorage.removeItem('mp_pending_kp_action');
     } catch (_) {}
-    try { flushOnboardingAfterLoginSettled(); } catch (_) {}
     const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
     const pathKp = kpIdFromPathname(path);
     if (pathKp && (window.__MP_FILM_RENDERED || isFilmLiteRouteActive() || isFilmPageContentReady(pathKp))) {
@@ -2437,75 +2431,6 @@
   let _siteOnboardingChainRunning = false;
   let _siteOnboardingChainQueued = false;
 
-  function ensureMpLayerGate() {
-    if (window.MpLayerGate) return window.MpLayerGate;
-    const ONBOARD_SEL = [
-      '.mp-onboard-overlay',
-      '.mp-onboard-dialog-overlay',
-      '.mp-first-onboard-overlay',
-      '.mp-onboard-picker-overlay',
-      '.mp-intro-carousel-overlay',
-      '.home-tour-overlay-root',
-    ].join(', ');
-    window.MpLayerGate = {
-      isLoginOpen: function () {
-        const m = document.getElementById('login-modal');
-        if (!m || m.classList.contains('hidden')) return false;
-        if (m.getAttribute('aria-hidden') === 'true') return false;
-        return true;
-      },
-      isOnboardingOpen: function () {
-        if (document.getElementById('site-home-tour-overlay')) return true;
-        if (document.getElementById('site-content-tour-overlay')) return true;
-        if (document.getElementById('site-first-onboard-overlay')) return true;
-        try {
-          return !!document.querySelector(ONBOARD_SEL);
-        } catch (_) {
-          return false;
-        }
-      },
-      hideOnboardingLayers: function () {
-        removeSiteTourUi();
-        try {
-          document.querySelectorAll(ONBOARD_SEL).forEach(function (el) {
-            try { el.remove(); } catch (_) {}
-          });
-        } catch (_) {}
-      },
-      queueOnboarding: function () {
-        try { sessionStorage.setItem('mp_onboard_queued_after_login', '1'); } catch (_) {}
-      },
-      consumeOnboardingQueue: function () {
-        try {
-          if (sessionStorage.getItem('mp_onboard_queued_after_login') === '1') {
-            sessionStorage.removeItem('mp_onboard_queued_after_login');
-            return true;
-          }
-        } catch (_) {}
-        return false;
-      },
-    };
-    return window.MpLayerGate;
-  }
-
-  function isLoginModalOpen() {
-    return ensureMpLayerGate().isLoginOpen();
-  }
-
-  function deferOnboardingIfLoginOpen() {
-    if (!isLoginModalOpen()) return false;
-    ensureMpLayerGate().queueOnboarding();
-    return true;
-  }
-
-  function flushOnboardingAfterLoginSettled() {
-    const gate = ensureMpLayerGate();
-    const queued = gate.consumeOnboardingQueue();
-    if (!queued || isLoginModalOpen()) return;
-    if (!getToken()) return;
-    scheduleSiteOnboardingAfterCabinet();
-  }
-
   function removeSiteTourUi() {
     document.querySelectorAll('.tour-highlight').forEach(function (el) {
       el.classList.remove('tour-highlight');
@@ -2864,9 +2789,6 @@
   }
 
   function mountSiteFirstOnboardingWizard(onComplete) {
-    if (deferOnboardingIfLoginOpen()) {
-      return;
-    }
     if (typeof window.__mpMountExtendedOnboarding === 'function') {
       window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), onComplete);
       return;
@@ -2913,8 +2835,6 @@
   function maybeStartSiteHomeTour(opts) {
     opts = opts || {};
     return uiToursEnsureHydrated().then(function () {
-      if (deferOnboardingIfLoginOpen()) return;
-      if (!getToken() && !opts.force) return;
       let force = !!opts.force;
       try {
         if (sessionStorage.getItem('mp_force_home_tour') === '1') {
@@ -3166,7 +3086,6 @@
       _siteOnboardingChainQueued = true;
       return Promise.resolve();
     }
-    if (deferOnboardingIfLoginOpen()) return Promise.resolve();
     if (!getToken()) return Promise.resolve();
     try {
       const gst = JSON.parse(sessionStorage.getItem('mp_guest_onboard_state') || '{}');
@@ -3770,9 +3689,6 @@
 
   function runSiteSpotlightTour(opts) {
     opts = opts || {};
-    if (deferOnboardingIfLoginOpen()) {
-      return Promise.resolve();
-    }
     const steps = (opts.steps || []).filter(Boolean);
     if (!steps.length) {
       if (typeof opts.onDone === 'function') opts.onDone();
@@ -4221,7 +4137,6 @@
 
   async function maybeOfferContentPagePostAuth() {
     if (!getToken()) return;
-    if (deferOnboardingIfLoginOpen()) return;
     if (guestOnboardResumePending()) return;
     if (_contentPageOnboardingRunning) return;
     const page = peekContentPageFromLocation();
@@ -4281,7 +4196,6 @@
 
   /** Общее сохранение сессии после кода / OAuth / Telegram Login Widget */
   function applySiteSessionLogin(data, modalEl, statusEl) {
-    try { ensureMpLayerGate().consumeOnboardingQueue(); } catch (_) {}
     const sessions = getSessions();
     const isPersonal = data.is_personal !== undefined ? !!data.is_personal : true;
     const chatId = String(data.chat_id);
@@ -5691,11 +5605,25 @@
     setHeaderSearchDropdownOpen(false);
   }
 
-  function syncSiteSearchFromHeader() {
+    function syncSiteSearchFromHeader() {
     const pageInput = document.getElementById('site-search-input');
     const headerInput = document.getElementById('header-search-input');
-    if (pageInput && headerInput) pageInput.value = headerInput.value;
+    if (!pageInput || !headerInput) return;
+    pageInput.value = headerInput.value;
     if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
+    const q = String(headerInput.value || '').trim();
+    if (q.length >= 2) {
+      const status = document.getElementById('site-search-status');
+      const results = document.getElementById('site-search-results');
+      const personsEl = document.getElementById('site-search-persons');
+      const personsSection = document.getElementById('site-search-persons-section');
+      const filmsLabel = document.getElementById('site-search-films-label');
+      if (status) status.innerHTML = siteSearchLoadingHtml();
+      if (personsEl) personsEl.innerHTML = '';
+      if (personsSection) personsSection.classList.add('hidden');
+      if (filmsLabel) filmsLabel.classList.add('hidden');
+      if (results) results.innerHTML = '';
+    }
     _headerSearchDebounce = setTimeout(() => runSiteSearchPage(), SITE_SEARCH_INPUT_DEBOUNCE_MS);
   }
 
@@ -19953,6 +19881,13 @@
         return;
       }
       if (_headerSearchDebounce) clearTimeout(_headerSearchDebounce);
+      // Clear stale results immediately — don't wait for debounce.
+      if (dd && v.length >= 2) {
+        dd.innerHTML = renderHeaderSearchTypeTabsHtml() + siteSearchLoadingHtml();
+        dd.classList.remove('hidden');
+        setHeaderSearchDropdownOpen(true);
+        scheduleHeaderSearchDropdownLayout();
+      }
       _headerSearchDebounce = setTimeout(() => runHeaderSearch(v), SITE_SEARCH_INPUT_DEBOUNCE_MS);
     });
     input.addEventListener('focus', () => {
@@ -26030,12 +25965,6 @@
     window.showToast = showToast;
     window.showLoginModalOverlay = showLoginModalOverlay;
     window._mpDismissLoginModal = dismissLoginModal;
-    window.__mpOnLoginModalDismissed = flushOnboardingAfterLoginSettled;
-    try {
-      document.addEventListener('mp:login-modal-dismissed', function () {
-        try { flushOnboardingAfterLoginSettled(); } catch (_) {}
-      });
-    } catch (_) {}
     window._mpApplySiteSessionLogin = applySiteSessionLogin;
     window.__mpCompleteOnboardHandoff = completeOnboardHandoff;
     window.__mpScheduleContentPagePostAuthOffer = scheduleContentPagePostAuthOffer;
