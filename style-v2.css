@@ -27343,7 +27343,7 @@ body.staff-standalone-page .staff-awards-loading {
   margin: 0 auto;
 }
 .clubs-intro {
-  margin: 0 0 12px;
+  display: none;
 }
 .clubs-toolbar {
   display: flex;
@@ -27515,6 +27515,20 @@ body.staff-standalone-page .staff-awards-loading {
   font-size: 11px;
   color: var(--text-muted, #9a9aa6);
 }
+.clubs-section-head {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #9a9aa6);
+  margin: 18px 0 10px;
+  text-align: left;
+}
+.clubs-list-host > .clubs-section-head:first-child {
+  margin-top: 4px;
+}
+.clubs-list-host > .clubs-grid {
+  margin-bottom: 4px;
+}
 .clubs-card-actions {
   margin-top: 0;
   flex-shrink: 0;
@@ -27522,13 +27536,43 @@ body.staff-standalone-page .staff-awards-loading {
   justify-content: flex-end;
   align-items: flex-start;
 }
+.clubs-card-actions--mobile {
+  display: none;
+}
 .clubs-card-cta {
   white-space: nowrap;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
 }
 @media (max-width: 560px) {
-  .clubs-card-topline { flex-direction: column; align-items: stretch; }
-  .clubs-card-actions { justify-content: stretch; }
-  .clubs-card-cta { width: 100%; }
+  .clubs-card-topline {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .clubs-card-actions--desktop { display: none; }
+  .clubs-card-actions--mobile {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  .clubs-card-cta {
+    width: auto;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 7px 14px;
+  }
+  .clubs-card-desc {
+    margin-top: 6px;
+  }
+  .clubs-toolbar {
+    flex-direction: column;
+  }
+  .clubs-create-btn {
+    width: 100%;
+  }
 }
 .clubs-empty {
   padding: 28px 8px 12px;

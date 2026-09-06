@@ -474,21 +474,13 @@
       + "</div></div>";
   }
 
+  function sectionHead(label) {
+    return '<div class="clubs-section-head">' + esc(label) + "</div>";
+  }
+
   function myClubsHtml() {
-    if (!_myClubs.length) return "";
-    return '<div class="clubs-mine">'
-      + '<div class="clubs-mine-head">Ваши киноклубы</div>'
-      + '<div class="clubs-mine-row">'
-      + _myClubs.map(function (p) {
-        var name = p.display_name || p.name || "Киноклуб";
-        var emoji = clubEmoji(p);
-        return '<button type="button" class="clubs-mine-chip" data-clubs-action="open" data-chat-id="'
-          + esc(String(p.chat_id)) + '">'
-          + '<span class="clubs-mine-emoji">' + esc(emoji) + "</span>"
-          + '<span class="clubs-mine-name">' + esc(name) + "</span>"
-          + "</button>";
-      }).join("")
-      + "</div></div>";
+    /* Chips removed — membership sections live in paintList. */
+    return "";
   }
 
   function recentHtml(items) {
@@ -536,10 +528,10 @@
       + '<h3 class="clubs-card-name">' + esc(name) + "</h3>"
       + '<span class="clubs-card-badge">Киноклуб</span>'
       + "</div>"
-      + '<div class="clubs-card-actions">' + ctaBtn + "</div>"
+      + '<div class="clubs-card-actions clubs-card-actions--desktop">' + ctaBtn + "</div>"
       + "</div>"
       + '<div class="clubs-card-meta">'
-      + '<span>' + esc(membersLabel(members)) + "</span>"
+      + '<span>' + esc(membersLabel(members)) + '</span>'
       + '<span class="clubs-card-dot" aria-hidden="true">·</span>'
       + '<span>' + esc(freq) + "</span>"
       + "</div>"
@@ -550,6 +542,7 @@
           + "</p>"
         : "")
       + recentHtml(recent)
+      + '<div class="clubs-card-actions clubs-card-actions--mobile">' + ctaBtn + "</div>"
       + "</div></article>";
   }
 
@@ -590,7 +583,7 @@
       e.stopPropagation();
       var kind = cta.getAttribute("data-clubs-cta");
       var chatId = cta.getAttribute("data-chat-id");
-      if (kind === "open") openClub(chatId);
+      if (kind === "open") openClub(cta.getAttribute("data-club-key") || chatId);
       else sendJoin(chatId, cta);
     });
   }
@@ -651,16 +644,54 @@
     var mineHost = root.querySelector("#wtw-clubs-mine");
     var listEl = root.querySelector("#wtw-clubs-list");
     var pagerEl = root.querySelector("#wtw-clubs-pager");
-    if (mineHost) mineHost.innerHTML = myClubsHtml();
+    if (mineHost) mineHost.innerHTML = "";
     if (pagerEl) pagerEl.innerHTML = (groups.length || _state.total) ? pagerHtml() : "";
     if (!listEl) return;
-    if (!groups.length) {
+    if (!groups.length && !_myClubs.length) {
       listEl.className = "clubs-list-host";
       listEl.innerHTML = emptyHtml();
       return;
     }
-    listEl.className = "clubs-grid";
-    listEl.innerHTML = groups.map(cardHtml).join("");
+    var mine = [];
+    var rest = [];
+    var seen = {};
+    (groups || []).forEach(function (g) {
+      if (!g) return;
+      var id = String(g.chat_id || g.id || "");
+      if (isMember(g)) {
+        mine.push(g);
+        if (id) seen[id] = true;
+      } else {
+        rest.push(g);
+      }
+    });
+    /* Membership-only clubs not in current catalog page still show under Ваши. */
+    _myClubs.forEach(function (p) {
+      var id = String(p.chat_id || "");
+      if (!id || seen[id]) return;
+      if (_state.q) {
+        var nm = String(p.display_name || p.name || "").toLowerCase();
+        if (nm.indexOf(String(_state.q).toLowerCase()) < 0) return;
+      }
+      mine.push(p);
+      seen[id] = true;
+    });
+    var html = "";
+    if (mine.length) {
+      html += sectionHead("Ваши киноклубы");
+      html += '<div class="clubs-grid">' + mine.map(cardHtml).join("") + "</div>";
+    }
+    if (rest.length || (!mine.length && (groups || []).length)) {
+      html += sectionHead("Все киноклубы");
+      html += '<div class="clubs-grid">' + (rest.length ? rest : groups).map(cardHtml).join("") + "</div>";
+    }
+    if (!html) {
+      listEl.className = "clubs-list-host";
+      listEl.innerHTML = emptyHtml();
+      return;
+    }
+    listEl.className = "clubs-list-host";
+    listEl.innerHTML = html;
   }
 
   function loadCatalog(root) {
@@ -706,7 +737,6 @@
     _state.loading = false;
     root.innerHTML =
       '<div class="clubs-page">'
-      + '<p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner. Откройте карточку, вступите или создайте свой.</p>'
       + '<div class="clubs-toolbar">'
       + '<label class="clubs-search-label" for="wtw-clubs-search">'
       + '<span class="visually-hidden">Найти киноклуб</span>'
