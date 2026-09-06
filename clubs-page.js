@@ -412,9 +412,19 @@
     }
   }
 
+  function clubPublicKey(clubOrId) {
+    if (clubOrId && typeof clubOrId === "object") {
+      var slug = String(clubOrId.public_slug || clubOrId.slug || "").trim();
+      if (/^[a-z0-9][a-z0-9-]{1,63}$/i.test(slug)) return slug.toLowerCase();
+      return String(clubOrId.chat_id || clubOrId.id || "");
+    }
+    return String(clubOrId || "");
+  }
+
   function openClub(chatId) {
-    if (!chatId) return;
-    window.location.href = "/club/" + encodeURIComponent(String(chatId));
+    var key = clubPublicKey(chatId);
+    if (!key) return;
+    window.location.href = "/club/" + encodeURIComponent(key);
   }
 
   function sendJoin(chatId, btn) {
@@ -509,15 +519,16 @@
     var recent = recentWatched(club);
     var kind = ctaKind(club);
     var cid = club.chat_id || club.id || "";
+    var ckey = clubPublicKey(club) || cid;
     var coverInner = cover
       ? '<img class="clubs-card-cover-img" src="' + esc(cover) + '" alt="" loading="lazy">'
       : '<span class="clubs-card-emoji">' + esc(emoji) + "</span>";
     var ctaBtn = '<button type="button" class="btn ' + (kind === "open" ? "btn-secondary" : "btn-primary") + " clubs-card-cta"
       + (kind === "pending" ? " is-disabled" : "") + '"'
       + (kind === "pending" ? " disabled" : "")
-      + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '">'
+      + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + esc(ctaLabel(kind)) + "</button>";
-    return '<article class="clubs-card" data-chat-id="' + esc(String(cid)) + '">'
+    return '<article class="clubs-card" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + '<div class="clubs-card-cover">' + coverInner + "</div>"
       + '<div class="clubs-card-body">'
       + '<div class="clubs-card-topline">'
@@ -565,13 +576,13 @@
       var openBtn = e.target.closest("[data-clubs-action='open']");
       if (openBtn && root.contains(openBtn)) {
         e.preventDefault();
-        openClub(openBtn.getAttribute("data-chat-id"));
+        openClub(openBtn.getAttribute("data-club-key") || openBtn.getAttribute("data-chat-id"));
         return;
       }
       var cta = e.target.closest("[data-clubs-cta]");
       if (!cta || !root.contains(cta)) {
         var card = e.target.closest(".clubs-card[data-chat-id]");
-        if (card && root.contains(card)) { e.preventDefault(); openClub(card.getAttribute("data-chat-id")); }
+        if (card && root.contains(card)) { e.preventDefault(); openClub(card.getAttribute("data-club-key") || card.getAttribute("data-chat-id")); }
         return;
       }
       if (cta.disabled) return;
