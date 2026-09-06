@@ -1627,7 +1627,11 @@
     return m ? m[1] : '';
   }
 
-  /** Drop buzz posts that duplicate «Разборы на YouTube» (same YT id/url). */
+  /**
+   * «Обсуждают сейчас» = recent social mentions only.
+   * Drop rows that duplicate «Разборы на YouTube», and drop YouTube/video rows
+   * without a real posted_at (catalog trailers / full-film links are not buzz).
+   */
   function filterBuzzAgainstReviews(buzzPosts, reviewItems) {
     var yids = {};
     var urls = {};
@@ -1640,12 +1644,15 @@
     });
     return (buzzPosts || []).filter(function (p) {
       if (!p || !p.post_url) return false;
+      var plat = String(p.platform || '').toLowerCase();
       var id = youtubeIdFromUrl(p.post_url) || youtubeIdFromUrl(p.channel_url) || '';
       if (id && yids[id]) return false;
       var u = String(p.post_url || '').trim().split('?')[0].replace(/\/$/, '');
       if (u && urls[u]) return false;
-      // YouTube already has its own block when reviews exist — don't mirror as «Обсуждают сейчас».
-      if ((reviewItems || []).length && String(p.platform || '').toLowerCase() === 'youtube') return false;
+      var when = String(p.posted_at || '').trim();
+      var hasDate = /^\d{4}-\d{2}-\d{2}/.test(when);
+      // Video links in buzz only with a real recent social timestamp.
+      if ((plat === 'youtube' || id) && !hasDate) return false;
       return true;
     });
   }
