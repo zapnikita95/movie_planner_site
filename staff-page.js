@@ -24,7 +24,7 @@
     year: '', yearFrom: '', yearTo: '', genre: '', ratingMin: '',
     mainRolesOnly: false, friendsRatedOnly: false,
   };
-  var _staffSortMode = 'default';
+  var _staffSortMode = 'rating_desc'; // best films first (not newest junk)
   var _staffPersonId = '';
   var _staffLoginNow = null;
   var _staffPendingFriendsFilter = false;
@@ -408,7 +408,7 @@
 
   function personFilmBatchLimit(roleKey) {
     // Always page small batches. Server sorts/filters the full role; remainder
-    // arrives via quiet background prefetch (or on «Развернуть»).
+    // arrives via quiet background prefetch (or on «Показать все» / scroll).
     var rk = String(roleKey || '').toUpperCase();
     var primary = _staffPrimaryRoleKey || resolvePrimaryRoleKey(
       (_staffLastData && _staffLastData.films_by_role) || []
@@ -2404,7 +2404,7 @@
     if (!expanded && totalHint > previewLimit) {
       grid += (
         '<button type="button" class="staff-role-expand" data-role-expand="' + escapeHtml(roleKey || '') + '">' +
-          'Развернуть · ' + (totalHint - previewLimit) +
+          'Показать все · ' + (totalHint - previewLimit) +
         '</button>'
       );
     }
@@ -2661,24 +2661,40 @@
     bindStaffRoleExpandButtons(root);
   }
 
+  function expandStaffRole(rk) {
+    rk = String(rk || '');
+    if (!rk) return;
+    _staffExpandedRoles[rk] = true;
+    paintStaffRoles();
+    if (_staffRoleHasMore[rk] && _staffPersonId) {
+      var block = (_staffLastData.films_by_role || []).find(function (b) {
+        return String(b.role_key || '') === rk;
+      });
+      var loaded = block && block.films ? block.films.length : 0;
+      loadStaffRoleFilmsBackground(_staffPersonId, rk, loaded).catch(function () {});
+    }
+  }
+
   function bindStaffRoleExpandButtons(root) {
     if (!root) return;
     root.querySelectorAll('[data-role-expand]').forEach(function (btn) {
       if (btn._staffExpandBound) return;
       btn._staffExpandBound = true;
       btn.addEventListener('click', function () {
-        var rk = btn.getAttribute('data-role-expand') || '';
-        if (!rk) return;
-        _staffExpandedRoles[rk] = true;
-        paintStaffRoles();
-        if (_staffRoleHasMore[rk] && _staffPersonId) {
-          var block = (_staffLastData.films_by_role || []).find(function (b) {
-            return String(b.role_key || '') === rk;
-          });
-          var loaded = block && block.films ? block.films.length : 0;
-          loadStaffRoleFilmsBackground(_staffPersonId, rk, loaded).catch(function () {});
-        }
+        expandStaffRole(btn.getAttribute('data-role-expand') || '');
       });
+      // Near-bottom auto-expand: user scrolls → load the rest without hunting the button.
+      if (typeof IntersectionObserver === 'function' && !btn._staffExpandObs) {
+        btn._staffExpandObs = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            var rk = btn.getAttribute('data-role-expand') || '';
+            if (!rk || _staffExpandedRoles[rk]) return;
+            expandStaffRole(rk);
+          });
+        }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
+        btn._staffExpandObs.observe(btn);
+      }
     });
   }
 
@@ -3652,7 +3668,7 @@
   }
 
   function scheduleStaffRoleRemainderPrefetch(personId, roleKey) {
-    if (!staffNeedsFullRolePrefetch() && !_staffExpandedRoles[roleKey]) return;
+    // Always warm the rest of the role so «Показать все» / scroll is instant.
     if (!_staffRoleHasMore[roleKey]) return;
     var gen = _staffFilmsPrefetchGen;
     var kick = function () {

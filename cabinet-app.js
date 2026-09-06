@@ -1751,8 +1751,20 @@
   function isGenericFilmTitle(title) {
     const t = String(title || '').trim();
     if (!t || t === 'Фильм' || t === 'Film' || t === 'Сериал' || t === 'Series') return true;
+    // Stub while KP/TMDB enrich pending: «KP 5005249»
+    if (/^KP\s*\d+$/i.test(t)) return true;
     // Библиотечный fallback «Фильм 12436795» / «Сериал 123»
     return /^(фильм|сериал|film|series)\s+\d+$/i.test(t);
+  }
+
+  function displayFilmListTitle(m) {
+    const raw = String((m && m.title) || '').trim();
+    if (raw && !isGenericFilmTitle(raw)) return raw;
+    const kp = String((m && m.kp_id) || '').replace(/\D/g, '');
+    // Prefer any non-stub alternate the API may already send
+    const alt = String((m && (m.title_ru || m.display_title || m.name)) || '').trim();
+    if (alt && !isGenericFilmTitle(alt)) return alt;
+    return raw || (kp ? ('Фильм ' + kp) : 'Фильм');
   }
 
   function titleHasCyrillic(title) {
@@ -12844,17 +12856,38 @@
   }
 
   // ——— Загрузка данных кабинета ———
+  function _bucketPlansFromAllItems(items) {
+    const home = [];
+    const cinema = [];
+    const premieres = [];
+    (items || []).forEach((it) => {
+      if (!it) return;
+      const pt = String(it.plan_type || 'home').toLowerCase();
+      if (pt === 'cinema') cinema.push(it);
+      else if (pt === 'premiere' || it.is_premiere_reminder) premieres.push(it);
+      else home.push(it);
+    });
+    return { home, cinema, premieres };
+  }
+
   function loadPlans() {
-    api('/api/site/plans').then((data) => {
+    // Aggregate across personal + group rooms (same as mobile «Все планы»).
+    api('/api/site/plans/all').then((data) => {
       if (!data.success) {
         if (window._mpApiAuthDegraded) {
           try { showToast('Не удалось загрузить планы — обновите страницу', { type: 'error' }); } catch (_) {}
         }
         return;
       }
-      const home = data.home || [];
-      const cinema = data.cinema || [];
-      const premieres = data.premieres || [];
+      let home = data.home || [];
+      let cinema = data.cinema || [];
+      let premieres = data.premieres || [];
+      if (Array.isArray(data.items)) {
+        const b = _bucketPlansFromAllItems(data.items);
+        home = b.home;
+        cinema = b.cinema;
+        premieres = b.premieres;
+      }
       _plansData = { home, cinema, premieres };
       let pendingFilter = 'all';
       try {
@@ -12924,6 +12957,7 @@
     const link = filmDeepLink(m.film_id, m.kp_id, m.is_series);
     const year = m.year ? ` (${m.year})` : '';
     const poster = cleanPosterUrl(m.poster) || posterUrl(m.kp_id);
+    const listTitle = displayFilmListTitle(m);
     const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
     const desc = (m.description || '').trim();
     const streamingUrl = (m.online_link || '').trim();
@@ -12936,19 +12970,28 @@
     const progressHtml = progressStatus ? '<div class="film-card-v2-status">' + progressStatus + '</div>' : '';
     const descAttr = desc ? (' data-description="' + escapeHtml(desc.slice(0, 500)) + '"') : '';
     const posterAttr = poster ? (' data-poster="' + escapeHtml(poster) + '"') : '';
-    const titleAttr = m.title ? (' data-title="' + escapeHtml(String(m.title)) + '"') : '';
+    const titleAttr = listTitle ? (' data-title="' + escapeHtml(String(listTitle)) + '"') : '';
+    const metaParts = [m.year ? String(m.year) : '', m.genres || ''].filter(Boolean);
+    const preview = renderHomeHoverPreview({
+      title: listTitle || '',
+      poster: poster,
+      metaHtml: metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '',
+      description: desc || '',
+      emoji: '🎬',
+    });
     return `
-      <div class="card film-card film-card-v2" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched"${titleAttr}${posterAttr}${descAttr}>
+      <div class="card film-card film-card-v2 film-card-v2--hover-preview" data-film-id="${m.film_id || ''}" data-kp-id="${m.kp_id || ''}" data-context="unwatched"${titleAttr}${posterAttr}${descAttr}>
         <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || ''}">
           ${filmCardPosterHtml(m.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
           ${buildFilmRateStar(m.film_id, 0)}
         </div>
         <div class="film-card-v2-body">
-          <div class="film-card-v2-title">${escapeHtml(m.title)}${year}${ratingStr}</div>
+          <div class="film-card-v2-title">${escapeHtml(listTitle)}${year}${ratingStr}</div>
           ${progressHtml}
-          ${buildFilmActionBar({ kp_id: m.kp_id, title: m.title, year: m.year, online_link: m.online_link })}
+          ${buildFilmActionBar({ kp_id: m.kp_id, title: listTitle, year: m.year, online_link: m.online_link })}
         </div>
+        ${preview}
       </div>`;
   }
 
@@ -12978,6 +13021,36 @@
       if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
     }
     el.innerHTML = list.length ? list.map(renderUnwatchedCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+    enrichUnwatchedStubTitles(list);
+  }
+
+  function enrichUnwatchedStubTitles(list) {
+    (list || []).forEach((m) => {
+      if (!m || !m.film_id) return;
+      if (!isGenericFilmTitle(m.title)) return;
+      const fid = m.film_id;
+      api('/api/site/film/' + encodeURIComponent(fid)).then((data) => {
+        const film = (data && (data.film || data.item || data)) || {};
+        const t = String(film.title || '').trim();
+        if (!t || isGenericFilmTitle(t)) return;
+        m.title = t;
+        if (film.description) m.description = film.description;
+        if (film.year) m.year = film.year;
+        const card = document.querySelector('#unwatched-list .film-card-v2[data-film-id="' + fid + '"]');
+        if (!card) return;
+        const titleEl = card.querySelector('.film-card-v2-title');
+        if (titleEl) {
+          const year = m.year ? ' (' + m.year + ')' : '';
+          const ratingStr = m.rating_kp != null ? ' · КП: ' + Number(m.rating_kp).toFixed(1) : '';
+          titleEl.textContent = t + year + ratingStr;
+        }
+        card.setAttribute('data-title', t);
+        const prevTitle = card.querySelector('.home-film-preview-title');
+        if (prevTitle) prevTitle.textContent = t;
+        const prevDesc = card.querySelector('.home-film-preview-desc');
+        if (prevDesc && film.description) prevDesc.textContent = shortPremiereDescription(film.description, 180);
+      }).catch(function () {});
+    });
   }
 
   function bindUnwatchedSortIcons() {
