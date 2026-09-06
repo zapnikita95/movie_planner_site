@@ -331,6 +331,61 @@
     );
   }
 
+  function authorDisplayName(p) {
+    var who = (p && (p.author_name || p.author_display_name)) || '';
+    who = String(who || '').trim();
+    if (!who) {
+      var uid = p && p.author_user_id;
+      var m = (state.members || []).find(function (x) {
+        return String(x.user_id || x.id) === String(uid);
+      });
+      if (m) who = m.name || m.display_name || m.username || '';
+    }
+    if (who.indexOf('@') > 0) who = who.split('@')[0];
+    return who || 'Участник';
+  }
+
+  function authorAvatar(p) {
+    var url = (p && (p.author_avatar_url || p.avatar_url || p.photo_url)) || '';
+    if (!url && p && p.author_user_id != null) {
+      var m = (state.members || []).find(function (x) {
+        return String(x.user_id || x.id) === String(p.author_user_id);
+      });
+      if (m) url = m.photo_url || m.avatar_url || '';
+    }
+    if (!url && p && p.author_user_id != null) {
+      url = '/api/avatar/' + encodeURIComponent(String(p.author_user_id)) + '.jpg';
+    }
+    return url;
+  }
+
+  function postKindLabel(p) {
+    if (p && p.poll) return 'голосование';
+    if (p && p.images && p.images.length) return 'пост';
+    return 'пост';
+  }
+
+  function relativeWhen(v) {
+    if (!v) return '';
+    try {
+      var d = new Date(v);
+      if (isNaN(d.getTime())) return fmt(v);
+      var now = Date.now();
+      var diff = Math.max(0, now - d.getTime());
+      var mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'только что';
+      if (mins < 60) return mins + ' мин назад';
+      var hours = Math.floor(mins / 60);
+      if (hours < 24) return hours + ' ч назад';
+      var days = Math.floor(hours / 24);
+      if (days === 1) return 'вчера';
+      if (days < 7) return days + ' дн назад';
+      return fmt(v);
+    } catch (_) {
+      return fmt(v);
+    }
+  }
+
   function feedHtml() {
     var posts = state.posts || [];
     if (!posts.length) {
@@ -340,8 +395,25 @@
       '<div class="club-feed">' +
       posts
         .map(function (p) {
-          var who = p.author_name || 'Участник';
-          var when = fmt(p.created_at);
+          var who = authorDisplayName(p);
+          var av = authorAvatar(p);
+          var when = relativeWhen(p.created_at);
+          // Show Админ · Name when author is club admin/owner if we know; else just name
+          var isAuthorAdmin = false;
+          (state.members || []).forEach(function (m) {
+            if (String(m.user_id || m.id) !== String(p.author_user_id)) return;
+            var r = String(m.role || m.member_role || '').toLowerCase();
+            if (m.is_owner || m.i_am_owner || ['admin', 'owner', 'creator', 'administrator'].indexOf(r) >= 0) {
+              isAuthorAdmin = true;
+            }
+          });
+          if (!isAuthorAdmin && state.admin) {
+            // current user admin posting as self
+            var ci = ids();
+            if (p.author_user_id != null && ci.indexOf(String(p.author_user_id)) >= 0) isAuthorAdmin = true;
+          }
+          var nameLine = isAuthorAdmin ? 'Админ · ' + who : who;
+          var subLine = (when ? when : '') + (when ? ' · ' : '') + postKindLabel(p);
           var title = p.title ? '<h3 class="club-post-title">' + esc(p.title) + '</h3>' : '';
           var del =
             state.admin
@@ -351,16 +423,21 @@
                 icon('x', { size: 'sm' }) +
                 '</button>'
               : '';
+          var avHtml = av
+            ? '<img class="club-post-av" src="' + esc(av) + '" alt="" loading="lazy">'
+            : '<div class="club-post-av club-post-av-fallback">' + esc(who.slice(0, 1).toUpperCase()) + '</div>';
           var body = p.body
             ? '<div class="club-post-body">' + linkify(p.body) + '</div>'
             : '';
           return (
             '<article class="club-post">' +
-            '<header class="club-post-head"><div class="club-post-meta"><b>' +
-            esc(who) +
-            '</b>' +
-            (when ? '<time>' + esc(when) + '</time>' : '') +
-            '</div>' +
+            '<header class="club-post-head">' +
+            avHtml +
+            '<div class="club-post-meta"><b>' +
+            esc(nameLine) +
+            '</b><span>' +
+            esc(subLine) +
+            '</span></div>' +
             del +
             '</header>' +
             title +

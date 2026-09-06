@@ -28105,3 +28105,61 @@ a.plan-place-link {
 .club-confirm-text{margin:0 0 14px;color:var(--club-muted);font-size:14px;line-height:1.45}
 .club-confirm-actions{display:flex;gap:8px;justify-content:stretch}
 .club-confirm-actions .club-btn{flex:1}
+
+/* MARKER clubsPostHeadDemo1 — compact social header like club-page-proto */
+.club-post{padding:16px;border-radius:16px}
+.club-post-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 10px;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  min-height:0!important;
+  height:auto!important;
+}
+.club-post-av{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#2a2a34;
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  font-weight:700;
+  color:#fff;
+}
+.club-post-meta{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+  flex:1 1 auto;
+}
+.club-post-meta b{
+  font-size:13px;
+  font-weight:700;
+  line-height:1.2;
+  color:#f7f6fb;
+}
+.club-post-meta span,
+.club-post-meta time{
+  font-size:11px;
+  color:var(--club-muted);
+  line-height:1.2;
+  font-weight:500;
+}
+.club-post-del{
+  width:28px;
+  height:28px;
+  margin-left:auto;
+  background:transparent!important;
+  border:0!important;
+  color:var(--club-muted)!important;
+  opacity:.7;
+}
+.club-post-del:hover{opacity:1;color:#fff!important;background:rgba(255,255,255,.06)!important}
+.club-post-title{margin:0 0 8px;font-size:15px}
