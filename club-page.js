@@ -21,6 +21,8 @@
     composeTitle: '',
     composePollOn: false,
     composePollQuestion: '',
+    composePollDuration: '',
+    composePollMultiple: false,
     composePollOptions: [{ text: '', card: null }, { text: '', card: null }],
     composeImages: [],
     composeImagesPos: 'below',
@@ -349,6 +351,7 @@
 
   function embedCardHtml(card) { if (!card) return ""; var inner = "<div class=\"club-post-embed\">" + (card.poster ? "<img src=\"" + esc(card.poster) + "\" alt=\"\" loading=\"lazy\">" : "<span class=\"club-post-embed-ph\"></span>") + "<div class=\"club-post-embed-copy\"><b>" + esc(card.title || "") + "</b>" + (card.subtitle ? "<span>" + esc(card.subtitle) + "</span>" : "") + (card.description ? "<p>" + esc(card.description) + "</p>" : "") + "</div></div>"; return card.url ? "<a class=\"club-post-embed-link\" href=\"" + esc(card.url) + "\">" + inner + "</a>" : inner; }
   function commentsBlock(p) { var pid = String(p.id), open = !!state.commentsOpen[pid], count = Number(p.comments_count || p.comment_count || 0) || 0; var body = open ? "<div class=\"club-comments\"><div class=\"club-comments-empty\">Пока нет комментариев</div>" + (state.member ? "<div class=\"club-comments-compose\"><input type=\"text\" data-club-comment-input=\"" + esc(pid) + "\" placeholder=\"Написать комментарий…\"><button type=\"button\" class=\"club-btn club-btn-tiny\" data-club-comment-submit=\"" + esc(pid) + "\">Отправить</button></div>" : "<div class=\"club-comments-guest\">Войдите, чтобы оставить комментарий</div>") + "</div>" : ""; return "<div class=\"club-post-comments\"><button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(pid) + "\"><span aria-hidden=\"true\">💬</span> " + (count ? count : "Комментарии") + "</button>" + body + "</div>"; }
+  function pollVoteHtml(p) { var poll = p && p.poll; if (!poll || !poll.options) return ""; var multiple = !!poll.allow_multiple, mine = p.my_votes || [], counts = p.counts || {}, choices = poll.options.map(function(o, i) { var n = normalizePollOpt(o), label = pollOptLabel(n), checked = mine.indexOf(i) >= 0; return "<label class=\"club-poll-choice\"><input type=\"" + (multiple ? "checkbox" : "radio") + "\" name=\"club-poll-" + esc(p.id) + "\" value=\"" + i + "\"" + (checked ? " checked" : "") + ">" + (n.card ? pollCardHtml(n.card, label) : "<span>" + esc(label) + "</span>") + "</label>"; }).join(""); var results = poll.options.map(function(_, i) { return counts[String(i)] ? "Вариант " + (i + 1) + ": " + counts[String(i)] : ""; }).filter(Boolean).join(" · "); return "<div class=\"club-poll-vote" + (multiple ? " is-multiple" : "") + "\" data-club-poll-vote=\"" + esc(p.id) + "\" data-multiple=\"" + (multiple ? "1" : "0") + "\"><div class=\"club-poll-choices\">" + choices + "</div>" + (hasToken() ? "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\">Проголосовать</button>" : "<div class=\"club-poll-results\">Войдите, чтобы проголосовать</div>") + (results ? "<div class=\"club-poll-results\">" + esc(results) + "</div>" : "") + "</div>"; }
   function pollBlock(poll) {
     if (!poll || !poll.question || !poll.options || !poll.options.length) return '';
     return (
@@ -554,6 +557,7 @@
             body +
             (mediaFirst ? '' : media) +
             pollBlock(p.poll) +
+            pollVoteHtml(p) +
             embeds +
             commentsBlock(p) +
             '</article>'
@@ -622,6 +626,7 @@
       '<input type="text" id="club-compose-poll-q" maxlength="200" value="' +
       esc(state.composePollQuestion) +
       '" placeholder="О чём голосуем?"></label>' +
+      '<div class="club-poll-settings"><label>Срок <select id="club-compose-poll-duration"><option value="">Без ограничений</option><option value="1">1 час</option><option value="24">24 часа</option><option value="72">3 дня</option><option value="168">7 дней</option></select></label><label class="club-poll-multiple"><input type="checkbox" id="club-compose-poll-multiple"' + (state.composePollMultiple ? ' checked' : '') + '> Несколько вариантов</label></div>' +
       '<div class="club-field"><span>Варианты <em>(текст и/или карточка из поиска)</em></span>' +
       opts +
       (state.composePollOptions.length < 6
@@ -886,6 +891,8 @@
         }
       };
     });
+    var pollMultiple = host.querySelector("#club-compose-poll-multiple"); if (pollMultiple) pollMultiple.onchange = function() { state.composePollMultiple = pollMultiple.checked; };
+    var pollDuration = host.querySelector("#club-compose-poll-duration"); if (pollDuration) pollDuration.onchange = function() { state.composePollDuration = pollDuration.value; };
     var addOpt = host.querySelector('[data-club-poll-add-opt]');
     if (addOpt) {
       addOpt.onclick = function () {
@@ -1353,6 +1360,8 @@
     state.composeTitle = '';
     state.composePollOn = false;
     state.composePollQuestion = '';
+    state.composePollDuration = '';
+    state.composePollMultiple = false;
     state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
     state.pollSearch = null;
     state.composeImages = [];
@@ -1387,8 +1396,10 @@
         }
       });
     }
+    var durationEl = host.querySelector("#club-compose-poll-duration");
+    var multipleEl = host.querySelector("#club-compose-poll-multiple");
     if (!q || opts.length < 2) return { error: 'Опрос: вопрос и минимум 2 варианта' };
-    return { question: q, options: opts.slice(0, 6) };
+    var result = { question: q, options: opts.slice(0, 6), allow_multiple: !!(multipleEl && multipleEl.checked) }; if (durationEl && durationEl.value) result.duration_hours = parseInt(durationEl.value, 10); return result;
   }
 
 
@@ -1409,6 +1420,8 @@
     state.composeImagesPos = post.images_position === 'above' ? 'above' : 'below';
     state.composeEmbeds = (post.embeds || []).slice();
     if (post.poll && post.poll.question) {
+      state.composePollDuration = post.poll.duration_hours ? String(post.poll.duration_hours) : '';
+      state.composePollMultiple = !!post.poll.allow_multiple;
       state.composePollOn = true;
       state.composePollQuestion = post.poll.question || '';
       state.composePollOptions = (post.poll.options || []).map(normalizePollOpt);
@@ -1416,6 +1429,8 @@
     } else {
       state.composePollOn = false;
       state.composePollQuestion = '';
+    state.composePollDuration = '';
+    state.composePollMultiple = false;
       state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
     }
     state.pollSearch = null;
@@ -1703,6 +1718,8 @@
         }
       };
     });
+    var pollMultipleRoot = root.querySelector("#club-compose-poll-multiple"); if (pollMultipleRoot) pollMultipleRoot.onchange = function() { state.composePollMultiple = pollMultipleRoot.checked; };
+    var pollDurationRoot = root.querySelector("#club-compose-poll-duration"); if (pollDurationRoot) pollDurationRoot.onchange = function() { state.composePollDuration = pollDurationRoot.value; };
     var addOpt = root.querySelector('[data-club-poll-add-opt]');
     if (addOpt) {
       addOpt.onclick = function () {
@@ -1788,6 +1805,7 @@
     });
     bindPollControls(root);
     bindEmbedControls(root);
+    root.querySelectorAll("[data-club-poll-vote-submit]").forEach(function(b) { b.onclick = function() { var box = b.closest("[data-club-poll-vote]"); if (box) submitPollVote(b.getAttribute("data-club-poll-vote-submit"), box); }; });
     root.querySelectorAll("[data-club-comments-toggle]").forEach(function(b) { b.onclick = function() { var id = b.getAttribute("data-club-comments-toggle"); state.commentsOpen[id] = !state.commentsOpen[id]; render(); }; });
     root.querySelectorAll("[data-club-comment-submit]").forEach(function(b) { b.onclick = function() { toast("Комментарии скоро", {type: "info"}); }; });
   }
@@ -1871,6 +1889,7 @@
     state.composePollOptions[optIndex] = opt;
     closePollSearch();
   }
+  function submitPollVote(pid, box) { var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; } toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
   function bindEmbedControls(host) { if (!host) return; host.querySelectorAll("[data-club-embed-open]").forEach(function(b) { b.onclick = openEmbedSearch; }); host.querySelectorAll("[data-club-embed-remove]").forEach(function(b) { b.onclick = function() { var i = parseInt(b.getAttribute("data-club-embed-remove"), 10); if (!isNaN(i)) { state.composeEmbeds = (state.composeEmbeds || []).filter(function(_, idx) { return idx !== i; }); render(); } }; }); }
   function bindPollControls(host) {
     if (!host) return;
