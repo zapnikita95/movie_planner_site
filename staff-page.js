@@ -2098,7 +2098,7 @@
       : ' placeholder="7"';
     var filterOn = staffFilterActive();
     var filterSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm32,40a8,8,0,0,0,0,16H184a8,8,0,0,0,0-16Zm32,56a8,8,0,0,0,0,16h48a8,8,0,0,0,0-16Z"/></svg>';
-    var sortSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M112,168a8,8,0,0,1-5.66-2.34l-48-48a8,8,0,0,1,11.32-11.32L104,140.69V40a8,8,0,0,1,16,0V140.69l34.34-34.35a8,8,0,0,1,11.32,11.32l-48,48A8,8,0,0,1,112,168Zm88-80a8,8,0,0,0-5.66,2.34l-48,48a8,8,0,0,0,11.32,11.32L176,115.31V216a8,8,0,0,0,16,0V115.31l34.34,34.35a8,8,0,0,0,11.32-11.32l-48-48A8,8,0,0,0,200,88Z"/></svg>';
+    var sortSvg = '<svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M85.66,181.66l-32,32a8,8,0,0,1-11.32,0l-32-32A8,8,0,0,1,21.66,170.34L40,188.69V48a8,8,0,0,1,16,0V188.69l18.34-18.35a8,8,0,0,1,11.32,11.32Zm154.68-107.32-32-32a8,8,0,0,0-11.32,0l-32,32A8,8,0,0,0,176.34,85.66L194.69,67.31V208a8,8,0,0,0,16,0V67.31l18.35,18.35a8,8,0,0,0,11.31-11.32Z"/></svg>';
     var gOpts = genreOptionsHtml().replace('>Любой<', '>Все жанры<');
     var sortChips =
       '<button type="button" class="chip' + (_staffSortMode === 'rating_desc' ? ' chip-on' : '') + '" id="staff-sort-rating">По оценке</button>' +
