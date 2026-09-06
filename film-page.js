@@ -2512,12 +2512,16 @@
   }
 
   var STANDALONE_SECTION_PATHS = {
+    'settings-hub': '/settings',
     settings: '/settings',
     groups: '/groups',
     stats: '/stats',
     shazam: '/shazam',
+    billing: '/settings/billing',
+    preferences: '/settings/preferences',
     integrations: '/integrations',
     collections: '/features/collections',
+    download: '/download',
     about: '/about',
     home: '/home',
     tournament: '/tournament',
@@ -3024,25 +3028,63 @@
     var settingsBtn = document.getElementById('header-settings-btn');
     if (!dd) return;
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
-    var html = '<div class="header-dropdown-title">Перейти</div>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="settings">👤 Профиль</button>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="groups">👥 Друзья и группы</button>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="stats"><span class="mp-icon mp-icon--sm" data-mp-icon="stats"></span><span>Статистика</span></button>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="shazam">🔮 Подбор по описанию</button>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="integrations">🔌 Интеграции</button>'
-      + '<button type="button" class="header-settings-nav-item" data-settings-go="about">ℹ️ О проекте</button>'
+    /* Same menu as cabinet-app openAccountDropdown — Phosphor icons, no emoji. */
+    var navItems = [
+      { go: 'settings-hub', icon: 'profile', label: 'Профиль' },
+      { go: 'groups', icon: 'friends', label: 'Друзья и группы' },
+      { go: 'billing', icon: 'creditCard', label: 'Оплата и подписка' },
+      { go: 'integrations', icon: 'integrations', label: 'Интеграции' },
+      { go: 'collections', icon: 'folder', label: 'Коллекции' },
+      { go: 'preferences', icon: 'gear', label: 'Настройки' },
+      { go: 'download', icon: 'phone', label: 'Скачать приложение' },
+      { go: 'about', icon: 'about', label: 'FAQ и о сервисе' },
+    ];
+    var html = '<div class="header-dropdown-title">Меню</div>';
+    navItems.forEach(function (item) {
+      html += '<button type="button" class="header-settings-nav-item" data-settings-go="' + escapeHtml(item.go) + '">'
+        + '<span class="mp-icon mp-icon--sm header-nav-item-icon" data-mp-icon="' + escapeHtml(item.icon) + '" aria-hidden="true"></span>'
+        + '<span>' + escapeHtml(item.label) + '</span></button>';
+    });
+    html += '<div class="header-dropdown-divider"></div>'
+      + '<button type="button" class="header-dropdown-add" data-action="add-account">+ Добавить вход</button>'
       + '<div class="header-dropdown-divider"></div>'
       + '<button type="button" class="header-dropdown-logout" data-action="logout-all">Выйти</button>';
     dd.innerHTML = html;
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(dd);
+    } catch (_e) {}
     dd.querySelectorAll('[data-settings-go]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         closeStandaloneAccountDropdown();
         var go = btn.getAttribute('data-settings-go');
+        if (go === 'download') {
+          try {
+            if (global.MpAppDownload && typeof global.MpAppDownload.open === 'function') {
+              global.MpAppDownload.open();
+              return;
+            }
+          } catch (_d) {}
+          global.location.href = '/download';
+          return;
+        }
         var path = STANDALONE_SECTION_PATHS[go];
         if (path) global.location.href = path;
       });
     });
+    var addBtn = dd.querySelector('[data-action="add-account"]');
+    if (addBtn) {
+      addBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeStandaloneAccountDropdown();
+        var modal = document.getElementById('login-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          return;
+        }
+        global.location.href = '/?open_login=1';
+      });
+    }
     var logoutBtn = dd.querySelector('[data-action="logout-all"]');
     if (logoutBtn) bindStandaloneLogoutBtn(logoutBtn, opts.kpId || '');
     bindStandaloneAccountOutsideClose();
