@@ -22128,54 +22128,117 @@
     }).join('');
   }
 
-  function buildSettingsBillingHtml(profile, tariffs) {
-    const sub = profile && profile.subscription;
-    const isPro = sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro');
-    const hasPaid = !!(sub && sub.active);
-    const until = (sub && sub.until) || '';
+    function buildSettingsBillingHtml(profile, tariffs, overview) {
+    const sub = (overview && overview.subscription) || (profile && profile.subscription) || null;
+    const isPro = !!(sub && (sub.is_pro || sub.plan_type === 'all' || sub.plan === 'pro'));
+    const hasPaid = !!(sub && (sub.active || isPro));
+    const until = (sub && (sub.until || sub.next_charge_at)) || '';
     const isLifetime = !!(sub && sub.is_lifetime);
     const proLabel = (sub && sub.product_label) || 'Movie Planner PRO';
-    const all = (tariffs && tariffs.personal && tariffs.personal.all) || {};
-    const legal = (tariffs && tariffs.legal) || {};
+    const personal = (overview && overview.personal) || (tariffs && tariffs.personal) || {};
+    const all = personal.all || {};
+    const legal = (overview && overview.legal) || (tariffs && tariffs.legal) || {};
     const payTerms = legal.payment_terms || '';
+    const canCancel = !!(sub && sub.can_cancel && sub.id && !isLifetime);
+    const subId = sub && sub.id ? String(sub.id) : '';
+    const payments = (overview && overview.payments) || [];
+    const periodLabel = { month: 'Месяц', '3months': '3 месяца', year: 'Год', lifetime: 'Навсегда' };
 
-    if (isPro) {
-      return '<div class="settings-billing-pro">'
-        + '<div class="settings-billing-pro-badge">💎 PRO</div>'
-        + '<p class="settings-billing-pro-title">' + escapeHtml(proLabel) + '</p>'
-        + '<p class="settings-billing-pro-meta">' + (until ? 'до ' + escapeHtml(until) : (isLifetime ? 'бессрочно' : 'активна')) + '</p>'
-        + '<p class="settings-billing-pro-hint">Функции за монетки доступны без ограничений.</p>'
-        + '</div>';
-    }
-
-    let prices = '';
-    const rows = [
-      ['month', 'Месяц', 'btn-primary'],
-      ['3months', '3 месяца', 'btn-secondary'],
-      ['year', 'Год', 'btn-secondary'],
-      ['lifetime', 'Навсегда', 'btn-secondary'],
-    ];
-    rows.forEach(([period, label, cls]) => {
+    let priceRows = '';
+    [['month', 'Месяц'], ['3months', '3 месяца'], ['year', 'Год'], ['lifetime', 'Навсегда']].forEach(function (pair) {
+      const period = pair[0];
+      const label = pair[1];
       const price = all[period];
-      if (!price) return;
-      prices += '<button type="button" class="btn btn-small ' + cls + ' settings-billing-pay" data-billing-period="' + escapeHtml(period) + '">'
-        + escapeHtml(label) + ' — ' + escapeHtml(String(price)) + ' ₽</button>';
+      if (price == null) return;
+      priceRows += '<div class="settings-billing-price-row">'
+        + '<span class="settings-billing-price-label">' + escapeHtml(label) + '</span>'
+        + '<span class="settings-billing-price-val"><b>' + escapeHtml(String(price)) + ' ₽</b></span>'
+        + (isPro ? '' : ('<button type="button" class="btn btn-small ' + (period === 'month' ? 'btn-primary' : 'btn-secondary') + ' settings-billing-pay" data-billing-period="' + escapeHtml(period) + '">Оплатить</button>'))
+        + '</div>';
     });
 
-    const lead = hasPaid
-      ? 'Активен план <b>' + escapeHtml(proLabel) + '</b>. Для полного доступа оформите PRO.'
-      : 'Рекомендации, билеты и сериалы без монетных лимитов.';
+    let statusCard = '<section class="settings-panel settings-billing-status-card">'
+      + '<h4 class="settings-panel-title">Текущий план</h4>';
+    if (isPro || hasPaid) {
+      statusCard += '<div class="settings-billing-pro settings-billing-pro--inline">'
+        + '<div class="settings-billing-pro-badge">PRO</div>'
+        + '<p class="settings-billing-pro-title">' + escapeHtml(proLabel) + '</p>'
+        + '<p class="settings-billing-pro-meta">' + (isLifetime ? 'бессрочно' : (until ? ('действует до ' + escapeHtml(until)) : 'активна')) + '</p>'
+        + '<p class="settings-billing-pro-hint">Функции за монетки доступны без ограничений.</p>'
+        + '</div>';
+    } else {
+      statusCard += '<p class="settings-billing-lead">Сейчас бесплатный доступ. Оформите PRO, чтобы убрать лимиты.</p>';
+    }
+    statusCard += '</section>';
 
-    return '<div class="settings-billing-free">'
-      + '<p class="settings-billing-lead">' + lead + '</p>'
-      + (prices ? '<label class="settings-billing-terms">'
-        + '<input type="checkbox" id="settings-billing-accept">'
-        + '<span>Принимаю условия оплаты'
-        + (payTerms ? ' — <a href="' + escapeHtml(payTerms) + '" target="_blank" rel="noopener">оферта</a>' : '')
-        + '</span></label>'
-        + '<div class="settings-billing-actions">' + prices + '</div>'
-        + '<p class="settings-billing-foot">Оплата через ЮKassa. Статус обновится после возврата на сайт.</p>'
+    let upcoming = '<section class="settings-panel">'
+      + '<h4 class="settings-panel-title">Предстоящие списания</h4>';
+    if (isLifetime) {
+      upcoming += '<p class="cabinet-hint">Бессрочный план — повторных списаний нет.</p>';
+    } else if (until) {
+      upcoming += '<div class="settings-billing-upcoming">'
+        + '<div><span class="mp-list-hint">Дата</span><div><b>' + escapeHtml(until) + '</b></div></div>'
+        + '<div><span class="mp-list-hint">Что будет</span><div>' + (isPro ? 'Конец оплаченного периода / возможное продление' : '—') + '</div></div>'
+        + '</div>';
+    } else {
+      upcoming += '<p class="cabinet-hint">Нет запланированных списаний.</p>';
+    }
+    upcoming += '</section>';
+
+    let pricesBlock = '<section class="settings-panel">'
+      + '<h4 class="settings-panel-title">Стоимость PRO</h4>'
+      + (priceRows
+        ? ('<div class="settings-billing-price-list">' + priceRows + '</div>'
+          + (isPro ? '' : (
+            '<label class="settings-billing-terms">'
+            + '<input type="checkbox" id="settings-billing-accept">'
+            + '<span>Принимаю условия оплаты'
+            + (payTerms ? ' — <a href="' + escapeHtml(payTerms) + '" target="_blank" rel="noopener">оферта</a>' : '')
+            + '</span></label>'
+            + '<p class="settings-billing-foot">Оплата через ЮKassa. Статус обновится после возврата на сайт.</p>'
+          )))
         : '<p class="cabinet-hint">Тарифы временно недоступны.</p>')
+      + '</section>';
+
+    let cancelBlock = '<section class="settings-panel">'
+      + '<h4 class="settings-panel-title">Отмена подписки</h4>';
+    if (canCancel) {
+      cancelBlock += '<p class="cabinet-hint">Отмена останавливает автопродление. Доступ по PRO останется до '
+        + (until ? escapeHtml(until) : 'конца оплаченного периода') + '.</p>'
+        + '<button type="button" class="btn btn-secondary" id="settings-billing-cancel" data-sub-id="' + escapeHtml(subId) + '">Отменить подписку</button>'
+        + '<p class="profile-settings-status" id="settings-billing-cancel-status"></p>';
+    } else if (isLifetime) {
+      cancelBlock += '<p class="cabinet-hint">Бессрочный план отменить нельзя.</p>';
+    } else if (!isPro) {
+      cancelBlock += '<p class="cabinet-hint">Активной платной подписки нет.</p>';
+    } else {
+      cancelBlock += '<p class="cabinet-hint">Отмена автопродления сейчас недоступна в этом интерфейсе.</p>';
+    }
+    cancelBlock += '</section>';
+
+    let payHist = '<section class="settings-panel">'
+      + '<h4 class="settings-panel-title">История платежей</h4>'
+      + '<div id="settings-billing-payments">';
+    if (!payments.length) {
+      payHist += '<p class="cabinet-hint">Пока нет записей об оплатах.</p>';
+    } else {
+      payHist += '<div class="settings-billing-payments-list">';
+      payments.forEach(function (p) {
+        const st = escapeHtml(p.status || '');
+        const amt = (p.amount != null) ? (escapeHtml(String(p.amount)) + ' ₽') : '—';
+        const when = escapeHtml(p.created_at || '');
+        const per = escapeHtml(periodLabel[p.period_type] || p.period_type || '');
+        payHist += '<div class="settings-billing-pay-row">'
+          + '<div><b>' + amt + '</b> <span class="mp-list-hint">' + st + '</span></div>'
+          + '<div class="mp-list-hint">' + when + (per ? (' · ' + per) : '') + '</div>'
+          + '</div>';
+      });
+      payHist += '</div>';
+    }
+    payHist += '</div></section>';
+
+    return '<div class="settings-billing-desk">'
+      + statusCard + upcoming + pricesBlock + cancelBlock + payHist
       + '</div>';
   }
 
@@ -22587,17 +22650,23 @@
       return;
     }
     if (sec === 'integrations') {
-      pane.innerHTML = '<div class="profile-hub-pane-body"><h3 class="profile-sub-title">Интеграции</h3>'
-        + '<p class="cabinet-hint">Нейросети, расширение браузера и телевизор — полный экран раздела.</p>'
-        + '<button type="button" class="btn btn-secondary" id="profile-pane-open-integrations">Открыть интеграции</button></div>';
+      pane.innerHTML = '<div class="profile-hub-pane-body">'
+        + '<h3 class="profile-sub-title">Интеграции</h3>'
+        + '<div class="settings-panel"><h4 class="settings-panel-title">Нейросети</h4><p class="cabinet-hint">Подключайте AI-подсказки и ассистентов в кабинете.</p></div>'
+        + '<div class="settings-panel"><h4 class="settings-panel-title">Расширение браузера</h4><p class="cabinet-hint">Оценки и планы прямо на Кинопоиске и других сайтах.</p><button type="button" class="btn btn-secondary btn-small" id="profile-pane-open-integrations">Открыть раздел интеграций</button></div>'
+        + '<div class="settings-panel"><h4 class="settings-panel-title">Телевизор</h4><p class="cabinet-hint">Смотрите планы на ТВ через приложение Movie Planner.</p></div>'
+        + '</div>';
       const b = pane.querySelector('#profile-pane-open-integrations');
       if (b) b.addEventListener('click', function () { showSection('integrations'); });
       return;
     }
     if (sec === 'about') {
-      pane.innerHTML = '<div class="profile-hub-pane-body"><h3 class="profile-sub-title">FAQ и о сервисе</h3>'
-        + '<p class="cabinet-hint">Частые вопросы и информация о Movie Planner.</p>'
-        + '<button type="button" class="btn btn-secondary" id="profile-pane-open-about">Открыть раздел</button></div>';
+      pane.innerHTML = '<div class="profile-hub-pane-body">'
+        + '<h3 class="profile-sub-title">FAQ и о сервисе</h3>'
+        + '<div class="settings-panel"><h4 class="settings-panel-title">FAQ</h4><p class="cabinet-hint">Ответы на частые вопросы — импорт, друзья, подписка, уведомления.</p></div>'
+        + '<div class="settings-panel"><h4 class="settings-panel-title">О сервисе</h4><p class="cabinet-hint">Автор, миссия и ссылки Movie Planner.</p>'
+        + '<button type="button" class="btn btn-secondary btn-small" id="profile-pane-open-about">Открыть полный раздел</button></div>'
+        + '</div>';
       const b = pane.querySelector('#profile-pane-open-about');
       if (b) b.addEventListener('click', function () {
         showSection('about');
@@ -22750,7 +22819,7 @@
         + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
         + '</div>'
         + '</div>'
-        + '<div class="profile-hub-pane" id="profile-hub-pane">' + profileHubPaneEmptyHtml() + '</div>'
+        + '<div class="profile-hub-pane" id="profile-hub-pane">' + pageLoadingHtml() + '</div>'
         + '</div>';
 
       setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name, u.chat_id || u.user_id || u.id);
@@ -22758,6 +22827,26 @@
       const dl = document.getElementById('profile-hub-download');
       if (dl && window.MpAppDownload && typeof window.MpAppDownload.bindProfileDownloadButton === 'function') {
         window.MpAppDownload.bindProfileDownloadButton(dl);
+      }
+      // Desktop: never leave an empty right pane — open preferences (import/notifications) by default
+      if (typeof profileSettingsDesk === 'function' && profileSettingsDesk()) {
+        const pane = document.getElementById('profile-hub-pane');
+        const shell = root.querySelector('.profile-hub--settings-shell');
+        const navBtn = root.querySelector('[data-profile-sub="preferences"]');
+        if (pane) {
+          if (shell) shell.classList.add('is-pane-open');
+          markProfileHubNavActive(shell || root, navBtn);
+          _profileSubView = 'preferences';
+          try { pushSettingsSubUrl('preferences'); } catch (_) {}
+          pane.innerHTML = pageLoadingHtml();
+          Promise.all([
+            api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).catch(function () { return null; }),
+            api('/api/miniapp/settings').catch(function () { return null; }),
+            api('/api/mobile/billing/tariffs').catch(function () { return null; }),
+          ]).then(function (pair) {
+            loadProfileSubIntoPane(pane, 'preferences', pair[0], pair[1], pair[2]);
+          });
+        }
       }
       scheduleOwnProfileAchievementsLoad(root, u);
       api('/api/friends', { timeoutMs: 10000 }).catch(function () { return null; }).then(function (friendsRes) {
@@ -22773,18 +22862,47 @@
     });
   }
 
-  function renderProfileBillingPage(root, d, tariffsRes) {
+    function renderProfileBillingPage(root, d, tariffsRes) {
     root.innerHTML = '<div class="profile-sub-page">'
       + profileSubBackHtml()
       + '<h3 class="profile-sub-title">Оплата и подписка</h3>'
-      + '<div id="settings-billing-host">' + buildSettingsBillingHtml(d, tariffsRes) + '</div>'
+      + '<div id="settings-billing-host">' + pageLoadingHtml() + '</div>'
       + '</div>';
     bindProfileSubNav(root);
-    bindSettingsPageExtras(root, (msg, ok) => {
-      const el = root.querySelector('.profile-settings-status');
+    const host = root.querySelector('#settings-billing-host');
+    const setStatus = (msg, ok) => {
+      const el = root.querySelector('#settings-billing-cancel-status') || root.querySelector('.profile-settings-status');
       if (!el) return;
       el.textContent = msg || '';
       el.className = 'profile-settings-status ' + (ok ? 'success' : 'error');
+    };
+    api('/api/mobile/billing/overview', { timeoutMs: 12000 }).catch(function () { return null; }).then(function (overview) {
+      const tariffs = overview || tariffsRes;
+      if (host) host.innerHTML = buildSettingsBillingHtml(d, tariffs, overview && overview.success ? overview : null);
+      bindSettingsPageExtras(root, setStatus);
+      const cancelBtn = root.querySelector('#settings-billing-cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+          if (!window.confirm('Отменить автопродление подписки?')) return;
+          cancelBtn.disabled = true;
+          api('/api/mobile/billing/cancel', {
+            method: 'POST',
+            body: JSON.stringify({ subscription_id: Number(cancelBtn.getAttribute('data-sub-id') || 0) || undefined }),
+            timeoutMs: 15000,
+          }).then(function (r) {
+            if (!r || !r.success) {
+              setStatus((r && r.message) || 'Не удалось отменить', false);
+              cancelBtn.disabled = false;
+              return;
+            }
+            setStatus(r.message || 'Подписка отменена', true);
+            renderProfileBillingPage(root, d, tariffsRes);
+          }).catch(function () {
+            setStatus('Ошибка сети', false);
+            cancelBtn.disabled = false;
+          });
+        });
+      }
     });
   }
 

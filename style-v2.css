@@ -28855,3 +28855,43 @@ a.plan-place-link {
 .club-plan-dialog-backdrop{position:fixed;z-index:1000;inset:0;display:grid;place-items:center;padding:20px;background:rgba(5,4,8,.78);backdrop-filter:blur(10px)}.club-plan-dialog{position:relative;display:flex;gap:18px;width:min(520px,100%);padding:22px;border:1px solid rgba(239,28,122,.36);border-radius:20px;background:linear-gradient(145deg,#19131f,#0f0e14);box-shadow:0 24px 80px rgba(0,0,0,.5)}.club-plan-dialog-poster{width:112px;height:168px;flex:0 0 auto;border-radius:10px;object-fit:cover;background:#1a1a22}.club-plan-dialog-copy{padding-top:5px}.club-plan-dialog-copy h3{margin:10px 0 7px;font-family:Unbounded,sans-serif;font-size:17px;line-height:1.3}.club-plan-dialog-copy h3 a{color:inherit;text-decoration:none}.club-plan-dialog-copy time{color:#ff8ab8;font-size:13px;font-weight:700}.club-plan-dialog-copy p{margin:14px 0 0;color:#d8d4e2;line-height:1.5;font-size:13px}.club-plan-dialog-type{font-size:11px;color:var(--club-muted);text-transform:uppercase;letter-spacing:.09em}.club-plan-dialog-close{position:absolute;top:10px;right:12px;border:0;background:transparent;color:#aaa4b6;font-size:24px;cursor:pointer}
 .club-member{position:relative}.club-member.is-me{border-color:rgba(239,28,122,.3)}.club-member-copy{min-width:0;flex:1}.club-member-note{color:var(--club-muted);font-size:11px;white-space:nowrap}.club-member-leave{border:1px solid rgba(255,75,98,.35);border-radius:999px;padding:7px 10px;background:transparent;color:#ff7184;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}.club-member-leave:hover{background:rgba(255,75,98,.1)}
 @media(max-width:520px){.club-calendar-day{min-height:58px;padding:5px}.club-calendar-thumbs img{width:18px;height:27px}.club-plan-dialog{gap:12px;padding:18px}.club-plan-dialog-poster{width:88px;height:132px}.club-member-leave{padding:6px 7px;font-size:10px}}
+
+
+/* settings desk3: rich billing panes */
+.settings-billing-desk {
+  display: grid;
+  gap: 14px;
+}
+.settings-billing-price-list {
+  display: grid;
+  gap: 10px;
+}
+.settings-billing-price-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+.settings-billing-upcoming {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.settings-billing-payments-list {
+  display: grid;
+  gap: 8px;
+}
+.settings-billing-pay-row {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+.settings-billing-pro--inline {
+  text-align: left;
+}
+.profile-hub-pane-empty { display: none !important; }
