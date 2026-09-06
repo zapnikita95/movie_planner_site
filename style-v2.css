@@ -28291,3 +28291,21 @@ a.plan-place-link {
 /* clubsPollVote1 */
 .club-poll-option-block:has(.club-poll-opt-card-chip) .club-poll-option-row{display:none}.club-poll-option-block:has(.club-poll-opt-card-chip) .club-poll-opt-card-chip{margin:6px 0 0;min-height:42px;padding:6px 9px;border-radius:10px}.club-poll-settings{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:10px 0;font-size:12px;color:var(--club-muted)}.club-poll-settings label{display:grid;gap:5px}.club-poll-settings select{border:1px solid var(--club-line);border-radius:9px;background:#1b1a22;color:#fff;padding:7px 9px}.club-poll-multiple{display:flex!important;align-items:center;gap:6px!important}.club-poll-multiple input{accent-color:#ef1c7a}.club-poll-vote{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}.club-poll-choice{display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer}.club-poll-choice input{appearance:none;width:17px;height:17px;border:2px solid #8f8198;border-radius:50%;background:transparent;flex:0 0 17px}.club-poll-choice input:checked{border-color:#ef1c7a;box-shadow:inset 0 0 0 4px #14141a;background:#ef1c7a}.club-poll-vote.is-multiple .club-poll-choice input{border-radius:5px}.club-poll-vote.is-multiple .club-poll-choice input:checked{background:#ef1c7a}.club-poll-vote-btn{margin-top:7px;border:0;border-radius:999px;padding:8px 13px;background:linear-gradient(135deg,#ef1c7a,#762cff);color:#fff;font-weight:700;cursor:pointer}.club-poll-vote-btn:disabled{opacity:.45;cursor:default}.club-poll-results{font-size:12px;color:var(--club-muted);margin-top:6px}
 .club-poll{border:0;background:transparent;padding:0}.club-poll-opt{border:0;background:transparent;padding:0}.club-poll-film img,.club-poll-film-ph{width:48px;height:64px;flex-basis:48px}
+
+
+/* Donations landing / premieres entry */
+.landing-donation-card .landing-pre-card-poster { position: relative; }
+.landing-donation-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background: rgba(0,0,0,.45);
+}
+.landing-donation-bar > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #ff2d7b, #ff8ab8);
+}
+.premieres-donations-entry { margin: 0 0 12px; }
+.premieres-donations-link {
+  color: #ff8ab8; font-weight: 800; text-decoration: none;
+}
+.premieres-donations-link:hover { text-decoration: underline; }
+.landing-frame--donations { margin-top: 8px; }
