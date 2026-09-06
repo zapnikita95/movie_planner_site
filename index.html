@@ -345,6 +345,7 @@
             if (p.indexOf('/settings') === 0) return 'settings';
             if (p.indexOf('/features/collections') === 0) return 'whattowatch';
             if (p === '/clubs' || p === '/whattowatch' || p.indexOf('/whattowatch/') === 0) return 'whattowatch';
+            if (new RegExp('^/club/-?[0-9]+$').test(p)) return 'club';
             var map = {
               '/home': 'home',
               '/plans': 'plans',
@@ -460,7 +461,7 @@
             else paintAuthedDeep();
             return;
           }
-          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'buzz' && sectionId !== 'whattowatch' && sectionId !== 'plans') return;
+          if (sectionId !== 'home' && sectionId !== 'premieres' && sectionId !== 'buzz' && sectionId !== 'whattowatch' && sectionId !== 'plans' && sectionId !== 'club') return;
           document.body.classList.remove('landing-guest-home');
           document.documentElement.classList.add('mp-guest-cabinet-boot');
           injectSectionBootCss(sectionId);
@@ -2823,6 +2824,9 @@
                         <div id="user-profile-root" class="user-profile-root" aria-live="polite"></div>
                     </div>
                 </section>
+                <section id="section-club" class="cabinet-section hidden cabinet-club-page" aria-label="Киноклуб">
+                    <div id="club-page-root" aria-live="polite"></div>
+                </section>
                 <section id="section-integrations" class="cabinet-section hidden cabinet-integrations">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="integrations"></span><span class="section-title-text">Интеграции</span></h2>
                     <p class="cabinet-hint">Необязательные подключения — если нужны нейросети, API или отправка на телевизор.</p>
@@ -3748,10 +3752,11 @@
           || path === '/clubs'
           || path === '/premieres' || path === '/tournament'
           || path === '/stats' || path === '/inbox' || path === '/profile'
-          || path.indexOf('/features/collections') === 0;
+          || path.indexOf('/features/collections') === 0
+          || new RegExp('^/club/-?[0-9]+$').test(path);
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260906clubsPlace1';
+        var V = '20260906clubPage1';
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3775,6 +3780,7 @@
           'onboarding-flow.js?v=' + V,
           'collections-page.js?v=' + V,
           'clubs-page.js?v=' + V,
+          'club-page.js?v=' + V,
           'home-rails.js?v=' + V,
           'landing-articles.js?v=20260627articles1',
           ];
@@ -3809,6 +3815,8 @@
           /* Logged-in: cabinet-app first on /home — collection deep links need collections-page before cabinet-app. */
           var collPage = 'collections-page.js?v=' + V;
           var clubsPage = 'clubs-page.js?v=' + V;
+          var clubPage = 'club-page.js?v=' + V;
+          var isClubPage = new RegExp('^/club/-?[0-9]+$').test(path);
           var isWtwClubs = path === '/whattowatch/clubs' || path === '/clubs';
           var loggedHead = [
             'mp-api-config.js?v=' + V,
@@ -3833,7 +3841,9 @@
             'mp-public-promo.js?v=' + V,
             'buzz-page.js?v=' + V
           ];
-          if (isWtwCollectionDetail) {
+          if (isClubPage) {
+            list = loggedHead.concat(['cabinet-app.js?v=' + V, clubPage], loggedTail, [collPage, clubsPage]);
+          } else if (isWtwCollectionDetail) {
             list = loggedHead.concat([collPage, clubsPage, 'cabinet-app.js?v=' + V], loggedTail);
           } else if (isWtwClubs) {
             list = loggedHead.concat([clubsPage, 'cabinet-app.js?v=' + V], loggedTail, [collPage]);

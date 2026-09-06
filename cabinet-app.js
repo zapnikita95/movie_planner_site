@@ -5758,6 +5758,7 @@
     if (normalized.startsWith('/settings')) return 'settings';
     if (normalized === '/whattowatch' || normalized.startsWith('/whattowatch/')) return 'whattowatch';
     if (normalized === '/clubs') return 'whattowatch';
+    if (normalized.indexOf('/club/') === 0) return 'club';
     if (normalized.startsWith('/features/collections/')) return 'whattowatch';
     if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
@@ -5882,6 +5883,7 @@
   }
 
   function afterCabinetSectionShown(sectionId) {
+    if (sectionId === 'club') { try { if (window.MPClubPage) window.MPClubPage.mount((window.location.pathname.split('/')[2] || '')); } catch (_) {} }
     // Sections already painted inside showSection (plans/settings/inbox/stats/wtw/home)
     // must NOT re-render here — that was a double flash on every nav click / popstate.
     if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
