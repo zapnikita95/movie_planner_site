@@ -836,7 +836,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true };
+  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true, club: true };
 
   const LOGIN_ERROR_MESSAGES = {
     yandex: 'Не удалось войти через Яндекс. Попробуйте ещё раз или войдите по email.',
@@ -869,6 +869,7 @@
         /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api|clubs)$/.test(path)
         || path.indexOf('/settings/') === 0
         || path === '/whattowatch/clubs'
+        || new RegExp('^/club/-?[0-9]+$').test(path)
       ) {
         sessionStorage.setItem('mp_post_login_path', path);
       }
@@ -5758,6 +5759,7 @@
     if (normalized.startsWith('/settings')) return 'settings';
     if (normalized === '/whattowatch' || normalized.startsWith('/whattowatch/')) return 'whattowatch';
     if (normalized === '/clubs') return 'whattowatch';
+    if (normalized.indexOf('/club/') === 0) return 'club';
     if (normalized.startsWith('/features/collections/')) return 'whattowatch';
     if (normalized === '/features/collections') return 'whattowatch';
     return PATH_TO_SECTION[normalized] || null;
@@ -5882,6 +5884,7 @@
   }
 
   function afterCabinetSectionShown(sectionId) {
+    if (sectionId === 'club') { try { if (window.MPClubPage) window.MPClubPage.mount((window.location.pathname.split('/')[2] || '')); } catch (_) {} }
     // Sections already painted inside showSection (plans/settings/inbox/stats/wtw/home)
     // must NOT re-render here — that was a double flash on every nav click / popstate.
     if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }

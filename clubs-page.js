@@ -414,23 +414,7 @@
 
   function openClub(chatId) {
     if (!chatId) return;
-    if (!hasSiteAuth()) {
-      requireLogin("Войдите, чтобы открыть киноклуб");
-      return;
-    }
-    if (typeof global.switchProfileTo === "function") {
-      global.switchProfileTo(chatId);
-      return;
-    }
-    if (typeof global.api === "function") {
-      global.api("/api/site/profiles/switch", {
-        method: "POST",
-        body: JSON.stringify({ target_chat_id: Number(chatId) }),
-      }).then(function (data) {
-        if (data && data.success) window.location.href = "/home";
-        else toast((data && data.error) || "Не удалось открыть клуб", { type: "error" });
-      });
-    }
+    window.location.href = "/club/" + encodeURIComponent(String(chatId));
   }
 
   function sendJoin(chatId, btn) {
@@ -585,8 +569,14 @@
         return;
       }
       var cta = e.target.closest("[data-clubs-cta]");
-      if (!cta || !root.contains(cta) || cta.disabled) return;
+      if (!cta || !root.contains(cta)) {
+        var card = e.target.closest(".clubs-card[data-chat-id]");
+        if (card && root.contains(card)) { e.preventDefault(); openClub(card.getAttribute("data-chat-id")); }
+        return;
+      }
+      if (cta.disabled) return;
       e.preventDefault();
+      e.stopPropagation();
       var kind = cta.getAttribute("data-clubs-cta");
       var chatId = cta.getAttribute("data-chat-id");
       if (kind === "open") openClub(chatId);
