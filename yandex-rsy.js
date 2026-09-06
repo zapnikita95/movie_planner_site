@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260902rsyMobileFilm1';
+  var BUILD = '20260906articleHstrips1';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -725,8 +725,36 @@
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
     if (!/\/articles\//.test(String(global.location && global.location.pathname || ''))) return;
     var content = document.querySelector('.article-content');
-    if (!content || !BLOCKS.articleInline) return;
-    mountInlineAfter(content, 'article', BLOCKS.articleInline);
+    var bannerId = horizontalBannerBlock() || BLOCKS.articleInline;
+    if (!content || !bannerId) return;
+    mountInlineStrip({
+      wrapId: 'mp_rsy_inline_article_bottom',
+      kind: 'article_bottom',
+      blockId: bannerId,
+      anchor: content,
+      position: 'append',
+      horizontal: true,
+    });
+  }
+
+  function mountArticleTop() {
+    if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
+    if (!/\/articles\//.test(String(global.location && global.location.pathname || ''))) return;
+    var content = document.querySelector('.article-content');
+    var bannerId = horizontalBannerBlock() || BLOCKS.articleInline;
+    if (!content || !bannerId) return;
+    var h1 = content.querySelector('h1');
+    var back = content.querySelector('.nyt-ballot-back');
+    var anchor = back || h1 || content;
+    var position = (back || h1) ? 'before' : 'prepend';
+    mountInlineStrip({
+      wrapId: 'mp_rsy_inline_article_top',
+      kind: 'article_top',
+      blockId: bannerId,
+      anchor: anchor,
+      position: position,
+      horizontal: true,
+    });
   }
 
   function hasArticleSideRoom() {
@@ -735,16 +763,12 @@
 
   function mountArticlePage() {
     if (!LAYOUT_ENABLED || !allowsAds() || shouldSkip()) return;
-    var sideOk = hasArticleSideRoom();
-    if (sideOk && BLOCKS.articleSidebarRight) {
-      ensureFixedRail('article', BLOCKS.articleSidebarRight, 'right');
-    }
-    if (sideOk && BLOCKS.articleSidebarLeft) {
-      ensureFixedRail('article', BLOCKS.articleSidebarLeft, 'left');
-    }
-    if (BLOCKS.articleInline) {
-      mountArticleBottom();
-    }
+    /* Side rails overlap article/ballot grids — horizontal strips only. */
+    document.querySelectorAll('.mp-rsy-fixed-rail--article, .mp-rsy-outer-rail--article').forEach(function (el) {
+      try { el.remove(); } catch (_e) {}
+    });
+    mountArticleTop();
+    mountArticleBottom();
   }
 
   function mountFilmPage() {
