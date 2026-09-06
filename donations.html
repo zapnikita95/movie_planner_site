@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://movie-planner.ru/api/og/home.jpg">
   <link rel="icon" href="/images/favicon.png">
   <script>document.documentElement.classList.add('mp-fouc');</script>
-  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donations4">
+  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donations5">
   <style id="mp-article-critical">
     html.mp-session #site-header [data-action="login"],
     html.mp-session #site-header #login-btn,
@@ -54,13 +54,24 @@
     .donations-btn--primary { background: #ff2d7b; border-color: transparent; }
     .donations-btn--primary:hover { filter: brightness(1.06); }
     .donations-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 16px; margin: 24px 0 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      margin: 24px 0 40px;
+      align-items: start;
+    }
+    @media (max-width: 640px) {
+      .donations-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
     }
     .donation-tile {
       position: relative; display: flex; flex-direction: column; text-decoration: none; color: inherit;
       border-radius: 16px; overflow: hidden; background: rgba(255,255,255,.04);
       border: 1px solid rgba(255,255,255,.08); transition: transform .15s ease, border-color .15s;
+      min-width: 0;
+      align-self: start;
     }
     .donation-tile:hover { transform: translateY(-3px); border-color: rgba(255,138,184,.45); }
     .donation-tile-media { position: relative; aspect-ratio: 2/3; background: #1a1624; overflow: hidden; }
@@ -152,18 +163,20 @@
         <div class="header-buttons">
           <button type="button" class="header-login-btn" data-action="login" id="login-btn">Войти</button>
           <div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">
+            <div class="header-util-row" id="header-util-row">
+              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
+                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
+              </button>
+              <div class="header-inbox-wrap" id="header-inbox-wrap">
+                <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
+                  <span class="header-inbox-icon" aria-hidden="true">📥</span>
+                </button>
+              </div>
+            </div>
             <button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
               <span class="header-profile-name" id="header-profile-name"></span>
             </button>
-            <div class="header-util-row">
-              <button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">
-                <span class="header-inbox-icon" aria-hidden="true">📥</span>
-              </button>
-              <button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">
-                <span class="header-coins-sprite"></span><span id="header-coins-val">—</span>
-              </button>
-            </div>
             <button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">
               <span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>
             </button>
@@ -324,9 +337,9 @@
     </footer>
   </div>
 
-  <script src="/public-film-login.js?v=20260907donations4"></script>
-  <script src="/film-page.js?v=20260907donations4"></script>
-  <script src="/articles/article-chrome.js?v=20260907donations4"></script>
+  <script src="/public-film-login.js?v=20260907donations5"></script>
+  <script src="/film-page.js?v=20260907donations5"></script>
+  <script src="/articles/article-chrome.js?v=20260907donations5"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 <script>
     (function () {
@@ -404,9 +417,12 @@
     }
     return (
       '<a class="donation-tile" href="' + esc(href || '/donations') + '" target="_blank" rel="noopener sponsored">' +
-        '<div class="donation-tile-poster">' +
+        '<div class="donation-tile-media">' +
           '<img src="' + esc(poster) + '" alt="" loading="lazy" decoding="async" onerror="this.src=\'' + PLACEHOLDER + '\'">' +
-          '<div class="donation-tile-bar" aria-hidden="true"><span style="width:' + pct + '%"></span></div>' +
+          '<div class="donation-tile-overlay" aria-hidden="true">' +
+            '<div class="donation-tile-pct">' + pct + '%</div>' +
+            '<div class="donation-progress"><span style="width:' + pct + '%"></span></div>' +
+          '</div>' +
         '</div>' +
         '<div class="donation-tile-body">' +
           '<div class="donation-tile-title">' + title + '</div>' +

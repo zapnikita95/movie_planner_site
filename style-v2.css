@@ -23371,9 +23371,18 @@ body:not(.in-cabinet) .nyt-century-article > .nyt-ballot-list {
     z-index: 500 !important;
   }
 
-  body.header-search-dropdown-open.landing-root-page .content-wrapper,
-  body.header-search-dropdown-open.film-standalone-page .page-shell {
-    padding-top: var(--header-pinned-h, 140px);
+  /* Landing: content-wrapper is the scroll root (header outside / different). */
+  body.header-search-dropdown-open.landing-root-page .content-wrapper {
+    padding-top: var(--header-pinned-h, 96px);
+  }
+  /* Standalone thin shells: do NOT pad .page-shell (it owns #site-header). Padding the shell
+     with the default 140px while header is position:fixed creates a black abyss above/around
+     the header on /donations and articles. Pad in-flow main instead. */
+  body.header-search-dropdown-open.film-standalone-page .page-shell > main,
+  body.header-search-dropdown-open.article-standalone-page .page-shell > main,
+  body.header-search-dropdown-open.staff-standalone-page .page-shell > main,
+  body.header-search-dropdown-open.user-standalone-page .page-shell > main {
+    padding-top: var(--header-pinned-h, 96px);
   }
 
   body.header-search-dropdown-open .header-search-dropdown:not(.hidden) {

@@ -204,18 +204,20 @@
         '<div class="header-buttons">' +
           '<button type="button" class="header-login-btn" data-action="login" id="login-btn">' + t('sign-in') + '</button>' +
           '<div class="header-user-wrap hidden account-switcher" id="header-user-wrap" style="position:relative">' +
+            '<div class="header-util-row" id="header-util-row">' +
+              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
+                '<span class="header-coins-sprite"></span><span id="header-coins-val">—</span>' +
+              '</button>' +
+              '<div class="header-inbox-wrap" id="header-inbox-wrap">' +
+                '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
+                  '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
+                '</button>' +
+              '</div>' +
+            '</div>' +
             '<button type="button" class="header-profile-pill hidden" id="header-profile-pill" aria-label="Профиль">' +
               '<span class="header-profile-avatar" id="header-profile-avatar"></span>' +
               '<span class="header-profile-name" id="header-profile-name"></span>' +
             '</button>' +
-            '<div class="header-util-row">' +
-              '<button type="button" class="header-inbox-btn" id="header-inbox-btn" aria-label="Уведомления" title="Уведомления">' +
-                '<span class="header-inbox-icon" aria-hidden="true">📥</span>' +
-              '</button>' +
-              '<button type="button" class="header-coins-btn" id="header-coins-btn" aria-label="Монетки">' +
-                '<span class="header-coins-sprite"></span><span id="header-coins-val">—</span>' +
-              '</button>' +
-            '</div>' +
             '<button type="button" class="header-settings-btn" id="header-settings-btn" aria-haspopup="true" aria-expanded="false" title="Настройки">' +
               '<span class="header-settings-btn-icon" aria-hidden="true">⚙️</span><span class="header-settings-btn-text">Настройки</span>' +
             '</button>' +
