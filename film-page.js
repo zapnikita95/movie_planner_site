@@ -5165,24 +5165,27 @@
       } catch (_monEnd) {}
   }
 
-  /* POSTER_FS_MOBILE_TAP1 — tap poster on mobile opens fullscreen; swipe/scroll and overlay CTAs ignored */
+  /* POSTER_FS_ALWAYS — click/tap poster opens fullscreen on all widths; CTAs ignored; swipe cancelled */
   var POSTER_FS_MOVE_PX = 12;
   var _posterFsPtr = null;
   var _posterFsBound = false;
-
-  function filmPosterFsIsMobile() {
-    try {
-      return window.matchMedia('(max-width: 860px)').matches;
-    } catch (_e) {
-      return (window.innerWidth || 0) <= 860;
-    }
-  }
 
   function filmPosterFsIgnoreEl(el) {
     if (!el || !el.closest) return true;
     return !!el.closest(
       'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .mp-poster-fs-overlay'
     );
+  }
+
+  function filmPosterFsHeroWrap(el) {
+    if (!el || !el.closest) return null;
+    var wrap = el.closest('.poster-wrap');
+    if (!wrap) return null;
+    /* Only film hero poster, not random poster-wrap elsewhere */
+    if (!wrap.closest('#film-page-content, #section-film, .film-hero-with-tag, .film-page--boot, main.film-page')) {
+      return null;
+    }
+    return wrap;
   }
 
   function onFilmPosterFsKey(e) {
@@ -5217,7 +5220,13 @@
     document.body.style.overflow = 'hidden';
     document.body.appendChild(ov);
     document.addEventListener('keydown', onFilmPosterFsKey);
-    ov.addEventListener('click', function () {
+    ov.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.closest && ev.target.closest('.mp-poster-fs-close')) {
+        closeFilmPosterFullscreen();
+        return;
+      }
+      /* click outside image frame closes; click on image keeps open */
+      if (ev.target && ev.target.tagName === 'IMG') return;
       closeFilmPosterFullscreen();
     });
   }
@@ -5225,29 +5234,54 @@
   function bindFilmPosterFullscreenTap() {
     if (_posterFsBound) return;
     _posterFsBound = true;
+
     document.addEventListener('pointerdown', function (e) {
-      if (!filmPosterFsIsMobile()) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (filmPosterFsIgnoreEl(e.target)) return;
-      var wrap = e.target.closest && e.target.closest('.poster-wrap');
+      var wrap = filmPosterFsHeroWrap(e.target);
       if (!wrap) return;
       var img = wrap.querySelector('img.poster, img#poster');
       if (!img) return;
-      _posterFsPtr = { x: e.clientX, y: e.clientY, wrap: wrap, img: img };
+      _posterFsPtr = {
+        x: e.clientX,
+        y: e.clientY,
+        wrap: wrap,
+        img: img,
+        moved: false,
+        pointerId: e.pointerId,
+      };
     }, true);
+
+    document.addEventListener('pointermove', function (e) {
+      var start = _posterFsPtr;
+      if (!start || start.pointerId !== e.pointerId) return;
+      var dx = Math.abs((e.clientX || 0) - start.x);
+      var dy = Math.abs((e.clientY || 0) - start.y);
+      if (dx > POSTER_FS_MOVE_PX || dy > POSTER_FS_MOVE_PX) start.moved = true;
+    }, true);
+
     document.addEventListener('pointerup', function (e) {
       var start = _posterFsPtr;
       _posterFsPtr = null;
-      if (!start) return;
-      if (!filmPosterFsIsMobile()) return;
-      if (filmPosterFsIgnoreEl(e.target)) return;
-      var dx = Math.abs((e.clientX || 0) - start.x);
-      var dy = Math.abs((e.clientY || 0) - start.y);
-      if (dx > POSTER_FS_MOVE_PX || dy > POSTER_FS_MOVE_PX) return;
+      if (!start || start.pointerId !== e.pointerId) return;
+      if (start.moved) return;
+      /* Open if press started on poster — even if finger lifts on a CTA edge */
       openFilmPosterFullscreen(start.img, start.wrap);
     }, true);
+
     document.addEventListener('pointercancel', function () {
       _posterFsPtr = null;
+    }, true);
+
+    /* Desktop / trackpad: reliable click when pointer sequence is weird */
+    document.addEventListener('click', function (e) {
+      if (filmPosterFsIgnoreEl(e.target)) return;
+      var wrap = filmPosterFsHeroWrap(e.target);
+      if (!wrap) return;
+      var img = wrap.querySelector('img.poster, img#poster');
+      if (!img) return;
+      if (document.getElementById('mp-poster-fs-overlay')) return;
+      openFilmPosterFullscreen(img, wrap);
     }, true);
   }
 
