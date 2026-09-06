@@ -28066,3 +28066,42 @@ a.plan-place-link {
 
 .club-field{display:grid;gap:6px;margin:12px 0}.club-field>span{font-size:12px;font-weight:700;color:#d8d4e2}.club-slug-row{display:flex;align-items:center;gap:0;border:1px solid var(--club-line);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.25)}.club-slug-prefix{padding:10px 10px 10px 12px;font-size:12px;color:var(--club-muted);white-space:nowrap;border-right:1px solid var(--club-line)}.club-slug-row input{flex:1;min-width:0;border:0;background:transparent;color:#fff;padding:10px 12px;font-size:13px;outline:none}.club-field small,.club-slug-preview{font-size:11px;color:var(--club-muted)}.club-settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
 @media(max-width:860px){.club-layout{grid-template-columns:1fr}.club-aside{position:static}.club-cover-img,.club-cover-empty{max-width:300px;margin:0 auto}.club-schedule-item{grid-template-columns:56px 1fr}.club-schedule-item img,.club-poster-empty{width:56px;height:84px}.club-schedule-item .club-status,.club-schedule-item .club-mini-btn{grid-column:2;justify-self:start}.club-page{padding-left:12px;padding-right:12px}}@media(max-width:520px){.club-tabs{gap:6px}.club-tab{padding:7px 10px;font-size:12px}.club-highlight{grid-template-columns:1fr}}
+
+/* MARKER clubsPostRich1 */
+.club-post-head{align-items:flex-start}
+.club-post-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.club-post-del{border:0;background:rgba(255,255,255,.06);color:#cfcad9;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.club-post-del:hover{background:rgba(255,255,255,.12);color:#fff}
+.club-post-link{color:#ff8ab8;text-decoration:underline;word-break:break-all}
+.club-poll{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--club-line)}
+.club-poll-q{font-weight:700;font-size:14px;margin-bottom:8px}
+.club-poll-opts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.club-poll-opt{display:block;padding:10px 12px;border-radius:10px;border:1px solid var(--club-line);background:rgba(0,0,0,.2);font-size:13px}
+.club-carousel{margin:10px 0 12px}
+.club-carousel-stage{position:relative;border-radius:14px;overflow:hidden;background:#0c0c10;aspect-ratio:4/3}
+.club-carousel-stage img{width:100%;height:100%;object-fit:cover;display:block}
+.club-carousel-nav{position:absolute;top:50%;transform:translateY(-50%);border:0;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;cursor:pointer}
+.club-carousel-prev{left:8px}
+.club-carousel-next{right:8px}
+.club-carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.club-carousel-dot{width:7px;height:7px;border-radius:50%;border:0;padding:0;background:rgba(255,255,255,.28);cursor:pointer}
+.club-carousel-dot.is-active{background:#ff8ab8}
+.club-compose-attach{display:inline-flex;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:999px;border:1px dashed var(--club-line);background:transparent;color:#d8d4e2;font-size:13px;font-weight:600;cursor:pointer}
+.club-compose-attach-file{cursor:pointer}
+.club-compose-images{margin:4px 0 8px}
+.club-compose-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.club-compose-thumb{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--club-line)}
+.club-compose-thumb img{width:100%;height:100%;object-fit:cover}
+.club-compose-thumb-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;display:grid;place-items:center;cursor:pointer}
+.club-compose-poll{margin:8px 0;padding:12px;border-radius:12px;border:1px solid var(--club-line);background:rgba(255,255,255,.03)}
+.club-compose-poll-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.club-poll-option-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+.club-poll-option-input{flex:1;min-width:0;border:1px solid var(--club-line);border-radius:10px;background:rgba(0,0,0,.28);color:#fff;padding:10px 12px;font:inherit;font-size:13px}
+.club-btn-tiny{padding:6px 10px!important;font-size:12px!important}
+.club-btn-neutral{background:rgba(255,255,255,.06)!important;border:1px solid var(--club-line)!important;color:#f7f6fb!important;font-weight:600!important}
+.club-btn-neutral:hover{background:rgba(255,255,255,.1)!important}
+.club-confirm-backdrop{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.club-confirm{width:min(400px,100%);background:#14141a;border:1px solid var(--club-line);border-radius:18px;padding:16px;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.club-confirm-text{margin:0 0 14px;color:var(--club-muted);font-size:14px;line-height:1.45}
+.club-confirm-actions{display:flex;gap:8px;justify-content:stretch}
+.club-confirm-actions .club-btn{flex:1}
