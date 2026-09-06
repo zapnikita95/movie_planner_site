@@ -7907,6 +7907,94 @@ html.mp-guest-cabinet-boot .seo-premieres-crawl {
   line-height: 1.45;
 }
 
+/* Film page in-app share sheet (standalone /f/) */
+.mp-share-inapp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1200;
+  padding: 0;
+}
+.mp-share-inapp-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-elevated, #1a1a22);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 18px 22px;
+  max-height: min(86vh, 640px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+.mp-share-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.mp-share-sheet-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+.mp-share-sheet-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mp-share-sheet-close:hover { background: rgba(255, 255, 255, 0.14); }
+.mp-share-sheet-film {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+.mp-share-tabs .share-film-tab {
+  flex: 1;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.mp-share-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--cta-grad, linear-gradient(135deg, #ff2d7b 0%, #7c3cff 100%));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mp-share-send-btn:disabled { opacity: 0.55; cursor: default; }
+.mp-share-send-arrow { font-weight: 800; }
+.film-icon-btn--share-inapp .film-share-inapp-ico {
+  display: block;
+  color: currentColor;
+}
+.film-toolbar-icons .film-icon-btn--share-inapp { order: 40; }
+.film-toolbar-icons #share-film-btn { order: 50; }
+
 /* Share sheet: vertical friend/group list with avatars (parity with miniapp) */
 .mp-share-inapp-sheet .mp-share-search {
   width: 100%;
