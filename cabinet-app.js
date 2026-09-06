@@ -8466,6 +8466,28 @@
       || '';
   }
 
+
+  function linkifyPlaceHtml(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    const esc = escapeHtml(raw);
+    return esc.replace(/(https?:\/\/[^\s<]+)|(www\.[^\s<]+)/gi, function (m) {
+      const href = /^https?:\/\//i.test(m) ? m : ('https://' + m);
+      return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="plan-place-link">' + m + '</a>';
+    });
+  }
+
+  function planPlaceLineHtml(p) {
+    if (!p) return '';
+    const name = String(p.cinema_name || p.place || p.location || '').trim();
+    const addr = String(p.cinema_address || '').trim();
+    const bits = [];
+    if (name) bits.push(linkifyPlaceHtml(name));
+    if (addr && addr !== name) bits.push(linkifyPlaceHtml(addr));
+    if (!bits.length) return '';
+    return '<div class="plan-place-line"><span aria-hidden="true">📍</span> ' + bits.join(' · ') + '</div>';
+  }
+
   function siteInboxPlanDetail(pl, it) {
     const parts = [];
     if (pl && pl.time_hm) parts.push('🕐 ' + pl.time_hm);
@@ -11055,9 +11077,10 @@
         ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         : '';
       const when = [dateLine, timeLine].filter(Boolean).join(' · ');
+      const placeName = String(p.cinema_name || p.place || '').trim();
       const placeShort = p.is_premiere_reminder
         ? 'Премьера'
-        : (p.plan_type === 'cinema' ? 'В кино' : 'Дома');
+        : (placeName || (p.plan_type === 'cinema' ? 'В кино' : 'Дома'));
       const sub = [when, placeShort].filter(Boolean).join(' · ') || '—';
       const badge = '<span class="home-rated-badge home-plan-badge">' + escapeHtml(placeShort) + '</span>';
       const kpNav = p.kp_id ? String(p.kp_id).replace(/\D/g, '') : '';
@@ -12627,6 +12650,7 @@
                 <span class="plan-time-line">${escapeHtml(timeLine)}</span>
                 <span class="plan-type">${typeLabel}</span>
               </div>
+              ${planPlaceLineHtml(p)}
               <div class="film-card-v2-title">${titleSafe}</div>
               ${shareRow}
               ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type, online_link: p.online_link || p.streaming_url })}

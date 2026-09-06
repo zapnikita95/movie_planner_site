@@ -528,12 +528,20 @@
     var coverInner = cover
       ? '<img class="clubs-card-cover-img" src="' + esc(cover) + '" alt="" loading="lazy">'
       : '<span class="clubs-card-emoji">' + esc(emoji) + "</span>";
+    var ctaBtn = '<button type="button" class="btn ' + (kind === "open" ? "btn-secondary" : "btn-primary") + " clubs-card-cta"
+      + (kind === "pending" ? " is-disabled" : "") + '"'
+      + (kind === "pending" ? " disabled" : "")
+      + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '">'
+      + esc(ctaLabel(kind)) + "</button>";
     return '<article class="clubs-card" data-chat-id="' + esc(String(cid)) + '">'
       + '<div class="clubs-card-cover">' + coverInner + "</div>"
       + '<div class="clubs-card-body">'
       + '<div class="clubs-card-topline">'
+      + '<div class="clubs-card-titleblock">'
       + '<h3 class="clubs-card-name">' + esc(name) + "</h3>"
       + '<span class="clubs-card-badge">Киноклуб</span>'
+      + "</div>"
+      + '<div class="clubs-card-actions">' + ctaBtn + "</div>"
       + "</div>"
       + '<div class="clubs-card-meta">'
       + '<span>' + esc(membersLabel(members)) + "</span>"
@@ -547,13 +555,7 @@
           + "</p>"
         : "")
       + recentHtml(recent)
-      + '<div class="clubs-card-actions">'
-      + '<button type="button" class="btn ' + (kind === "open" ? "btn-secondary" : "btn-primary") + " clubs-card-cta"
-      + (kind === "pending" ? " is-disabled" : "") + '"'
-      + (kind === "pending" ? " disabled" : "")
-      + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '">'
-      + esc(ctaLabel(kind)) + "</button>"
-      + "</div></div></article>";
+      + "</div></article>";
   }
 
   function bindCatalog(root) {
