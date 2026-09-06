@@ -28589,3 +28589,19 @@ a.plan-place-link {
     width: 100%;
   }
 }
+/* Clubs poll results release: compact unified action row and voter cards. */
+.club-post-action-row{display:flex;align-items:center;gap:8px;min-width:0;margin-top:12px}
+.club-post-action-row .club-reactions{flex:0 1 auto;min-width:0;margin-top:0}
+.club-post-action-row .club-comments-toggle{display:inline-flex;align-items:center;justify-content:center;gap:3px;width:32px;height:28px;min-width:32px;padding:0;border:1px solid var(--club-line);border-radius:999px;background:rgba(255,255,255,.04);color:#e8e4f0;font-size:12px}
+.club-post-action-row .club-comments-toggle:hover,.club-post-action-row .club-comments-toggle:focus-visible{background:rgba(239,28,122,.14);color:#fff;outline:none}
+.club-post-action-row .club-poll-vote-btn{margin:0 0 0 auto;flex:0 0 auto}
+.club-comments-panel{margin-top:8px}
+.club-poll-results-mode{display:grid;gap:7px}
+.club-poll-result-row{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 9px;border:1px solid var(--club-line);border-radius:11px;background:rgba(0,0,0,.18)}
+.club-poll-result-row .club-poll-film,.club-poll-result-row .club-poll-choice-text{flex:1;min-width:0}
+.club-poll-result-count{flex:0 0 auto;font-family:Unbounded,Inter,sans-serif;font-size:24px;line-height:1;color:#fff}
+.club-poll-voters{display:flex;align-items:center;flex:0 0 auto;padding-left:6px}
+.club-poll-voter-avatar{width:24px;height:24px;margin-left:-6px;border:2px solid var(--club-card);border-radius:50%;object-fit:cover;background:#393441}
+.club-poll-voter-avatar:first-child{margin-left:0}
+.club-poll-result-row .club-poll-film img,.club-poll-result-row .club-poll-film-ph{width:42px;height:56px;flex-basis:42px}
+@media(max-width:560px){.club-post-action-row{gap:6px}.club-post-action-row .club-poll-vote-btn{padding:9px 10px;font-size:10px}.club-poll-result-count{font-size:20px}}
