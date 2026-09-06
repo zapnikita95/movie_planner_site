@@ -2353,10 +2353,14 @@
     var rateBtnOnly = canRate && !ratingLocked
       ? '<button type="button" class="' + rateBtnClass + '" id="rate-toggle-btn" data-rate-toggle="1" aria-label="' + rateAria + '" title="' + rateAria + '"><span class="film-icon-ico">' + rateIco + '</span>' + rateLabelHtml + '</button>'
       : '';
+    var shareInAppBtn =
+      '<button type="button" class="film-icon-btn film-icon-btn--share-inapp" id="share-inapp-btn" data-share-inapp="1" data-kp="' +
+      escapeHtml(String(item.kp_id || '')) +
+      '" aria-label="Поделиться с друзьями" title="Поделиться с друзьями"><svg class="film-icon-ico film-share-inapp-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="18" cy="5" r="2.5" fill="currentColor"/><circle cx="6" cy="12" r="2.5" fill="currentColor"/><circle cx="18" cy="19" r="2.5" fill="currentColor"/><path d="M8.2 10.9l7.6-4.3M8.2 13.1l7.6 4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="film-icon-label">Друзьям</span></button>';
     var shareBtn =
       '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' +
       escapeHtml(String(item.kp_id || '')) +
-      '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>';
+      '" aria-label="Скопировать ссылку" title="Скопировать ссылку"><span class="film-icon-ico">↗</span><span class="film-icon-label">Ссылка</span></button>';
 
     /* Guest: glass «В список просмотра» + Просмотрено / ★ / Поделиться (без ярлыка в углу) */
     if (!authenticated) {
@@ -2378,6 +2382,7 @@
               eyeIco + '<span class="film-icon-label">Просмотрено</span>' +
             '</button>' +
             rateBtnOnly +
+            shareInAppBtn +
             shareBtn +
           '</div>' +
           '<div class="film-toolbar-panels">' + ratePanelHtml + '</div>' +
@@ -2421,7 +2426,7 @@
     var panelsHtml = '<div class="film-toolbar-panels">' + ratePanelHtml + seriesPanelHtml + '</div>';
     return '<div class="film-page-toolbar">' + planBlock +
       '<div class="film-toolbar-icons">' + addIconBtn + watchIconBtn + seriesBtn + rateBtnOnly + premiereBtn +
-      shareBtn + '</div>' +
+      shareInAppBtn + shareBtn + '</div>' +
       panelsHtml + '</div>';
   }
 
@@ -4489,11 +4494,13 @@
           if (f.is_upcoming_premiere) {
             var heroToolbar = document.querySelector('.film-page-toolbar');
             var iconsRow = heroToolbar && heroToolbar.querySelector('.film-toolbar-icons');
-            var shareBtnEl = iconsRow && iconsRow.querySelector('#share-film-btn');
+            var shareAnchor =
+              (iconsRow && iconsRow.querySelector('#share-inapp-btn')) ||
+              (iconsRow && iconsRow.querySelector('#share-film-btn'));
             var existingPrem = iconsRow && iconsRow.querySelector('.film-icon-btn--premiere');
             if (iconsRow && !existingPrem) {
               var premHtml = renderFilmToolbarPremiereBtn(f);
-              if (premHtml && shareBtnEl) shareBtnEl.insertAdjacentHTML('beforebegin', premHtml);
+              if (premHtml && shareAnchor) shareAnchor.insertAdjacentHTML('beforebegin', premHtml);
               else if (premHtml) iconsRow.insertAdjacentHTML('beforeend', premHtml);
               var newPrem = iconsRow.querySelector('.film-icon-btn--premiere');
               if (newPrem) {
@@ -4688,6 +4695,7 @@
         if (filmCtx) root._mpFilm = filmCtx;
         var rateToggle = root.querySelector('[data-rate-toggle]') || root.querySelector('#rate-toggle-btn');
         var seriesToggle = root.querySelector('[data-series-toggle]');
+        var shareInAppBtn = root.querySelector('[data-share-inapp]') || root.querySelector('#share-inapp-btn');
         var shareBtn = root.querySelector('[data-share-film]') || root.querySelector('#share-film-btn');
         var ratingPanel = root.querySelector('#rating-expand-panel');
         var seriesPanel = root.querySelector('#series-expand-panel');
@@ -4727,6 +4735,27 @@
               if (film.is_series) {
                 mountSeriesToolbarPanel(root, film, apiBase, authHeaders);
               }
+            }
+          });
+        }
+        if (shareInAppBtn) {
+          shareInAppBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!token()) { rememberAction('share_inapp'); loginNow('share_inapp'); return; }
+            var film = root._mpFilm || filmCtx || {};
+            if (!film.kp_id) film.kp_id = kpId;
+            if (global.MpFilmShareInApp && typeof global.MpFilmShareInApp.open === 'function') {
+              global.MpFilmShareInApp.open(film, {
+                apiBase: apiBase,
+                authHeaders: authHeaders(),
+                token: token(),
+                hasAuth: function () { return !!token(); },
+                loginNow: loginNow,
+                siteOrigin: (global.location && global.location.origin) || 'https://movie-planner.ru',
+              });
+            } else {
+              showPublicToast('Шеринг временно недоступен');
             }
           });
         }

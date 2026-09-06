@@ -3902,7 +3902,7 @@
         var pageGate = null;
         if (isFilm || isStaff) {
           list = ['mp-api-config.js?v=' + V];
-          pageGate = ['film-page.js?v=' + V];
+          pageGate = ['film-share-inapp.js?v=' + V, 'film-page.js?v=' + V];
           if (isStaff) pageGate.push('staff-page.js?v=' + V);
           deferred = [
             'header-search-scroll.js?v=' + V,
