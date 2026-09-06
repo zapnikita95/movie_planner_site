@@ -23,6 +23,8 @@
     composePollQuestion: '',
     composePollDuration: '',
     composePollMultiple: false,
+    composePollAllowChange: false,
+    composePollAnonymous: false,
     composePollOptions: [{ text: '', card: null }, { text: '', card: null }],
     composeImages: [],
     composeImagesPos: 'below',
@@ -36,6 +38,7 @@
     carousel: {},
     lightbox: null,
     pollSearch: null,
+    pollEdits: {} ,
     comments: {}
   };
   var root;
@@ -351,7 +354,7 @@
   }
 
   function embedCardHtml(card) { if (!card) return ""; var inner = "<div class=\"club-post-embed\">" + (card.poster ? "<img src=\"" + esc(card.poster) + "\" alt=\"\" loading=\"lazy\">" : "<span class=\"club-post-embed-ph\"></span>") + "<div class=\"club-post-embed-copy\"><b>" + esc(card.title || "") + "</b>" + (card.subtitle ? "<span>" + esc(card.subtitle) + "</span>" : "") + (card.description ? "<p>" + esc(card.description) + "</p>" : "") + "</div></div>"; return card.url ? "<a class=\"club-post-embed-link\" href=\"" + esc(card.url) + "\">" + inner + "</a>" : inner; }
-  function pollVoteHtml(p) { var poll = p && p.poll; if (!poll || !poll.options || !poll.options.length) return ""; var multiple = !!poll.allow_multiple, mine = p.my_votes || [], counts = p.counts || {}, choices = poll.options.map(function(o, i) { var n = normalizePollOpt(o), label = pollOptLabel(n), checked = mine.indexOf(i) >= 0; return "<div class=\"club-poll-choice\" data-club-poll-choice=\"" + i + "\"><input type=\"" + (multiple ? "checkbox" : "radio") + "\" name=\"club-poll-" + esc(p.id) + "\" value=\"" + i + "\"" + (checked ? " checked" : "") + ">" + (n.card ? pollCardHtml(n.card, label) : "<span class=\"club-poll-choice-text\">" + esc(label) + "</span>") + "</div>"; }).join(""); var results = poll.options.map(function(_, i) { return counts[String(i)] ? "Вариант " + (i + 1) + ": " + counts[String(i)] : ""; }).filter(Boolean).join(" · "); return "<div class=\"club-poll\"><div class=\"club-poll-q\">" + esc(poll.question) + "</div><div class=\"club-poll-vote" + (multiple ? " is-multiple" : "") + "\" data-club-poll-vote=\"" + esc(p.id) + "\" data-multiple=\"" + (multiple ? "1" : "0") + "\"><div class=\"club-poll-choices\">" + choices + "</div>" + (hasToken() ? "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (mine.length ? "" : " disabled") + ">Проголосовать</button>" : "<div class=\"club-poll-results club-poll-login\">Войдите, чтобы проголосовать</div>") + (results ? "<div class=\"club-poll-results\">" + esc(results) + "</div>" : "") + "</div></div>"; }
+  function pollVoteHtml(p) { var poll = p && p.poll; if (!poll || !poll.options || !poll.options.length) return ""; var multiple = !!poll.allow_multiple, mine = p.my_votes || [], voted = mine.length > 0, editing = !!(state.pollEdits && state.pollEdits[String(p.id)]), counts = p.counts || {}, voters = p.voters || {}; var choices = poll.options.map(function(o, i) { var n = normalizePollOpt(o), label = pollOptLabel(n), checked = mine.indexOf(i) >= 0; if (voted && !editing) { var list = Array.isArray(voters[String(i)]) ? voters[String(i)] : [], avatars = (!poll.anonymous ? list.map(function(v) { return "<img class=\"club-poll-voter-avatar\" src=\"" + esc(v.avatar_url || "/api/avatar/" + encodeURIComponent(String(v.user_id || "")) + ".jpg") + "\" alt=\"" + esc(v.name || "") + "\" title=\"" + esc(v.name || "") + "\" loading=\"lazy\">"; }).join("") : ""); return "<div class=\"club-poll-result-row\">" + (n.card ? pollCardHtml(n.card, label) : "<span class=\"club-poll-choice-text\">" + esc(label) + "</span>") + "<strong class=\"club-poll-result-count\">" + Number(counts[String(i)] || 0) + "</strong>" + (avatars ? "<span class=\"club-poll-voters\">" + avatars + "</span>" : "") + "</div>"; } return "<div class=\"club-poll-choice\" data-club-poll-choice=\"" + i + "\"><input type=\"" + (multiple ? "checkbox" : "radio") + "\" name=\"club-poll-" + esc(p.id) + "\" value=\"" + i + "\"" + (checked ? " checked" : "") + ">" + (n.card ? pollCardHtml(n.card, label) : "<span class=\"club-poll-choice-text\">" + esc(label) + "</span>") + "</div>"; }).join(""); return "<div class=\"club-poll\"><div class=\"club-poll-q\">" + esc(poll.question) + "</div><div class=\"club-poll-vote" + (multiple ? " is-multiple" : "") + "\" data-club-poll-vote=\"" + esc(p.id) + "\" data-multiple=\"" + (multiple ? "1" : "0") + "\"><div class=\"club-poll-choices" + (voted && !editing ? " club-poll-results-mode" : "") + "\">" + choices + "</div></div></div>"; }
   function pollBlock(poll) {
     if (!poll || !poll.question || !poll.options || !poll.options.length) return '';
     return (
@@ -501,7 +504,10 @@
 
   function reactionItems(p) { var raw = p && (p.reactions || p.reaction_counts) || [], out = []; if (Array.isArray(raw)) { raw.forEach(function(r) { if (r && r.emoji && Number(r.count || 0) > 0) out.push({ emoji: String(r.emoji), count: Number(r.count || 0) }); }); } else { Object.keys(raw).forEach(function(e) { if (Number(raw[e] || 0) > 0) out.push({ emoji: e, count: Number(raw[e] || 0) }); }); } return out; }
   function reactionHtml(p) { var pid = String(p.id), items = reactionItems(p), mine = p.my_reactions || [], choices = ["\u2764\ufe0f", "\ud83d\ude80", "\u2b50", "\ud83d\udca9", "\ud83d\ude02", "\ud83d\udd25", "\ud83d\udc4f", "\ud83d\ude22", "\ud83d\ude0d"]; return "<div class=\"club-reactions\" data-club-reactions=\"" + esc(pid) + "\"><div class=\"club-reaction-list\">" + items.map(function(r) { var active = mine.indexOf(r.emoji) >= 0; return "<button type=\"button\" class=\"club-reaction-pill\" data-club-reaction=\"" + esc(pid) + "\" data-emoji=\"" + esc(r.emoji) + "\" aria-pressed=\"" + (active ? "true" : "false") + "\"><span>" + esc(r.emoji) + "</span><b>" + r.count + "</b></button>"; }).join("") + "</div><div class=\"club-reaction-add\"><button type=\"button\" class=\"club-reaction-plus\" data-club-reaction-menu=\"" + esc(pid) + "\" aria-label=\"Добавить реакцию\">+</button><div class=\"club-reaction-flyout\" role=\"menu\">" + choices.map(function(e) { return "<button type=\"button\" data-club-reaction-add=\"" + esc(pid) + "\" data-emoji=\"" + esc(e) + "\" role=\"menuitem\">" + esc(e) + "</button>"; }).join("") + "</div></div></div>"; }
-  function commentsHtml(p) { var key = String(p.id), cs = commentState(key), count = Number(p.comments_count || 0), open = !!cs.open; var out = '<div class="club-post-comments"><button type="button" class="club-comments-toggle" data-club-comments-toggle="' + esc(key) + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-label="Комментарии"><span class="club-comments-icon">' + icon('chat', { size: 'sm' }) + '</span>' + (count ? '<span class="club-comments-count">' + count + '</span>' : '') + '</button>'; if (!open) return out + '</div>'; out += '<div class="club-comments">'; if (cs.busy) out += '<div class="club-comments-status">Загружаем комментарии…</div>'; else if (cs.error) out += '<div class="club-comments-status">' + esc(cs.error) + '</div>'; else if (!cs.items.length) out += '<div class="club-comments-status">Пока нет комментариев</div>'; else out += '<div class="club-comments-list">' + cs.items.map(function(c) { var who = String(c.author_name || 'Участник'), av = c.author_avatar_url || '/api/avatar/' + encodeURIComponent(String(c.author_user_id || '')) + '.jpg'; return '<div class="club-comment"><img class="club-comment-av" src="' + esc(av) + '" alt="" loading="lazy"><div class="club-comment-main"><div class="club-comment-head"><b>' + esc(who) + '</b><span>' + esc(relativeWhen(c.created_at)) + '</span>' + (commentCanDelete(c) ? '<button type="button" class="club-comment-del" data-club-comment-delete="' + esc(c.id) + '" data-club-comment-post="' + esc(key) + '">Удалить</button>' : '') + '</div><div class="club-comment-body">' + linkify(c.body) + '</div></div></div>'; }).join('') + '</div>'; if (state.member) { var draft = state.commentDrafts[key] || ''; out += '<form class="club-comment-compose" data-club-comment-form="' + esc(key) + '"><textarea maxlength="2000" rows="2" placeholder="Написать комментарий…">' + esc(draft) + '</textarea><button type="submit" class="club-mini-btn"' + (cs.sending ? ' disabled' : '') + '>' + (cs.sending ? 'Отправляем…' : 'Отправить') + '</button></form>'; } else out += '<div class="club-comments-login">Войдите и вступите в клуб, чтобы комментировать. <button type="button" data-club-comments-login>Войти</button></div>'; return out + '</div></div>'; }
+  function commentsToggleHtml(p) { var key = String(p.id), count = Number(p.comments_count || 0), open = !!commentState(key).open; return "<button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(key) + "\" aria-expanded=\"" + (open ? "true" : "false") + "\" aria-label=\"Комментарии\"><span class=\"club-comments-icon\">" + icon("chat", { size: "sm" }) + "</span>" + (count ? "<span class=\"club-comments-count\">" + count + "</span>" : "") + "</button>"; }
+  function commentsPanelHtml(p) { var key = String(p.id), cs = commentState(key); if (!cs.open) return ""; var out = "<div class=\"club-comments club-comments-panel\">"; if (cs.busy) out += "<div class=\"club-comments-status\">Загружаем комментарии…</div>"; else if (cs.error) out += "<div class=\"club-comments-status\">" + esc(cs.error) + "</div>"; else if (!cs.items.length) out += "<div class=\"club-comments-status\">Пока нет комментариев</div>"; else out += "<div class=\"club-comments-list\">" + cs.items.map(function(c) { var who = String(c.author_name || "Участник"), av = c.author_avatar_url || "/api/avatar/" + encodeURIComponent(String(c.author_user_id || "")) + ".jpg"; return "<div class=\"club-comment\"><img class=\"club-comment-av\" src=\"" + esc(av) + "\" alt=\"\" loading=\"lazy\"><div class=\"club-comment-main\"><div class=\"club-comment-head\"><b>" + esc(who) + "</b><span>" + esc(relativeWhen(c.created_at)) + "</span>" + (commentCanDelete(c) ? "<button type=\"button\" class=\"club-comment-del\" data-club-comment-delete=\"" + esc(c.id) + "\" data-club-comment-post=\"" + esc(key) + "\">Удалить</button>" : "") + "</div><div class=\"club-comment-body\">" + linkify(c.body) + "</div></div></div>"; }).join("") + "</div>"; if (state.member) { var draft = state.commentDrafts[key] || ""; out += "<form class=\"club-comment-compose\" data-club-comment-form=\"" + esc(key) + "\"><textarea maxlength=\"2000\" rows=\"2\" placeholder=\"Написать комментарий…\">" + esc(draft) + "</textarea><button type=\"submit\" class=\"club-mini-btn\"" + (cs.sending ? " disabled" : "") + ">" + (cs.sending ? "Отправляем…" : "Отправить") + "</button></form>"; } else out += "<div class=\"club-comments-login\">Войдите и вступите в клуб, чтобы комментировать. <button type=\"button\" data-club-comments-login>Войти</button></div>"; return out + "</div>"; }
+  function pollActionHtml(p) { var poll = p && p.poll, mine = p && p.my_votes || [], editing = !!(state.pollEdits && state.pollEdits[String(p.id)]); if (!poll || !poll.options) return ""; if (mine.length && !editing) return poll.allow_change_vote ? "<button type=\"button\" class=\"club-poll-vote-btn club-poll-edit-btn\" data-club-poll-edit=\"" + esc(p.id) + "\">Изменить голос</button>" : ""; var label = mine.length ? "Сохранить голос" : "Проголосовать"; return "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (!mine.length && hasToken() ? " disabled" : "") + ">" + label + "</button>"; }
+  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + reactionHtml(p) + commentsToggleHtml(p) + pollActionHtml(p) + "</div>"; }
 
   function toggleComments(postId) {
     var cs = commentState(postId);
@@ -646,11 +652,9 @@
             title +
             (mediaFirst ? media : '') +
             body +
-            (mediaFirst ? '' : media) +
-            pollVoteHtml(p) +
+            postActionsHtml(p) +
+            commentsPanelHtml(p) +
             embeds +
-            reactionHtml(p) +
-            commentsHtml(p) +
             '</article>'
           );
         })
@@ -717,7 +721,7 @@
       '<input type="text" id="club-compose-poll-q" maxlength="200" value="' +
       esc(state.composePollQuestion) +
       '" placeholder="О чём голосуем?"></label>' +
-      '<div class="club-poll-settings"><label>Срок <select id="club-compose-poll-duration"><option value="">Без ограничений</option><option value="1">1 час</option><option value="24">24 часа</option><option value="72">3 дня</option><option value="168">7 дней</option></select></label><label class="club-poll-multiple"><input type="checkbox" id="club-compose-poll-multiple"' + (state.composePollMultiple ? ' checked' : '') + '> Несколько вариантов</label></div>' +
+      '<div class="club-poll-settings"><label>Срок <select id="club-compose-poll-duration"><option value="">Без ограничений</option><option value="1">1 час</option><option value="24">24 часа</option><option value="72">3 дня</option><option value="168">7 дней</option></select></label><label class="club-poll-multiple"><input type="checkbox" id="club-compose-poll-multiple"' + (state.composePollMultiple ? ' checked' : '') + '> Несколько вариантов</label><label class="club-poll-multiple"><input type="checkbox" id="club-compose-poll-change"' + (state.composePollAllowChange ? ' checked' : '') + '> Можно изменить голос</label><label class="club-poll-multiple"><input type="checkbox" id="club-compose-poll-anonymous"' + (state.composePollAnonymous ? ' checked' : '') + '> Анонимный опрос</label></div>' +
       '<div class="club-field"><span>Варианты <em>(текст и/или карточка из поиска)</em></span>' +
       opts +
       (state.composePollOptions.length < 6
@@ -982,7 +986,7 @@
         }
       };
     });
-    var pollMultiple = host.querySelector("#club-compose-poll-multiple"); if (pollMultiple) pollMultiple.onchange = function() { state.composePollMultiple = pollMultiple.checked; };
+    var pollMultiple = host.querySelector("#club-compose-poll-multiple"); if (pollMultiple) pollMultiple.onchange = function() { state.composePollMultiple = pollMultiple.checked; }; var pollChange = host.querySelector("#club-compose-poll-change"); if (pollChange) pollChange.onchange = function() { state.composePollAllowChange = pollChange.checked; }; var pollAnonymous = host.querySelector("#club-compose-poll-anonymous"); if (pollAnonymous) pollAnonymous.onchange = function() { state.composePollAnonymous = pollAnonymous.checked; };
     var pollDuration = host.querySelector("#club-compose-poll-duration"); if (pollDuration) pollDuration.onchange = function() { state.composePollDuration = pollDuration.value; };
     var addOpt = host.querySelector('[data-club-poll-add-opt]');
     if (addOpt) {
@@ -1453,6 +1457,8 @@
     state.composePollQuestion = '';
     state.composePollDuration = '';
     state.composePollMultiple = false;
+    state.composePollAllowChange = false;
+    state.composePollAnonymous = false;
     state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
     state.pollSearch = null;
     state.composeImages = [];
@@ -1489,8 +1495,10 @@
     }
     var durationEl = host.querySelector("#club-compose-poll-duration");
     var multipleEl = host.querySelector("#club-compose-poll-multiple");
-    if (!q || opts.length < 2) return { error: 'Опрос: вопрос и минимум 2 варианта' };
-    var result = { question: q, options: opts.slice(0, 6), allow_multiple: !!(multipleEl && multipleEl.checked) }; if (durationEl && durationEl.value) result.duration_hours = parseInt(durationEl.value, 10); return result;
+    var changeEl = host.querySelector("#club-compose-poll-change");
+    var anonymousEl = host.querySelector("#club-compose-poll-anonymous");
+    if (!q || opts.length < 2) return { error: "Опрос: вопрос и минимум 2 варианта" };
+    var result = { question: q, options: opts.slice(0, 6), allow_multiple: !!(multipleEl && multipleEl.checked), allow_change_vote: !!(changeEl && changeEl.checked), anonymous: !!(anonymousEl && anonymousEl.checked) }; if (durationEl && durationEl.value) result.duration_hours = parseInt(durationEl.value, 10); return result;
   }
 
 
@@ -1513,6 +1521,8 @@
     if (post.poll && post.poll.question) {
       state.composePollDuration = post.poll.duration_hours ? String(post.poll.duration_hours) : '';
       state.composePollMultiple = !!post.poll.allow_multiple;
+      state.composePollAllowChange = !!post.poll.allow_change_vote;
+      state.composePollAnonymous = !!post.poll.anonymous;
       state.composePollOn = true;
       state.composePollQuestion = post.poll.question || '';
       state.composePollOptions = (post.poll.options || []).map(normalizePollOpt);
@@ -1522,6 +1532,8 @@
       state.composePollQuestion = '';
     state.composePollDuration = '';
     state.composePollMultiple = false;
+    state.composePollAllowChange = false;
+    state.composePollAnonymous = false;
       state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
     }
     state.pollSearch = null;
@@ -1809,7 +1821,7 @@
         }
       };
     });
-    var pollMultipleRoot = root.querySelector("#club-compose-poll-multiple"); if (pollMultipleRoot) pollMultipleRoot.onchange = function() { state.composePollMultiple = pollMultipleRoot.checked; };
+    var pollMultipleRoot = root.querySelector("#club-compose-poll-multiple"); if (pollMultipleRoot) pollMultipleRoot.onchange = function() { state.composePollMultiple = pollMultipleRoot.checked; }; var pollChangeRoot = root.querySelector("#club-compose-poll-change"); if (pollChangeRoot) pollChangeRoot.onchange = function() { state.composePollAllowChange = pollChangeRoot.checked; }; var pollAnonymousRoot = root.querySelector("#club-compose-poll-anonymous"); if (pollAnonymousRoot) pollAnonymousRoot.onchange = function() { state.composePollAnonymous = pollAnonymousRoot.checked; };
     var pollDurationRoot = root.querySelector("#club-compose-poll-duration"); if (pollDurationRoot) pollDurationRoot.onchange = function() { state.composePollDuration = pollDurationRoot.value; };
     var addOpt = root.querySelector('[data-club-poll-add-opt]');
     if (addOpt) {
@@ -1912,11 +1924,12 @@
     root.querySelectorAll("[data-club-reaction]").forEach(function(b) { b.onclick = function() { toggleReaction(b.getAttribute("data-club-reaction"), b.getAttribute("data-emoji"), b.getAttribute("aria-pressed") === "true"); }; });
     root.querySelectorAll("[data-club-reaction-add]").forEach(function(b) { b.onclick = function() { toggleReaction(b.getAttribute("data-club-reaction-add"), b.getAttribute("data-emoji"), false); }; });
     root.querySelectorAll("[data-club-poll-film-link]").forEach(function(a) { a.onclick = function(e) { e.stopPropagation(); }; });
-    root.querySelectorAll("[data-club-poll-choice]").forEach(function(row) { row.onclick = function(e) { if (e.target.closest && e.target.closest("a")) return; var input = row.querySelector("input"); if (!input) return; if (!hasToken()) { login(); return; } if (e.target !== input) input.click(); var box = row.closest("[data-club-poll-vote]"); var btn = box && box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
-    root.querySelectorAll("[data-club-poll-vote] input").forEach(function(input) { input.onchange = function() { var box = input.closest("[data-club-poll-vote]"); var btn = box && box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
+    root.querySelectorAll("[data-club-poll-choice]").forEach(function(row) { row.onclick = function(e) { if (e.target.closest && e.target.closest("a")) return; var input = row.querySelector("input"); if (!input) return; if (!hasToken()) { login(); return; } if (e.target !== input) input.click(); var article = row.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"), btn = article && article.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
+    root.querySelectorAll("[data-club-poll-vote] input").forEach(function(input) { input.onchange = function() { var article = input.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"), btn = article && article.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
+    root.querySelectorAll("[data-club-poll-edit]").forEach(function(b) { b.onclick = function() { state.pollEdits[String(b.getAttribute("data-club-poll-edit"))] = true; render(); }; });
     bindPollControls(root);
     bindEmbedControls(root);
-    root.querySelectorAll("[data-club-poll-vote-submit]").forEach(function(b) { b.onclick = function() { var box = b.closest("[data-club-poll-vote]"); if (box) submitPollVote(b.getAttribute("data-club-poll-vote-submit"), box); }; });
+    root.querySelectorAll("[data-club-poll-vote-submit]").forEach(function(b) { b.onclick = function() { var article = b.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"); if (box) submitPollVote(b.getAttribute("data-club-poll-vote-submit"), box); }; });
   }
 
 
@@ -1998,7 +2011,7 @@
     state.composePollOptions[optIndex] = opt;
     closePollSearch();
   }
-  function submitPollVote(pid, box) { var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; } toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
+  function submitPollVote(pid, box) { var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; post.total = d.total || post.total; if (d.voters) post.voters = d.voters; } delete state.pollEdits[String(pid)]; toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
   function toggleReaction(pid, emoji, active) { if (!hasToken()) { login(); return; } if (!state.member) { toast("Вступите в клуб, чтобы реагировать", { type: "error" }); return; } var method = active ? "DELETE" : "POST"; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/reactions", { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ emoji: emoji }) }).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.reactions = d.reactions || []; post.reaction_counts = d.reaction_counts || {}; post.my_reactions = d.my_reactions || []; } render(); }).catch(function(e) { toast((e && e.message) || "Не удалось поставить реакцию", { type: "error" }); }); }
   function bindEmbedControls(host) { if (!host) return; host.querySelectorAll("[data-club-embed-open]").forEach(function(b) { b.onclick = openEmbedSearch; }); host.querySelectorAll("[data-club-embed-remove]").forEach(function(b) { b.onclick = function() { var i = parseInt(b.getAttribute("data-club-embed-remove"), 10); if (!isNaN(i)) { state.composeEmbeds = (state.composeEmbeds || []).filter(function(_, idx) { return idx !== i; }); render(); } }; }); }
   function bindPollControls(host) {
@@ -2054,6 +2067,7 @@
     state.members = [];
     state.member = false;
     state.admin = false;
+    state.pollEdits = {};
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
     syncClubOverlays();
 
