@@ -652,9 +652,11 @@
             title +
             (mediaFirst ? media : '') +
             body +
+            (mediaFirst ? '' : media) +
+            pollVoteHtml(p) +
+            embeds +
             postActionsHtml(p) +
             commentsPanelHtml(p) +
-            embeds +
             '</article>'
           );
         })
