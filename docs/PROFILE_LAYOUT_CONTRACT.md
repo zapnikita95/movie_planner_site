@@ -63,3 +63,6 @@ Any profile-related change must keep this contract.
 - Highlights are visually attached to profile name block (not detached below card as a separate top-level block).
 - Friend action row and achievements remain left-aligned under highlights.
 
+## 2026-09-06 profileDesk2
+- Desktop social profile: full-bleed (no centered 1480 cap); film rails use `repeat(4, minmax(0,1fr))` so a single poster stays medium (~4 columns).
+- `/settings`: master–detail shell — left sidebar (profile + nav), right `#profile-hub-pane` loads billing/preferences/friends on the same page.
