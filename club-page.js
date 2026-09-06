@@ -9,11 +9,16 @@
     slug: '',
     club: null,
     members: [],
+    posts: [],
     member: false,
     admin: false,
     tab: 'feed',
     slugDraft: '',
-    slugBusy: false
+    slugBusy: false,
+    composeOpen: false,
+    composeBusy: false,
+    composeBody: '',
+    composeTitle: ''
   };
   var root;
 
@@ -213,6 +218,82 @@
     );
   }
 
+
+  function icon(key, opts) {
+    try {
+      if (global.MPIcons && typeof global.MPIcons.html === 'function') {
+        return global.MPIcons.html(key, opts || {});
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  function feedHtml() {
+    var posts = state.posts || [];
+    if (!posts.length) {
+      return empty('Пока нет постов', 'Лента клуба появится, когда появятся посты и обсуждения.');
+    }
+    return (
+      '<div class="club-feed">' +
+      posts
+        .map(function (p) {
+          var who = p.author_name || 'Участник';
+          var when = fmt(p.created_at);
+          var title = p.title ? '<h3 class="club-post-title">' + esc(p.title) + '</h3>' : '';
+          return (
+            '<article class="club-post">' +
+            '<header class="club-post-head"><b>' +
+            esc(who) +
+            '</b>' +
+            (when ? '<time>' + esc(when) + '</time>' : '') +
+            '</header>' +
+            title +
+            '<div class="club-post-body">' +
+            esc(p.body || '').replace(/\n/g, '<br>') +
+            '</div></article>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  function composeHtml() {
+    if (!state.composeOpen) return '';
+    return (
+      '<div class="club-compose-backdrop" data-club-compose-close>' +
+      '<div class="club-compose" role="dialog" aria-modal="true" aria-label="Новый пост" data-club-compose-sheet>' +
+      '<div class="club-compose-top"><h3>Новый пост</h3>' +
+      '<button type="button" class="club-compose-x" data-club-compose-close aria-label="Закрыть">' +
+      icon('x', { size: 'sm' }) +
+      '</button></div>' +
+      '<label class="club-field"><span>Заголовок <em>(необязательно)</em></span>' +
+      '<input type="text" id="club-compose-title" maxlength="120" value="' +
+      esc(state.composeTitle) +
+      '" placeholder="О чём пост"></label>' +
+      '<label class="club-field"><span>Текст</span>' +
+      '<textarea id="club-compose-body" rows="6" maxlength="4000" placeholder="Напишите пост для ленты клуба…">' +
+      esc(state.composeBody) +
+      '</textarea></label>' +
+      '<div class="club-compose-actions">' +
+      '<button type="button" class="club-btn club-btn-ghost" data-club-compose-close>Отмена</button>' +
+      '<button type="button" class="club-btn club-btn-primary" data-club-compose-publish' +
+      (state.composeBusy ? ' disabled' : '') +
+      '>' +
+      (state.composeBusy ? 'Публикуем…' : 'Опубликовать') +
+      '</button></div></div></div>'
+    );
+  }
+
+  function fabHtml() {
+    if (!state.admin || state.tab !== 'feed') return '';
+    return (
+      '<button type="button" class="club-fab" data-club-compose-open aria-label="Написать пост">' +
+      icon('pencil', { size: 'md' }) +
+      '</button>'
+    );
+  }
+
   function btn(id, label) {
     return (
       '<button type="button" class="club-tab' +
@@ -409,7 +490,7 @@
       '</nav><section class="club-panel' +
       (state.tab === 'feed' ? ' is-active' : '') +
       '" data-club-panel="feed">' +
-      empty('Пока нет постов', 'Лента клуба появится, когда появятся посты и обсуждения.') +
+      feedHtml() +
       '</section>' +
       schedule() +
       films() +
@@ -429,7 +510,10 @@
           )) +
       '</section>' +
       settingsPanel() +
-      '</main></div></div>';
+      '</main></div>' +
+      fabHtml() +
+      composeHtml() +
+      '</div>';
     bind();
   }
 
@@ -552,6 +636,80 @@
     render();
   }
 
+
+  function openCompose() {
+    if (!state.admin) return;
+    if (!hasToken()) {
+      login();
+      return;
+    }
+    state.composeOpen = true;
+    state.composeBusy = false;
+    render();
+    setTimeout(function () {
+      var ta = root.querySelector('#club-compose-body');
+      if (ta) ta.focus();
+    }, 30);
+  }
+
+  function closeCompose() {
+    if (state.composeBusy) return;
+    state.composeOpen = false;
+    render();
+  }
+
+  function publishPost() {
+    if (!state.admin || state.composeBusy) return;
+    if (!hasToken()) {
+      login();
+      return;
+    }
+    var titleEl = root.querySelector('#club-compose-title');
+    var bodyEl = root.querySelector('#club-compose-body');
+    var title = String((titleEl && titleEl.value) || '').trim();
+    var body = String((bodyEl && bodyEl.value) || '').trim();
+    if (!body) {
+      toast('Напишите текст поста', { type: 'error' });
+      return;
+    }
+    state.composeTitle = title;
+    state.composeBody = body;
+    state.composeBusy = true;
+    render();
+    global
+      .api('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title || null, body: body })
+      })
+      .then(function (d) {
+        var post = d && (d.post || d.item);
+        if (post) state.posts = [post].concat(state.posts || []);
+        state.composeBusy = false;
+        state.composeOpen = false;
+        state.composeBody = '';
+        state.composeTitle = '';
+        toast('Пост опубликован');
+        render();
+      })
+      .catch(function (e) {
+        state.composeBusy = false;
+        render();
+        toast((e && e.message) || 'Не удалось опубликовать', { type: 'error' });
+      });
+  }
+
+  function loadPosts() {
+    if (!state.id) return Promise.resolve();
+    return req('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts?limit=50')
+      .then(function (d) {
+        state.posts = arr(d, ['posts', 'items', 'feed']);
+      })
+      .catch(function () {
+        state.posts = state.posts || [];
+      });
+  }
+
   function bind() {
     root.querySelectorAll('[data-club-tab]').forEach(function (b) {
       b.onclick = function () {
@@ -584,6 +742,35 @@
             ? 'movie-planner.ru/club/' + v
             : 'movie-planner.ru/club/…';
         }
+      };
+    }
+    var fab = root.querySelector('[data-club-compose-open]');
+    if (fab) fab.onclick = openCompose;
+    root.querySelectorAll('[data-club-compose-close]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (b.getAttribute('data-club-compose-sheet') != null) return;
+        if (b.classList.contains('club-compose-backdrop') && e.target !== b) return;
+        closeCompose();
+      };
+    });
+    var sheet = root.querySelector('[data-club-compose-sheet]');
+    if (sheet) {
+      sheet.onclick = function (e) {
+        e.stopPropagation();
+      };
+    }
+    var pub = root.querySelector('[data-club-compose-publish]');
+    if (pub) pub.onclick = publishPost;
+    var titleIn = root.querySelector('#club-compose-title');
+    var bodyIn = root.querySelector('#club-compose-body');
+    if (titleIn) {
+      titleIn.oninput = function () {
+        state.composeTitle = titleIn.value;
+      };
+    }
+    if (bodyIn) {
+      bodyIn.oninput = function () {
+        state.composeBody = bodyIn.value;
       };
     }
   }
@@ -645,6 +832,9 @@
           state.members = arr(m, ['members', 'items', 'users']);
           detect(m || {});
           render();
+          return loadPosts().then(function () {
+            render();
+          });
         });
       })
       .catch(function (e) {
