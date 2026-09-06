@@ -3,18 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Сейчас собирают — краудфандинг фильмов | Movie Planner</title>
-  <meta name="description" content="Сборы на фильмы и документалки: прогресс кампаний и заявка «Рассказать о сборе». Movie Planner помогает зрителям поддержать авторов.">
+  <title>Краудфандинг фильмов в России — сборы на кино и документалки | Movie Planner</title>
+  <meta name="description" content="Витрина сборов на фильмы и документалки: Planeta и другие кампании, прогресс, ссылки авторам. Расскажите о своём краудфандинге — после модерации попадёте в «Сейчас собирают» на Movie Planner.">
+  <meta name="keywords" content="краудфандинг фильмов, сборы на фильм, planeta фильм, boomstarter кино, поддержать независимое кино, краудфандинг документальный фильм, рассказать о сборе, Movie Planner donations">
   <link rel="canonical" href="https://movie-planner.ru/donations">
-  <meta name="robots" content="index,follow,max-image-preview:large">
-  <meta property="og:title" content="Сейчас собирают — Movie Planner">
-  <meta property="og:description" content="Актуальные сборы на кино: прогресс, ссылки на кампании и форма для авторов.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+  <meta property="og:title" content="Краудфандинг фильмов — Сейчас собирают | Movie Planner">
+  <meta property="og:description" content="Активные сборы на независимое кино и документалки + форма «Рассказать о сборе» для авторов.">
   <meta property="og:url" content="https://movie-planner.ru/donations">
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Movie Planner">
   <meta property="og:image" content="https://movie-planner.ru/api/og/home.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Краудфандинг фильмов — Сейчас собирают | Movie Planner">
+  <meta name="twitter:description" content="Витрина сборов на кино и форма для авторов. Planeta, независимое кино, документалки.">
   <link rel="icon" href="/images/favicon.png">
   <script>document.documentElement.classList.add('mp-fouc');</script>
-  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donations5">
+  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donationsSeo1">
   <style id="mp-article-critical">
     html.mp-session #site-header [data-action="login"],
     html.mp-session #site-header #login-btn,
@@ -147,6 +153,67 @@
       setTimeout(ready, 2000);
     })();
   </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "Movie Planner", "item": "https://movie-planner.ru/"},
+          {"@type": "ListItem", "position": 2, "name": "Краудфандинг фильмов", "item": "https://movie-planner.ru/donations"}
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": "https://movie-planner.ru/donations#page",
+        "url": "https://movie-planner.ru/donations",
+        "name": "Краудфандинг фильмов — Сейчас собирают",
+        "description": "Витрина сборов на фильмы и документалки и форма для авторов «Рассказать о сборе».",
+        "isPartOf": {"@type": "WebSite", "name": "Movie Planner", "url": "https://movie-planner.ru/"},
+        "inLanguage": "ru-RU"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Что такое раздел «Сейчас собирают» на Movie Planner?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Это витрина активных краудфандинг-кампаний на фильмы и документалки. Зрители видят прогресс сбора и переходят на страницу кампании (например Planeta), а авторы могут подать заявку «Рассказать о сборе»."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Как добавить свой сбор на Movie Planner?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Откройте форму на movie-planner.ru/donations#tell: укажите название, ссылку на кампанию, обложку, контакт и соцсеть автора. После модерации сбор появится в витрине."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Чем краудфандинг фильма отличается от «Добавить фильм»?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "«Добавить фильм» — карточка готового или готовящегося фильма в каталоге Movie Planner. «Рассказать о сборе» — публикация активной краудфандинг-кампании, чтобы зрители могли поддержать производство."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Где почитать гайд по краудфандингу первого фильма?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "На Movie Planner есть статья «Краудфандинг первого фильма» с площадками Planeta/Boomstarter и шагами, как попасть в витрину сборов: https://movie-planner.ru/articles/kraudfanding-pervogo-filma.html"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body class="donations-page article-standalone-page film-standalone-page">
   <div class="content-wrapper subpage-wrapper page-shell">
@@ -187,17 +254,35 @@
     </header>
 
     <main class="container subpage-main donations-main">
+      <nav class="donations-crumbs" aria-label="Хлебные крошки" style="font-size:13px;margin:0 0 14px;color:rgba(246,241,232,.55)">
+        <a href="/" style="color:rgba(246,241,232,.7);text-decoration:none">Movie Planner</a>
+        <span aria-hidden="true"> / </span>
+        <span>Краудфандинг фильмов</span>
+      </nav>
       <div class="donations-hero">
-        <h1>Сейчас собирают</h1>
-        <p>Краудфандинг фильмов и документалок. Поддержите авторов или расскажите о своём сборе — после модерации он появится в списке.</p>
+        <h1>Краудфандинг фильмов — сейчас собирают</h1>
+        <p>Витрина сборов на независимое кино и документалки: прогресс кампаний, ссылки авторам и заявка «Рассказать о сборе». Поддержите режиссёров или покажите свой краудфандинг зрителям Movie Planner.</p>
         <div class="donations-hero-actions">
           <a class="donations-btn donations-btn--primary" href="#tell">Рассказать о сборе</a>
           <a class="donations-btn" href="/articles/kraudfanding-pervogo-filma.html">Гайд по краудфандингу</a>
+          <a class="donations-btn" href="/add-film">Добавить фильм</a>
           <a class="donations-btn" href="/premieres">Премьеры</a>
         </div>
       </div>
 
-      <h2 class="donations-section-title" style="font-size:1.1rem;margin:8px 0 14px;font-weight:800">Активные сборы</h2>
+      <section class="donations-seo" id="about-crowdfunding" style="margin:8px 0 28px;max-width:72ch;line-height:1.55;color:rgba(246,241,232,.78);font-size:15px">
+        <h2 style="font-size:1.15rem;margin:0 0 10px;font-weight:800;color:#f6f1e8">Как работает краудфандинг кино на Movie Planner</h2>
+        <p style="margin:0 0 12px">Зрители ищут, <strong>куда скинуться на фильм</strong> и какие кампании сейчас живые. Здесь — кураторская витрина: сборы с Planeta и других площадок, прогресс и переход на страницу кампании. Авторам — короткая заявка вместо холодного аутрича.</p>
+        <ul style="margin:0 0 14px;padding-left:1.2em">
+          <li style="margin-bottom:6px"><a href="/articles/kraudfanding-pervogo-filma.html" style="color:#ff8ab8">Гайд: краудфандинг первого фильма</a> — Planeta, Boomstarter, чеклист запуска.</li>
+          <li style="margin-bottom:6px"><a href="/articles/kak-razmestit-svoy-film-online.html" style="color:#ff8ab8">Как разместить свой фильм онлайн</a> — когда картина уже готова или почти готова.</li>
+          <li style="margin-bottom:6px"><a href="/add-film" style="color:#ff8ab8">Добавить фильм</a> в каталог Movie Planner (карточка, афиша, факты).</li>
+          <li style="margin-bottom:6px"><a href="/premieres" style="color:#ff8ab8">Премьеры</a> — что выходит в прокат рядом со сборами.</li>
+        </ul>
+        <p style="margin:0">Нужна витрина, а не лендинг-пустышка: ниже — <a href="#active-campaigns" style="color:#ff8ab8">активные сборы</a>, ещё ниже — <a href="#tell" style="color:#ff8ab8">форма для авторов</a>. Подробный FAQ — в <a href="/articles/kraudfanding-pervogo-filma.html" style="color:#ff8ab8">статье про краудфандинг</a>.</p>
+      </section>
+
+      <h2 id="active-campaigns" class="donations-section-title" style="font-size:1.1rem;margin:8px 0 14px;font-weight:800">Активные сборы на фильмы</h2>
       <div id="donations-grid" class="donations-grid" aria-live="polite"></div>
       <p id="donations-empty" class="donations-empty hidden">Пока нет активных сборов — загляните позже или оставьте заявку ниже.</p>
 
@@ -239,6 +324,22 @@
       </form>
     </section>
       </div>
+
+      <section class="donations-faq" id="faq" style="margin:36px 0 24px;max-width:72ch">
+        <h2 style="font-size:1.15rem;margin:0 0 14px;font-weight:800">Частые вопросы про сборы</h2>
+        <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
+          <summary style="cursor:pointer;font-weight:700">Как попасть в «Сейчас собирают»?</summary>
+          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Заполните <a href="#tell" style="color:#ff8ab8">форму выше</a>: название, ссылка на кампанию, обложка, контакт и соцсеть автора. После модерации сбор появится в сетке.</p>
+        </details>
+        <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
+          <summary style="cursor:pointer;font-weight:700">Это вместо Planeta?</summary>
+          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Нет. Movie Planner — витрина и аудитория киноманов. Деньги идут на площадке сбора (Planeta и др.). Мы помогаем найти зрителей, которые уже ищут кино.</p>
+        </details>
+        <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
+          <summary style="cursor:pointer;font-weight:700">Фильм уже снят — куда?</summary>
+          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">В каталог через <a href="/add-film" style="color:#ff8ab8">«Добавить фильм»</a>. Для сбора денег на производство или постпродакшн — эта страница и <a href="/articles/kraudfanding-pervogo-filma.html" style="color:#ff8ab8">гайд по краудфандингу</a>.</p>
+        </details>
+      </section>
     </main>
 
     <!-- Footer: same as /home -->
@@ -337,9 +438,9 @@
     </footer>
   </div>
 
-  <script src="/public-film-login.js?v=20260907donations5"></script>
-  <script src="/film-page.js?v=20260907donations5"></script>
-  <script src="/articles/article-chrome.js?v=20260907donations5"></script>
+  <script src="/public-film-login.js?v=20260907donationsSeo1"></script>
+  <script src="/film-page.js?v=20260907donationsSeo1"></script>
+  <script src="/articles/article-chrome.js?v=20260907donationsSeo1"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 <script>
     (function () {

@@ -1621,6 +1621,35 @@
       '<ul class="film-buzz-list">' + lis + '</ul></div>';
   }
 
+  function youtubeIdFromUrl(url) {
+    var u = String(url || '');
+    var m = u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{6,})/);
+    return m ? m[1] : '';
+  }
+
+  /** Drop buzz posts that duplicate «Разборы на YouTube» (same YT id/url). */
+  function filterBuzzAgainstReviews(buzzPosts, reviewItems) {
+    var yids = {};
+    var urls = {};
+    (reviewItems || []).forEach(function (it) {
+      if (!it) return;
+      var id = String(it.youtube_id || youtubeIdFromUrl(it.url) || '').trim();
+      if (id) yids[id] = true;
+      var u = String(it.url || '').trim().split('?')[0].replace(/\/$/, '');
+      if (u) urls[u] = true;
+    });
+    return (buzzPosts || []).filter(function (p) {
+      if (!p || !p.post_url) return false;
+      var id = youtubeIdFromUrl(p.post_url) || youtubeIdFromUrl(p.channel_url) || '';
+      if (id && yids[id]) return false;
+      var u = String(p.post_url || '').trim().split('?')[0].replace(/\/$/, '');
+      if (u && urls[u]) return false;
+      // YouTube already has its own block when reviews exist — don't mirror as «Обсуждают сейчас».
+      if ((reviewItems || []).length && String(p.platform || '').toLowerCase() === 'youtube') return false;
+      return true;
+    });
+  }
+
   function paintFilmDescReviews(wrap, items, socials, buzzPosts, kpId) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     var hero = (wrap && wrap.closest('.hero-content')) ||
@@ -1629,11 +1658,11 @@
     if (!revEl) return;
     var list = Array.isArray(items) ? items : [];
     var soc = Array.isArray(socials) ? socials : [];
-    var buzz = Array.isArray(buzzPosts) ? buzzPosts : [];
+    var buzz = filterBuzzAgainstReviews(Array.isArray(buzzPosts) ? buzzPosts : [], list);
     var kp = kpId || wrap.getAttribute('data-kp-id') || '';
     var buzzHtml = filmBuzzFeedHtml(buzz, kp);
     var rest = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc, kp) : '';
-    // YouTube / соцсети сверху, «В тренде» ниже (актуальность buzz короче).
+    // YouTube / соцсети сверху; «Обсуждают сейчас» только если остались не-дубли.
     revEl.innerHTML = rest + buzzHtml;
     if (global.MpFilmOutbound && typeof global.MpFilmOutbound.bind === 'function') {
       global.MpFilmOutbound.bind(revEl, kp);
