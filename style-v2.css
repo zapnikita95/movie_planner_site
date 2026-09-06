@@ -10179,9 +10179,10 @@ a.home-pre-card {
 /* —— Страница настроек (десктоп) —— */
 .cabinet-settings .settings-content,
 #section-settings .settings-content {
-  max-width: min(1480px, 98vw);
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 .settings-photo-editor {
   margin-top: 14px;
@@ -19934,7 +19935,20 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   overflow: hidden;
 }
 
-.user-friend-profile { max-width: min(1480px, 98vw); margin: 0 auto; width: 100%; }
+.user-friend-profile {
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+/* Align profile content with header logo edge (full desktop width). */
+body.user-standalone-page .user-friend-profile,
+body.in-cabinet .user-friend-profile,
+body.in-cabinet #section-settings .settings-content {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+}
 .user-friend-profile .user-profile-block { margin-top: 4px; }
 .user-friend-profile .user-profile-section-title {
   display: inline-flex;
@@ -20055,8 +20069,26 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     gap: 24px 28px;
     align-items: start;
     width: 100%;
-    max-width: min(1480px, 98vw);
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
+  }
+  .profile-hub.profile-hub--settings-shell {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-rows: auto;
+    max-width: none;
+    margin: 0;
+  }
+  .profile-hub.profile-hub--settings-shell > .profile-hub-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .profile-hub.profile-hub--settings-shell > .profile-hub-pane {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .profile-hub.profile-hub--settings-shell .profile-hub-left {
+    grid-column: auto;
+    grid-row: auto;
   }
   .profile-hub-left {
     grid-column: 1;
@@ -20080,7 +20112,8 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     margin-top: 4px;
   }
   .profile-hub--friend {
-    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    width: 100%;
   }
   .profile-hub--friend .profile-hub-left {
     align-self: start;
@@ -20113,16 +20146,28 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   /* Desktop: packed posters fill the right column without a huge right void */
   .profile-hub--friend .profile-film-rail--pack,
   .profile-film-rail--dense-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
+    /* Fixed 4 tracks: one poster stays medium, never fills the whole column */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
     justify-content: start;
   }
   @media (min-width: 1280px) {
     .profile-hub--friend .profile-film-rail--pack,
     .profile-film-rail--dense-grid {
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
     }
+  }
+  @media (min-width: 1600px) {
+    .profile-hub--friend .profile-film-rail--pack,
+    .profile-film-rail--dense-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+    }
+  }
+  .profile-hub--friend .profile-film-card {
+    width: 100%;
+    max-width: none;
   }
   .profile-hub--friend .profile-film-card-title {
     font-size: 13px;
@@ -28685,3 +28730,105 @@ a.plan-place-link {
 /* 20260906clubsSettings1 — club settings cards */
 .club-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.club-settings-card-wide{grid-column:1/-1}.club-settings-card .club-field{display:grid;gap:6px;margin:12px 0}.club-settings-card .club-field>span,.club-settings-card .club-check span{font-size:12px;color:#d8d4e2;font-weight:600}.club-settings-card input,.club-settings-card textarea,.club-settings-card select{width:100%;box-sizing:border-box;border:1px solid var(--club-line);border-radius:10px;background:#0d0d12;color:#f7f6fb;padding:10px 11px;font:inherit;font-size:13px}.club-settings-card textarea{resize:vertical;min-height:88px}.club-settings-card input:focus,.club-settings-card textarea:focus,.club-settings-card select:focus{outline:2px solid rgba(239,28,122,.35);border-color:rgba(239,28,122,.65)}.club-settings-card .club-btn{width:100%;margin-top:12px}.club-settings-card .club-btn:disabled,.club-settings-card .club-mini-btn:disabled{opacity:.55;cursor:default}.club-check{display:flex;align-items:center;gap:9px;margin:14px 0}.club-check input{width:18px;height:18px;accent-color:var(--club-pink)}.club-settings-card small{display:block;margin-top:7px;color:var(--club-muted);font-size:11px}.club-settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.club-settings-member{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--club-line)}.club-settings-member>div{min-width:0}.club-settings-member b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis}.club-settings-member span{display:block;margin-top:3px;font-size:11px;color:var(--club-muted)}.club-invite-row{display:flex;gap:8px;align-items:center}.club-invite-row input{min-width:0;flex:1}.club-invite-row .club-mini-btn{white-space:nowrap}.club-note{margin-top:12px!important;color:#7e788b!important;font-size:11px!important}
 @media (max-width:720px){.club-settings-grid{grid-template-columns:1fr}.club-settings-card-wide{grid-column:auto}.club-settings-member{align-items:flex-start;flex-direction:column}.club-settings-member .club-mini-btn{width:100%}.club-invite-row{align-items:stretch;flex-direction:column}}
+
+
+/* —— Settings master–detail (desktop) —— */
+@media (min-width: 1100px) {
+  .profile-hub.profile-hub--settings-shell {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: 20px 28px;
+    align-items: start;
+    width: 100%;
+  }
+  .profile-hub.profile-hub--settings-shell > .profile-hub-sidebar {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-self: start;
+    position: sticky;
+    top: 72px;
+  }
+  .profile-hub.profile-hub--settings-shell > .profile-hub-pane {
+    grid-column: 2;
+    min-width: 0;
+    align-self: start;
+    min-height: 420px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .profile-hub.profile-hub--settings-shell .mp-list-item.is-active {
+    border-color: rgba(255, 90, 165, 0.45);
+    background: rgba(255, 90, 165, 0.12);
+  }
+  .profile-hub-pane-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    min-height: 280px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .profile-hub-pane-empty strong {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .profile-hub.profile-hub--settings-shell .profile-sub-page .mp-sub-back {
+    display: none; /* sidebar is the nav; no need for back-to-hub */
+  }
+}
+@media (max-width: 1099px) {
+  .profile-hub.profile-hub--settings-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .profile-hub-pane {
+    min-height: 0;
+  }
+  .profile-hub-pane-empty {
+    display: none; /* mobile keeps list-only hub until an item is opened */
+  }
+  .profile-hub.profile-hub--settings-shell:not(.is-pane-open) .profile-hub-pane:not(:has(.profile-sub-page)):not(:has(.profile-hub-pane-body)) {
+    display: none;
+  }
+}
+
+
+/* profileDesk2: full-bleed parents + grid rails match 4-col pack */
+@media (min-width: 1100px) {
+  body.in-cabinet #cabinet.cabinet--profile-wide,
+  body.in-cabinet #section-settings,
+  body.user-standalone-page #user-root,
+  body.user-standalone-page .user-profile-root,
+  body.user-standalone-page .cabinet-user-profile {
+    max-width: none;
+    width: 100%;
+  }
+  body.in-cabinet .cabinet-sections:has(#section-settings:not(.hidden)),
+  body.in-cabinet .cabinet-sections:has(.cabinet-user-profile:not(.hidden)) {
+    max-width: none;
+    width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .profile-hub--friend .profile-film-rail--grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    overflow: visible;
+    flex-wrap: unset;
+    width: 100%;
+  }
+  .profile-hub--friend .profile-film-rail--grid .profile-film-card {
+    width: 100%;
+    flex: unset;
+    max-width: none;
+  }
+}

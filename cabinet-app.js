@@ -22470,11 +22470,173 @@
     if (titleEl) titleEl.classList.toggle('hidden', _profileSubView === 'hub');
   }
 
+  function profileSettingsDesk() {
+    return window.matchMedia && window.matchMedia('(min-width: 1100px)').matches;
+  }
+
+  function markProfileHubNavActive(root, el) {
+    const scope = root || document;
+    scope.querySelectorAll('.profile-hub--settings-shell .mp-list-item.is-active').forEach((b) => {
+      b.classList.remove('is-active');
+    });
+    if (el) el.classList.add('is-active');
+  }
+
+  function profileHubPaneEmptyHtml() {
+    return '<div class="profile-hub-pane-empty">'
+      + '<strong>Настройки</strong>'
+      + '<span>Выберите раздел слева — друзья, оплата, интеграции и остальное откроются здесь.</span>'
+      + '</div>';
+  }
+
+  function loadProfileSubIntoPane(pane, sub, profileRes, settingsRes, tariffsRes) {
+    if (!pane) return;
+    const d = profileRes;
+    if (!d || !d.user) {
+      pane.innerHTML = '<p class="cabinet-hint">Не удалось загрузить. Попробуйте обновить страницу.</p>';
+      return;
+    }
+    if (sub === 'billing') {
+      renderProfileBillingPage(pane, d, tariffsRes);
+      return;
+    }
+    if (sub === 'profile') {
+      renderProfileEditPage(pane, d);
+      return;
+    }
+    if (sub === 'preferences' || sub === 'settings') {
+      renderProfilePreferencesPage(pane, d, settingsRes);
+      return;
+    }
+    if (sub === 'accounts') {
+      renderProfileAccountsPage(pane, d);
+      return;
+    }
+    if (sub === 'import') {
+      renderProfileImportPage(pane);
+      return;
+    }
+    pane.innerHTML = profileHubPaneEmptyHtml();
+  }
+
+  function loadProfileSectionIntoPane(pane, sec) {
+    if (!pane || !sec) return;
+    if (sec === 'collections') {
+      openSiteWhattowatch({ scope: 'collections' });
+      pane.innerHTML = '<div class="profile-hub-pane-body"><h3 class="profile-sub-title">Коллекции</h3>'
+        + '<p class="cabinet-hint">Подборки открыты в окне What to watch.</p></div>';
+      return;
+    }
+    if (sec === 'groups') {
+      pane.innerHTML = '<div class="profile-hub-pane-body">'
+        + '<h3 class="profile-sub-title">Друзья и группы</h3>'
+        + '<div class="soc-tab-row" id="profile-pane-soc-tabs">'
+        + '<button type="button" class="soc-tab active" data-pane-soc="friends">Друзья</button>'
+        + '<button type="button" class="soc-tab" data-pane-soc="groups">Группы</button>'
+        + '</div>'
+        + '<div id="profile-pane-friends" class="profile-pane-soc"></div>'
+        + '<div id="profile-pane-groups" class="profile-pane-soc hidden"></div>'
+        + '</div>';
+      const friendsHost = pane.querySelector('#profile-pane-friends');
+      const groupsHost = pane.querySelector('#profile-pane-groups');
+      friendsHost.innerHTML = pageLoadingHtml();
+      api('/api/friends', { timeoutMs: 10000 }).then(function (res) {
+        const friends = (res && res.friends) || [];
+        if (!friends.length) {
+          friendsHost.innerHTML = '<div class="cabinet-hint">Пока нет друзей. Найдите людей в поиске или примите заявки.</div>';
+          return;
+        }
+        friendsHost.innerHTML = '<div class="mp-list">' + friends.map(function (f) {
+          const name = escapeHtml(f.first_name || f.username || f.name || 'Друг');
+          const un = f.username ? '<span class="mp-list-hint">@' + escapeHtml(f.username) + '</span>' : '';
+          return '<div class="mp-list-item mp-list-item--static"><span class="mp-list-text"><span class="mp-list-title">' + name + '</span>' + un + '</span></div>';
+        }).join('') + '</div>'
+          + '<p class="cabinet-hint" style="margin-top:12px"><button type="button" class="btn btn-secondary btn-small" id="profile-pane-open-groups-full">Открыть полный раздел</button></p>';
+        const full = pane.querySelector('#profile-pane-open-groups-full');
+        if (full) full.addEventListener('click', function () {
+          showSection('groups');
+          if (typeof renderGroupsSection === 'function') renderGroupsSection();
+        });
+      }).catch(function () {
+        friendsHost.innerHTML = '<div class="cabinet-hint">Не удалось загрузить друзей.</div>';
+      });
+      groupsHost.innerHTML = pageLoadingHtml();
+      fetchSiteProfiles().then(function (data) {
+        const profiles = (data && data.profiles) || [];
+        if (!profiles.length) {
+          groupsHost.innerHTML = '<div class="cabinet-hint">Пока только этот профиль.</div>';
+          return;
+        }
+        groupsHost.innerHTML = '<div class="mp-list">' + profiles.map(function (p) {
+          const title = escapeHtml(p.title || p.name || 'Группа');
+          const hint = escapeHtml(groupKindLabel(p) || '');
+          return '<div class="mp-list-item mp-list-item--static"><span class="mp-list-text"><span class="mp-list-title">' + title + '</span>'
+            + (hint ? '<span class="mp-list-hint">' + hint + '</span>' : '') + '</span></div>';
+        }).join('') + '</div>';
+      }).catch(function () {
+        groupsHost.innerHTML = '<div class="cabinet-hint">Не удалось загрузить группы.</div>';
+      });
+      pane.querySelectorAll('[data-pane-soc]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          pane.querySelectorAll('[data-pane-soc]').forEach(function (t) { t.classList.toggle('active', t === tab); });
+          const which = tab.getAttribute('data-pane-soc');
+          friendsHost.classList.toggle('hidden', which !== 'friends');
+          groupsHost.classList.toggle('hidden', which !== 'groups');
+        });
+      });
+      return;
+    }
+    if (sec === 'integrations') {
+      pane.innerHTML = '<div class="profile-hub-pane-body"><h3 class="profile-sub-title">Интеграции</h3>'
+        + '<p class="cabinet-hint">Нейросети, расширение браузера и телевизор — полный экран раздела.</p>'
+        + '<button type="button" class="btn btn-secondary" id="profile-pane-open-integrations">Открыть интеграции</button></div>';
+      const b = pane.querySelector('#profile-pane-open-integrations');
+      if (b) b.addEventListener('click', function () { showSection('integrations'); });
+      return;
+    }
+    if (sec === 'about') {
+      pane.innerHTML = '<div class="profile-hub-pane-body"><h3 class="profile-sub-title">FAQ и о сервисе</h3>'
+        + '<p class="cabinet-hint">Частые вопросы и информация о Movie Planner.</p>'
+        + '<button type="button" class="btn btn-secondary" id="profile-pane-open-about">Открыть раздел</button></div>';
+      const b = pane.querySelector('#profile-pane-open-about');
+      if (b) b.addEventListener('click', function () {
+        showSection('about');
+        try { bindFaq && bindFaq(); } catch (_) {}
+      });
+      return;
+    }
+    if (sec === 'stats' || sec === 'unwatched' || sec === 'series') {
+      showSection(sec);
+      if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
+      return;
+    }
+    showSection(sec);
+  }
+
   function bindProfileSubNav(root) {
     if (!root) return;
     root.querySelectorAll('[data-profile-sub]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        _profileSubView = btn.getAttribute('data-profile-sub') || 'hub';
+        const sub = btn.getAttribute('data-profile-sub') || 'hub';
+        const shell = root.closest ? root.closest('.profile-hub--settings-shell') : null;
+        const pane = (shell && shell.querySelector('#profile-hub-pane'))
+          || document.getElementById('profile-hub-pane');
+        if (pane && profileSettingsDesk() && sub !== 'hub') {
+          _profileSubView = sub;
+          pushSettingsSubUrl(sub);
+          markProfileHubNavActive(shell || root, btn);
+          if (shell) shell.classList.add('is-pane-open');
+          pane.innerHTML = pageLoadingHtml();
+          Promise.all([
+            api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).catch(() => null),
+            api('/api/miniapp/settings').catch(() => null),
+            api('/api/mobile/billing/tariffs').catch(() => null),
+          ]).then(([profileRes, settingsRes, tariffsRes]) => {
+            loadProfileSubIntoPane(pane, sub, profileRes, settingsRes, tariffsRes);
+          });
+          return;
+        }
+        _profileSubView = sub;
         pushSettingsSubUrl(_profileSubView);
         renderSettingsSection();
       });
@@ -22483,6 +22645,25 @@
       btn.addEventListener('click', () => {
         const sec = btn.getAttribute('data-profile-section');
         if (!sec) return;
+        const shell = root.closest ? root.closest('.profile-hub--settings-shell') : null;
+        const pane = (shell && shell.querySelector('#profile-hub-pane'))
+          || document.getElementById('profile-hub-pane');
+        // Stats chips on the profile card still navigate away
+        if (btn.classList.contains('profile-hub-stat')) {
+          _profileSubView = 'hub';
+          showSection(sec);
+          if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
+          if (sec === 'stats') { try { mountStatsSection(); } catch (_) {} }
+          return;
+        }
+        if (pane && profileSettingsDesk()) {
+          _profileSubView = 'hub';
+          pushSettingsSubUrl('hub');
+          markProfileHubNavActive(shell || root, btn);
+          if (shell) shell.classList.add('is-pane-open');
+          loadProfileSectionIntoPane(pane, sec);
+          return;
+        }
         _profileSubView = 'hub';
         showSection(sec);
         if (sec === 'groups' && typeof renderGroupsSection === 'function') renderGroupsSection();
@@ -22537,7 +22718,8 @@
         + '</div>'
       ) : '';
 
-      root.innerHTML = '<div class="profile-hub">'
+      root.innerHTML = '<div class="profile-hub profile-hub--settings-shell">'
+        + '<div class="profile-hub-sidebar">'
         + '<div class="profile-hub-left">'
         + '<div class="profile-hub-header">'
         + '<div class="profile-hub-header-top">'
@@ -22557,7 +22739,7 @@
         + '</div>'
         + '<div id="profile-hub-achievements" class="profile-hub-achievements hidden"></div>'
         + '</div>'
-        + '<div class="mp-list">'
+        + '<div class="mp-list profile-hub-nav">'
         + profileListItemHtml('Друзья и группы', 'Друзья, активность, группы', { icon: 'friends', section: 'groups' })
         + profileListItemHtml('Оплата и подписка', isPro ? 'PRO — всё открыто' : (hasPaid ? 'Апгрейд до PRO' : 'Тарифы и оформление'), { icon: 'creditCard', sub: 'billing' })
         + profileListItemHtml('Интеграции', 'Нейросети, расширение и телевизор', { icon: 'integrations', section: 'integrations' })
@@ -22567,6 +22749,8 @@
         + profileListItemHtml('FAQ', 'Частые вопросы', { icon: 'question', section: 'about' })
         + profileListItemHtml('О сервисе', 'Автор, миссия и ссылки', { icon: 'about', section: 'about' })
         + '</div>'
+        + '</div>'
+        + '<div class="profile-hub-pane" id="profile-hub-pane">' + profileHubPaneEmptyHtml() + '</div>'
         + '</div>';
 
       setAvatarEl(document.getElementById('profile-hub-avatar'), avatarUrl, name, u.chat_id || u.user_id || u.id);
@@ -22869,6 +23053,57 @@
 
     if (_profileSubView === 'hub') {
       renderProfileHub(root);
+      return;
+    }
+
+    // Desktop: keep settings shell, fill right pane (social-network pattern)
+    if (profileSettingsDesk()) {
+      const ensureAndFill = function () {
+        let pane = document.getElementById('profile-hub-pane');
+        const shell = root.querySelector('.profile-hub--settings-shell');
+        if (!pane || !shell) {
+          const want = _profileSubView;
+          _profileSubView = 'hub';
+          renderProfileHub(root);
+          // hub is async; poll briefly for pane then fill
+          let tries = 0;
+          const t = setInterval(function () {
+            tries += 1;
+            pane = document.getElementById('profile-hub-pane');
+            if (pane || tries > 40) {
+              clearInterval(t);
+              if (!pane) return;
+              _profileSubView = want;
+              pushSettingsSubUrl(want);
+              const shell2 = root.querySelector('.profile-hub--settings-shell');
+              if (shell2) shell2.classList.add('is-pane-open');
+              const navBtn = root.querySelector('[data-profile-sub="' + want + '"]');
+              markProfileHubNavActive(shell2 || root, navBtn);
+              pane.innerHTML = pageLoadingHtml();
+              Promise.all([
+                api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).catch(() => null),
+                api('/api/miniapp/settings').catch(() => null),
+                api('/api/mobile/billing/tariffs').catch(() => null),
+              ]).then(([profileRes, settingsRes, tariffsRes]) => {
+                loadProfileSubIntoPane(pane, want, profileRes, settingsRes, tariffsRes);
+              });
+            }
+          }, 50);
+          return;
+        }
+        shell.classList.add('is-pane-open');
+        const navBtn = root.querySelector('[data-profile-sub="' + _profileSubView + '"]');
+        markProfileHubNavActive(shell, navBtn);
+        pane.innerHTML = pageLoadingHtml();
+        Promise.all([
+          api('/api/miniapp/profile?lite=1', { timeoutMs: 12000 }).catch(() => null),
+          api('/api/miniapp/settings').catch(() => null),
+          api('/api/mobile/billing/tariffs').catch(() => null),
+        ]).then(([profileRes, settingsRes, tariffsRes]) => {
+          loadProfileSubIntoPane(pane, _profileSubView, profileRes, settingsRes, tariffsRes);
+        });
+      };
+      ensureAndFill();
       return;
     }
 
