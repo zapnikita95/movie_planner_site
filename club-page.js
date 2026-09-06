@@ -35,7 +35,8 @@
     deleteBusy: false,
     carousel: {},
     lightbox: null,
-    pollSearch: null
+    pollSearch: null,
+    comments: {}
   };
   var root;
   var overlayHost;
@@ -350,7 +351,6 @@
   }
 
   function embedCardHtml(card) { if (!card) return ""; var inner = "<div class=\"club-post-embed\">" + (card.poster ? "<img src=\"" + esc(card.poster) + "\" alt=\"\" loading=\"lazy\">" : "<span class=\"club-post-embed-ph\"></span>") + "<div class=\"club-post-embed-copy\"><b>" + esc(card.title || "") + "</b>" + (card.subtitle ? "<span>" + esc(card.subtitle) + "</span>" : "") + (card.description ? "<p>" + esc(card.description) + "</p>" : "") + "</div></div>"; return card.url ? "<a class=\"club-post-embed-link\" href=\"" + esc(card.url) + "\">" + inner + "</a>" : inner; }
-  function commentsBlock(p) { var pid = String(p.id), open = !!state.commentsOpen[pid], count = Number(p.comments_count || p.comment_count || 0) || 0; var body = open ? "<div class=\"club-comments\"><div class=\"club-comments-empty\">Пока нет комментариев</div>" + (state.member ? "<div class=\"club-comments-compose\"><input type=\"text\" data-club-comment-input=\"" + esc(pid) + "\" placeholder=\"Написать комментарий…\"><button type=\"button\" class=\"club-btn club-btn-tiny\" data-club-comment-submit=\"" + esc(pid) + "\">Отправить</button></div>" : "<div class=\"club-comments-guest\">Войдите, чтобы оставить комментарий</div>") + "</div>" : ""; return "<div class=\"club-post-comments\"><button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(pid) + "\"><span aria-hidden=\"true\">💬</span> " + (count ? count : "Комментарии") + "</button>" + body + "</div>"; }
   function pollVoteHtml(p) { var poll = p && p.poll; if (!poll || !poll.options) return ""; var multiple = !!poll.allow_multiple, mine = p.my_votes || [], counts = p.counts || {}, choices = poll.options.map(function(o, i) { var n = normalizePollOpt(o), label = pollOptLabel(n), checked = mine.indexOf(i) >= 0; return "<label class=\"club-poll-choice\"><input type=\"" + (multiple ? "checkbox" : "radio") + "\" name=\"club-poll-" + esc(p.id) + "\" value=\"" + i + "\"" + (checked ? " checked" : "") + ">" + (n.card ? pollCardHtml(n.card, label) : "<span>" + esc(label) + "</span>") + "</label>"; }).join(""); var results = poll.options.map(function(_, i) { return counts[String(i)] ? "Вариант " + (i + 1) + ": " + counts[String(i)] : ""; }).filter(Boolean).join(" · "); return "<div class=\"club-poll-vote" + (multiple ? " is-multiple" : "") + "\" data-club-poll-vote=\"" + esc(p.id) + "\" data-multiple=\"" + (multiple ? "1" : "0") + "\"><div class=\"club-poll-choices\">" + choices + "</div>" + (hasToken() ? "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\">Проголосовать</button>" : "<div class=\"club-poll-results\">Войдите, чтобы проголосовать</div>") + (results ? "<div class=\"club-poll-results\">" + esc(results) + "</div>" : "") + "</div>"; }
   function pollBlock(poll) {
     if (!poll || !poll.question || !poll.options || !poll.options.length) return '';
@@ -487,6 +487,124 @@
     }
   }
 
+  function commentState(postId) {
+    var key = String(postId);
+    if (!state.comments[key]) state.comments[key] = { loaded: false, busy: false, error: '', items: [] };
+    return state.comments[key];
+  }
+
+  function commentCanDelete(c) {
+    if (state.admin) return true;
+    var mine = ids();
+    return c && c.author_user_id != null && mine.indexOf(String(c.author_user_id)) >= 0;
+  }
+
+  function commentsHtml(p) {
+    var key = String(p.id);
+    var cs = commentState(key);
+    var count = Number(p.comments_count || 0);
+    var open = !!cs.open;
+    var out = '<div class="club-comments">' +
+      '<button type="button" class="club-comments-toggle" data-club-comments-toggle="' + esc(key) + '">' +
+      (open ? 'Скрыть комментарии' : 'Комментарии') + (count ? ' · ' + count : '') + '</button>';
+    if (!open) return out + '</div>';
+    if (cs.busy) out += '<div class="club-comments-status">Загружаем комментарии…</div>';
+    else if (cs.error) out += '<div class="club-comments-status">' + esc(cs.error) + '</div>';
+    else if (!cs.items.length) out += '<div class="club-comments-status">Пока нет комментариев</div>';
+    else out += '<div class="club-comments-list">' + cs.items.map(function (c) {
+      var who = String(c.author_name || 'Участник');
+      var av = c.author_avatar_url || '/api/avatar/' + encodeURIComponent(String(c.author_user_id || '')) + '.jpg';
+      return '<div class="club-comment"><img class="club-comment-av" src="' + esc(av) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<div class="club-comment-main"><div class="club-comment-head"><b>' + esc(who) + '</b><span>' + esc(relativeWhen(c.created_at)) + '</span>' +
+        (commentCanDelete(c) ? '<button type="button" class="club-comment-del" data-club-comment-delete="' + esc(c.id) + '" data-club-comment-post="' + esc(key) + '">Удалить</button>' : '') +
+        '</div><div class="club-comment-body">' + linkify(c.body) + '</div></div></div>';
+    }).join('') + '</div>';
+    if (state.member) {
+      var draft = state.commentDrafts[key] || '';
+      out += '<form class="club-comment-compose" data-club-comment-form="' + esc(key) + '">' +
+        '<textarea maxlength="2000" rows="2" placeholder="Написать комментарий…">' + esc(draft) + '</textarea>' +
+        '<button type="submit" class="club-mini-btn"' + (cs.sending ? ' disabled' : '') + '>' + (cs.sending ? 'Отправляем…' : 'Отправить') + '</button></form>';
+    } else {
+      out += '<div class="club-comments-login">Войдите и вступите в клуб, чтобы комментировать. <button type="button" data-club-comments-login>Войти</button></div>';
+    }
+    return out + '</div>';
+  }
+
+  function toggleComments(postId) {
+    var cs = commentState(postId);
+    cs.open = !cs.open;
+    render();
+    if (cs.open && !cs.loaded) loadComments(postId);
+  }
+
+  function loadComments(postId) {
+    var cs = commentState(postId);
+    cs.busy = true;
+    cs.error = '';
+    render();
+    return req('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts/' + encodeURIComponent(postId) + '/comments?limit=100')
+      .then(function (d) {
+        cs.items = arr(d, ['comments', 'items']);
+        cs.loaded = true;
+        cs.busy = false;
+        render();
+      })
+      .catch(function (e) {
+        cs.busy = false;
+        cs.error = (e && e.message) || 'Не удалось загрузить комментарии';
+        render();
+      });
+  }
+
+  function submitComment(postId, form) {
+    var cs = commentState(postId);
+    if (cs.sending) return;
+    if (!hasToken()) { login(); return; }
+    var ta = form && form.querySelector('textarea');
+    var body = String((ta && ta.value) || '').trim();
+    if (!body) { toast('Напишите комментарий', { type: 'error' }); return; }
+    state.commentDrafts[String(postId)] = body;
+    cs.sending = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts/' + encodeURIComponent(postId) + '/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: body })
+    }).then(function (d) {
+      if (d && d.comment) cs.items.push(d.comment);
+      cs.loaded = true;
+      cs.sending = false;
+      state.commentDrafts[String(postId)] = '';
+      var p = (state.posts || []).find(function (item) { return String(item.id) === String(postId); });
+      if (p) p.comments_count = Number(p.comments_count || 0) + 1;
+      render();
+    }).catch(function (e) {
+      cs.sending = false;
+      render();
+      toast((e && e.message) || 'Не удалось отправить комментарий', { type: 'error' });
+    });
+  }
+
+  function deleteComment(postId, commentId) {
+    var cs = commentState(postId);
+    if (cs.deleting) return;
+    if (!hasToken()) { login(); return; }
+    cs.deleting = true;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts/' + encodeURIComponent(postId) + '/comments/' + encodeURIComponent(commentId), { method: 'DELETE' })
+      .then(function () {
+        cs.items = cs.items.filter(function (c) { return String(c.id) !== String(commentId); });
+        cs.deleting = false;
+        var p = (state.posts || []).find(function (item) { return String(item.id) === String(postId); });
+        if (p) p.comments_count = Math.max(0, Number(p.comments_count || 0) - 1);
+        render();
+      })
+      .catch(function (e) {
+        cs.deleting = false;
+        toast((e && e.message) || 'Не удалось удалить комментарий', { type: 'error' });
+        render();
+      });
+  }
+
   function feedHtml() {
     var posts = state.posts || [];
     if (!posts.length) {
@@ -559,7 +677,7 @@
             pollBlock(p.poll) +
             pollVoteHtml(p) +
             embeds +
-            commentsBlock(p) +
+            commentsHtml(p) +
             '</article>'
           );
         })
@@ -1803,11 +1921,24 @@
         render();
       };
     });
+    root.querySelectorAll('[data-club-comments-toggle]').forEach(function (b) {
+      b.onclick = function () { toggleComments(b.getAttribute('data-club-comments-toggle')); };
+    });
+    root.querySelectorAll('[data-club-comment-form]').forEach(function (form) {
+      form.onsubmit = function (e) {
+        e.preventDefault();
+        submitComment(form.getAttribute('data-club-comment-form'), form);
+      };
+      var ta = form.querySelector('textarea');
+      if (ta) ta.oninput = function () { state.commentDrafts[form.getAttribute('data-club-comment-form')] = ta.value; };
+    });
+    root.querySelectorAll('[data-club-comment-delete]').forEach(function (b) {
+      b.onclick = function () { deleteComment(b.getAttribute('data-club-comment-post'), b.getAttribute('data-club-comment-delete')); };
+    });
+    root.querySelectorAll('[data-club-comments-login]').forEach(function (b) { b.onclick = login; });
     bindPollControls(root);
     bindEmbedControls(root);
     root.querySelectorAll("[data-club-poll-vote-submit]").forEach(function(b) { b.onclick = function() { var box = b.closest("[data-club-poll-vote]"); if (box) submitPollVote(b.getAttribute("data-club-poll-vote-submit"), box); }; });
-    root.querySelectorAll("[data-club-comments-toggle]").forEach(function(b) { b.onclick = function() { var id = b.getAttribute("data-club-comments-toggle"); state.commentsOpen[id] = !state.commentsOpen[id]; render(); }; });
-    root.querySelectorAll("[data-club-comment-submit]").forEach(function(b) { b.onclick = function() { toast("Комментарии скоро", {type: "info"}); }; });
   }
 
 
@@ -1939,6 +2070,8 @@
     state.id = String(key);
     state.slug = SLUG_RE.test(String(key)) ? String(key).toLowerCase() : '';
     state.posts = [];
+    state.comments = {};
+    state.commentDrafts = {};
     state.members = [];
     state.member = false;
     state.admin = false;
