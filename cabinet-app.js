@@ -22222,18 +22222,24 @@
     if (!payments.length) {
       payHist += '<p class="cabinet-hint">Пока нет записей об оплатах.</p>';
     } else {
-      payHist += '<div class="settings-billing-payments-list">';
-      payments.forEach(function (p) {
+      const PREVIEW = 5;
+      payHist += '<div class="settings-billing-payments-list" id="settings-billing-payments-list">';
+      payments.forEach(function (p, idx) {
         const st = escapeHtml(p.status || '');
         const amt = (p.amount != null) ? (escapeHtml(String(p.amount)) + ' ₽') : '—';
         const when = escapeHtml(p.created_at || '');
         const per = escapeHtml(periodLabel[p.period_type] || p.period_type || '');
-        payHist += '<div class="settings-billing-pay-row">'
+        const hiddenCls = idx >= PREVIEW ? ' settings-billing-pay-row--more hidden' : '';
+        payHist += '<div class="settings-billing-pay-row' + hiddenCls + '">'
           + '<div><b>' + amt + '</b> <span class="mp-list-hint">' + st + '</span></div>'
           + '<div class="mp-list-hint">' + when + (per ? (' · ' + per) : '') + '</div>'
           + '</div>';
       });
       payHist += '</div>';
+      if (payments.length > PREVIEW) {
+        payHist += '<button type="button" class="btn btn-secondary btn-small settings-billing-payments-toggle" id="settings-billing-payments-more" data-expanded="0">'
+          + 'Показать ещё (' + String(payments.length - PREVIEW) + ')</button>';
+      }
     }
     payHist += '</div></section>';
 
@@ -22880,6 +22886,23 @@
       const tariffs = overview || tariffsRes;
       if (host) host.innerHTML = buildSettingsBillingHtml(d, tariffs, overview && overview.success ? overview : null);
       bindSettingsPageExtras(root, setStatus);
+      const moreBtn = root.querySelector('#settings-billing-payments-more');
+      if (moreBtn) {
+        moreBtn.addEventListener('click', function () {
+          const list = root.querySelector('#settings-billing-payments-list');
+          if (!list) return;
+          const expanded = moreBtn.getAttribute('data-expanded') === '1';
+          list.querySelectorAll('.settings-billing-pay-row--more').forEach(function (row) {
+            row.classList.toggle('hidden', expanded);
+          });
+          moreBtn.setAttribute('data-expanded', expanded ? '0' : '1');
+          const hiddenCount = list.querySelectorAll('.settings-billing-pay-row--more').length;
+          moreBtn.textContent = expanded
+            ? ('Показать ещё (' + String(hiddenCount) + ')')
+            : 'Свернуть';
+        });
+      }
+
       const cancelBtn = root.querySelector('#settings-billing-cancel');
       if (cancelBtn) {
         cancelBtn.addEventListener('click', function () {

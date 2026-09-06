@@ -28895,3 +28895,11 @@ a.plan-place-link {
   text-align: left;
 }
 .profile-hub-pane-empty { display: none !important; }
+
+
+.settings-billing-payments-toggle {
+  margin-top: 10px;
+}
+.settings-billing-pay-row--more.hidden {
+  display: none !important;
+}
