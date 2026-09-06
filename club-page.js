@@ -429,7 +429,7 @@
           )) +
       '</section>' +
       settingsPanel() +
-      '<p class="club-note">Посты, опросы и реакции появятся после подключения activity API.</p></main></div></div>';
+      '</main></div></div>';
     bind();
   }
 
