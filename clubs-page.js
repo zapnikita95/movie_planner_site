@@ -508,41 +508,29 @@
     var freq = watchFrequencyLabel(club);
     var desc = shortDescription(club);
     var plan = nextPlan(club);
-    var recent = recentWatched(club);
     var kind = ctaKind(club);
     var cid = club.chat_id || club.id || "";
     var ckey = clubPublicKey(club) || cid;
     var coverInner = cover
       ? '<img class="clubs-card-cover-img" src="' + esc(cover) + '" alt="" loading="lazy">'
       : '<span class="clubs-card-emoji">' + esc(emoji) + "</span>";
-    var ctaBtn = '<button type="button" class="btn ' + (kind === "open" ? "btn-secondary" : "btn-primary") + " clubs-card-cta"
-      + (kind === "pending" ? " is-disabled" : "") + '"'
+    var planText = plan ? "Ближайший фильм " + plan.title : "Ближайших фильмов не запланировано";
+    var ctaBtn = '<button type="button" class="clubs-card-cta"'
       + (kind === "pending" ? " disabled" : "")
       + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + esc(ctaLabel(kind)) + "</button>";
     return '<article class="clubs-card" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + '<div class="clubs-card-cover">' + coverInner + "</div>"
       + '<div class="clubs-card-body">'
-      + '<div class="clubs-card-topline">'
-      + '<div class="clubs-card-titleblock">'
       + '<h3 class="clubs-card-name">' + esc(name) + "</h3>"
-      + '<span class="clubs-card-badge">Киноклуб</span>'
-      + "</div>"
-      + '<div class="clubs-card-actions clubs-card-actions--desktop">' + ctaBtn + "</div>"
-      + "</div>"
+      + (desc ? '<p class="clubs-card-desc">' + esc(desc) + "</p>" : "")
       + '<div class="clubs-card-meta">'
       + '<span>' + esc(membersLabel(members)) + '</span>'
       + '<span class="clubs-card-dot" aria-hidden="true">·</span>'
       + '<span>' + esc(freq) + "</span>"
       + "</div>"
-      + (desc ? '<p class="clubs-card-desc">' + esc(desc) + "</p>" : "")
-      + (plan
-        ? '<p class="clubs-card-plan">Дальше: ' + esc(plan.title)
-          + (plan.when ? " · " + esc(plan.when) : "")
-          + "</p>"
-        : "")
-      + recentHtml(recent)
-      + '<div class="clubs-card-actions clubs-card-actions--mobile">' + ctaBtn + "</div>"
+      + '<p class="clubs-card-plan">' + esc(planText) + "</p>"
+      + '<div class="clubs-card-actions">' + ctaBtn + "</div>"
       + "</div></article>";
   }
 

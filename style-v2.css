@@ -27506,17 +27506,17 @@ body.staff-standalone-page .staff-awards-loading {
 }
 .clubs-card {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 14px;
-  padding: 12px;
+  grid-template-columns: clamp(112px, 15vw, 176px) minmax(0, 1fr);
+  min-height: 176px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
 }
 .clubs-card-cover {
-  width: 72px;
-  height: 72px;
-  border-radius: 6px;
+  width: 100%;
+  min-height: 100%;
+  border-radius: 7px 0 0 7px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -27526,95 +27526,126 @@ body.staff-standalone-page .staff-awards-loading {
 .clubs-card-cover-img {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   object-fit: cover;
 }
 .clubs-card-emoji {
-  font-size: 28px;
+  font-size: 56px;
   line-height: 1;
 }
-.clubs-card-topline {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.clubs-card-titleblock {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+.clubs-card-body {
   min-width: 0;
-  flex: 1;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title actions" "desc actions" "meta actions" "plan actions";
+  align-content: center;
+  column-gap: 22px;
 }
 .clubs-card-name {
+  grid-area: title;
+  min-width: 0;
+  margin: 0;
   font-family: Unbounded, sans-serif;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.25;
-  margin: 0;
-  flex: 1;
+}
+.clubs-card-desc {
+  grid-area: desc;
   min-width: 0;
-}
-.clubs-card-badge {
-  flex: 0 0 auto;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  padding: 3px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
-  color: var(--text-muted, #b4b4be);
-}
-.clubs-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--text-muted, #9a9aa6);
-}
-.clubs-card-dot { opacity: 0.6; }
-.clubs-card-desc,
-.clubs-card-plan {
   margin: 8px 0 0;
   font-size: 14px;
   line-height: 1.4;
   color: var(--text-body, #e4e4ec);
 }
-.clubs-card-plan { color: var(--text-muted, #c2c2cc); }
-.clubs-card-recent {
+.clubs-card-meta {
+  grid-area: meta;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-.clubs-recent-item {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
-  max-width: 180px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted, #9a9aa6);
 }
-.clubs-recent-poster,
-.clubs-recent-ph {
-  width: 28px;
-  height: 42px;
-  border-radius: 3px;
-  object-fit: cover;
-  background: #1a1a22;
+.clubs-card-dot { opacity: 0.6; }
+.clubs-card-plan {
+  grid-area: plan;
+  min-width: 0;
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-muted, #c2c2cc);
+}
+.clubs-card-actions {
+  grid-area: actions;
+  align-self: center;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   flex-shrink: 0;
 }
-.clubs-recent-meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.clubs-recent-title {
+.clubs-card-cta {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-family: Unbounded, sans-serif;
   font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
-.clubs-recent-when {
-  font-size: 11px;
-  color: var(--text-muted, #9a9aa6);
+.clubs-card-cta:hover, .clubs-card-cta:focus-visible {
+  background: #fff;
+  color: #09090b;
+  border-color: #fff;
+  outline: none;
+}
+.clubs-card-cta:active {
+  background: rgba(255, 255, 255, 0.88);
+}
+.clubs-card-cta:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+@media (max-width: 560px) {
+  .clubs-card-body {
+    padding: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "title" "desc" "meta" "plan" "actions";
+    row-gap: 0;
+  }
+  .clubs-card-actions {
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  .clubs-card-cta {
+    min-height: 38px;
+    padding: 0 14px;
+    max-width: 100%;
+  }
+}
+@media (max-width: 640px) {
+  .clubs-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+    min-height: 144px;
+  }
+  .clubs-card-cover {
+    min-height: 100%;
+  }
+  .clubs-card-emoji { font-size: 48px; }
 }
 .clubs-section-head {
   font-size: 13px;
@@ -27624,57 +27655,8 @@ body.staff-standalone-page .staff-awards-loading {
   margin: 18px 0 10px;
   text-align: left;
 }
-.clubs-list-host > .clubs-section-head:first-child {
-  margin-top: 4px;
-}
-.clubs-list-host > .clubs-grid {
-  margin-bottom: 4px;
-}
-.clubs-card-actions {
-  margin-top: 0;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-}
-.clubs-card-actions--mobile {
-  display: none;
-}
-.clubs-card-cta {
-  white-space: nowrap;
-  min-height: 36px;
-  padding: 8px 14px;
-  font-size: 13px;
-  border-radius: 999px;
-}
-@media (max-width: 560px) {
-  .clubs-card-topline {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .clubs-card-actions--desktop { display: none; }
-  .clubs-card-actions--mobile {
-    display: flex;
-    justify-content: flex-start;
-    margin-top: 10px;
-  }
-  .clubs-card-cta {
-    width: auto;
-    max-width: 100%;
-    min-height: 34px;
-    padding: 7px 14px;
-  }
-  .clubs-card-desc {
-    margin-top: 6px;
-  }
-  .clubs-toolbar {
-    flex-direction: column;
-  }
-  .clubs-create-btn {
-    width: 100%;
-  }
-}
+.clubs-list-host > .clubs-section-head:first-child { margin-top: 4px; }
+.clubs-list-host > .clubs-grid { margin-bottom: 4px; }
 .clubs-empty {
   padding: 28px 8px 12px;
   text-align: left;
@@ -27745,8 +27727,6 @@ body.staff-standalone-page .staff-awards-loading {
 }
 @media (max-width: 640px) {
   .clubs-toolbar { flex-direction: column; }
-  .clubs-card { grid-template-columns: 56px minmax(0, 1fr); }
-  .clubs-card-cover { width: 56px; height: 56px; }
 }
 
 
