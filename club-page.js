@@ -21,7 +21,7 @@
     composeTitle: '',
     composePollOn: false,
     composePollQuestion: '',
-    composePollOptions: ['', ''],
+    composePollOptions: [{ text: '', card: null }, { text: '', card: null }],
     composeImages: [],
     composeImagesPos: 'below',
     composeEditId: null,
@@ -29,7 +29,8 @@
     deleteConfirmId: null,
     deleteBusy: false,
     carousel: {},
-    lightbox: null
+    lightbox: null,
+    pollSearch: null
   };
   var root;
   var overlayHost;
@@ -41,6 +42,89 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+
+  function emptyPollOpt() {
+    return { text: '', card: null };
+  }
+
+  function normalizePollOpt(o) {
+    if (typeof o === 'string') return { text: String(o || ''), card: null };
+    if (o && typeof o === 'object') {
+      return {
+        text: String(o.text != null ? o.text : ''),
+        card: o.card && typeof o.card === 'object' ? o.card : null
+      };
+    }
+    return emptyPollOpt();
+  }
+
+  function pollOptLabel(o) {
+    var n = normalizePollOpt(o);
+    if (n.text) return n.text;
+    if (n.card && n.card.title) return String(n.card.title);
+    return '';
+  }
+
+  function cardFromSearchItem(it, kind) {
+    if (!it) return null;
+    if (kind === 'person') {
+      var pid = String(it.kp_person_id || it.id || '').trim();
+      var title = String(it.display_name || it.name_ru || it.name_en || '').trim();
+      if (!title) return null;
+      var url = String(it.person_url || (pid ? '/s/' + pid : '') || '').trim();
+      return {
+        kind: 'person',
+        id: pid || undefined,
+        title: title,
+        poster: String(it.photo || it.poster || '').trim() || undefined,
+        url: url || undefined,
+        subtitle: String(it.professions || it.secondary_name || '').trim() || undefined
+      };
+    }
+    var kid = String(it.kp_id || it.id || '').trim();
+    var t = String(it.title || it.name || '').trim();
+    if (!t) return null;
+    var k = String(it.type || 'film').toLowerCase();
+    if (k === 'movie') k = 'film';
+    if (k !== 'series') k = 'film';
+    var year = it.year != null && it.year !== '' ? String(it.year) : '';
+    return {
+      kind: k,
+      id: kid || undefined,
+      title: t,
+      poster: String(it.poster || '').trim() || undefined,
+      url: kid ? '/f/' + kid : undefined,
+      subtitle: year || undefined
+    };
+  }
+
+  function pollCardHtml(card, label) {
+    if (!card) return '';
+    var title = esc(label || card.title || '');
+    var meta = esc(card.subtitle || (card.kind === 'person' ? 'человек' : card.kind === 'series' ? 'сериал' : 'фильм'));
+    var img = card.poster
+      ? '<img src="' + esc(card.poster) + '" alt="" loading="lazy">'
+      : '<span class="club-poll-film-ph" aria-hidden="true"></span>';
+    var inner =
+      '<div class="club-poll-film">' +
+      img +
+      '<div><b>' +
+      title +
+      '</b><div class="club-poll-meta">' +
+      meta +
+      '</div></div></div>';
+    if (card.url) {
+      return (
+        '<a class="club-poll-film-link" href="' +
+        esc(card.url) +
+        '" target="_blank" rel="noopener noreferrer">' +
+        inner +
+        '</a>'
+      );
+    }
+    return inner;
+  }
+
 
   function hasToken() {
     try {
@@ -266,7 +350,16 @@
       '</div><ul class="club-poll-opts">' +
       poll.options
         .map(function (o) {
-          return '<li><span class="club-poll-opt">' + esc(o) + '</span></li>';
+          var n = normalizePollOpt(o);
+          var label = pollOptLabel(n);
+          if (n.card) {
+            return (
+              '<li class="club-poll-opt club-poll-opt--card">' +
+              pollCardHtml(n.card, label) +
+              '</li>'
+            );
+          }
+          return '<li class="club-poll-opt">' + esc(label) + '</li>';
         })
         .join('') +
       '</ul></div>'
@@ -468,17 +561,36 @@
         '<i class="ph ph-chart-bar" aria-hidden="true"></i> Прикрепить опрос</button>'
       );
     }
-    var opts = (state.composePollOptions || ['', ''])
+    var opts = (state.composePollOptions || [emptyPollOpt(), emptyPollOpt()])
       .map(function (o, i) {
+        var n = normalizePollOpt(o);
+        var cardChip = n.card
+          ? '<div class="club-poll-opt-card-chip">' +
+            (n.card.poster
+              ? '<img src="' + esc(n.card.poster) + '" alt="">'
+              : '') +
+            '<span>' +
+            esc(n.card.title || '') +
+            '</span>' +
+            '<button type="button" class="club-compose-x" data-club-poll-card-clear="' +
+            i +
+            '" aria-label="Убрать карточку">' +
+            icon('x', { size: 'sm' }) +
+            '</button></div>'
+          : '';
         return (
+          '<div class="club-poll-option-block">' +
           '<div class="club-poll-option-row">' +
           '<input type="text" class="club-poll-option-input" data-club-poll-opt="' +
           i +
           '" maxlength="80" value="' +
-          esc(o) +
+          esc(n.text) +
           '" placeholder="Вариант ' +
           (i + 1) +
           '">' +
+          '<button type="button" class="club-poll-opt-plus" data-club-poll-opt-search="' +
+          i +
+          '" title="Прикрепить из поиска" aria-label="Прикрепить из поиска">+</button>' +
           (state.composePollOptions.length > 2
             ? '<button type="button" class="club-compose-x" data-club-poll-opt-remove="' +
               i +
@@ -486,6 +598,8 @@
               icon('x', { size: 'sm' }) +
               '</button>'
             : '') +
+          '</div>' +
+          cardChip +
           '</div>'
         );
       })
@@ -498,7 +612,7 @@
       '<input type="text" id="club-compose-poll-q" maxlength="200" value="' +
       esc(state.composePollQuestion) +
       '" placeholder="О чём голосуем?"></label>' +
-      '<div class="club-field"><span>Варианты</span>' +
+      '<div class="club-field"><span>Варианты <em>(текст и/или карточка из поиска)</em></span>' +
       opts +
       (state.composePollOptions.length < 6
         ? '<button type="button" class="club-compose-attach" data-club-poll-add-opt>+ Ещё вариант</button>'
@@ -640,6 +754,56 @@
   }
 
 
+
+  function pollSearchHtml() {
+    var ps = state.pollSearch;
+    if (!ps) return '';
+    var rows = '';
+    if (ps.busy) {
+      rows = '<div class="club-poll-search-status">Ищем…</div>';
+    } else if (ps.err) {
+      rows = '<div class="club-poll-search-status">' + esc(ps.err) + '</div>';
+    } else if (!(ps.items || []).length && String(ps.q || '').trim().length >= 2) {
+      rows = '<div class="club-poll-search-status">Ничего не нашлось</div>';
+    } else {
+      rows = (ps.items || [])
+        .map(function (it, idx) {
+          var poster = it.poster || '';
+          var title = esc(it.title || '');
+          var meta = esc(it.subtitle || '');
+          return (
+            '<button type="button" class="club-poll-search-row" data-club-poll-search-pick="' +
+            idx +
+            '">' +
+            (poster
+              ? '<img src="' + esc(poster) + '" alt="">'
+              : '<span class="club-poll-film-ph"></span>') +
+            '<span class="club-poll-search-meta"><b>' +
+            title +
+            '</b><em>' +
+            meta +
+            '</em></span></button>'
+          );
+        })
+        .join('');
+    }
+    return (
+      '<div class="club-poll-search-backdrop" data-club-poll-search-close>' +
+      '<div class="club-poll-search" role="dialog" aria-modal="true" aria-label="Поиск для варианта" data-club-poll-search-sheet>' +
+      '<div class="club-compose-top"><h3>Прикрепить из поиска</h3>' +
+      '<button type="button" class="club-compose-x" data-club-poll-search-close aria-label="Закрыть">' +
+      icon('x', { size: 'sm' }) +
+      '</button></div>' +
+      '<label class="club-field"><span>Фильм, сериал или человек</span>' +
+      '<input type="search" id="club-poll-search-q" maxlength="120" value="' +
+      esc(ps.q || '') +
+      '" placeholder="Начните вводить…" autocomplete="off"></label>' +
+      '<div class="club-poll-search-results">' +
+      rows +
+      '</div></div></div>'
+    );
+  }
+
   function ensureOverlayHost() {
     if (overlayHost && document.body.contains(overlayHost)) return overlayHost;
     overlayHost = document.getElementById('club-page-overlays');
@@ -653,7 +817,7 @@
 
   function syncClubOverlays() {
     var host = ensureOverlayHost();
-    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml();
+    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
     // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
     var fab = host.querySelector('[data-club-compose-open]');
     if (fab) fab.onclick = openCompose;
@@ -687,7 +851,7 @@
       b.onclick = function () {
         state.composePollOn = !state.composePollOn;
         if (state.composePollOn && (!state.composePollOptions || state.composePollOptions.length < 2)) {
-          state.composePollOptions = ['', ''];
+          state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
         }
         render();
       };
@@ -701,14 +865,18 @@
     host.querySelectorAll('.club-poll-option-input').forEach(function (inp) {
       inp.oninput = function () {
         var i = parseInt(inp.getAttribute('data-club-poll-opt'), 10);
-        if (!isNaN(i)) state.composePollOptions[i] = inp.value;
+        if (!isNaN(i)) {
+          var opt = normalizePollOpt(state.composePollOptions[i]);
+          opt.text = inp.value;
+          state.composePollOptions[i] = opt;
+        }
       };
     });
     var addOpt = host.querySelector('[data-club-poll-add-opt]');
     if (addOpt) {
       addOpt.onclick = function () {
         if ((state.composePollOptions || []).length >= 6) return;
-        state.composePollOptions = (state.composePollOptions || []).concat(['']);
+        state.composePollOptions = (state.composePollOptions || []).map(normalizePollOpt).concat([emptyPollOpt()]);
         render();
       };
     }
@@ -792,6 +960,7 @@
       };
     }
 
+    bindPollControls(host);
   }
 
   function btn(id, label) {
@@ -1167,7 +1336,8 @@
     state.composeTitle = '';
     state.composePollOn = false;
     state.composePollQuestion = '';
-    state.composePollOptions = ['', ''];
+    state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
+    state.pollSearch = null;
     state.composeImages = [];
     state.composeImagesPos = 'below';
   }
@@ -1179,13 +1349,24 @@
     var q = String((qEl && qEl.value) || state.composePollQuestion || '').trim();
     var opts = [];
     host.querySelectorAll('.club-poll-option-input').forEach(function (inp) {
-      var v = String(inp.value || '').trim();
-      if (v) opts.push(v);
+      var i = parseInt(inp.getAttribute('data-club-poll-opt'), 10);
+      var n = normalizePollOpt(!isNaN(i) ? state.composePollOptions[i] : null);
+      n.text = String(inp.value || '').trim();
+      if (n.text || n.card) {
+        var out = { text: n.text };
+        if (n.card) out.card = n.card;
+        opts.push(out);
+      }
     });
     if (!opts.length) {
       (state.composePollOptions || []).forEach(function (o) {
-        var v = String(o || '').trim();
-        if (v) opts.push(v);
+        var n = normalizePollOpt(o);
+        n.text = String(n.text || '').trim();
+        if (n.text || n.card) {
+          var out = { text: n.text };
+          if (n.card) out.card = n.card;
+          opts.push(out);
+        }
       });
     }
     if (!q || opts.length < 2) return { error: 'Опрос: вопрос и минимум 2 варианта' };
@@ -1211,13 +1392,14 @@
     if (post.poll && post.poll.question) {
       state.composePollOn = true;
       state.composePollQuestion = post.poll.question || '';
-      state.composePollOptions = (post.poll.options || ['', '']).slice();
-      while (state.composePollOptions.length < 2) state.composePollOptions.push('');
+      state.composePollOptions = (post.poll.options || []).map(normalizePollOpt);
+      while (state.composePollOptions.length < 2) state.composePollOptions.push(emptyPollOpt());
     } else {
       state.composePollOn = false;
       state.composePollQuestion = '';
-      state.composePollOptions = ['', ''];
+      state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
     }
+    state.pollSearch = null;
     state.composeOpen = true;
     state.composeBusy = false;
     state.composeUploadBusy = false;
@@ -1479,7 +1661,7 @@
       b.onclick = function () {
         state.composePollOn = !state.composePollOn;
         if (state.composePollOn && (!state.composePollOptions || state.composePollOptions.length < 2)) {
-          state.composePollOptions = ['', ''];
+          state.composePollOptions = [emptyPollOpt(), emptyPollOpt()];
         }
         render();
       };
@@ -1494,7 +1676,9 @@
       inp.oninput = function () {
         var i = parseInt(inp.getAttribute('data-club-poll-opt'), 10);
         if (!isNaN(i)) {
-          state.composePollOptions[i] = inp.value;
+          var opt = normalizePollOpt(state.composePollOptions[i]);
+          opt.text = inp.value;
+          state.composePollOptions[i] = opt;
         }
       };
     });
@@ -1502,7 +1686,7 @@
     if (addOpt) {
       addOpt.onclick = function () {
         if ((state.composePollOptions || []).length >= 6) return;
-        state.composePollOptions = (state.composePollOptions || []).concat(['']);
+        state.composePollOptions = (state.composePollOptions || []).map(normalizePollOpt).concat([emptyPollOpt()]);
         render();
       };
     }
@@ -1581,9 +1765,123 @@
         render();
       };
     });
+    bindPollControls(root);
   }
 
 
+  function closePollSearch() {
+    var ps = state.pollSearch;
+    if (ps && ps.timer) clearTimeout(ps.timer);
+    state.pollSearch = null;
+    render();
+  }
+
+  function openPollSearch(index) {
+    var opts = state.composePollOptions || [];
+    if (index < 0 || index >= opts.length) return;
+    state.composePollOptions = opts.map(normalizePollOpt);
+    state.pollSearch = { index: index, q: '', items: [], busy: false, err: '', timer: null, seq: 0 };
+    render();
+    setTimeout(function () {
+      var input = (overlayHost || document).querySelector('#club-poll-search-q');
+      if (input) input.focus();
+    }, 20);
+  }
+
+  function schedulePollSearch(q) {
+    var ps = state.pollSearch;
+    if (!ps) return;
+    ps.q = String(q || '');
+    if (ps.timer) clearTimeout(ps.timer);
+    ps.timer = setTimeout(function () {
+      var active = state.pollSearch;
+      if (!active || active !== ps) return;
+      var query = String(ps.q || '').trim();
+      if (query.length < 2) {
+        ps.busy = false;
+        ps.err = '';
+        ps.items = [];
+        render();
+        return;
+      }
+      var seq = ++ps.seq;
+      ps.busy = true;
+      ps.err = '';
+      render();
+      req('/api/public/search?q=' + encodeURIComponent(query.slice(0, 120)) + '&limit=8&person_limit=6')
+        .then(function (d) {
+          if (state.pollSearch !== ps || ps.seq !== seq) return;
+          var cards = [];
+          arr(d, ['items', 'films', 'results']).forEach(function (it) {
+            var card = cardFromSearchItem(it, 'film');
+            if (card) cards.push(card);
+          });
+          arr(d, ['persons', 'people']).forEach(function (it) {
+            var card = cardFromSearchItem(it, 'person');
+            if (card) cards.push(card);
+          });
+          ps.items = cards;
+          ps.busy = false;
+          render();
+        })
+        .catch(function (e) {
+          if (state.pollSearch !== ps || ps.seq !== seq) return;
+          ps.busy = false;
+          ps.err = e && e.name === 'AbortError' ? '' : 'Не удалось найти';
+          render();
+        });
+    }, 280);
+  }
+
+  function pickPollSearch(index) {
+    var ps = state.pollSearch;
+    if (!ps || !ps.items || !ps.items[index]) return;
+    var optIndex = parseInt(ps.index, 10);
+    if (isNaN(optIndex)) return;
+    var opt = normalizePollOpt((state.composePollOptions || [])[optIndex]);
+    opt.card = ps.items[index];
+    if (!String(opt.text || '').trim()) opt.text = String(opt.card.title || '');
+    state.composePollOptions[optIndex] = opt;
+    closePollSearch();
+  }
+  function bindPollControls(host) {
+    if (!host) return;
+    host.querySelectorAll('[data-club-poll-opt-search]').forEach(function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-club-poll-opt-search'), 10);
+        if (!isNaN(i)) openPollSearch(i);
+      };
+    });
+    host.querySelectorAll('[data-club-poll-card-clear]').forEach(function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-club-poll-card-clear'), 10);
+        if (isNaN(i)) return;
+        var opt = normalizePollOpt((state.composePollOptions || [])[i]);
+        opt.card = null;
+        state.composePollOptions[i] = opt;
+        render();
+      };
+    });
+    host.querySelectorAll('[data-club-poll-search-close]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (b.classList.contains('club-poll-search-backdrop') && e.target !== b) return;
+        closePollSearch();
+      };
+    });
+    var sheet = host.querySelector('[data-club-poll-search-sheet]');
+    if (sheet) sheet.onclick = function (e) { e.stopPropagation(); };
+    var searchInput = host.querySelector('#club-poll-search-q');
+    if (searchInput) {
+      searchInput.oninput = function () { schedulePollSearch(searchInput.value); };
+      searchInput.onkeydown = function (e) { if (e.key === 'Escape') closePollSearch(); };
+    }
+    host.querySelectorAll('[data-club-poll-search-pick]').forEach(function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-club-poll-search-pick'), 10);
+        if (!isNaN(i)) pickPollSearch(i);
+      };
+    });
+  }
   function findInList(d, key) {
     return arr(d, ['groups', 'items', 'clubs']).find(function (x) {
       return matchClub(x, key);
