@@ -9,6 +9,11 @@
     slug: '',
     club: null,
     members: [],
+    room: null,
+    canManageMembers: false,
+    settingsBusy: false,
+    inviteBusy: false,
+    inviteUrl: "",
     posts: [],
     member: false,
     admin: false,
@@ -267,6 +272,17 @@
       plans: plans,
       recent: recent
     };
+  }
+
+  function mergeRoomSettings(room) {
+    if (!room || !state.club) return;
+    state.room = room;
+    state.club.name = room.name || state.club.name;
+    state.club.emoji = room.emoji || state.club.emoji;
+    state.club.description = room.description != null ? room.description : state.club.description;
+    state.club.public_slug = room.public_slug || state.club.public_slug || "";
+    state.club.raw = Object.assign({}, state.club.raw || {}, room);
+    state.slugDraft = state.club.public_slug || state.slugDraft || "";
   }
 
   function isMeMember(m) {
@@ -1210,32 +1226,49 @@
 
   function settingsPanel() {
     if (!state.admin) return '';
-    var slug = state.slugDraft != null && state.slugDraft !== '' ? state.slugDraft : state.club.public_slug || '';
+    var c = state.club || {};
+    var room = state.room || c.raw || {};
+    var slug = state.slugDraft != null && state.slugDraft !== '' ? state.slugDraft : c.public_slug || '';
     var preview = slug && SLUG_RE.test(String(slug).toLowerCase())
       ? 'movie-planner.ru/club/' + String(slug).toLowerCase()
       : 'movie-planner.ru/club/…';
+    var discoverable = room.is_discoverable != null ? !!room.is_discoverable : !!c.raw.is_discoverable;
+    var mode = String(room.join_approval_mode || c.raw.join_approval_mode || 'any_admin');
+    if (['no_approval', 'any_admin', 'creator_only'].indexOf(mode) < 0) mode = 'any_admin';
+    var members = (state.members || []).map(function (m) {
+      var role = String(m.role || m.member_role || '').toLowerCase();
+      var owner = !!m.is_owner || role === 'owner' || role === 'creator';
+      var admin = owner || role === 'admin' || role === 'administrator';
+      var canEdit = state.canManageMembers && !owner;
+      return '<div class="club-settings-member"><div><b>' + esc(m.name || ('Пользователь ' + m.user_id)) + '</b><span>' +
+        (owner ? 'владелец' : admin ? 'админ' : 'участник') + '</span></div>' +
+        (canEdit ? '<button type="button" class="club-mini-btn" data-club-member-role="' + esc(m.user_id) + '" data-club-member-next="' + (admin ? 'member' : 'admin') + '">' + (admin ? 'Снять админа' : 'Назначить админом') + '</button>' : '') +
+        '</div>';
+    }).join('');
+    var invite = state.inviteUrl ? '<div class="club-invite-row"><input type="text" readonly value="' + esc(state.inviteUrl) + '"><button type="button" class="club-mini-btn" data-club-copy-invite>Копировать</button></div>' : '<p class="club-panel-hint">Создайте ссылку на 7 дней и до 10 использований.</p>';
     return (
-      '<section class="club-panel' +
-      (state.tab === 'settings' ? ' is-active' : '') +
-      '" data-club-panel="settings"><div class="club-settings-card"><h3>Настройки клуба</h3>' +
-      '<label class="club-field"><span>Публичный адрес</span>' +
-      '<div class="club-slug-row"><span class="club-slug-prefix">movie-planner.ru/club/</span>' +
-      '<input type="text" id="club-slug-input" maxlength="64" autocomplete="off" spellcheck="false" value="' +
-      esc(slug) +
-      '" placeholder="first-club"></div>' +
-      '<small>Только латиница, цифры и дефис. Без минуса в id.</small></label>' +
-      '<p class="club-slug-preview">Ссылка: <b>' +
-      esc(preview) +
-      '</b></p>' +
-      '<div class="club-settings-actions">' +
-      '<button type="button" class="club-mini-btn" data-club-save-slug' +
-      (state.slugBusy ? ' disabled' : '') +
-      '>' +
-      (state.slugBusy ? 'Сохраняем…' : 'Сохранить адрес') +
-      '</button>' +
-      '<button type="button" class="club-mini-btn" data-club-copy>Скопировать ссылку</button>' +
-      '</div>' +
-      '' +
+      '<section class="club-panel' + (state.tab === 'settings' ? ' is-active' : '') + '" data-club-panel="settings">' +
+      '<div class="club-settings-grid">' +
+      '<div class="club-settings-card"><h3>Профиль клуба</h3><p>Название и описание видны в каталоге и на странице клуба.</p>' +
+      '<label class="club-field"><span>Название</span><input type="text" id="club-profile-name" maxlength="60" value="' + esc(c.name) + '"></label>' +
+      '<label class="club-field"><span>О клубе</span><textarea id="club-profile-description" maxlength="2000" rows="4" placeholder="Расскажите о клубе">' + esc(c.description) + '</textarea></label>' +
+      '<label class="club-field"><span>Эмодзи</span><input type="text" id="club-profile-emoji" maxlength="8" value="' + esc(c.emoji || '🎬') + '"></label>' +
+      '<p class="club-note">Загрузка обложки для виртуальных киноклубов пока недоступна. Используйте эмодзи — это поле сохраняется.</p>' +
+      '<button type="button" class="club-btn" data-club-save-profile' + (state.settingsBusy ? ' disabled' : '') + '>' + (state.settingsBusy ? 'Сохраняем…' : 'Сохранить профиль') + '</button></div>' +
+      '<div class="club-settings-card"><h3>Приватность и вступление</h3><p>Настройте видимость клуба и способ вступления.</p>' +
+      '<label class="club-check"><input type="checkbox" id="club-discoverable"' + (discoverable ? ' checked' : '') + '><span>В каталоге киноклубов</span></label>' +
+      '<label class="club-field"><span>Вступление</span><select id="club-join-mode">' +
+      '<option value="no_approval"' + (mode === 'no_approval' ? ' selected' : '') + '>Свободно</option>' +
+      '<option value="any_admin"' + (mode === 'any_admin' ? ' selected' : '') + '>По заявке</option>' +
+      '<option value="creator_only"' + (mode === 'creator_only' ? ' selected' : '') + '>Только по инвайту</option></select></label>' +
+      '<p class="club-note">«Только по инвайту» использует режим подтверждения создателем.</p>' +
+      '<button type="button" class="club-btn" data-club-save-privacy' + (state.settingsBusy ? ' disabled' : '') + '>' + (state.settingsBusy ? 'Сохраняем…' : 'Сохранить приватность') + '</button></div>' +
+      '<div class="club-settings-card"><h3>Публичный адрес</h3>' +
+      '<label class="club-field"><span>Ссылка на клуб</span><div class="club-slug-row"><span class="club-slug-prefix">movie-planner.ru/club/</span><input type="text" id="club-slug-input" maxlength="64" autocomplete="off" spellcheck="false" value="' + esc(slug) + '" placeholder="first-club"></div>' +
+      '<small>Для ссылки доступна латиница, цифры и дефис</small></label><p class="club-slug-preview">Ссылка: <b>' + esc(preview) + '</b></p>' +
+      '<div class="club-settings-actions"><button type="button" class="club-mini-btn" data-club-save-slug' + (state.slugBusy ? ' disabled' : '') + '>' + (state.slugBusy ? 'Сохраняем…' : 'Сохранить адрес') + '</button><button type="button" class="club-mini-btn" data-club-copy>Скопировать ссылку</button></div></div>' +
+      '<div class="club-settings-card"><h3>Инвайт</h3><p>Пригласите участников по персональной ссылке.</p>' + invite + '<button type="button" class="club-btn" data-club-generate-invite' + (state.inviteBusy ? ' disabled' : '') + '>' + (state.inviteBusy ? 'Создаём…' : 'Создать новую ссылку') + '</button></div>' +
+      '<div class="club-settings-card club-settings-card-wide"><h3>Админы и участники</h3><p>Владелец может назначать и снимать администраторов.</p>' + (members || '<p class="club-panel-hint">Участники не загрузились.</p>') + '</div>' +
       '</div></section>'
     );
   }
@@ -1411,6 +1444,86 @@
         render();
         toast((e && e.message) || 'Не удалось сохранить адрес', { type: 'error' });
       });
+  }
+
+  function saveSettings(kind) {
+    if (!state.admin || state.settingsBusy) return;
+    var fields = {};
+    if (kind === 'profile') {
+      var name = root.querySelector('#club-profile-name');
+      var desc = root.querySelector('#club-profile-description');
+      var emoji = root.querySelector('#club-profile-emoji');
+      fields.name = String((name && name.value) || '').trim();
+      fields.description = String((desc && desc.value) || '').trim();
+      fields.emoji = String((emoji && emoji.value) || '').trim() || '🎬';
+      if (!fields.name) { toast('Введите название клуба', { type: 'error' }); return; }
+    } else {
+      var discoverable = root.querySelector('#club-discoverable');
+      var mode = root.querySelector('#club-join-mode');
+      fields.is_discoverable = !!(discoverable && discoverable.checked);
+      fields.join_approval_mode = String((mode && mode.value) || 'any_admin');
+    }
+    state.settingsBusy = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields)
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить настройки');
+      mergeRoomSettings(d);
+      state.settingsBusy = false;
+      toast(kind === 'profile' ? 'Профиль сохранён' : 'Приватность сохранена');
+      render();
+    }).catch(function (e) {
+      state.settingsBusy = false;
+      render();
+      toast((e && e.message) || 'Не удалось сохранить настройки', { type: 'error' });
+    });
+  }
+
+  function generateInvite() {
+    if (state.inviteBusy) return;
+    state.inviteBusy = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/invite', { method: 'POST' })
+      .then(function (d) {
+        if (!d || !d.success || !d.invite_url) throw new Error((d && (d.message || d.error)) || 'Не удалось создать приглашение');
+        state.inviteUrl = d.invite_url;
+        state.inviteBusy = false;
+        toast('Ссылка для приглашения создана');
+        render();
+      })
+      .catch(function (e) {
+        state.inviteBusy = false;
+        render();
+        toast((e && e.message) || 'Не удалось создать приглашение', { type: 'error' });
+      });
+  }
+
+  function copyInvite() {
+    if (!state.inviteUrl) return;
+    var done = function () { toast('Инвайт скопирован'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(state.inviteUrl).then(done).catch(function () { fallback(state.inviteUrl, done); });
+    else fallback(state.inviteUrl, done);
+  }
+
+  function changeMemberRole(button) {
+    if (!state.canManageMembers) return;
+    var uid = button && button.getAttribute('data-club-member-role');
+    var role = button && button.getAttribute('data-club-member-next');
+    if (!uid || !role) return;
+    button.disabled = true;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/members/' + encodeURIComponent(uid), {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: role })
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось изменить роль');
+      var member = (state.members || []).find(function (m) { return String(m.user_id || m.id) === String(uid); });
+      if (member) member.role = role;
+      toast(role === 'admin' ? 'Участник назначен админом' : 'Права админа сняты');
+      render();
+    }).catch(function (e) {
+      button.disabled = false;
+      toast((e && e.message) || 'Не удалось изменить роль', { type: 'error' });
+    });
   }
 
   function tab(t, replace) {
@@ -1760,6 +1873,17 @@
     });
     var save = root.querySelector('[data-club-save-slug]');
     if (save) save.onclick = saveSlug;
+    var saveProfile = root.querySelector('[data-club-save-profile]');
+    if (saveProfile) saveProfile.onclick = function () { saveSettings('profile'); };
+    var savePrivacy = root.querySelector('[data-club-save-privacy]');
+    if (savePrivacy) savePrivacy.onclick = function () { saveSettings('privacy'); };
+    var inviteButton = root.querySelector('[data-club-generate-invite]');
+    if (inviteButton) inviteButton.onclick = generateInvite;
+    var inviteCopy = root.querySelector('[data-club-copy-invite]');
+    if (inviteCopy) inviteCopy.onclick = copyInvite;
+    root.querySelectorAll('[data-club-member-role]').forEach(function (b) {
+      b.onclick = function () { changeMemberRole(b); };
+    });
     var input = root.querySelector('#club-slug-input');
     if (input) {
       input.oninput = function () {
@@ -2109,6 +2233,11 @@
     state.comments = {};
     state.commentDrafts = {};
     state.members = [];
+    state.room = null;
+    state.canManageMembers = false;
+    state.settingsBusy = false;
+    state.inviteBusy = false;
+    state.inviteUrl = '';
     state.member = false;
     state.admin = false;
     state.pollEdits = {};
@@ -2156,6 +2285,8 @@
         return Promise.all([membersPromise, postsPromise]).then(function (pair) {
           var m = pair[0] || {};
           state.members = arr(m, ['members', 'items', 'users']);
+          state.canManageMembers = !!(m && (m.can_manage_members || m.i_am_owner));
+          mergeRoomSettings(m && m.room);
           detect(m || {});
           // one paint with club + members + posts
           render();
