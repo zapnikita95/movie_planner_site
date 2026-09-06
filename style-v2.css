@@ -10805,6 +10805,29 @@ a.link-inline:hover {
 }
 .home-dash-row:hover .home-premiere-preview,
 .home-dash-row:hover .home-film-preview,
+
+/* База (unwatched): same hover synopsis popup as Premieres */
+#section-unwatched .film-card-v2--hover-preview {
+  position: relative;
+  overflow: visible;
+}
+#section-unwatched .film-card-v2--hover-preview .home-film-preview {
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(8px) scale(.98);
+  z-index: 40;
+}
+#section-unwatched .film-card-v2--hover-preview:hover .home-film-preview {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+@media (hover: none) {
+  #section-unwatched .film-card-v2--hover-preview .home-film-preview {
+    display: none !important;
+  }
+}
+
 .premiere-poster-tile:hover .home-film-preview {
   opacity: 1;
   visibility: visible;
