@@ -14,13 +14,26 @@
   <meta property="og:image" content="https://movie-planner.ru/api/og/home.jpg">
   <link rel="icon" href="/images/favicon.png">
   <script>document.documentElement.classList.add('mp-fouc');</script>
-  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260906donations1">
+  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260906donations2">
   <style>
     html, body { background: #0c0c12; color: #f6f1e8; margin: 0; }
     html.mp-fouc body > .donations-wrap { visibility: hidden; }
     html.mp-css-ready body > .donations-wrap { visibility: visible; }
     .donations-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 18px 80px; }
-    .donations-hero { margin-bottom: 28px; }
+    /* Global style-v2 `header{position:sticky}` must NOT pin the page hero */
+    .donations-page header.donations-hero,
+    .donations-page .donations-hero {
+      position: static !important;
+      top: auto !important;
+      z-index: auto !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: transparent !important;
+      border-bottom: 0 !important;
+      padding: 0 !important;
+      isolation: auto !important;
+      margin-bottom: 28px;
+    }
     .donations-hero h1 { font-family: Unbounded, sans-serif; font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0 0 10px; }
     .donations-hero p { color: rgba(246,241,232,.72); max-width: 52ch; line-height: 1.5; }
     .donations-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
@@ -43,9 +56,17 @@
     .donation-tile:hover { transform: translateY(-3px); border-color: rgba(255,138,184,.45); }
     .donation-tile-media { aspect-ratio: 2/3; background: #1a1624; overflow: hidden; }
     .donation-tile-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .donation-tile-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 92px; }
-    .donation-tile-title { font-weight: 800; font-size: 14px; line-height: 1.25;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .donation-tile-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+    .donation-tile-title {
+      font-weight: 800; font-size: 14px; line-height: 1.3;
+      /* Never clip mid-glyph (was -webkit-line-clamp cutting «короткометражны…») */
+      overflow: visible;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: normal;
+      hyphens: none;
+    }
+    .donation-tile-body { min-height: auto; }
     .donation-tile-meta { font-size: 12px; color: rgba(246,241,232,.62); }
     .donation-progress {
       height: 6px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden;
@@ -72,6 +93,22 @@
     .donations-back { display: inline-block; margin-bottom: 18px; color: rgba(246,241,232,.7); text-decoration: none; }
     .donations-back:hover { color: #ff8ab8; }
     .donations-empty { color: rgba(246,241,232,.6); padding: 24px 0; }
+    .donations-image-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+    .donations-select {
+      height: 40px; border-radius: 12px; padding: 0 12px;
+      border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.25); color: #fff;
+      font: inherit;
+    }
+    .donations-image-preview {
+      margin-top: 10px; display: flex; gap: 12px; align-items: flex-end;
+    }
+    .donations-image-preview.hidden { display: none !important; }
+    .donations-image-preview img {
+      width: 96px; aspect-ratio: 2/3; object-fit: cover; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12); background: #1a1624;
+    }
+    #d-image-url.hidden { display: none !important; }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
   <script>
@@ -91,28 +128,48 @@
 <body class="donations-page">
   <div class="donations-wrap">
     <a class="donations-back" href="/">← На главную</a>
-    <header class="donations-hero">
+    <div class="donations-hero">
       <h1>Сейчас собирают</h1>
       <p>Краудфандинг фильмов и документалок. Поддержите авторов или расскажите о своём сборе — после модерации он появится в списке.</p>
       <div class="donations-hero-actions">
         <a class="donations-btn donations-btn--primary" href="#tell">Рассказать о сборе</a>
+        <a class="donations-btn" href="/articles/kraudfanding-pervogo-filma.html">Гайд по краудфандингу</a>
         <a class="donations-btn" href="/premieres">Премьеры</a>
       </div>
-    </header>
+    </div>
 
+    <h2 class="donations-section-title" style="font-size:1.1rem;margin:8px 0 14px;font-weight:800">Активные сборы</h2>
     <div id="donations-grid" class="donations-grid" aria-live="polite"></div>
     <p id="donations-empty" class="donations-empty hidden">Пока нет активных сборов — загляните позже или оставьте заявку ниже.</p>
 
     <section class="donations-form-card" id="tell">
       <h2>Рассказать о сборе</h2>
-      <p class="hint">Как «Добавить фильм»: заявка уходит на модерацию. Нужны название, ссылка на сбор и контакт.</p>
+      <p class="hint">Как «Добавить фильм»: заявка уходит на модерацию. Нужны название, ссылка на сбор, картинка и контакт. Соцсети — по желанию.</p>
       <form id="donations-form" novalidate>
         <label for="d-title">Название</label>
         <input id="d-title" name="title" required maxlength="200" placeholder="Документальный фильм «…»">
         <label for="d-url">Ссылка на сбор</label>
         <input id="d-url" name="url" type="url" required maxlength="2000" placeholder="https://planeta.ru/campaigns/…">
+        <label for="d-image-url">Картинка сбора</label>
+        <div class="donations-image-row">
+          <select id="d-image-mode" class="donations-select" aria-label="Как добавить картинку">
+            <option value="file">Загрузить файл</option>
+            <option value="url">Ссылка на картинку</option>
+          </select>
+          <button type="button" class="donations-btn" id="d-image-pick">Выбрать файл</button>
+          <input id="d-poster" name="poster" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden>
+        </div>
+        <input id="d-image-url" name="image_url" type="url" maxlength="2000" placeholder="https://…/poster.jpg" class="hidden" style="margin-top:8px">
+        <div class="donations-image-preview hidden" id="d-image-preview">
+          <img id="d-image-preview-img" alt="Превью афиши">
+          <button type="button" class="donations-btn" id="d-image-clear">Убрать</button>
+        </div>
+        <p class="hint" style="margin:6px 0 0;font-size:12px">Нужна обложка как у сборов выше (JPEG/PNG/WebP, до 8 МБ).</p>
         <label for="d-contact">Контакт (Telegram / email)</label>
         <input id="d-contact" name="contact" required maxlength="200" placeholder="@username или email">
+        <label for="d-social">Соцсети проекта (по желанию)</label>
+        <input id="d-social" name="social" maxlength="1000" placeholder="Instagram / VK / Telegram-канал — ссылки через запятую или с новой строки">
+        <p class="hint" style="margin:6px 0 0;font-size:12px">Зрители смогут подписаться и следить за съёмками. Можно несколько ссылок.</p>
         <label for="d-note">Комментарий</label>
         <textarea id="d-note" name="note" maxlength="2000" placeholder="Кратко о проекте (по желанию)"></textarea>
         <div style="margin-top:16px">
@@ -167,47 +224,119 @@
         if (empty) { empty.textContent = 'Не удалось загрузить сборы — обновите страницу.'; empty.classList.remove('hidden'); }
       });
 
+
+    var imageMode = document.getElementById('d-image-mode');
+    var imagePick = document.getElementById('d-image-pick');
+    var posterInput = document.getElementById('d-poster');
+    var imageUrl = document.getElementById('d-image-url');
+    var imagePreview = document.getElementById('d-image-preview');
+    var imagePreviewImg = document.getElementById('d-image-preview-img');
+    var imageClear = document.getElementById('d-image-clear');
+    function syncImageMode() {
+      var mode = (imageMode && imageMode.value) || 'file';
+      if (mode === 'url') {
+        if (imageUrl) imageUrl.classList.remove('hidden');
+        if (imagePick) imagePick.classList.add('hidden');
+      } else {
+        if (imageUrl) imageUrl.classList.add('hidden');
+        if (imagePick) imagePick.classList.remove('hidden');
+      }
+    }
+    if (imageMode) imageMode.addEventListener('change', syncImageMode);
+    syncImageMode();
+    if (imagePick && posterInput) {
+      imagePick.addEventListener('click', function () { posterInput.click(); });
+    }
+    if (posterInput) {
+      posterInput.addEventListener('change', function () {
+        var f = posterInput.files && posterInput.files[0];
+        if (!f) return;
+        if (imagePreviewImg) imagePreviewImg.src = URL.createObjectURL(f);
+        if (imagePreview) imagePreview.classList.remove('hidden');
+        if (imageMode) { imageMode.value = 'file'; syncImageMode(); }
+      });
+    }
+    if (imageUrl) {
+      imageUrl.addEventListener('input', function () {
+        var u = (imageUrl.value || '').trim();
+        if (u && imagePreviewImg) {
+          imagePreviewImg.src = u;
+          if (imagePreview) imagePreview.classList.remove('hidden');
+        }
+      });
+    }
+    if (imageClear) {
+      imageClear.addEventListener('click', function () {
+        if (posterInput) posterInput.value = '';
+        if (imageUrl) imageUrl.value = '';
+        if (imagePreviewImg) imagePreviewImg.removeAttribute('src');
+        if (imagePreview) imagePreview.classList.add('hidden');
+      });
+    }
+
     var form = document.getElementById('donations-form');
     var status = document.getElementById('d-status');
     var btn = document.getElementById('d-submit');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var payload = {
-        title: (document.getElementById('d-title').value || '').trim(),
-        url: (document.getElementById('d-url').value || '').trim(),
-        contact: (document.getElementById('d-contact').value || '').trim(),
-        note: (document.getElementById('d-note').value || '').trim()
-      };
-      if (!payload.title || !payload.url || !payload.contact) {
+      var title = (document.getElementById('d-title').value || '').trim();
+      var url = (document.getElementById('d-url').value || '').trim();
+      var contact = (document.getElementById('d-contact').value || '').trim();
+      var socialEl = document.getElementById('d-social');
+      var social = socialEl ? (socialEl.value || '').trim() : '';
+      var note = (document.getElementById('d-note').value || '').trim();
+      var mode = (imageMode && imageMode.value) || 'file';
+      var file = posterInput && posterInput.files && posterInput.files[0];
+      var imgLink = imageUrl ? (imageUrl.value || '').trim() : '';
+      if (!title || !url || !contact) {
         status.className = 'donations-status err';
         status.textContent = 'Заполните название, ссылку и контакт';
         return;
       }
-      btn.disabled = true;
+      if (mode === 'file' && !file && !imgLink) {
+        status.className = 'donations-status err';
+        status.textContent = 'Прикрепите картинку сбора (файл или ссылку)';
+        return;
+      }
+      if (mode === 'url' && !imgLink && !file) {
+        status.className = 'donations-status err';
+        status.textContent = 'Укажите ссылку на картинку или загрузите файл';
+        return;
+      }
       status.className = 'donations-status';
       status.textContent = 'Отправляем…';
+      if (btn) btn.disabled = true;
+      var fd = new FormData();
+      fd.append('title', title);
+      fd.append('url', url);
+      fd.append('contact', contact);
+      fd.append('social', social);
+      fd.append('note', note);
+      if (imgLink) fd.append('image_url', imgLink);
+      if (file) fd.append('poster', file, file.name || 'poster.jpg');
       fetch(apiBase() + '/api/public/donations/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: fd
       })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (res) {
-          btn.disabled = false;
-          if (!res.ok || !(res.d && res.d.success)) {
+          if (!res.ok || !res.j || !res.j.success) {
             status.className = 'donations-status err';
-            status.textContent = (res.d && (res.d.error || res.d.message)) || 'Не удалось отправить';
+            status.textContent = (res.j && (res.j.message || res.j.error)) || 'Не удалось отправить';
             return;
           }
           status.className = 'donations-status ok';
-          status.textContent = res.d.message || 'Заявка отправлена';
+          status.textContent = res.j.message || 'Заявка отправлена на модерацию';
           form.reset();
+          if (imagePreview) imagePreview.classList.add('hidden');
+          if (imagePreviewImg) imagePreviewImg.removeAttribute('src');
+          syncImageMode();
         })
         .catch(function () {
-          btn.disabled = false;
           status.className = 'donations-status err';
-          status.textContent = 'Сеть недоступна';
-        });
+          status.textContent = 'Ошибка сети';
+        })
+        .finally(function () { if (btn) btn.disabled = false; });
     });
   })();
   </script>
