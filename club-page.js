@@ -24,6 +24,9 @@
     composePollOptions: [{ text: '', card: null }, { text: '', card: null }],
     composeImages: [],
     composeImagesPos: 'below',
+    composeEmbeds: [],
+    commentsOpen: {},
+    commentDrafts: {},
     composeEditId: null,
     composeUploadBusy: false,
     deleteConfirmId: null,
@@ -78,7 +81,8 @@
         title: title,
         poster: String(it.photo || it.poster || '').trim() || undefined,
         url: url || undefined,
-        subtitle: String(it.professions || it.secondary_name || '').trim() || undefined
+        subtitle: String(it.professions || it.secondary_name || '').trim() || undefined,
+        description: String(it.description || it.bio || '').trim() || undefined
       };
     }
     var kid = String(it.kp_id || it.id || '').trim();
@@ -94,7 +98,8 @@
       title: t,
       poster: String(it.poster || '').trim() || undefined,
       url: kid ? '/f/' + kid : undefined,
-      subtitle: year || undefined
+      subtitle: String(it.subtitle || ((it.actors || it.cast) ? [year, it.actors || it.cast].filter(Boolean).join(' · ') : year)).trim() || undefined,
+      description: String(it.description || it.short_description || it.plot || '').trim() || undefined
     };
   }
 
@@ -342,6 +347,8 @@
     return escText.replace(/\n/g, '<br>');
   }
 
+  function embedCardHtml(card) { if (!card) return ""; var inner = "<div class=\"club-post-embed\">" + (card.poster ? "<img src=\"" + esc(card.poster) + "\" alt=\"\" loading=\"lazy\">" : "<span class=\"club-post-embed-ph\"></span>") + "<div class=\"club-post-embed-copy\"><b>" + esc(card.title || "") + "</b>" + (card.subtitle ? "<span>" + esc(card.subtitle) + "</span>" : "") + (card.description ? "<p>" + esc(card.description) + "</p>" : "") + "</div></div>"; return card.url ? "<a class=\"club-post-embed-link\" href=\"" + esc(card.url) + "\">" + inner + "</a>" : inner; }
+  function commentsBlock(p) { var pid = String(p.id), open = !!state.commentsOpen[pid], count = Number(p.comments_count || p.comment_count || 0) || 0; var body = open ? "<div class=\"club-comments\"><div class=\"club-comments-empty\">Пока нет комментариев</div>" + (state.member ? "<div class=\"club-comments-compose\"><input type=\"text\" data-club-comment-input=\"" + esc(pid) + "\" placeholder=\"Написать комментарий…\"><button type=\"button\" class=\"club-btn club-btn-tiny\" data-club-comment-submit=\"" + esc(pid) + "\">Отправить</button></div>" : "<div class=\"club-comments-guest\">Войдите, чтобы оставить комментарий</div>") + "</div>" : ""; return "<div class=\"club-post-comments\"><button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(pid) + "\"><span aria-hidden=\"true\">💬</span> " + (count ? count : "Комментарии") + "</button>" + body + "</div>"; }
   function pollBlock(poll) {
     if (!poll || !poll.question || !poll.options || !poll.options.length) return '';
     return (
@@ -528,6 +535,7 @@
             ? '<div class="club-post-body">' + linkify(p.body) + '</div>'
             : '';
           var media = carouselBlock(p);
+          var embeds = (p.embeds || []).map(embedCardHtml).join('');
           var pos = String((p && p.images_position) || 'below').toLowerCase();
           var mediaFirst = pos === 'above' || pos === 'top';
           return (
@@ -546,6 +554,8 @@
             body +
             (mediaFirst ? '' : media) +
             pollBlock(p.poll) +
+            embeds +
+            commentsBlock(p) +
             '</article>'
           );
         })
@@ -662,6 +672,7 @@
     );
   }
 
+  function embedsComposeHtml() { var cards = state.composeEmbeds || []; if (!cards.length) return ""; return "<div class=\"club-compose-embeds\">" + cards.map(function(card, i) { return "<div class=\"club-embed-chip\">" + (card.poster ? "<img src=\"" + esc(card.poster) + "\" alt=\"\">" : "") + "<span>" + esc(card.title || "") + "</span><button type=\"button\" class=\"club-compose-x\" data-club-embed-remove=\"" + i + "\" aria-label=\"Убрать карточку\">" + icon("x", {size:"sm"}) + "</button></div>"; }).join("") + "</div>"; }
   function composeHtml() {
     if (!state.composeOpen) return '';
     return (
@@ -681,6 +692,8 @@
       '<textarea id="club-compose-body" rows="5" maxlength="4000" placeholder="Напишите пост… Ссылки станут кликабельными.">' +
       esc(state.composeBody) +
       '</textarea></label>' +
+      '<div class="club-compose-attach-row"><button type="button" class="club-embed-plus" data-club-embed-open aria-label="Прикрепить фильм или человека">+</button><span>Прикрепить фильм или человека</span></div>' +
+      embedsComposeHtml() +
       imagesComposeHtml() +
       pollComposeHtml() +
       '<div class="club-compose-actions">' +
@@ -755,6 +768,7 @@
 
 
 
+  function updatePollSearchResults() { var host = overlayHost || document; var results = host.querySelector(".club-poll-search-results"); if (!results || !state.pollSearch) return; var tmp = document.createElement("div"); tmp.innerHTML = pollSearchHtml(); var next = tmp.querySelector(".club-poll-search-results"); if (next) results.innerHTML = next.innerHTML; bindPollControls(host); }
   function pollSearchHtml() {
     var ps = state.pollSearch;
     if (!ps) return '';
@@ -961,6 +975,7 @@
     }
 
     bindPollControls(host);
+    bindEmbedControls(host);
   }
 
   function btn(id, label) {
@@ -1311,6 +1326,7 @@
       return;
     }
     state.composeEditId = null;
+    state.composeEmbeds = [];
     state.composeOpen = true;
     state.composeBusy = false;
     state.composeUploadBusy = false;
@@ -1332,6 +1348,7 @@
     state.composeUploadBusy = false;
     state.composeOpen = false;
     state.composeEditId = null;
+    state.composeEmbeds = [];
     state.composeBody = '';
     state.composeTitle = '';
     state.composePollOn = false;
@@ -1340,6 +1357,7 @@
     state.pollSearch = null;
     state.composeImages = [];
     state.composeImagesPos = 'below';
+    state.composeEmbeds = [];
   }
 
   function readComposePoll() {
@@ -1389,6 +1407,7 @@
     state.composeBody = post.body || '';
     state.composeImages = (post.images || []).slice();
     state.composeImagesPos = post.images_position === 'above' ? 'above' : 'below';
+    state.composeEmbeds = (post.embeds || []).slice();
     if (post.poll && post.poll.question) {
       state.composePollOn = true;
       state.composePollQuestion = post.poll.question || '';
@@ -1439,7 +1458,8 @@
     var poll = pollRes && !pollRes.error ? pollRes : null;
     if (!state.composePollOn) poll = null;
     var images = (state.composeImages || []).slice();
-    if (!body && !poll && !images.length) {
+    var embeds = (state.composeEmbeds || []).slice();
+    if (!body && !poll && !images.length && !embeds.length) {
       toast('Напишите текст, добавьте опрос или картинку', { type: 'error' });
       return;
     }
@@ -1452,6 +1472,7 @@
       body: body || '',
       images: images,
       images_position: state.composeImagesPos === 'above' ? 'above' : 'below',
+      embeds: embeds,
       poll: poll
     };
     var editId = state.composeEditId;
@@ -1766,6 +1787,9 @@
       };
     });
     bindPollControls(root);
+    bindEmbedControls(root);
+    root.querySelectorAll("[data-club-comments-toggle]").forEach(function(b) { b.onclick = function() { var id = b.getAttribute("data-club-comments-toggle"); state.commentsOpen[id] = !state.commentsOpen[id]; render(); }; });
+    root.querySelectorAll("[data-club-comment-submit]").forEach(function(b) { b.onclick = function() { toast("Комментарии скоро", {type: "info"}); }; });
   }
 
 
@@ -1780,7 +1804,7 @@
     var opts = state.composePollOptions || [];
     if (index < 0 || index >= opts.length) return;
     state.composePollOptions = opts.map(normalizePollOpt);
-    state.pollSearch = { index: index, q: '', items: [], busy: false, err: '', timer: null, seq: 0 };
+    state.pollSearch = { target: "poll", index: index, q: '', items: [], busy: false, err: '', timer: null, seq: 0 };
     render();
     setTimeout(function () {
       var input = (overlayHost || document).querySelector('#club-poll-search-q');
@@ -1801,13 +1825,13 @@
         ps.busy = false;
         ps.err = '';
         ps.items = [];
-        render();
+        updatePollSearchResults();
         return;
       }
       var seq = ++ps.seq;
       ps.busy = true;
       ps.err = '';
-      render();
+      updatePollSearchResults();
       req('/api/public/search?q=' + encodeURIComponent(query.slice(0, 120)) + '&limit=8&person_limit=6')
         .then(function (d) {
           if (state.pollSearch !== ps || ps.seq !== seq) return;
@@ -1822,20 +1846,23 @@
           });
           ps.items = cards;
           ps.busy = false;
-          render();
+          updatePollSearchResults();
         })
         .catch(function (e) {
           if (state.pollSearch !== ps || ps.seq !== seq) return;
           ps.busy = false;
           ps.err = e && e.name === 'AbortError' ? '' : 'Не удалось найти';
-          render();
+          updatePollSearchResults();
         });
     }, 280);
   }
 
+  function openEmbedSearch() { state.pollSearch = {target: "embed", index: null, q: "", items: [], busy: false, err: "", timer: null, seq: 0}; render(); setTimeout(function() { var input = (overlayHost || document).querySelector("#club-poll-search-q"); if (input) input.focus(); }, 20); }
+  function enrichEmbedCard(card) { if (!card || card.kind === "person" || !card.id || card.description) return; req("/api/public/film/" + encodeURIComponent(card.id)).then(function(d) { var f = d && (d.film || d.item || d.data || d); if (!f) return; card.description = String(f.description || f.short_description || f.plot || "").trim() || undefined; if (!card.subtitle) { var actors = f.actors || f.cast || f.actors_names; var year = f.year || f.release_year; card.subtitle = String([year, actors].filter(Boolean).join(" · ")).trim() || undefined; } render(); }).catch(function() {}); }
   function pickPollSearch(index) {
     var ps = state.pollSearch;
     if (!ps || !ps.items || !ps.items[index]) return;
+    if (ps.target === "embed") { var picked = ps.items[index]; state.composeEmbeds = (state.composeEmbeds || []).concat([picked]); closePollSearch(); enrichEmbedCard(picked); return; }
     var optIndex = parseInt(ps.index, 10);
     if (isNaN(optIndex)) return;
     var opt = normalizePollOpt((state.composePollOptions || [])[optIndex]);
@@ -1844,6 +1871,7 @@
     state.composePollOptions[optIndex] = opt;
     closePollSearch();
   }
+  function bindEmbedControls(host) { if (!host) return; host.querySelectorAll("[data-club-embed-open]").forEach(function(b) { b.onclick = openEmbedSearch; }); host.querySelectorAll("[data-club-embed-remove]").forEach(function(b) { b.onclick = function() { var i = parseInt(b.getAttribute("data-club-embed-remove"), 10); if (!isNaN(i)) { state.composeEmbeds = (state.composeEmbeds || []).filter(function(_, idx) { return idx !== i; }); render(); } }; }); }
   function bindPollControls(host) {
     if (!host) return;
     host.querySelectorAll('[data-club-poll-opt-search]').forEach(function (b) {
