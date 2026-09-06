@@ -865,6 +865,7 @@
           var dt = new Date(dVal + 'T' + tVal);
           if (isNaN(dt.getTime())) { onToast('Некорректная дата'); return; }
           var body = { plan_datetime: dt.toISOString() };
+          if (opts.libraryChatId != null && opts.libraryChatId !== "") body.library_chat_id = String(opts.libraryChatId);
           if (state.selected.film_id) body.film_id = state.selected.film_id;
           else if (state.selected.kp_id) body.kp_id = Number(String(state.selected.kp_id).replace(/\D/g, ''));
           if (isCinema) {

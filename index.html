@@ -3783,7 +3783,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V = '20260906clubsCommentsCompose1';
+        var V = "20260906clubsSchedulePlan1";
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,
@@ -3869,7 +3869,7 @@
             'buzz-page.js?v=' + V
           ];
           if (isClubPage) {
-            list = ['mp-api-config.js?v=' + V, 'header-search-scroll.js?v=' + V, 'mp-icons.js?v=' + V, 'page-loading.js?v=' + V, 'cabinet-app.js?v=' + V, clubPage, 'login-auth-rail.js?v=' + V, 'public-film-login.js?v=' + V];
+            list = ["mp-api-config.js?v=" + V, "header-search-scroll.js?v=" + V, "mp-icons.js?v=" + V, "page-loading.js?v=" + V, "plan-modal.js?v=" + V, "cabinet-app.js?v=" + V, clubPage, 'login-auth-rail.js?v=' + V, 'public-film-login.js?v=' + V];
           } else if (isWtwCollectionDetail) {
             list = loggedHead.concat([collPage, clubsPage, 'cabinet-app.js?v=' + V], loggedTail);
           } else if (isWtwClubs) {
