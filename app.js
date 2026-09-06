@@ -6906,17 +6906,37 @@
   }
 
   // ——— Загрузка данных кабинета ———
+  function _bucketPlansFromAllItems(items) {
+    const home = [];
+    const cinema = [];
+    const premieres = [];
+    (items || []).forEach((it) => {
+      if (!it) return;
+      const pt = String(it.plan_type || 'home').toLowerCase();
+      if (pt === 'cinema') cinema.push(it);
+      else if (pt === 'premiere' || it.is_premiere_reminder) premieres.push(it);
+      else home.push(it);
+    });
+    return { home, cinema, premieres };
+  }
+
   function loadPlans() {
-    api('/api/site/plans').then((data) => {
+    api('/api/site/plans/all').then((data) => {
       if (!data.success) {
         if (window._mpApiAuthDegraded) {
           try { showToast('Не удалось загрузить планы — обновите страницу', { type: 'error' }); } catch (_) {}
         }
         return;
       }
-      const home = data.home || [];
-      const cinema = data.cinema || [];
-      const premieres = data.premieres || [];
+      let home = data.home || [];
+      let cinema = data.cinema || [];
+      let premieres = data.premieres || [];
+      if (Array.isArray(data.items)) {
+        const b = _bucketPlansFromAllItems(data.items);
+        home = b.home;
+        cinema = b.cinema;
+        premieres = b.premieres;
+      }
       _plansData = { home, cinema, premieres };
       let pendingFilter = 'all';
       try {
