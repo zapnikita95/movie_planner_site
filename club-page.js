@@ -361,7 +361,7 @@
       '</button>' +
       '<button type="button" class="club-mini-btn" data-club-copy>Скопировать ссылку</button>' +
       '</div>' +
-      '<p class="club-panel-hint">Приватность гостей, права админов и модерация участников подключим после granular ACL.</p>' +
+      '' +
       '</div></section>'
     );
   }
