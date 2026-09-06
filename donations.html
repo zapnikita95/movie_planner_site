@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://movie-planner.ru/api/og/home.jpg">
   <link rel="icon" href="/images/favicon.png">
   <script>document.documentElement.classList.add('mp-fouc');</script>
-  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donations3">
+  <link rel="stylesheet" id="mp-site-css" href="/style-v2.css?v=20260907donations4">
   <style id="mp-article-critical">
     html.mp-session #site-header [data-action="login"],
     html.mp-session #site-header #login-btn,
@@ -191,7 +191,7 @@
       <div class="donations-form-wrap">
 <section class="donations-form-card" id="tell">
       <h2>Рассказать о сборе</h2>
-      <p class="hint">Как «Добавить фильм»: заявка уходит на модерацию. Нужны название, ссылка на сбор, картинка и контакт. Соцсети — по желанию.</p>
+      <p class="hint">Как «Добавить фильм»: заявка уходит на модерацию. Нужны название, ссылка на сбор, картинка, контакт и ссылка на соцсеть автора.</p>
       <form id="donations-form" novalidate>
         <label for="d-title">Название</label>
         <input id="d-title" name="title" required maxlength="200" placeholder="Документальный фильм «…»">
@@ -214,9 +214,9 @@
         <p class="hint" style="margin:6px 0 0;font-size:12px">Нужна обложка как у сборов выше (JPEG/PNG/WebP, до 8 МБ).</p>
         <label for="d-contact">Контакт (Telegram / email)</label>
         <input id="d-contact" name="contact" required maxlength="200" placeholder="@username или email">
-        <label for="d-social">Соцсети проекта (по желанию)</label>
-        <input id="d-social" name="social" maxlength="1000" placeholder="Instagram / VK / Telegram-канал — ссылки через запятую или с новой строки">
-        <p class="hint" style="margin:6px 0 0;font-size:12px">Зрители смогут подписаться и следить за съёмками. Можно несколько ссылок.</p>
+        <label for="d-social">Соцсеть автора (обязательно)</label>
+        <input id="d-social" name="social" required maxlength="1000" placeholder="https://t.me/… или Instagram / VK — ссылка на автора">
+        <p class="hint" style="margin:6px 0 0;font-size:12px">Покажется на плитке сбора. Можно несколько ссылок через запятую — первая станет основной.</p>
         <label for="d-note">Комментарий</label>
         <textarea id="d-note" name="note" maxlength="2000" placeholder="Кратко о проекте (по желанию)"></textarea>
         <div style="margin-top:16px">
@@ -324,9 +324,9 @@
     </footer>
   </div>
 
-  <script src="/public-film-login.js?v=20260907donations3"></script>
-  <script src="/film-page.js?v=20260907donations3"></script>
-  <script src="/articles/article-chrome.js?v=20260907donations3"></script>
+  <script src="/public-film-login.js?v=20260907donations4"></script>
+  <script src="/film-page.js?v=20260907donations4"></script>
+  <script src="/articles/article-chrome.js?v=20260907donations4"></script>
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 <script>
     (function () {
@@ -341,5 +341,202 @@
       setTimeout(ready, 2000);
     })();
   </script>
+
+<script>
+(function () {
+  var API = (window.MP_API_BASE || window.location.origin || 'https://movie-planner.ru').replace(/\/$/, '');
+  var PLACEHOLDER = '/images/poster-placeholder.svg';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function moneyRu(n) {
+    try { return new Intl.NumberFormat('ru-RU').format(Number(n) || 0) + ' ₽'; }
+    catch (_e) { return String(n || 0) + ' ₽'; }
+  }
+
+  function withDonationsUtm(raw, campaign) {
+    var url = String(raw || '').trim();
+    if (!url || url.charAt(0) === '/') return url;
+    try {
+      var u = new URL(url);
+      if (!u.searchParams.get('utm_source')) u.searchParams.set('utm_source', 'movie_planner');
+      if (!u.searchParams.get('utm_medium')) u.searchParams.set('utm_medium', 'donations');
+      if (!u.searchParams.get('utm_campaign')) u.searchParams.set('utm_campaign', campaign || 'catalog');
+      return u.toString();
+    } catch (_e) {
+      return url;
+    }
+  }
+
+  function firstSocialUrl(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    var parts = s.split(/[\s,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (/^https?:\/\//i.test(p)) return p;
+      if (p.charAt(0) === '@') return 'https://t.me/' + p.slice(1);
+    }
+    return parts[0] || '';
+  }
+
+  function cardHtml(it) {
+    if (!it) return '';
+    var pct = Math.max(0, Math.min(100, Number(it.progress_pct) || 0));
+    var poster = it.image_url || PLACEHOLDER;
+    var href = withDonationsUtm(it.external_url || '', it.source || 'catalog');
+    var title = esc(it.title || 'Сбор');
+    var meta = esc(moneyRu(it.collected) + ' · ' + pct + '%');
+    var author = String(it.author || '').trim();
+    var social = firstSocialUrl(it.author_social || it.social || '');
+    social = social ? withDonationsUtm(social, 'author_social') : '';
+    var authorHtml = '';
+    if (author && social) {
+      authorHtml = '<div class="donation-tile-author"><a href="' + esc(social) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(author) + '</a></div>';
+    } else if (author) {
+      authorHtml = '<div class="donation-tile-author">' + esc(author) + '</div>';
+    } else if (social) {
+      authorHtml = '<div class="donation-tile-author"><a href="' + esc(social) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Автор</a></div>';
+    }
+    return (
+      '<a class="donation-tile" href="' + esc(href || '/donations') + '" target="_blank" rel="noopener sponsored">' +
+        '<div class="donation-tile-poster">' +
+          '<img src="' + esc(poster) + '" alt="" loading="lazy" decoding="async" onerror="this.src=\'' + PLACEHOLDER + '\'">' +
+          '<div class="donation-tile-bar" aria-hidden="true"><span style="width:' + pct + '%"></span></div>' +
+        '</div>' +
+        '<div class="donation-tile-body">' +
+          '<div class="donation-tile-title">' + title + '</div>' +
+          '<div class="donation-tile-meta">' + meta + '</div>' +
+          authorHtml +
+        '</div>' +
+      '</a>'
+    );
+  }
+
+  function loadGrid() {
+    var grid = document.getElementById('donations-grid');
+    var empty = document.getElementById('donations-empty');
+    if (!grid) return;
+    fetch(API + '/api/public/donations?limit=24', { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var items = (data && data.success && data.items) ? data.items : [];
+        if (!items.length) {
+          grid.innerHTML = '';
+          if (empty) empty.classList.remove('hidden');
+          return;
+        }
+        if (empty) empty.classList.add('hidden');
+        grid.innerHTML = items.map(cardHtml).join('');
+      })
+      .catch(function () {
+        if (empty) {
+          empty.textContent = 'Не удалось загрузить сборы — обновите страницу.';
+          empty.classList.remove('hidden');
+        }
+      });
+  }
+
+  function setupImageUi() {
+    var mode = document.getElementById('d-image-mode');
+    var pick = document.getElementById('d-image-pick');
+    var file = document.getElementById('d-poster');
+    var urlInput = document.getElementById('d-image-url');
+    var prev = document.getElementById('d-image-preview');
+    var prevImg = document.getElementById('d-image-preview-img');
+    var clearBtn = document.getElementById('d-image-clear');
+    function syncMode() {
+      var isUrl = mode && mode.value === 'url';
+      if (urlInput) urlInput.classList.toggle('hidden', !isUrl);
+      if (pick) pick.classList.toggle('hidden', !!isUrl);
+    }
+    if (mode) mode.addEventListener('change', syncMode);
+    syncMode();
+    if (pick && file) pick.addEventListener('click', function () { file.click(); });
+    if (file) file.addEventListener('change', function () {
+      var f = file.files && file.files[0];
+      if (!f || !prev || !prevImg) return;
+      prevImg.src = URL.createObjectURL(f);
+      prev.classList.remove('hidden');
+    });
+    if (urlInput) urlInput.addEventListener('input', function () {
+      var v = urlInput.value.trim();
+      if (!v || !prev || !prevImg) return;
+      prevImg.src = v;
+      prev.classList.remove('hidden');
+    });
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      if (file) file.value = '';
+      if (urlInput) urlInput.value = '';
+      if (prev) prev.classList.add('hidden');
+      if (prevImg) prevImg.removeAttribute('src');
+    });
+  }
+
+  function setupForm() {
+    var form = document.getElementById('donations-form');
+    var status = document.getElementById('d-status');
+    var submit = document.getElementById('d-submit');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var title = (document.getElementById('d-title') || {}).value || '';
+      var url = (document.getElementById('d-url') || {}).value || '';
+      var contact = (document.getElementById('d-contact') || {}).value || '';
+      var social = (document.getElementById('d-social') || {}).value || '';
+      var note = (document.getElementById('d-note') || {}).value || '';
+      var imageUrl = (document.getElementById('d-image-url') || {}).value || '';
+      var poster = document.getElementById('d-poster');
+      var mode = (document.getElementById('d-image-mode') || {}).value || 'file';
+      title = title.trim(); url = url.trim(); contact = contact.trim(); social = social.trim();
+      if (!title || !url || !contact || !social) {
+        if (status) { status.className = 'donations-status err'; status.textContent = 'Нужны название, ссылка на сбор, контакт и соцсеть автора.'; }
+        return;
+      }
+      var stamped = withDonationsUtm(url, 'submit');
+      var fd = new FormData();
+      fd.append('title', title);
+      fd.append('url', stamped);
+      fd.append('contact', contact);
+      fd.append('social', social);
+      fd.append('note', note.trim());
+      if (mode === 'url' && imageUrl.trim()) {
+        fd.append('image_url', imageUrl.trim());
+      } else if (poster && poster.files && poster.files[0]) {
+        fd.append('poster', poster.files[0]);
+      } else {
+        if (status) { status.className = 'donations-status err'; status.textContent = 'Прикрепите картинку сбора.'; }
+        return;
+      }
+      if (submit) submit.disabled = true;
+      if (status) { status.className = 'donations-status'; status.textContent = 'Отправляем…'; }
+      fetch(API + '/api/public/donations/submit', { method: 'POST', body: fd, credentials: 'omit' })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (res.ok && res.j && res.j.success) {
+            if (status) { status.className = 'donations-status ok'; status.textContent = res.j.message || 'Заявка отправлена на модерацию.'; }
+            form.reset();
+            var prev = document.getElementById('d-image-preview');
+            if (prev) prev.classList.add('hidden');
+          } else {
+            if (status) { status.className = 'donations-status err'; status.textContent = (res.j && (res.j.message || res.j.error)) || 'Не удалось отправить.'; }
+          }
+        })
+        .catch(function () {
+          if (status) { status.className = 'donations-status err'; status.textContent = 'Сеть: не удалось отправить.'; }
+        })
+        .finally(function () { if (submit) submit.disabled = false; });
+    });
+  }
+
+  loadGrid();
+  setupImageUi();
+  setupForm();
+})();
+</script>
 </body>
 </html>

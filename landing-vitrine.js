@@ -8,7 +8,7 @@
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
   var premCacheKey = "mp_landing_premieres_v6";
   var seriesCacheKey = "mp_landing_series_v9";
-  var donationsCacheKey = "mp_landing_donations_v1";
+  var donationsCacheKey = "mp_landing_donations_v2";
   var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
@@ -235,13 +235,37 @@
     catch (_e) { return String(n || 0) + " ₽"; }
   }
 
+  function withDonationsUtm(raw, campaign) {
+    var url = String(raw || "").trim();
+    if (!url || url.charAt(0) === "/") return url;
+    try {
+      var u = new URL(url);
+      if (!u.searchParams.get("utm_source")) u.searchParams.set("utm_source", "movie_planner");
+      if (!u.searchParams.get("utm_medium")) u.searchParams.set("utm_medium", "donations");
+      if (!u.searchParams.get("utm_campaign")) u.searchParams.set("utm_campaign", campaign || "landing");
+      return u.toString();
+    } catch (_e) {
+      return url;
+    }
+  }
+
   function donationCard(it) {
     if (!it) return "";
     var pct = Math.max(0, Math.min(100, Number(it.progress_pct) || 0));
     var poster = it.image_url || MP_POSTER_PLACEHOLDER;
-    var href = it.external_url || "/donations";
+    var href = withDonationsUtm(it.external_url || "", it.source || "landing") || "/donations";
     var title = esc(it.title || "Сбор");
     var meta = esc(moneyRu(it.collected) + " · " + pct + "%");
+    var author = String(it.author || "").trim();
+    var social = String(it.author_social || it.social || "").trim().split(/[\s,;]+/).filter(Boolean)[0] || "";
+    if (social && social.charAt(0) === "@") social = "https://t.me/" + social.slice(1);
+    if (social) social = withDonationsUtm(social, "author_social");
+    var authorLine = "";
+    if (author && social) {
+      authorLine = '<div class="landing-pre-card-meta"><a href="' + esc(social) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(author) + "</a></div>";
+    } else if (author) {
+      authorLine = '<div class="landing-pre-card-meta">' + esc(author) + "</div>";
+    }
     return (
       '<a class="landing-pre-card landing-donation-card" href="' + esc(href) + '" target="_blank" rel="noopener sponsored">' +
       '<div class="landing-pre-card-poster">' +
@@ -251,6 +275,7 @@
       '<div class="landing-pre-card-body">' +
       '<div class="landing-pre-card-title">' + title + "</div>" +
       '<div class="landing-pre-card-meta">' + meta + "</div>" +
+      authorLine +
       "</div></a>"
     );
   }
