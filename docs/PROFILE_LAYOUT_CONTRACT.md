@@ -33,8 +33,11 @@ Any profile-related change must keep this contract.
 
 6. Own profile desktop:
    - Left: avatar, highlights, achievement circles.
-   - Right: settings menu list.
+   - Right: settings menu list (hub still exists at `/settings`).
    - Bottom center: "Выйти из аккаунта" only — nothing below menu except logout.
+   - Header "Настройки" opens an account dropdown (not navigation). Full settings pages remain reachable from the dropdown / hub.
+   - Desktop profile surfaces use a wide container (~1480px), not a narrow ~720px column.
+   - Friend/own film rails on desktop use large posters (minmax ~180–210px), not tiny ~118px stamps.
 
 ## Loading behavior
 

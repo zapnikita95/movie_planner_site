@@ -7907,6 +7907,94 @@ html.mp-guest-cabinet-boot .seo-premieres-crawl {
   line-height: 1.45;
 }
 
+/* Film page in-app share sheet (standalone /f/) */
+.mp-share-inapp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1200;
+  padding: 0;
+}
+.mp-share-inapp-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-elevated, #1a1a22);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 18px 22px;
+  max-height: min(86vh, 640px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+.mp-share-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.mp-share-sheet-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+.mp-share-sheet-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mp-share-sheet-close:hover { background: rgba(255, 255, 255, 0.14); }
+.mp-share-sheet-film {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+.mp-share-tabs .share-film-tab {
+  flex: 1;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.mp-share-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--cta-grad, linear-gradient(135deg, #ff2d7b 0%, #7c3cff 100%));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mp-share-send-btn:disabled { opacity: 0.55; cursor: default; }
+.mp-share-send-arrow { font-weight: 800; }
+.film-icon-btn--share-inapp .film-share-inapp-ico {
+  display: block;
+  color: currentColor;
+}
+.film-toolbar-icons .film-icon-btn--share-inapp { order: 40; }
+.film-toolbar-icons #share-film-btn { order: 50; }
+
 /* Share sheet: vertical friend/group list with avatars (parity with miniapp) */
 .mp-share-inapp-sheet .mp-share-search {
   width: 100%;
@@ -10078,8 +10166,9 @@ a.home-pre-card {
 /* —— Страница настроек (десктоп) —— */
 .cabinet-settings .settings-content,
 #section-settings .settings-content {
-  max-width: min(1200px, 96vw);
+  max-width: min(1480px, 98vw);
   margin: 0 auto;
+  width: 100%;
 }
 .settings-photo-editor {
   margin-top: 14px;
@@ -15467,11 +15556,13 @@ body.staff-standalone-page .staff-bio-root.hidden {
   font: inherit;
 }
 .staff-page .chip-on,
-.staff-standalone-page .chip-on {
-  border-color: rgba(255,45,123,.55);
-  background: rgba(255,45,123,.12);
+.staff-standalone-page .chip-on,
+body.staff-standalone-page .person-filters-toggles .chip.chip-on {
+  border-color: #ff2d7b;
+  background: rgba(255, 45, 123, 0.32);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 45, 123, 0.45);
 }
 .staff-page .chip.chip-disabled,
 .staff-standalone-page .chip.chip-disabled {
@@ -15936,10 +16027,11 @@ button.staff-import-btn:hover {
   pointer-events: auto;
 }
 .staff-standalone-page .chip-on {
-  border-color: rgba(255,45,123,.55);
-  background: rgba(255,45,123,.12);
+  border-color: #ff2d7b;
+  background: rgba(255, 45, 123, 0.32);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 45, 123, 0.45);
 }
 .staff-standalone-main { padding-bottom: 32px; }
 .staff-standalone-footer { margin-top: 24px; opacity: .7; }
@@ -19829,7 +19921,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   overflow: hidden;
 }
 
-.user-friend-profile { max-width: 720px; margin: 0 auto; }
+.user-friend-profile { max-width: min(1480px, 98vw); margin: 0 auto; width: 100%; }
 .user-friend-profile .user-profile-block { margin-top: 4px; }
 .user-friend-profile .user-profile-section-title {
   display: inline-flex;
@@ -19945,10 +20037,13 @@ body.guest-cabinet-preview #section-home .home-pre-card,
 @media (min-width: 900px) {
   .profile-hub {
     display: grid;
-    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
     grid-template-rows: auto auto;
-    gap: 20px 24px;
+    gap: 24px 28px;
     align-items: start;
+    width: 100%;
+    max-width: min(1480px, 98vw);
+    margin: 0 auto;
   }
   .profile-hub-left {
     grid-column: 1;
@@ -19971,13 +20066,16 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     justify-self: center;
     margin-top: 4px;
   }
+  .profile-hub--friend {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
   .profile-hub--friend .profile-hub-left {
     align-self: start;
   }
   .profile-hub--friend .profile-hub-right {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
     min-height: 0;
     min-width: 0;
     align-self: start;
@@ -20002,9 +20100,23 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   /* Desktop: packed posters fill the right column without a huge right void */
   .profile-hub--friend .profile-film-rail--pack,
   .profile-film-rail--dense-grid {
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
     justify-content: start;
+  }
+  @media (min-width: 1280px) {
+    .profile-hub--friend .profile-film-rail--pack,
+    .profile-film-rail--dense-grid {
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 18px;
+    }
+  }
+  .profile-hub--friend .profile-film-card-title {
+    font-size: 13px;
+  }
+  .profile-hub--friend .profile-film-card-badge {
+    font-size: 12px;
+    padding: 3px 8px;
   }
   .profile-hub-avatar,
   .profile-hub-avatar img {
@@ -20023,7 +20135,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   }
   .settings-panels-grid--profile {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 720px;
+    max-width: min(980px, 100%);
   }
   .settings-import-hero {
     padding: 28px 32px;
@@ -28377,3 +28489,103 @@ a.plan-place-link {
 .club-reaction-pill[aria-pressed=true]{border-color:rgba(239,28,122,.65);background:rgba(239,28,122,.16)}
 .club-reaction-plus{width:30px;height:28px;padding:0;font-size:18px;color:var(--club-muted)}
 .club-reaction-add{position:relative}.club-reaction-flyout{position:absolute;left:0;bottom:calc(100% + 7px);z-index:5;display:flex;gap:4px;padding:6px;border:1px solid var(--club-line);border-radius:12px;background:#1b1a22;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease,visibility .12s ease}.club-reaction-add:hover .club-reaction-flyout,.club-reaction-add:focus-within .club-reaction-flyout{opacity:1;visibility:visible;transform:none}.club-reaction-flyout button{width:30px;height:30px;padding:0;border:0;background:transparent;font-size:17px}.club-reaction-flyout button:hover,.club-reaction-flyout button:focus-visible{background:rgba(255,255,255,.1);outline:none}
+
+/* Staff filter empty state */
+.staff-filter-empty {
+  margin: 18px 0 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(244,246,255,.72);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Social-style settings layout (desktop profile edit / preferences) */
+.settings-social-layout .settings-social-shell {
+  display: grid;
+  gap: 18px;
+}
+.settings-social-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-social-nav-item {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.82);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.settings-social-nav-item.is-active,
+.settings-social-nav-item:hover {
+  border-color: rgba(255,90,165,0.45);
+  background: rgba(255,45,123,0.12);
+  color: #fff;
+}
+.settings-social-lead {
+  margin: -8px 0 4px;
+  color: rgba(255,255,255,0.58);
+  font-size: 14px;
+}
+.settings-social-card { padding: 22px 24px; }
+.settings-social-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.settings-hero-avatar--lg,
+.settings-hero-avatar--lg img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+.settings-social-hero-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+.settings-social-hero-user {
+  margin-top: 2px;
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+}
+.settings-social-hero-actions { margin-top: 10px; }
+.settings-social-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+.settings-field { display: grid; gap: 6px; }
+.settings-field-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+@media (min-width: 960px) {
+  .settings-social-layout .settings-social-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .settings-social-nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    position: sticky;
+    top: 88px;
+  }
+  .settings-social-nav-item {
+    border-radius: 12px;
+    text-align: left;
+    width: 100%;
+  }
+}
