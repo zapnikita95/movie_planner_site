@@ -2675,6 +2675,18 @@
         iconBtn.setAttribute('aria-label', open ? 'Закрыть поиск' : 'Поиск');
         iconBtn.classList.toggle('header-search-icon-btn--close', !!open);
       }
+      /* Thin shells (/donations, articles, /f/) do not load cabinet-app.js — measure pinned height here
+         so mobile CSS does not fall back to the 140px abyss above the fixed header. */
+      try {
+        if (open) {
+          var hdr = document.getElementById('site-header');
+          var h = hdr ? Math.ceil(hdr.getBoundingClientRect().height || hdr.offsetHeight || 0) : 0;
+          if (h > 0) document.body.style.setProperty('--header-pinned-h', h + 'px');
+        } else {
+          document.body.style.removeProperty('--header-pinned-h');
+          document.body.style.removeProperty('--header-search-dd-max-h');
+        }
+      } catch (_pin) {}
       try {
         if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
           global.MpHeaderSearchScroll.refresh();
