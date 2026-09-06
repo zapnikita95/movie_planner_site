@@ -418,7 +418,9 @@
 
     MpFilmPage.initStandaloneSiteChrome({
       spaReturnPath: global.location.pathname + global.location.search,
-      mainSelector: 'main.subpage-main',
+      mainSelector: document.querySelector('main.subpage-main')
+        ? 'main.subpage-main'
+        : 'main.article-content',
     });
   }
 
