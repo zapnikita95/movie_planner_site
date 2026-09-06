@@ -156,34 +156,48 @@
     };
   }
 
-  function detect() {
+  function isMeMember(m) {
+    if (!m) return false;
+    if (m.is_me || m.is_current || m.current || m.me) return true;
+    var ci = ids();
+    return [m.user_id, m.chat_id, m.id].some(function (i) {
+      return i != null && ci.indexOf(String(i)) >= 0;
+    });
+  }
+
+  function detect(meta) {
+    meta = meta || {};
     var ci = ids();
     var raw = (state.club && state.club.raw) || {};
     var st = String(raw.membership || raw.my_membership || raw.join_status || raw.status || '').toLowerCase();
+    var ownerId = raw.owner_user_id != null ? raw.owner_user_id
+      : raw.owner_id != null ? raw.owner_id
+      : raw.created_by_user_id != null ? raw.created_by_user_id
+      : (meta.room && (meta.room.owner_id != null ? meta.room.owner_id : meta.room.owner_user_id));
     state.member = !!(
       raw.is_member ||
       raw.i_am_member ||
+      meta.i_am_owner ||
       ['member', 'joined', 'approved'].indexOf(st) >= 0 ||
-      state.members.some(function (m) {
-        return (
-          m.is_current ||
-          m.current ||
-          m.me ||
-          [m.user_id, m.chat_id, m.id].some(function (i) {
-            return i != null && ci.indexOf(String(i)) >= 0;
-          })
-        );
-      })
+      state.members.some(isMeMember)
     );
     state.admin = !!(
       raw.is_admin ||
       raw.is_owner ||
       raw.owner === true ||
-      ['admin', 'administrator', 'owner', 'creator'].indexOf(st) >= 0
+      meta.i_am_owner === true ||
+      ['admin', 'administrator', 'owner', 'creator'].indexOf(st) >= 0 ||
+      ['owner', 'admin', 'administrator', 'creator'].indexOf(String(meta.my_role || '').toLowerCase()) >= 0
     );
+    if (!state.admin && ownerId != null && ci.indexOf(String(ownerId)) >= 0) {
+      state.admin = true;
+      state.member = true;
+    }
     state.members.forEach(function (m) {
       var r = String(m.role || m.member_role || m.status || '').toLowerCase();
-      if ((m.is_current || m.current || m.me) && ['admin', 'administrator', 'owner', 'creator'].indexOf(r) >= 0) {
+      if (!isMeMember(m)) return;
+      state.member = true;
+      if (m.is_owner || ['admin', 'administrator', 'owner', 'creator'].indexOf(r) >= 0) {
         state.admin = true;
       }
     });
@@ -619,6 +633,8 @@
         state.slug = state.club.public_slug || state.slug;
         state.slugDraft = state.slug || '';
         maybeCanonicalize(state.club);
+        detect({});
+        if (state.admin) render();
         var membersPromise =
           hasToken() && typeof global.api === 'function'
             ? global.api('/api/site/rooms/' + encodeURIComponent(state.id) + '/members').catch(function () {
@@ -627,7 +643,7 @@
             : Promise.resolve({});
         return membersPromise.then(function (m) {
           state.members = arr(m, ['members', 'items', 'users']);
-          detect();
+          detect(m || {});
           render();
         });
       })
