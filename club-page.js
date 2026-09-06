@@ -23,10 +23,13 @@
     composePollQuestion: '',
     composePollOptions: ['', ''],
     composeImages: [],
+    composeImagesPos: 'below',
+    composeEditId: null,
     composeUploadBusy: false,
     deleteConfirmId: null,
     deleteBusy: false,
-    carousel: {}
+    carousel: {},
+    lightbox: null
   };
   var root;
   var overlayHost;
@@ -302,17 +305,6 @@
       imgs.length > 1
         ? '<button type="button" class="club-carousel-nav club-carousel-prev" data-club-carousel-prev="' +
           esc(pid) +
-          '" aria-label="Назад">' +
-          icon('x', { size: 'sm' }).replace('ph-x', 'ph-caret-left') +
-          '</button><button type="button" class="club-carousel-nav club-carousel-next" data-club-carousel-next="' +
-          esc(pid) +
-          '" aria-label="Вперёд"><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
-        : '';
-    // Prefer phosphor carets via classes directly
-    nav =
-      imgs.length > 1
-        ? '<button type="button" class="club-carousel-nav club-carousel-prev" data-club-carousel-prev="' +
-          esc(pid) +
           '" aria-label="Назад"><i class="ph ph-caret-left" aria-hidden="true"></i></button>' +
           '<button type="button" class="club-carousel-nav club-carousel-next" data-club-carousel-next="' +
           esc(pid) +
@@ -322,9 +314,14 @@
       '<div class="club-carousel" data-club-carousel="' +
       esc(pid) +
       '"><div class="club-carousel-stage">' +
+      '<button type="button" class="club-carousel-img-btn" data-club-lightbox="' +
+      esc(pid) +
+      '" data-idx="' +
+      idx +
+      '" aria-label="Открыть фото">' +
       '<img src="' +
       esc(imgs[idx]) +
-      '" alt="" loading="lazy">' +
+      '" alt="" loading="lazy"></button>' +
       nav +
       '</div>' +
       dots +
@@ -416,20 +413,30 @@
           var nameLine = isAuthorAdmin ? 'Админ · ' + who : who;
           var subLine = (when ? when : '') + (when ? ' · ' : '') + postKindLabel(p);
           var title = p.title ? '<h3 class="club-post-title">' + esc(p.title) + '</h3>' : '';
-          var del =
-            state.admin
-              ? '<button type="button" class="club-post-del" data-club-post-delete="' +
-                esc(p.id) +
-                '" aria-label="Удалить пост">' +
-                icon('x', { size: 'sm' }) +
-                '</button>'
-              : '';
+          var actions = '';
+          if (state.admin) {
+            actions =
+              '<div class="club-post-actions">' +
+              '<button type="button" class="club-post-edit" data-club-post-edit="' +
+              esc(p.id) +
+              '" aria-label="Редактировать пост">' +
+              icon('pencil', { size: 'sm' }) +
+              '</button>' +
+              '<button type="button" class="club-post-del" data-club-post-delete="' +
+              esc(p.id) +
+              '" aria-label="Удалить пост">' +
+              icon('x', { size: 'sm' }) +
+              '</button></div>';
+          }
           var avHtml = av
             ? '<img class="club-post-av" src="' + esc(av) + '" alt="" loading="lazy">'
             : '<div class="club-post-av club-post-av-fallback">' + esc(who.slice(0, 1).toUpperCase()) + '</div>';
           var body = p.body
             ? '<div class="club-post-body">' + linkify(p.body) + '</div>'
             : '';
+          var media = carouselBlock(p);
+          var pos = String((p && p.images_position) || 'below').toLowerCase();
+          var mediaFirst = pos === 'above' || pos === 'top';
           return (
             '<article class="club-post">' +
             '<header class="club-post-head">' +
@@ -439,11 +446,12 @@
             '</b><span>' +
             esc(subLine) +
             '</span></div>' +
-            del +
+            actions +
             '</header>' +
             title +
-            carouselBlock(p) +
+            (mediaFirst ? media : '') +
             body +
+            (mediaFirst ? '' : media) +
             pollBlock(p.poll) +
             '</article>'
           );
@@ -526,6 +534,16 @@
           (state.composeUploadBusy || state.composeBusy ? ' disabled' : '') +
           '></label>'
         : '') +
+      ((state.composeImages || []).length
+        ? '<div class="club-compose-pos" role="group" aria-label="Где показать картинки">' +
+          '<span>Картинки:</span>' +
+          '<button type="button" class="club-chip' +
+          (state.composeImagesPos === 'above' ? ' is-on' : '') +
+          '" data-club-images-pos="above">сверху</button>' +
+          '<button type="button" class="club-chip' +
+          (state.composeImagesPos !== 'above' ? ' is-on' : '') +
+          '" data-club-images-pos="below">снизу</button></div>'
+        : '') +
       '</div>'
     );
   }
@@ -535,7 +553,9 @@
     return (
       '<div class="club-compose-backdrop" data-club-compose-close>' +
       '<div class="club-compose" role="dialog" aria-modal="true" aria-label="Новый пост" data-club-compose-sheet>' +
-      '<div class="club-compose-top"><h3>Новый пост</h3>' +
+      '<div class="club-compose-top"><h3>' +
+      (state.composeEditId ? 'Редактировать пост' : 'Новый пост') +
+      '</h3>' +
       '<button type="button" class="club-compose-x" data-club-compose-close aria-label="Закрыть">' +
       icon('x', { size: 'sm' }) +
       '</button></div>' +
@@ -554,8 +574,39 @@
       '<button type="button" class="club-btn club-btn-primary" data-club-compose-publish' +
       (state.composeBusy || state.composeUploadBusy ? ' disabled' : '') +
       '>' +
-      (state.composeBusy ? 'Публикуем…' : 'Опубликовать') +
+      (state.composeBusy ? 'Сохраняем…' : state.composeEditId ? 'Сохранить' : 'Опубликовать') +
       '</button></div></div></div>'
+    );
+  }
+
+
+  function lightboxHtml() {
+    if (!state.lightbox || !state.lightbox.urls || !state.lightbox.urls.length) return '';
+    var urls = state.lightbox.urls;
+    var idx = state.lightbox.idx || 0;
+    if (idx < 0) idx = 0;
+    if (idx >= urls.length) idx = urls.length - 1;
+    state.lightbox.idx = idx;
+    var nav =
+      urls.length > 1
+        ? '<button type="button" class="club-lightbox-nav club-lightbox-prev" data-club-lightbox-prev aria-label="Назад"><i class="ph ph-caret-left" aria-hidden="true"></i></button>' +
+          '<button type="button" class="club-lightbox-nav club-lightbox-next" data-club-lightbox-next aria-label="Вперёд"><i class="ph ph-caret-right" aria-hidden="true"></i></button>'
+        : '';
+    return (
+      '<div class="club-lightbox-backdrop" data-club-lightbox-close>' +
+      '<button type="button" class="club-lightbox-x" data-club-lightbox-close aria-label="Закрыть">' +
+      icon('x', { size: 'sm' }) +
+      '</button>' +
+      '<div class="club-lightbox-stage" data-club-lightbox-stage>' +
+      '<img src="' +
+      esc(urls[idx]) +
+      '" alt="">' +
+      nav +
+      '</div>' +
+      (urls.length > 1
+        ? '<div class="club-lightbox-count">' + (idx + 1) + ' / ' + urls.length + '</div>'
+        : '') +
+      '</div>'
     );
   }
 
@@ -602,7 +653,7 @@
 
   function syncClubOverlays() {
     var host = ensureOverlayHost();
-    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml();
+    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml();
     // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
     var fab = host.querySelector('[data-club-compose-open]');
     if (fab) fab.onclick = openCompose;
@@ -702,6 +753,45 @@
     }
     var yes = host.querySelector('[data-club-delete-yes]');
     if (yes) yes.onclick = confirmDelete;
+    host.querySelectorAll('[data-club-images-pos]').forEach(function (b) {
+      b.onclick = function () {
+        state.composeImagesPos = b.getAttribute('data-club-images-pos') === 'above' ? 'above' : 'below';
+        render();
+      };
+    });
+    host.querySelectorAll('[data-club-lightbox-close]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (b.classList.contains('club-lightbox-backdrop') && e.target !== b) return;
+        closeLightbox();
+      };
+    });
+    var lbStage = host.querySelector('[data-club-lightbox-stage]');
+    if (lbStage) {
+      lbStage.onclick = function (e) {
+        e.stopPropagation();
+      };
+    }
+    var lbPrev = host.querySelector('[data-club-lightbox-prev]');
+    if (lbPrev) {
+      lbPrev.onclick = function (e) {
+        e.stopPropagation();
+        if (!state.lightbox) return;
+        var n = state.lightbox.urls.length;
+        state.lightbox.idx = (state.lightbox.idx - 1 + n) % n;
+        render();
+      };
+    }
+    var lbNext = host.querySelector('[data-club-lightbox-next]');
+    if (lbNext) {
+      lbNext.onclick = function (e) {
+        e.stopPropagation();
+        if (!state.lightbox) return;
+        var n = state.lightbox.urls.length;
+        state.lightbox.idx = (state.lightbox.idx + 1) % n;
+        render();
+      };
+    }
+
   }
 
   function btn(id, label) {
@@ -1051,6 +1141,7 @@
       login();
       return;
     }
+    state.composeEditId = null;
     state.composeOpen = true;
     state.composeBusy = false;
     state.composeUploadBusy = false;
@@ -1071,20 +1162,23 @@
     state.composeBusy = false;
     state.composeUploadBusy = false;
     state.composeOpen = false;
+    state.composeEditId = null;
     state.composeBody = '';
     state.composeTitle = '';
     state.composePollOn = false;
     state.composePollQuestion = '';
     state.composePollOptions = ['', ''];
     state.composeImages = [];
+    state.composeImagesPos = 'below';
   }
 
   function readComposePoll() {
     if (!state.composePollOn) return null;
-    var qEl = root.querySelector('#club-compose-poll-q');
+    var host = document.getElementById('club-page-overlays') || root;
+    var qEl = host.querySelector('#club-compose-poll-q');
     var q = String((qEl && qEl.value) || state.composePollQuestion || '').trim();
     var opts = [];
-    root.querySelectorAll('.club-poll-option-input').forEach(function (inp) {
+    host.querySelectorAll('.club-poll-option-input').forEach(function (inp) {
       var v = String(inp.value || '').trim();
       if (v) opts.push(v);
     });
@@ -1098,14 +1192,61 @@
     return { question: q, options: opts.slice(0, 6) };
   }
 
+
+  function openEditPost(id) {
+    if (!state.admin) return;
+    if (!hasToken()) {
+      login();
+      return;
+    }
+    var post = (state.posts || []).find(function (p) {
+      return String(p.id) === String(id);
+    });
+    if (!post) return;
+    state.composeEditId = post.id;
+    state.composeTitle = post.title || '';
+    state.composeBody = post.body || '';
+    state.composeImages = (post.images || []).slice();
+    state.composeImagesPos = post.images_position === 'above' ? 'above' : 'below';
+    if (post.poll && post.poll.question) {
+      state.composePollOn = true;
+      state.composePollQuestion = post.poll.question || '';
+      state.composePollOptions = (post.poll.options || ['', '']).slice();
+      while (state.composePollOptions.length < 2) state.composePollOptions.push('');
+    } else {
+      state.composePollOn = false;
+      state.composePollQuestion = '';
+      state.composePollOptions = ['', ''];
+    }
+    state.composeOpen = true;
+    state.composeBusy = false;
+    state.composeUploadBusy = false;
+    render();
+  }
+
+  function openLightbox(pid, idx) {
+    var post = (state.posts || []).find(function (p) {
+      return String(p.id) === String(pid);
+    });
+    if (!post || !post.images || !post.images.length) return;
+    state.lightbox = { urls: post.images.slice(), idx: idx || 0 };
+    render();
+  }
+
+  function closeLightbox() {
+    state.lightbox = null;
+    render();
+  }
+
   function publishPost() {
     if (!state.admin || state.composeBusy || state.composeUploadBusy) return;
     if (!hasToken()) {
       login();
       return;
     }
-    var titleEl = root.querySelector('#club-compose-title');
-    var bodyEl = root.querySelector('#club-compose-body');
+    var host = document.getElementById('club-page-overlays') || root;
+    var titleEl = host.querySelector('#club-compose-title');
+    var bodyEl = host.querySelector('#club-compose-body');
     var title = String((titleEl && titleEl.value) || '').trim();
     var body = String((bodyEl && bodyEl.value) || '').trim();
     var pollRes = readComposePoll();
@@ -1114,6 +1255,7 @@
       return;
     }
     var poll = pollRes && !pollRes.error ? pollRes : null;
+    if (!state.composePollOn) poll = null;
     var images = (state.composeImages || []).slice();
     if (!body && !poll && !images.length) {
       toast('Напишите текст, добавьте опрос или картинку', { type: 'error' });
@@ -1123,25 +1265,45 @@
     state.composeBody = body;
     state.composeBusy = true;
     render();
-    var payload = { title: title || null, body: body || '', images: images };
-    if (poll) payload.poll = poll;
+    var payload = {
+      title: title || null,
+      body: body || '',
+      images: images,
+      images_position: state.composeImagesPos === 'above' ? 'above' : 'below',
+      poll: poll
+    };
+    var editId = state.composeEditId;
+    var path = '/api/site/rooms/' + encodeURIComponent(state.id) + '/posts';
+    var method = 'POST';
+    if (editId != null) {
+      path += '/' + encodeURIComponent(editId);
+      method = 'PATCH';
+    }
     global
-      .api('/api/site/rooms/' + encodeURIComponent(state.id) + '/posts', {
-        method: 'POST',
+      .api(path, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       .then(function (d) {
         var post = d && (d.post || d.item);
-        if (post) state.posts = [post].concat(state.posts || []);
+        if (post) {
+          if (editId != null) {
+            state.posts = (state.posts || []).map(function (p) {
+              return String(p.id) === String(editId) ? post : p;
+            });
+          } else {
+            state.posts = [post].concat(state.posts || []);
+          }
+        }
         resetCompose();
-        toast('Пост опубликован');
+        toast(editId != null ? 'Пост сохранён' : 'Пост опубликован');
         render();
       })
       .catch(function (e) {
         state.composeBusy = false;
         render();
-        toast((e && e.message) || 'Не удалось опубликовать', { type: 'error' });
+        toast((e && e.message) || 'Не удалось сохранить', { type: 'error' });
       });
   }
 
@@ -1374,6 +1536,16 @@
     root.querySelectorAll('[data-club-post-delete]').forEach(function (b) {
       b.onclick = function () {
         askDeletePost(b.getAttribute('data-club-post-delete'));
+      };
+    });
+    root.querySelectorAll('[data-club-post-edit]').forEach(function (b) {
+      b.onclick = function () {
+        openEditPost(b.getAttribute('data-club-post-edit'));
+      };
+    });
+    root.querySelectorAll('[data-club-lightbox]').forEach(function (b) {
+      b.onclick = function () {
+        openLightbox(b.getAttribute('data-club-lightbox'), parseInt(b.getAttribute('data-idx'), 10) || 0);
       };
     });
     root.querySelectorAll('[data-club-delete-cancel]').forEach(function (b) {

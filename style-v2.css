@@ -28207,3 +28207,50 @@ a.plan-place-link {
   min-height:0!important;
   height:auto!important;
 }
+
+/* MARKER clubsPostMedia2 */
+.club-post-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
+.club-post-edit,.club-post-del{
+  width:28px;height:28px;border:0;border-radius:50%;
+  background:transparent;color:var(--club-muted);display:grid;place-items:center;cursor:pointer;opacity:.75
+}
+.club-post-edit:hover,.club-post-del:hover{opacity:1;color:#fff;background:rgba(255,255,255,.06)}
+.club-carousel-stage{
+  position:relative;border-radius:14px;overflow:hidden;background:#0c0c10;
+  aspect-ratio:auto!important;min-height:120px;max-height:min(70vh,520px);
+  display:flex;align-items:center;justify-content:center;
+}
+.club-carousel-img-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;height:100%;border:0;padding:0;background:transparent;cursor:zoom-in;
+}
+.club-carousel-stage img{
+  width:auto!important;height:auto!important;
+  max-width:100%;max-height:min(70vh,520px);
+  object-fit:contain!important;display:block;
+}
+.club-compose-pos{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;font-size:12px;color:var(--club-muted)}
+.club-chip{
+  border:1px solid var(--club-line);background:rgba(255,255,255,.04);color:#d8d4e2;
+  border-radius:999px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer
+}
+.club-chip.is-on{border-color:rgba(239,28,122,.55);background:rgba(239,28,122,.16);color:#fff}
+.club-lightbox-backdrop{
+  position:fixed;inset:0;z-index:13100;background:rgba(0,0,0,.88);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:48px 16px 24px;box-sizing:border-box
+}
+.club-lightbox-stage{position:relative;max-width:min(960px,100%);max-height:min(85vh,900px);display:flex;align-items:center;justify-content:center}
+.club-lightbox-stage img{max-width:100%;max-height:min(85vh,900px);width:auto;height:auto;object-fit:contain;border-radius:8px}
+.club-lightbox-x{
+  position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));
+  z-index:13101;width:40px;height:40px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer
+}
+.club-lightbox-nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;cursor:pointer
+}
+.club-lightbox-prev{left:8px}
+.club-lightbox-next{right:8px}
+.club-lightbox-count{margin-top:12px;color:#cfcad9;font-size:13px}
