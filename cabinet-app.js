@@ -836,7 +836,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true };
+  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true, club: true };
 
   const LOGIN_ERROR_MESSAGES = {
     yandex: 'Не удалось войти через Яндекс. Попробуйте ещё раз или войдите по email.',
@@ -869,6 +869,7 @@
         /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api|clubs)$/.test(path)
         || path.indexOf('/settings/') === 0
         || path === '/whattowatch/clubs'
+        || new RegExp('^/club/-?[0-9]+$').test(path)
       ) {
         sessionStorage.setItem('mp_post_login_path', path);
       }
