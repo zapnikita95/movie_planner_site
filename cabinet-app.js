@@ -20270,7 +20270,7 @@
       icon: 'folder',
       label: 'Коллекции',
       scopeHint: 'Подборки фильмов',
-      kicker: 'РЕДАКЦИОННОЕ',
+      kicker: 'ПОДБОРКИ',
       modes: [],
     },
     clubs: {
