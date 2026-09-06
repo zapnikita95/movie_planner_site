@@ -838,6 +838,14 @@
 
   const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true, club: true };
 
+  function isClubPath(pathname) {
+    try {
+      const p = String(pathname || '').replace(/\/$/, '') || '/';
+      return /^\/club\/(?:-?\d+|[a-z0-9][a-z0-9-]{1,63})$/i.test(p);
+    } catch (_) { return false; }
+  }
+
+
   const LOGIN_ERROR_MESSAGES = {
     yandex: 'Не удалось войти через Яндекс. Попробуйте ещё раз или войдите по email.',
     email: 'Яндекс не вернул email. Разрешите доступ к почте или войдите по email / через Telegram.',
@@ -869,7 +877,7 @@
         /^\/(watchlist|series|series-hub|tournament|settings|stats|inbox|ratings|shazam|groups|tv|extension|my-api|clubs)$/.test(path)
         || path.indexOf('/settings/') === 0
         || path === '/whattowatch/clubs'
-        || new RegExp('^/club/-?[0-9]+$').test(path)
+        || isClubPath(path)
       ) {
         sessionStorage.setItem('mp_post_login_path', path);
       }
@@ -999,7 +1007,8 @@
       if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
-        || bootPath.indexOf('/features/collections') === 0) {
+        || bootPath.indexOf('/features/collections') === 0
+        || isClubPath(bootPath)) {
         return true;
       }
     } catch (_) {}
@@ -1071,11 +1080,12 @@
       } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
         sec = 'whattowatch';
       }
-      if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch') return false;
+      if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch' && sec !== 'club') return false;
       const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
-        || bootPath.indexOf('/features/collections') === 0;
+        || bootPath.indexOf('/features/collections') === 0
+        || isClubPath(bootPath);
       if (!guestPathOk) return false;
 
       document.body.classList.add('guest-cabinet-preview');
@@ -5884,7 +5894,7 @@
   }
 
   function afterCabinetSectionShown(sectionId) {
-    if (sectionId === 'club') { try { if (window.MPClubPage) window.MPClubPage.mount((window.location.pathname.split('/')[2] || '')); } catch (_) {} }
+    if (sectionId === 'club') { try { if (window.MPClubPage) window.MPClubPage.mount((window.location.pathname.replace(/\/$/, '').split('/')[2] || '')); } catch (_) {} }
     // Sections already painted inside showSection (plans/settings/inbox/stats/wtw/home)
     // must NOT re-render here — that was a double flash on every nav click / popstate.
     if (sectionId === 'tv') { try { renderTvSection && renderTvSection(); } catch (_) {} }
@@ -25927,7 +25937,7 @@
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
-      if (guestDeep === 'home' || guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch') {
+      if (guestDeep === 'home' || guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch' || guestDeep === 'club') {
         if (bootGuestCabinetPreview(guestDeep)) {
           handleAuthEntryDeepLinks();
           return;
