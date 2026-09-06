@@ -27397,7 +27397,15 @@ body.staff-standalone-page .staff-awards-loading {
 .clubs-card-topline {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.clubs-card-titleblock {
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
+  min-width: 0;
+  flex: 1;
 }
 .clubs-card-name {
   font-family: Unbounded, sans-serif;
@@ -27470,7 +27478,21 @@ body.staff-standalone-page .staff-awards-loading {
   font-size: 11px;
   color: var(--text-muted, #9a9aa6);
 }
-.clubs-card-actions { margin-top: 12px; }
+.clubs-card-actions {
+  margin-top: 0;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+.clubs-card-cta {
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .clubs-card-topline { flex-direction: column; align-items: stretch; }
+  .clubs-card-actions { justify-content: stretch; }
+  .clubs-card-cta { width: 100%; }
+}
 .clubs-empty {
   padding: 28px 8px 12px;
   text-align: left;
@@ -27820,4 +27842,23 @@ body.in-cabinet #section-whattowatch .whattowatch-result {
   max-width: min(920px, 100%);
   margin-left: auto;
   margin-right: auto;
+}
+
+.plan-place-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0 6px;
+  font-size: 13px;
+  color: rgba(244, 246, 255, 0.72);
+  line-height: 1.35;
+}
+.plan-place-line .plan-place-link,
+a.plan-place-link {
+  color: #ff8ab8;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
 }
