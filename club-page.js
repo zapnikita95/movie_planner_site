@@ -29,6 +29,7 @@
     carousel: {}
   };
   var root;
+  var overlayHost;
 
   function esc(v) {
     return String(v == null ? '' : v)
@@ -587,6 +588,122 @@
     );
   }
 
+
+  function ensureOverlayHost() {
+    if (overlayHost && document.body.contains(overlayHost)) return overlayHost;
+    overlayHost = document.getElementById('club-page-overlays');
+    if (!overlayHost) {
+      overlayHost = document.createElement('div');
+      overlayHost.id = 'club-page-overlays';
+      document.body.appendChild(overlayHost);
+    }
+    return overlayHost;
+  }
+
+  function syncClubOverlays() {
+    var host = ensureOverlayHost();
+    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml();
+    // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
+    var fab = host.querySelector('[data-club-compose-open]');
+    if (fab) fab.onclick = openCompose;
+    host.querySelectorAll('[data-club-compose-close]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (b.classList.contains('club-compose-backdrop') && e.target !== b) return;
+        closeCompose();
+      };
+    });
+    var sheet = host.querySelector('[data-club-compose-sheet]');
+    if (sheet) {
+      sheet.onclick = function (e) {
+        e.stopPropagation();
+      };
+    }
+    var pub = host.querySelector('[data-club-compose-publish]');
+    if (pub) pub.onclick = publishPost;
+    var titleIn = host.querySelector('#club-compose-title');
+    var bodyIn = host.querySelector('#club-compose-body');
+    if (titleIn) {
+      titleIn.oninput = function () {
+        state.composeTitle = titleIn.value;
+      };
+    }
+    if (bodyIn) {
+      bodyIn.oninput = function () {
+        state.composeBody = bodyIn.value;
+      };
+    }
+    host.querySelectorAll('[data-club-poll-toggle]').forEach(function (b) {
+      b.onclick = function () {
+        state.composePollOn = !state.composePollOn;
+        if (state.composePollOn && (!state.composePollOptions || state.composePollOptions.length < 2)) {
+          state.composePollOptions = ['', ''];
+        }
+        render();
+      };
+    });
+    var pq = host.querySelector('#club-compose-poll-q');
+    if (pq) {
+      pq.oninput = function () {
+        state.composePollQuestion = pq.value;
+      };
+    }
+    host.querySelectorAll('.club-poll-option-input').forEach(function (inp) {
+      inp.oninput = function () {
+        var i = parseInt(inp.getAttribute('data-club-poll-opt'), 10);
+        if (!isNaN(i)) state.composePollOptions[i] = inp.value;
+      };
+    });
+    var addOpt = host.querySelector('[data-club-poll-add-opt]');
+    if (addOpt) {
+      addOpt.onclick = function () {
+        if ((state.composePollOptions || []).length >= 6) return;
+        state.composePollOptions = (state.composePollOptions || []).concat(['']);
+        render();
+      };
+    }
+    host.querySelectorAll('[data-club-poll-opt-remove]').forEach(function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-club-poll-opt-remove'), 10);
+        if (isNaN(i) || (state.composePollOptions || []).length <= 2) return;
+        state.composePollOptions = state.composePollOptions.filter(function (_, idx) {
+          return idx !== i;
+        });
+        render();
+      };
+    });
+    var imgInput = host.querySelector('[data-club-image-input]');
+    if (imgInput) {
+      imgInput.onchange = function () {
+        uploadImages(imgInput.files);
+        imgInput.value = '';
+      };
+    }
+    host.querySelectorAll('[data-club-image-remove]').forEach(function (b) {
+      b.onclick = function () {
+        var i = parseInt(b.getAttribute('data-club-image-remove'), 10);
+        if (isNaN(i)) return;
+        state.composeImages = (state.composeImages || []).filter(function (_, idx) {
+          return idx !== i;
+        });
+        render();
+      };
+    });
+    host.querySelectorAll('[data-club-delete-cancel]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (b.classList.contains('club-confirm-backdrop') && e.target !== b) return;
+        cancelDelete();
+      };
+    });
+    var csheet = host.querySelector('[data-club-confirm-sheet]');
+    if (csheet) {
+      csheet.onclick = function (e) {
+        e.stopPropagation();
+      };
+    }
+    var yes = host.querySelector('[data-club-delete-yes]');
+    if (yes) yes.onclick = confirmDelete;
+  }
+
   function btn(id, label) {
     return (
       '<button type="button" class="club-tab' +
@@ -803,12 +920,9 @@
           )) +
       '</section>' +
       settingsPanel() +
-      '</main></div>' +
-      fabHtml() +
-      composeHtml() +
-      deleteConfirmHtml() +
-      '</div>';
+      '</main></div></div>';
     bind();
+    syncClubOverlays();
   }
 
   function login() {
@@ -1307,24 +1421,25 @@
   function load(key) {
     state.id = String(key);
     state.slug = SLUG_RE.test(String(key)) ? String(key).toLowerCase() : '';
+    state.posts = [];
+    state.members = [];
+    state.member = false;
+    state.admin = false;
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
+    syncClubOverlays();
 
     var byKey = req('/api/public/cinema-clubs/' + encodeURIComponent(String(key))).catch(function () {
       return null;
     });
-    var catalog = req('/api/public/cinema-clubs?limit=100&offset=0');
-    var mem =
-      hasToken() && typeof global.api === 'function'
-        ? Promise.resolve(null)
-        : Promise.resolve({});
 
-    return Promise.all([byKey, catalog])
-      .then(function (pair) {
-        var one = pair[0] && (pair[0].group || pair[0].club || pair[0].item || (pair[0].success && pair[0]));
-        if (one && (one.chat_id != null || one.id != null || one.name)) {
-          return one;
-        }
-        return findInList(pair[1], key);
+    return byKey
+      .then(function (oneWrap) {
+        var one = oneWrap && (oneWrap.group || oneWrap.club || oneWrap.item || (oneWrap.success && oneWrap));
+        if (one && (one.chat_id != null || one.id != null || one.name)) return one;
+        // fallback catalog only if single key miss
+        return req('/api/public/cinema-clubs?limit=100&offset=0').then(function (d) {
+          return findInList(d, key);
+        });
       })
       .then(function (club) {
         if (!club && hasToken() && typeof global.api === 'function') {
@@ -1343,21 +1458,20 @@
         state.slug = state.club.public_slug || state.slug;
         state.slugDraft = state.slug || '';
         maybeCanonicalize(state.club);
-        detect({});
-        if (state.admin) render();
+
         var membersPromise =
           hasToken() && typeof global.api === 'function'
             ? global.api('/api/site/rooms/' + encodeURIComponent(state.id) + '/members').catch(function () {
                 return {};
               })
             : Promise.resolve({});
-        return membersPromise.then(function (m) {
+        var postsPromise = loadPosts();
+        return Promise.all([membersPromise, postsPromise]).then(function (pair) {
+          var m = pair[0] || {};
           state.members = arr(m, ['members', 'items', 'users']);
           detect(m || {});
+          // one paint with club + members + posts
           render();
-          return loadPosts().then(function () {
-            render();
-          });
         });
       })
       .catch(function (e) {
@@ -1367,6 +1481,7 @@
             ? 'Проверьте ссылку или вернитесь в каталог киноклубов.'
             : 'Попробуйте обновить страницу позже.'
         );
+        syncClubOverlays();
       });
   }
 

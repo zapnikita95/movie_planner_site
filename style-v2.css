@@ -28173,3 +28173,37 @@ a.plan-place-link {
 }
 .club-post-del:hover{opacity:1;color:#fff!important;background:rgba(255,255,255,.06)!important}
 .club-post-title{margin:0 0 8px;font-size:15px}
+
+/* MARKER clubsOverlayZ1 */
+#club-page-overlays{position:relative;z-index:13000}
+.club-confirm-backdrop,
+.club-compose-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:13050!important;
+}
+.club-confirm,
+.club-compose{position:relative;z-index:13051}
+.club-fab{z-index:13040!important}
+.club-post,
+.club-post-head,
+.club-layout,
+.club-page,
+.club-main,
+.club-aside{
+  z-index:auto!important;
+  isolation:auto!important;
+  transform:none!important;
+}
+.club-post-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  min-height:0!important;
+  height:auto!important;
+}
