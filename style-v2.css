@@ -7320,10 +7320,20 @@ body.film-standalone-page .film-page-similar-section,
   margin-right: 6px;
   font-variant-numeric: tabular-nums;
 }
+/* Brand pink — must beat bare `a { color: inherit }` on /f/ */
+a.film-buzz-link,
 .film-buzz-link {
-  color: #f9a8d4;
-  text-decoration: underline;
+  color: #ff8ab8 !important;
+  text-decoration: underline !important;
   text-underline-offset: 2px;
+}
+a.film-buzz-link:visited,
+.film-buzz-link:visited {
+  color: #ff8ab8 !important;
+}
+a.film-buzz-link:hover,
+.film-buzz-link:hover {
+  color: #ffb0d0 !important;
 }
 .film-buzz-teaser { color: var(--text-body); }
 .staff-buzz-slot:empty {
