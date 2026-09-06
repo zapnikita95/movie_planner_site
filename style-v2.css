@@ -28605,3 +28605,65 @@ a.plan-place-link {
 .club-poll-voter-avatar:first-child{margin-left:0}
 .club-poll-result-row .club-poll-film img,.club-poll-result-row .club-poll-film-ph{width:42px;height:56px;flex-basis:42px}
 @media(max-width:560px){.club-post-action-row{gap:6px}.club-post-action-row .club-poll-vote-btn{padding:9px 10px;font-size:10px}.club-poll-result-count{font-size:20px}}
+
+/* MARKER clubsCommentsCompose1 */
+.club-comments,
+.club-comments-panel,
+.club-post-comments > .club-comments {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.club-comments-list { margin-top: 8px; }
+.club-comment-compose {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
+}
+.club-comment-compose textarea {
+  width: 100%;
+  flex: none;
+  min-height: 72px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--club-line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.club-comment-compose textarea:focus {
+  border-color: rgba(239, 28, 122, 0.55);
+  box-shadow: 0 0 0 3px rgba(239, 28, 122, 0.12);
+}
+.club-comment-compose .club-mini-btn {
+  align-self: flex-end;
+  width: auto;
+  min-width: 110px;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+.club-post-action-row .club-comments-toggle {
+  width: auto !important;
+  min-width: 36px;
+  height: 28px;
+  padding: 0 10px !important;
+  gap: 5px !important;
+  box-sizing: border-box;
+}
+.club-post-action-row .club-comments-toggle .club-comments-count {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding-right: 1px;
+}
+.club-post-action-row .club-comments-toggle .club-comments-icon .mp-icon {
+  font-size: 15px;
+}
