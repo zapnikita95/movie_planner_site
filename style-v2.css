@@ -9982,8 +9982,9 @@ a.home-pre-card {
 /* —— Страница настроек (десктоп) —— */
 .cabinet-settings .settings-content,
 #section-settings .settings-content {
-  max-width: min(1200px, 96vw);
+  max-width: min(1480px, 98vw);
   margin: 0 auto;
+  width: 100%;
 }
 .settings-photo-editor {
   margin-top: 14px;
@@ -19710,7 +19711,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   overflow: hidden;
 }
 
-.user-friend-profile { max-width: 720px; margin: 0 auto; }
+.user-friend-profile { max-width: min(1480px, 98vw); margin: 0 auto; width: 100%; }
 .user-friend-profile .user-profile-block { margin-top: 4px; }
 .user-friend-profile .user-profile-section-title {
   display: inline-flex;
@@ -19826,10 +19827,13 @@ body.guest-cabinet-preview #section-home .home-pre-card,
 @media (min-width: 900px) {
   .profile-hub {
     display: grid;
-    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
     grid-template-rows: auto auto;
-    gap: 20px 24px;
+    gap: 24px 28px;
     align-items: start;
+    width: 100%;
+    max-width: min(1480px, 98vw);
+    margin: 0 auto;
   }
   .profile-hub-left {
     grid-column: 1;
@@ -19852,13 +19856,16 @@ body.guest-cabinet-preview #section-home .home-pre-card,
     justify-self: center;
     margin-top: 4px;
   }
+  .profile-hub--friend {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
   .profile-hub--friend .profile-hub-left {
     align-self: start;
   }
   .profile-hub--friend .profile-hub-right {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
     min-height: 0;
     min-width: 0;
     align-self: start;
@@ -19883,9 +19890,23 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   /* Desktop: packed posters fill the right column without a huge right void */
   .profile-hub--friend .profile-film-rail--pack,
   .profile-film-rail--dense-grid {
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
     justify-content: start;
+  }
+  @media (min-width: 1280px) {
+    .profile-hub--friend .profile-film-rail--pack,
+    .profile-film-rail--dense-grid {
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 18px;
+    }
+  }
+  .profile-hub--friend .profile-film-card-title {
+    font-size: 13px;
+  }
+  .profile-hub--friend .profile-film-card-badge {
+    font-size: 12px;
+    padding: 3px 8px;
   }
   .profile-hub-avatar,
   .profile-hub-avatar img {
@@ -19904,7 +19925,7 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   }
   .settings-panels-grid--profile {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 720px;
+    max-width: min(980px, 100%);
   }
   .settings-import-hero {
     padding: 28px 32px;
@@ -27286,3 +27307,92 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 
+
+
+/* Social-style settings layout (desktop profile edit / preferences) */
+.settings-social-layout .settings-social-shell {
+  display: grid;
+  gap: 18px;
+}
+.settings-social-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-social-nav-item {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.82);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.settings-social-nav-item.is-active,
+.settings-social-nav-item:hover {
+  border-color: rgba(255,90,165,0.45);
+  background: rgba(255,45,123,0.12);
+  color: #fff;
+}
+.settings-social-lead {
+  margin: -8px 0 4px;
+  color: rgba(255,255,255,0.58);
+  font-size: 14px;
+}
+.settings-social-card { padding: 22px 24px; }
+.settings-social-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.settings-hero-avatar--lg,
+.settings-hero-avatar--lg img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+.settings-social-hero-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+.settings-social-hero-user {
+  margin-top: 2px;
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+}
+.settings-social-hero-actions { margin-top: 10px; }
+.settings-social-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+.settings-field { display: grid; gap: 6px; }
+.settings-field-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+@media (min-width: 960px) {
+  .settings-social-layout .settings-social-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .settings-social-nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    position: sticky;
+    top: 88px;
+  }
+  .settings-social-nav-item {
+    border-radius: 12px;
+    text-align: left;
+    width: 100%;
+  }
+}

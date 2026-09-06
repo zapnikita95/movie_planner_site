@@ -5229,14 +5229,16 @@
     const settingsBtn = document.getElementById('header-settings-btn');
     if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'true');
     if (!dd) return;
-    let topNav = '<div class="header-dropdown-title">Перейти</div>';
+    let topNav = '<div class="header-dropdown-title">Меню</div>';
     const navItems = [
-      { go: 'settings', icon: 'profile', label: 'Профиль' },
+      { go: 'settings-hub', icon: 'profile', label: 'Профиль' },
       { go: 'groups', icon: 'friends', label: 'Друзья и группы' },
-      { go: 'stats', icon: 'stats', label: 'Статистика' },
-      { go: 'shazam', icon: 'shazam', label: 'Подбор по описанию' },
+      { go: 'billing', icon: 'creditCard', label: 'Оплата и подписка' },
       { go: 'integrations', icon: 'integrations', label: 'Интеграции' },
-      { go: 'about', icon: 'about', label: 'О проекте', ext: false },
+      { go: 'collections', icon: 'folder', label: 'Коллекции' },
+      { go: 'preferences', icon: 'gear', label: 'Настройки' },
+      { go: 'download', icon: 'phone', label: 'Скачать приложение' },
+      { go: 'about', icon: 'about', label: 'FAQ и о сервисе' },
     ];
     navItems.forEach((item) => {
       topNav += '<button type="button" class="header-settings-nav-item" data-settings-go="' + escapeHtml(item.go) + '">'
@@ -5258,19 +5260,35 @@
     }
     dd.innerHTML = html;
 
+    const goSettingsSub = (sub) => {
+      _profileSubView = sub || 'hub';
+      try { pushSettingsSubUrl(_profileSubView); } catch (_) {}
+      showSection('settings');
+      if (typeof renderSettingsSection === 'function') renderSettingsSection();
+    };
+
     dd.querySelectorAll('[data-settings-go]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const go = btn.getAttribute('data-settings-go');
         closeAccountDropdown();
-        if (go === 'tv') { showSection('tv'); if (typeof renderTvSection === 'function') renderTvSection(); return; }
         if (go === 'groups') { showSection('groups'); if (typeof renderGroupsSection === 'function') renderGroupsSection(); return; }
-        if (go === 'stats') { showSection('stats'); return; }
-        if (go === 'shazam') { showSection('shazam'); return; }
-        if (go === 'about') { showSection('about'); return; }
-        if (go === 'developer') { showSection('developer'); return; }
         if (go === 'integrations') { showSection('integrations'); return; }
-        if (go === 'settings') { showSection('settings'); if (typeof renderSettingsSection === 'function') renderSettingsSection(); }
+        if (go === 'about') { showSection('about'); try { bindFaq && bindFaq(); } catch (_) {} return; }
+        if (go === 'collections') { openSiteWhattowatch({ scope: 'collections' }); return; }
+        if (go === 'download') {
+          try {
+            if (window.MpAppDownload && typeof window.MpAppDownload.open === 'function') {
+              window.MpAppDownload.open();
+              return;
+            }
+          } catch (_) {}
+          try { window.open('/download.html', '_blank', 'noopener'); } catch (_) {}
+          return;
+        }
+        if (go === 'billing') { goSettingsSub('billing'); return; }
+        if (go === 'preferences') { goSettingsSub('preferences'); return; }
+        if (go === 'settings-hub' || go === 'settings') { goSettingsSub('hub'); return; }
       });
     });
 
@@ -22401,28 +22419,41 @@
       ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.username
       : 'Профиль';
     const avatarUrl = resolveProfileAvatarUrl(u);
+    const username = u.username ? String(u.username) : '';
 
-    root.innerHTML = '<div class="profile-sub-page settings-page settings-profile-page">'
+    root.innerHTML = '<div class="profile-sub-page settings-page settings-profile-page settings-social-layout">'
       + profileSubBackHtml()
-      + '<h3 class="profile-sub-title">Профиль</h3>'
-      + '<div class="settings-panels-grid settings-panels-grid--profile">'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Фото</h3>'
-      + '<p class="settings-panel-lead">Аватар в шапке и в профиле</p>'
-      + '<div class="settings-hero-avatar settings-hero-avatar--inline" id="settings-profile-avatar"></div>'
-      + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-edit-photo">Изменить фото</button>'
+      + '<div class="settings-social-shell">'
+      + '<aside class="settings-social-nav" aria-label="Разделы настроек">'
+      + '<button type="button" class="settings-social-nav-item is-active" data-profile-sub="profile">Аккаунт</button>'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="preferences">Уведомления и приватность</button>'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="billing">Подписка</button>'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="accounts">Входы</button>'
+      + '</aside>'
+      + '<div class="settings-social-main">'
+      + '<h3 class="profile-sub-title">Аккаунт</h3>'
+      + '<p class="settings-social-lead">Как тебя видят друзья в Movie Planner</p>'
+      + '<section class="settings-panel settings-panel--wide settings-social-card">'
+      + '<div class="settings-social-hero">'
+      + '<div class="settings-hero-avatar settings-hero-avatar--lg" id="settings-profile-avatar"></div>'
+      + '<div class="settings-social-hero-meta">'
+      + '<div class="settings-social-hero-name">' + escapeHtml(name || 'Профиль') + '</div>'
+      + (username ? '<div class="settings-social-hero-user">@' + escapeHtml(username) + '</div>' : '')
+      + '<div class="settings-social-hero-actions">'
+      + '<button type="button" class="btn btn-secondary" id="profile-settings-edit-photo">Изменить фото</button>'
+      + '</div></div></div>'
       + '<div class="settings-photo-editor hidden" id="profile-settings-photo-editor">'
       + '<div class="avatar-picker-grid settings-avatar-grid" id="profile-settings-avatar-grid"></div>'
       + '<input type="file" id="profile-settings-photo" accept="image/png,image/jpeg" hidden>'
       + '<button type="button" class="btn btn-secondary btn-full" id="profile-settings-upload-photo">Загрузить с устройства</button>'
-      + '</div></section>'
-      + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Имя</h3>'
-      + '<form class="settings-name-form" id="profile-settings-form">'
-      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="Имя в кабинете">'
-      + '<button type="submit" class="btn btn-primary btn-full">Сохранить</button>'
-      + '</form></section>'
       + '</div>'
+      + '<form class="settings-name-form settings-social-form" id="profile-settings-form">'
+      + '<label class="settings-field"><span class="settings-field-label">Имя</span>'
+      + '<input type="text" id="profile-settings-name" value="' + escapeHtml(name || '') + '" maxlength="80" autocomplete="name" placeholder="Имя в кабинете"></label>'
+      + '<button type="submit" class="btn btn-primary">Сохранить изменения</button>'
+      + '</form></section>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
-      + '</div>';
+      + '</div></div></div>';
 
     setAvatarEl(document.getElementById('settings-profile-avatar'), avatarUrl, name);
     bindProfileSubNav(root);
@@ -22447,9 +22478,18 @@
     const notifFriendsPush = n.notify_friends_push !== false;
     const notifFriendsAchievements = n.notify_friends_achievements !== false;
 
-    root.innerHTML = '<div class="profile-sub-page settings-page settings-preferences-page">'
+    root.innerHTML = '<div class="profile-sub-page settings-page settings-preferences-page settings-social-layout">'
       + profileSubBackHtml()
+      + '<div class="settings-social-shell">'
+      + '<aside class="settings-social-nav" aria-label="Разделы настроек">'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="profile">Аккаунт</button>'
+      + '<button type="button" class="settings-social-nav-item is-active" data-profile-sub="preferences">Уведомления и приватность</button>'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="billing">Подписка</button>'
+      + '<button type="button" class="settings-social-nav-item" data-profile-sub="accounts">Входы</button>'
+      + '</aside>'
+      + '<div class="settings-social-main">'
       + '<h3 class="profile-sub-title">Настройки</h3>'
+      + '<p class="settings-social-lead">Приватность, уведомления и импорт</p>'
       + profileImportBlockHtml()
       + '<div class="settings-panels-grid settings-panels-grid--prefs">'
       + '<section class="settings-panel settings-panel--compact"><h3 class="settings-panel-title">Профиль</h3><div class="settings-toggle-list">'
@@ -22471,7 +22511,7 @@
       + '</section>'
       + '</div>'
       + '<p class="profile-settings-status" id="profile-settings-status"></p>'
-      + '</div>';
+      + '</div></div></div>';
 
     bindProfileSubNav(root);
     const statusEl = root.querySelector('#profile-settings-status');
@@ -25406,10 +25446,16 @@
       settingsHeaderBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeAccountDropdown();
-        // Всегда отдельная страница /settings — не дропдаун поверх /u/ профиля.
-        showSection('settings');
-        if (typeof renderSettingsSection === 'function') renderSettingsSection();
+        const dd = document.getElementById('header-settings-dropdown');
+        const open = dd && !dd.classList.contains('hidden') && document.body.classList.contains('account-menu-open');
+        if (open) closeAccountDropdown();
+        else openAccountDropdown();
+      });
+    }
+    if (!document.documentElement.dataset.mpAccountEscClose) {
+      document.documentElement.dataset.mpAccountEscClose = '1';
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAccountDropdown();
       });
     }
     const profilePill = document.getElementById('header-profile-pill');
