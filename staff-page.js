@@ -2412,7 +2412,7 @@
   }
 
   function rolesHtml(roles) {
-    return sortRolesByFilmCount(roles).map(function (block) {
+    var blocks = sortRolesByFilmCount(roles).map(function (block) {
       var roleTitle = staffRoleDisplayName(block.role_key, block.role_name);
       var roleKey = block.role_key || roleTitle;
       var filtered = filterPersonFilmsClient(block.films || [], _staffFilterState, roleKey);
@@ -2431,6 +2431,13 @@
         '</section>'
       );
     }).join('');
+    if (!blocks && _staffFilterState.friendsRatedOnly) {
+      return '<p class="staff-filter-empty">Пока нет фильмов, которые друзья оценили на 7+</p>';
+    }
+    if (!blocks && _staffFilterState.mainRolesOnly) {
+      return '<p class="staff-filter-empty">Нет главных ролей по этому фильтру</p>';
+    }
+    return blocks;
   }
 
   function bindStaffFilters(root) {
@@ -2642,6 +2649,7 @@
     if (mainBtn) {
       mainBtn.addEventListener('click', function () {
         _staffFilterState.mainRolesOnly = !_staffFilterState.mainRolesOnly;
+        updateStaffToggleChips(root.querySelector('#staff-person-filters') || root);
         reloadStaffFilmographyForListQuery();
       });
     }
@@ -2655,6 +2663,7 @@
           return;
         }
         _staffFilterState.friendsRatedOnly = !_staffFilterState.friendsRatedOnly;
+        updateStaffToggleChips(root.querySelector('#staff-person-filters') || root);
         reloadStaffFilmographyForListQuery();
       });
     }
@@ -2687,12 +2696,17 @@
       if (typeof IntersectionObserver === 'function' && !btn._staffExpandObs) {
         btn._staffExpandObs = new IntersectionObserver(function (entries) {
           entries.forEach(function (en) {
-            if (!en.isIntersecting) return;
+            // Safari flicker: only auto-expand when clearly visible; skip empty reload frames.
+            if (!en.isIntersecting || en.intersectionRatio < 0.35) return;
             var rk = btn.getAttribute('data-role-expand') || '';
             if (!rk || _staffExpandedRoles[rk]) return;
+            var block = (_staffLastData && _staffLastData.films_by_role || []).find(function (b) {
+              return String(b.role_key || '') === rk;
+            });
+            if (!block || !(block.films || []).length) return;
             expandStaffRole(rk);
           });
-        }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
+        }, { root: null, rootMargin: '0px', threshold: [0.35, 0.6] });
         btn._staffExpandObs.observe(btn);
       }
     });
@@ -2731,7 +2745,21 @@
     }
   }
 
+  var _staffPaintTimer = null;
+  function scheduleStaffRolesPaint() {
+    if (_staffPaintTimer) return;
+    _staffPaintTimer = global.setTimeout(function () {
+      _staffPaintTimer = null;
+      paintStaffRoles();
+    }, 120);
+  }
+
   function paintStaffRoles() {
+    if (_staffPaintTimer) {
+      global.clearTimeout(_staffPaintTimer);
+      _staffPaintTimer = null;
+    }
+
     var root = staffContentRoot();
     if (!root || !_staffLastData) return;
     recomputeStaffTopRatingThreshold();
@@ -3612,7 +3640,13 @@
     var lim = limitOverride != null ? parseInt(limitOverride, 10) : personFilmBatchLimit(roleKey);
     if (isNaN(lim) || lim < 1) lim = personFilmBatchLimit(roleKey);
     var qs = staffFilmsQueryParams(roleKey, off, lim);
+    var reqGen = _staffFilmsPrefetchGen;
+    var friendsOnly = !!_staffFilterState.friendsRatedOnly;
     var authed = !!mpToken() && !isCatalogPersonId(personId);
+    // Friends filter needs authed site API (friend_rated_high). Never fall back to public.
+    if (friendsOnly && !authed) {
+      return Promise.resolve({ success: true, films: [], total: 0, has_more: false });
+    }
     var url = authed
       ? (API_BASE + '/api/site/persons/' + encodeURIComponent(personId) + '/films?' + qs)
       : (staffPublicApiBase(personId) + '/films?' + qs);
@@ -3620,6 +3654,9 @@
     return fetch(url, { method: 'GET', mode: 'cors', headers: headers })
       .then(function (r) {
         if (r.status === 401 && authed) {
+          if (friendsOnly || _staffFilterState.friendsRatedOnly) {
+            return Promise.reject(new Error('http_401'));
+          }
           return fetch(staffPublicApiBase(personId) + '/films?' + qs, { method: 'GET', mode: 'cors' });
         }
         return r;
@@ -3629,6 +3666,8 @@
         return r.json();
       })
       .then(function (batch) {
+        // Drop stale responses after sort/filter (wrong list + Safari flicker).
+        if (reqGen !== _staffFilmsPrefetchGen) return null;
         if (!batch || !batch.success) return batch;
         mergeStaffFilmsBatch(roleKey, batch.films || [], off > 0);
         _staffRoleHasMore[roleKey] = !!batch.has_more;
@@ -3640,10 +3679,11 @@
           block.list_total = batch.total;
           if (!staffServerListQueryActive()) block.total = batch.total;
         }
-        // Quiet prefetch: merge into memory only. Paint when expanded (visible)
-        // or on the first page (off === 0).
-        if (!quiet || off === 0 || _staffExpandedRoles[roleKey]) {
+        // Quiet prefetch: merge only. First page paints; expanded pages debounce.
+        if (!quiet || off === 0) {
           paintStaffRoles();
+        } else if (_staffExpandedRoles[roleKey]) {
+          scheduleStaffRolesPaint();
         }
         return batch;
       });
