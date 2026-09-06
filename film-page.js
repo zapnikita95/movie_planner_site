@@ -13,6 +13,9 @@
     } catch (_e) {}
     return (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || SITE_ORIGIN;
   })();
+  var CINEMA_CLUB_TARGETS = [];
+  var CINEMA_CLUB_TARGETS_READY = false;
+  var CINEMA_CLUB_TARGETS_LOADING = false;
 
   // TMDB en-US genre names → RU pills (never paint Drama/Comedy on apex).
   var TMDB_GENRE_EN_RU = {
@@ -1799,6 +1802,9 @@
       '<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>',
       '<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>',
     ].join('');
+    if (CINEMA_CLUB_TARGETS.length) {
+      planItems += '<button type="button" class="action-dropdown-item" data-goto-plans="club">🎬 Киноклуб</button>';
+    }
     if (hints.has_upcoming || hints.next_plan_start_iso) {
       planItems =
         '<a class="action-dropdown-item" href="/plans">📋 Открыть в планах</a>' + planItems;
@@ -4331,64 +4337,56 @@
           if (!isTmdbOnly) planBody.kp_id = Number(kpId);
           else {
             planBody.tmdb_id = Number(tmdbId);
+
             planBody.media_type = mediaType || 'movie';
           }
           return postPlan(planBody);
         });
       }
 
-      function startPlanFlow(place) {
+      function showCinemaClubPicker() {
+        var ov = document.createElement('div'); ov.className = 'mp-dialog-overlay';
+        var card = document.createElement('div'); card.className = 'mp-dialog-card';
+        card.innerHTML = '<h3>Куда запланировать?</h3><p>Выберите киноклуб</p>';
+        CINEMA_CLUB_TARGETS.forEach(function (club) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'club-btn club-btn-primary';
+          b.textContent = (club.emoji || '🎬') + ' ' + (club.display_name || club.name || 'Киноклуб');
+          b.onclick = function () { ov.remove(); startPlanFlow('home', club.chat_id); }; card.appendChild(b);
+        });
+        var close = document.createElement('button'); close.type = 'button'; close.className = 'club-btn club-btn-ghost'; close.textContent = 'Отмена';
+        close.onclick = function () { ov.remove(); }; card.appendChild(close); ov.appendChild(card); document.body.appendChild(ov);
+      }
+
+      function startPlanFlow(place, targetChatId) {
+        if (place === 'club') {
+          if (!targetChatId && CINEMA_CLUB_TARGETS.length === 1) targetChatId = CINEMA_CLUB_TARGETS[0].chat_id;
+          if (!targetChatId) { showCinemaClubPicker(); return; }
+          place = 'home';
+        }
         place = place === 'cinema' ? 'cinema' : 'home';
         if (!token()) {
-          openStandalonePlanModal(
-            isTmdbOnly
-              ? { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId, title: filmTitleForPlan() }
-              : { kp_id: kpId, title: filmTitleForPlan() },
-            place,
-            {
-              guestMode: true,
-              onRequireAuth: function (planPayload) {
-                rememberPendingGuestPlan(planPayload);
-                loginNow('plan');
-              },
-            }
-          );
+          openStandalonePlanModal(isTmdbOnly ? { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId, title: filmTitleForPlan() } : { kp_id: kpId, title: filmTitleForPlan() }, place, { guestMode: true, libraryChatId: targetChatId || null, onRequireAuth: function (planPayload) { rememberPendingGuestPlan(planPayload); loginNow('plan'); } });
           return;
         }
+        var extra = targetChatId ? { libraryChatId: targetChatId } : null;
         if (isTmdbOnly) {
           return ensureFilm().then(function (d) {
-            if (!d || !d.success) {
-              if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм';
-              return;
-            }
-            openStandalonePlanModal({
-              film_id: d.film_id,
-              tmdb_id: Number(tmdbId),
-              media_type: mediaType,
-              title: filmTitleForPlan(),
-            }, place);
+            if (!d || !d.success) { if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм'; return; }
+            openStandalonePlanModal({ film_id: d.film_id, tmdb_id: Number(tmdbId), media_type: mediaType, title: filmTitleForPlan() }, place, extra);
           });
         }
-        fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() })
-          .then(function (r) { return r.json(); })
-          .then(function (lookup) {
-            if (lookup && lookup.in_library && lookup.film_id) {
-              return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(lookup.film_id)), { headers: authHeaders() })
-                .then(function (r2) { return r2.json(); })
-                .then(function (detail) {
-                  var f = detail && detail.film ? detail.film : { kp_id: kpId, film_id: lookup.film_id };
-                  openStandalonePlanModal(f, place);
-                });
-            }
-            return ensureFilm().then(function (d) {
-              if (!d || !d.success) {
-                if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм';
-                return;
-              }
-              openStandalonePlanModal({ kp_id: kpId, film_id: d.film_id, title: filmTitleForPlan() }, place);
+        fetch(apiBase + '/api/site/film-by-kp/' + encodeURIComponent(kpId), { headers: authHeaders() }).then(function (r) { return r.json(); }).then(function (lookup) {
+          if (lookup && lookup.in_library && lookup.film_id) {
+            return fetch(apiBase + '/api/site/film/' + encodeURIComponent(String(lookup.film_id)), { headers: authHeaders() }).then(function (r2) { return r2.json(); }).then(function (detail) {
+              var f = detail && detail.film ? detail.film : { kp_id: kpId, film_id: lookup.film_id };
+              openStandalonePlanModal(f, place, extra);
             });
-          })
-          .catch(function () { showPublicToast('Ошибка сети'); });
+          }
+          return ensureFilm().then(function (d) {
+            if (!d || !d.success) { if (hint) hint.textContent = (d && d.error) || 'Не удалось подготовить фильм'; return; }
+            openStandalonePlanModal({ kp_id: kpId, film_id: d.film_id, title: filmTitleForPlan() }, place, extra);
+          });
+        }).catch(function () { showPublicToast('Ошибка сети'); });
       }
 
       loadPublicCast();
@@ -4982,7 +4980,7 @@
             });
           }
           bindFilmPlanDropdowns(root, function (place) {
-            openStandalonePlanModal(film, place === 'cinema' ? 'cinema' : 'home');
+            if (place === 'club') startPlanFlow('club'); else openStandalonePlanModal(film, place === 'cinema' ? 'cinema' : 'home');
           });
           var tagBtn = document.getElementById('film-user-tag-btn');
           if (tagBtn && global.MpFilmUserTags && global.MpFilmUserTags.bindButton) {
@@ -5033,8 +5031,20 @@
         });
       }
 
+      function loadCinemaClubTargets() {
+        if (CINEMA_CLUB_TARGETS_READY || CINEMA_CLUB_TARGETS_LOADING || !token() || forcePublic) return;
+        CINEMA_CLUB_TARGETS_LOADING = true;
+        fetchJsonAuth('/api/site/profiles?lite=1', 10000).then(function (data) {
+          var profiles = data && data.profiles || [];
+          CINEMA_CLUB_TARGETS = profiles.filter(function (p) { return p && p.is_virtual && p.group_kind === 'cinema_club' && (p.my_role === 'owner' || p.my_role === 'admin'); });
+        }).catch(function () { CINEMA_CLUB_TARGETS = []; }).then(function () {
+          CINEMA_CLUB_TARGETS_READY = true; CINEMA_CLUB_TARGETS_LOADING = false; loadAuthFilmState();
+        });
+      }
+
       function loadAuthFilmState() {
         if (!token() || forcePublic) return;
+        loadCinemaClubTargets();
         if (isMp || isFest) {
           applyAuthToolbar({
             film: {

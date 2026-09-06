@@ -39,7 +39,8 @@
     lightbox: null,
     pollSearch: null,
     pollEdits: {} ,
-    comments: {}
+    comments: {},
+    planPicker: null
   };
   var root;
   var overlayHost;
@@ -860,7 +861,9 @@
   }
 
   function fabHtml() {
-    if (!state.admin || state.tab !== 'feed') return '';
+    if (!state.admin) return '';
+    if (state.tab === 'schedule') return '<button type="button" class="club-fab" data-club-plan-open aria-label="Запланировать просмотр"><span aria-hidden="true">+</span></button>';
+    if (state.tab !== 'feed') return '';
     return (
       '<button type="button" class="club-fab" data-club-compose-open aria-label="Написать пост">' +
       icon('pencil', { size: 'md' }) +
@@ -906,7 +909,7 @@
     return (
       '<div class="club-poll-search-backdrop" data-club-poll-search-close>' +
       '<div class="club-poll-search" role="dialog" aria-modal="true" aria-label="Поиск для варианта" data-club-poll-search-sheet>' +
-      '<div class="club-compose-top"><h3>Прикрепить из поиска</h3>' +
+      '<div class="club-compose-top"><h3>' + (ps.target === "club-plan" ? "Выберите фильм для плана" : "Прикрепить из поиска") + '</h3>' +
       '<button type="button" class="club-compose-x" data-club-poll-search-close aria-label="Закрыть">' +
       icon('x', { size: 'sm' }) +
       '</button></div>' +
@@ -937,6 +940,8 @@
     // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
     var fab = host.querySelector('[data-club-compose-open]');
     if (fab) fab.onclick = openCompose;
+    var planFab = host.querySelector("[data-club-plan-open]");
+    if (planFab) planFab.onclick = openClubPlanSearch;
     host.querySelectorAll('[data-club-compose-close]').forEach(function (b) {
       b.onclick = function (e) {
         if (b.classList.contains('club-compose-backdrop') && e.target !== b) return;
@@ -1954,6 +1959,16 @@
     }, 20);
   }
 
+  function openClubPlanSearch() {
+    if (!state.admin) return;
+    state.pollSearch = { target: 'club-plan', index: null, q: '', items: [], busy: false, err: '', timer: null, seq: 0 };
+    render();
+    setTimeout(function () {
+      var input = (overlayHost || document).querySelector('#club-poll-search-q');
+      if (input) input.focus();
+    }, 20);
+  }
+
   function schedulePollSearch(q) {
     var ps = state.pollSearch;
     if (!ps) return;
@@ -2004,8 +2019,15 @@
   function pickPollSearch(index) {
     var ps = state.pollSearch;
     if (!ps || !ps.items || !ps.items[index]) return;
+    if (ps.target === 'club-plan') {
+      var planFilm = ps.items[index];
+      closePollSearch();
+      openClubPlanModal(planFilm);
+      return;
+    }
     if (ps.target === "embed") { var picked = ps.items[index]; state.composeEmbeds = (state.composeEmbeds || []).concat([picked]); closePollSearch(); enrichEmbedCard(picked); return; }
     var optIndex = parseInt(ps.index, 10);
+
     if (isNaN(optIndex)) return;
     var opt = normalizePollOpt((state.composePollOptions || [])[optIndex]);
     opt.card = ps.items[index];
@@ -2013,6 +2035,26 @@
     state.composePollOptions[optIndex] = opt;
     closePollSearch();
   }
+  function openClubPlanModal(card) {
+    if (!card || !card.id || !global.MpPlanModal || typeof global.MpPlanModal.open !== 'function') { toast('Форма плана недоступна', { type: 'error' }); return; }
+    var base = (global.MP_API_BASE || global.API_BASE || '') || '';
+    var tok = typeof global.getToken === 'function' ? global.getToken() : '';
+    global.MpPlanModal.open({
+      apiBase: base,
+      getAuthHeaders: function () { var h = { 'Content-Type': 'application/json' }; if (tok) h.Authorization = 'Bearer ' + tok; return h; },
+      onToast: function (m) { toast(m, { type: /не|ошиб/i.test(String(m || '')) ? 'error' : 'info' }); },
+      film: { kp_id: card.id, title: card.title || 'Фильм', year: card.subtitle || '', poster: card.poster || '' },
+      mode: 'home',
+      libraryChatId: state.id,
+      onSuccess: function (res) {
+        var created = res && res.plan;
+        if (created) { state.club.plans = (state.club.plans || []).filter(function (p) { return String(p.id || '') !== String(created.id || ''); }); state.club.plans.push(created); }
+        state.tab = 'schedule';
+        render();
+      }
+    });
+  }
+
   function submitPollVote(pid, box) { var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; post.total = d.total || post.total; if (d.voters) post.voters = d.voters; } delete state.pollEdits[String(pid)]; toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
   function toggleReaction(pid, emoji, active) { if (!hasToken()) { login(); return; } if (!state.member) { toast("Вступите в клуб, чтобы реагировать", { type: "error" }); return; } var method = active ? "DELETE" : "POST"; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/reactions", { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ emoji: emoji }) }).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.reactions = d.reactions || []; post.reaction_counts = d.reaction_counts || {}; post.my_reactions = d.my_reactions || []; } render(); }).catch(function(e) { toast((e && e.message) || "Не удалось поставить реакцию", { type: "error" }); }); }
   function bindEmbedControls(host) { if (!host) return; host.querySelectorAll("[data-club-embed-open]").forEach(function(b) { b.onclick = openEmbedSearch; }); host.querySelectorAll("[data-club-embed-remove]").forEach(function(b) { b.onclick = function() { var i = parseInt(b.getAttribute("data-club-embed-remove"), 10); if (!isNaN(i)) { state.composeEmbeds = (state.composeEmbeds || []).filter(function(_, idx) { return idx !== i; }); render(); } }; }); }
