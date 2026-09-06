@@ -8,6 +8,7 @@
   var MP_POSTER_PLACEHOLDER = "/images/film-poster-placeholder.png";
   var premCacheKey = "mp_landing_premieres_v6";
   var seriesCacheKey = "mp_landing_series_v9";
+  var donationsCacheKey = "mp_landing_donations_v1";
   var VITRINE_SERIES_KP_BLOCKLIST = { 5407222: true };
   var CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   var SERIES_LIMIT = 50;
@@ -228,18 +229,62 @@
       });
   }
 
+
+  function moneyRu(n) {
+    try { return new Intl.NumberFormat("ru-RU").format(Number(n) || 0) + " ₽"; }
+    catch (_e) { return String(n || 0) + " ₽"; }
+  }
+
+  function donationCard(it) {
+    if (!it) return "";
+    var pct = Math.max(0, Math.min(100, Number(it.progress_pct) || 0));
+    var poster = it.image_url || MP_POSTER_PLACEHOLDER;
+    var href = it.external_url || "/donations";
+    var title = esc(it.title || "Сбор");
+    var meta = esc(moneyRu(it.collected) + " · " + pct + "%");
+    return (
+      '<a class="landing-pre-card landing-donation-card" href="' + esc(href) + '" target="_blank" rel="noopener sponsored">' +
+      '<div class="landing-pre-card-poster">' +
+      '<img src="' + esc(poster) + '" alt="" width="200" height="300" loading="lazy" decoding="async" onerror="this.src=\'' + MP_POSTER_PLACEHOLDER + '\'">' +
+      '<div class="landing-donation-bar" aria-hidden="true"><span style="width:' + pct + '%"></span></div>' +
+      "</div>" +
+      '<div class="landing-pre-card-body">' +
+      '<div class="landing-pre-card-title">' + title + "</div>" +
+      '<div class="landing-pre-card-meta">' + meta + "</div>" +
+      "</div></a>"
+    );
+  }
+
+  function loadDonations() {
+    var track = document.getElementById("landing-donations-track");
+    if (!track) return Promise.resolve();
+    var cached = readCache(donationsCacheKey);
+    if (cached && cached.items && cached.items.length) {
+      paintTrack(track, cached.items.map(donationCard).join(""));
+    }
+    return fetchJson(apiBase() + "/api/public/donations?limit=18")
+      .then(function (data) {
+        var items = (data && data.success && data.items) ? data.items.slice(0, 18) : [];
+        if (!items.length && cached && cached.items) return;
+        if (!items.length) return;
+        writeCache(donationsCacheKey, { items: items });
+        paintTrack(track, items.map(donationCard).join(""));
+      });
+  }
+
   function init() {
     var landing = document.getElementById("landing");
     if (!landing) return;
-    Promise.all([loadPremieres(), loadSeries()]).catch(function () {});
+    Promise.all([loadPremieres(), loadSeries(), loadDonations()]).catch(function () {});
   }
 
   global.__mpLandingVitrineRefresh = function () {
     try {
       localStorage.removeItem(premCacheKey);
       localStorage.removeItem(seriesCacheKey);
+      localStorage.removeItem(donationsCacheKey);
     } catch (_e) {}
-    return Promise.all([loadPremieres(), loadSeries()]).catch(function () {});
+    return Promise.all([loadPremieres(), loadSeries(), loadDonations()]).catch(function () {});
   };
 
   if (global.renderPremiereNotifyButton) {
