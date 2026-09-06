@@ -18553,7 +18553,11 @@ html {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body.in-cabinet .header-settings-btn-text {
+  body.in-cabinet .header-settings-btn-text,
+  html.mp-session body.film-standalone-page .header-settings-btn-text,
+  html.mp-session body.article-standalone-page .header-settings-btn-text,
+  html.mp-session body.staff-standalone-page .header-settings-btn-text,
+  html.mp-session body.user-standalone-page .header-settings-btn-text {
     display: none;
   }
   body.in-cabinet .header-user-wrap {
@@ -18756,12 +18760,6 @@ body:not(.in-cabinet):not(.in-search-page) main > section {
     justify-self: stretch;
   }
 
-  html.mp-session body.film-standalone-page .header-settings-btn-text,
-  html.mp-session body.article-standalone-page .header-settings-btn-text,
-  html.mp-session body.staff-standalone-page .header-settings-btn-text,
-  html.mp-session body.user-standalone-page .header-settings-btn-text {
-    display: none;
-  }
 
   html.mp-session body.film-standalone-page .header-profile-name,
   html.mp-session body.article-standalone-page .header-profile-name,
