@@ -1064,7 +1064,6 @@
                   <div class="header-inbox-dropdown-list" id="header-inbox-dropdown-list" aria-live="polite"></div>
                 </div>
               </div>
-              <select id="header-plan-target" class="header-plan-target hidden" aria-label="Куда сохранить план"></select>
             </div>
             <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
@@ -2499,6 +2498,10 @@
                 <section id="section-plans" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="plans"></span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
+                        <div class="plans-entity-switcher-row">
+                            <label class="plans-entity-switcher-label" for="header-plan-target">Планы в</label>
+                            <select id="header-plan-target" class="header-plan-target hidden" aria-label="Фильтр планов по сущности"></select>
+                        </div>
                         <div class="plans-filter-tabs" id="plans-filter-tabs" role="tablist" aria-label="Показать планы">
                             <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true"><span class="mp-icon mp-icon--sm" data-mp-icon="clipboard"></span> Все планы</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="home" role="tab" aria-selected="false"><span class="mp-icon mp-icon--sm" data-mp-icon="home"></span> Дома</button>
@@ -3178,7 +3181,13 @@
         <h2 class="add-film-title">Создать группу</h2>
         <p class="add-film-hint">Выберите формат, задайте название и отправьте ссылку тем, кого хотите пригласить.</p>
         <div class="create-room-form">
-          <label class="create-room-label">Эмодзи</label>
+          <div class="create-room-identity-head">
+            <label class="create-room-label">Эмодзи и обложка</label>
+            <label class="create-room-cover-picker" for="create-room-cover">
+              <span aria-hidden="true">▣</span> Загрузить обложку
+              <input type="file" id="create-room-cover" accept="image/jpeg,image/png,image/webp,image/gif">
+            </label>
+          </div>
           <div class="create-room-emoji-row" id="create-room-emoji-row">
             <button type="button" class="create-room-emoji-btn active" data-emoji="🎬">🎬</button>
             <button type="button" class="create-room-emoji-btn" data-emoji="🍿">🍿</button>
@@ -3189,7 +3198,7 @@
             <button type="button" class="create-room-emoji-btn" data-emoji="👑">👑</button>
             <button type="button" class="create-room-emoji-btn" data-emoji="❤️">❤️</button>
           </div>
-          <label class="create-room-label">Тип группы</label>
+          <div class="create-room-kind-heading" id="create-room-kind-heading"><label class="create-room-label">Тип группы</label></div>
           <div class="create-room-kind-row" id="create-room-kind-row">
             <button type="button" class="create-room-kind-btn active" data-kind="friends">👥 Друзья</button>
             <button type="button" class="create-room-kind-btn" data-kind="cinema_club">🎬 Киноклуб</button>
@@ -3200,8 +3209,23 @@
           <input type="text" id="create-room-name" class="add-film-input" placeholder="Например: Четверг — это пятница" maxlength="60" autocomplete="off">
           <div id="create-room-desc-wrap" class="create-room-desc-wrap hidden">
             <label class="create-room-label" for="create-room-desc">Описание</label>
-            <textarea id="create-room-desc" class="add-film-input create-room-desc" maxlength="200" rows="3" placeholder="О чём клуб и как часто смотрите. До 200 знаков."></textarea>
+            <textarea id="create-room-desc" class="add-film-input create-room-desc" maxlength="200" rows="3" placeholder="О чём этот клуб. До 200 знаков."></textarea>
             <div class="create-room-desc-count" id="create-room-desc-count">0 / 200</div>
+            <label class="create-room-label" for="create-room-frequency">Частота просмотра</label>
+            <select id="create-room-frequency" class="add-film-input create-room-frequency">
+              <option value="">Выберите частоту</option>
+              <option value="daily">Каждый день</option>
+              <option value="several_weekly">Несколько раз в неделю</option>
+              <option value="twice_weekly">Два раза в неделю</option>
+              <option value="weekly">Раз в неделю</option>
+              <option value="wednesday">По средам</option>
+              <option value="thursday">По четвергам</option>
+              <option value="friday">По пятницам</option>
+              <option value="weekends">По выходным</option>
+              <option value="biweekly">Раз в две недели</option>
+              <option value="monthly">Раз в месяц</option>
+              <option value="rare">Пока редко</option>
+            </select>
           </div>
           <div id="create-room-status" class="add-film-status"></div>
           <div class="create-room-actions">
@@ -3783,7 +3807,11 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
+<<<<<<< HEAD
         var V='20260907clubWatchUx1';
+=======
+        var V='20260907clubsMarkWatched1';
+>>>>>>> origin/main
         var core = [
           'mp-api-config.js?v=' + V,
           'header-search-scroll.js?v=' + V,

@@ -1621,6 +1621,42 @@
       '<ul class="film-buzz-list">' + lis + '</ul></div>';
   }
 
+  function youtubeIdFromUrl(url) {
+    var u = String(url || '');
+    var m = u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{6,})/);
+    return m ? m[1] : '';
+  }
+
+  /**
+   * «Обсуждают сейчас» = recent social mentions only.
+   * Drop rows that duplicate «Разборы на YouTube», and drop YouTube/video rows
+   * without a real posted_at (catalog trailers / full-film links are not buzz).
+   */
+  function filterBuzzAgainstReviews(buzzPosts, reviewItems) {
+    var yids = {};
+    var urls = {};
+    (reviewItems || []).forEach(function (it) {
+      if (!it) return;
+      var id = String(it.youtube_id || youtubeIdFromUrl(it.url) || '').trim();
+      if (id) yids[id] = true;
+      var u = String(it.url || '').trim().split('?')[0].replace(/\/$/, '');
+      if (u) urls[u] = true;
+    });
+    return (buzzPosts || []).filter(function (p) {
+      if (!p || !p.post_url) return false;
+      var plat = String(p.platform || '').toLowerCase();
+      var id = youtubeIdFromUrl(p.post_url) || youtubeIdFromUrl(p.channel_url) || '';
+      if (id && yids[id]) return false;
+      var u = String(p.post_url || '').trim().split('?')[0].replace(/\/$/, '');
+      if (u && urls[u]) return false;
+      var when = String(p.posted_at || '').trim();
+      var hasDate = /^\d{4}-\d{2}-\d{2}/.test(when);
+      // Video links in buzz only with a real recent social timestamp.
+      if ((plat === 'youtube' || id) && !hasDate) return false;
+      return true;
+    });
+  }
+
   function paintFilmDescReviews(wrap, items, socials, buzzPosts, kpId) {
     if (!wrap) wrap = document.getElementById('film-desc-wrap');
     var hero = (wrap && wrap.closest('.hero-content')) ||
@@ -1629,11 +1665,11 @@
     if (!revEl) return;
     var list = Array.isArray(items) ? items : [];
     var soc = Array.isArray(socials) ? socials : [];
-    var buzz = Array.isArray(buzzPosts) ? buzzPosts : [];
+    var buzz = filterBuzzAgainstReviews(Array.isArray(buzzPosts) ? buzzPosts : [], list);
     var kp = kpId || wrap.getAttribute('data-kp-id') || '';
     var buzzHtml = filmBuzzFeedHtml(buzz, kp);
     var rest = (list.length || soc.length) ? filmDescReviewsInlineHtml(list, soc, kp) : '';
-    // YouTube / соцсети сверху, «В тренде» ниже (актуальность buzz короче).
+    // YouTube / соцсети сверху; «Обсуждают сейчас» только если остались не-дубли.
     revEl.innerHTML = rest + buzzHtml;
     if (global.MpFilmOutbound && typeof global.MpFilmOutbound.bind === 'function') {
       global.MpFilmOutbound.bind(revEl, kp);
@@ -3922,6 +3958,11 @@
         var h = { 'Content-Type': 'application/json' };
         var t = token();
         if (t) h.Authorization = 'Bearer ' + t;
+        try {
+          var q = window.location.search ? window.location.search : '';
+          var clubChat = new URLSearchParams(q).get('library_chat_id');
+          if (clubChat && !isNaN(Number(clubChat))) h['X-Movie-Planner-Library-Chat'] = clubChat;
+        } catch (_) {}
         return h;
       }
       function loginNow(action) {
