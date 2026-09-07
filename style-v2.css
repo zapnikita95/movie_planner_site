@@ -28923,3 +28923,15 @@ a.plan-place-link {
 .club-cover-upload input[type=file]{width:100%;box-sizing:border-box;border:1px dashed rgba(239,28,122,.45);border-radius:10px;padding:10px;color:#d8d4e2;background:rgba(239,28,122,.05);cursor:pointer}
 .club-settings-cover-preview{width:100%;max-width:220px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--club-line)}
 @media (min-width:561px){.club-post-action-row{display:flex;align-items:center;flex-wrap:nowrap}.club-post-action-row .club-reactions{display:flex;align-items:center;flex-wrap:nowrap;width:auto;max-width:none}.club-post-action-row .club-reaction-list{display:flex;align-items:center;flex-wrap:nowrap;gap:5px}.club-post-action-row .club-reaction-pill{white-space:nowrap}.club-post-action-row .club-comments-toggle{order:-1;flex:0 0 auto}}
+
+/* 20260907clubsGuestOverflow1 — keep feed posts shrinkable on guest and member paths. */
+.club-page,.club-layout,.club-main,.club-panel,.club-feed,.club-post { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
+.club-page,.club-panel,.club-feed,.club-post { overflow-x:clip; }
+.club-post-title,.club-post-body,.club-post-embed,.club-post-embed-link,.club-poll,.club-post-action-row,.club-comments { min-width:0; max-width:100%; box-sizing:border-box; }
+.club-post-title,.club-post-body,.club-post-embed-copy,.club-poll-q,.club-poll-choice-text { overflow-wrap:anywhere; }
+.club-carousel { width:100%; max-width:100%; min-width:0; overflow:hidden; box-sizing:border-box; }
+.club-carousel-stage,.club-carousel-img-btn { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
+.club-carousel-stage img { max-width:100%; max-height:min(70vh,520px); }
+.club-post-action-row { flex-wrap:wrap; }
+.club-post-action-row .club-reactions { max-width:100%; min-width:0; }
+.club-post-action-row .club-reaction-list { max-width:100%; min-width:0; flex-wrap:wrap; }
