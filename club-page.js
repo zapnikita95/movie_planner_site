@@ -1866,7 +1866,7 @@
 
   function bind() {
     root.querySelectorAll('[data-club-schedule-view]').forEach(function (b) {
-      b.onclick = function () { state.scheduleView = b.getAttribute('data-club-schedule-view') === 'calendar' ? 'calendar' : 'list'; if (state.scheduleView === 'calendar' && !state.calendarMonth) state.calendarMonth = calendarMonthKey(new Date()); render(); };
+      b.onclick = function (event) { event.preventDefault(); state.scheduleView = b.getAttribute('data-club-schedule-view') === 'calendar' ? 'calendar' : 'list'; if (state.scheduleView === 'calendar' && !state.calendarMonth) state.calendarMonth = calendarMonthKey(new Date()); render(); };
     });
     root.querySelectorAll('[data-club-calendar-nav]').forEach(function (b) { b.onclick = function () { shiftCalendar(b.getAttribute('data-club-calendar-nav')); }; });
     root.querySelectorAll('[data-club-calendar-day]').forEach(function (b) {
