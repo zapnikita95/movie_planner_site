@@ -4484,59 +4484,78 @@
     if (row) row.classList.toggle('has-plan-target', show);
   }
 
+  let _planEntityProfilesPromise = null;
+
+  function planEntityLabel(profile) {
+    if (!profile || profile.is_personal) return '👤 Личный';
+    return (profile.emoji ? String(profile.emoji).trim() + ' ' : '👥 ')
+      + (profile.display_name || profile.name || 'Группа');
+  }
+
   function initHeaderPlanTarget() {
     const sel = document.getElementById('header-plan-target');
     if (!sel) return Promise.resolve();
-    return fetchSiteProfiles({ lite: true })
+    if (_planEntityProfilesPromise) return _planEntityProfilesPromise;
+    _planEntityProfilesPromise = api('/api/site/profiles?lite=1')
       .then((data) => {
         const profiles = (data && data.profiles) || [];
-        const adminGroups = filterAdminPlanProfiles(profiles);
-        if (!adminGroups.length) {
-          sel.classList.add('hidden');
-          sel.innerHTML = '';
-          _headerPlanTargetReady = false;
-          return;
-        }
-        sel.innerHTML =
-          '<option value="personal">👤 Личный</option>' +
-          adminGroups
-            .map((p) => {
-              const label =
-                (p.emoji ? String(p.emoji).trim() + ' ' : '👥 ') +
-                (p.display_name || p.name || 'Группа');
-              return (
-                '<option value="' +
-                escapeHtml(String(p.chat_id)) +
-                '">' +
-                escapeHtml(label) +
-                '</option>'
-              );
-            })
-            .join('');
+        _planEntityProfiles = filterAdminPlanProfiles(profiles);
+        sel.innerHTML = '<option value="personal">' + escapeHtml(planEntityLabel({ is_personal: true })) + '</option>'
+          + _planEntityProfiles.map((p) => '<option value="' + escapeHtml(String(p.chat_id)) + '">' + escapeHtml(planEntityLabel(p)) + '</option>').join('');
         let initial = 'personal';
         try {
           const stored = sessionStorage.getItem(STORAGE_PLAN_TARGET);
           if (stored === 'personal') initial = 'personal';
-          else if (stored && adminGroups.some((g) => String(g.chat_id) === stored)) {
-            initial = stored;
-          }
+          else if (stored && _planEntityProfiles.some((g) => String(g.chat_id) === stored)) initial = stored;
         } catch (_) {}
+        _plansEntityFilter = initial;
         sel.value = initial;
         sel.onchange = function () {
-          try {
-            sessionStorage.setItem(STORAGE_PLAN_TARGET, sel.value);
-          } catch (_) {}
+          _plansEntityFilter = sel.value || 'personal';
+          try { sessionStorage.setItem(STORAGE_PLAN_TARGET, _plansEntityFilter); } catch (_) {}
+          applyPlansEntityFilter();
         };
-        _headerPlanTargetReady = true;
-        const sec =
-          document.querySelector('.cabinet-section:not(.hidden)')?.id?.replace('section-', '') ||
-          'home';
+        _headerPlanTargetReady = _planEntityProfiles.length > 0;
+        const sec = document.querySelector('.cabinet-section:not(.hidden)')?.id?.replace('section-', '') || 'home';
         syncHeaderPlanTargetVisibility(sec);
       })
       .catch(() => {
+        _planEntityProfiles = [];
         sel.classList.add('hidden');
         _headerPlanTargetReady = false;
       });
+    return _planEntityProfilesPromise;
+  }
+
+  function planEntityId(p) {
+    if (!p) return 'personal';
+    if (p.is_personal === true || p.library_is_personal === true || p.entity_is_personal === true) return 'personal';
+    const value = p.library_chat_id ?? p.plan_library_chat_id ?? p.entity_chat_id
+      ?? p.target_chat_id ?? p.profile_chat_id ?? p.group_chat_id ?? p.chat_id;
+    return value == null || String(value).trim() === '' ? 'personal' : String(value);
+  }
+
+  function applyPlansEntityFilter() {
+    const next = _plansByEntity[_plansEntityFilter] || _plansByEntity.personal;
+    if (next) _plansData = next;
+    syncPlansFilterTabsVisibility();
+    renderPlansList();
+    try { scheduleHomeDashboardRefresh(); } catch (_) {}
+  }
+
+  function syncPlansEntityOptions(available) {
+    const sel = document.getElementById('header-plan-target');
+    if (!sel) return;
+    const keys = new Set(available || []);
+    const options = [{ key: 'personal', label: '👤 Личный' }].concat(
+      _planEntityProfiles.map((p) => ({ key: String(p.chat_id), label: planEntityLabel(p) })),
+    ).filter((o) => keys.has(o.key));
+    if (!options.length) return;
+    sel.innerHTML = options.map((o) => '<option value="' + escapeHtml(o.key) + '">' + escapeHtml(o.label) + '</option>').join('');
+    if (!options.some((o) => o.key === _plansEntityFilter)) _plansEntityFilter = options[0].key;
+    sel.value = _plansEntityFilter;
+    _headerPlanTargetReady = options.length > 1;
+    sel.classList.toggle('hidden', !_headerPlanTargetReady);
   }
 
   function apiOnce(url, options, token) {
@@ -8522,13 +8541,14 @@
 
   function planPlaceLineHtml(p) {
     if (!p) return '';
-    const name = String(p.cinema_name || p.place || p.location || '').trim();
-    const addr = String(p.cinema_address || '').trim();
-    const bits = [];
-    if (name) bits.push(linkifyPlaceHtml(name));
-    if (addr && addr !== name) bits.push(linkifyPlaceHtml(addr));
-    if (!bits.length) return '';
-    return '<div class="plan-place-line"><span aria-hidden="true">📍</span> ' + bits.join(' · ') + '</div>';
+    const name = String(p.cinema_name || p.place || p.location || p.venue || '').trim();
+    const addr = String(p.cinema_address || p.address || p.venue_address || p.place_address || '').trim();
+    const label = [name, addr].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ');
+    if (!label) return '';
+    const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(label);
+    return '<div class="plan-place-line"><span aria-hidden="true">📍</span> '
+      + '<a href="' + escapeHtml(mapsUrl) + '" target="_blank" rel="noopener noreferrer" class="plan-place-link" onclick="event.stopPropagation()">'
+      + escapeHtml(label) + '</a></div>';
   }
 
   function siteInboxPlanDetail(pl, it) {
@@ -10042,6 +10062,9 @@
   }
 
   let _plansData = { home: [], cinema: [], premieres: [] };
+  let _plansByEntity = {};
+  let _planEntityProfiles = [];
+  let _plansEntityFilter = 'personal';
   let _plansViewFilter = 'all';
 
   function _sortPlansByTime(arr) {
@@ -12623,11 +12646,11 @@
   }
 
   function _getPlansListForView() {
-    const d = _plansData;
+    const d = _plansData || { home: [], cinema: [], premieres: [] };
     if (_plansViewFilter === 'home') return _sortPlansByTime(d.home);
     if (_plansViewFilter === 'cinema') return _sortPlansByTime(d.cinema);
     if (_plansViewFilter === 'premieres') return _sortPlansByTime(d.premieres);
-    return _sortPlansByTime((d.home || []).concat(d.cinema || []).concat(d.premieres || []));
+    return _sortPlansByTime((d.home || []).concat(d.cinema || [], d.premieres || []));
   }
 
   function shareCabinetPlanLink(planId) {
@@ -12677,8 +12700,8 @@
     const poster = posterUrl(p.kp_id);
     const titleSafe = escapeHtml(p.title || '');
     const planId = p.id != null ? String(p.id) : '';
-    const shareRow = planId
-      ? '<div class="plan-card-share-row"><button type="button" class="btn btn-small plan-card-share-btn" data-plan-share-id="' + escapeHtml(planId) + '" title="Публичная страница с датой, группой, вступлением и календарём">↗ Поделиться событием</button></div>'
+    const shareIcon = planId
+      ? '<button type="button" class="film-share-icon-btn plan-card-share-icon" data-plan-share-id="' + escapeHtml(planId) + '" title="Поделиться событием" aria-label="Поделиться событием">↗</button>'
       : '';
     return `
           <div class="card plan-card film-card-v2" data-film-id="${p.film_id || ''}" data-kp-id="${p.kp_id || ''}" data-context="plan">
@@ -12686,6 +12709,7 @@
               ${filmCardPosterHtml(p.kp_id, poster)}
               ${buildFilmTelegramTriangle(link)}
               ${buildFilmRateStar(p.film_id, 0)}
+              ${shareIcon}
             </div>
             <div class="film-card-v2-body">
               <div class="film-card-v2-meta">
@@ -12695,8 +12719,6 @@
               </div>
               ${planPlaceLineHtml(p)}
               <div class="film-card-v2-title">${titleSafe}</div>
-              ${shareRow}
-              ${buildFilmActionBar({ kp_id: p.kp_id, title: p.title, year: p.year, plan_type: p.plan_type, online_link: p.online_link || p.streaming_url })}
             </div>
           </div>`;
   }
@@ -12889,24 +12911,52 @@
   }
 
   function loadPlans() {
-    // Aggregate across personal + group rooms (same as mobile «Все планы»).
-    api('/api/site/plans/all').then((data) => {
-      if (!data.success) {
-        if (window._mpApiAuthDegraded) {
-          try { showToast('Не удалось загрузить планы — обновите страницу', { type: 'error' }); } catch (_) {}
+    const profilesReady = _planEntityProfilesPromise || initHeaderPlanTarget();
+    profilesReady.then(() => {
+      const entities = [{ key: 'personal' }].concat(
+        _planEntityProfiles.map((p) => ({ key: String(p.chat_id) })),
+      );
+      const requests = entities.map((entity) => {
+        const options = entity.key === 'personal'
+          ? {}
+          : { headers: { 'X-Movie-Planner-Library-Chat': entity.key } };
+        return api('/api/site/plans/all', options).then((data) => ({ entity, data }));
+      });
+      return Promise.all(requests);
+    }).then((results) => {
+      const byEntity = {};
+      const available = [];
+      (results || []).forEach(({ entity, data }) => {
+        if (!data || !data.success) return;
+        let buckets = {
+          home: data.home || [],
+          cinema: data.cinema || [],
+          premieres: data.premieres || [],
+        };
+        if (Array.isArray(data.items)) buckets = _bucketPlansFromAllItems(data.items);
+        const belongsToEntity = (item) => {
+          const hasEntity = item && (item.library_chat_id != null || item.plan_library_chat_id != null
+            || item.entity_chat_id != null || item.target_chat_id != null || item.profile_chat_id != null
+            || item.group_chat_id != null || item.is_personal === true
+            || item.library_is_personal === true || item.entity_is_personal === true);
+          return !hasEntity || planEntityId(item) === entity.key;
+        };
+        const normalized = {
+          home: (buckets.home || []).filter(belongsToEntity),
+          cinema: (buckets.cinema || []).filter(belongsToEntity),
+          premieres: (buckets.premieres || []).filter(belongsToEntity),
+        };
+        if (normalized.home.length || normalized.cinema.length || normalized.premieres.length) {
+          byEntity[entity.key] = normalized;
+          available.push(entity.key);
         }
-        return;
+      });
+      _plansByEntity = byEntity;
+      syncPlansEntityOptions(available);
+      if (!_plansEntityFilter || !_plansByEntity[_plansEntityFilter]) {
+        _plansEntityFilter = _plansByEntity.personal ? 'personal' : (available[0] || 'personal');
       }
-      let home = data.home || [];
-      let cinema = data.cinema || [];
-      let premieres = data.premieres || [];
-      if (Array.isArray(data.items)) {
-        const b = _bucketPlansFromAllItems(data.items);
-        home = b.home;
-        cinema = b.cinema;
-        premieres = b.premieres;
-      }
-      _plansData = { home, cinema, premieres };
+      _plansData = _plansByEntity[_plansEntityFilter] || { home: [], cinema: [], premieres: [] };
       let pendingFilter = 'all';
       try {
         const saved = sessionStorage.getItem('mp_plans_view_filter');
