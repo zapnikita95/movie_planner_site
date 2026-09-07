@@ -3958,6 +3958,11 @@
         var h = { 'Content-Type': 'application/json' };
         var t = token();
         if (t) h.Authorization = 'Bearer ' + t;
+        try {
+          var q = window.location.search ? window.location.search : '';
+          var clubChat = new URLSearchParams(q).get('library_chat_id');
+          if (clubChat && !isNaN(Number(clubChat))) h['X-Movie-Planner-Library-Chat'] = clubChat;
+        } catch (_) {}
         return h;
       }
       function loginNow(action) {
