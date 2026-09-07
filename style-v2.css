@@ -28903,3 +28903,23 @@ a.plan-place-link {
 .settings-billing-pay-row--more.hidden {
   display: none !important;
 }
+
+/* Create-club UX: image picker, accessible approval help, and fixed catalog controls. */
+.create-room-identity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.create-room-cover-picker{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid rgba(255,255,255,.14);border-radius:9px;background:rgba(255,255,255,.05);color:var(--text-body,#eee);font-size:12px;cursor:pointer}
+.create-room-cover-picker:hover,.create-room-cover-picker:focus-within{border-color:rgba(255,45,123,.6);background:rgba(255,45,123,.1)}
+.create-room-cover-picker input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.create-room-approval-heading{position:relative;display:flex;align-items:center;gap:7px;margin-top:12px}
+.create-room-help{width:20px;height:20px;padding:0;border:1px solid rgba(255,255,255,.25);border-radius:50%;background:transparent;color:var(--text-body,#eee);font:700 12px/18px inherit;cursor:help}
+.create-room-help:hover,.create-room-help:focus-visible{border-color:#ff2d7b;color:#ff8ab8;outline:none}
+.create-room-help-tooltip{position:absolute;z-index:5;left:26px;top:26px;width:min(360px,calc(100vw - 64px));padding:10px 12px;border:1px solid rgba(255,45,123,.45);border-radius:10px;background:#1b1822;color:#f7f3fb;font-size:12px;line-height:1.45;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease}
+.create-room-help:hover + .create-room-help-tooltip,.create-room-help:focus-visible + .create-room-help-tooltip{opacity:1;visibility:visible}
+.create-room-frequency{appearance:auto;min-height:42px;cursor:pointer}
+.clubs-search-label{display:flex;min-width:0}
+.clubs-search-input{width:100%;height:48px;box-sizing:border-box}
+.clubs-create-btn{height:48px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:1}
+@media (min-width:769px){body.in-cabinet #site-header{margin-bottom:8px!important}body.in-cabinet #cabinet-readonly > div > div.cabinet-nav,body.in-cabinet #cabinet-onboarding > div > div.cabinet-nav{justify-content:center;margin-top:0!important}body.in-cabinet #cabinet-readonly,body.in-cabinet #cabinet-onboarding{overflow:visible!important}body.in-cabinet #club-page-root,body.in-cabinet #section-club{overflow:visible!important}.club-page{position:relative;z-index:0;overflow:visible!important;isolation:isolate;box-shadow:0 0 70px rgba(118,44,255,.15)}}
+.club-cover-upload{display:grid;gap:8px;margin:12px 0;color:#d8d4e2;font-size:12px;font-weight:600}
+.club-cover-upload input[type=file]{width:100%;box-sizing:border-box;border:1px dashed rgba(239,28,122,.45);border-radius:10px;padding:10px;color:#d8d4e2;background:rgba(239,28,122,.05);cursor:pointer}
+.club-settings-cover-preview{width:100%;max-width:220px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--club-line)}
+@media (min-width:561px){.club-post-action-row{display:flex;align-items:center;flex-wrap:nowrap}.club-post-action-row .club-reactions{display:flex;align-items:center;flex-wrap:nowrap;width:auto;max-width:none}.club-post-action-row .club-reaction-list{display:flex;align-items:center;flex-wrap:nowrap;gap:5px}.club-post-action-row .club-reaction-pill{white-space:nowrap}.club-post-action-row .club-comments-toggle{order:-1;flex:0 0 auto}}

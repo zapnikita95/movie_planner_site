@@ -408,7 +408,7 @@
       return;
     }
     if (typeof global.openCreateRoomModal === "function") {
-      global.openCreateRoomModal({ kind: "cinema_club" });
+      global.openCreateRoomModal({ kind: "cinema_club", lockKind: true });
     }
   }
 
