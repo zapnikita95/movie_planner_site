@@ -28924,6 +28924,20 @@ a.plan-place-link {
 .club-settings-cover-preview{width:100%;max-width:220px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--club-line)}
 @media (min-width:561px){.club-post-action-row{display:flex;align-items:center;flex-wrap:nowrap}.club-post-action-row .club-reactions{display:flex;align-items:center;flex-wrap:nowrap;width:auto;max-width:none}.club-post-action-row .club-reaction-list{display:flex;align-items:center;flex-wrap:nowrap;gap:5px}.club-post-action-row .club-reaction-pill{white-space:nowrap}.club-post-action-row .club-comments-toggle{order:-1;flex:0 0 auto}}
 
+/* Plan cards: the entity switcher belongs to the plans toolbar, not the header chrome. */
+.plans-entity-switcher-row { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+.plans-entity-switcher-label { color: var(--text-muted); font-size: 13px; font-weight: 700; }
+.plans-entity-switcher-row .header-plan-target { max-width: min(260px, 100%); width: auto; }
+#section-plans .plans-today-list.cards-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+#section-plans .plan-card.film-card-v2 { height: auto; min-width: 0; }
+#section-plans .plan-card .film-card-v2-body { padding: 10px 10px 12px; gap: 6px; }
+#section-plans .plan-card .film-card-v2-title { font-size: 13px; line-height: 1.3; }
+#section-plans .plan-card .plan-place-line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-height: 2.7em; flex-wrap: unset; word-break: break-word; }
+#section-plans .plan-card-share-icon { position: absolute; top: 8px; right: 8px; z-index: 4; width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 50%; background: rgba(12, 12, 18, 0.72); border-color: rgba(255, 255, 255, 0.24); font-size: 16px; line-height: 1; }
+#section-plans .plan-card-share-icon:hover { background: rgba(255, 45, 123, 0.8); border-color: rgba(255, 255, 255, 0.55); }
+@media (min-width: 600px) { #section-plans .plans-today-list.cards-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; } }
+@media (min-width: 900px) { #section-plans .plans-today-list.cards-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; } #section-plans .plan-card .film-card-v2-body { padding: 14px 16px 16px; } #section-plans .plan-card .film-card-v2-title { font-size: 15px; } }
+
 /* 20260907clubsGuestOverflow1 — keep feed posts shrinkable on guest and member paths. */
 .club-page,.club-layout,.club-main,.club-panel,.club-feed,.club-post { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
 .club-page,.club-panel,.club-feed,.club-post { overflow-x:clip; }

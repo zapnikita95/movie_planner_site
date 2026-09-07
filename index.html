@@ -1064,7 +1064,6 @@
                   <div class="header-inbox-dropdown-list" id="header-inbox-dropdown-list" aria-live="polite"></div>
                 </div>
               </div>
-              <select id="header-plan-target" class="header-plan-target hidden" aria-label="Куда сохранить план"></select>
             </div>
             <button type="button" class="header-profile-pill hidden" id="header-profile-pill" data-header-profile aria-label="Профиль" aria-haspopup="true" aria-expanded="false">
               <span class="header-profile-avatar" id="header-profile-avatar"></span>
@@ -2499,6 +2498,10 @@
                 <section id="section-plans" class="cabinet-section hidden">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="plans"></span><span class="section-title-text">Планы</span></h2>
                     <div class="cabinet-plans-today" id="plans-today-wrap">
+                        <div class="plans-entity-switcher-row">
+                            <label class="plans-entity-switcher-label" for="header-plan-target">Планы в</label>
+                            <select id="header-plan-target" class="header-plan-target hidden" aria-label="Фильтр планов по сущности"></select>
+                        </div>
                         <div class="plans-filter-tabs" id="plans-filter-tabs" role="tablist" aria-label="Показать планы">
                             <button type="button" class="plans-filter-tab active" data-plans-filter="all" role="tab" aria-selected="true"><span class="mp-icon mp-icon--sm" data-mp-icon="clipboard"></span> Все планы</button>
                             <button type="button" class="plans-filter-tab" data-plans-filter="home" role="tab" aria-selected="false"><span class="mp-icon mp-icon--sm" data-mp-icon="home"></span> Дома</button>
