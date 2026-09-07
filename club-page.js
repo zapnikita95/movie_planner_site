@@ -169,7 +169,18 @@
     });
   }
 
+
+  function uploadClubCover(file) {
+    if (!file || !state.id || !hasToken()) return Promise.reject(new Error("Войдите, чтобы загрузить обложку"));
+    var form = new FormData();
+    form.append("photo", file, file.name || "club-cover");
+    form.append("chat_id", String(state.id));
+    var base = (global.MP_API_BASE || global.API_BASE || "") || "";
+    var token = typeof global.getToken === "function" ? global.getToken() : localStorage.getItem("mp_site_token");
+    return fetch(base + "/api/site/group-room-icon/upload", { method: "POST", headers: { Authorization: "Bearer " + token }, body: form }).then(function (r) { return r.json().then(function (d) { if (!r.ok || !d.success) throw new Error((d && (d.error || d.message)) || "Не удалось загрузить обложку"); return d; }); });
+  }
   function arr(d, keys) {
+
     if (!d) return [];
     if (Array.isArray(d)) return d;
     for (var i = 0; i < keys.length; i++) {
@@ -300,6 +311,8 @@
     state.club.name = room.name || state.club.name;
     state.club.emoji = room.emoji || state.club.emoji;
     state.club.description = room.description != null ? room.description : state.club.description;
+    state.club.cover = room.cover_url || room.cover || state.club.cover || "";
+    state.club.raw.cover_url = state.club.cover;
     state.club.public_slug = room.public_slug || state.club.public_slug || "";
     state.club.raw = Object.assign({}, state.club.raw || {}, room);
     state.slugDraft = state.club.public_slug || state.slugDraft || "";
@@ -543,8 +556,8 @@
   function reactionHtml(p) { var pid = String(p.id), items = reactionItems(p), mine = p.my_reactions || [], choices = ["\u2764\ufe0f", "\ud83d\ude80", "\u2b50", "\ud83d\udca9", "\ud83d\ude02", "\ud83d\udd25", "\ud83d\udc4f", "\ud83d\ude22", "\ud83d\ude0d"], shown = {}; items.forEach(function(r) { shown[r.emoji] = true; }); var allChoicesShown = choices.every(function(e) { return shown[e]; }); return "<div class=\"club-reactions" + (allChoicesShown ? " club-reactions-complete" : "") + "\" data-club-reactions=\"" + esc(pid) + "\"><div class=\"club-reaction-list\">" + items.map(function(r) { var active = mine.indexOf(r.emoji) >= 0; return "<button type=\"button\" class=\"club-reaction-pill\" data-club-reaction=\"" + esc(pid) + "\" data-emoji=\"" + esc(r.emoji) + "\" aria-pressed=\"" + (active ? "true" : "false") + "\"><span>" + esc(r.emoji) + "</span><b>" + r.count + "</b></button>"; }).join("") + "</div><div class=\"club-reaction-add\"><button type=\"button\" class=\"club-reaction-plus\" data-club-reaction-menu=\"" + esc(pid) + "\" aria-label=\"Добавить реакцию\">+</button><div class=\"club-reaction-flyout\" role=\"menu\">" + choices.map(function(e) { return "<button type=\"button\" data-club-reaction-add=\"" + esc(pid) + "\" data-emoji=\"" + esc(e) + "\" role=\"menuitem\">" + esc(e) + "</button>"; }).join("") + "</div></div></div>"; }
   function commentsToggleHtml(p) { var key = String(p.id), count = Number(p.comments_count || 0), open = !!commentState(key).open; return "<button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(key) + "\" aria-expanded=\"" + (open ? "true" : "false") + "\" aria-label=\"Комментарии\"><span class=\"club-comments-icon\">" + icon("chat", { size: "sm" }) + "</span>" + (count ? "<span class=\"club-comments-count\">" + count + "</span>" : "") + "</button>"; }
   function commentsPanelHtml(p) { var key = String(p.id), cs = commentState(key); if (!cs.open) return ""; var out = "<div class=\"club-comments club-comments-panel\">"; if (cs.busy) out += "<div class=\"club-comments-status\">Загружаем комментарии…</div>"; else if (cs.error) out += "<div class=\"club-comments-status\">" + esc(cs.error) + "</div>"; else if (!cs.items.length) out += "<div class=\"club-comments-status\">Пока нет комментариев</div>"; else out += "<div class=\"club-comments-list\">" + cs.items.map(function(c) { var who = String(c.author_name || "Участник"), av = c.author_avatar_url || "/api/avatar/" + encodeURIComponent(String(c.author_user_id || "")) + ".jpg"; return "<div class=\"club-comment\"><img class=\"club-comment-av\" src=\"" + esc(av) + "\" alt=\"\" loading=\"lazy\"><div class=\"club-comment-main\"><div class=\"club-comment-head\"><b>" + esc(who) + "</b><span>" + esc(relativeWhen(c.created_at)) + "</span>" + (commentCanDelete(c) ? "<button type=\"button\" class=\"club-comment-del\" data-club-comment-delete=\"" + esc(c.id) + "\" data-club-comment-post=\"" + esc(key) + "\">Удалить</button>" : "") + "</div><div class=\"club-comment-body\">" + linkify(c.body) + "</div></div></div>"; }).join("") + "</div>"; if (state.member) { var draft = state.commentDrafts[key] || ""; out += "<form class=\"club-comment-compose\" data-club-comment-form=\"" + esc(key) + "\"><textarea maxlength=\"2000\" rows=\"2\" placeholder=\"Написать комментарий…\">" + esc(draft) + "</textarea><button type=\"submit\" class=\"club-mini-btn\"" + (cs.sending ? " disabled" : "") + ">" + (cs.sending ? "Отправляем…" : "Отправить") + "</button></form>"; } else out += "<div class=\"club-comments-login\">Войдите и вступите в клуб, чтобы комментировать. <button type=\"button\" data-club-comments-login>Войти</button></div>"; return out + "</div>"; }
-  function pollActionHtml(p) { var poll = p && p.poll, mine = p && p.my_votes || [], editing = !!(state.pollEdits && state.pollEdits[String(p.id)]); if (!poll || !poll.options) return ""; if (mine.length && !editing) return poll.allow_change_vote ? "<button type=\"button\" class=\"club-poll-vote-btn club-poll-edit-btn\" data-club-poll-edit=\"" + esc(p.id) + "\">Изменить голос</button>" : ""; var label = mine.length ? "Сохранить голос" : "Проголосовать"; return "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (!mine.length && hasToken() ? " disabled" : "") + ">" + label + "</button>"; }
-  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + reactionHtml(p) + commentsToggleHtml(p) + pollActionHtml(p) + "</div>"; }
+  function pollActionHtml(p) { var poll = p && p.poll, mine = p && p.my_votes || [], editing = !!(state.pollEdits && state.pollEdits[String(p.id)]); if (!poll || !poll.options) return ""; if (mine.length && !editing) return poll.allow_change_vote ? "<button type=\"button\" class=\"club-poll-vote-btn club-poll-edit-btn\" data-club-poll-edit=\"" + esc(p.id) + "\">Изменить голос</button>" : ""; var label = mine.length ? "Сохранить голос" : "Проголосовать"; return "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (!state.member ? " disabled" : "") + ">" + label + "</button>"; }
+  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + commentsToggleHtml(p) + reactionHtml(p) + pollActionHtml(p) + "</div>"; }
 
   function toggleComments(postId) {
     var cs = commentState(postId);
@@ -1265,7 +1278,7 @@
       '<label class="club-field"><span>Название</span><input type="text" id="club-profile-name" maxlength="60" value="' + esc(c.name) + '"></label>' +
       '<label class="club-field"><span>О клубе</span><textarea id="club-profile-description" maxlength="2000" rows="4" placeholder="Расскажите о клубе">' + esc(c.description) + '</textarea></label>' +
       '<label class="club-field"><span>Эмодзи</span><input type="text" id="club-profile-emoji" maxlength="8" value="' + esc(c.emoji || '🎬') + '"></label>' +
-      '<p class="club-note">Загрузка обложки для виртуальных киноклубов пока недоступна. Используйте эмодзи — это поле сохраняется.</p>' +
+      '<label class="club-cover-upload"><span>Обложка клуба</span><input type="file" id="club-profile-cover" accept="image/jpeg,image/png,image/webp,image/gif">' + (c.cover ? '<img class="club-settings-cover-preview" src="' + esc(c.cover) + '" alt="">' : '') + '</label><p class="club-note">Изображение до 4 МБ. Обложка видна на странице и в каталоге.</p>' +
       '<button type="button" class="club-btn" data-club-save-profile' + (state.settingsBusy ? ' disabled' : '') + '>' + (state.settingsBusy ? 'Сохраняем…' : 'Сохранить профиль') + '</button></div>' +
       '<div class="club-settings-card"><h3>Приватность и вступление</h3><p>Настройте видимость клуба и способ вступления.</p>' +
       '<label class="club-check"><input type="checkbox" id="club-discoverable"' + (discoverable ? ' checked' : '') + '><span>В каталоге киноклубов</span></label>' +
@@ -1842,15 +1855,27 @@
       });
   }
 
-  function shiftCarousel(pid, delta) {
-    var post = (state.posts || []).find(function (p) {
-      return String(p.id) === String(pid);
+  function refreshCarousel(pid) {
+    var post = (state.posts || []).find(function (p) { return String(p.id) === String(pid); });
+    if (!post || !post.images || !post.images.length || !root) return;
+    var idx = state.carousel[String(pid)] || 0;
+    root.querySelectorAll("[data-club-carousel]").forEach(function (card) {
+      if (card.getAttribute("data-club-carousel") !== String(pid)) return;
+      var img = card.querySelector(".club-carousel-img-btn img");
+      var btn = card.querySelector(".club-carousel-img-btn");
+      if (img) img.src = post.images[idx];
+      if (btn) btn.setAttribute("data-idx", String(idx));
+      card.querySelectorAll("[data-club-carousel-dot]").forEach(function (dot) { dot.classList.toggle("is-active", parseInt(dot.getAttribute("data-idx"), 10) === idx); });
     });
+  }
+
+  function shiftCarousel(pid, delta) {
+    var post = (state.posts || []).find(function (p) { return String(p.id) === String(pid); });
     if (!post || !post.images || post.images.length < 2) return;
     var cur = state.carousel[String(pid)] || 0;
     var next = (cur + delta + post.images.length) % post.images.length;
     state.carousel[String(pid)] = next;
-    render();
+    refreshCarousel(pid);
   }
 
   function loadPosts() {
@@ -1904,6 +1929,8 @@
       b.onclick = join;
     });
     root.querySelectorAll('[data-club-leave]').forEach(function (b) { b.onclick = askLeave; });
+    var coverUpload = root.querySelector("#club-profile-cover");
+    if (coverUpload) coverUpload.onchange = function () { var file = coverUpload.files && coverUpload.files[0]; if (!file) return; coverUpload.disabled = true; uploadClubCover(file).then(function (d) { state.club.cover = d.cover_url || d.icon_url || state.club.cover; state.club.raw.cover_url = state.club.cover; toast("Обложка сохранена"); render(); }).catch(function (e) { coverUpload.disabled = false; toast((e && e.message) || "Не удалось загрузить обложку", { type: "error" }); }); };
     root.querySelectorAll('[data-club-leave-cancel]').forEach(function (b) { b.onclick = function (e) { if (b.classList.contains('club-confirm-backdrop') && e.target !== b) return; cancelLeave(); }; });
     root.querySelectorAll('[data-club-leave-confirm]').forEach(function (b) { b.onclick = confirmLeave; });
     root.querySelectorAll('[data-club-share], [data-club-copy]').forEach(function (b) {
@@ -2072,10 +2099,15 @@
         var i = parseInt(b.getAttribute('data-idx'), 10);
         if (!pid || isNaN(i)) return;
         state.carousel[String(pid)] = i;
-        render();
+        refreshCarousel(pid);
       };
     });
     root.querySelectorAll('[data-club-comments-toggle]').forEach(function (b) {
+    root.querySelectorAll("[data-club-carousel]").forEach(function (card) {
+      var startX = null;
+      card.ontouchstart = function (e) { startX = e.touches && e.touches[0] ? e.touches[0].clientX : null; };
+      card.ontouchend = function (e) { if (startX == null || !e.changedTouches || !e.changedTouches[0]) return; var dx = e.changedTouches[0].clientX - startX; startX = null; if (Math.abs(dx) < 35) return; shiftCarousel(card.getAttribute("data-club-carousel"), dx < 0 ? 1 : -1); };
+    });
       b.onclick = function () { toggleComments(b.getAttribute('data-club-comments-toggle')); };
     });
     root.querySelectorAll('[data-club-comment-form]').forEach(function (form) {
@@ -2093,7 +2125,7 @@
     root.querySelectorAll("[data-club-reaction]").forEach(function(b) { b.onclick = function() { toggleReaction(b.getAttribute("data-club-reaction"), b.getAttribute("data-emoji"), b.getAttribute("aria-pressed") === "true"); }; });
     root.querySelectorAll("[data-club-reaction-add]").forEach(function(b) { b.onclick = function() { toggleReaction(b.getAttribute("data-club-reaction-add"), b.getAttribute("data-emoji"), false); }; });
     root.querySelectorAll("[data-club-poll-film-link]").forEach(function(a) { a.onclick = function(e) { e.stopPropagation(); }; });
-    root.querySelectorAll("[data-club-poll-choice]").forEach(function(row) { row.onclick = function(e) { if (e.target.closest && e.target.closest("a")) return; var input = row.querySelector("input"); if (!input) return; if (!hasToken()) { login(); return; } if (e.target !== input) input.click(); var article = row.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"), btn = article && article.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
+    root.querySelectorAll("[data-club-poll-choice]").forEach(function(row) { row.onclick = function(e) { if (e.target.closest && e.target.closest("a")) return; var input = row.querySelector("input"); if (!input) return; if (!state.member) { toast("Проголосовать могут только участники киноклуба", { type: "error" }); return; } if (e.target !== input) input.click(); var article = row.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"), btn = article && article.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
     root.querySelectorAll("[data-club-poll-vote] input").forEach(function(input) { input.onchange = function() { var article = input.closest(".club-post"), box = article && article.querySelector("[data-club-poll-vote]"), btn = article && article.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = !box.querySelector("input:checked"); }; });
     root.querySelectorAll("[data-club-poll-edit]").forEach(function(b) { b.onclick = function() { state.pollEdits[String(b.getAttribute("data-club-poll-edit"))] = true; render(); }; });
     bindPollControls(root);
@@ -2217,7 +2249,7 @@
     });
   }
 
-  function submitPollVote(pid, box) { var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; post.total = d.total || post.total; if (d.voters) post.voters = d.voters; } delete state.pollEdits[String(pid)]; toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
+  function submitPollVote(pid, box) { if (!state.member) { toast("Проголосовать могут только участники киноклуба", {type:"error"}); return; } var selected = Array.prototype.slice.call(box.querySelectorAll("input:checked")).map(function(i) { return parseInt(i.value, 10); }); if (!selected.length) return; if (!hasToken()) { login(); return; } var btn = box.querySelector("[data-club-poll-vote-submit]"); if (btn) btn.disabled = true; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/vote", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({option_indexes:selected})}).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.my_votes = d.my_votes || selected; post.counts = d.counts || post.counts; post.total = d.total || post.total; if (d.voters) post.voters = d.voters; } delete state.pollEdits[String(pid)]; toast("Голос учтён"); render(); }).catch(function(e) { if (btn) btn.disabled = false; toast((e && e.message) || "Не удалось проголосовать", {type:"error"}); }); }
   function toggleReaction(pid, emoji, active) { if (!hasToken()) { login(); return; } if (!state.member) { toast("Вступите в клуб, чтобы реагировать", { type: "error" }); return; } var method = active ? "DELETE" : "POST"; global.api("/api/site/rooms/" + encodeURIComponent(state.id) + "/posts/" + encodeURIComponent(pid) + "/reactions", { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ emoji: emoji }) }).then(function(d) { var post = (state.posts || []).find(function(p) { return String(p.id) === String(pid); }); if (post) { post.reactions = d.reactions || []; post.reaction_counts = d.reaction_counts || {}; post.my_reactions = d.my_reactions || []; } render(); }).catch(function(e) { toast((e && e.message) || "Не удалось поставить реакцию", { type: "error" }); }); }
   function bindEmbedControls(host) { if (!host) return; host.querySelectorAll("[data-club-embed-open]").forEach(function(b) { b.onclick = openEmbedSearch; }); host.querySelectorAll("[data-club-embed-remove]").forEach(function(b) { b.onclick = function() { var i = parseInt(b.getAttribute("data-club-embed-remove"), 10); if (!isNaN(i)) { state.composeEmbeds = (state.composeEmbeds || []).filter(function(_, idx) { return idx !== i; }); render(); } }; }); }
   function bindPollControls(host) {
