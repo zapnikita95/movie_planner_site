@@ -20173,7 +20173,7 @@
       showSection('whattowatch');
     }
     if (typeof openCreateRoomModal === 'function') {
-      setTimeout(function () { openCreateRoomModal({ kind: 'cinema_club' }); }, 0);
+      setTimeout(function () { openCreateRoomModal({ kind: 'cinema_club', lockKind: true }); }, 0);
     }
   }
 
@@ -24906,6 +24906,28 @@
   let _createRoomDiscover = false;
   let _createRoomApproval = 'any_admin';
   let _createRoomPresetKind = null;
+  let _createRoomKindLocked = false;
+  let _createRoomCoverFile = null;
+
+  const CREATE_ROOM_NAME_ADJECTIVES = ["любителей", "фанатов", "почитателей", "обожателей", "ценителей", "фанаток", "киноманов", "знатоков"];
+  const CREATE_ROOM_NAME_TOPICS = ["ужасов", "драм", "комедий", "фантастики", "триллеров", "аниме", "документалок", "Леонардо Ди Каприо", "Марго Робби", "Тимоти Шаламе", "Кристофера Нолана", "Квентина Тарантино", "Греты Гервиг", "Дени Вильнёва", "Стивена Спилберга"];
+  function createRoomNamePlaceholder() {
+    const a = CREATE_ROOM_NAME_ADJECTIVES[Math.floor(Math.random() * CREATE_ROOM_NAME_ADJECTIVES.length)];
+    const t = CREATE_ROOM_NAME_TOPICS[Math.floor(Math.random() * CREATE_ROOM_NAME_TOPICS.length)];
+    return `Клуб ${a} ${t}`;
+  }
+
+  function uploadCreateRoomCover(chatId, file, token) {
+    if (!file || !chatId || !token) return Promise.resolve(null);
+    const form = new FormData();
+    form.append("photo", file, file.name || "club-cover");
+    form.append("chat_id", String(chatId));
+    return fetch(API_BASE + "/api/site/group-room-icon/upload", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+      body: form,
+    }).then((r) => r.json());
+  }
 
   function syncCreateRoomDescVisibility(kind) {
     const wrap = document.getElementById('create-room-desc-wrap');
@@ -24934,7 +24956,7 @@
         <input type="checkbox" id="create-room-discoverable" style="margin-top:3px" ${_createRoomDiscover ? 'checked' : ''}>
         <span>${kind === 'cinema_club' ? 'Показывать в каталоге киноклубов' : 'Показывать в поиске групп'}</span>
       </label>
-      <div class="create-room-label" style="margin-top:12px">Заявки на вступление</div>
+      <div class="create-room-approval-heading"><span class="create-room-label">Заявки на вступление</span><button type="button" class="create-room-help" aria-label="Как работают заявки" aria-describedby="create-room-approval-help">?</button><span class="create-room-help-tooltip" id="create-room-approval-help" role="tooltip">Любой админ — одобряет один администратор. Большинство — нужно больше половины админов. Конкретные админы — только выбранные админы. Создатель — только создатель клуба. Без согласования — вступление сразу.</span></div>
       <div class="create-room-approval-row" id="create-room-approval-row">
         ${modes.map(([id, label]) => `<button type="button" class="create-room-approval-btn ${_createRoomApproval === id ? 'active' : ''}" data-approval="${id}">${escapeHtml(label)}</button>`).join('')}
       </div>
@@ -24963,7 +24985,12 @@
     const descEl = document.getElementById('create-room-desc');
     const preset = o.kind === 'cinema_club' || o.kind === 'blogger' || o.kind === 'friends' ? o.kind : null;
     _createRoomPresetKind = preset;
+    _createRoomKindLocked = preset === "cinema_club" && o.lockKind === true;
+    _createRoomCoverFile = null;
     if (kindRow) {
+      const kindHeading = document.getElementById("create-room-kind-heading");
+      if (kindHeading) kindHeading.classList.toggle("hidden", _createRoomKindLocked);
+      kindRow.classList.toggle("hidden", _createRoomKindLocked);
       kindRow.querySelectorAll('.create-room-kind-btn').forEach((b) => b.classList.remove('active'));
       const want = preset || 'friends';
       const f = kindRow.querySelector('.create-room-kind-btn[data-kind="' + want + '"]');
@@ -24980,9 +25007,13 @@
       _createRoomApproval = 'any_admin';
     }
     if (descEl) descEl.value = '';
+    const coverInput = document.getElementById("create-room-cover");
+    if (coverInput) coverInput.value = "";
+    const frequencyInput = document.getElementById("create-room-frequency");
+    if (frequencyInput) frequencyInput.value = "";
     syncCreateRoomDescVisibility(preset || 'friends');
     renderCreateRoomKindExtra();
-    if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+    if (input) { input.value = ""; input.placeholder = createRoomNamePlaceholder(); setTimeout(() => input.focus(), 50); }
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
     const titleEl = modal.querySelector('.add-film-title');
     if (titleEl) titleEl.textContent = preset === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу';
@@ -25041,6 +25072,11 @@
         btn.classList.add('active');
       });
     }
+    const coverInput = document.getElementById("create-room-cover");
+    if (coverInput && !coverInput._mpBound) {
+      coverInput._mpBound = true;
+      coverInput.addEventListener("change", () => { _createRoomCoverFile = coverInput.files && coverInput.files[0] || null; });
+    }
     const submitBtn = document.getElementById('create-room-submit');
     if (submitBtn) submitBtn.addEventListener('click', submitCreateRoom);
     const nameInput = document.getElementById('create-room-name');
@@ -25058,15 +25094,22 @@
   function submitCreateRoom() {
     const nameInput = document.getElementById('create-room-name');
     const statusEl = document.getElementById('create-room-status');
+    const coverInput = document.getElementById("create-room-cover");
+    if (coverInput && !coverInput._mpBound) {
+      coverInput._mpBound = true;
+      coverInput.addEventListener("change", () => { _createRoomCoverFile = coverInput.files && coverInput.files[0] || null; });
+    }
     const submitBtn = document.getElementById('create-room-submit');
     const emojiActive = document.querySelector('#create-room-emoji-row .create-room-emoji-btn.active');
     const name = (nameInput && nameInput.value || '').trim();
     const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
     if (!name) { if (statusEl) { statusEl.textContent = 'Введите название группы'; statusEl.className = 'add-film-status error'; } return; }
     const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
-    const groupKind = (kindBtn && kindBtn.getAttribute('data-kind')) || 'friends';
+    const groupKind = _createRoomKindLocked ? 'cinema_club' : ((kindBtn && kindBtn.getAttribute('data-kind')) || 'friends');
     const descEl = document.getElementById('create-room-desc');
     const description = descEl ? String(descEl.value || '').trim().slice(0, 200) : '';
+    const frequencyEl = document.getElementById("create-room-frequency");
+    const watchFrequency = frequencyEl ? String(frequencyEl.value || "").trim() : "";
     const body = { name, emoji, group_kind: groupKind };
     if (groupKind === 'friends') {
       body.is_discoverable = false;
@@ -25076,6 +25119,7 @@
       body.join_approval_mode = _createRoomApproval;
     }
     if (groupKind === 'cinema_club') body.description = description;
+    if (groupKind === "cinema_club" && watchFrequency) body.watch_frequency_override = watchFrequency;
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Создаём…'; }
     api('/api/site/rooms', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = groupKind === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу'; }
@@ -25083,29 +25127,37 @@
         if (statusEl) { statusEl.textContent = (data && data.error) || 'Не удалось создать группу'; statusEl.className = 'add-film-status error'; }
         return;
       }
-      closeCreateRoomModal();
       // Сразу переключаемся в комнату
       try { localStorage.setItem('mp_site_token', data.token); } catch (_) {}
-      // Показываем ссылку-приглашение
-      showShareInvite({
-        chat_id: data.chat_id,
-        url: data.invite_url,
-        name: data.name || 'Группа',
-        is_virtual: true,
-        inviter_name: getPersonalSessionName(),
-      });
-      // После закрытия share-modal — обновим кабинет
+      const finishCreateRoom = () => {
+        closeCreateRoomModal();
+        showShareInvite({
+          chat_id: data.chat_id,
+          url: data.invite_url,
+          name: data.name || 'Группа',
+          is_virtual: true,
+          inviter_name: getPersonalSessionName(),
+        });
+      };
+      if (_createRoomCoverFile) {
+        uploadCreateRoomCover(data.chat_id, _createRoomCoverFile, data.token).then((upload) => {
+          if (!upload || !upload.success) showToast('Клуб создан, но обложку не удалось загрузить', { type: 'error' });
+          finishCreateRoom();
+        }).catch(() => { showToast('Клуб создан, но обложку не удалось загрузить', { type: 'error' }); finishCreateRoom(); });
+      } else {
+        finishCreateRoom();
+      }
     }).catch(() => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Создать группу'; }
-      if (statusEl) { statusEl.textContent = 'Ошибка сети'; statusEl.className = 'add-film-status error'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = groupKind === "cinema_club" ? "Создать киноклуб" : "Создать группу"; }
+      if (statusEl) { statusEl.textContent = "Ошибка сети"; statusEl.className = "add-film-status error"; }
     });
-  }
 
+  }
   try {
     window.openCreateRoomModal = openCreateRoomModal;
     window.switchProfileTo = switchProfileTo;
     window.__mpOpenCreateCinemaClub = function () {
-      openCreateRoomModal({ kind: 'cinema_club' });
+      openCreateRoomModal({ kind: 'cinema_club', lockKind: true });
     };
     window.apiPublic = apiPublic;
   } catch (_) {}
