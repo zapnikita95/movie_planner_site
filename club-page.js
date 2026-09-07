@@ -46,7 +46,7 @@
     pollEdits: {} ,
     comments: {},
     planPicker: null,
-    scheduleView: "list", calendarMonth: "", scheduleDialog: null, leaveConfirm: false, leaveBusy: false
+    scheduleView: "list", calendarMonth: "", scheduleDialog: null, watchedBusy: {}, leaveConfirm: false, leaveBusy: false
   };
   var root;
   var overlayHost;
@@ -207,6 +207,20 @@
   function planDescription(p) { var f = planFilm(p); var text = p && (p.description || p.note || p.comment) || f.description || f.short_description || f.plot || ""; text = String(text || "").replace(/\s+/g, " ").trim(); return text ? text.slice(0, 180) + (text.length > 180 ? "…" : "") : ""; }
 
   function planTypeLabel(p) { var type = String((p && (p.plan_type || p.type)) || "").toLowerCase(); if (type === "cinema") return "В кино"; if (type === "club" || type === "cinema_club") return "Киноклуб"; return "Дома"; }
+
+  function clubLink(x) { var l = link(x); if (!l || !state.id) return l; return l + (l.indexOf("?") >= 0 ? "&" : "?") + "library_chat_id=" + encodeURIComponent(String(state.id)); }
+
+  function planFilmId(x) { var f = planFilm(x); var raw = x && (x.film_id || x.movie_id) || f.film_id || f.movie_id; return raw != null && raw !== "" ? String(raw) : ""; }
+
+  function planWatched(x) { var f = planFilm(x); return !!(x && (x.member_watched || x.current_user_watched || x.watched) || f.member_watched || f.current_user_watched || f.watched); }
+
+  function clubPlanAction(x) { if (!state.member) return ''; var fid = planFilmId(x); if (!fid) return '<span class="club-status">' + String.fromCharCode(1042,32,1087,1083,1072,1085,1077) + '</span>'; if (planWatched(x)) return '<span class="club-status is-watched">' + String.fromCharCode(1055,1088,1086,1089,1084,1086,1090,1088,1077,1085) + '</span>'; var busy = !!state.watchedBusy[fid]; return '<button type="button" class="club-mini-btn club-watch-plan-btn" data-club-plan-watched="' + esc(fid) + '">' + (busy ? '...' : String.fromCharCode(1055,1086,1089,1084,1086,1090,1088,1077,1083)) + '</button>'; }
+
+  function markClubPlanWatched(fid) { fid = String(fid ? fid : ''); if (!fid) return; if (state.watchedBusy[fid]) return; state.watchedBusy[fid] = true; render(); req('/api/site/film/' + encodeURIComponent(fid) + '/watched', { method: 'POST', headers: { 'X-Movie-Planner-Library-Chat': String(state.id) }, body: JSON.stringify({ watched: true }) }).then(function(d) { if (!d) throw new Error('watch_failed'); if (d.success === false) throw new Error(d.error ? d.error : 'watch_failed'); var plans = state.club.plans ? state.club.plans : []; plans.forEach(function(p) { if (planFilmId(p) === fid) p.member_watched = true; }); toast(String.fromCharCode(1060,1080,1083,1100,1084,1086,1090,32,1086,1090,1084,1077,1095,1077,1085)); }).catch(function(e) { toast(e && e.message ? e.message : 'watch_failed', { type: 'error' }); }).then(function() { delete state.watchedBusy[fid]; render(); }); }
+
+  function clubScheduleAction(x) { return state.member ? clubPlanAction(x) : '<button type="button" class="club-mini-btn" data-club-join>' + String.fromCharCode(1042,1089,1090,1091,1087,1080,1090,1100) + '</button>'; }
+
+  function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
 
   function calendarMonthStart(value) { var d = value ? new Date(value + "T00:00:00") : new Date(); if (isNaN(d.getTime())) d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
 
@@ -1128,15 +1142,15 @@
   function scheduleDialogHtml() {
     var p = state.scheduleDialog;
     if (!p) return "";
-    var im = poster(p), l = link(p), desc = planDescription(p);
-    return "<div class=\"club-plan-dialog-backdrop\" data-club-plan-close><div class=\"club-plan-dialog\" role=\"dialog\" aria-modal=\"true\" aria-label=\"План просмотра\"><button type=\"button\" class=\"club-plan-dialog-close\" data-club-plan-close aria-label=\"Закрыть\">×</button>" + (im ? "<img class=\"club-plan-dialog-poster\" src=\"" + esc(im) + "\" alt=\"\">" : "") + "<div class=\"club-plan-dialog-copy\"><span class=\"club-plan-dialog-type\">" + esc(planTypeLabel(p)) + "</span><h3>" + (l ? "<a href=\"" + esc(l) + "\">" + esc(title(p)) + "</a>" : esc(title(p))) + "</h3><time>" + esc(fmt(planDate(p))) + "</time>" + (desc ? "<p>" + esc(desc) + "</p>" : "") + "</div></div></div>";
+    var im = poster(p), l = clubLink(p), desc = planDescription(p);
+    return "<div class=\"club-plan-dialog-backdrop\" data-club-plan-close><div class=\"club-plan-dialog\" role=\"dialog\" aria-modal=\"true\" aria-label=\"План просмотра\"><button type=\"button\" class=\"club-plan-dialog-close\" data-club-plan-close aria-label=\"Закрыть\">×</button>" + (im ? "<img class=\"club-plan-dialog-poster\" src=\"" + esc(im) + "\" alt=\"\">" : "") + "<div class=\"club-plan-dialog-copy\"><span class=\"club-plan-dialog-type\">" + esc(planTypeLabel(p)) + "</span><h3>" + (l ? "<a href=\"" + esc(l) + "\">" + esc(title(p)) + "</a>" : esc(title(p))) + "</h3><time>" + esc(fmt(planDate(p))) + "</time>" + (desc ? "<p>" + esc(desc) + "</p>" : "") + clubPlanAction(p) + "</div></div></div>";
   }
 
   function schedule() {
     var plans = schedulePlans();
     var rows = plans.map(function (p) {
-      var im = poster(p), l = link(p), t = title(p), dt = planDate(p), desc = planDescription(p);
-      return "<article class=\"club-schedule-item club-schedule-item-clickable\"" + (p.id ? " data-club-plan-open=\"" + esc(p.id) + "\"" : "") + ">" + (im ? "<img src=\"" + esc(im) + "\" alt=\"\" loading=\"lazy\">" : "<div class=\"club-poster-empty\">🎬</div>") + "<div><div class=\"club-when\">" + esc(fmt(dt)) + "</div><h3>" + (l ? "<a data-club-film-link href=\"" + esc(l) + "\">" + esc(t) + "</a>" : esc(t)) + "</h3>" + (desc ? "<p class=\"club-plan-description\">" + esc(desc) + "</p>" : "") + "<p class=\"club-plan-type\">" + esc(planTypeLabel(p)) + "</p>" + (state.member && p.zoom_url ? "<p><a href=\"" + esc(p.zoom_url) + "\" rel=\"noopener\">Ссылка на обсуждение</a></p>" : "") + "</div>" + (state.member ? "<span class=\"club-status\">✓ В плане</span>" : "<button type=\"button\" class=\"club-mini-btn\" data-club-join>Вступить</button>") + "</article>";
+      var im = poster(p), l = clubLink(p), t = title(p), dt = planDate(p), desc = planDescription(p);
+      return "<article class=\"club-schedule-item club-schedule-item-clickable\"" + (p.id ? " data-club-plan-open=\"" + esc(p.id) + "\"" : "") + ">" + (im ? "<img src=\"" + esc(im) + "\" alt=\"\" loading=\"lazy\">" : "<div class=\"club-poster-empty\">🎬</div>") + "<div><div class=\"club-when\">" + esc(fmt(dt)) + "</div><h3>" + (l ? "<a data-club-film-link href=\"" + esc(l) + "\">" + esc(t) + "</a>" : esc(t)) + "</h3>" + (desc ? "<p class=\"club-plan-description\">" + esc(desc) + "</p>" : "") + "<p class=\"club-plan-type\">" + esc(planTypeLabel(p)) + "</p>" + (state.member && p.zoom_url ? "<p><a href=\"" + esc(p.zoom_url) + "\" rel=\"noopener\">Ссылка на обсуждение</a></p>" : "") + "</div>" + clubScheduleAction(p) + "</article>";
     }).join("");
     var content;
     if (state.scheduleView === "calendar") {
@@ -1872,6 +1886,7 @@
     root.querySelectorAll('[data-club-calendar-day]').forEach(function (b) {
       b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; render(); } };
     });
+    root.querySelectorAll('[data-club-plan-watched]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); markClubPlanWatched(b.getAttribute('data-club-plan-watched')); }; });
     root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { if (e.target.closest && e.target.closest('a')) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
     root.querySelectorAll('[data-club-plan-close]').forEach(function (b) { b.onclick = function (e) { if (b.classList.contains('club-plan-dialog-backdrop') && e.target !== b) return; closePlanDialog(); }; });
     root.querySelectorAll('[data-club-film-link]').forEach(function (a) { a.onclick = function () { try { history.pushState({ clubTab: 'schedule' }, '', location.pathname + location.search + '#schedule'); } catch (_) {} }; });
@@ -2318,6 +2333,7 @@
           detect(m || {});
           // one paint with club + members + posts
           render();
+          refreshClubPlanWatched();
         });
       })
       .catch(function (e) {
