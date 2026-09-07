@@ -28937,3 +28937,15 @@ a.plan-place-link {
 #section-plans .plan-card-share-icon:hover { background: rgba(255, 45, 123, 0.8); border-color: rgba(255, 255, 255, 0.55); }
 @media (min-width: 600px) { #section-plans .plans-today-list.cards-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; } }
 @media (min-width: 900px) { #section-plans .plans-today-list.cards-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; } #section-plans .plan-card .film-card-v2-body { padding: 14px 16px 16px; } #section-plans .plan-card .film-card-v2-title { font-size: 15px; } }
+
+/* 20260907clubsGuestOverflow1 — keep feed posts shrinkable on guest and member paths. */
+.club-page,.club-layout,.club-main,.club-panel,.club-feed,.club-post { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
+.club-page,.club-panel,.club-feed,.club-post { overflow-x:clip; }
+.club-post-title,.club-post-body,.club-post-embed,.club-post-embed-link,.club-poll,.club-post-action-row,.club-comments { min-width:0; max-width:100%; box-sizing:border-box; }
+.club-post-title,.club-post-body,.club-post-embed-copy,.club-poll-q,.club-poll-choice-text { overflow-wrap:anywhere; }
+.club-carousel { width:100%; max-width:100%; min-width:0; overflow:hidden; box-sizing:border-box; }
+.club-carousel-stage,.club-carousel-img-btn { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
+.club-carousel-stage img { max-width:100%; max-height:min(70vh,520px); }
+.club-post-action-row { flex-wrap:wrap; }
+.club-post-action-row .club-reactions { max-width:100%; min-width:0; }
+.club-post-action-row .club-reaction-list { max-width:100%; min-width:0; flex-wrap:wrap; }
