@@ -29186,3 +29186,82 @@ a.collections-author-block:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+
+/* WTW collections/clubs search: brand magnifying glass + discovery skeleton */
+.collections-search-label,
+.clubs-search-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.collections-search-label .collections-search-icon,
+.clubs-search-label .collections-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+.collections-search-label .collections-search-icon svg,
+.clubs-search-label .collections-search-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.collections-search-label .collections-search-input,
+.clubs-search-label .collections-search-input,
+.clubs-search-label .clubs-search-input {
+  padding-left: 42px;
+}
+.collections-skel {
+  margin: 4px 0 8px;
+}
+.collections-skel-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--text-muted, #b4b4be);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.collections-skel-spin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(239, 28, 122, 0.25);
+  border-top-color: rgba(239, 28, 122, 0.95);
+  animation: collections-skel-spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+@keyframes collections-skel-spin {
+  to { transform: rotate(360deg); }
+}
+.collections-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .collections-skel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.collections-skel-card {
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+  background: linear-gradient(110deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.06) 90%);
+  background-size: 200% 100%;
+  animation: collections-skel-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes collections-skel-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
