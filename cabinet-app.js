@@ -9064,7 +9064,15 @@
       const items = (data.items || []).slice(0, 12);
       const incomingReq = (fReq && fReq.incoming) || [];
       const unreadFromApi = data.unread_count != null ? parseInt(data.unread_count, 10) : items.filter((x) => !x.is_read).length;
-      updateInboxFabBadge(unreadFromApi);
+      if (unreadFromApi > 0) {
+        siteMarkIncomingReadAll().then((ok) => {
+          updateInboxFabBadge(ok ? 0 : unreadFromApi);
+        });
+        updateInboxFabBadge(0);
+      } else {
+        updateInboxFabBadge(0);
+      }
+
       if (!items.length && !incomingReq.length) {
         listEl.innerHTML = '<p class="cabinet-hint header-inbox-empty">Пока пусто</p>';
         return;
@@ -9199,11 +9207,97 @@
     });
   }
 
-  function siteInboxTabsHtml(active) {
-    return '<div class="inbox-tabs" role="tablist">'
-      + '<button type="button" class="btn btn-small inbox-tab-btn' + (active === 'incoming' ? ' btn-primary' : ' btn-secondary') + '" data-inbox-tab="incoming" role="tab">Входящие</button>'
-      + '<button type="button" class="btn btn-small inbox-tab-btn' + (active === 'activity' ? ' btn-primary' : ' btn-secondary') + '" data-inbox-tab="activity" role="tab">Активность</button>'
-      + '</div>';
+
+  function siteActivitySeenAt() {
+    try {
+      const v = localStorage.getItem('mp_activity_seen_at');
+      if (v) return v;
+    } catch (_) {}
+    return '';
+  }
+  function siteSetActivitySeenAt(iso) {
+    try {
+      localStorage.setItem('mp_activity_seen_at', String(iso || new Date().toISOString()));
+    } catch (_) {}
+  }
+  function siteCountActivityUnread(items) {
+    const seen = siteActivitySeenAt();
+    if (!seen) {
+      // First visit: treat as all unread until opened; but don't inflate bell to 99+ from history.
+      // Count only last 24h if never seen.
+      const dayAgo = Date.now() - 86400000;
+      return (items || []).filter((it) => {
+        const t = it && it.happened_at ? Date.parse(it.happened_at) : NaN;
+        return !isNaN(t) && t >= dayAgo;
+      }).length;
+    }
+    const seenMs = Date.parse(seen);
+    if (isNaN(seenMs)) return 0;
+    return (items || []).filter((it) => {
+      const t = it && it.happened_at ? Date.parse(it.happened_at) : NaN;
+      return !isNaN(t) && t > seenMs;
+    }).length;
+  }
+  function siteInboxBadgeLabel(n) {
+    const c = Math.max(0, Number(n) || 0);
+    if (c <= 0) return '';
+    return c > 99 ? '99+' : String(c);
+  }
+  function siteMarkIncomingReadAll() {
+    return api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ all: true }) })
+      .then((res) => !!(res && res.success !== false))
+      .catch(() => false);
+  }
+  function siteRefreshBellFromParts(incomingUnread, activityUnread) {
+    // Bell tracks server inbox unread; activity unread is tab-pill only.
+    void activityUnread;
+    updateInboxFabBadge(Math.max(0, Number(incomingUnread) || 0));
+  }
+  function sitePaintInboxTabBadges(root, incomingUnread, activityUnread) {
+    if (!root) return;
+    root.querySelectorAll('[data-inbox-tab]').forEach((btn) => {
+      const tab = btn.getAttribute('data-inbox-tab');
+      let n = 0;
+      if (tab === 'incoming') n = Math.max(0, Number(incomingUnread) || 0);
+      if (tab === 'activity') n = Math.max(0, Number(activityUnread) || 0);
+      let badge = btn.querySelector('.inbox-tab-badge');
+      if (n <= 0) {
+        if (badge) badge.remove();
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'inbox-tab-badge';
+        badge.setAttribute('aria-hidden', 'true');
+        btn.appendChild(badge);
+      }
+      badge.textContent = siteInboxBadgeLabel(n);
+    });
+  }
+
+  function siteInboxTabsHtml(active, counts) {
+    const c = counts || {};
+    const incN = Math.max(0, Number(c.incoming) || 0);
+    const actN = Math.max(0, Number(c.activity) || 0);
+    function pill(tab, label, n) {
+      const on = active === tab;
+      const badge = n > 0
+        ? ('<span class="inbox-tab-badge" aria-hidden="true">' + siteInboxBadgeLabel(n) + '</span>')
+        : '';
+      return (
+        '<button type="button" class="inbox-tab-pill' + (on ? ' is-active' : '') + '" data-inbox-tab="' + tab
+        + '" role="tab" aria-selected="' + (on ? 'true' : 'false') + '">'
+        + '<span class="inbox-tab-pill-label">' + label + '</span>'
+        + badge
+        + '</button>'
+      );
+    }
+    return (
+      '<div class="inbox-tabs" role="tablist" aria-label="Разделы уведомлений">'
+      + pill('incoming', 'Входящие', incN)
+      + pill('activity', 'Активность', actN)
+      + '</div>'
+    );
   }
 
   function siteInboxFriendRequestsHtml(incoming) {
@@ -9278,17 +9372,36 @@
     siteInboxBindCardActions(root);
   }
 
-  function loadSiteInboxActivityPanel(panel) {
+  function loadSiteInboxActivityPanel(panel, opts) {
     if (!panel) return;
+    const o = opts || {};
     panel.innerHTML = pageLoadingHtml();
-    api('/api/friends/activity?limit=40').then((data) => {
+    return api('/api/friends/activity?limit=40').then((data) => {
       const actItems = (data && data.items) || [];
+      if (o.markSeen) {
+        let newest = new Date().toISOString();
+        actItems.forEach((it) => {
+          if (it && it.happened_at && (!newest || String(it.happened_at) > newest)) {
+            // keep ISO compare as strings if both ISO; else use now
+          }
+        });
+        if (actItems.length && actItems[0].happened_at) {
+          newest = actItems[0].happened_at;
+          actItems.forEach((it) => {
+            if (it && it.happened_at && String(it.happened_at) > String(newest)) newest = it.happened_at;
+          });
+        }
+        siteSetActivitySeenAt(newest || new Date().toISOString());
+      }
+      const unreadLeft = o.markSeen ? 0 : siteCountActivityUnread(actItems);
       panel.innerHTML = actItems.length
         ? '<div class="site-inbox-act-list">' + siteFriendsActivityGroupedHtml(actItems) + '</div>'
         : '<p class="cabinet-hint">Нет активности — добавьте друзей в разделе «Друзья».</p>';
       siteBindInboxActivityFilmLinks(panel);
+      return { items: actItems, unread: unreadLeft };
     }).catch(() => {
       panel.innerHTML = '<p class="cabinet-hint">Не удалось загрузить активность.</p>';
+      return { items: [], unread: 0 };
     });
   }
 
@@ -9296,30 +9409,62 @@
     const root = document.getElementById('site-inbox-root');
     if (!root) return;
     const tab = siteInboxTab();
-    root.innerHTML = siteInboxTabsHtml(tab)
+    let incomingUnread = 0;
+    let activityUnread = 0;
+    root.innerHTML = siteInboxTabsHtml(tab, { incoming: 0, activity: 0 })
       + '<div id="site-inbox-panel-incoming" class="site-inbox-panel' + (tab === 'incoming' ? '' : ' hidden') + '">' + pageLoadingHtml() + '</div>'
       + '<div id="site-inbox-panel-activity" class="site-inbox-panel' + (tab === 'activity' ? '' : ' hidden') + '"></div>';
 
     const incomingPanel = document.getElementById('site-inbox-panel-incoming');
     const activityPanel = document.getElementById('site-inbox-panel-activity');
 
-    root.querySelectorAll('[data-inbox-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const next = btn.getAttribute('data-inbox-tab');
-        if (!next || next === siteInboxTab()) return;
-        siteSetInboxTab(next);
-        root.querySelectorAll('[data-inbox-tab]').forEach((b) => {
-          const on = b.getAttribute('data-inbox-tab') === next;
-          b.classList.toggle('btn-primary', on);
-          b.classList.toggle('btn-secondary', !on);
-        });
-        if (incomingPanel) incomingPanel.classList.toggle('hidden', next !== 'incoming');
-        if (activityPanel) activityPanel.classList.toggle('hidden', next !== 'activity');
-        if (next === 'activity') loadSiteInboxActivityPanel(activityPanel);
-      });
-    });
+    function paintTabs() {
+      const tabsHost = root.querySelector('.inbox-tabs');
+      if (!tabsHost) return;
+      const active = siteInboxTab();
+      const wrap = document.createElement('div');
+      wrap.innerHTML = siteInboxTabsHtml(active, { incoming: incomingUnread, activity: activityUnread });
+      const nextTabs = wrap.firstChild;
+      if (nextTabs) tabsHost.replaceWith(nextTabs);
+      bindTabClicks();
+    }
 
-    api('/api/site/inbox').then((data) => {
+    function setActivePill(next) {
+      root.querySelectorAll('[data-inbox-tab]').forEach((b) => {
+        const on = b.getAttribute('data-inbox-tab') === next;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    }
+
+    function bindTabClicks() {
+      root.querySelectorAll('[data-inbox-tab]').forEach((btn) => {
+        btn.onclick = () => {
+          const next = btn.getAttribute('data-inbox-tab');
+          if (!next || next === siteInboxTab()) return;
+          siteSetInboxTab(next);
+          setActivePill(next);
+          if (incomingPanel) incomingPanel.classList.toggle('hidden', next !== 'incoming');
+          if (activityPanel) activityPanel.classList.toggle('hidden', next !== 'activity');
+          if (next === 'activity') {
+            loadSiteInboxActivityPanel(activityPanel, { markSeen: true }).then((res) => {
+              activityUnread = 0;
+              paintTabs();
+              siteRefreshBellFromParts(incomingUnread, activityUnread);
+            });
+          } else if (next === 'incoming') {
+            siteMarkIncomingReadAll().then((ok) => {
+              if (ok) incomingUnread = 0;
+              paintTabs();
+              siteRefreshBellFromParts(incomingUnread, activityUnread);
+            });
+          }
+        };
+      });
+    }
+    bindTabClicks();
+
+    const inboxPromise = api('/api/site/inbox').then((data) => {
       return api('/api/friends/requests').catch(() => null).then((fReq) => ({ data, fReq }));
     }).then(({ data, fReq }) => {
       if (!data || !data.success) {
@@ -9328,21 +9473,50 @@
       }
       const items = data.items || [];
       const incomingReq = (fReq && fReq.incoming) || [];
-      const unreadIds = items.filter((x) => !x.is_read && x.id != null).map((x) => x.id);
-      const unreadFromApi = data.unread_count != null ? parseInt(data.unread_count, 10) : unreadIds.length;
-      updateInboxFabBadge(unreadFromApi);
-      if (unreadIds.length) {
-        api('/api/site/inbox', { method: 'POST', body: JSON.stringify({ ids: unreadIds }) }).catch(() => {});
-        updateInboxFabBadge(0);
-      }
+      const unreadFromApi = data.unread_count != null ? parseInt(data.unread_count, 10) : items.filter((x) => !x.is_read).length;
+      const friendReqBonus = (incomingReq && incomingReq.length) ? incomingReq.length : 0;
+      incomingUnread = Math.max(0, unreadFromApi) + (friendReqBonus > 0 && unreadFromApi <= 0 ? 0 : 0);
+      // Friend requests are actionable on incoming; if API unread is 0 but requests exist, tip the pill lightly
+      if (friendReqBonus > 0 && incomingUnread <= 0) incomingUnread = friendReqBonus;
+
       if (incomingPanel) {
         renderInboxIncomingCards(incomingPanel, items, siteInboxFriendRequestsHtml(incomingReq));
       }
+
+      const shouldMark = siteInboxTab() === 'incoming' && (unreadFromApi > 0 || items.some((x) => !x.is_read));
+      if (shouldMark) {
+        return siteMarkIncomingReadAll().then((ok) => {
+          if (ok) {
+            incomingUnread = friendReqBonus > 0 ? 0 : 0; // opened incoming = read
+            // friend requests still pending but user saw them — clear pill/bell for inbox slice
+            incomingUnread = 0;
+          }
+          paintTabs();
+          siteRefreshBellFromParts(incomingUnread, activityUnread);
+        });
+      }
+      paintTabs();
+      siteRefreshBellFromParts(incomingUnread, activityUnread);
     }).catch(() => {
       if (incomingPanel) incomingPanel.innerHTML = '<p class="cabinet-hint">Ошибка сети</p>';
     });
 
-    if (tab === 'activity' && activityPanel) loadSiteInboxActivityPanel(activityPanel);
+    if (tab === 'activity' && activityPanel) {
+      loadSiteInboxActivityPanel(activityPanel, { markSeen: true }).then(() => {
+        activityUnread = 0;
+        paintTabs();
+        siteRefreshBellFromParts(incomingUnread, activityUnread);
+      });
+    } else {
+      // Prefetch activity unread for the other pill without marking seen
+      api('/api/friends/activity?limit=40').then((data) => {
+        activityUnread = siteCountActivityUnread((data && data.items) || []);
+        paintTabs();
+        siteRefreshBellFromParts(incomingUnread, activityUnread);
+      }).catch(() => {});
+    }
+
+    return inboxPromise;
   }
 
   // ——— Вход через Telegram-бота (mobileauth deep link) ———
