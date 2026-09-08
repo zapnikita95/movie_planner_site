@@ -398,11 +398,19 @@
         var path = f.film_path || (kp ? ("/f/" + kp) : "");
         var rank = f.rank || f.nyt_rank;
         var rankBadge = rank ? ('<span class="collections-film-rank" aria-label="Место ' + esc(String(rank)) + '">#' + esc(String(rank)) + "</span>") : "";
+        var hasReview = !!(f.has_nyt_review || f.nyt_review_path);
+        var reviewBadge = hasReview
+          ? ('<span class="collections-film-review-badge" aria-label="Есть перевод рецензии NYT" title="Есть перевод рецензии">'
+            + iconHtml("newspaper", { size: "sm", className: "collections-film-review-icon" })
+            + "</span>")
+          : "";
         return (
           '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
+          + (hasReview && f.nyt_review_path ? ' data-nyt-review="' + esc(String(f.nyt_review_path)) + '"' : "")
           + '>'
           + rankBadge
+          + reviewBadge
           + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy"' + imgOnErrorAttr() + "></div>"
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
