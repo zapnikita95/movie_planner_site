@@ -413,6 +413,68 @@
     );
   }
 
+  var DETAIL_FILMS_PAGE_SIZE = 20;
+  var _detailFilmsState = {
+    films: [],
+    page: 1,
+    ranked: false,
+    tagId: "",
+    ctaHtml: "",
+    prefixHtml: "",
+  };
+
+  function detailFilmsPagerHtml(total, page, pageSize) {
+    var pages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.min(Math.max(1, page), pages);
+    if (total <= pageSize) {
+      return total
+        ? '<p class="collections-pager-meta collections-detail-pager-meta">' + total + " фильмов</p>"
+        : "";
+    }
+    return (
+      '<div class="collections-pager collections-detail-pager" role="navigation" aria-label="Страницы фильмов">'
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-coll-action="detail-films-page" data-page="'
+      + (page - 1) + '"' + (page <= 1 ? " disabled" : "") + ">Назад</button>"
+      + '<span class="collections-pager-meta">Стр. ' + page + " из " + pages + " · " + total + "</span>"
+      + '<button type="button" class="btn btn-secondary collections-pager-btn" data-coll-action="detail-films-page" data-page="'
+      + (page + 1) + '"' + (page >= pages ? " disabled" : "") + ">Далее</button>"
+      + "</div>"
+    );
+  }
+
+  function detailFilmsSectionHtml() {
+    var st = _detailFilmsState;
+    var all = st.films || [];
+    var pageSize = DETAIL_FILMS_PAGE_SIZE;
+    var pages = Math.max(1, Math.ceil(all.length / pageSize) || 1);
+    st.page = Math.min(Math.max(1, st.page || 1), pages);
+    var start = (st.page - 1) * pageSize;
+    var slice = all.slice(start, start + pageSize);
+    return (
+      '<div id="collections-detail-films-block">'
+      + filmsGridHtml(slice, { ranked: !!st.ranked })
+      + detailFilmsPagerHtml(all.length, st.page, pageSize)
+      + (st.ctaHtml
+        ? '<div class="collections-detail-cta">' + st.ctaHtml + "</div>"
+        : "")
+      + "</div>"
+    );
+  }
+
+  function paintDetailFilmsBlock(root) {
+    if (!root) return;
+    var block = root.querySelector("#collections-detail-films-block");
+    if (!block) return;
+    var wrap = document.createElement("div");
+    wrap.innerHTML = detailFilmsSectionHtml();
+    var next = wrap.firstChild;
+    if (next) block.replaceWith(next);
+    try {
+      block = root.querySelector("#collections-detail-films-block");
+      if (block) block.scrollIntoView({ block: "start", behavior: "smooth" });
+    } catch (_) {}
+  }
+
   function nytVotersRailHtml(voters) {
     if (!voters || !voters.length) return "";
     return (
@@ -1087,8 +1149,16 @@
       if (hintEl) hintEl.textContent = (c.films_count || films.length || 0) + " фильмов";
       var body = root.querySelector("#collections-detail-body");
       if (body) {
-        body.innerHTML = filmsGridHtml(films)
-          + '<button type="button" class="btn btn-primary btn-full" data-coll-action="import-public" data-coll-id="' + esc(String(tid)) + '">Добавить все в базу</button>';
+        _detailFilmsState = {
+          films: films,
+          page: 1,
+          ranked: false,
+          tagId: String(tid),
+          ctaHtml: '<button type="button" class="btn btn-primary btn-full" data-coll-action="import-public" data-coll-id="'
+            + esc(String(tid)) + '">Добавить все в базу</button>',
+          prefixHtml: "",
+        };
+        body.innerHTML = detailFilmsSectionHtml();
       }
     }).catch(function () {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
@@ -1348,6 +1418,13 @@
         try { root.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (_) {}
         return;
       }
+      if (action === "detail-films-page") {
+        var dPage = parseInt(btn.getAttribute("data-page") || "0", 10);
+        if (!dPage || dPage < 1 || btn.disabled) return;
+        _detailFilmsState.page = dPage;
+        paintDetailFilmsBlock(root);
+        return;
+      }
       if (action === "wtw-public-open") {
         var code = btn.getAttribute("data-coll-id");
         if (code && typeof global.__mpWtwOpenCollectionCode === "function") {
@@ -1504,7 +1581,7 @@
       + "</div>";
     markWtwCollectionDetailOpen();
     bindWtwCollectionsPanel(root);
-    apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode)).then(function (data) {
+    apiPublicGet("/api/public/collections/" + encodeURIComponent(shortCode) + "?limit=500&offset=0").then(function (data) {
       if (!collectionsPayloadOk(data) || !data.collection) {
         root.innerHTML =
           '<p class="cabinet-hint">Подборка не найдена</p>'
@@ -1554,7 +1631,16 @@
           cta = "";
         }
         var ranked = shortCode === "nyt-top100-21c";
-        body.innerHTML = intro + authorHtml + descHtml + filmsGridHtml(films, { ranked: ranked }) + cta + (hasSiteAuth() ? "" : guestWhatIsHtml());
+        _detailFilmsState = {
+          films: films,
+          page: 1,
+          ranked: ranked,
+          tagId: String(c.id || ""),
+          ctaHtml: cta || "",
+          prefixHtml: "",
+        };
+        body.innerHTML = intro + authorHtml + descHtml + detailFilmsSectionHtml()
+          + (hasSiteAuth() ? "" : guestWhatIsHtml());
         if (shortCode === "nyt-top100-21c") {
           loadNytVotersRail(root);
         }

@@ -29265,3 +29265,21 @@ a.collections-author-block:hover {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
+
+
+/* Collection detail: space CTA below films/pager (was stuck to last poster row) */
+.collections-detail-cta {
+  margin-top: 28px;
+  padding-top: 8px;
+}
+.collections-detail-cta .btn-full {
+  margin-top: 0;
+}
+.collections-detail-pager,
+.collections-detail-pager-meta {
+  margin: 18px 0 0;
+}
+.collections-page--detail .collections-films-grid + .collections-detail-pager,
+.collections-page--detail .collections-films-grid + .collections-detail-pager-meta {
+  margin-top: 18px;
+}
