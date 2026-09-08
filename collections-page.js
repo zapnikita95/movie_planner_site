@@ -502,6 +502,9 @@
     if (code === "venice-2026") {
       title = "Венецианский кинофестиваль 2026 — программа и фильмы конкурса | Movie Planner";
       desc = "Подборка фильмов 83-го Венецианского кинофестиваля (2–12 сентября 2026): основной конкурс, фильм открытия и закрытия.";
+    } else if (code === "beatfilm-2026") {
+      title = "Битфилм 2026 — программа Beat Weekend, даты и фильмы | Movie Planner";
+      desc = "Подборка документального фестиваля Beat Weekend / Битфилм 2026 (10–20 сентября): Твигги, Боуи, Канье Уэст, Армани и Best of Beat.";
     }
     try { document.title = title; } catch (_) {}
     setMeta("description", desc);
@@ -1183,6 +1186,8 @@
       var hint = (c.films_count || films.length || 0) + " фильмов";
       if (shortCode === "venice-2026") {
         hint = "83-й Венецианский кинофестиваль · 2–12 сентября 2026 · " + hint;
+      } else if (shortCode === "beatfilm-2026") {
+        hint = "Beat Weekend / Битфилм · 10–20 сентября 2026 · 18 городов · " + hint;
       } else if (shortCode === "italian-stories-2026") {
         hint = "Фестиваль «Итальянские истории» · 28–30 августа 2026 · Архангельское · " + hint;
       } else if (shortCode === "nyt-top100-21c") {
