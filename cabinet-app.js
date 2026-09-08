@@ -20504,13 +20504,55 @@
     return urls;
   }
 
-  function siteWtwApplyScopePosters(posters) {
+  const SITE_WTW_POSTER_CACHE_KEY = 'mp_wtw_scope_posters_v1';
+
+  function siteWtwReadCachedPosters() {
+    try {
+      const raw = localStorage.getItem(SITE_WTW_POSTER_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function siteWtwWriteCachedPosters(posters) {
+    try {
+      localStorage.setItem(SITE_WTW_POSTER_CACHE_KEY, JSON.stringify(posters || {}));
+    } catch (_) {}
+  }
+
+  function siteWtwPreloadPoster(url) {
+    return new Promise((resolve) => {
+      const abs = siteWtwAbsolutePosterUrl(url);
+      if (!abs) {
+        resolve('');
+        return;
+      }
+      const img = new Image();
+      img.onload = function () { resolve(abs); };
+      img.onerror = function () { resolve(abs); };
+      img.src = abs;
+    });
+  }
+
+  function siteWtwApplyScopePosters(posters, opts) {
     const root = document.getElementById('whattowatch-content');
     if (!root) return;
+    const o = opts || {};
+    // Default: no hardcoded FALLBACK flash — only explicit URLs (cache / fresh API).
+    // Pass allowFallback:true only when API left a scope empty after load.
     Object.keys(SITE_WTW_SCOPE_FALLBACKS).forEach((scope) => {
       const card = root.querySelector('[data-site-wtw-scope="' + scope + '"]');
-      const url = siteWtwAbsolutePosterUrl((posters && posters[scope]) || SITE_WTW_SCOPE_FALLBACKS[scope]);
-      if (card && url) card.style.setProperty('--wtw-poster', 'url("' + String(url).replace(/"/g, '%22') + '")');
+      if (!card) return;
+      let raw = posters && posters[scope];
+      if (!raw && o.allowFallback) raw = SITE_WTW_SCOPE_FALLBACKS[scope];
+      const url = siteWtwAbsolutePosterUrl(raw);
+      if (!url) return;
+      const next = 'url("' + String(url).replace(/"/g, '%22') + '")';
+      if (card.style.getPropertyValue('--wtw-poster') === next) return;
+      card.style.setProperty('--wtw-poster', next);
     });
   }
 
@@ -20523,20 +20565,36 @@
     const worldRequest = api('/api/site/premieres?period=in_theaters&limit=24', { timeoutMs: 10000 }).catch(() => ({}));
     const collectionsRequest = api('/api/public/collections?limit=12&offset=0', { timeoutMs: 10000 }).catch(() => ({}));
     const clubsRequest = api('/api/public/cinema-clubs?limit=24&offset=0&q=', { timeoutMs: 10000 }).catch(() => ({}));
-    siteWtwPosterPromise = Promise.all([libraryRequest, worldRequest, collectionsRequest, clubsRequest]).then((results) => {
+    siteWtwPosterPromise = Promise.all([libraryRequest, worldRequest, collectionsRequest, clubsRequest]).then(function (results) {
       const library = (results[0] && results[0].items) || [];
       const world = (results[1] && (results[1].items || results[1].premieres || results[1].results)) || [];
       const collections = (results[2] && (results[2].items || results[2].collections || results[2].results)) || [];
-      const collectionPosters = collections.reduce((all, item) => all.concat(item && item.preview_posters || []), []);
+      const collectionPosters = collections.reduce(function (all, item) {
+        return all.concat((item && item.preview_posters) || []);
+      }, []);
       const posters = {
-        library: siteWtwPosterFromFilm(library[0]),
-        world: siteWtwPosterFromFilm(world[0]),
-        collections: siteWtwAbsolutePosterUrl(collectionPosters[0]),
-        clubs: siteWtwPostersFromClubs(results[3])[0] || '',
+        library: siteWtwPosterFromFilm(library[0]) || SITE_WTW_SCOPE_FALLBACKS.library,
+        world: siteWtwPosterFromFilm(world[0]) || SITE_WTW_SCOPE_FALLBACKS.world,
+        collections: siteWtwAbsolutePosterUrl(collectionPosters[0]) || SITE_WTW_SCOPE_FALLBACKS.collections,
+        clubs: siteWtwPostersFromClubs(results[3])[0] || SITE_WTW_SCOPE_FALLBACKS.clubs,
       };
-      siteWtwApplyScopePosters(posters);
-      return posters;
-    }).catch(() => ({}));
+      return Promise.all([
+        siteWtwPreloadPoster(posters.library),
+        siteWtwPreloadPoster(posters.world),
+        siteWtwPreloadPoster(posters.collections),
+        siteWtwPreloadPoster(posters.clubs),
+      ]).then(function (abs) {
+        const ready = {
+          library: abs[0] || posters.library,
+          world: abs[1] || posters.world,
+          collections: abs[2] || posters.collections,
+          clubs: abs[3] || posters.clubs,
+        };
+        siteWtwWriteCachedPosters(ready);
+        siteWtwApplyScopePosters(ready);
+        return ready;
+      });
+    }).catch(function () { return {}; });
     return siteWtwPosterPromise;
   }
 
@@ -21634,8 +21692,10 @@
           + '<div id="whattowatch-result" class="whattowatch-result"></div>'
         : '');
 
-    siteWtwApplyScopePosters({});
-    loadSiteWtwScopePosters().then(siteWtwApplyScopePosters);
+    // Paint last-known posters immediately (no hardcoded FALLBACK flash), then refresh after preload.
+    const cachedWtwPosters = siteWtwReadCachedPosters();
+    if (cachedWtwPosters) siteWtwApplyScopePosters(cachedWtwPosters);
+    loadSiteWtwScopePosters();
 
     function paintWtwCollectionsPanel() {
       const panel = root.querySelector('#site-wtw-collections-panel');
