@@ -22388,6 +22388,29 @@ img.mp-poster-placeholder,
   background: rgba(9, 9, 11, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
+.collections-film-review-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(9, 9, 11, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.collections-film-review-badge .collections-film-review-icon,
+.collections-film-review-badge .mp-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
 
 /* Discovery grid — large cards with poster mosaic */
 .collections-discovery-grid {
@@ -22758,6 +22781,24 @@ body.in-cabinet #section-whattowatch.whattowatch--collection-detail .site-wtw-co
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   overscroll-behavior-x: contain;
+}
+/* Mobile: voters rail edge-to-edge (break out of .collections-detail-stage padding) */
+@media (max-width: 720px) {
+  .collections-detail-stage .nyt-voters-rail {
+    margin-left: calc(-1 * clamp(8px, 2vw, 28px));
+    margin-right: calc(-1 * clamp(8px, 2vw, 28px));
+    width: auto;
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 4px;
+  }
+  .collections-detail-stage .nyt-voters-rail .nyt-voter-card:first-child {
+    margin-left: clamp(8px, 2vw, 28px);
+  }
+  .collections-detail-stage .nyt-voters-rail .nyt-voter-card:last-child {
+    margin-right: clamp(8px, 2vw, 28px);
+  }
 }
 .nyt-voter-card {
   box-sizing: border-box;
