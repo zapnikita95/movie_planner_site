@@ -2248,13 +2248,14 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     transform: none;
   }
   body.in-cabinet #section-inbox .inbox-tabs {
-    gap: 6px;
+    display: flex;
+    gap: 8px;
+    margin: 0 0 12px;
   }
-  body.in-cabinet #section-inbox .inbox-tab-btn {
-    min-width: 0;
-    flex: 1 1 0;
-    min-height: 40px;
-    font-size: 12px;
+  body.in-cabinet #section-inbox .inbox-tab-pill {
+    min-height: 38px;
+    font-size: 13px;
+    padding: 8px 14px;
   }
   body.in-cabinet #section-inbox .site-inbox-item,
   body.in-cabinet #section-inbox .site-inbox-act-row {
@@ -12718,11 +12719,69 @@ body.film-standalone-page .cabinet a.mp-stream-btn:hover {
 
 .inbox-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
   flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 2px;
 }
 .inbox-tab-btn { flex: 1; min-width: 120px; }
+.inbox-tab-pill {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(24, 24, 32, 0.72);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+.inbox-tab-pill:hover,
+.inbox-tab-pill:focus-visible {
+  outline: none;
+  border-color: rgba(249, 168, 212, 0.45);
+  color: #fff;
+}
+.inbox-tab-pill.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(105deg, #ec4899 0%, #a855f7 55%, #8b5cf6 100%);
+  box-shadow:
+    0 0 0 1px rgba(236, 72, 153, 0.35),
+    0 0 18px rgba(168, 85, 247, 0.45),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.inbox-tab-pill-label {
+  position: relative;
+  z-index: 1;
+}
+.inbox-tab-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  z-index: 2;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.9);
+  pointer-events: none;
+}
 .site-inbox-panel.hidden { display: none !important; }
 .site-inbox-act-day { margin-bottom: 12px; }
 .site-inbox-act-day-title {
