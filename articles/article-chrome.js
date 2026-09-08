@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260825androidApp1';
+  var BUILD = '20260909articlechrome1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -258,7 +258,11 @@
   function mountArticleNav() {
     if (!global.MpFilmPage) return;
     if (typeof MpFilmPage.mountStandaloneCabinetNav === 'function') {
-      MpFilmPage.mountStandaloneCabinetNav('main.subpage-main');
+      // NYT SSR historically used main.article-content without subpage-main.
+      var navTarget = document.querySelector('main.subpage-main')
+        ? 'main.subpage-main'
+        : (document.querySelector('main.article-content') ? 'main.article-content' : 'main.subpage-main');
+      MpFilmPage.mountStandaloneCabinetNav(navTarget);
       return;
     }
     if (typeof MpFilmPage.standaloneNavHtml !== 'function') return;
