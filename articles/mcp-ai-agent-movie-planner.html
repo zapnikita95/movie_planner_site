@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCP и AI-агенты для Movie Planner: подключите нейросеть к своей базе фильмов</title>
-    <meta name="description" content="Как подключить Claude, Cursor или другого AI-агента к Movie Planner через MCP: добавление фильмов, планирование, билеты, календарь и Smart TV одной фразой.">
+    <meta name="description" content="Подключите Grok, Claude или Cursor к Movie Planner за минуту: URL https://movie-planner.ru/mcp, OAuth в кабинет, поиск, оценки, планы, билеты и партнёрские ссылки в кино.">
     <link rel="canonical" href="https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html">
     <link rel="alternate" href="android-app://com.movie_planner/https/movie-planner.ru/articles/mcp-ai-agent-movie-planner.html">
     <link rel="alternate" hreflang="ru" href="https://movie-planner.ru/articles/mcp-ai-agent-movie-planner.html">
@@ -62,7 +62,7 @@
             "name": "Есть ли API Movie Planner для AI-агентов?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Да — MCP-сервер и REST API: поиск фильмов, база, рекомендации. Документация на movie-planner.ru/developer и agents.html."
+                "text": "Да. Самый простой вход: URL https://movie-planner.ru/mcp (OAuth в ваш кабинет). Также REST /v1 и docs на /developer и /agents.html."
             }
         },
         {
@@ -70,7 +70,7 @@
             "name": "Может ли ChatGPT или Claude работать с моей базой кино?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Через MCP-интеграцию агент может искать фильмы, добавлять в watchlist и отвечать на вопросы о вашей коллекции — по вашему токену."
+                "text": "Да: после OAuth агент работает только с вашим аккаунтом — поиск, оценки, планы, билеты (в том числе скачать файл билета), теги, «что в кино» с партнёрскими ссылками."
             }
         }
     ]
@@ -115,61 +115,47 @@
     <main class="container subpage-main">
         <section class="article-content">
             <h1>MCP и AI-агенты: подключите нейросеть к Movie Planner</h1>
-            <p class="date">29 мая 2026</p>
+            <p class="date">9 сентября 2026</p>
 
-            <p>Обычный чат с ИИ умеет <em>советовать</em> фильмы — и забывает через пять минут. <strong>Movie Planner</strong> хранит вашу базу, планы, билеты и напоминания. А через <strong>MCP</strong> (Model Context Protocol) вы подключаете агента на своём компьютере — Claude Desktop, Cursor, другие IDE — и просто говорите: «добавь «Дюну» в календарь на субботу» или «прикрепи билет к плану». Агент вызывает инструменты Movie Planner, и действие реально выполняется.</p>
+            <p>Обычный чат с ИИ умеет <em>советовать</em> фильмы — и забывает через пять минут. <strong>Movie Planner</strong> хранит вашу базу, планы, билеты и напоминания. Через <strong>MCP</strong> (Model Context Protocol) агент (Grok, Claude, Cursor) реально читает <strong>ваш</strong> профиль и выполняет действия: поиск, оценки, планы, билеты, теги, «что в кино» с партнёрскими ссылками.</p>
+
+            <h2>Самый простой способ подключения — один URL</h2>
+            <p>Главный адрес MCP (вставьте его в Grok Custom Connector / Claude / Cursor как Remote MCP):</p>
+            <pre style="font-size:1.15rem;font-weight:700;letter-spacing:0.01em;padding:1.1rem 1.25rem;border:2px solid #f9a8d4;border-radius:14px;background:#18181b;color:#fce7f3;"><code>https://movie-planner.ru/mcp</code></pre>
+            <ol>
+                <li>Откройте настройки MCP / Connectors в нейросети.</li>
+                <li>Добавьте Custom / Remote server и вставьте URL выше <strong>целиком</strong> (без хвоста <code>/oauth/authorize</code>).</li>
+                <li>Если спросят Client ID: <code>movie_planner_mcp</code>, Client Secret оставьте пустым.</li>
+                <li>Откроется страница Movie Planner: <strong>войдите в свой кабинет</strong> → нажмите «Разрешить». Без входа агент не получит ваши данные.</li>
+            </ol>
+            <p class="muted">Не используйте <code>api.movie-planner.ru</code> из клиентов в РФ — берите канон <strong>movie-planner.ru</strong>.</p>
 
             <h2>Что такое MCP и зачем он пользователям Movie Planner</h2>
-            <p><strong>MCP</strong> — открытый протокол, через который нейросеть получает доступ к внешним сервисам как к «инструментам». Вместо копирования ссылок и ручного планирования вы формулируете задачу на человеческом языке, а агент дергает API Movie Planner.</p>
-            <p>Это не эксперимент «на будущее»: MCP-сервер Movie Planner уже работает — локально (stdio) и по HTTP на бэкенде. Через полгода–год такой сценарий станет стандартом для любого персонального ассистента. Сейчас — редкое преимущество для тех, кто настроит интеграцию первым.</p>
+            <p><strong>MCP</strong> — протокол, через который нейросеть получает доступ к сервису как к набору инструментов. Вы формулируете задачу обычным языком, агент вызывает API Movie Planner от вашего имени (OAuth / Bearer).</p>
 
             <h2>Что можно поручить агенту</h2>
-            <p>Примеры фраз, которые превращаются в реальные действия:</p>
             <ul>
-                <li>«Добавь фильм <em>Матрица</em> в мою базу» — фильм появится в watchlist;</li>
-                <li>«Запланируй просмотр «Опенгеймер» в кино в субботу в 19:00, кинотеатр Октябрь» — создаётся план с напоминанием;</li>
-                <li>«Добавь это событие в Google Календарь» — пуш в календарь или ссылка на .ics;</li>
-                <li>«Вот скрин билета — прикрепи к плану на воскресенье» — билет сохраняется и придёт в уведомлении за 10 минут до сеанса;</li>
-                <li>«Что у меня в непросмотренном?» — агент читает вашу библиотеку и отвечает по фактам;</li>
-                <li>«Создай группу для друзей и дай invite-ссылку» — общий watchlist для компании;</li>
-                <li>«Запусти Interstellar на телевизоре» — команда на Smart TV через TV-агент;</li>
-                <li>«Поставь оценку 9 фильму, который смотрели вчера» — через API кабинета (расширяется в MCP).</li>
+                <li>«Что у меня с оценкой 8+ из ужасов?» — полный список оценок и гибкий query по базе;</li>
+                <li>«Найди 20 фильмов про Хэллоуин, добавь в базу и повесь тег» — поиск + bulk + теги;</li>
+                <li>«Что идёт в кино в Москве и дай ссылку купить билет» — now-playing + партнёрская T-Афиша;</li>
+                <li>«Скинь билет на сегодняшний сеанс» — агент забирает файл билета с сервера (base64) и отдаёт вам;</li>
+                <li>«Запланируй весёлое кино на субботу» / «похожие на Матрицу» / «отправь на ТВ».</li>
             </ul>
-            <p>ИИ перестаёт быть собеседником и становится <strong>исполнителем</strong>: план попадает в базу, напоминание придёт в Telegram или приложение, билет не потеряется в галерее.</p>
 
             <h2>Какие инструменты доступны агенту</h2>
-            <p>Официальный MCP-сервер Movie Planner оборачивает версионированный HTTP API <code>/v1</code>. Основные инструменты:</p>
+            <p>MCP оборачивает HTTP API <code>/v1</code>. Среди прочего:</p>
             <ul>
-                <li><strong>Фильмы</strong> — добавление по ссылке Кинопоиска или kp_id;</li>
-                <li><strong>Планы</strong> — домашний просмотр или поход в кино с датой, временем и кинотеатром;</li>
-                <li><strong>Календарь</strong> — Google Calendar, подписанные .ics-ссылки;</li>
-                <li><strong>Билеты</strong> — загрузка изображения к кино-плану, чтение списка;</li>
-                <li><strong>Библиотека</strong> — непросмотренное, профиль пользователя;</li>
-                <li><strong>Группы</strong> — создание и invite-ссылки для друзей;</li>
-                <li><strong>Smart TV</strong> — запуск фильма на телевизоре, поиск на Rutube/VK.</li>
+                <li><strong>Профиль и вкусы</strong> — <code>/v1/me</code>, <code>/v1/ratings</code>, <code>/v1/library/query</code>;</li>
+                <li><strong>Поиск и карточки</strong> — <code>/v1/search</code>, <code>/v1/films/&#123;kp_id&#125;</code>, похожие <code>/similar</code> (поиск через наш каталог / PoiskKino, не «лезь на kinopoisk.ru в браузере»);</li>
+                <li><strong>Мутации</strong> — add / bulk, оценка, теги, коллекции, планы;</li>
+                <li><strong>Билеты</strong> — загрузка к кино-плану и <strong>скачивание</strong> (<code>/v1/plans/tickets/today</code>, base64);</li>
+                <li><strong>Кино</strong> — now-playing, сеансы, партнёрские ticket URL;</li>
+                <li><strong>Группы / календарь / Smart TV</strong>.</li>
             </ul>
-            <p>Полный контракт: <a href="https://api.movie-planner.ru/developer/openapi.yaml">OpenAPI</a>, обзор для разработчиков — <a href="/agents.html">Нейросети и API</a>.</p>
+            <p>Контракт: <a href="https://movie-planner.ru/developer/openapi.yaml">OpenAPI</a>, обзор — <a href="/agents.html">Нейросети и API</a>.</p>
 
-            <h2>Как подключить (Cursor, Claude Desktop)</h2>
-            <ol>
-                <li>Войдите в Movie Planner — <a href="/?open_login=1">веб-кабинет</a> или <a href="https://apps.apple.com/ru/app/movie-planner/id6769016073" target="_blank" rel="noopener">приложение для iPhone</a>.</li>
-                <li>Получите Bearer-токен: войдите в кабинет → раздел «Нейросети и API», или пройдите OAuth2 PKCE для внешнего приложения (<a href="https://api.movie-planner.ru/developer">/developer</a>).</li>
-                <li>Добавьте MCP-сервер в конфиг IDE. Пример для Cursor:</li>
-            </ol>
-            <pre><code>{
-  "mcpServers": {
-    "movie-planner": {
-      "command": "python3",
-      "args": ["-m", "moviebot.mcp_server.stdio_server"],
-      "cwd": "/path/to/movie_planner_bot",
-      "env": {
-        "MP_BASE_URL": "https://api.movie-planner.ru",
-        "MP_BEARER_TOKEN": "ваш_токен"
-      }
-    }
-  }
-}</code></pre>
-            <p>Токен храните в секретах IDE, не коммитьте в git. Альтернатива — HTTP MCP на <code>api.movie-planner.ru/mcp</code> с тем же Bearer в заголовке <code>Authorization</code>.</p>
+            <h2>Альтернатива для IDE (Cursor / Claude Desktop)</h2>
+            <p>Если хост не умеет Remote MCP по URL — stdio с Bearer из кабинета («Нейросети и API»). Но для Grok и большинства веб-коннекторов достаточно URL <code>https://movie-planner.ru/mcp</code>.</p>
 
             <h2>Почему это сильнее обычного GPT</h2>
             <p>ChatGPT без интеграции не помнит ваш watchlist через месяц, не пришлёт билет в нужный момент и не синхронизирует план с друзьями. Movie Planner + MCP даёт:</p>
@@ -199,11 +185,11 @@
                 <dl class="article-faq-list">
                 <div class="article-faq-item">
                     <dt>Есть ли API Movie Planner для AI-агентов?</dt>
-                    <dd>Да — MCP-сервер и REST API: поиск фильмов, база, рекомендации. Документация на movie-planner.ru/developer и agents.html.</dd>
+                    <dd>Да. Самый простой вход: URL https://movie-planner.ru/mcp (OAuth в ваш кабинет). Также REST /v1 и docs на /developer и /agents.html.</dd>
                 </div>
                 <div class="article-faq-item">
                     <dt>Может ли ChatGPT или Claude работать с моей базой кино?</dt>
-                    <dd>Через MCP-интеграцию агент может искать фильмы, добавлять в watchlist и отвечать на вопросы о вашей коллекции — по вашему токену.</dd>
+                    <dd>Да: после OAuth агент работает только с вашим аккаунтом — поиск, оценки, планы, билеты (в том числе скачать файл билета), теги, «что в кино» с партнёрскими ссылками.</dd>
                 </div>
                 </dl>
             </section>
