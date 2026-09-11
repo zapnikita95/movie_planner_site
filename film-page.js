@@ -17,6 +17,21 @@
   var CINEMA_CLUB_TARGETS_READY = false;
   var CINEMA_CLUB_TARGETS_LOADING = false;
 
+  function initFilmMonetization(root, kpId) {
+    try {
+      if (global.MpApiConfig && typeof global.MpApiConfig.initFilmMonetization === 'function') {
+        global.MpApiConfig.initFilmMonetization(root, kpId);
+        return;
+      }
+      if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
+        global.MpMonetization.initFilmPageFromRoot(root, kpId);
+      }
+    } catch (_e) {}
+    try {
+      document.dispatchEvent(new CustomEvent('mp:film-hero-ready', { detail: { root: root, kpId: kpId } }));
+    } catch (_ev) {}
+  }
+
   // TMDB en-US genre names → RU pills (never paint Drama/Comedy on apex).
   var TMDB_GENRE_EN_RU = {
     Action: 'боевик', Adventure: 'приключения', Animation: 'мультфильм',
@@ -806,11 +821,7 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
-    try {
-      if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
-        global.MpMonetization.initFilmPageFromRoot(pageRoot);
-      }
-    } catch (_monSim) {}
+    initFilmMonetization(pageRoot);
     /* TAKPRODAM_SHELF_VERTICAL_LOOP */
     try {
       if (global.MpRsy && typeof global.MpRsy.mountFilmAfterSimilar === 'function') {
@@ -3610,6 +3621,7 @@
     try {
       document.title = title + year + ' · Movie Planner';
     } catch (_e) {}
+    initFilmMonetization(pageRoot, heroKey);
     return true;
   }
 
@@ -4927,6 +4939,7 @@
         var old = hero.querySelector('.film-page-toolbar');
         if (old && old.getAttribute('data-mp-toolbar-sig') === sig) {
           loadFilmFriendsSocialBlock();
+          initFilmMonetization(hero, stub.kp_id);
           return;
         }
         var toolbarHtml = buildFilmPageToolbar(stub, opts);
@@ -4953,11 +4966,7 @@
         }
         loadFilmFriendsSocialBlock();
         if (!(opts && opts.inBase)) rebindGuestToolbarActions();
-        try {
-          if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
-            global.MpMonetization.initFilmPageFromRoot(hero, stub.kp_id);
-          }
-        } catch (_monToolbar) {}
+        initFilmMonetization(hero, stub.kp_id);
       }
 
       function bindAuthToolbar(film, filmState) {
@@ -5284,19 +5293,7 @@
           global.MpRsy.mountFilmPage();
         }
       } catch (_rsyFilm) {}
-      try {
-        if (global.MpMonetization && typeof global.MpMonetization.initFilmPage === 'function' && similarRoot && kpId) {
-          var _monTitleEl = document.getElementById('film-title');
-          var _monTitle = _monTitleEl ? String(_monTitleEl.textContent || '').trim() : '';
-          var _monSeries = !!(document.querySelector('.film-hero-with-tag[data-is-series="1"]'));
-          global.MpMonetization.initFilmPage({
-            root: similarRoot,
-            kpId: kpId,
-            title: _monTitle,
-            isSeries: _monSeries,
-          });
-        }
-      } catch (_monEnd) {}
+      if (similarRoot && kpId) initFilmMonetization(similarRoot, kpId);
   }
 
   /* POSTER_FS_ALWAYS — click/tap poster opens fullscreen on all widths; CTAs ignored; swipe cancelled */
