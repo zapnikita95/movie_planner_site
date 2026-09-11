@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260902recentRatedSync1
+ * MARKER:20260911guestToolbarIcons1
  */
 (function (global) {
   'use strict';
@@ -1875,9 +1875,26 @@
       '<div class="action-dropdown-menu">' + menuItems + '</div></div>';
   }
 
+  /** Phosphor class when MPIcons is late/missing. Never default to 🔔. */
+  var TOOLBAR_ICON_FALLBACK = {
+    watchlist: 'bookmark-simple',
+    bookmark: 'bookmark-simple',
+    eye: 'eye',
+    calendar: 'calendar',
+    inbox: 'bell',
+    bellOff: 'bell-slash',
+  };
+
   function mpToolbarIcon(name, opts) {
-    if (global.MPIcons && global.MPIcons.html) return global.MPIcons.html(name, opts || { size: 'sm' });
-    return name === 'bellOff' ? '🔕' : '🔔';
+    if (global.MPIcons && typeof global.MPIcons.html === 'function') {
+      return global.MPIcons.html(name, opts || { size: 'sm' });
+    }
+    var ph = TOOLBAR_ICON_FALLBACK[name];
+    if (!ph) return '';
+    var o = opts || {};
+    var size = o.size ? (' mp-icon--' + o.size) : ' mp-icon--sm';
+    var extra = o.className ? (' ' + o.className) : '';
+    return '<span class="mp-icon' + size + extra + '" aria-hidden="true"><i class="ph ph-' + ph + '"></i></span>';
   }
 
   /** Liquid glass layers from glass-cta-button.html. */
@@ -5460,6 +5477,7 @@
     setupAppOpenBanner: setupAppOpenBanner,
     appOpenBannerHtml: appOpenBannerHtml,
     standaloneHeaderSearchHtml: standaloneHeaderSearchHtml,
+    mpToolbarIcon: mpToolbarIcon,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);
