@@ -13288,6 +13288,23 @@ main.film-page .film-hero-crew {
   gap: 12px;
   flex-wrap: nowrap;
 }
+.film-ticket-btns--pending {
+  pointer-events: none;
+}
+.film-ticket-btn--pending {
+  width: 28px;
+  height: 34px;
+  min-width: 28px;
+  min-height: 34px;
+  background: rgba(244, 244, 245, 0.08);
+  border-radius: 3px;
+}
+.film-page-toolbar--tickets-only {
+  margin-top: 12px;
+}
+.film-page-toolbar--tickets-only .film-toolbar-plan-wrap {
+  min-height: 48px;
+}
 .film-ticket-btn,
 .film-poster-t-afisha-cta,
 a.film-t-afisha-btn {

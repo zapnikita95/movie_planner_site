@@ -95,6 +95,67 @@
     });
   }
 
+  var _monetizationPromise = null;
+
+  function monetizationAssetV() {
+    try {
+      if (global.__MP_ASSET_V) return String(global.__MP_ASSET_V);
+    } catch (_e) {}
+    return '20260911tickets1';
+  }
+
+  function ensureMpMonetization() {
+    if (global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function') {
+      return Promise.resolve(global.MpMonetization);
+    }
+    if (_monetizationPromise) return _monetizationPromise;
+    _monetizationPromise = new Promise(function (resolve) {
+      function ready() {
+        return global.MpMonetization && typeof global.MpMonetization.initFilmPageFromRoot === 'function';
+      }
+      function waitReady(tries) {
+        if (ready()) {
+          resolve(global.MpMonetization);
+          return;
+        }
+        if (tries <= 0) {
+          _monetizationPromise = null;
+          resolve(null);
+          return;
+        }
+        setTimeout(function () { waitReady(tries - 1); }, 50);
+      }
+      var existing = null;
+      try {
+        existing = document.querySelector('script[src*="mp-monetization.js"]');
+      } catch (_q) {}
+      if (existing) {
+        waitReady(80);
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = '/mp-monetization.js?v=' + encodeURIComponent(monetizationAssetV());
+      s.async = true;
+      s.onload = function () { waitReady(20); };
+      s.onerror = function () {
+        _monetizationPromise = null;
+        resolve(null);
+      };
+      (document.body || document.head).appendChild(s);
+    });
+    return _monetizationPromise;
+  }
+
+  function initFilmMonetization(root, kpId) {
+    return ensureMpMonetization().then(function (api) {
+      if (!api || typeof api.initFilmPageFromRoot !== 'function') return null;
+      try {
+        api.initFilmPageFromRoot(root, kpId);
+      } catch (_e) {}
+      return api;
+    });
+  }
+
   global.MpApiConfig = {
     SITE_ORIGIN: site,
     API_ORIGIN: api,
@@ -104,6 +165,8 @@
     siteBase: function () {
       return site;
     },
+    ensureMpMonetization: ensureMpMonetization,
+    initFilmMonetization: initFilmMonetization,
   };
 
   global.MpFilmOutbound = {

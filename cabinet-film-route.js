@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260908collPager1';
+  var BUILD = '20260911tickets1';
   var FULL_CABINET_SRC = '/cabinet-app.js?v=' + BUILD;
   var _fullLoading = false;
   var _fullReady = false;
@@ -414,6 +414,14 @@
       onReady: function () {
         global.__MP_FILM_RENDERED = true;
         bindNavPrefetch();
+        try {
+          if (global.MpApiConfig && typeof global.MpApiConfig.initFilmMonetization === 'function') {
+            global.MpApiConfig.initFilmMonetization(
+              document.getElementById('film-page-content'),
+              route.kpId || ''
+            );
+          }
+        } catch (_mon) {}
         if (getToken()) {
           refreshAuthChrome(route);
           setTimeout(function () { ensureFullCabinet(); }, 400);

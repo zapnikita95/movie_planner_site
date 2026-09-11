@@ -20,6 +20,22 @@
     if (window.MpApiConfig && MpApiConfig.API_ORIGIN) return MpApiConfig.API_ORIGIN;
     return SITE_ORIGIN;
   })();
+
+  function initFilmMonetization(root, kpId) {
+    try {
+      if (window.MpApiConfig && typeof window.MpApiConfig.initFilmMonetization === 'function') {
+        window.MpApiConfig.initFilmMonetization(root, kpId);
+        return;
+      }
+      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function') {
+        window.MpMonetization.initFilmPageFromRoot(root, kpId);
+      }
+    } catch (_e) {}
+    try {
+      document.dispatchEvent(new CustomEvent('mp:film-hero-ready', { detail: { root: root, kpId: kpId } }));
+    } catch (_ev) {}
+  }
+
   const BOT_LINK = 'https://t.me/movie_planner_bot';
   const BOT_START_LINK = 'https://t.me/movie_planner_bot?start=start';
   const BOT_CODE_LINK = 'https://t.me/movie_planner_bot?start=code';
@@ -1862,6 +1878,7 @@
           window.MpPublicPromo.mountAfterHero(pageRoot);
         }
       } catch (_) {}
+      if (kp) initFilmMonetization(pageRoot, kp);
       return true;
     }
     try {
@@ -1946,6 +1963,7 @@
     applyFilmPosterToHero(pageRoot, pickFilmPosterUrl(film, pageRoot));
     ensureFilmHeroDescription(pageRoot, film);
     ensureFilmHeroCastLoaded(film, pageRoot);
+    if (kp) initFilmMonetization(pageRoot, kp);
     return true;
   }
 
@@ -16023,11 +16041,7 @@
       if (preserved.seriesState) newToolbar._mpSeriesToolbarState = preserved.seriesState;
       mountSeriesToolbarPanel(newToolbar, film);
     }
-    try {
-      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function' && film && film.kp_id) {
-        window.MpMonetization.initFilmPageFromRoot(root, film.kp_id);
-      }
-    } catch (_monToolbar) {}
+    if (film && film.kp_id) initFilmMonetization(root, film.kp_id);
     return newToolbar;
   }
 
@@ -17322,11 +17336,7 @@
         window.MpRsy.mountFilmPage();
       }
     } catch (_rsySim) {}
-    try {
-      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function') {
-        window.MpMonetization.initFilmPageFromRoot(pageRoot);
-      }
-    } catch (_monSim) {}
+    initFilmMonetization(pageRoot);
   }
 
   function mountFilmPageRsyAds() {
@@ -17995,6 +18005,7 @@
       ensureFilmHeroDescription(content, film);
       ensureFilmHeroCastLoaded(film, content);
       mountFilmPageSimilarAsync(film.kp_id, content);
+      if (film.kp_id) initFilmMonetization(content, film.kp_id);
       return;
     }
     const inBase = ho.inBase !== false;
@@ -18117,11 +18128,7 @@
     ensureFilmHeroDescription(content, film);
     paintBootFilmDescFacts(film.kp_id, content);
     loadFilmDescFacts(film.kp_id, content);
-    try {
-      if (window.MpMonetization && typeof window.MpMonetization.initFilmPageFromRoot === 'function') {
-        window.MpMonetization.initFilmPageFromRoot(content, film.kp_id);
-      }
-    } catch (_monHero) {}
+    if (film && film.kp_id) initFilmMonetization(content, film.kp_id);
   }
 
   function loadFilmCastSection(kpId, root, filmFallback) {

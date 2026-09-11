@@ -317,14 +317,6 @@
     return '/images/partners/tbank-afisha-t.svg';
   }
 
-  function isMobileFilmLayout() {
-    try {
-      return window.matchMedia('(max-width: 860px)').matches;
-    } catch (_e) {
-      return false;
-    }
-  }
-
   function ticketPartnerAriaLabel(partner) {
     if (partner && partner.key === 'ticketland') return 'Билеты на Ticketland';
     return 'Билеты на Т-Афише';
@@ -383,16 +375,46 @@
     return a;
   }
 
+  function normalizeTicketPartnerKey(raw) {
+    var k = String(raw || '').toLowerCase().replace(/[\s\-]+/g, '_');
+    if (
+      k === 't_afisha' || k === 'tafisha' || k === 'tinkoff' || k === 'tinkoff_afisha' ||
+      k === 'tbank' || k === 'tbank_afisha' || k === 't_bank' || k === 't_bank_afisha'
+    ) return 't_afisha';
+    if (k === 'ticketland' || k === 'ticket_land') return 'ticketland';
+    return k;
+  }
+
+  function extractTicketPartnersPayload(data) {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data !== 'object') return [];
+    if (Array.isArray(data.partners)) return data.partners;
+    if (Array.isArray(data.ticket_partners)) return data.ticket_partners;
+    if (Array.isArray(data.items)) return data.items;
+    if (data.data && Array.isArray(data.data.partners)) return data.data.partners;
+    return [];
+  }
+
   function collectTicketPartners(partners) {
     var out = [];
     var seen = {};
     for (var i = 0; i < (partners || []).length; i++) {
-      var p = partners[i];
-      if (!p || !p.url) continue;
-      if (p.key !== 't_afisha' && p.key !== 'ticketland') continue;
-      if (seen[p.key]) continue;
-      seen[p.key] = 1;
-      out.push(p);
+      var raw = partners[i];
+      if (!raw) continue;
+      var url = raw.url || raw.href || raw.link || '';
+      if (!url) continue;
+      var key = normalizeTicketPartnerKey(raw.key || raw.partner || raw.id || '');
+      if (key !== 't_afisha' && key !== 'ticketland') continue;
+      if (seen[key]) continue;
+      seen[key] = 1;
+      var copy = {};
+      for (var prop in raw) {
+        if (Object.prototype.hasOwnProperty.call(raw, prop)) copy[prop] = raw[prop];
+      }
+      copy.key = key;
+      copy.url = url;
+      out.push(copy);
     }
     out.sort(function (a, b) {
       if (a.key === 't_afisha') return -1;
@@ -464,49 +486,224 @@
     });
   }
 
-  function mountTicketPartnerButton(pageRoot, kpId, opts) {
-    if (!pageRoot || !kpId || isNaN(Number(kpId))) return Promise.resolve();
-    opts = opts || {};
-    if (opts.isSeries) return Promise.resolve();
+  var TICKET_FETCH_MS = 2500;
+  var TICKET_MOUNT_RETRY_MS = 80;
+  var TICKET_MOUNT_RETRY_MAX = 12;
+  var _ticketGen = 0;
+  var _ticketCtrl = null;
+  var _ticketRemountTimer = null;
 
-    var city = (opts.city || 'moscow').toLowerCase();
-    var title = filmTitleParam(pageRoot);
-    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kpId) + '/ticket-partners?city=' + encodeURIComponent(city);
-    if (title) url += '&title=' + encodeURIComponent(title);
-    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = null;
-    if (ctrl) {
-      timer = setTimeout(function () {
-        try { ctrl.abort(); } catch (_e) {}
-      }, 8000);
+  function filmTicketScope(pageRoot) {
+    if (pageRoot && pageRoot.querySelector) {
+      if (
+        pageRoot.querySelector('.poster-wrap, .film-toolbar-plan-wrap, .film-hero-with-tag') ||
+        (pageRoot.classList && pageRoot.classList.contains('film-hero-with-tag'))
+      ) {
+        return pageRoot;
+      }
     }
+    return document.getElementById('film-page-content') || document.querySelector('main.film-page') || pageRoot;
+  }
+
+  function readFilmHero(scope) {
+    if (!scope) return null;
+    if (scope.matches && scope.matches('.film-hero-with-tag[data-kp-id]')) return scope;
+    if (scope.classList && scope.classList.contains('film-hero-with-tag') && scope.getAttribute('data-kp-id')) return scope;
+    return scope.querySelector ? scope.querySelector('.film-hero-with-tag[data-kp-id]') : null;
+  }
+
+  function liveTicketKp(scope) {
+    var hero = readFilmHero(scope);
+    return hero ? String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '') : '';
+  }
+
+  function findPlanWrap(scope) {
+    if (!scope || !scope.querySelector) return null;
+    return scope.querySelector('.film-toolbar-plan-wrap');
+  }
+
+  function findPosterWrap(scope) {
+    if (!scope || !scope.querySelector) return null;
+    return scope.querySelector('.poster-wrap');
+  }
+
+  function clearTicketButtons(scope) {
+    if (!scope || !scope.querySelectorAll) return;
+    scope.querySelectorAll('.film-ticket-btns, .film-poster-ticket-stack, .film-poster-t-afisha-cta, .film-t-afisha-btn').forEach(function (el) {
+      el.remove();
+    });
+    var poster = findPosterWrap(scope);
+    if (poster) poster.removeAttribute('data-ticket-partners');
+    var planWrap = findPlanWrap(scope);
+    if (planWrap) planWrap.removeAttribute('data-ticket-partners');
+    var toolbar = scope.querySelector('.film-page-toolbar');
+    if (toolbar) toolbar.removeAttribute('data-ticket-partners');
+  }
+
+  function clearTicketPending(scope) {
+    if (!scope || !scope.querySelectorAll) return;
+    scope.querySelectorAll('[data-ticket-pending="1"]').forEach(function (el) {
+      el.remove();
+    });
+  }
+
+  function buildTicketPendingBlock(mode) {
+    var block = document.createElement('div');
+    block.className = 'film-ticket-btns film-ticket-btns--' + mode + ' film-ticket-btns--pending';
+    block.setAttribute('data-ticket-pending', '1');
+    block.setAttribute('aria-hidden', 'true');
+    block.innerHTML =
+      '<div class="film-ticket-btns__label">Билеты</div>' +
+      '<div class="film-ticket-btns__logos"><span class="film-ticket-btn film-ticket-btn--pending"></span></div>';
+    return block;
+  }
+
+  function showTicketPending(scope) {
+    if (!scope || scope.querySelector('.film-ticket-btn:not(.film-ticket-btn--pending)')) return;
+    clearTicketPending(scope);
+    var planWrap = findPlanWrap(scope);
+    if (planWrap && !planWrap.querySelector('[data-ticket-pending="1"]')) {
+      planWrap.insertBefore(buildTicketPendingBlock('toolbar'), planWrap.firstChild);
+    }
+    var poster = findPosterWrap(scope);
+    if (poster && !poster.querySelector('[data-ticket-pending="1"]')) {
+      var pendingPoster = buildTicketPendingBlock('poster');
+      pendingPoster.classList.add('film-poster-ticket-stack');
+      poster.appendChild(pendingPoster);
+    }
+  }
+
+  function ensureToolbarTicketSlot(scope) {
+    var planWrap = findPlanWrap(scope);
+    if (planWrap) return planWrap;
+    var heroContent = scope && scope.querySelector ? scope.querySelector('.hero-content') : null;
+    if (!heroContent) return null;
+    var toolbar = heroContent.querySelector('.film-page-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'film-page-toolbar film-page-toolbar--guest film-page-toolbar--tickets-only';
+      heroContent.appendChild(toolbar);
+    }
+    planWrap = document.createElement('div');
+    planWrap.className = 'film-toolbar-plan-wrap';
+    toolbar.insertBefore(planWrap, toolbar.firstChild);
+    return planWrap;
+  }
+
+  function applyTicketPartners(scope, partners, kpId, injectSlot) {
+    clearTicketPending(scope);
+    if (!partners || !partners.length) {
+      clearTicketButtons(scope);
+      return { mounted: false };
+    }
+    var poster = findPosterWrap(scope);
+    var planWrap = findPlanWrap(scope);
+    if (!planWrap && injectSlot) planWrap = ensureToolbarTicketSlot(scope);
+    if (poster) mountPosterTicketCtas(scope, partners, kpId);
+    if (planWrap) mountToolbarTicketBtns(planWrap, partners, kpId);
+    return { mounted: !!(poster || planWrap), needRetry: !planWrap || !poster };
+  }
+
+  function scheduleTicketRemount(scope, partners, kpId, gen, left) {
+    if (_ticketRemountTimer) {
+      clearTimeout(_ticketRemountTimer);
+      _ticketRemountTimer = null;
+    }
+    if (left <= 0) {
+      applyTicketPartners(scope, partners, kpId, true);
+      return;
+    }
+    _ticketRemountTimer = setTimeout(function () {
+      _ticketRemountTimer = null;
+      if (gen !== _ticketGen) return;
+      if (liveTicketKp(scope) && liveTicketKp(scope) !== String(kpId)) return;
+      var next = filmTicketScope(scope);
+      var planWrap = findPlanWrap(next);
+      var poster = findPosterWrap(next);
+      if (planWrap && poster) {
+        applyTicketPartners(next, partners, kpId, false);
+        return;
+      }
+      scheduleTicketRemount(next, partners, kpId, gen, left - 1);
+    }, TICKET_MOUNT_RETRY_MS);
+  }
+
+  function fetchTicketPartnersOnce(url, gen) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    _ticketCtrl = ctrl;
+    var timer = setTimeout(function () {
+      try { if (ctrl) ctrl.abort(); } catch (_e) {}
+    }, TICKET_FETCH_MS);
     return fetch(url, { credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
       .then(function (r) {
         if (!r.ok) throw new Error('ticket-partners ' + r.status);
         return r.json();
       })
-      .then(function (data) {
-        var usable = collectTicketPartners((data && data.partners) || []);
-        var planWrap = pageRoot.querySelector('.film-toolbar-plan-wrap');
-        if (planWrap) planWrap.removeAttribute('data-ticket-partners');
-        var toolbar = pageRoot.querySelector('.film-page-toolbar');
-        if (toolbar) toolbar.removeAttribute('data-ticket-partners');
-        if (!usable.length) return;
-        if (isMobileFilmLayout()) {
-          pageRoot.querySelectorAll('.film-toolbar-plan-wrap .film-ticket-btns, .film-toolbar-plan-wrap .film-t-afisha-btn, .film-toolbar-plan-wrap .film-ticket-btn').forEach(function (el) {
-            el.remove();
-          });
-          mountPosterTicketCtas(pageRoot, usable, kpId);
-        } else {
-          pageRoot.querySelectorAll('.film-poster-t-afisha-cta, .film-poster-ticket-stack, .film-ticket-btns--poster').forEach(function (el) {
-            el.remove();
-          });
-          if (planWrap) mountToolbarTicketBtns(planWrap, usable, kpId);
-        }
-      })
-      .catch(function () {})
       .finally(function () {
-        if (timer) clearTimeout(timer);
+        clearTimeout(timer);
+        if (_ticketCtrl === ctrl) _ticketCtrl = null;
+      })
+      .then(function (data) {
+        if (gen !== _ticketGen) return null;
+        return data;
+      });
+  }
+
+  function mountTicketPartnerButton(pageRoot, kpId, opts) {
+    var scope = filmTicketScope(pageRoot);
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!scope || !kp) return Promise.resolve();
+    opts = opts || {};
+
+    var liveKp = liveTicketKp(scope);
+    if (liveKp && liveKp !== kp) {
+      clearTicketButtons(scope);
+    }
+
+    var gen = ++_ticketGen;
+    if (_ticketCtrl) {
+      try { _ticketCtrl.abort(); } catch (_a) {}
+      _ticketCtrl = null;
+    }
+    if (_ticketRemountTimer) {
+      clearTimeout(_ticketRemountTimer);
+      _ticketRemountTimer = null;
+    }
+
+    showTicketPending(scope);
+
+    var city = (opts.city || 'moscow').toLowerCase();
+    var title = filmTitleParam(scope);
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/ticket-partners?city=' + encodeURIComponent(city);
+    if (title) url += '&title=' + encodeURIComponent(title);
+
+    function applyData(data) {
+      if (gen !== _ticketGen) return;
+      var next = filmTicketScope(scope);
+      if (liveTicketKp(next) && liveTicketKp(next) !== kp) return;
+      var usable = collectTicketPartners(extractTicketPartnersPayload(data));
+      var result = applyTicketPartners(next, usable, kp, false);
+      if (usable.length && result.needRetry) {
+        scheduleTicketRemount(next, usable, kp, gen, TICKET_MOUNT_RETRY_MAX);
+      }
+    }
+
+    return fetchTicketPartnersOnce(url, gen)
+      .catch(function () {
+        if (gen !== _ticketGen) return null;
+        return fetchTicketPartnersOnce(url, gen);
+      })
+      .then(function (data) {
+        if (gen !== _ticketGen) return;
+        if (!data) {
+          clearTicketPending(filmTicketScope(scope));
+          return;
+        }
+        applyData(data);
+      })
+      .catch(function () {
+        if (gen !== _ticketGen) return;
+        clearTicketPending(filmTicketScope(scope));
       });
   }
 
@@ -1349,9 +1546,9 @@
   }
 
   function initFilmPageFromRoot(pageRoot, kpIdOverride) {
-    var root = pageRoot || document.getElementById('film-page-content') || document.querySelector('main.film-page');
+    var root = filmTicketScope(pageRoot);
     if (!root) return Promise.resolve();
-    var hero = root.querySelector('.film-hero-with-tag[data-kp-id]');
+    var hero = readFilmHero(root);
     var kpId = kpIdOverride || (hero && hero.getAttribute('data-kp-id'));
     if (!kpId) return Promise.resolve();
     var isSeries = !!(hero && hero.getAttribute('data-is-series') === '1');
@@ -1431,11 +1628,29 @@
     mountTicketPartners: mountTicketPartners,
     metrikaGoal: metrikaGoal,
     fetchConfig: fetchConfig,
+    collectTicketPartners: collectTicketPartners,
+    extractTicketPartnersPayload: extractTicketPartnersPayload,
+    normalizeTicketPartnerKey: normalizeTicketPartnerKey,
   };
 
+  function bootFilmTicketsIfPresent() {
+    try {
+      var root = document.getElementById('film-page-content') || document.querySelector('main.film-page');
+      if (!root) return;
+      var hero = readFilmHero(root);
+      var kp = (hero && hero.getAttribute('data-kp-id')) || '';
+      if (!kp) return;
+      initFilmPageFromRoot(root, kp);
+    } catch (_boot) {}
+  }
+
   try {
-    if (document.body && document.body.classList.contains('film-standalone-page')) {
-      initFilmPageFromRoot();
-    }
+    bootFilmTicketsIfPresent();
   } catch (_bootShelf) {}
+  try {
+    document.addEventListener('mp:film-hero-ready', function (ev) {
+      var detail = (ev && ev.detail) || {};
+      initFilmPageFromRoot(detail.root, detail.kpId);
+    });
+  } catch (_ev) {}
 })(typeof window !== 'undefined' ? window : this);
