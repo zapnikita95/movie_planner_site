@@ -15642,7 +15642,14 @@
     );
   }
   function glassCtaIconHtml(iconKey) {
-    return '<span class="glass-cta__icon" aria-hidden="true">' + mpIcon(iconKey, { size: 'md' }) + '</span>';
+    let inner = mpIcon(iconKey, { size: 'md' });
+    if (!inner && iconKey === 'calendar') {
+      inner = '<i class="ph ph-calendar" aria-hidden="true"></i>';
+    }
+    if (!inner && iconKey === 'watchlist') {
+      inner = '<i class="ph ph-bookmark-simple" aria-hidden="true"></i>';
+    }
+    return '<span class="glass-cta__icon" aria-hidden="true">' + inner + '</span>';
   }
   function glassCtaLabelHtml(label, opts) {
     const text = String((opts && opts.label) != null ? opts.label : (label || ''));
@@ -15792,7 +15799,8 @@
     const shareBtn = '<button type="button" class="film-icon-btn" id="share-film-btn" data-share-film="1" data-kp="' + escapeHtml(String(item.kp_id || '')) + '" aria-label="Поделиться" title="Поделиться"><span class="film-icon-ico">↗</span><span class="film-icon-label">Поделиться</span></button>';
 
     if (!authenticated) {
-      const eyeIco = mpIcon('eye', { size: 'sm', className: 'film-icon-ico' });
+      const eyeIco = mpIcon('eye', { size: 'sm', className: 'film-icon-ico' }) ||
+        '<span class="film-icon-ico" aria-hidden="true"><i class="ph ph-eye"></i></span>';
       return (
         '<div class="film-page-toolbar film-page-toolbar--guest">' +
           '<div class="film-toolbar-plan-wrap">' +

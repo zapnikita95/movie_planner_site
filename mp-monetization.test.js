@@ -87,7 +87,7 @@ assert(cabSrc.indexOf('function initFilmMonetization') >= 0, 'cabinet SPA loads 
 assert((cabSrc.match(/initFilmMonetization\(/g) || []).length >= 6, 'cabinet film paints remount tickets');
 
 const routeSrc = fs.readFileSync(path.join(__dirname, 'cabinet-film-route.js'), 'utf8');
-assert(routeSrc.indexOf("BUILD = '20260911tickets1'") >= 0, 'thin /f/ cache-busts cabinet-app with tickets build');
+assert(routeSrc.indexOf("BUILD = '20260911guestToolbarIcons1'") >= 0, 'thin /f/ cache-busts cabinet-app after guest toolbar + tickets');
 assert(routeSrc.indexOf('initFilmMonetization') >= 0, 'guest /f/ onReady remounts tickets');
 
 console.log('mp-monetization.test.js: OK');

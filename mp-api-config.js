@@ -101,7 +101,7 @@
     try {
       if (global.__MP_ASSET_V) return String(global.__MP_ASSET_V);
     } catch (_e) {}
-    return '20260911tickets1';
+    return '20260911guestToolbarIcons1';
   }
 
   function ensureMpMonetization() {
