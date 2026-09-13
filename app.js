@@ -6968,6 +6968,7 @@
   let unwatchedActiveTagId = null;
   let unwatchedActiveTagName = '';
   let unwatchedActiveTagFilms = null;
+  let unwatchedActiveTagFilmItems = null;
   let unwatchedActiveTagLoading = false;
   let seriesItems = [];
   let seriesMixItems = [];
@@ -7070,12 +7071,26 @@
     );
   }
 
+  function normalizeUnwatchedTagFilm(f) {
+    if (!f) return null;
+    const filmId = f.film_id || f.id || null;
+    const kpId = f.kp_id || f.kinopoisk_id || null;
+    return Object.assign({}, f, {
+      film_id: filmId,
+      kp_id: kpId,
+      title: f.title || f.name || '',
+      poster: f.poster || f.poster_url || f.image || '',
+      is_series: Boolean(f.is_series || f.type === 'series'),
+    });
+  }
+
   function loadUnwatchedTagFilter(tagId, tagName) {
     const tid = Number(tagId);
     if (!tid) {
       unwatchedActiveTagId = null;
       unwatchedActiveTagName = '';
       unwatchedActiveTagFilms = null;
+      unwatchedActiveTagFilmItems = null;
       unwatchedActiveTagLoading = false;
       syncUnwatchedTagPills();
       updateUnwatchedCompactLabels();
@@ -7089,6 +7104,7 @@
     unwatchedActiveTagId = tid;
     unwatchedActiveTagName = tagName || '';
     unwatchedActiveTagFilms = { filmIds: new Set(), kpIds: new Set() };
+    unwatchedActiveTagFilmItems = [];
     unwatchedActiveTagLoading = true;
     syncUnwatchedTagPills();
     updateUnwatchedCompactLabels();
@@ -7101,6 +7117,7 @@
         filmIds: new Set(films.map((f) => f && (f.film_id || f.id)).filter(Boolean).map(String)),
         kpIds: new Set(films.map((f) => f && f.kp_id).filter(Boolean).map(String)),
       };
+      unwatchedActiveTagFilmItems = films.map(normalizeUnwatchedTagFilm).filter(Boolean);
       unwatchedActiveTagLoading = false;
       syncUnwatchedTagPills();
       updateUnwatchedCompactLabels();
@@ -7108,6 +7125,7 @@
     }).catch(() => {
       unwatchedActiveTagLoading = false;
       unwatchedActiveTagFilms = null;
+      unwatchedActiveTagFilmItems = null;
       showToast('Не удалось загрузить тег', { type: 'error' });
       syncUnwatchedTagPills();
       updateUnwatchedCompactLabels();
@@ -7148,14 +7166,17 @@
   function renderUnwatchedList() {
     const el = document.getElementById('unwatched-list');
     if (!el) return;
-    if (!unwatchedItems.length) {
+    if (!unwatchedItems.length && !unwatchedActiveTagId) {
       el.innerHTML = '<p class="empty-hint">Нет непросмотренных. Добавьте фильмы в боте.</p>';
       return;
     }
     const query = sectionSearchQuery('unwatched');
     const fs = sectionFilterState('unwatched');
-    let list = filterByTitle(unwatchedItems, query, 'title', ['actors', 'director', 'genres', 'year']);
-    list = list.filter(filmMatchesActiveUnwatchedTag);
+    const sourceItems = (unwatchedActiveTagId && Array.isArray(unwatchedActiveTagFilmItems))
+      ? unwatchedActiveTagFilmItems
+      : unwatchedItems;
+    let list = filterByTitle(sourceItems, query, 'title', ['actors', 'director', 'genres', 'year']);
+    if (!unwatchedActiveTagFilmItems) list = list.filter(filmMatchesActiveUnwatchedTag);
     list = list.filter((m) => {
       if (fs.type === 'film' && m.is_series) return false;
       if (fs.type === 'series' && !m.is_series) return false;
