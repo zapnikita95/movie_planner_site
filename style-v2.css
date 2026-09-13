@@ -29045,6 +29045,36 @@ a.plan-place-link {
 .club-settings-cover-preview{width:100%;max-width:220px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--club-line)}
 @media (min-width:561px){.club-post-action-row{display:flex;align-items:center;flex-wrap:nowrap}.club-post-action-row .club-reactions{display:flex;align-items:center;flex-wrap:nowrap;width:auto;max-width:none}.club-post-action-row .club-reaction-list{display:flex;align-items:center;flex-wrap:nowrap;gap:5px}.club-post-action-row .club-reaction-pill{white-space:nowrap}.club-post-action-row .club-comments-toggle{order:-1;flex:0 0 auto}}
 
+/* Club standalone pages need the same full-width rails as film/profile pages. */
+body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-readonly,
+body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-readonly > .container,
+body.in-cabinet:has(#section-club:not(.hidden)) .cabinet-sections,
+html.mp-section-boot #cabinet-readonly:has(#section-club) > .container,
+html.mp-section-boot #cabinet-readonly:has(#section-club) .cabinet-sections {
+  width: 100%;
+  max-width: none;
+}
+
+body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-readonly,
+html.mp-section-boot #cabinet-readonly:has(#section-club) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.in-cabinet:has(#section-club:not(.hidden)) #section-club,
+html.mp-section-boot #section-club {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+body.in-cabinet:has(#section-club:not(.hidden)) .club-page,
+html.mp-section-boot #section-club .club-page {
+  margin-left: 0;
+  margin-right: 0;
+  padding-top: 12px;
+}
+
 /* Plan cards: the entity switcher belongs to the plans toolbar, not the header chrome. */
 .plans-entity-switcher-row { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
 .plans-entity-switcher-label { color: var(--text-muted); font-size: 13px; font-weight: 700; }
@@ -29070,6 +29100,14 @@ a.plan-place-link {
 .club-post-action-row { flex-wrap:wrap; }
 .club-post-action-row .club-reactions { max-width:100%; min-width:0; }
 .club-post-action-row .club-reaction-list { max-width:100%; min-width:0; flex-wrap:wrap; }
+
+body.in-cabinet:has(#section-club:not(.hidden)) .club-layout,
+html.mp-section-boot #section-club .club-layout {
+  width: min(1180px, calc(100vw - 32px));
+  max-width: min(1180px, calc(100vw - 32px));
+  margin-left: auto;
+  margin-right: auto;
+}
 
 
 /* Collections create CTA — mirror clubs toolbar chrome */
