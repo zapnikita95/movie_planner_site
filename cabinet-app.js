@@ -13254,8 +13254,8 @@
     const btn = document.getElementById('unwatched-tags-toggle');
     const rect = btn ? btn.getBoundingClientRect() : null;
     const gap = 8;
-    const left = Math.max(12, Math.min(rect ? rect.left : 12, window.innerWidth - 332));
-    const width = Math.min(window.innerWidth - 24, Math.max(300, rect ? rect.width * 2.9 : 300));
+    const left = Math.max(12, rect ? rect.left : 12);
+    const width = Math.min(window.innerWidth - 24, Math.max(320, rect ? rect.width * 3.2 : 320));
     const adjustedLeft = Math.min(left, window.innerWidth - width - 12);
     tagsRow.style.setProperty('--base-tags-left', Math.max(12, adjustedLeft) + 'px');
     tagsRow.style.setProperty('--base-tags-top', ((rect ? rect.bottom : 0) + gap) + 'px');

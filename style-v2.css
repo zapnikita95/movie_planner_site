@@ -424,6 +424,7 @@ body.in-cabinet #section-inbox {
     grid-template-columns: 1fr;
     gap: 8px;
     width: var(--base-tags-width, calc(100vw - 24px));
+    margin: 0;
     max-height: min(48vh, 360px);
     overflow-y: auto;
     padding: 10px;
@@ -445,6 +446,8 @@ body.in-cabinet #section-inbox {
   body.in-cabinet #section-unwatched .base-section-toolbar.is-tags-open .base-user-tag-name {
     max-width: none;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   body.in-cabinet #section-unwatched .base-section-toolbar.is-filters-open .base-filter-toolbar,
   body.in-cabinet #section-unwatched .base-section-toolbar.is-sort-open .base-filter-toolbar {
@@ -29897,14 +29900,14 @@ a.collections-author-block:hover {
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta,
   body.in-cabinet #unwatched-list .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta {
     display: grid !important;
-    grid-template-columns: 28px minmax(0, 1fr) 14px !important;
-    column-gap: 4px !important;
+    grid-template-columns: 24px minmax(0, 1fr) 10px !important;
+    column-gap: 3px !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     min-height: 42px !important;
     height: 42px !important;
-    padding: 6px 8px !important;
+    padding: 6px 7px !important;
     border-radius: 16px !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
@@ -29923,12 +29926,25 @@ a.collections-author-block:hover {
     min-width: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
-    font-size: 12px !important;
-    line-height: 1.1 !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
     text-align: center !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+  }
+  body.in-cabinet #unwatched-list .glass-cta__label::after,
+  body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .glass-cta__label::after,
+  body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .action-dropdown-btn-text::after {
+    content: "План";
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
   }
   body.in-cabinet #unwatched-list .glass-cta__caret {
     grid-column: 3 !important;
