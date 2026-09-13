@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Краудфандинг фильмов в России — сборы на кино и документалки | Movie Planner</title>
-  <meta name="description" content="Витрина сборов на фильмы и документалки: Planeta и другие кампании, прогресс, ссылки авторам. Расскажите о своём краудфандинге — после модерации попадёте в «Сейчас собирают» на Movie Planner.">
+  <meta name="description" content="Витрина сборов на фильмы и документалки: Planeta и другие кампании, прогресс и ссылки авторам. Поддержите независимое кино в «Сейчас собирают» на Movie Planner.">
   <meta name="keywords" content="краудфандинг фильмов, сборы на фильм, planeta фильм, boomstarter кино, поддержать независимое кино, краудфандинг документальный фильм, рассказать о сборе, Movie Planner donations">
   <link rel="canonical" href="https://movie-planner.ru/donations">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
   <meta property="og:title" content="Краудфандинг фильмов — Сейчас собирают | Movie Planner">
-  <meta property="og:description" content="Активные сборы на независимое кино и документалки + форма «Рассказать о сборе» для авторов.">
+  <meta property="og:description" content="Активные сборы на независимое кино и документалки на Movie Planner.">
   <meta property="og:url" content="https://movie-planner.ru/donations">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ru_RU">
@@ -170,7 +170,7 @@
         "@id": "https://movie-planner.ru/donations#page",
         "url": "https://movie-planner.ru/donations",
         "name": "Краудфандинг фильмов — Сейчас собирают",
-        "description": "Витрина сборов на фильмы и документалки и форма для авторов «Рассказать о сборе».",
+        "description": "Витрина сборов на фильмы и документалки на Movie Planner.",
         "isPartOf": {"@type": "WebSite", "name": "Movie Planner", "url": "https://movie-planner.ru/"},
         "inLanguage": "ru-RU"
       },
@@ -190,7 +190,7 @@
             "name": "Как добавить свой сбор на Movie Planner?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Откройте форму на movie-planner.ru/donations#tell: укажите название, ссылку на кампанию, обложку, контакт и соцсеть автора. После модерации сбор появится в витрине."
+              "text": "Откройте форму на movie-planner.ru/donations-submit: укажите название, ссылку на кампанию, обложку, контакт и соцсеть автора. После модерации сбор появится в витрине."
             }
           },
           {
@@ -261,9 +261,9 @@
       </nav>
       <div class="donations-hero">
         <h1>Краудфандинг фильмов — сейчас собирают</h1>
-        <p>Витрина сборов на независимое кино и документалки: прогресс кампаний, ссылки авторам и заявка «Рассказать о сборе». Поддержите режиссёров или покажите свой краудфандинг зрителям Movie Planner.</p>
+        <p>Витрина сборов на независимое кино и документалки: прогресс кампаний и ссылки авторам. Поддержите режиссёров или покажите свой краудфандинг зрителям Movie Planner.</p>
         <div class="donations-hero-actions">
-          <a class="donations-btn donations-btn--primary" href="#tell">Рассказать о сборе</a>
+          <a class="donations-btn donations-btn--primary" href="/donations-submit">Рассказать о сборе</a>
           <a class="donations-btn" href="/articles/kraudfanding-pervogo-filma.html">Гайд по краудфандингу</a>
           <a class="donations-btn" href="/add-film">Добавить фильм</a>
           <a class="donations-btn" href="/premieres">Премьеры</a>
@@ -272,52 +272,13 @@
 
       <h2 id="active-campaigns" class="donations-section-title" style="font-size:1.1rem;margin:8px 0 14px;font-weight:800">Активные сборы на фильмы</h2>
       <div id="donations-grid" class="donations-grid" aria-live="polite"></div>
-      <p id="donations-empty" class="donations-empty hidden">Пока нет активных сборов — загляните позже или оставьте заявку ниже.</p>
+      <p id="donations-empty" class="donations-empty hidden">Пока нет активных сборов — загляните позже или отправьте заявку на отдельной странице.</p>
 
-      <div class="donations-form-wrap">
-<section class="donations-form-card" id="tell">
-      <h2>Рассказать о сборе</h2>
-      <p class="hint">Как «Добавить фильм»: заявка уходит на модерацию. Нужны название, ссылка на сбор, картинка, контакт и ссылка на соцсеть автора.</p>
-      <form id="donations-form" novalidate>
-        <label for="d-title">Название</label>
-        <input id="d-title" name="title" required maxlength="200" placeholder="Документальный фильм «…»">
-        <label for="d-url">Ссылка на сбор</label>
-        <input id="d-url" name="url" type="url" required maxlength="2000" placeholder="https://planeta.ru/campaigns/…">
-        <label for="d-image-url">Картинка сбора</label>
-        <div class="donations-image-row">
-          <select id="d-image-mode" class="donations-select" aria-label="Как добавить картинку">
-            <option value="file">Загрузить файл</option>
-            <option value="url">Ссылка на картинку</option>
-          </select>
-          <button type="button" class="donations-btn" id="d-image-pick">Выбрать файл</button>
-          <input id="d-poster" name="poster" type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden>
-        </div>
-        <input id="d-image-url" name="image_url" type="url" maxlength="2000" placeholder="https://…/poster.jpg" class="hidden" style="margin-top:8px">
-        <div class="donations-image-preview hidden" id="d-image-preview">
-          <img id="d-image-preview-img" alt="Превью афиши">
-          <button type="button" class="donations-btn" id="d-image-clear">Убрать</button>
-        </div>
-        <p class="hint" style="margin:6px 0 0;font-size:12px">Нужна обложка как у сборов выше (JPEG/PNG/WebP, до 8 МБ).</p>
-        <label for="d-contact">Контакт (Telegram / email)</label>
-        <input id="d-contact" name="contact" required maxlength="200" placeholder="@username или email">
-        <label for="d-social">Соцсеть автора (обязательно)</label>
-        <input id="d-social" name="social" required maxlength="1000" placeholder="https://t.me/… или Instagram / VK — ссылка на автора">
-        <p class="hint" style="margin:6px 0 0;font-size:12px">Покажется на плитке сбора. Можно несколько ссылок через запятую — первая станет основной.</p>
-        <label for="d-note">Комментарий</label>
-        <textarea id="d-note" name="note" maxlength="2000" placeholder="Кратко о проекте (по желанию)"></textarea>
-        <div style="margin-top:16px">
-          <button type="submit" class="donations-btn donations-btn--primary" id="d-submit">Отправить на модерацию</button>
-        </div>
-        <p class="donations-status" id="d-status" aria-live="polite"></p>
-      </form>
-    </section>
-      </div>
-
-      <section class="donations-faq" id="faq" style="margin:36px 0 24px;max-width:72ch">
-        <h2 style="font-size:1.15rem;margin:0 0 14px;font-weight:800">Частые вопросы про сборы</h2>
+      <section class="donations-faq" id="faq" style="width:100%;max-width:760px;margin:48px auto 24px">
+        <h2 style="font-size:1.15rem;margin:0 0 14px;font-weight:800;text-align:left">Частые вопросы про сборы</h2>
         <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
           <summary style="cursor:pointer;font-weight:700">Как попасть в «Сейчас собирают»?</summary>
-          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Заполните <a href="#tell" style="color:#ff8ab8">форму выше</a>: название, ссылка на кампанию, обложка, контакт и соцсеть автора. После модерации сбор появится в сетке.</p>
+          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Заполните <a href="/donations-submit" style="color:#ff8ab8">форму «Рассказать о сборе»</a>: название, ссылка на кампанию, обложка, контакт и соцсеть автора. После модерации сбор появится в сетке.</p>
         </details>
         <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
           <summary style="cursor:pointer;font-weight:700">Это вместо Planeta?</summary>
@@ -368,7 +329,7 @@
                 <div class="footer-info">
                     <h3>Авторам</h3>
                     <p><a href="/add-film">Добавить фильм</a></p>
-                    <p><a href="/donations#tell">Рассказать о сборе</a></p>
+                    <p><a href="/donations-submit">Рассказать о сборе</a></p>
                     <p><a href="/donations">Сейчас собирают</a></p>
                 </div>
                 <div class="footer-info footer-editorial">
