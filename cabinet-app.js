@@ -13396,7 +13396,7 @@
         <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || ''}">
           ${filmCardPosterHtml(m.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
-          ${buildFilmRateStar(m.film_id, 0)}
+          ${buildFilmRateStar(m.film_id, filmCardRatingValue(m))}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(listTitle)}${year}${ratingStr}</div>
@@ -15478,17 +15478,60 @@
     return '';
   }
 
-  // Кнопка со звёздочкой в углу постера — быстрая оценка фильма.
+  function normalizeUserRatingValue(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return n;
+  }
+
+  function formatUserRatingLabel(value) {
+    const n = normalizeUserRatingValue(value);
+    if (!n) return '';
+    return (Math.abs(n - Math.round(n)) < 0.001 ? String(Math.round(n)) : n.toFixed(1)) + '/10';
+  }
+
+  function filmCardRatingValue(item) {
+    if (!item) return 0;
+    return normalizeUserRatingValue(
+      item.user_rating != null ? item.user_rating :
+      item.my_rating != null ? item.my_rating :
+      item.rating != null ? item.rating :
+      0
+    );
+  }
+
+  function rateButtonInnerHtml(currentRating) {
+    const cur = normalizeUserRatingValue(currentRating);
+    if (cur) {
+      return '<span class="film-card-user-rating-badge-label">' + escapeHtml(formatUserRatingLabel(cur)) + '</span>';
+    }
+    return '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.5l2.955 6.305 6.545.835-4.77 4.62 1.2 6.74L12 17.77l-5.93 3.23 1.2-6.74L2.5 9.64l6.545-.835L12 2.5z"/></svg>';
+  }
+
+  function setRateButtonVisual(btn, rating) {
+    if (!btn) return;
+    const cur = normalizeUserRatingValue(rating);
+    btn.setAttribute('data-current-rating', String(cur));
+    btn.classList.toggle('film-card-rate-star', !cur);
+    btn.classList.toggle('film-card-user-rating-badge', !!cur);
+    btn.classList.toggle('is-rated', !!cur);
+    btn.setAttribute('title', cur ? 'Изменить оценку' : 'Оценить фильм');
+    btn.setAttribute('aria-label', cur ? 'Ваша оценка ' + formatUserRatingLabel(cur) : 'Оценить фильм');
+    btn.innerHTML = rateButtonInnerHtml(cur);
+  }
+
+  // Кнопка быстрой оценки в углу постера: звезда для пустой оценки, число для оценённых фильмов.
   function buildFilmRateStar(filmId, currentRating) {
     if (!filmId) return '';
-    const cur = Number(currentRating) || 0;
-    const label = cur ? `${cur}/10` : '';
+    const cur = normalizeUserRatingValue(currentRating);
+    const cls = cur ? 'film-card-user-rating-badge is-rated' : 'film-card-rate-star';
+    const title = cur ? 'Изменить оценку' : 'Оценить фильм';
+    const aria = cur ? 'Ваша оценка ' + formatUserRatingLabel(cur) : 'Оценить фильм';
     return (
-      `<button type="button" class="film-card-rate-star${cur ? ' is-rated' : ''}" ` +
+      `<button type="button" class="${cls}" ` +
       `data-rate-star="1" data-rate-film-id="${filmId}" data-current-rating="${cur}" ` +
-      `title="Оценить фильм" aria-label="Оценить фильм">` +
-      `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.5l2.955 6.305 6.545.835-4.77 4.62 1.2 6.74L12 17.77l-5.93 3.23 1.2-6.74L2.5 9.64l6.545-.835L12 2.5z"/></svg>` +
-      (label ? `<span class="film-card-rate-star-label">${label}</span>` : '') +
+      `title="${title}" aria-label="${aria}">` +
+      rateButtonInnerHtml(cur) +
       `</button>`
     );
   }
@@ -16439,7 +16482,7 @@
     if (!kp) return '';
     const titleAttr = escapeHtml(item.title || '');
     const yearAttr = escapeHtml(String(item.year || ''));
-    return `<div class="film-action-bar">${buildFilmPlanDropdown(item, { label: 'Запланировать' })}</div>`;
+    return `<div class="film-action-bar">${buildFilmPlanDropdown(item, { label: 'В план' })}</div>`;
   }
 
   function closeAllActionDropdowns(except) {
@@ -16584,19 +16627,7 @@
         if (idx >= 0) cache.ratings[idx] = row; else cache.ratings.unshift(row);
         cache.film.watched = true;
       }
-      // Обновляем звёздочку на карточке
-      if (starBtn) {
-        starBtn.setAttribute('data-current-rating', String(rating));
-        starBtn.classList.add('is-rated');
-        const lbl = starBtn.querySelector('.film-card-rate-star-label');
-        if (lbl) lbl.textContent = rating + '/10';
-        else {
-          const newLbl = document.createElement('span');
-          newLbl.className = 'film-card-rate-star-label';
-          newLbl.textContent = rating + '/10';
-          starBtn.appendChild(newLbl);
-        }
-      }
+      setRateButtonVisual(starBtn, rating);
       // Обновляем списки
       if (typeof applyRatingToLists === 'function') applyRatingToLists(filmId, rating);
       // Если оценили из планов — удаляем этот фильм из плановых карточек на фронте.
@@ -16617,12 +16648,7 @@
         return;
       }
       closeRatePopover();
-      if (starBtn) {
-        starBtn.setAttribute('data-current-rating', '0');
-        starBtn.classList.remove('is-rated');
-        const lbl = starBtn.querySelector('.film-card-rate-star-label');
-        if (lbl) lbl.remove();
-      }
+      setRateButtonVisual(starBtn, 0);
       if (typeof removeRatingFromLists === 'function') removeRatingFromLists(filmId);
       refreshFilmDetailFromApi(filmId);
     });

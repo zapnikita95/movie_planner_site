@@ -9413,6 +9413,37 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   color: #1a1a1a;
 }
 .film-card-rate-star-label { color: inherit; }
+.film-card-user-rating-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(12, 12, 18, 0.92);
+  border: 1.5px solid #ff5aa5;
+  color: #ff5aa5;
+  cursor: pointer;
+  z-index: 3;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease, color 0.2s ease;
+}
+.film-card-user-rating-badge:hover {
+  background: rgba(12, 12, 18, 0.98);
+  border-color: rgba(255, 90, 165, 0.9);
+  transform: scale(1.06);
+}
+.film-card-user-rating-badge-label { color: inherit; }
 
 /* Поповер быстрой оценки */
 .rate-popover {
@@ -29936,7 +29967,7 @@ a.collections-author-block:hover {
   body.in-cabinet #unwatched-list .glass-cta__label::after,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .glass-cta__label::after,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .action-dropdown-btn-text::after {
-    content: "План";
+    content: "В план";
     display: block;
     min-width: 0;
     overflow: hidden;
