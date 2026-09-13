@@ -1,7 +1,8 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260909articlechrome1';
+  var BUILD = '20260913headerNav1';
+  var STYLE_BUILD = '20260913headerNav1';
   var RUSTORE_URL = 'https://www.rustore.ru/catalog/app/com.movie_planner';
   var IOS_URL_RU = 'https://apps.apple.com/ru/app/movie-planner/id6769016073';
   var IOS_URL_EN = 'https://apps.apple.com/app/movie-planner/id6769016073';
@@ -346,12 +347,12 @@
   }
 
   function bumpArticleStylesheet() {
-    /* Never rewrite an already-versioned stylesheet — swapping ?v= mid-load
-       causes a second CSS fetch (FOUC / “bare HTML” flash on refresh). */
     document.querySelectorAll('link[rel="stylesheet"][href*="style-v2"]').forEach(function (link) {
       var href = link.getAttribute('href') || '';
-      if (!href || href.indexOf('?v=') !== -1) return;
-      link.href = href.split('?')[0] + '?v=' + BUILD;
+      if (!href) return;
+      var base = href.split('?')[0];
+      var next = base + '?v=' + STYLE_BUILD;
+      if (href !== next) link.href = next;
     });
   }
 

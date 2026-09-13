@@ -1055,7 +1055,9 @@
     try {
       const href = SECTION_TO_PATH[sectionId] || null;
       document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach((b) => {
-        b.classList.toggle('active', href && b.getAttribute('href') === href);
+        let btnPath = b.getAttribute('href') || '';
+        try { btnPath = new URL(btnPath, window.location.origin).pathname.replace(/\/$/, '') || '/'; } catch (_) {}
+        b.classList.toggle('active', !!href && btnPath === href);
       });
     } catch (_) {}
   }
