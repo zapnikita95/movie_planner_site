@@ -2592,6 +2592,15 @@
   };
 
   function standaloneNavHtml() {
+    var path = (global.location && global.location.pathname ? global.location.pathname : '/').replace(/\/$/, '') || '/';
+    var activeHref = '';
+    if (path === '/home') activeHref = '/home';
+    else if (path === '/plans') activeHref = '/plans';
+    else if (path === '/watchlist') activeHref = '/watchlist';
+    else if (path === '/whattowatch' || path.indexOf('/whattowatch/') === 0 || path === '/clubs' || path.indexOf('/features/collections') === 0) activeHref = '/whattowatch';
+    else if (path === '/premieres') activeHref = '/premieres';
+    else if (path === '/buzz') activeHref = '/buzz';
+    else if (path === '/tournament') activeHref = '/tournament';
     var tabs = [
       { href: '/home', label: 'Главная', icon: 'home' },
       { href: '/plans', label: 'Планы', icon: 'plans' },
@@ -2604,7 +2613,8 @@
     return '<nav class="cabinet-nav film-standalone-nav" id="film-standalone-nav" aria-label="Разделы">' +
       tabs.map(function (t) {
         /* data-mp-icon: hydrate after async mp-icons.js (articles mount nav before MPIcons). */
-        return '<a class="cabinet-nav-btn" href="' + t.href + '"><span class="cabinet-nav-btn-emoji" data-mp-icon="' + escapeHtml(t.icon) + '"></span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
+        var active = t.href === activeHref ? ' active" aria-current="page' : '';
+        return '<a class="cabinet-nav-btn' + active + '" href="' + t.href + '"><span class="cabinet-nav-btn-emoji" data-mp-icon="' + escapeHtml(t.icon) + '"></span><span class="cabinet-nav-btn-text">' + escapeHtml(t.label) + '</span></a>';
       }).join('') +
     '</nav>';
   }
