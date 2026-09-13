@@ -7028,6 +7028,30 @@
       const btn = document.getElementById(id);
       if (btn) btn.setAttribute('aria-expanded', next === key ? 'true' : 'false');
     });
+    updateUnwatchedFloatingPanel(next);
+  }
+
+  function updateUnwatchedFloatingPanel(panel) {
+    const section = document.getElementById('section-unwatched');
+    const toolbar = section && section.querySelector('.base-section-toolbar');
+    if (!section || !toolbar) return;
+    const tagsRow = toolbar.querySelector('.base-user-tags-row');
+    if (!tagsRow) return;
+    if (panel !== 'tags' || !window.matchMedia || !window.matchMedia('(max-width: 768px)').matches) {
+      tagsRow.style.removeProperty('--base-tags-left');
+      tagsRow.style.removeProperty('--base-tags-top');
+      tagsRow.style.removeProperty('--base-tags-width');
+      return;
+    }
+    const btn = document.getElementById('unwatched-tags-toggle');
+    const rect = btn ? btn.getBoundingClientRect() : null;
+    const gap = 8;
+    const left = Math.max(12, Math.min(rect ? rect.left : 12, window.innerWidth - 332));
+    const width = Math.min(window.innerWidth - 24, Math.max(300, rect ? rect.width * 2.9 : 300));
+    const adjustedLeft = Math.min(left, window.innerWidth - width - 12);
+    tagsRow.style.setProperty('--base-tags-left', Math.max(12, adjustedLeft) + 'px');
+    tagsRow.style.setProperty('--base-tags-top', ((rect ? rect.bottom : 0) + gap) + 'px');
+    tagsRow.style.setProperty('--base-tags-width', width + 'px');
   }
 
   function unwatchedSortLabel(mode) {
@@ -7246,6 +7270,8 @@
       if (toolbar.contains(e.target)) return;
       setUnwatchedToolbarPanel('');
     });
+    window.addEventListener('resize', () => updateUnwatchedFloatingPanel(section.querySelector('.base-section-toolbar')?.dataset.openPanel || ''));
+    window.addEventListener('scroll', () => updateUnwatchedFloatingPanel(section.querySelector('.base-section-toolbar')?.dataset.openPanel || ''), { passive: true });
     updateUnwatchedCompactLabels();
   }
 
