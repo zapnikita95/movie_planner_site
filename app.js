@@ -6965,6 +6965,10 @@
 
   let unwatchedItems = [];
   let unwatchedSortMode = 'date';
+  let unwatchedActiveTagId = null;
+  let unwatchedActiveTagName = '';
+  let unwatchedActiveTagFilms = null;
+  let unwatchedActiveTagLoading = false;
   let seriesItems = [];
   let seriesMixItems = [];
   let _seriesHubTab = 'upcoming';
@@ -7007,6 +7011,110 @@
     };
   }
 
+  function setUnwatchedToolbarPanel(panel) {
+    const toolbar = document.querySelector('#section-unwatched .base-section-toolbar');
+    if (!toolbar) return;
+    const next = toolbar.dataset.openPanel === panel ? '' : (panel || '');
+    toolbar.dataset.openPanel = next;
+    toolbar.classList.toggle('is-tags-open', next === 'tags');
+    toolbar.classList.toggle('is-filters-open', next === 'filters');
+    toolbar.classList.toggle('is-sort-open', next === 'sort');
+    [
+      ['unwatched-tags-toggle', 'tags'],
+      ['unwatched-filters-toggle', 'filters'],
+      ['unwatched-sort-toggle', 'sort'],
+    ].forEach(([id, key]) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.setAttribute('aria-expanded', next === key ? 'true' : 'false');
+    });
+  }
+
+  function unwatchedSortLabel(mode) {
+    if (mode === 'date_old') return 'Старые';
+    if (mode === 'az') return 'А-Я';
+    if (mode === 'za') return 'Я-А';
+    return 'Новые';
+  }
+
+  function updateUnwatchedCompactLabels() {
+    const tagLabel = document.getElementById('unwatched-tag-active-label');
+    if (tagLabel) tagLabel.textContent = unwatchedActiveTagName ? unwatchedActiveTagName : '';
+    const sortLabel = document.getElementById('unwatched-sort-active-label');
+    if (sortLabel) sortLabel.textContent = unwatchedSortLabel(unwatchedSortMode);
+    const fs = sectionFilterState('unwatched');
+    const activeFilters = [];
+    if (fs.type && fs.type !== 'any') activeFilters.push(fs.type === 'series' ? 'сериалы' : 'фильмы');
+    if (fs.yearFrom != null || fs.yearTo != null) activeFilters.push('год');
+    if (fs.genre) activeFilters.push('жанр');
+    const filterLabel = document.getElementById('unwatched-filter-active-label');
+    if (filterLabel) filterLabel.textContent = activeFilters.length ? String(activeFilters.length) : '';
+  }
+
+  function syncUnwatchedTagPills() {
+    document.querySelectorAll('#section-unwatched .base-user-tag-pill').forEach((pill) => {
+      const tid = parseInt(pill.getAttribute('data-film-tag-id') || '', 10);
+      pill.classList.toggle('active', !!unwatchedActiveTagId && tid === unwatchedActiveTagId);
+      pill.setAttribute('aria-pressed', (!!unwatchedActiveTagId && tid === unwatchedActiveTagId) ? 'true' : 'false');
+    });
+  }
+
+  function filmMatchesActiveUnwatchedTag(m) {
+    if (!unwatchedActiveTagId) return true;
+    if (unwatchedActiveTagLoading) return false;
+    if (!unwatchedActiveTagFilms) return false;
+    const fid = m && m.film_id != null ? String(m.film_id) : '';
+    const kp = m && m.kp_id != null ? String(m.kp_id) : '';
+    return !!(
+      fid && unwatchedActiveTagFilms.filmIds.has(fid) ||
+      kp && unwatchedActiveTagFilms.kpIds.has(kp)
+    );
+  }
+
+  function loadUnwatchedTagFilter(tagId, tagName) {
+    const tid = Number(tagId);
+    if (!tid) {
+      unwatchedActiveTagId = null;
+      unwatchedActiveTagName = '';
+      unwatchedActiveTagFilms = null;
+      unwatchedActiveTagLoading = false;
+      syncUnwatchedTagPills();
+      updateUnwatchedCompactLabels();
+      renderUnwatchedList();
+      return Promise.resolve();
+    }
+    if (unwatchedActiveTagId === tid) {
+      loadUnwatchedTagFilter(null);
+      return Promise.resolve();
+    }
+    unwatchedActiveTagId = tid;
+    unwatchedActiveTagName = tagName || '';
+    unwatchedActiveTagFilms = { filmIds: new Set(), kpIds: new Set() };
+    unwatchedActiveTagLoading = true;
+    syncUnwatchedTagPills();
+    updateUnwatchedCompactLabels();
+    renderUnwatchedList();
+    return api('/api/site/film-user-tags/' + encodeURIComponent(String(tid))).then((data) => {
+      const films = Array.isArray(data && data.films) ? data.films : [];
+      const tag = data && data.tag ? data.tag : {};
+      unwatchedActiveTagName = tag.name || tagName || '';
+      unwatchedActiveTagFilms = {
+        filmIds: new Set(films.map((f) => f && (f.film_id || f.id)).filter(Boolean).map(String)),
+        kpIds: new Set(films.map((f) => f && f.kp_id).filter(Boolean).map(String)),
+      };
+      unwatchedActiveTagLoading = false;
+      syncUnwatchedTagPills();
+      updateUnwatchedCompactLabels();
+      renderUnwatchedList();
+    }).catch(() => {
+      unwatchedActiveTagLoading = false;
+      unwatchedActiveTagFilms = null;
+      showToast('Не удалось загрузить тег', { type: 'error' });
+      syncUnwatchedTagPills();
+      updateUnwatchedCompactLabels();
+      renderUnwatchedList();
+    });
+  }
+
   function renderUnwatchedCard(m) {
     const link = filmDeepLink(m.film_id, m.kp_id, m.is_series);
     const year = m.year ? ` (${m.year})` : '';
@@ -7047,6 +7155,7 @@
     const query = sectionSearchQuery('unwatched');
     const fs = sectionFilterState('unwatched');
     let list = filterByTitle(unwatchedItems, query, 'title', ['actors', 'director', 'genres', 'year']);
+    list = list.filter(filmMatchesActiveUnwatchedTag);
     list = list.filter((m) => {
       if (fs.type === 'film' && m.is_series) return false;
       if (fs.type === 'series' && !m.is_series) return false;
@@ -7062,7 +7171,12 @@
       if (unwatchedSortMode === 'az') list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
       if (unwatchedSortMode === 'za') list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ru'));
     }
+    if (unwatchedActiveTagLoading) {
+      el.innerHTML = '<p class="empty-hint">Загружаем тег…</p>';
+      return;
+    }
     el.innerHTML = list.length ? list.map(renderUnwatchedCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
+    updateUnwatchedCompactLabels();
   }
 
   function bindUnwatchedSortIcons() {
@@ -7076,6 +7190,7 @@
           b.classList.toggle('active', b === btn);
         });
         renderUnwatchedList();
+        updateUnwatchedCompactLabels();
       });
     });
     group.querySelectorAll('.base-sort-icon-btn').forEach((b) => {
@@ -7084,9 +7199,39 @@
     try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(group); } catch (_) {}
   }
 
+  function bindUnwatchedCompactControls() {
+    const section = document.getElementById('section-unwatched');
+    if (!section || section.dataset.compactBound) return;
+    section.dataset.compactBound = '1';
+    const tagsBtn = document.getElementById('unwatched-tags-toggle');
+    const filtersBtn = document.getElementById('unwatched-filters-toggle');
+    const sortBtn = document.getElementById('unwatched-sort-toggle');
+    if (tagsBtn) tagsBtn.addEventListener('click', () => setUnwatchedToolbarPanel('tags'));
+    if (filtersBtn) filtersBtn.addEventListener('click', () => setUnwatchedToolbarPanel('filters'));
+    if (sortBtn) sortBtn.addEventListener('click', () => setUnwatchedToolbarPanel('sort'));
+    section.addEventListener('click', (e) => {
+      const pill = e.target.closest('.base-user-tag-pill[data-film-tag-id]');
+      if (!pill || !section.contains(pill)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const tid = parseInt(pill.getAttribute('data-film-tag-id') || '', 10);
+      const name = (pill.querySelector('.base-user-tag-name') || pill).textContent || '';
+      void loadUnwatchedTagFilter(tid, name.trim());
+      setUnwatchedToolbarPanel('');
+    }, true);
+    document.addEventListener('click', (e) => {
+      const toolbar = section.querySelector('.base-section-toolbar');
+      if (!toolbar || !toolbar.dataset.openPanel) return;
+      if (toolbar.contains(e.target)) return;
+      setUnwatchedToolbarPanel('');
+    });
+    updateUnwatchedCompactLabels();
+  }
+
   function loadUnwatched() {
     api('/api/site/unwatched').then((data) => {
       unwatchedItems = Array.isArray(data && data.items) ? data.items : [];
+      bindUnwatchedCompactControls();
       bindUnwatchedSortIcons();
       bindSectionSearchOnce('unwatched', renderUnwatchedList);
       ['type', 'year-from', 'year-to', 'genre'].forEach((suffix) => {
@@ -7094,9 +7239,13 @@
         if (el && !el.dataset.bound) {
           el.dataset.bound = '1';
           el.addEventListener('input', renderUnwatchedList);
+          el.addEventListener('input', updateUnwatchedCompactLabels);
           el.addEventListener('change', renderUnwatchedList);
+          el.addEventListener('change', updateUnwatchedCompactLabels);
         }
       });
+      syncUnwatchedTagPills();
+      updateUnwatchedCompactLabels();
       renderUnwatchedList();
       try { scheduleHomeDashboardRefresh(); } catch (_) {}
     }).catch(() => {
