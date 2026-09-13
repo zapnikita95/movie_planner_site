@@ -29526,3 +29526,153 @@ a.collections-author-block:hover {
     border-bottom-color: #ff7eb6 !important;
   }
 }
+
+/* 20260913clubSchedule1 — club schedule controls and film preview parity. */
+.club-schedule-view {
+  transition: color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.club-schedule-view:hover,
+.club-schedule-view:focus-visible {
+  color: #fff;
+  background: rgba(239, 28, 122, .14);
+  box-shadow: inset 0 0 0 1px rgba(239, 28, 122, .34);
+}
+.club-schedule-item .club-mini-btn,
+.club-plan-dialog-actions .club-mini-btn,
+.club-mini-btn-link {
+  min-height: 42px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  background: rgba(255, 255, 255, .035);
+  color: #fff;
+  text-decoration: none;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.club-schedule-item .club-mini-btn:hover,
+.club-schedule-item .club-mini-btn:focus-visible,
+.club-plan-dialog-actions .club-mini-btn:hover,
+.club-plan-dialog-actions .club-mini-btn:focus-visible,
+.club-mini-btn-link:hover,
+.club-mini-btn-link:focus-visible {
+  border-color: rgba(239, 28, 122, .72);
+  background: rgba(239, 28, 122, .18);
+  box-shadow: 0 0 0 4px rgba(239, 28, 122, .14);
+  transform: translateY(-1px);
+}
+.club-calendar {
+  padding: 16px;
+  border-radius: 18px;
+}
+.club-calendar-head strong {
+  font-size: 16px;
+}
+.club-calendar-nav:hover,
+.club-calendar-nav:focus-visible {
+  border-color: rgba(239, 28, 122, .7);
+  background: rgba(239, 28, 122, .16);
+  box-shadow: 0 0 0 4px rgba(239, 28, 122, .12);
+}
+.club-calendar-weekdays,
+.club-calendar-grid {
+  gap: 8px;
+}
+.club-calendar-day {
+  min-height: 96px;
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .035);
+}
+.club-calendar-day > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.club-calendar-day.has-plans > span {
+  color: #fff;
+  background: linear-gradient(135deg, var(--club-pink), var(--club-purple));
+}
+.club-plan-dialog {
+  width: min(760px, calc(100vw - 40px));
+  display: grid;
+  grid-template-columns: 164px minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+}
+.club-plan-dialog-media {
+  min-width: 0;
+}
+.club-plan-dialog-poster {
+  width: 164px;
+  height: 246px;
+  border-radius: 12px;
+}
+.club-plan-dialog-copy {
+  min-width: 0;
+  padding-top: 3px;
+}
+.club-plan-dialog-copy h3 {
+  margin: 8px 0 8px;
+  font-size: 23px;
+  line-height: 1.18;
+}
+.club-plan-dialog-meta {
+  margin-top: 10px !important;
+  color: rgba(255, 255, 255, .68) !important;
+}
+.club-plan-dialog-desc {
+  margin-top: 16px !important;
+  color: #eeeaf6 !important;
+  font-size: 14px !important;
+}
+.club-plan-dialog-loading {
+  color: var(--club-muted) !important;
+}
+.club-plan-dialog-facts {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.club-plan-dialog-fact {
+  display: grid;
+  gap: 3px;
+}
+.club-plan-dialog-fact span {
+  color: var(--club-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.club-plan-dialog-fact b {
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.club-plan-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+@media (max-width: 700px) {
+  .club-plan-dialog {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px;
+  }
+  .club-plan-dialog-poster {
+    width: 96px;
+    height: 144px;
+  }
+  .club-plan-dialog-copy h3 {
+    font-size: 17px;
+  }
+  .club-calendar-day {
+    min-height: 62px;
+    padding: 6px;
+  }
+}

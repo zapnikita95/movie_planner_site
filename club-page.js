@@ -46,7 +46,7 @@
     pollEdits: {} ,
     comments: {},
     planPicker: null,
-    scheduleView: "list", calendarMonth: "", scheduleDialog: null, watchedBusy: {}, leaveConfirm: false, leaveBusy: false
+    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false
   };
   var root;
   var overlayHost;
@@ -211,11 +211,13 @@
 
   function title(x) { var f = planFilm(x); return (x && (x.title || x.name || x.nameRu || x.name_en) || f.title || f.name || f.nameRu || f.name_en) || "Фильм"; }
 
-  function link(x) { var f = planFilm(x); var kp = x && (x.kp_id || x.kinopoisk_id || x.kpId || x.film_id_kp) || f.kp_id || f.kinopoisk_id || f.kpId; return kp ? "/f/" + encodeURIComponent(String(kp)) : ""; }
+  function planKpId(x) { var f = planFilm(x); return x && (x.kp_id || x.kinopoisk_id || x.kpId || x.film_id_kp) || f.kp_id || f.kinopoisk_id || f.kpId || ""; }
+
+  function link(x) { var kp = planKpId(x); return kp ? "/f/" + encodeURIComponent(String(kp)) : ""; }
 
   function planDate(p) { return p && (p.plan_datetime || p.when || p.date || p.planned_at || p.starts_at || p.watch_at) || ""; }
 
-  function planDescription(p) { var f = planFilm(p); var text = p && (p.description || p.note || p.comment) || f.description || f.short_description || f.plot || ""; text = String(text || "").replace(/\s+/g, " ").trim(); return text ? text.slice(0, 180) + (text.length > 180 ? "…" : "") : ""; }
+  function planDescription(p, limit) { var f = planFilm(p); var text = p && (p.description || p.overview_ru || p.short_description || p.note || p.comment || p.plot) || f.description || f.overview_ru || f.short_description || f.plot || ""; text = String(text || "").replace(/\s+/g, " ").trim(); var max = Number(limit || 180); return text && max > 0 ? text.slice(0, max) + (text.length > max ? "…" : "") : text; }
 
   function planTypeLabel(p) { var type = String((p && (p.plan_type || p.type)) || "").toLowerCase(); if (type === "cinema") return "В кино"; if (type === "club" || type === "cinema_club") return "Киноклуб"; return "Дома"; }
 
@@ -1152,11 +1154,72 @@
 
   function dayKey(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
+  function personName(p) {
+    return String(p && (p.name_ru || p.name || p.display_name || p.name_en) || "").trim();
+  }
+
+  function planDetailKey(p) {
+    var kp = planKpId(p);
+    return kp ? String(kp) : "";
+  }
+
+  function mergePlanDetail(p) {
+    var key = planDetailKey(p);
+    var detail = key ? state.scheduleDetails[key] : null;
+    var film = detail && (detail.film || detail);
+    return film && typeof film === "object" ? Object.assign({}, planFilm(p), film) : planFilm(p);
+  }
+
+  function castLine(cast) {
+    var actors = cast && Array.isArray(cast.actors) ? cast.actors : [];
+    return actors.map(personName).filter(Boolean).slice(0, 5).join(", ");
+  }
+
+  function loadPlanDetail(p) {
+    var key = planDetailKey(p);
+    if (!key || state.scheduleDetails[key] || state.scheduleDetailBusy[key]) return;
+    state.scheduleDetailBusy[key] = true;
+    req('/api/public/film/' + encodeURIComponent(key))
+      .then(function (d) {
+        state.scheduleDetails[key] = d && d.success !== false ? d : {};
+      })
+      .catch(function () {
+        state.scheduleDetails[key] = {};
+      })
+      .then(function () {
+        delete state.scheduleDetailBusy[key];
+        if (state.scheduleDialog && planDetailKey(state.scheduleDialog) === key) render();
+      });
+  }
+
   function scheduleDialogHtml() {
     var p = state.scheduleDialog;
     if (!p) return "";
-    var im = poster(p), l = clubLink(p), desc = planDescription(p);
-    return "<div class=\"club-plan-dialog-backdrop\" data-club-plan-close><div class=\"club-plan-dialog\" role=\"dialog\" aria-modal=\"true\" aria-label=\"План просмотра\"><button type=\"button\" class=\"club-plan-dialog-close\" data-club-plan-close aria-label=\"Закрыть\">×</button>" + (im ? "<img class=\"club-plan-dialog-poster\" src=\"" + esc(im) + "\" alt=\"\">" : "") + "<div class=\"club-plan-dialog-copy\"><span class=\"club-plan-dialog-type\">" + esc(planTypeLabel(p)) + "</span><h3>" + (l ? "<a href=\"" + esc(l) + "\">" + esc(title(p)) + "</a>" : esc(title(p))) + "</h3><time>" + esc(fmt(planDate(p))) + "</time>" + (desc ? "<p>" + esc(desc) + "</p>" : "") + clubPlanAction(p) + "</div></div></div>";
+    var key = planDetailKey(p);
+    var detail = key ? state.scheduleDetails[key] : null;
+    var film = mergePlanDetail(p);
+    var cast = detail && detail.cast || film.cast || {};
+    var im = poster(film) || poster(p), l = clubLink(p), desc = planDescription(film, 420) || planDescription(p, 420);
+    var year = film.year ? String(film.year) : "";
+    var genres = String(film.genres || "").trim();
+    var country = String(film.country || "").trim();
+    var rating = film.rating_kp ? ("КП " + film.rating_kp) : "";
+    var director = personName(cast && cast.director);
+    var actors = castLine(cast);
+    var meta = [year, genres, country, rating].filter(Boolean).join(" · ");
+    var castHtml = (director ? '<div class="club-plan-dialog-fact"><span>Режиссёр</span><b>' + esc(director) + '</b></div>' : '') +
+      (actors ? '<div class="club-plan-dialog-fact"><span>В ролях</span><b>' + esc(actors) + '</b></div>' : '');
+    var loading = key && state.scheduleDetailBusy[key] && !detail ? '<p class="club-plan-dialog-loading">Догружаем описание и актёров…</p>' : '';
+    return '<div class="club-plan-dialog-backdrop" data-club-plan-close><div class="club-plan-dialog" role="dialog" aria-modal="true" aria-label="План просмотра">' +
+      '<button type="button" class="club-plan-dialog-close" data-club-plan-close aria-label="Закрыть">×</button>' +
+      '<div class="club-plan-dialog-media">' + (im ? '<img class="club-plan-dialog-poster" src="' + esc(im) + '" alt="">' : '<div class="club-plan-dialog-poster club-poster-empty">🎬</div>') + '</div>' +
+      '<div class="club-plan-dialog-copy"><span class="club-plan-dialog-type">' + esc(planTypeLabel(p)) + '</span><h3>' + esc(title(film) || title(p)) + '</h3>' +
+      '<time>' + esc(fmt(planDate(p))) + '</time>' +
+      (meta ? '<p class="club-plan-dialog-meta">' + esc(meta) + '</p>' : '') +
+      (desc ? '<p class="club-plan-dialog-desc">' + esc(desc) + '</p>' : loading) +
+      (castHtml ? '<div class="club-plan-dialog-facts">' + castHtml + '</div>' : '') +
+      '<div class="club-plan-dialog-actions">' + (l ? '<a class="club-mini-btn club-mini-btn-link" href="' + esc(l) + '">Открыть фильм</a>' : '') + clubPlanAction(p) + '</div>' +
+      '</div></div></div>';
   }
 
   function schedule() {
@@ -1174,7 +1237,7 @@
       content = "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
     } else { content = rows || empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь."); }
     var listActive = state.scheduleView === "list", calActive = !listActive;
-    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + " data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + " data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDialogHtml();
+    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDialogHtml();
   }
 
   function films() {
@@ -1891,7 +1954,7 @@
 
   function openPlanDialog(id) {
     var p = (state.club && state.club.plans || []).find(function (item) { return String(item.id || '') === String(id || ''); });
-    if (p) { state.scheduleDialog = p; render(); }
+    if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); }
   }
 
   function closePlanDialog() { state.scheduleDialog = null; render(); }
@@ -1905,11 +1968,11 @@
 
   function bind() {
     root.querySelectorAll('[data-club-schedule-view]').forEach(function (b) {
-      b.onclick = function (event) { event.preventDefault(); state.scheduleView = b.getAttribute('data-club-schedule-view') === 'calendar' ? 'calendar' : 'list'; if (state.scheduleView === 'calendar' && !state.calendarMonth) state.calendarMonth = calendarMonthKey(new Date()); render(); };
+      b.onclick = function (event) { event.preventDefault(); state.scheduleView = b.getAttribute('data-club-schedule-view') === 'calendar' ? 'calendar' : 'list'; if (state.scheduleView === 'calendar' && !state.calendarMonth) { var firstPlan = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()); }); state.calendarMonth = calendarMonthKey(firstPlan ? new Date(planDate(firstPlan)) : new Date()); } render(); };
     });
     root.querySelectorAll('[data-club-calendar-nav]').forEach(function (b) { b.onclick = function () { shiftCalendar(b.getAttribute('data-club-calendar-nav')); }; });
     root.querySelectorAll('[data-club-calendar-day]').forEach(function (b) {
-      b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; render(); } };
+      b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); } };
     });
     root.querySelectorAll('[data-club-plan-watched]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); markClubPlanWatched(b.getAttribute('data-club-plan-watched')); }; });
     root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { if (e.target.closest && e.target.closest('a')) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
@@ -1926,7 +1989,7 @@
       };
     });
     root.querySelectorAll('[data-club-join]').forEach(function (b) {
-      b.onclick = join;
+      b.onclick = function (e) { if (e) { e.preventDefault(); e.stopPropagation(); } join(); };
     });
     root.querySelectorAll('[data-club-leave]').forEach(function (b) { b.onclick = askLeave; });
     var coverUpload = root.querySelector("#club-profile-cover");
