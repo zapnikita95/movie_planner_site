@@ -5947,7 +5947,8 @@ main.film-page .eyebrow + .film-ext-ratings {
 .watched-toggle.on .wt-mark { background: #34c759; border-color: #34c759; color: #000; }
 
 /* Trailer */
-.film-modal-trailer { margin-top: 14px; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #000; }
+.film-modal-trailer { margin-top: 14px; border-radius: 14px; overflow: hidden; background: #000; }
+.film-modal-trailer-embed { aspect-ratio: 16/9; }
 .film-modal-trailer iframe { width: 100%; height: 100%; border: 0; }
 
 /* Similar grid */
@@ -30462,4 +30463,195 @@ a.collections-author-block:hover {
 }
 @media (hover: none) {
   .home-poster-tile-wrap .home-poster-trailer-play { display: none !important; }
+}
+
+
+/* === Premiere: no gradient caption badges / no grid title logos (2026-09-14) === */
+#section-premieres .premiere-caption-badge,
+#section-premieres .poster-caption-badge,
+#section-premieres .premiere-poster-caption,
+#section-premieres .card-caption-badge,
+#section-premieres .film-card-caption-badge,
+.home-prem-rail .premiere-caption-badge,
+.home-prem-rail .poster-caption-badge,
+.premiere-poster-tile-grid .premiere-caption-badge {
+  display: none !important;
+}
+/* Grid/rail titles stay plain text — logos only in hover trailer preview + /f/ hero */
+.premiere-poster-tile-title .film-title-logo,
+.premiere-poster-tile-title-logo,
+.home-pre-card-title .film-title-logo,
+.home-pre-card-title-logo {
+  display: none !important;
+}
+.premiere-poster-tile-title.has-title-logo,
+.home-pre-card-title.has-title-logo {
+  display: block;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.premiere-poster-tile-title .premiere-poster-tile-title-text,
+.home-pre-card-title .home-pre-card-title-text {
+  display: inline !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  clip: auto !important;
+  clip-path: none !important;
+  white-space: normal !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Desktop /f/{kp}: poster column keeps pill under афиша in grid layouts */
+.film-poster-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+.film-poster-col > .poster-wrap {
+  width: 100%;
+}
+@media (min-width: 861px) {
+  .film-hero-with-tag > .film-poster-col {
+    grid-column: 1;
+    align-self: start;
+  }
+}
+
+/* Desktop /f/{kp}: compact pill under poster → fullscreen trailer lightbox */
+.film-page-trailer--under-poster {
+  margin: 10px 0 0;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: auto !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+.film-trailer-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 12, 18, 0.72);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+.film-trailer-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 138, 184, 0.45);
+}
+.film-trailer-pill:focus-visible {
+  outline: 2px solid rgba(255, 138, 184, 0.7);
+  outline-offset: 2px;
+}
+.film-trailer-pill-ico {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.95;
+}
+@media (min-width: 861px) {
+  /* Keep pill under poster column, not stretching hero-content */
+  .film-hero-with-tag > .film-page-trailer--under-poster,
+  #film-page-content .film-hero-with-tag > .film-page-trailer--under-poster,
+  #section-film .film-hero-with-tag > .film-page-trailer--under-poster {
+    grid-column: 1;
+    justify-self: stretch;
+  }
+  /* Kill legacy inline 16:9 expand inside hero-content */
+  .hero-content > .film-modal-trailer,
+  .hero-content > .film-page-trailer:not(.film-page-trailer--under-poster) {
+    display: none !important;
+  }
+}
+
+.film-trailer-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+.film-trailer-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(4, 4, 10, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+.film-trailer-lightbox-stage {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 100%);
+  aspect-ratio: 16 / 9;
+  max-height: min(80vh, 100%);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+.film-trailer-lightbox-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+.film-trailer-lightbox-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+.film-trailer-lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.film-trailer-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+body.film-trailer-lightbox-open {
+  overflow: hidden;
+}
+
+/* Do not let legacy .film-modal-trailer aspect-ratio stretch the pill slot */
+.film-page-trailer.film-modal-trailer.film-page-trailer--under-poster,
+.film-page-trailer--under-poster.film-modal-trailer {
+  aspect-ratio: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
