@@ -26835,8 +26835,8 @@
     const logo = resolveTitleLogoUrl(logoUrl || '');
     if (logo) {
       return '<img class="film-title-logo premieres-story-logo" src="' + escapeHtml(logo)
-        + '" alt="' + escapeHtml(t) + '" loading="lazy" decoding="async"'
-        + ' onerror="this.remove();var f=this.parentNode&&this.parentNode.querySelector(\'.premieres-story-title-fallback\');if(f)f.hidden=false;">'
+        + '" alt="' + escapeHtml(t) + '" loading="eager" decoding="async"'
+        + ' onerror="this.onerror=null;var p=this.parentNode;var f=p&&p.querySelector(\'.premieres-story-title-fallback\');if(f)f.hidden=false;this.remove();">'
         + '<div class="premieres-story-title-fallback" hidden>' + escapeHtml(t) + '</div>';
     }
     return '<div class="premieres-story-title-fallback">' + escapeHtml(t) + '</div>';
