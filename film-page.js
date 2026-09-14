@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914logoClsEmpty1
+ * MARKER:20260914premStoriesPlay1
  */
 (function (global) {
   'use strict';
@@ -736,7 +736,7 @@
     }
   }
 
-  /** Hover/RF playback: KP widget first, else YouTube nocookie. Never a proxy. */
+  /** Hover/RF playback: KP widget first (RU, no VPN), else YouTube nocookie. Never a proxy. */
   function pickTrailerPlayback(d, opts) {
     opts = opts || {};
     var autoplay = opts.autoplay !== false;
@@ -744,20 +744,25 @@
     if (!d) return null;
     var playUrl = String(d.play_url || '').trim();
     var playKind = String(d.play_kind || '').trim();
-    if (playUrl && (playKind === 'kp_widget' || playKind === 'youtube')) {
-      if (playKind === 'kp_widget') {
-        playUrl = normalizeKpWidgetPlayUrl(playUrl, { autoplay: autoplay, muted: muted }) || playUrl;
-      } else if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
-        playUrl += (playUrl.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&mute=1';
-      }
-      return { kind: playKind, url: playUrl };
-    }
     var widget = String(d.widget_url || '').trim();
+    // Always prefer KP widget when available — even if play_kind incorrectly says youtube.
+    if (playKind === 'kp_widget' && playUrl && isKpWidgetUrl(playUrl)) {
+      return {
+        kind: 'kp_widget',
+        url: normalizeKpWidgetPlayUrl(playUrl, { autoplay: autoplay, muted: muted }) || playUrl,
+      };
+    }
     if (isKpWidgetUrl(widget)) {
       return {
         kind: 'kp_widget',
         url: normalizeKpWidgetPlayUrl(widget, { autoplay: autoplay, muted: muted }),
       };
+    }
+    if (playUrl && playKind === 'youtube') {
+      if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
+        playUrl += (playUrl.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&mute=1';
+      }
+      return { kind: 'youtube', url: playUrl };
     }
     var yt = String(d.youtube_id || '').trim();
     if (yt) {
