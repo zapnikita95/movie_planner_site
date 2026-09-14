@@ -25789,6 +25789,38 @@
     }
     return null;
   }
+  /** Calendar YYYY-MM in Europe/Moscow, shifted by whole months (prev = -1). */
+  function premiereYmMsk(deltaMonths) {
+    const ymd = premiereTodayYmdMsk();
+    const parts = String(ymd || '').split('-').map(Number);
+    if (parts.length < 2 || !parts[0] || !parts[1]) return '';
+    let y = parts[0];
+    let m = parts[1] + (Number(deltaMonths) || 0);
+    while (m > 12) { m -= 12; y += 1; }
+    while (m < 1) { m += 12; y -= 1; }
+    return y + '-' + String(m).padStart(2, '0');
+  }
+  function premierePeriodTargetYm(period) {
+    const p = String(period || '');
+    if (p === 'current_month') return premiereYmMsk(0);
+    if (p === 'prev_month') return premiereYmMsk(-1);
+    if (p === 'next_month') return premiereYmMsk(1);
+    if (p === 'after_next_month') return premiereYmMsk(2);
+    return '';
+  }
+  /** Strict calendar-month filter (МСК). «Прошедший месяц» = previous calendar month. */
+  function filterPremieresByCalendarPeriod(items, period) {
+    const targetYm = premierePeriodTargetYm(period);
+    if (!targetYm) return items || [];
+    return (items || []).filter((it) => {
+      const ymd = premiereExtractYmd(it && (it.premiere_date || it.release_date));
+      return !!(ymd && ymd.slice(0, 7) === targetYm);
+    });
+  }
+  function premieresPeriodAllowsPublicTopUp(period) {
+    const p = String(period || '');
+    return p === 'upcoming' || p === 'in_theaters';
+  }
   /** «Сейчас в прокате» в поиске: только с датой, недавно вышли или скоро (МСК). */
   function filterPremieresHubNowPlaying(items) {
     const today = premiereTodayYmdMsk();
@@ -25901,6 +25933,9 @@
     let items = dedupePremieresByKp(raw || []);
     if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
       items = filterPremieresUpcomingMsk(items, opts);
+    } else if (premierePeriodTargetYm(_premieresPeriod)) {
+      // Guard against thin-list top-up leaking other months (e.g. Sep into «прошедший месяц»).
+      items = filterPremieresByCalendarPeriod(items, _premieresPeriod);
     }
     return filterPremieresByType(items);
   }
@@ -25939,26 +25974,7 @@
         let all = dedupePremieresByKp((prem && prem.items) ? prem.items.slice() : []);
         if (period !== 'upcoming' && period !== 'in_theaters') {
           // Guest public feed is upcoming-only; month filter applied client-side below.
-          all = all.filter((it) => {
-            const ymd = String(it.premiere_date || '').slice(0, 10);
-            if (!/^\d{4}-\d{2}/.test(ymd)) return false;
-            const ym = ymd.slice(0, 7);
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = now.getMonth() + 1;
-            const shift = (dy, dm) => {
-              let mm = m + dm;
-              let yy = y + dy;
-              while (mm > 12) { mm -= 12; yy += 1; }
-              while (mm < 1) { mm += 12; yy -= 1; }
-              return yy + '-' + String(mm).padStart(2, '0');
-            };
-            if (period === 'current_month') return ym === shift(0, 0);
-            if (period === 'next_month') return ym === shift(0, 1);
-            if (period === 'prev_month') return ym === shift(0, -1);
-            if (period === 'after_next_month') return ym === shift(0, 2);
-            return true;
-          });
+          all = filterPremieresByCalendarPeriod(all, period);
         }
         const page = all.slice(offset, offset + limit);
         return {
@@ -25980,8 +25996,11 @@
     }));
   }
 
-  /** Если site-лента тонкая — добираем публичный upcoming. */
+  /** Если site-лента тонкая — добираем публичный upcoming (только для upcoming/in_theaters). */
   function topUpPremieresFromPublic() {
+    if (!premieresPeriodAllowsPublicTopUp(_premieresPeriod)) {
+      return Promise.resolve(0);
+    }
     return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
       const extra = (prem && prem.items) ? prem.items : [];
       if (!extra.length) return 0;
@@ -26031,7 +26050,9 @@
         const batch = page.items || [];
         if (!batch.length && !_premieresData.length) {
           if (errorEl) {
-            errorEl.textContent = 'Ближайших премьер пока нет.';
+            errorEl.textContent = premierePeriodTargetYm(_premieresPeriod)
+              ? 'На этот месяц премьер нет.'
+              : 'Ближайших премьер пока нет.';
             errorEl.classList.remove('hidden');
           }
           _premieresHasMore = false;
