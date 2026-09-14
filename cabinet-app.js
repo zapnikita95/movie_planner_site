@@ -11062,9 +11062,7 @@
     if (!window._mpHomeRailDragSafetyBound) {
       window._mpHomeRailDragSafetyBound = true;
       const clearStuckHomeRails = () => {
-        document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
-          rail.classList.remove('is-dragging');
-        });
+        mpHomeRailClearDragState();
       };
       document.addEventListener('pointerup', clearStuckHomeRails, true);
       document.addEventListener('pointercancel', clearStuckHomeRails, true);
@@ -17858,11 +17856,19 @@
 
   function mpHomeRailClearDragState() {
     try {
-      document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
-        rail.classList.remove('is-dragging');
+      document.querySelectorAll('.home-rail--draggable, .film-page-similar-rail').forEach((rail) => {
+        try { rail.classList.remove('is-dragging'); } catch (_c) {}
+        if (typeof rail.hasPointerCapture !== 'function' || typeof rail.releasePointerCapture !== 'function') return;
+        for (let id = 0; id < 32; id++) {
+          try {
+            if (rail.hasPointerCapture(id)) rail.releasePointerCapture(id);
+          } catch (_r) {}
+        }
       });
+      window._mpHomeRailSuppressClickUntil = 0;
     } catch (_) {}
   }
+  try { window.__mpClearHomeRailPointerState = mpHomeRailClearDragState; } catch (_e) {}
 
   function pickFilmDescription(film) {
     if (!film) return '';
@@ -25789,6 +25795,38 @@
     }
     return null;
   }
+  /** Calendar YYYY-MM in Europe/Moscow, shifted by whole months (prev = -1). */
+  function premiereYmMsk(deltaMonths) {
+    const ymd = premiereTodayYmdMsk();
+    const parts = String(ymd || '').split('-').map(Number);
+    if (parts.length < 2 || !parts[0] || !parts[1]) return '';
+    let y = parts[0];
+    let m = parts[1] + (Number(deltaMonths) || 0);
+    while (m > 12) { m -= 12; y += 1; }
+    while (m < 1) { m += 12; y -= 1; }
+    return y + '-' + String(m).padStart(2, '0');
+  }
+  function premierePeriodTargetYm(period) {
+    const p = String(period || '');
+    if (p === 'current_month') return premiereYmMsk(0);
+    if (p === 'prev_month') return premiereYmMsk(-1);
+    if (p === 'next_month') return premiereYmMsk(1);
+    if (p === 'after_next_month') return premiereYmMsk(2);
+    return '';
+  }
+  /** Strict calendar-month filter (МСК). «Прошедший месяц» = previous calendar month. */
+  function filterPremieresByCalendarPeriod(items, period) {
+    const targetYm = premierePeriodTargetYm(period);
+    if (!targetYm) return items || [];
+    return (items || []).filter((it) => {
+      const ymd = premiereExtractYmd(it && (it.premiere_date || it.release_date));
+      return !!(ymd && ymd.slice(0, 7) === targetYm);
+    });
+  }
+  function premieresPeriodAllowsPublicTopUp(period) {
+    const p = String(period || '');
+    return p === 'upcoming' || p === 'in_theaters';
+  }
   /** «Сейчас в прокате» в поиске: только с датой, недавно вышли или скоро (МСК). */
   function filterPremieresHubNowPlaying(items) {
     const today = premiereTodayYmdMsk();
@@ -25824,6 +25862,7 @@
   let _premieresPeriod = 'upcoming';
   let _premieresSort = 'date';
   let _premieresType = 'any';
+  let _premieresGenre = '';
   let _premieresOffset = 0;
   let _premieresHasMore = true;
   let _premieresLoadInflight = null;
@@ -25865,13 +25904,69 @@
     return items || [];
   }
 
-  function premieresVisibleForGrid(raw) {
+  function parsePremiereGenres(it) {
+    const raw = it && it.genres;
+    if (Array.isArray(raw)) {
+      return raw.map((g) => {
+        if (g && typeof g === 'object') return String(g.genre || g.name || '').trim();
+        return String(g || '').trim();
+      }).filter(Boolean);
+    }
+    return String(raw || '').split(/[,;|/·•]+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  function filterPremieresByGenre(items) {
+    const g = String(_premieresGenre || '').trim().toLowerCase();
+    if (!g) return items || [];
+    return (items || []).filter((it) => parsePremiereGenres(it).some((x) => x.toLowerCase() === g));
+  }
+
+  /** Unique genres from the current date+type set (never empty-option genres). */
+  function collectPremiereGenreOptions(items) {
+    const seen = new Map();
+    (items || []).forEach((it) => {
+      parsePremiereGenres(it).forEach((name) => {
+        const key = name.toLowerCase();
+        if (!seen.has(key)) seen.set(key, name);
+      });
+    });
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'ru'));
+  }
+
+  /** Period + type only — source for genre dropdown options. */
+  function premieresBaseVisibleForGrid(raw) {
     const opts = !getToken() ? { guestFallback: true, keepUndated: true } : { keepUndated: false };
     let items = dedupePremieresByKp(raw || []);
     if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
       items = filterPremieresUpcomingMsk(items, opts);
+    } else if (premierePeriodTargetYm(_premieresPeriod)) {
+      // Guard against thin-list top-up leaking other months (e.g. Sep into «прошедший месяц»).
+      items = filterPremieresByCalendarPeriod(items, _premieresPeriod);
     }
     return filterPremieresByType(items);
+  }
+
+  function syncPremieresGenreSelect(baseItems) {
+    const sel = document.getElementById('premieres-genre');
+    if (!sel) return;
+    const genres = collectPremiereGenreOptions(baseItems);
+    const prev = String(_premieresGenre || '').trim();
+    const prevLower = prev.toLowerCase();
+    const stillValid = !!(prev && genres.some((g) => g.toLowerCase() === prevLower));
+    if (prev && !stillValid) _premieresGenre = '';
+    const keep = String(_premieresGenre || '');
+    const opts = ['<option value="">Все жанры</option>'].concat(genres.map((g) => {
+      const selAttr = g.toLowerCase() === keep.toLowerCase() ? ' selected' : '';
+      return '<option value="' + escapeHtml(g) + '"' + selAttr + '>' + escapeHtml(g) + '</option>';
+    }));
+    const nextHtml = opts.join('');
+    if (sel.innerHTML !== nextHtml) sel.innerHTML = nextHtml;
+    sel.value = keep;
+    sel.disabled = genres.length === 0;
+  }
+
+  function premieresVisibleForGrid(raw) {
+    return filterPremieresByGenre(premieresBaseVisibleForGrid(raw));
   }
 
   function premieresVisibleUpcoming(raw) {
@@ -25885,26 +25980,7 @@
         let all = dedupePremieresByKp((prem && prem.items) ? prem.items.slice() : []);
         if (period !== 'upcoming' && period !== 'in_theaters') {
           // Guest public feed is upcoming-only; month filter applied client-side below.
-          all = all.filter((it) => {
-            const ymd = String(it.premiere_date || '').slice(0, 10);
-            if (!/^\d{4}-\d{2}/.test(ymd)) return false;
-            const ym = ymd.slice(0, 7);
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = now.getMonth() + 1;
-            const shift = (dy, dm) => {
-              let mm = m + dm;
-              let yy = y + dy;
-              while (mm > 12) { mm -= 12; yy += 1; }
-              while (mm < 1) { mm += 12; yy -= 1; }
-              return yy + '-' + String(mm).padStart(2, '0');
-            };
-            if (period === 'current_month') return ym === shift(0, 0);
-            if (period === 'next_month') return ym === shift(0, 1);
-            if (period === 'prev_month') return ym === shift(0, -1);
-            if (period === 'after_next_month') return ym === shift(0, 2);
-            return true;
-          });
+          all = filterPremieresByCalendarPeriod(all, period);
         }
         const page = all.slice(offset, offset + limit);
         return {
@@ -25926,8 +26002,11 @@
     }));
   }
 
-  /** Если site-лента тонкая — добираем публичный upcoming. */
+  /** Если site-лента тонкая — добираем публичный upcoming (только для upcoming/in_theaters). */
   function topUpPremieresFromPublic() {
+    if (!premieresPeriodAllowsPublicTopUp(_premieresPeriod)) {
+      return Promise.resolve(0);
+    }
     return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
       const extra = (prem && prem.items) ? prem.items : [];
       if (!extra.length) return 0;
@@ -25977,7 +26056,9 @@
         const batch = page.items || [];
         if (!batch.length && !_premieresData.length) {
           if (errorEl) {
-            errorEl.textContent = 'Ближайших премьер пока нет.';
+            errorEl.textContent = premierePeriodTargetYm(_premieresPeriod)
+              ? 'На этот месяц премьер нет.'
+              : 'Ближайших премьер пока нет.';
             errorEl.classList.remove('hidden');
           }
           _premieresHasMore = false;
@@ -26097,6 +26178,7 @@
         typeSel._bound = true;
         typeSel.addEventListener('change', () => {
           _premieresType = typeSel.value || 'any';
+          // Genre options depend on type; drop selection if it would empty the list.
           renderPremieresList();
           const visible = premieresVisibleForGrid(_premieresData).length;
           if (visible < PREMIERES_MIN_VISIBLE && _premieresHasMore) loadMorePremieres(false);
@@ -26104,6 +26186,21 @@
       }
     } else {
       _premieresType = 'any';
+    }
+    const genreSel = document.getElementById('premieres-genre');
+    if (genreSel) {
+      _premieresGenre = genreSel.value || '';
+      if (!genreSel._bound) {
+        genreSel._bound = true;
+        genreSel.addEventListener('change', () => {
+          _premieresGenre = genreSel.value || '';
+          renderPremieresList();
+          const visible = premieresVisibleForGrid(_premieresData).length;
+          if (visible < PREMIERES_MIN_VISIBLE && _premieresHasMore) loadMorePremieres(false);
+        });
+      }
+    } else {
+      _premieresGenre = '';
     }
     if (sortSel) {
       if (!sortSel.value) sortSel.value = 'date';
@@ -26127,19 +26224,20 @@
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
-    let items = dedupePremieresByKp((_premieresData || []).slice());
+    let baseItems = premieresBaseVisibleForGrid(_premieresData);
+    syncPremieresGenreSelect(baseItems);
+    let items = filterPremieresByGenre(baseItems);
     if (_premieresSort === 'genre') {
-      items.sort((a, b) => (a.genres || '').localeCompare(b.genres || ''));
+      items.sort((a, b) => (a.genres || '').localeCompare(b.genres || '', 'ru'));
     } else {
       items.sort((a, b) => String(a.premiere_date || '').localeCompare(String(b.premiere_date || '')));
     }
-    if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
-      items = filterPremieresUpcomingMsk(items, !getToken() ? { guestFallback: true, keepUndated: true } : {});
-    }
-    items = filterPremieresByType(items);
     items = dedupePremieresByKp(items);
     if (!items.length) {
-      grid.innerHTML = '<div class="cabinet-hint">На этот период премьер нет.</div>';
+      const msg = _premieresGenre
+        ? 'Нет премьер с этим жанром на выбранные даты.'
+        : 'На этот период премьер нет.';
+      grid.innerHTML = '<div class="cabinet-hint">' + msg + '</div>';
       return;
     }
     grid.innerHTML = items.map((it) => {

@@ -2441,7 +2441,7 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   }
   body.in-cabinet #section-premieres .premieres-toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
   body.in-cabinet #section-premieres .premieres-toolbar > * {
@@ -7671,29 +7671,46 @@ a.film-buzz-link:hover,
   flex-wrap: wrap;
   gap: 8px;
 }
+.premieres-toolbar .premieres-filter-chip {
+  max-width: none;
+  min-width: 0;
+}
+.premieres-toolbar .premieres-filter-chip .base-filter-chip-native {
+  color-scheme: light;
+}
 .premieres-period-select,
+.premieres-genre-select,
 .premieres-type-select,
 .premieres-sort-select,
 #premieres-period,
+#premieres-genre,
 #premieres-type,
 #premieres-sort {
+  /* Native popup: dark scheme → white-on-white on Windows; force readable options */
+  color-scheme: light;
+}
+.premieres-period-select option,
+.premieres-genre-select option,
+.premieres-type-select option,
+.premieres-sort-select option,
+#premieres-period option,
+#premieres-genre option,
+#premieres-type option,
+#premieres-sort option {
+  color: #111827;
+  background-color: #ffffff;
+}
+/* Legacy bare selects (if any) keep readable dark chrome */
+select.premieres-period-select:not(.base-filter-chip-native),
+select.premieres-genre-select:not(.base-filter-chip-native),
+select.premieres-type-select:not(.base-filter-chip-native),
+select.premieres-sort-select:not(.base-filter-chip-native) {
   padding: 7px 10px;
   border-radius: 10px;
   background: #131318;
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #f4f4f5;
   font-size: 13px;
-  /* Native popup: dark scheme → white-on-white on Windows; force readable options */
-  color-scheme: light;
-}
-.premieres-period-select option,
-.premieres-type-select option,
-.premieres-sort-select option,
-#premieres-period option,
-#premieres-type option,
-#premieres-sort option {
-  color: #111827;
-  background-color: #ffffff;
 }
 .premieres-loading, .premieres-error { padding: 16px; color: var(--text-muted); font-size: 14px; }
 .premieres-error { color: #ff6b6b; }
@@ -20780,7 +20797,35 @@ body.in-cabinet #section-settings .settings-content {
 }
 
 /* Extended onboarding v2 (shared with onboarding-flow.js) */
-.mp-onboard-dialog-overlay { z-index: 12060; touch-action: none; overscroll-behavior: contain; }
+.mp-onboard-dialog-overlay { z-index: 14050; touch-action: none; overscroll-behavior: contain; }
+/* Genre chips must stay above any stray stacking (club overlays = 13000) and receive taps. */
+.mp-onboard-genres {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  pointer-events: auto;
+}
+.mp-onboard-genres .chip {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+.mp-onboard-genres .chip.chip-on {
+  border-color: var(--accent, #ff2d7b);
+  background: rgba(255, 45, 123, 0.28);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 45, 123, 0.45);
+}
 .mp-onboard-dialog-card {
   max-width: 380px;
   text-align: left;
@@ -20929,7 +20974,7 @@ body.mp-scroll-lock {
 .mp-onboard-picker-overlay {
   position: fixed;
   inset: 0;
-  z-index: 12070;
+  z-index: 14060;
   background: var(--bg, #09090b);
   display: flex;
   flex-direction: column;
