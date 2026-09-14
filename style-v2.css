@@ -2441,7 +2441,7 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
   }
   body.in-cabinet #section-premieres .premieres-toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
   body.in-cabinet #section-premieres .premieres-toolbar > * {
@@ -7671,29 +7671,46 @@ a.film-buzz-link:hover,
   flex-wrap: wrap;
   gap: 8px;
 }
+.premieres-toolbar .premieres-filter-chip {
+  max-width: none;
+  min-width: 0;
+}
+.premieres-toolbar .premieres-filter-chip .base-filter-chip-native {
+  color-scheme: light;
+}
 .premieres-period-select,
+.premieres-genre-select,
 .premieres-type-select,
 .premieres-sort-select,
 #premieres-period,
+#premieres-genre,
 #premieres-type,
 #premieres-sort {
+  /* Native popup: dark scheme → white-on-white on Windows; force readable options */
+  color-scheme: light;
+}
+.premieres-period-select option,
+.premieres-genre-select option,
+.premieres-type-select option,
+.premieres-sort-select option,
+#premieres-period option,
+#premieres-genre option,
+#premieres-type option,
+#premieres-sort option {
+  color: #111827;
+  background-color: #ffffff;
+}
+/* Legacy bare selects (if any) keep readable dark chrome */
+select.premieres-period-select:not(.base-filter-chip-native),
+select.premieres-genre-select:not(.base-filter-chip-native),
+select.premieres-type-select:not(.base-filter-chip-native),
+select.premieres-sort-select:not(.base-filter-chip-native) {
   padding: 7px 10px;
   border-radius: 10px;
   background: #131318;
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #f4f4f5;
   font-size: 13px;
-  /* Native popup: dark scheme → white-on-white on Windows; force readable options */
-  color-scheme: light;
-}
-.premieres-period-select option,
-.premieres-type-select option,
-.premieres-sort-select option,
-#premieres-period option,
-#premieres-type option,
-#premieres-sort option {
-  color: #111827;
-  background-color: #ffffff;
 }
 .premieres-loading, .premieres-error { padding: 16px; color: var(--text-muted); font-size: 14px; }
 .premieres-error { color: #ff6b6b; }

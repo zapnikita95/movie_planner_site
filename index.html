@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260913baseCompact3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260913baseCompact3">
+<link rel="preload" href="/style-v2.css?v=20260914premieresGenre1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260914premieresGenre1">
     <script>
       (function () {
         try {
@@ -2747,23 +2747,38 @@
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
                     <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="cabinet-hint premieres-donations-entry"><a class="premieres-donations-link" href="/donations">Сейчас собирают →</a> краудфандинг фильмов и документалок</p>
-                    <div class="premieres-toolbar">
-                        <select id="premieres-period" class="premieres-period-select" aria-label="Период">
-                            <option value="upcoming" selected>Все даты</option>
-                            <option value="prev_month">Прошедший месяц</option>
-                            <option value="current_month">Этот месяц</option>
-                            <option value="next_month">Следующий месяц</option>
-                            <option value="after_next_month">Через месяц</option>
-                        </select>
-                        <select id="premieres-type" class="premieres-type-select" aria-label="Тип">
-                            <option value="any" selected>Все</option>
-                            <option value="film">Фильмы</option>
-                            <option value="series">Сериалы</option>
-                        </select>
-                        <select id="premieres-sort" class="premieres-sort-select" aria-label="Сортировка">
-                            <option value="date" selected>По дате</option>
-                            <option value="genre">По жанру</option>
-                        </select>
+                    <div class="premieres-toolbar" aria-label="Фильтры премьер">
+                        <label class="base-filter-chip base-filter-chip--select premieres-filter-chip">
+                            <span class="base-filter-chip-k">Дата</span>
+                            <select id="premieres-period" class="base-filter-chip-native premieres-period-select" aria-label="Дата">
+                                <option value="upcoming" selected>Все даты</option>
+                                <option value="prev_month">Прошедший месяц</option>
+                                <option value="current_month">Этот месяц</option>
+                                <option value="next_month">Следующий месяц</option>
+                                <option value="after_next_month">Через месяц</option>
+                            </select>
+                        </label>
+                        <label class="base-filter-chip base-filter-chip--select base-filter-chip--wide premieres-filter-chip">
+                            <span class="base-filter-chip-k">Жанр</span>
+                            <select id="premieres-genre" class="base-filter-chip-native premieres-genre-select" aria-label="Жанр">
+                                <option value="">Все жанры</option>
+                            </select>
+                        </label>
+                        <label class="base-filter-chip base-filter-chip--select premieres-filter-chip">
+                            <span class="base-filter-chip-k">Тип</span>
+                            <select id="premieres-type" class="base-filter-chip-native premieres-type-select" aria-label="Тип">
+                                <option value="any" selected>Все</option>
+                                <option value="film">Фильмы</option>
+                                <option value="series">Сериалы</option>
+                            </select>
+                        </label>
+                        <label class="base-filter-chip base-filter-chip--select premieres-filter-chip">
+                            <span class="base-filter-chip-k">Сортировка</span>
+                            <select id="premieres-sort" class="base-filter-chip-native premieres-sort-select" aria-label="Сортировка">
+                                <option value="date" selected>По дате</option>
+                                <option value="genre">По алфавиту жанра</option>
+                            </select>
+                        </label>
                     </div>
                     <p class="cabinet-hint">Афиша кинопремьер России. Включайте напоминания, добавляйте релизы в базу и открывайте карточки фильмов прямо на сайте.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
@@ -3821,7 +3836,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260913baseCompact3';
+        var V='20260914premieresGenre1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
