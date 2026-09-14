@@ -665,9 +665,11 @@
       } catch (_e) {}
       if (liveKp && liveKp !== kp) return;
       var t = live.getAttribute('data-title-text') || text;
+      // Hero: show title logo only when RU wordmark exists (skip EN e.g. Runner).
+      var logoOk = payload && payload.title_logo && (!payload.lang || String(payload.lang).toLowerCase() === 'ru');
       applyFilmTitleLogo(live, {
         text: t,
-        logoUrl: payload && payload.title_logo ? payload.title_logo : '',
+        logoUrl: logoOk ? payload.title_logo : '',
       });
     });
   }
@@ -762,43 +764,139 @@
       .catch(function () { return null; });
   }
 
-  function mountYoutubeTrailerEmbed(container, youtubeId) {
-    if (!container || !youtubeId) return;
+  function mountTrailerPlaybackEmbed(container, playback) {
+    if (!container || !playback || !playback.url) return;
     container.innerHTML = '';
     container.hidden = false;
     container.removeAttribute('hidden');
     var iframe = document.createElement('iframe');
-    iframe.src = youtubeNocookieEmbedUrl(youtubeId);
+    iframe.src = playback.url;
     iframe.title = 'Трейлер';
+    iframe.setAttribute('allowfullscreen', '');
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
     iframe.allowFullscreen = true;
     iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    iframe.setAttribute('frameborder', '0');
+    // YouTube embed needs explicit size; KP widget too.
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
     container.appendChild(iframe);
+  }
+
+  function mountYoutubeTrailerEmbed(container, youtubeId) {
+    if (!container || !youtubeId) return;
+    mountTrailerPlaybackEmbed(container, {
+      kind: 'youtube',
+      url: youtubeNocookieEmbedUrl(youtubeId, { autoplay: true, mute: false }),
+    });
+  }
+
+  function closeFilmTrailerLightbox() {
+    var lb = document.getElementById('film-trailer-lightbox');
+    if (!lb) return;
+    try {
+      var frame = lb.querySelector('.film-trailer-lightbox-frame');
+      if (frame) frame.innerHTML = '';
+    } catch (_e) {}
+    lb.remove();
+    try { document.body.classList.remove('film-trailer-lightbox-open'); } catch (_b) {}
+    try { document.removeEventListener('keydown', _filmTrailerLightboxKeydown, true); } catch (_k) {}
+  }
+
+  var _filmTrailerLightboxKeydown = function (e) {
+    if (!e) return;
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      e.preventDefault();
+      closeFilmTrailerLightbox();
+    }
+  };
+
+  function openFilmTrailerLightbox(playback) {
+    if (!playback || !playback.url) return;
+    closeFilmTrailerLightbox();
+    var lb = document.createElement('div');
+    lb.id = 'film-trailer-lightbox';
+    lb.className = 'film-trailer-lightbox';
+    lb.setAttribute('role', 'dialog');
+    lb.setAttribute('aria-modal', 'true');
+    lb.setAttribute('aria-label', 'Трейлер');
+    lb.innerHTML =
+      '<button type="button" class="film-trailer-lightbox-backdrop" aria-label="Закрыть"></button>' +
+      '<div class="film-trailer-lightbox-stage">' +
+        '<button type="button" class="film-trailer-lightbox-close" aria-label="Закрыть">×</button>' +
+        '<div class="film-trailer-lightbox-frame"></div>' +
+      '</div>';
+    document.body.appendChild(lb);
+    try { document.body.classList.add('film-trailer-lightbox-open'); } catch (_b) {}
+    var frame = lb.querySelector('.film-trailer-lightbox-frame');
+    mountTrailerPlaybackEmbed(frame, playback);
+    function onClose(ev) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      closeFilmTrailerLightbox();
+    }
+    var backdrop = lb.querySelector('.film-trailer-lightbox-backdrop');
+    var closeBtn = lb.querySelector('.film-trailer-lightbox-close');
+    if (backdrop) backdrop.addEventListener('click', onClose);
+    if (closeBtn) closeBtn.addEventListener('click', onClose);
+    try { document.addEventListener('keydown', _filmTrailerLightboxKeydown, true); } catch (_k) {}
+    try { closeBtn && closeBtn.focus(); } catch (_f) {}
+  }
+
+  function isDesktopFilmTrailerPill() {
+    try {
+      return window.matchMedia('(min-width: 861px)').matches;
+    } catch (_e) {
+      return true;
+    }
   }
 
   function ensureFilmTrailerSlot(hero) {
     if (!hero) return null;
-    var content = hero.querySelector('.hero-content') || hero;
-    var slot = content.querySelector('#film-trailer-slot, .film-page-trailer');
-    if (slot) return slot;
-    slot = document.createElement('div');
+    // Prefer compact pill under the poster (афиша). Never expand hero-content with inline 16:9.
+    var existing = hero.querySelector('#film-trailer-slot');
+    if (existing) return existing;
+    // Remove legacy inline slots that used to stretch the card.
+    try {
+      hero.querySelectorAll('.film-page-trailer, .film-modal-trailer').forEach(function (n) {
+        if (n && n.id !== 'film-trailer-slot') n.remove();
+      });
+    } catch (_rm) {}
+    var wrap = hero.querySelector('.poster-wrap');
+    var slot = document.createElement('div');
     slot.id = 'film-trailer-slot';
-    slot.className = 'film-page-trailer film-modal-trailer';
+    slot.className = 'film-page-trailer film-page-trailer--under-poster';
     slot.innerHTML =
-      '<button type="button" class="film-modal-trailer-btn" id="film-trailer-play-btn" hidden>▶ Смотреть трейлер</button>' +
-      '<div class="film-modal-trailer-embed" id="film-trailer-embed" hidden></div>';
-    var toolbar = content.querySelector('.film-page-toolbar');
-    if (toolbar && toolbar.parentNode) toolbar.insertAdjacentElement('afterend', slot);
-    else content.appendChild(slot);
+      '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
+        '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
+        '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
+      '</button>';
+    if (wrap && wrap.parentNode) {
+      var col = wrap.closest('.film-poster-col');
+      if (!col) {
+        col = document.createElement('div');
+        col.className = 'film-poster-col';
+        wrap.parentNode.insertBefore(col, wrap);
+        col.appendChild(wrap);
+      }
+      col.appendChild(slot);
+    } else {
+      var content = hero.querySelector('.hero-content') || hero;
+      content.appendChild(slot);
+    }
     return slot;
   }
 
-  function setPosterTrailerPlayControl(hero, youtubeId) {
+  function setPosterTrailerPlayControl(hero, onPlay) {
     if (!hero) return;
     var wrap = hero.querySelector('.poster-wrap');
     if (!wrap) return;
     var btn = wrap.querySelector('.film-poster-trailer-play, .film-modal-poster-play');
-    if (!youtubeId) {
+    // Desktop: compact pill under poster only — no giant poster overlay.
+    if (isDesktopFilmTrailerPill()) {
+      if (btn) btn.remove();
+      wrap.classList.remove('has-trailer');
+      return;
+    }
+    if (!onPlay) {
       if (btn) btn.remove();
       wrap.classList.remove('has-trailer');
       return;
@@ -817,13 +915,7 @@
     btn.onclick = function (e) {
       e.preventDefault();
       e.stopPropagation();
-      var embed = document.getElementById('film-trailer-embed');
-      var slot = document.getElementById('film-trailer-slot');
-      if (slot) slot.hidden = false;
-      if (embed) {
-        mountYoutubeTrailerEmbed(embed, youtubeId);
-        try { embed.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_s) {}
-      }
+      onPlay();
     };
   }
 
@@ -834,7 +926,13 @@
     if (!hero || !kp) return;
     var slot = ensureFilmTrailerSlot(hero);
     var btn = slot && slot.querySelector('#film-trailer-play-btn');
-    var embed = slot && slot.querySelector('#film-trailer-embed');
+    // Strip any legacy inline embed left from older builds.
+    try {
+      var legacyEmbed = hero.querySelector('#film-trailer-embed, .film-modal-trailer-embed');
+      if (legacyEmbed) legacyEmbed.remove();
+      var legacyModal = hero.querySelector('.film-modal-trailer:not(.film-page-trailer--under-poster)');
+      if (legacyModal && legacyModal.id !== 'film-trailer-slot') legacyModal.remove();
+    } catch (_leg) {}
     if (film.digital_release) syncFilmDigitalReleaseChip(document, film);
     fetchFilmTrailerByKp(kp, { title: film.title, year: film.year }).then(function (d) {
       if (!d) return;
@@ -842,28 +940,41 @@
         film.digital_release = film.digital_release || d.digital_release;
         syncFilmDigitalReleaseChip(document, film);
       }
-      var yt = d.youtube_id;
-      if (!yt) {
+      var playback = pickTrailerPlayback(d, { autoplay: true, muted: false });
+      if (!playback) {
         setPosterTrailerPlayControl(hero, null);
         if (btn) btn.hidden = true;
-        if (embed) { embed.innerHTML = ''; embed.hidden = true; }
         return;
       }
-      setPosterTrailerPlayControl(hero, yt);
+      // Autoplay in lightbox: unmute YouTube for click-to-play; mute KP widget defaults ok.
+      if (playback.kind === 'youtube') {
+        playback = {
+          kind: 'youtube',
+          url: youtubeNocookieEmbedUrl(d.youtube_id, { autoplay: true, mute: false }),
+        };
+      } else if (playback.kind === 'kp_widget') {
+        playback = {
+          kind: 'kp_widget',
+          url: normalizeKpWidgetPlayUrl(playback.url || d.widget_url || d.play_url, {
+            autoplay: true,
+            muted: false,
+          }) || playback.url,
+        };
+      }
+      function playNow() {
+        openFilmTrailerLightbox(playback);
+      }
+      setPosterTrailerPlayControl(hero, playNow);
       if (btn) {
         btn.hidden = false;
         btn.onclick = function (e) {
           e.preventDefault();
           e.stopPropagation();
-          if (embed) mountYoutubeTrailerEmbed(embed, yt);
-          btn.hidden = true;
+          playNow();
         };
       }
       try {
-        if (/#trailer/i.test(String(location.hash || '')) && embed) {
-          mountYoutubeTrailerEmbed(embed, yt);
-          if (btn) btn.hidden = true;
-        }
+        if (/#trailer/i.test(String(location.hash || ''))) playNow();
       } catch (_h) {}
     });
   }

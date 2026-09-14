@@ -339,17 +339,18 @@
       : "";
     var attrs = siteFilmAttrs(p);
     var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(p)) || "";
+    // Keep data-title-logo for hover/trailer consumers; never render logos on rail cards.
     var titleLogo = pickRailTitleLogo(p);
     if (titleLogo) attrs += ' data-title-logo="' + esc(titleLogo) + '"';
-    var titleHtml = railTitleWithLogoHtml(p.title || "—", titleLogo);
+    var titleHtml = '<span class="home-pre-card-title-text">' + esc(p.title || "—") + "</span>";
     return (
-      '<div class="home-pre-card' + (titleLogo ? " has-title-logo" : "") + '" role="listitem" tabindex="0"' + attrs + ">" +
+      '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
       '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">' +
       img + datePillHtml +
       (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
       '<div class="home-pre-card-body">' +
-      '<div class="home-pre-card-title' + (titleLogo ? " has-title-logo" : "") + '">' + titleHtml + "</div>" +
+      '<div class="home-pre-card-title">' + titleHtml + "</div>" +
       "</div></div>"
     );
   }
@@ -377,8 +378,18 @@
     function warmRailTitleLogos(root, batch) {
       if (!root || railId !== "premieres") return;
       var items = batch || [];
+      // Cache logo URL on the card for hover/trailer consumers; never swap rail title text for wordmarks.
       items.forEach(function (p) {
-        if (pickRailTitleLogo(p)) return;
+        if (pickRailTitleLogo(p)) {
+          var kp0 = p && p.kp_id != null ? String(p.kp_id).replace(/\D/g, "") : "";
+          if (kp0) {
+            var c0 = root.querySelector('.home-pre-card[data-kp-id="' + kp0 + '"]');
+            if (c0 && !c0.getAttribute("data-title-logo")) {
+              c0.setAttribute("data-title-logo", pickRailTitleLogo(p));
+            }
+          }
+          return;
+        }
         var kp = p && p.kp_id != null ? String(p.kp_id).replace(/\D/g, "") : "";
         if (!kp) return;
         var fetchFn = global.MpFilmPage && global.MpFilmPage.fetchFilmTitleLogoByKp;
@@ -397,11 +408,6 @@
           var card = root.querySelector('.home-pre-card[data-kp-id="' + kp + '"]');
           if (!card || card.getAttribute("data-title-logo")) return;
           card.setAttribute("data-title-logo", url);
-          card.classList.add("has-title-logo");
-          var titleEl = card.querySelector(".home-pre-card-title");
-          if (!titleEl || titleEl.classList.contains("has-title-logo")) return;
-          titleEl.classList.add("has-title-logo");
-          titleEl.innerHTML = railTitleWithLogoHtml(p.title || "—", url);
         }).catch(function () {});
       });
     }
