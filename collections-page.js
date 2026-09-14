@@ -381,6 +381,41 @@
     hydrateIcons(el);
   }
 
+  function formatKpRatingBadge(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    return n.toFixed(1);
+  }
+
+  function filmAlreadyInLibrary(f) {
+    if (!f) return false;
+    if (f.already_in_base_film_id || f.in_library || f.in_base) return true;
+    // Mine / library rows expose numeric film id; public discovery rows do not.
+    var fid = f.id != null ? f.id : f.film_id;
+    if (fid == null || fid === "") return false;
+    return /^\d+$/.test(String(fid));
+  }
+
+  function posterKpRatingHtml(f) {
+    var label = formatKpRatingBadge(f && (f.rating_kp != null ? f.rating_kp : f.rating));
+    if (!label) return "";
+    return (
+      '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + esc(label) + '" aria-label="КП ' + esc(label) + '">'
+      + esc(label)
+      + "</span>"
+    );
+  }
+
+  function posterAddLibraryHtml(f) {
+    if (filmAlreadyInLibrary(f)) return "";
+    var kp = f && f.kp_id != null ? String(f.kp_id) : "";
+    if (!kp) return "";
+    return (
+      '<button type="button" class="poster-add-library-btn" data-coll-action="add-one" data-kp-id="'
+      + esc(kp) + '" title="Добавить в базу" aria-label="Добавить в базу">+</button>'
+    );
+  }
+
   function filmsGridHtml(films, opts) {
     var o = opts || {};
     if (!films || !films.length) {
@@ -404,14 +439,20 @@
             + iconHtml("newspaper", { size: "sm", className: "collections-film-review-icon" })
             + "</span>")
           : "";
+        var inLib = filmAlreadyInLibrary(f);
         return (
-          '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
+          '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card' + (inLib ? " is-in-library" : "") + '" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
           + (hasReview && f.nyt_review_path ? ' data-nyt-review="' + esc(String(f.nyt_review_path)) + '"' : "")
+          + (inLib ? ' data-in-library="1"' : "")
           + '>'
           + rankBadge
           + reviewBadge
-          + '<div class="search-poster-media"><img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy"' + imgOnErrorAttr() + "></div>"
+          + '<div class="search-poster-media">'
+          + '<img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy"' + imgOnErrorAttr() + ">"
+          + posterAddLibraryHtml(f)
+          + posterKpRatingHtml(f)
+          + "</div>"
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
           + "</a>"
@@ -680,6 +721,16 @@
       }
       if (action === "delete-mine" && id) {
         deleteMineCollection(parseInt(id, 10));
+      }
+      if (action === "add-one") {
+        e.stopPropagation();
+        addFilmToLibraryFromCollection(btn.getAttribute("data-kp-id"), btn);
+      }
+      if (action === "detail-films-page") {
+        var dPageRoot = parseInt(btn.getAttribute("data-page") || "0", 10);
+        if (!dPageRoot || dPageRoot < 1 || btn.disabled) return;
+        _detailFilmsState.page = dPageRoot;
+        paintDetailFilmsBlock(root);
       }
     });
   }
@@ -1009,6 +1060,79 @@
     if (nameEl) nameEl.focus();
     loadSuggestions();
     paintSelected();
+  }
+
+
+  function mergeLibraryFlagsIntoFilms(films, authFilms) {
+    if (!films || !films.length || !authFilms || !authFilms.length) return films || [];
+    var byKp = {};
+    authFilms.forEach(function (af) {
+      if (!af || af.kp_id == null) return;
+      byKp[String(af.kp_id)] = af;
+    });
+    films.forEach(function (f) {
+      if (!f || f.kp_id == null) return;
+      var af = byKp[String(f.kp_id)];
+      if (!af) return;
+      if (af.already_in_base_film_id) f.already_in_base_film_id = af.already_in_base_film_id;
+      if (af.rating_kp != null && f.rating_kp == null) f.rating_kp = af.rating_kp;
+      if (af.watched != null && f.watched == null) f.watched = af.watched;
+    });
+    return films;
+  }
+
+  function hydrateCollectionLibraryFlags(tagId, films, onDone) {
+    if (!hasSiteAuth() || !tagId || !films || !films.length) {
+      if (typeof onDone === "function") onDone(films || []);
+      return;
+    }
+    apiGet("/api/miniapp/collections/public/" + encodeURIComponent(String(tagId))).then(function (data) {
+      if (data && data.success && data.films) mergeLibraryFlagsIntoFilms(films, data.films);
+      if (typeof onDone === "function") onDone(films);
+    }).catch(function () {
+      if (typeof onDone === "function") onDone(films);
+    });
+  }
+
+  function addFilmToLibraryFromCollection(kpId, btn) {
+    if (!kpId) return;
+    if (!hasSiteAuth()) {
+      requireLoginForCollections("Войдите, чтобы добавить фильм в базу");
+      return;
+    }
+    var orig = btn ? btn.innerHTML : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "…";
+    }
+    apiPost("/api/site/add-film", { kp_id: kpId }).then(function (data) {
+      if (!data || !data.success) {
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        toast((data && (data.error || data.message)) || "Не удалось добавить", { type: "error" });
+        return;
+      }
+      var card = btn && btn.closest(".collections-film-card");
+      if (card) {
+        card.classList.add("is-in-library");
+        card.setAttribute("data-in-library", "1");
+        if (data.film_id) card.setAttribute("data-film-id", String(data.film_id));
+      }
+      if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+      try {
+        (_detailFilmsState.films || []).forEach(function (f) {
+          if (f && String(f.kp_id) === String(kpId)) {
+            f.already_in_base_film_id = data.film_id || f.already_in_base_film_id || true;
+          }
+        });
+      } catch (_) {}
+      toast(data.already_existed ? "Уже в базе" : "Добавлено в базу", { type: "success" });
+      try {
+        if (!data.already_existed && typeof global.loadUnwatched === "function") global.loadUnwatched();
+      } catch (_) {}
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      toast("Ошибка сети", { type: "error" });
+    });
   }
 
   function importPublicCollection(tagId, btn) {
@@ -1447,6 +1571,10 @@
         var tid = btn.getAttribute("data-coll-id");
         if (tid) importPublicCollection(parseInt(tid, 10), btn);
       }
+      if (action === "add-one") {
+        e.stopPropagation();
+        addFilmToLibraryFromCollection(btn.getAttribute("data-kp-id"), btn);
+      }
     });
   }
 
@@ -1647,17 +1775,26 @@
           ctaHtml: cta || "",
           prefixHtml: "",
         };
-        body.innerHTML = intro + authorHtml + descHtml + detailFilmsSectionHtml()
-          + (hasSiteAuth() ? "" : guestWhatIsHtml());
-        if (shortCode === "nyt-top100-21c") {
-          loadNytVotersRail(root);
-        }
-        try {
-          if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
-            global.MpPublicPromo.bindRegister(body);
+        function paintWtwDetailBody() {
+          body.innerHTML = intro + authorHtml + descHtml + detailFilmsSectionHtml()
+            + (hasSiteAuth() ? "" : guestWhatIsHtml());
+          if (shortCode === "nyt-top100-21c") {
+            loadNytVotersRail(root);
           }
-        } catch (_) {}
-        hydrateIcons(body);
+          try {
+            if (global.MpPublicPromo && typeof global.MpPublicPromo.bindRegister === "function") {
+              global.MpPublicPromo.bindRegister(body);
+            }
+          } catch (_) {}
+          hydrateIcons(body);
+        }
+        paintWtwDetailBody();
+        if (hasSiteAuth() && c.id) {
+          hydrateCollectionLibraryFlags(c.id, films, function () {
+            _detailFilmsState.films = films;
+            paintDetailFilmsBlock(root);
+          });
+        }
       }
     }).catch(function () {
       root.innerHTML = '<p class="cabinet-hint">Не удалось загрузить</p>';
