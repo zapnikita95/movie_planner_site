@@ -11405,6 +11405,14 @@
     return list;
   }
 
+  function siteSearchKpRatingHtml(it) {
+    const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const label = n.toFixed(1);
+    return '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
+  }
+
   function siteSearchResultCardHtml(it) {
     const poster = cleanPosterUrl(it.poster);
     const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
@@ -11415,7 +11423,8 @@
     const img = poster
       ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
       : '';
-    const body = '<div class="home-poster-tile-img">' + img + '</div>'
+    const kpBadge = siteSearchKpRatingHtml(it);
+    const body = '<div class="home-poster-tile-img">' + img + kpBadge + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
     if (getToken() && !/^mp-\d+$/i.test(cat)) {

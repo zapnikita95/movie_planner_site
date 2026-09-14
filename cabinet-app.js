@@ -19832,6 +19832,14 @@
     });
   }
 
+  function siteSearchKpRatingHtml(it) {
+    const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const label = n.toFixed(1);
+    return '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
+  }
+
   function siteSearchResultCardHtml(it) {
     const poster = cleanPosterUrl(it.poster);
     const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
@@ -19840,7 +19848,8 @@
     const imgSrc = poster || MP_POSTER_PLACEHOLDER;
     const img = '<img src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
     const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
-    const body = '<div class="home-poster-tile-img' + sensCls + '">' + img + '</div>'
+    const kpBadge = siteSearchKpRatingHtml(it);
+    const body = '<div class="home-poster-tile-img' + sensCls + '">' + img + kpBadge + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
     if (getToken()) {
