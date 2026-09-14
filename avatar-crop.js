@@ -221,12 +221,16 @@
           pointers.delete(e.pointerId);
           if (pointers.size < 2) pinchStartDist = 0;
           if (pointers.size === 0) dragging = false;
+          try {
+            if (e && e.pointerId != null) imgEl.releasePointerCapture(e.pointerId);
+          } catch (_r) {}
         }
 
         imgEl.addEventListener("pointerdown", onPointerDown);
         imgEl.addEventListener("pointermove", onPointerMove);
         imgEl.addEventListener("pointerup", onPointerUp);
         imgEl.addEventListener("pointercancel", onPointerUp);
+        imgEl.addEventListener("lostpointercapture", onPointerUp);
         zoomEl.addEventListener("input", setScaleFromSlider);
 
         function cleanup(result) {

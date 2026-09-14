@@ -699,6 +699,33 @@
     rail.addEventListener('pointerup', endDrag);
     rail.addEventListener('pointercancel', endDrag);
     rail.addEventListener('lostpointercapture', endDrag);
+    // Same document/blur safety as home rails (cabinet-app mpHomeRailClearDragState).
+    // Prefer shared cabinet safety when present; else bind a local clear.
+    if (!window._mpHomeRailDragSafetyBound && !window._mpFilmSimilarRailSafetyBound) {
+      window._mpFilmSimilarRailSafetyBound = true;
+      var clearSimilarCapture = function () {
+        try {
+          if (typeof window.__mpClearHomeRailPointerState === 'function') {
+            window.__mpClearHomeRailPointerState();
+            return;
+          }
+        } catch (_g) {}
+        try {
+          document.querySelectorAll('.film-page-similar-rail, .home-rail--draggable').forEach(function (el) {
+            try { el.classList.remove('is-dragging'); } catch (_c) {}
+            if (typeof el.hasPointerCapture !== 'function' || typeof el.releasePointerCapture !== 'function') return;
+            for (var id = 0; id < 32; id++) {
+              try {
+                if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+              } catch (_r) {}
+            }
+          });
+        } catch (_e) {}
+      };
+      document.addEventListener('pointerup', clearSimilarCapture, true);
+      document.addEventListener('pointercancel', clearSimilarCapture, true);
+      window.addEventListener('blur', clearSimilarCapture);
+    }
     // Kill native image/link drag ghost that steals the gesture on posters.
     rail.addEventListener('dragstart', function (e) { e.preventDefault(); });
     rail.addEventListener('click', function (e) {
