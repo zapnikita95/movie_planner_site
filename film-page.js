@@ -529,10 +529,72 @@
 
   var _trailerCacheByKp = {};
 
-  function youtubeNocookieEmbedUrl(youtubeId) {
+  function youtubeNocookieEmbedUrl(youtubeId, opts) {
+    opts = opts || {};
     var id = String(youtubeId || '').trim();
     if (!id) return '';
-    return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?rel=0&modestbranding=1&playsinline=1';
+    var q = 'rel=0&modestbranding=1&playsinline=1';
+    if (opts.autoplay) q += '&autoplay=1';
+    if (opts.mute !== false && (opts.autoplay || opts.mute)) q += '&mute=1';
+    return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?' + q;
+  }
+
+  function isKpWidgetUrl(url) {
+    var u = String(url || '').trim().toLowerCase();
+    return !!u && (u.indexOf('widgets.kinopoisk.ru') >= 0 || u.indexOf('widget.kinopoisk.ru') >= 0);
+  }
+
+  function normalizeKpWidgetPlayUrl(url, opts) {
+    opts = opts || {};
+    var raw = String(url || '').trim();
+    if (!isKpWidgetUrl(raw)) return '';
+    try {
+      var u = new URL(raw);
+      u.searchParams.set('onlyPlayer', '1');
+      u.searchParams.set('cover', '1');
+      if (opts.autoplay !== false) u.searchParams.set('autoplay', '1');
+      if (opts.muted !== false) u.searchParams.set('muted', '1');
+      return u.toString();
+    } catch (_e) {
+      var sep = raw.indexOf('?') >= 0 ? '&' : '?';
+      var extra = 'onlyPlayer=1&cover=1';
+      if (opts.autoplay !== false) extra += '&autoplay=1';
+      if (opts.muted !== false) extra += '&muted=1';
+      return raw + sep + extra;
+    }
+  }
+
+  /** Hover/RF playback: KP widget first, else YouTube nocookie. Never a proxy. */
+  function pickTrailerPlayback(d, opts) {
+    opts = opts || {};
+    var autoplay = opts.autoplay !== false;
+    var muted = opts.muted !== false;
+    if (!d) return null;
+    var playUrl = String(d.play_url || '').trim();
+    var playKind = String(d.play_kind || '').trim();
+    if (playUrl && (playKind === 'kp_widget' || playKind === 'youtube')) {
+      if (playKind === 'kp_widget') {
+        playUrl = normalizeKpWidgetPlayUrl(playUrl, { autoplay: autoplay, muted: muted }) || playUrl;
+      } else if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
+        playUrl += (playUrl.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&mute=1';
+      }
+      return { kind: playKind, url: playUrl };
+    }
+    var widget = String(d.widget_url || '').trim();
+    if (isKpWidgetUrl(widget)) {
+      return {
+        kind: 'kp_widget',
+        url: normalizeKpWidgetPlayUrl(widget, { autoplay: autoplay, muted: muted }),
+      };
+    }
+    var yt = String(d.youtube_id || '').trim();
+    if (yt) {
+      return {
+        kind: 'youtube',
+        url: youtubeNocookieEmbedUrl(yt, { autoplay: autoplay, mute: muted }),
+      };
+    }
+    return null;
   }
 
   function fetchFilmTrailerByKp(kpId, opts) {
@@ -5688,6 +5750,9 @@
     renderFilmPage: renderFilmPage,
     parseFilmRoute: parseFilmRoute,
     fetchFilmTrailerByKp: fetchFilmTrailerByKp,
+    pickTrailerPlayback: pickTrailerPlayback,
+    normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,
+    youtubeNocookieEmbedUrl: youtubeNocookieEmbedUrl,
     mountFilmTrailerUI: mountFilmTrailerUI,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,

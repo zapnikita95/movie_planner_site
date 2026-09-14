@@ -10890,6 +10890,7 @@
     const desc = shortPremiereDescription(o.description || '', 220);
     const director = normalizeHoverCastText(o.director || '');
     const actorsLine = formatHoverActorsLine(o.actors, 6);
+    const kpAttr = o.kpId ? (' data-kp-id="' + escapeHtml(String(o.kpId)) + '"') : '';
     const castParts = [];
     if (director) {
       castParts.push('<div class="home-film-preview-cast-row"><span class="home-film-preview-cast-k">Реж.</span> ' + escapeHtml(director) + '</div>');
@@ -10899,7 +10900,8 @@
     }
     const castHtml = castParts.length ? ('<div class="home-film-preview-cast">' + castParts.join('') + '</div>') : '';
     if (!title && !metaHtml && !desc && !castHtml) return '';
-    return '<div class="home-film-preview" aria-hidden="true">'
+    return '<div class="home-film-preview home-film-preview--hover-trailer" aria-hidden="true"' + kpAttr + '>'
+      + '<div class="home-film-preview-main">'
       + '<div class="home-film-preview-poster">' + (poster
         ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
         : ('<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" class="mp-poster-placeholder" loading="lazy">')) + '</div>'
@@ -10908,6 +10910,9 @@
       + (metaHtml ? '<div class="home-film-preview-meta">' + metaHtml + '</div>' : '')
       + castHtml
       + '<div class="home-film-preview-desc' + (desc ? '' : ' is-empty') + '">' + (desc ? escapeHtml(desc) : '') + '</div>'
+      + '</div></div>'
+      + '<div class="home-film-preview-trailer" hidden>'
+      + '<div class="home-film-preview-trailer-frame" data-trailer-frame="1"></div>'
       + '</div></div>';
   }
 
@@ -13504,6 +13509,7 @@
       description: desc || '',
       director: normalizeHoverCastText(m.director || ''),
       actors: normalizeHoverCastText(m.actors || ''),
+      kpId: m.kp_id || '',
       emoji: '🎬',
     });
     return `
@@ -13668,6 +13674,7 @@
     card.setAttribute('data-preview-enriched', '1');
     const pop = card.querySelector('.home-film-preview');
     if (!pop) return;
+    const wasPlaying = !!card._mpHoverTrailerActive;
     const title = card.getAttribute('data-title')
       || ((card.querySelector('.home-film-preview-title') || {}).textContent || '');
     const poster = card.getAttribute('data-poster') || '';
@@ -13684,19 +13691,207 @@
       description: payload.description || '',
       director: normalizeHoverCastText(payload.director || ''),
       actors: normalizeHoverCastText(payload.actors || ''),
+      kpId: card.getAttribute('data-kp-id') || '',
     });
     if (html) pop.outerHTML = html;
+    if (wasPlaying) {
+      try { mountHoverTrailerOnCard(card); } catch (_e) {}
+    }
   }
 
   function bindUnwatchedHoverEnrichment() {
     const list = document.getElementById('unwatched-list');
     if (!list || list.dataset.hoverEnrichBound === '1') return;
     list.dataset.hoverEnrichBound = '1';
-    list.addEventListener('pointerenter', (e) => {
+    list.addEventListener('pointerover', (e) => {
       const card = e.target && e.target.closest ? e.target.closest('.film-card-v2--hover-preview') : null;
       if (!card || !list.contains(card)) return;
+      const from = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.film-card-v2--hover-preview')
+        : null;
+      if (from === card) return;
       enrichBaseHoverPreviewOnEnter(card);
-    }, true);
+      mountHoverTrailerOnCard(card);
+    });
+    list.addEventListener('pointerout', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.film-card-v2--hover-preview') : null;
+      if (!card || !list.contains(card)) return;
+      const to = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.film-card-v2--hover-preview')
+        : null;
+      if (to === card) return;
+      stopHoverTrailerOnCard(card);
+    });
+  }
+
+  const _hoverTrailerCache = new Map();
+  let _hoverTrailerSeq = 0;
+
+  function isDesktopHoverTrailerEnabled() {
+    try {
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return false;
+      if (!window.matchMedia('(min-width: 641px)').matches) return false;
+    } catch (_mq) {
+      return false;
+    }
+    return true;
+  }
+
+  function hoverTrailerKpFromCard(card) {
+    if (!card) return '';
+    return String(
+      card.getAttribute('data-kp-id')
+      || card.getAttribute('data-kp')
+      || ((card.querySelector('.home-film-preview') || {}).getAttribute && card.querySelector('.home-film-preview').getAttribute('data-kp-id'))
+      || ''
+    ).replace(/\D/g, '');
+  }
+
+  function hoverTrailerTitleYear(card) {
+    const title = card.getAttribute('data-title')
+      || ((card.querySelector('.home-film-preview-title') || {}).textContent || '').trim()
+      || ((card.querySelector('.premiere-poster-tile-title, .film-card-v2-title') || {}).textContent || '').trim();
+    const year = card.getAttribute('data-year') || '';
+    return { title: title, year: year };
+  }
+
+  function fetchHoverTrailerPayload(kp, meta) {
+    if (_hoverTrailerCache.has(kp)) return Promise.resolve(_hoverTrailerCache.get(kp));
+    const fetchFn = (window.MpFilmPage && window.MpFilmPage.fetchFilmTrailerByKp)
+      ? window.MpFilmPage.fetchFilmTrailerByKp
+      : null;
+    const p = fetchFn
+      ? fetchFn(kp, { title: meta.title, year: meta.year })
+      : fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/trailer', {
+          method: 'GET', mode: 'cors', credentials: 'omit',
+        }).then((r) => r.ok ? r.json() : null).then((d) => (d && d.success) ? d : null).catch(() => null);
+    return p.then((d) => {
+      if (d) _hoverTrailerCache.set(kp, d);
+      return d;
+    });
+  }
+
+  function pickHoverPlayback(d) {
+    if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
+      return window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+    }
+    if (!d) return null;
+    const widget = String(d.widget_url || d.play_url || '').trim();
+    if (/widgets?\.kinopoisk\.ru/i.test(widget)) {
+      const sep = widget.indexOf('?') >= 0 ? '&' : '?';
+      return { kind: 'kp_widget', url: widget + sep + 'onlyPlayer=1&autoplay=1&cover=1&muted=1' };
+    }
+    const yt = String(d.youtube_id || '').trim();
+    if (yt) {
+      return {
+        kind: 'youtube',
+        url: 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
+          + '?rel=0&modestbranding=1&playsinline=1&autoplay=1&mute=1',
+      };
+    }
+    return null;
+  }
+
+  function stopHoverTrailerOnCard(card) {
+    if (!card) return;
+    card._mpHoverTrailerActive = false;
+    card._mpHoverTrailerToken = 0;
+    const pop = card.querySelector('.home-film-preview');
+    if (pop) pop.classList.remove('has-trailer-playing', 'is-trailer-loading');
+    const slot = card.querySelector('.home-film-preview-trailer');
+    const frame = card.querySelector('[data-trailer-frame]');
+    if (frame) {
+      try {
+        const ifr = frame.querySelector('iframe');
+        if (ifr) ifr.src = 'about:blank';
+      } catch (_b) {}
+      frame.innerHTML = '';
+    }
+    if (slot) {
+      slot.hidden = true;
+      slot.setAttribute('hidden', '');
+    }
+  }
+
+  function mountHoverTrailerOnCard(card) {
+    if (!card || !isDesktopHoverTrailerEnabled()) return;
+    const kp = hoverTrailerKpFromCard(card);
+    if (!kp) return;
+    const pop = card.querySelector('.home-film-preview');
+    const slot = card.querySelector('.home-film-preview-trailer');
+    const frame = card.querySelector('[data-trailer-frame]');
+    if (!pop || !slot || !frame) return;
+    if (card._mpHoverTrailerActive && String(card._mpHoverTrailerKp || '') === kp && frame.querySelector('iframe')) {
+      return;
+    }
+    const token = ++_hoverTrailerSeq;
+    card._mpHoverTrailerToken = token;
+    card._mpHoverTrailerActive = true;
+    card._mpHoverTrailerKp = kp;
+    pop.classList.add('is-trailer-loading');
+    slot.hidden = false;
+    slot.removeAttribute('hidden');
+    const meta = hoverTrailerTitleYear(card);
+    fetchHoverTrailerPayload(kp, meta).then((d) => {
+      if (!card._mpHoverTrailerActive || card._mpHoverTrailerToken !== token) return;
+      if (!document.body.contains(card)) return;
+      const play = pickHoverPlayback(d);
+      pop.classList.remove('is-trailer-loading');
+      if (!play || !play.url) {
+        slot.hidden = true;
+        slot.setAttribute('hidden', '');
+        frame.innerHTML = '';
+        return;
+      }
+      frame.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = play.url;
+      iframe.title = 'Трейлер';
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.setAttribute('loading', 'eager');
+      frame.appendChild(iframe);
+      pop.classList.add('has-trailer-playing');
+      pop.setAttribute('data-play-kind', play.kind || '');
+    }).catch(() => {
+      if (card._mpHoverTrailerToken !== token) return;
+      pop.classList.remove('is-trailer-loading');
+      slot.hidden = true;
+      slot.setAttribute('hidden', '');
+    });
+  }
+
+  function bindPremieresHoverTrailer() {
+    const grid = document.getElementById('premieres-grid');
+    if (!grid || grid.dataset.hoverTrailerBound === '1') return;
+    grid.dataset.hoverTrailerBound = '1';
+    grid.addEventListener('pointerover', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.premiere-poster-tile') : null;
+      if (!card || !grid.contains(card)) return;
+      const from = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.premiere-poster-tile')
+        : null;
+      if (from === card) return;
+      mountHoverTrailerOnCard(card);
+      const descEl = card.querySelector('.home-film-preview-desc');
+      if (descEl && (!descEl.textContent || !descEl.textContent.trim())) {
+        const fromAttr = card.getAttribute('data-description') || '';
+        if (fromAttr) {
+          descEl.textContent = shortPremiereDescription(fromAttr, 220);
+          descEl.classList.remove('is-empty');
+        }
+      }
+    });
+    grid.addEventListener('pointerout', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.premiere-poster-tile') : null;
+      if (!card || !grid.contains(card)) return;
+      const to = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.premiere-poster-tile')
+        : null;
+      if (to === card) return;
+      stopHoverTrailerOnCard(card);
+    });
   }
 
   function bindUnwatchedSortIcons() {
@@ -26534,6 +26729,7 @@
         poster: poster,
         metaHtml: metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '',
         description: it.description || '',
+        kpId: it.kp_id || '',
         emoji: '🎭',
       });
       const navAttrs = homeDashNavAttrs(it)
@@ -26586,6 +26782,7 @@
         openFilmFromCard(card);
       });
     });
+    bindPremieresHoverTrailer();
   }
 
   function formatPremiereDateDdMm(s) {
