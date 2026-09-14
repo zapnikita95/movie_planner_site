@@ -13981,8 +13981,10 @@ main.film-page .film-toolbar-plan-wrap .action-dropdown.open .action-dropdown-me
 }
 .film-toolbar-icons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  flex-wrap: nowrap;
   justify-content: center;
+  align-items: center;
   gap: 10px;
   overflow: visible;
 }
@@ -23812,8 +23814,10 @@ body:not(.in-cabinet) .nyt-century-article > .nyt-ballot-list {
   #section-film .film-toolbar-icons,
   main.film-page .film-toolbar-icons {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
     gap: 8px;
     width: 100%;
     max-width: 100%;
@@ -27357,6 +27361,7 @@ body.staff-standalone-page .staff-awards-loading {
 
 /* Partner watch (FLEX / TVigle / IVI) — separate left slot; toolbar icons stay centered under CTA */
 /* PARTNER_WATCH_LOGO_GAP1 — smaller logos + right gutter so FLEX/2SUB never cover eye/star/share/expand */
+/* PARTNER_WATCH_LOGOS_ROW1 — logos stay one horizontal row (nowrap); shrink, never wrap/stack */
 .film-toolbar-icons-shell {
   position: relative;
   width: 100%;
@@ -27373,7 +27378,7 @@ body.staff-standalone-page .staff-awards-loading {
     z-index: 1;
     pointer-events: none;
     width: auto;
-    max-width: min(38%, 168px);
+    max-width: min(44%, 200px);
     display: flex;
     justify-content: flex-start;
     align-items: center;
@@ -27431,10 +27436,10 @@ body.staff-standalone-page .staff-awards-loading {
 .film-partner-watch__logos {
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
   max-width: 100%;
   min-width: 0;
 }
@@ -27464,26 +27469,28 @@ body.staff-standalone-page .staff-awards-loading {
 .film-partner-watch__logo {
   display: block;
   height: auto;
-  max-height: 18px;
+  max-height: 16px;
   width: auto;
-  max-width: min(100%, 64px);
+  max-width: min(100%, 48px);
   object-fit: contain;
+  flex-shrink: 1;
 }
 .film-partner-watch-block--desktop .film-partner-watch__logo {
-  max-height: 18px;
-  max-width: min(100%, 56px);
+  max-height: 16px;
+  max-width: min(100%, 44px);
 }
-/* 2SUB wordmark — compact so dual logos fit left gutter without covering toolbar icons */
+/* 2SUB wordmark — compact so dual logos fit ONE row without covering toolbar icons */
 .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
-  max-height: 22px;
-  max-width: min(100%, 72px);
+  max-height: 18px;
+  max-width: min(100%, 58px);
   height: auto;
   width: auto;
   object-fit: contain;
+  flex-shrink: 1;
 }
 .film-partner-watch-block--desktop .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
-  max-height: 22px;
-  max-width: min(100%, 76px);
+  max-height: 18px;
+  max-width: min(100%, 60px);
   height: auto;
   object-fit: contain;
 }
