@@ -1,4 +1,9 @@
-/* Concept B — ONLY guest unauthenticated home (/) */
+/* Concept B — ONLY guest unauthenticated home (/)
+   Load as a blocking <link> in index.html (not JS appendChild):
+   style-v2 .hero-title is clamp(..., 6rem) + centered; this file
+   left-aligns and shrinks it. Async inject = FOUC (HAR 2026-08-29).
+   MARKER:20260829heroFouc1
+*/
 html.mp-session #landing-root-nav,
 html.mp-auth-boot #landing-root-nav,
 body.in-cabinet:not(.guest-cabinet-preview) #landing-root-nav {

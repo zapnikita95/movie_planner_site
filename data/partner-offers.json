@@ -1,0 +1,60 @@
+{
+  "film_kp_ids": {
+    "326": {
+      "id": "game-resident-evil",
+      "kind": "game",
+      "platform": "game",
+      "label": "Игра Resident Evil",
+      "hint": "Купите игру по мотивам фильма",
+      "env_url": "AFFILIATE_GAME_RESIDENT_EVIL_URL"
+    },
+    "470182": {
+      "id": "game-sonic",
+      "kind": "game",
+      "platform": "game",
+      "label": "Игра Sonic",
+      "hint": "Купите игру по мотивам фильма",
+      "env_url": "AFFILIATE_GAME_SONIC_URL"
+    },
+    "258762": {
+      "id": "game-assassins-creed",
+      "kind": "game",
+      "platform": "game",
+      "label": "Игра Assassin's Creed",
+      "hint": "Купите игру по мотивам фильма",
+      "env_url": "AFFILIATE_GAME_AC_URL"
+    }
+  },
+  "person_kp_ids": {
+    "192751": {
+      "id": "sync-miyazaki",
+      "kind": "education",
+      "platform": "sync",
+      "label": "Курс: кино глазами Миядзаки",
+      "hint": "Sync — образование в кино",
+      "env_url": "AFFILIATE_SYNC_MIYAZAKI_URL"
+    }
+  },
+  "directors": {
+    "miyazaki": {
+      "id": "sync-miyazaki",
+      "person_kp_ids": [192751],
+      "label": "Курс: кино глазами Миядзаки",
+      "hint": "Sync — образование в кино",
+      "env_url": "AFFILIATE_SYNC_MIYAZAKI_URL"
+    },
+    "tarantino": {
+      "id": "sync-director",
+      "person_kp_ids": [7640],
+      "label": "Курс: кино глазами режиссёра",
+      "hint": "Sync — образование в кино",
+      "env_url": "AFFILIATE_SYNC_DIRECTOR_URL"
+    }
+  },
+  "puzzle_movies": {
+    "env_url": "AFFILIATE_PUZZLE_MOVIES_URL",
+    "label": "Смотреть с субтитрами для английского",
+    "hint": "Puzzle Movies",
+    "kp_ids": []
+  }
+}
