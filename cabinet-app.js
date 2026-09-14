@@ -10815,14 +10815,71 @@
     return attrs;
   }
 
+  function isEmptyCastPlaceholder(value) {
+    const raw = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    if (!raw) return true;
+    // DB/add-film often stores em-dash / hyphen stubs instead of real cast.
+    if (/^[—–−\-•·.|]+$/u.test(raw)) return true;
+    const lower = raw.toLowerCase();
+    if (lower === 'не указан' || lower === 'не указано' || lower === 'n/a' || lower === 'na' || lower === 'none') return true;
+    return false;
+  }
+
+  function normalizeHoverCastText(value) {
+    if (isEmptyCastPlaceholder(value)) return '';
+    return String(value).replace(/\s+/g, ' ').trim();
+  }
+
   function formatHoverActorsLine(actors, maxNames) {
     const lim = maxNames == null ? 6 : maxNames;
-    const raw = String(actors || '').replace(/\s+/g, ' ').trim();
+    const raw = normalizeHoverCastText(actors);
     if (!raw) return '';
-    const parts = raw.split(/,\s*/).map((s) => s.trim()).filter(Boolean);
-    if (!parts.length) return raw;
+    const parts = raw.split(/,\s*/).map((s) => s.trim()).filter((s) => s && !isEmptyCastPlaceholder(s));
+    if (!parts.length) return '';
     if (parts.length <= lim) return parts.join(', ');
     return parts.slice(0, lim).join(', ') + '…';
+  }
+
+  function actorsLineFromFilmPayload(film) {
+    if (!film) return '';
+    let actors = normalizeHoverCastText(film.actors || '');
+    if (!actors && Array.isArray(film.cast_actors)) {
+      actors = formatHoverActorsLine(film.cast_actors.map((a) => {
+        if (a == null) return '';
+        if (typeof a === 'string') return a;
+        return a.name || a.title || a.actor || '';
+      }).filter(Boolean).join(', '), 12);
+    }
+    if (!actors && Array.isArray(film.actors_list)) {
+      actors = formatHoverActorsLine(film.actors_list.map((a) => {
+        if (a == null) return '';
+        if (typeof a === 'string') return a;
+        return a.name || a.title || a.actor || '';
+      }).filter(Boolean).join(', '), 12);
+    }
+    return actors;
+  }
+
+  function fetchPublicCastActorsLine(kpId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve('');
+    const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
+    const url = base + '/api/public/film/' + encodeURIComponent(kp) + '/cast';
+    return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then((r) => (r && r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return '';
+        const cast = data.cast || data;
+        const list = (cast && cast.actors) || data.actors || [];
+        if (!Array.isArray(list) || !list.length) return '';
+        const names = list.map((a) => {
+          if (a == null) return '';
+          if (typeof a === 'string') return a;
+          return a.name || a.title || a.actor || '';
+        }).filter((s) => s && !isEmptyCastPlaceholder(s));
+        return formatHoverActorsLine(names.join(', '), 6);
+      })
+      .catch(() => '');
   }
 
   function renderHomeHoverPreview(opts) {
@@ -10831,10 +10888,10 @@
     const poster = o.poster || '';
     const metaHtml = o.metaHtml || '';
     const desc = shortPremiereDescription(o.description || '', 220);
-    const director = String(o.director || '').trim();
+    const director = normalizeHoverCastText(o.director || '');
     const actorsLine = formatHoverActorsLine(o.actors, 6);
     const castParts = [];
-    if (director && director !== 'Не указан') {
+    if (director) {
       castParts.push('<div class="home-film-preview-cast-row"><span class="home-film-preview-cast-k">Реж.</span> ' + escapeHtml(director) + '</div>');
     }
     if (actorsLine) {
@@ -13445,8 +13502,8 @@
       poster: poster,
       metaHtml: metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '',
       description: desc || '',
-      director: m.director || '',
-      actors: m.actors || '',
+      director: normalizeHoverCastText(m.director || ''),
+      actors: normalizeHoverCastText(m.actors || ''),
       emoji: '🎬',
     });
     return `
@@ -13454,7 +13511,7 @@
         <div class="film-card-v2-poster${(window.MpAdultMedia && window.MpAdultMedia.posterClass(m)) || ''}">
           ${filmCardPosterHtml(m.kp_id, poster)}
           ${buildFilmTelegramTriangle(link)}
-          ${buildFilmRateStar(m.film_id, filmCardRatingValue(m))}
+          ${siteSearchKpRatingHtml(m)}
         </div>
         <div class="film-card-v2-body">
           <div class="film-card-v2-title">${escapeHtml(listTitle)}${year}${ratingStr}</div>
@@ -13540,9 +13597,10 @@
     const fid = String(card.getAttribute('data-film-id') || '').trim();
     if (!fid) return;
     const descEl = card.querySelector('.home-film-preview-desc');
-    const hasDesc = !!(descEl && descEl.textContent && descEl.textContent.trim() && !descEl.classList.contains('is-loading'));
-    const hasCast = !!card.querySelector('.home-film-preview-cast');
-    if (hasDesc && hasCast) {
+    const hasDesc = !!(descEl && descEl.textContent && descEl.textContent.trim() && !descEl.classList.contains('is-loading') && !descEl.classList.contains('is-empty'));
+    const actorsRow = card.querySelector('.home-film-preview-cast-row--actors');
+    const hasActors = !!(actorsRow && normalizeHoverCastText(actorsRow.textContent.replace(/^\s*В ролях\s*/i, '')));
+    if (hasDesc && hasActors) {
       card.setAttribute('data-preview-enriched', '1');
       return;
     }
@@ -13556,6 +13614,7 @@
       descEl.classList.add('is-loading');
       descEl.textContent = 'Загружаем описание…';
     }
+    const kp = String(card.getAttribute('data-kp-id') || '').replace(/\D/g, '');
     api('/api/site/film/' + encodeURIComponent(fid)).then((data) => {
       if (!data || !data.success || !data.film) {
         if (descEl && !hasDesc) {
@@ -13563,20 +13622,37 @@
           descEl.textContent = '';
           descEl.classList.add('is-empty');
         }
-        return;
+        return null;
       }
       const film = data.film;
-      let actors = film.actors || '';
-      if (!actors && Array.isArray(film.cast_actors)) actors = film.cast_actors.join(', ');
       const payload = {
         description: (typeof pickFilmDescription === 'function' ? pickFilmDescription(film) : '') || film.description || '',
-        director: film.director || '',
-        actors: actors,
+        director: normalizeHoverCastText(film.director || ''),
+        actors: actorsLineFromFilmPayload(film),
         genres: film.genres || '',
         year: film.year || '',
+        rating_kp: film.rating_kp != null ? film.rating_kp : null,
       };
+      if (payload.actors) return payload;
+      return fetchPublicCastActorsLine(kp || film.kp_id).then((line) => {
+        payload.actors = line || '';
+        return payload;
+      });
+    }).then((payload) => {
+      if (!payload) return;
       _homeFilmPreviewCache.set(cacheKey, payload);
       applyBaseHoverEnrichment(card, payload);
+      if (payload.rating_kp != null) {
+        try {
+          const item = (unwatchedItems || []).find((x) => String(x.film_id) === String(fid));
+          if (item && item.rating_kp == null) item.rating_kp = payload.rating_kp;
+        } catch (_) {}
+        const poster = card.querySelector('.film-card-v2-poster');
+        if (poster && !poster.querySelector('.poster-kp-rating')) {
+          const badge = siteSearchKpRatingHtml({ rating_kp: payload.rating_kp });
+          if (badge) poster.insertAdjacentHTML('beforeend', badge);
+        }
+      }
     }).catch(() => {
       if (descEl && !hasDesc) {
         descEl.classList.remove('is-loading');
@@ -13585,6 +13661,7 @@
       }
     });
   }
+
 
   function applyBaseHoverEnrichment(card, payload) {
     if (!card || !payload) return;
@@ -13605,8 +13682,8 @@
       poster: poster,
       metaHtml: metaHtml,
       description: payload.description || '',
-      director: payload.director || '',
-      actors: payload.actors || '',
+      director: normalizeHoverCastText(payload.director || ''),
+      actors: normalizeHoverCastText(payload.actors || ''),
     });
     if (html) pop.outerHTML = html;
   }
@@ -26213,7 +26290,8 @@
     sec._premieresIo = io;
   }
 
-  function loadMorePremieres(reset) {
+  function loadMorePremieres(reset, opts) {
+    const quiet = !!(opts && opts.quiet);
     if (reset) {
       _premieresOffset = 0;
       _premieresHasMore = true;
@@ -26233,13 +26311,15 @@
     }
     const gen = _premieresLoadGen;
     const reqOffset = _premieresOffset;
+    // Bootstrap fill: accumulate pages before first paint to avoid 1–2s card
+    // reshuffle from full re-sort after each client page refetch.
     _premieresLoadInflight = fetchPremieresPage(reqOffset, PREMIERES_PAGE_SIZE)
       .then((page) => {
         if (gen !== _premieresLoadGen) return;
         _premieresLoadInflight = null;
-        if (loading) loading.classList.add('hidden');
         const batch = page.items || [];
         if (!batch.length && !_premieresData.length) {
+          if (loading) loading.classList.add('hidden');
           if (errorEl) {
             errorEl.textContent = premierePeriodTargetYm(_premieresPeriod)
               ? 'На этот месяц премьер нет.'
@@ -26256,12 +26336,18 @@
         _premieresHasMore = !!page.has_more && (added > 0 || batch.length >= PREMIERES_PAGE_SIZE);
         if (added === 0 && batch.length) _premieresHasMore = false;
         const visible = premieresVisibleForGrid(_premieresData).length;
-        renderPremieresList();
-        // Важно: порог по видимым после фильтров, не по сырому API.
-        if (visible < PREMIERES_MIN_VISIBLE) {
-          if (_premieresHasMore) return loadMorePremieres(false);
-          return topUpPremieresFromPublic().then(() => { renderPremieresList(); });
+        // Keep loading shell while auto-filling toward MIN_VISIBLE.
+        if (visible < PREMIERES_MIN_VISIBLE && _premieresHasMore) {
+          return loadMorePremieres(false, { quiet: true });
         }
+        const finish = () => {
+          if (loading) loading.classList.add('hidden');
+          renderPremieresList();
+        };
+        if (visible < PREMIERES_MIN_VISIBLE) {
+          return topUpPremieresFromPublic().then(finish);
+        }
+        finish();
       })
       .catch(() => {
         if (gen !== _premieresLoadGen) return;
