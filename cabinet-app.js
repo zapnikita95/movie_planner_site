@@ -11062,9 +11062,7 @@
     if (!window._mpHomeRailDragSafetyBound) {
       window._mpHomeRailDragSafetyBound = true;
       const clearStuckHomeRails = () => {
-        document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
-          rail.classList.remove('is-dragging');
-        });
+        mpHomeRailClearDragState();
       };
       document.addEventListener('pointerup', clearStuckHomeRails, true);
       document.addEventListener('pointercancel', clearStuckHomeRails, true);
@@ -17858,11 +17856,19 @@
 
   function mpHomeRailClearDragState() {
     try {
-      document.querySelectorAll('.home-rail--draggable.is-dragging').forEach((rail) => {
-        rail.classList.remove('is-dragging');
+      document.querySelectorAll('.home-rail--draggable, .film-page-similar-rail').forEach((rail) => {
+        try { rail.classList.remove('is-dragging'); } catch (_c) {}
+        if (typeof rail.hasPointerCapture !== 'function' || typeof rail.releasePointerCapture !== 'function') return;
+        for (let id = 0; id < 32; id++) {
+          try {
+            if (rail.hasPointerCapture(id)) rail.releasePointerCapture(id);
+          } catch (_r) {}
+        }
       });
+      window._mpHomeRailSuppressClickUntil = 0;
     } catch (_) {}
   }
+  try { window.__mpClearHomeRailPointerState = mpHomeRailClearDragState; } catch (_e) {}
 
   function pickFilmDescription(film) {
     if (!film) return '';

@@ -20797,7 +20797,35 @@ body.in-cabinet #section-settings .settings-content {
 }
 
 /* Extended onboarding v2 (shared with onboarding-flow.js) */
-.mp-onboard-dialog-overlay { z-index: 12060; touch-action: none; overscroll-behavior: contain; }
+.mp-onboard-dialog-overlay { z-index: 14050; touch-action: none; overscroll-behavior: contain; }
+/* Genre chips must stay above any stray stacking (club overlays = 13000) and receive taps. */
+.mp-onboard-genres {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  pointer-events: auto;
+}
+.mp-onboard-genres .chip {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+.mp-onboard-genres .chip.chip-on {
+  border-color: var(--accent, #ff2d7b);
+  background: rgba(255, 45, 123, 0.28);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 45, 123, 0.45);
+}
 .mp-onboard-dialog-card {
   max-width: 380px;
   text-align: left;
@@ -20946,7 +20974,7 @@ body.mp-scroll-lock {
 .mp-onboard-picker-overlay {
   position: fixed;
   inset: 0;
-  z-index: 12070;
+  z-index: 14060;
   background: var(--bg, #09090b);
   display: flex;
   flex-direction: column;
