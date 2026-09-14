@@ -29258,11 +29258,43 @@ a.plan-place-link {
   display: block; height: 100%;
   background: linear-gradient(90deg, #ff2d7b, #ff8ab8);
 }
-.premieres-donations-entry { margin: 0 0 12px; }
+.premieres-donations-entry { margin: 0 0 14px; }
 .premieres-donations-link {
   color: #ff8ab8; font-weight: 800; text-decoration: none;
 }
 .premieres-donations-link:hover { text-decoration: underline; }
+.premieres-donations-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 138, 184, 0.55);
+  background: linear-gradient(135deg, rgba(255, 45, 123, 0.22), rgba(255, 138, 184, 0.12));
+  color: #fff;
+  font-family: Unbounded, Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: 0 0 0 1px rgba(255, 45, 123, 0.08), 0 8px 22px rgba(255, 45, 123, 0.12);
+  transition: background .15s ease, border-color .15s ease, transform .12s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.premieres-donations-pill:hover,
+.premieres-donations-pill:focus-visible {
+  border-color: rgba(255, 138, 184, 0.95);
+  background: linear-gradient(135deg, rgba(255, 45, 123, 0.38), rgba(255, 138, 184, 0.22));
+  box-shadow: 0 0 0 1px rgba(255, 45, 123, 0.18), 0 10px 28px rgba(255, 45, 123, 0.2);
+  outline: none;
+  text-decoration: none;
+  color: #fff;
+}
+.premieres-donations-pill:active { transform: scale(0.98); }
 .landing-frame--donations { margin-top: 8px; }
 
 /* Clubs feed UX release: one selectable poll row, monochrome voting CTA, reactions and comment pill. */
@@ -30699,10 +30731,7 @@ body.film-trailer-lightbox-open {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.92);
 }
-.premieres-stories-hint {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
-}
+.premieres-stories-hint { display: none !important; }
 .premieres-stories-rail {
   display: flex;
   gap: 12px;
@@ -30819,17 +30848,19 @@ body.film-trailer-lightbox-open {
   filter: drop-shadow(0 3px 14px rgba(0, 0, 0, 0.75));
 }
 .premieres-story-title-fallback {
-  font-size: 15px;
+  margin: 0;
+  max-width: 100%;
+  font-family: Unbounded, Inter, system-ui, sans-serif;
+  font-size: clamp(15px, 4.2vw, 18px);
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+  text-shadow: 0 1px 2px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-width: 100%;
 }
 .premieres-story-title-fallback[hidden] {
   display: none !important;
