@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914titleLogo1
+ * MARKER:20260914titleLogo2
  */
 (function (global) {
   'use strict';
@@ -606,6 +606,11 @@
     img.decoding = 'async';
     img.loading = 'eager';
     img.referrerPolicy = 'no-referrer';
+    img.style.maxHeight = '72px';
+    img.style.maxWidth = 'min(100%, 420px)';
+    img.style.width = 'auto';
+    img.style.height = 'auto';
+    img.style.objectFit = 'contain';
     img.addEventListener('error', function () {
       paintTextOnly();
     });
