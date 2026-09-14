@@ -13849,15 +13849,53 @@
     });
   }
 
+  function publicizeKpWidgetPlayUrlLocal(url) {
+    if (window.MpFilmPage && typeof window.MpFilmPage.publicizeKpWidgetPlayUrl === 'function') {
+      return window.MpFilmPage.publicizeKpWidgetPlayUrl(url) || '';
+    }
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    if (/\/api\/public\/kp-widget\/discovery\/trailer\/\d+/i.test(raw)) {
+      if (/^https?:\/\//i.test(raw)) return raw;
+      const base = String(API_BASE || '').replace(/\/$/, '');
+      return raw.charAt(0) === '/' ? base + raw : base + '/' + raw;
+    }
+    if (!/widgets?\.kinopoisk\.ru/i.test(raw)) return '';
+    try {
+      const abs = new URL(raw, 'https://widgets.kinopoisk.ru/');
+      const parts = abs.pathname.split('/').filter(Boolean);
+      const tid = parts[parts.length - 1];
+      if (!/^\d+$/.test(tid)) return '';
+      const base = String(API_BASE || '').replace(/\/$/, '');
+      return base + '/api/public/kp-widget/discovery/trailer/' + tid + (abs.search || '');
+    } catch (_e) {
+      return '';
+    }
+  }
+
   function pickHoverPlayback(d) {
     if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
-      return window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+      const via = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+      if (via && via.url) return via;
     }
     if (!d) return null;
-    const widget = String(d.widget_url || d.play_url || '').trim();
-    if (/widgets?\.kinopoisk\.ru/i.test(widget)) {
-      const sep = widget.indexOf('?') >= 0 ? '&' : '?';
-      return { kind: 'kp_widget', url: widget + sep + 'onlyPlayer=1&autoplay=1&cover=1&muted=1' };
+    // Prefer API play_url (already same-origin proxied). Never iframe widgets.kinopoisk.ru
+    // directly — upstream sends X-Frame-Options: DENY.
+    const playKind = String(d.play_kind || '').trim();
+    const playUrl = String(d.play_url || '').trim();
+    if (playKind === 'kp_widget' && playUrl) {
+      const pub = publicizeKpWidgetPlayUrlLocal(playUrl) || playUrl;
+      if (pub && !/widgets?\.kinopoisk\.ru/i.test(pub)) {
+        return { kind: 'kp_widget', url: pub };
+      }
+    }
+    const widget = String(d.widget_url || '').trim();
+    if (widget) {
+      const pub = publicizeKpWidgetPlayUrlLocal(widget);
+      if (pub) return { kind: 'kp_widget', url: pub };
+    }
+    if (playUrl && !/widgets?\.kinopoisk\.ru/i.test(playUrl) && /kp-widget/i.test(playUrl)) {
+      return { kind: 'kp_widget', url: publicizeKpWidgetPlayUrlLocal(playUrl) || playUrl };
     }
     const yt = String(d.youtube_id || '').trim();
     if (yt) {
@@ -26778,7 +26816,7 @@
 
 
   /* ——— Premieres stories trailer rail (mobile-first, tvoe.live-style) ——— */
-  /* MARKER:20260914kpWidgetProxy1 — only playable trailers in the rail */
+  /* MARKER:20260914kpWidgetProxy2 — only playable trailers in the rail */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
   let _premieresStoriesItems = [];
@@ -27027,7 +27065,13 @@
 
   function pickStoryPlayback(d) {
     if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
-      return window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+      const via = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+      if (via && via.url && !/widgets?\.kinopoisk\.ru/i.test(via.url)) return via;
+      // If film-page still returned a direct KP host, force proxy.
+      if (via && via.url) {
+        const pub = publicizeKpWidgetPlayUrlLocal(via.url);
+        if (pub) return { kind: 'kp_widget', url: pub };
+      }
     }
     return pickHoverPlayback(d);
   }
@@ -27257,6 +27301,10 @@
         play = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: false });
       } else {
         play = pickStoryPlayback(d);
+      }
+      if (play && play.url && /widgets?\.kinopoisk\.ru/i.test(play.url)) {
+        const pub = publicizeKpWidgetPlayUrlLocal(play.url);
+        if (pub) play = { kind: 'kp_widget', url: pub };
       }
       if (!play || !play.url) {
         // Should be rare (pre-filtered). Skip to next playable rather than dead empty state.

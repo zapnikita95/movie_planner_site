@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914kpWidgetProxy1
+ * MARKER:20260914kpWidgetProxy2
  */
 (function (global) {
   'use strict';
