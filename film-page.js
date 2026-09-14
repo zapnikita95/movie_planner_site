@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914premStoriesPlay1
+ * MARKER:20260914kpWidgetProxy1
  */
 (function (global) {
   'use strict';
@@ -712,8 +712,37 @@
   }
 
   function isKpWidgetUrl(url) {
-    var u = String(url || '').trim().toLowerCase();
-    return !!u && (u.indexOf('widgets.kinopoisk.ru') >= 0 || u.indexOf('widget.kinopoisk.ru') >= 0);
+    var u = String(url || '').trim();
+    if (!u) return false;
+    if (/\/api\/public\/kp-widget\/discovery\/trailer\/\d+/i.test(u)) return true;
+    try {
+      var host = new URL(u, (typeof location !== 'undefined' && location.href) || 'https://movie-planner.ru/').hostname || '';
+      if (/(^|\.)widgets?\.kinopoisk\.ru$/i.test(host)) return true;
+    } catch (_e) {}
+    return /widgets?\.kinopoisk\.ru/i.test(u);
+  }
+
+  /** Same-origin proxy — widgets.kinopoisk.ru sends X-Frame-Options: DENY. */
+  function publicizeKpWidgetPlayUrl(url) {
+    var raw = String(url || '').trim();
+    if (!raw) return '';
+    if (/\/api\/public\/kp-widget\/discovery\/trailer\/\d+/i.test(raw)) {
+      if (/^https?:\/\//i.test(raw)) return raw;
+      var base = String(API_BASE || '').replace(/\/$/, '');
+      return raw.charAt(0) === '/' ? base + raw : base + '/' + raw;
+    }
+    if (!isKpWidgetUrl(raw)) return '';
+    try {
+      var abs = new URL(raw, 'https://widgets.kinopoisk.ru/');
+      var parts = abs.pathname.split('/').filter(Boolean);
+      var tid = parts[parts.length - 1];
+      if (!/^\d+$/.test(tid)) return '';
+      var q = abs.search || '';
+      var base2 = String(API_BASE || '').replace(/\/$/, '');
+      return base2 + '/api/public/kp-widget/discovery/trailer/' + tid + q;
+    } catch (_e2) {
+      return '';
+    }
   }
 
   function normalizeKpWidgetPlayUrl(url, opts) {
@@ -721,11 +750,18 @@
     var raw = String(url || '').trim();
     if (!isKpWidgetUrl(raw)) return '';
     try {
-      var u = new URL(raw);
+      var base = (typeof location !== 'undefined' && location.origin) || String(API_BASE || 'https://movie-planner.ru');
+      var u = new URL(raw, base);
       u.searchParams.set('onlyPlayer', '1');
       u.searchParams.set('cover', '1');
       if (opts.autoplay !== false) u.searchParams.set('autoplay', '1');
+      else u.searchParams.delete('autoplay');
       if (opts.muted !== false) u.searchParams.set('muted', '1');
+      else u.searchParams.delete('muted');
+      // Prefer path+query for same-origin proxy; keep absolute for KP host.
+      if (/\/api\/public\/kp-widget\//i.test(u.pathname)) {
+        return u.pathname + u.search;
+      }
       return u.toString();
     } catch (_e) {
       var sep = raw.indexOf('?') >= 0 ? '&' : '?';
@@ -736,7 +772,7 @@
     }
   }
 
-  /** Hover/RF playback: KP widget first (RU, no VPN), else YouTube nocookie. Never a proxy. */
+  /** Hover/RF playback: KP widget first via same-origin proxy (RU, no VPN), else YouTube. */
   function pickTrailerPlayback(d, opts) {
     opts = opts || {};
     var autoplay = opts.autoplay !== false;
@@ -745,18 +781,34 @@
     var playUrl = String(d.play_url || '').trim();
     var playKind = String(d.play_kind || '').trim();
     var widget = String(d.widget_url || '').trim();
-    // Always prefer KP widget when available — even if play_kind incorrectly says youtube.
-    if (playKind === 'kp_widget' && playUrl && isKpWidgetUrl(playUrl)) {
-      return {
-        kind: 'kp_widget',
-        url: normalizeKpWidgetPlayUrl(playUrl, { autoplay: autoplay, muted: muted }) || playUrl,
-      };
+    function asKp(url) {
+      var n = normalizeKpWidgetPlayUrl(url, { autoplay: autoplay, muted: muted }) || url;
+      var pub = publicizeKpWidgetPlayUrl(n) || publicizeKpWidgetPlayUrl(url);
+      if (!pub && isKpWidgetUrl(n)) pub = n;
+      if (!pub) return null;
+      // ensure muted flag matches request (API play_url often forces muted=1)
+      try {
+        var u = new URL(pub, (typeof location !== 'undefined' && location.origin) || 'https://movie-planner.ru');
+        if (muted) u.searchParams.set('muted', '1');
+        else u.searchParams.delete('muted');
+        if (autoplay) u.searchParams.set('autoplay', '1');
+        u.searchParams.set('onlyPlayer', '1');
+        u.searchParams.set('cover', '1');
+        pub = u.pathname + u.search;
+        if (/^https?:/i.test(String(API_BASE || '')) || pub.indexOf('/api/') === 0) {
+          var base = String(API_BASE || '').replace(/\/$/, '');
+          if (pub.indexOf('/api/') === 0) pub = base + pub;
+        }
+      } catch (_e) {}
+      return { kind: 'kp_widget', url: pub };
     }
-    if (isKpWidgetUrl(widget)) {
-      return {
-        kind: 'kp_widget',
-        url: normalizeKpWidgetPlayUrl(widget, { autoplay: autoplay, muted: muted }),
-      };
+    if (playKind === 'kp_widget' && playUrl) {
+      var a = asKp(playUrl);
+      if (a) return a;
+    }
+    if (widget) {
+      var b = asKp(widget);
+      if (b) return b;
     }
     if (playUrl && playKind === 'youtube') {
       if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
@@ -806,9 +858,9 @@
     iframe.setAttribute('allowfullscreen', '');
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
     iframe.allowFullscreen = true;
-    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    // Proxied KP widget is same-origin; YT still cross-origin.
+    iframe.setAttribute('referrerpolicy', playback.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
     iframe.setAttribute('frameborder', '0');
-    // YouTube embed needs explicit size; KP widget too.
     iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
     container.appendChild(iframe);
   }
@@ -6069,6 +6121,8 @@
     prefetchTitleLogoUrl: prefetchTitleLogoUrl,
     applyFilmTitleLogo: applyFilmTitleLogo,
     pickTrailerPlayback: pickTrailerPlayback,
+    publicizeKpWidgetPlayUrl: publicizeKpWidgetPlayUrl,
+    isKpWidgetUrl: isKpWidgetUrl,
     normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,
     youtubeNocookieEmbedUrl: youtubeNocookieEmbedUrl,
     mountFilmTrailerUI: mountFilmTrailerUI,
