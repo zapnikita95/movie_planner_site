@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914titleLogo2
+ * MARKER:20260914logoClsEmpty1
  */
 (function (global) {
   'use strict';
@@ -536,9 +536,32 @@
   function resolveTitleLogoUrl(url) {
     var u = String(url || '').trim();
     if (!u || u === 'null' || u === 'undefined') return '';
+    // Never hotlink image.tmdb.org (blocked/slow in RU) — use apex mirror.
+    var tmdb = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (tmdb) {
+      u = '/api/public/poster/tmdb/' + tmdb[1] + '/' + tmdb[2];
+    }
+    // Width-limited wordmarks load much faster than /original/ (often 1k+ px).
+    u = u.replace(/(\/api\/public\/poster\/tmdb\/)original(\/)/gi, '$1w500$2');
+    u = u.replace(/(\/t\/p\/)original(\/)/gi, '$1w500$2');
     if (/^https?:\/\//i.test(u) || u.indexOf('data:') === 0) return u;
     if (u.charAt(0) === '/') return API_BASE.replace(/\/$/, '') + u;
     return API_BASE.replace(/\/$/, '') + '/' + u.replace(/^\.\//, '');
+  }
+
+  function prefetchTitleLogoUrl(url) {
+    var src = resolveTitleLogoUrl(url);
+    if (!src || typeof document === 'undefined') return src;
+    try {
+      if (document.querySelector('link[data-mp-title-logo="' + src.replace(/"/g, '') + '"]')) return src;
+      var link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = src;
+      link.setAttribute('data-mp-title-logo', src);
+      document.head.appendChild(link);
+    } catch (_e) {}
+    return src;
   }
 
   function pickTitleLogoFromFilm(film) {
@@ -564,6 +587,7 @@
           return null;
         }
         var resolved = resolveTitleLogoUrl(d.title_logo || d.logo_url || d.url || '');
+        if (resolved) prefetchTitleLogoUrl(resolved);
         var payload = resolved ? {
           title_logo: resolved,
           logo_url: resolved,
@@ -586,9 +610,12 @@
     var text = String(opts.text != null ? opts.text : (titleEl.getAttribute('data-title-text') || titleEl.textContent || '')).trim();
     var logoUrl = resolveTitleLogoUrl(opts.logoUrl || opts.title_logo || '');
     if (text) titleEl.setAttribute('data-title-text', text);
+    // Always reserve logo slot height so text→img swap does not shift meta/cast.
+    titleEl.classList.add('film-title-slot');
 
     function paintTextOnly() {
       titleEl.classList.remove('has-title-logo');
+      titleEl.classList.add('film-title-slot');
       titleEl.textContent = text || titleEl.getAttribute('data-title-text') || '';
     }
 
@@ -597,6 +624,7 @@
       return;
     }
 
+    prefetchTitleLogoUrl(logoUrl);
     titleEl.classList.add('has-title-logo');
     titleEl.innerHTML = '';
     var img = document.createElement('img');
@@ -605,12 +633,10 @@
     img.alt = text || 'Логотип названия';
     img.decoding = 'async';
     img.loading = 'eager';
+    img.fetchPriority = 'high';
     img.referrerPolicy = 'no-referrer';
-    img.style.maxHeight = '72px';
-    img.style.maxWidth = 'min(100%, 420px)';
-    img.style.width = 'auto';
-    img.style.height = 'auto';
-    img.style.objectFit = 'contain';
+    img.width = 420;
+    img.height = 72;
     img.addEventListener('error', function () {
       paintTextOnly();
     });
@@ -841,6 +867,21 @@
     try { closeBtn && closeBtn.focus(); } catch (_f) {}
   }
 
+
+  function filmPosterColWithTrailerHtml(posterWrapInnerHtml) {
+    return (
+      '<div class="film-poster-col">' +
+        posterWrapInnerHtml +
+        '<div id="film-trailer-slot" class="film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved" aria-hidden="true">' +
+          '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
+            '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
+            '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   function isDesktopFilmTrailerPill() {
     try {
       return window.matchMedia('(min-width: 861px)').matches;
@@ -853,7 +894,10 @@
     if (!hero) return null;
     // Prefer compact pill under the poster (афиша). Never expand hero-content with inline 16:9.
     var existing = hero.querySelector('#film-trailer-slot');
-    if (existing) return existing;
+    if (existing) {
+      existing.classList.add('film-page-trailer--reserved');
+      return existing;
+    }
     // Remove legacy inline slots that used to stretch the card.
     try {
       hero.querySelectorAll('.film-page-trailer, .film-modal-trailer').forEach(function (n) {
@@ -863,7 +907,8 @@
     var wrap = hero.querySelector('.poster-wrap');
     var slot = document.createElement('div');
     slot.id = 'film-trailer-slot';
-    slot.className = 'film-page-trailer film-page-trailer--under-poster';
+    slot.className = 'film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved';
+    slot.setAttribute('aria-hidden', 'true');
     slot.innerHTML =
       '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
         '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
@@ -967,6 +1012,7 @@
       setPosterTrailerPlayControl(hero, playNow);
       if (btn) {
         btn.hidden = false;
+        if (slot) slot.removeAttribute('aria-hidden');
         btn.onclick = function (e) {
           e.preventDefault();
           e.stopPropagation();
@@ -4020,7 +4066,9 @@
     return (
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
-        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+        filmPosterColWithTrailerHtml(
+          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>'
+        ) +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="film-hero-meta-stack">' +
@@ -4303,7 +4351,9 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+              filmPosterColWithTrailerHtml(
+                '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>'
+              ) +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="film-hero-meta-stack">' +
@@ -6011,6 +6061,7 @@
     fetchFilmTrailerByKp: fetchFilmTrailerByKp,
     fetchFilmTitleLogoByKp: fetchFilmTitleLogoByKp,
     resolveTitleLogoUrl: resolveTitleLogoUrl,
+    prefetchTitleLogoUrl: prefetchTitleLogoUrl,
     applyFilmTitleLogo: applyFilmTitleLogo,
     pickTrailerPlayback: pickTrailerPlayback,
     normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,

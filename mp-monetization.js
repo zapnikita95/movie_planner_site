@@ -565,12 +565,8 @@
     if (planWrap && !planWrap.querySelector('[data-ticket-pending="1"]')) {
       planWrap.insertBefore(buildTicketPendingBlock('toolbar'), planWrap.firstChild);
     }
-    var poster = findPosterWrap(scope);
-    if (poster && !poster.querySelector('[data-ticket-pending="1"]')) {
-      var pendingPoster = buildTicketPendingBlock('poster');
-      pendingPoster.classList.add('film-poster-ticket-stack');
-      poster.appendChild(pendingPoster);
-    }
+    /* Never mount pending skeleton on the poster — empty dark rounded square
+       flash above 2SUB (mobile) while ticket-partners loads. Toolbar-only. */
   }
 
   function ensureToolbarTicketSlot(scope) {

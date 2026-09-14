@@ -31062,3 +31062,70 @@ body.film-trailer-lightbox-open {
 body.premieres-stories-player-open {
   overflow: hidden;
 }
+
+
+/* === Title logo CLS + trailer slot reserve + no empty poster pending (2026-09-14) === */
+#film-title.film-title-slot,
+#film-page-content .hero-content > h1.film-title-slot,
+#section-film .hero-content > h1.film-title-slot,
+main.film-page .hero-content > h1.film-title-slot {
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+@media (min-width: 900px) {
+  #film-title.film-title-slot,
+  #film-page-content .hero-content > h1.film-title-slot,
+  #section-film .hero-content > h1.film-title-slot,
+  main.film-page .hero-content > h1.film-title-slot {
+    min-height: 64px;
+  }
+}
+@media (max-width: 640px) {
+  #film-title.film-title-slot,
+  #film-page-content .hero-content > h1.film-title-slot,
+  #section-film .hero-content > h1.film-title-slot,
+  main.film-page .hero-content > h1.film-title-slot {
+    min-height: 48px;
+    align-items: center;
+  }
+}
+.film-title-logo {
+  max-height: 64px;
+  max-width: min(100%, 420px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+@media (min-width: 900px) {
+  .film-title-logo { max-height: 72px; }
+}
+@media (max-width: 640px) {
+  .film-title-logo {
+    max-height: 48px;
+    object-position: center center;
+  }
+}
+
+/* Reserve under-poster trailer pill height from first paint — no CLS when pill unhides */
+.film-page-trailer--under-poster,
+.film-page-trailer--reserved {
+  min-height: 40px;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+/* display:inline-flex on .film-trailer-pill was overriding [hidden] */
+.film-trailer-pill[hidden] {
+  display: none !important;
+}
+
+/* Never show empty ticket pending skeleton on the poster */
+.poster-wrap > .film-poster-ticket-stack.film-ticket-btns--pending,
+.poster-wrap > .film-ticket-btns--poster.film-ticket-btns--pending,
+.film-poster-ticket-stack.film-ticket-btns--pending {
+  display: none !important;
+}
+
