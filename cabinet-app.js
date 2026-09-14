@@ -3601,6 +3601,7 @@
   function showMpStackedChoiceDialog(opts) {
     const o = opts || {};
     return new Promise(function (resolve) {
+      try { mpHomeRailClearDragState(); } catch (_clr) {}
       const overlay = document.createElement('div');
       overlay.className = 'mp-dialog-overlay';
       overlay.setAttribute('role', 'dialog');
@@ -11059,15 +11060,7 @@
         dragging = false;
       }, true);
     });
-    if (!window._mpHomeRailDragSafetyBound) {
-      window._mpHomeRailDragSafetyBound = true;
-      const clearStuckHomeRails = () => {
-        mpHomeRailClearDragState();
-      };
-      document.addEventListener('pointerup', clearStuckHomeRails, true);
-      document.addEventListener('pointercancel', clearStuckHomeRails, true);
-      window.addEventListener('blur', clearStuckHomeRails);
-    }
+    try { ensureMpPointerCaptureSafety(); } catch (_) {}
   }
 
   function mountHomeDashboardRails() {
@@ -17245,6 +17238,7 @@
     const o = opts || {};
     const fid = Number(filmId);
     if (!fid) return Promise.resolve(null);
+    try { mpHomeRailClearDragState(); } catch (_clr) {}
     const modal = document.getElementById('film-modal');
     const content = document.getElementById('film-modal-content');
     if (!modal || !content) {
@@ -17854,9 +17848,14 @@
     }
   }
 
+  /** Release stuck setPointerCapture on any horizontal drag rail / landing marquee.
+   *  Same class of Chrome bug as onboarding genre chips (#450): capture retargets
+   *  clicks under modals while :hover still lights controls. */
   function mpHomeRailClearDragState() {
     try {
-      document.querySelectorAll('.home-rail--draggable, .film-page-similar-rail').forEach((rail) => {
+      const sels =
+        '.home-rail--draggable, .film-page-similar-rail, .landing-vitrine-viewport, .landing-vitrine-viewport--duo, .landing-premieres-viewport';
+      document.querySelectorAll(sels).forEach((rail) => {
         try { rail.classList.remove('is-dragging'); } catch (_c) {}
         if (typeof rail.hasPointerCapture !== 'function' || typeof rail.releasePointerCapture !== 'function') return;
         for (let id = 0; id < 32; id++) {
@@ -17869,6 +17868,16 @@
     } catch (_) {}
   }
   try { window.__mpClearHomeRailPointerState = mpHomeRailClearDragState; } catch (_e) {}
+
+  function ensureMpPointerCaptureSafety() {
+    if (window._mpHomeRailDragSafetyBound) return;
+    window._mpHomeRailDragSafetyBound = true;
+    const clearStuck = () => { mpHomeRailClearDragState(); };
+    document.addEventListener('pointerup', clearStuck, true);
+    document.addEventListener('pointercancel', clearStuck, true);
+    window.addEventListener('blur', clearStuck);
+  }
+  try { ensureMpPointerCaptureSafety(); } catch (_ens) {}
 
   function pickFilmDescription(film) {
     if (!film) return '';

@@ -3836,7 +3836,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260914posterOverlays1';
+        var V='20260914pointerCapture1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
@@ -4310,22 +4310,22 @@
           }
           viewport.scrollLeft = dragStartScroll - dx;
         }, { passive: false });
-        viewport.addEventListener('pointerup', function (e) {
+        function endMarqueeDrag(e) {
           dragPending = false;
           dragAxisLocked = false;
-          if (!dragging) return;
+          var wasDragging = dragging;
           dragging = false;
           viewport.classList.remove('is-dragging');
-          try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+          if (wasDragging || (e && e.pointerId != null)) {
+            try {
+              if (e && e.pointerId != null) viewport.releasePointerCapture(e.pointerId);
+            } catch (_) {}
+          }
           setTimeout(function () { userActive = false; }, 1800);
-        });
-        viewport.addEventListener('pointercancel', function () {
-          dragPending = false;
-          dragAxisLocked = false;
-          dragging = false;
-          viewport.classList.remove('is-dragging');
-          setTimeout(function () { userActive = false; }, 1800);
-        });
+        }
+        viewport.addEventListener('pointerup', endMarqueeDrag);
+        viewport.addEventListener('pointercancel', endMarqueeDrag);
+        viewport.addEventListener('lostpointercapture', endMarqueeDrag);
         viewport.addEventListener('click', function (e) {
           if (moved) {
             e.preventDefault();

@@ -824,8 +824,13 @@
    *  the cursor (Chrome desktop). Release before any onboarding dialog. */
   function releaseStuckPagePointerState() {
     try {
+      try {
+        if (typeof window.__mpClearHomeRailPointerState === "function") {
+          window.__mpClearHomeRailPointerState();
+        }
+      } catch (_shared) {}
       const sels =
-        ".home-rail--draggable, .film-page-similar-rail, .landing-vitrine-viewport, .landing-vitrine-viewport--duo";
+        ".home-rail--draggable, .film-page-similar-rail, .landing-vitrine-viewport, .landing-vitrine-viewport--duo, .landing-premieres-viewport";
       document.querySelectorAll(sels).forEach(function (el) {
         try {
           el.classList.remove("is-dragging");
