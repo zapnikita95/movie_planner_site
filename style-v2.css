@@ -30823,6 +30823,12 @@ body.film-trailer-lightbox-open {
     linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 26%),
     linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 36%, transparent 62%);
 }
+a.premieres-story-brand {
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
+  z-index: 5;
+}
 .premieres-story-brand {
   position: absolute;
   left: 10px;

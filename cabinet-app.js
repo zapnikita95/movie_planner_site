@@ -26778,7 +26778,7 @@
 
 
   /* ——— Premieres stories trailer rail (mobile-first, tvoe.live-style) ——— */
-  /* MARKER:20260914premStoriesPlay1 — only playable trailers in the rail */
+  /* MARKER:20260914kpWidgetProxy1 — only playable trailers in the rail */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
   let _premieresStoriesItems = [];
@@ -26955,13 +26955,19 @@
         + '<span class="premieres-story-playhint" aria-hidden="true">▶</span>'
         + '<span class="premieres-story-live" aria-hidden="true"></span>'
         + (datePill ? ('<span class="premieres-story-date">' + escapeHtml(datePill) + '</span>') : '')
-        + '<div class="premieres-story-brand">' + storyBrandHtml(title, logo) + '</div>'
+        + '<a class="premieres-story-brand" href="/f/' + encodeURIComponent(kp) + '" data-story-film-link="1" aria-label="Карточка: ' + escapeHtml(title || 'фильм') + '">' + storyBrandHtml(title, logo) + '</a>'
         + '</div></button>';
     }).join('');
 
     if (!rail.dataset.storiesBound) {
       rail.dataset.storiesBound = '1';
       rail.addEventListener('click', (e) => {
+        const filmLink = e.target && e.target.closest ? e.target.closest('[data-story-film-link]') : null;
+        if (filmLink && rail.contains(filmLink)) {
+          // Title/logo → film card. Let the <a> navigate.
+          e.stopPropagation();
+          return;
+        }
         const chip = e.target && e.target.closest ? e.target.closest('.premieres-story') : null;
         if (!chip || !rail.contains(chip)) return;
         e.preventDefault();
@@ -27059,11 +27065,15 @@
       frame.removeAttribute('hidden');
       frame.innerHTML = '';
       const iframe = document.createElement('iframe');
-      iframe.src = play.url;
+      let src = play.url;
+      if (src && src.charAt(0) === '/') {
+        src = String(API_BASE || '').replace(/\/$/, '') + src;
+      }
+      iframe.src = src;
       iframe.title = 'Трейлер';
       iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
       iframe.setAttribute('allowfullscreen', '');
-      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
       iframe.setAttribute('loading', 'eager');
       // Block pointer events so swipe still works on the rail
       iframe.style.pointerEvents = 'none';
@@ -27263,11 +27273,15 @@
       if (frame) {
         frame.innerHTML = '';
         const iframe = document.createElement('iframe');
-        iframe.src = play.url;
+        let src = play.url;
+        if (src && src.charAt(0) === '/') {
+          src = String(API_BASE || '').replace(/\/$/, '') + src;
+        }
+        iframe.src = src;
         iframe.title = 'Трейлер';
         iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
         iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
         frame.appendChild(iframe);
         const posterEl = lb.querySelector('.premieres-stories-player-poster');
         if (posterEl) posterEl.style.opacity = '0';
