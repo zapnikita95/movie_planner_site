@@ -26772,6 +26772,448 @@
     return '';
   }
 
+
+  /* ——— Premieres stories trailer rail (mobile-first, tvoe.live-style) ——— */
+  const PREMIERES_STORIES_MAX = 16;
+  let _premieresStoriesItems = [];
+  let _premieresStoriesObserver = null;
+  let _premieresStoriesActiveKp = '';
+  let _premieresStoriesPlayerIdx = -1;
+  const _premieresStoryTrailerCache = new Map();
+
+  function isPremieresStoriesViewport() {
+    try {
+      return window.matchMedia('(max-width: 860px)').matches
+        || window.matchMedia('(hover: none)').matches;
+    } catch (_e) {
+      return true;
+    }
+  }
+
+  function ensurePremieresStoriesDom() {
+    let root = document.getElementById('premieres-stories');
+    if (root) return root;
+    const section = document.getElementById('section-premieres');
+    if (!section) return null;
+    root = document.createElement('div');
+    root.id = 'premieres-stories';
+    root.className = 'premieres-stories';
+    root.hidden = true;
+    root.innerHTML =
+      '<div class="premieres-stories-head">'
+      + '<span class="premieres-stories-kicker">Трейлеры</span>'
+      + '<span class="premieres-stories-hint">свайпните · автоплей</span>'
+      + '</div>'
+      + '<div id="premieres-stories-rail" class="premieres-stories-rail" role="list" aria-label="Трейлеры премьер"></div>';
+    const toolbar = section.querySelector('.premieres-toolbar');
+    if (toolbar && toolbar.parentNode) toolbar.parentNode.insertBefore(root, toolbar);
+    else {
+      const grid = document.getElementById('premieres-grid');
+      if (grid && grid.parentNode) grid.parentNode.insertBefore(root, grid);
+      else section.appendChild(root);
+    }
+    return root;
+  }
+
+  function pickRuTitleLogoForStory(it, fetchedPayload) {
+    if (fetchedPayload) {
+      const lang = String(fetchedPayload.lang || '').toLowerCase();
+      const url = resolveTitleLogoUrl(fetchedPayload.title_logo || fetchedPayload.logo_url || '');
+      if (url && (!lang || lang === 'ru')) return url;
+      return '';
+    }
+    // Premiere list logos are RU-oriented TMDB wordmarks when present.
+    return pickItemTitleLogo(it) || '';
+  }
+
+  function storyBrandHtml(title, logoUrl) {
+    const t = String(title || '').trim();
+    const logo = resolveTitleLogoUrl(logoUrl || '');
+    if (logo) {
+      return '<img class="film-title-logo premieres-story-logo" src="' + escapeHtml(logo)
+        + '" alt="' + escapeHtml(t) + '" loading="lazy" decoding="async"'
+        + ' onerror="this.remove();var f=this.parentNode&&this.parentNode.querySelector(\'.premieres-story-title-fallback\');if(f)f.hidden=false;">'
+        + '<div class="premieres-story-title-fallback" hidden>' + escapeHtml(t) + '</div>';
+    }
+    return '<div class="premieres-story-title-fallback">' + escapeHtml(t) + '</div>';
+  }
+
+  function renderPremieresStories(items) {
+    const root = ensurePremieresStoriesDom();
+    const rail = document.getElementById('premieres-stories-rail');
+    if (!root || !rail) return;
+    const list = (items || []).filter((it) => it && (it.kp_id || it.kpId)).slice(0, PREMIERES_STORIES_MAX);
+    _premieresStoriesItems = list;
+    if (!list.length) {
+      root.hidden = true;
+      rail.innerHTML = '';
+      stopAllPremieresStoryTrailers();
+      return;
+    }
+    root.hidden = false;
+    rail.innerHTML = list.map((it, idx) => {
+      const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
+      const title = it.title || it.nameRu || '';
+      const poster = it.poster || it.poster_thumb || posterUrl(kp);
+      const datePill = typeof formatPremiereDateDdMm === 'function'
+        ? formatPremiereDateDdMm(it.premiere_date)
+        : '';
+      const logo = pickRuTitleLogoForStory(it, null);
+      const posterHtml = poster
+        ? ('<img class="premieres-story-poster" src="' + escapeHtml(poster) + '" alt="" loading="'
+          + (idx < 3 ? 'eager' : 'lazy') + '" decoding="async" onerror="this.classList.add(\'premieres-story-poster--ph\');this.removeAttribute(\'src\');">')
+        : '<div class="premieres-story-poster premieres-story-poster--ph"></div>';
+      return '<button type="button" class="premieres-story" role="listitem" data-kp="' + escapeHtml(kp)
+        + '" data-story-idx="' + idx + '"'
+        + ' data-title="' + escapeHtml(title) + '"'
+        + (it.year ? (' data-year="' + escapeHtml(String(it.year)) + '"') : '')
+        + (logo ? (' data-title-logo="' + escapeHtml(logo) + '"') : '')
+        + ' aria-label="Трейлер: ' + escapeHtml(title || 'фильм') + '">'
+        + '<div class="premieres-story-media">'
+        + posterHtml
+        + '<div class="premieres-story-frame" data-trailer-frame hidden></div>'
+        + '<div class="premieres-story-scrim" aria-hidden="true"></div>'
+        + '<span class="premieres-story-playhint" aria-hidden="true">▶</span>'
+        + '<span class="premieres-story-live" aria-hidden="true"></span>'
+        + (datePill ? ('<span class="premieres-story-date">' + escapeHtml(datePill) + '</span>') : '')
+        + '<div class="premieres-story-brand">' + storyBrandHtml(title, logo) + '</div>'
+        + '</div></button>';
+    }).join('');
+
+    if (!rail.dataset.storiesBound) {
+      rail.dataset.storiesBound = '1';
+      rail.addEventListener('click', (e) => {
+        const chip = e.target && e.target.closest ? e.target.closest('.premieres-story') : null;
+        if (!chip || !rail.contains(chip)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(chip.getAttribute('data-story-idx') || '0', 10) || 0;
+        openPremieresStoriesPlayer(idx);
+      });
+    }
+    bindPremieresStoriesAutoplay(rail);
+    warmPremieresStoriesAssets(list);
+  }
+
+  function stopPremieresStoryTrailer(card) {
+    if (!card) return;
+    card.classList.remove('is-playing', 'is-loading');
+    card._mpStoryActive = false;
+    const frame = card.querySelector('[data-trailer-frame]');
+    if (frame) {
+      try {
+        const ifr = frame.querySelector('iframe');
+        if (ifr) ifr.src = 'about:blank';
+      } catch (_e) {}
+      frame.innerHTML = '';
+      frame.hidden = true;
+      frame.setAttribute('hidden', '');
+    }
+  }
+
+  function stopAllPremieresStoryTrailers(exceptKp) {
+    const rail = document.getElementById('premieres-stories-rail');
+    if (!rail) return;
+    rail.querySelectorAll('.premieres-story').forEach((card) => {
+      const kp = card.getAttribute('data-kp') || '';
+      if (exceptKp && kp === String(exceptKp)) return;
+      stopPremieresStoryTrailer(card);
+    });
+  }
+
+  function fetchStoryTrailerPayload(kp, meta) {
+    const key = String(kp || '');
+    if (_premieresStoryTrailerCache.has(key)) {
+      return Promise.resolve(_premieresStoryTrailerCache.get(key));
+    }
+    const fetchFn = (window.MpFilmPage && window.MpFilmPage.fetchFilmTrailerByKp)
+      ? window.MpFilmPage.fetchFilmTrailerByKp
+      : null;
+    const p = fetchFn
+      ? fetchFn(kp, { title: meta && meta.title, year: meta && meta.year })
+      : fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/trailer', {
+          method: 'GET', mode: 'cors', credentials: 'omit',
+        }).then((r) => r.ok ? r.json() : null).then((d) => (d && d.success) ? d : null).catch(() => null);
+    return p.then((d) => {
+      _premieresStoryTrailerCache.set(key, d || null);
+      return d || null;
+    });
+  }
+
+  function pickStoryPlayback(d) {
+    if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
+      return window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
+    }
+    return pickHoverPlayback(d);
+  }
+
+  function mountPremieresStoryTrailer(card) {
+    if (!card) return;
+    const kp = String(card.getAttribute('data-kp') || '').replace(/\D/g, '');
+    if (!kp) return;
+    if (card._mpStoryActive && card.classList.contains('is-playing') && card.querySelector('iframe')) {
+      return;
+    }
+    const token = (card._mpStoryToken = (card._mpStoryToken || 0) + 1);
+    card._mpStoryActive = true;
+    card.classList.add('is-loading');
+    card.classList.remove('is-playing', 'has-trailer-miss');
+    const meta = {
+      title: card.getAttribute('data-title') || '',
+      year: card.getAttribute('data-year') || '',
+    };
+    fetchStoryTrailerPayload(kp, meta).then((d) => {
+      if (card._mpStoryToken !== token || !card._mpStoryActive) return;
+      if (!document.body.contains(card)) return;
+      const play = pickStoryPlayback(d);
+      card.classList.remove('is-loading');
+      if (!play || !play.url) {
+        card.classList.add('has-trailer-miss');
+        return;
+      }
+      stopAllPremieresStoryTrailers(kp);
+      const frame = card.querySelector('[data-trailer-frame]');
+      if (!frame) return;
+      frame.hidden = false;
+      frame.removeAttribute('hidden');
+      frame.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = play.url;
+      iframe.title = 'Трейлер';
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.setAttribute('loading', 'eager');
+      // Block pointer events so swipe still works on the rail
+      iframe.style.pointerEvents = 'none';
+      frame.appendChild(iframe);
+      card.classList.add('is-playing');
+      card.setAttribute('data-play-kind', play.kind || '');
+      _premieresStoriesActiveKp = kp;
+    }).catch(() => {
+      if (card._mpStoryToken !== token) return;
+      card.classList.remove('is-loading');
+      card.classList.add('has-trailer-miss');
+    });
+  }
+
+  function bindPremieresStoriesAutoplay(rail) {
+    if (!rail) return;
+    if (_premieresStoriesObserver) {
+      try { _premieresStoriesObserver.disconnect(); } catch (_d) {}
+      _premieresStoriesObserver = null;
+    }
+    const cards = Array.prototype.slice.call(rail.querySelectorAll('.premieres-story'));
+    if (!cards.length) return;
+    // Prefer IO: autoplay the most-visible card in the rail viewport.
+    if (typeof IntersectionObserver === 'function') {
+      const ratios = new Map();
+      _premieresStoriesObserver = new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+          ratios.set(en.target, en.isIntersecting ? en.intersectionRatio : 0);
+        });
+        let best = null;
+        let bestR = 0.35;
+        ratios.forEach((r, el) => {
+          if (r > bestR) { bestR = r; best = el; }
+        });
+        if (!best) return;
+        const kp = best.getAttribute('data-kp') || '';
+        if (kp && kp === _premieresStoriesActiveKp && best.classList.contains('is-playing')) return;
+        stopAllPremieresStoryTrailers(kp);
+        mountPremieresStoryTrailer(best);
+      }, { root: rail, threshold: [0.35, 0.55, 0.75, 0.9] });
+      cards.forEach((c) => _premieresStoriesObserver.observe(c));
+    }
+    // Kick first card immediately for snappy feel.
+    if (cards[0]) {
+      setTimeout(() => mountPremieresStoryTrailer(cards[0]), 80);
+    }
+  }
+
+  function warmPremieresStoriesAssets(list) {
+    (list || []).slice(0, 8).forEach((it) => {
+      const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
+      if (!kp) return;
+      // Warm logo (RU only) onto chip if missing.
+      const card = document.querySelector('#premieres-stories-rail .premieres-story[data-kp="' + kp + '"]');
+      if (card && !card.getAttribute('data-title-logo')) {
+        const via = window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function'
+          ? window.MpFilmPage.fetchFilmTitleLogoByKp(kp)
+          : fetchTitleLogoByKp(kp).then((url) => (url ? { title_logo: url, lang: 'ru' } : null));
+        Promise.resolve(via).then((payload) => {
+          const url = pickRuTitleLogoForStory(it, payload && typeof payload === 'object' && payload.title_logo
+            ? payload
+            : (payload ? { title_logo: payload, lang: 'ru' } : null));
+          if (!url || !card) return;
+          card.setAttribute('data-title-logo', url);
+          const brand = card.querySelector('.premieres-story-brand');
+          if (brand) brand.innerHTML = storyBrandHtml(card.getAttribute('data-title') || '', url);
+        }).catch(() => {});
+      }
+      // Prefetch trailer payloads in background (first few).
+      fetchStoryTrailerPayload(kp, { title: it.title || '', year: it.year || '' });
+    });
+  }
+
+  function closePremieresStoriesPlayer() {
+    const lb = document.getElementById('premieres-stories-player');
+    if (lb) {
+      try {
+        const frame = lb.querySelector('.premieres-stories-player-frame');
+        if (frame) frame.innerHTML = '';
+      } catch (_e) {}
+      lb.remove();
+    }
+    try { document.body.classList.remove('premieres-stories-player-open'); } catch (_b) {}
+    try { document.removeEventListener('keydown', _premieresStoriesPlayerKey, true); } catch (_k) {}
+    _premieresStoriesPlayerIdx = -1;
+  }
+
+  function _premieresStoriesPlayerKey(e) {
+    if (!e) return;
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      e.preventDefault();
+      closePremieresStoriesPlayer();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      openPremieresStoriesPlayer(_premieresStoriesPlayerIdx + 1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      openPremieresStoriesPlayer(_premieresStoriesPlayerIdx - 1);
+    }
+  }
+
+  function openPremieresStoriesPlayer(idx) {
+    const items = _premieresStoriesItems || [];
+    if (!items.length) return;
+    let i = parseInt(idx, 10);
+    if (isNaN(i)) i = 0;
+    if (i < 0) i = items.length - 1;
+    if (i >= items.length) i = 0;
+    _premieresStoriesPlayerIdx = i;
+    const it = items[i];
+    const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
+    const title = it.title || '';
+    const poster = it.poster || posterUrl(kp);
+    const dateLabel = typeof formatPremiereDate === 'function'
+      ? formatPremiereDate(it.premiere_date)
+      : (it.premiere_date || '');
+    let lb = document.getElementById('premieres-stories-player');
+    if (!lb) {
+      lb = document.createElement('div');
+      lb.id = 'premieres-stories-player';
+      lb.className = 'premieres-stories-player';
+      lb.setAttribute('role', 'dialog');
+      lb.setAttribute('aria-modal', 'true');
+      lb.setAttribute('aria-label', 'Трейлер');
+      document.body.appendChild(lb);
+      try { document.body.classList.add('premieres-stories-player-open'); } catch (_b) {}
+      try { document.addEventListener('keydown', _premieresStoriesPlayerKey, true); } catch (_k) {}
+    }
+    lb.innerHTML =
+      '<div class="premieres-stories-player-stage">'
+      + '<button type="button" class="premieres-stories-player-close" aria-label="Закрыть">×</button>'
+      + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--prev" aria-label="Предыдущий"></button>'
+      + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--next" aria-label="Следующий"></button>'
+      + (poster ? ('<img class="premieres-stories-player-poster" src="' + escapeHtml(poster) + '" alt="">') : '')
+      + '<div class="premieres-stories-player-frame"></div>'
+      + '<div class="premieres-stories-player-scrim" aria-hidden="true"></div>'
+      + '<div class="premieres-stories-player-brand">'
+      + '<div class="premieres-stories-player-title-slot"></div>'
+      + (dateLabel ? ('<div class="premieres-stories-player-meta">' + escapeHtml(dateLabel) + '</div>') : '')
+      + '</div></div>';
+
+    const closeBtn = lb.querySelector('.premieres-stories-player-close');
+    const prevBtn = lb.querySelector('.premieres-stories-player-nav--prev');
+    const nextBtn = lb.querySelector('.premieres-stories-player-nav--next');
+    if (closeBtn) closeBtn.addEventListener('click', (e) => { e.preventDefault(); closePremieresStoriesPlayer(); });
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i + 1); });
+
+    // Branding: RU logo preferred
+    const slot = lb.querySelector('.premieres-stories-player-title-slot');
+    const applyBrand = (logoUrl) => {
+      if (!slot) return;
+      const logo = resolveTitleLogoUrl(logoUrl || '');
+      if (logo) {
+        slot.innerHTML = '<img class="film-title-logo premieres-stories-player-logo" src="'
+          + escapeHtml(logo) + '" alt="' + escapeHtml(title) + '">'
+          + '<div class="premieres-stories-player-title" hidden>' + escapeHtml(title) + '</div>';
+      } else {
+        slot.innerHTML = '<div class="premieres-stories-player-title">' + escapeHtml(title) + '</div>';
+      }
+    };
+    applyBrand(pickRuTitleLogoForStory(it, null));
+    if (window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function') {
+      window.MpFilmPage.fetchFilmTitleLogoByKp(kp).then((payload) => {
+        const url = pickRuTitleLogoForStory(it, payload);
+        if (url) applyBrand(url);
+      }).catch(() => {});
+    } else {
+      fetchTitleLogoByKp(kp).then((url) => { if (url) applyBrand(url); }).catch(() => {});
+    }
+
+    // Trailer autoplay (unmuted for immersive tap-open)
+    const frame = lb.querySelector('.premieres-stories-player-frame');
+    fetchStoryTrailerPayload(kp, { title: title, year: it.year || '' }).then((d) => {
+      if (_premieresStoriesPlayerIdx !== i) return;
+      let play = null;
+      if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
+        play = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: false });
+      } else {
+        play = pickStoryPlayback(d);
+      }
+      if (!play || !play.url) {
+        const empty = document.createElement('div');
+        empty.className = 'premieres-stories-player-empty';
+        empty.textContent = 'Трейлер пока недоступен';
+        if (frame) frame.appendChild(empty);
+        return;
+      }
+      if (frame) {
+        frame.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.src = play.url;
+        iframe.title = 'Трейлер';
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        frame.appendChild(iframe);
+        const posterEl = lb.querySelector('.premieres-stories-player-poster');
+        if (posterEl) posterEl.style.opacity = '0';
+      }
+    }).catch(() => {
+      if (_premieresStoriesPlayerIdx !== i || !frame) return;
+      const empty = document.createElement('div');
+      empty.className = 'premieres-stories-player-empty';
+      empty.textContent = 'Трейлер пока недоступен';
+      frame.appendChild(empty);
+    });
+
+    // Simple swipe on stage
+    const stage = lb.querySelector('.premieres-stories-player-stage');
+    if (stage && !stage._swipeBound) {
+      stage._swipeBound = true;
+      let sx = 0, sy = 0;
+      stage.addEventListener('touchstart', (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        sx = t.clientX; sy = t.clientY;
+      }, { passive: true });
+      stage.addEventListener('touchend', (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+        if (dx < 0) openPremieresStoriesPlayer(_premieresStoriesPlayerIdx + 1);
+        else openPremieresStoriesPlayer(_premieresStoriesPlayerIdx - 1);
+      }, { passive: true });
+    }
+  }
+
+
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
@@ -26789,8 +27231,10 @@
         ? 'Нет премьер с этим жанром на выбранные даты.'
         : 'На этот период премьер нет.';
       grid.innerHTML = '<div class="cabinet-hint">' + msg + '</div>';
+      try { renderPremieresStories([]); } catch (_st) {}
       return;
     }
+    try { renderPremieresStories(items); } catch (_st2) {}
     grid.innerHTML = items.map((it) => {
       const poster = it.poster || posterUrl(it.kp_id);
       const year = it.year ? escapeHtml(String(it.year)) : '';

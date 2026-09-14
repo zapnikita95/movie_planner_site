@@ -30655,3 +30655,387 @@ body.film-trailer-lightbox-open {
   height: auto !important;
   min-height: 0 !important;
 }
+
+/* === Premieres mobile stories trailer rail (tvoe.live-style) 2026-09-14 === */
+.premieres-stories {
+  display: none;
+  margin: 4px 0 14px;
+  min-width: 0;
+}
+.premieres-stories-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 8px;
+}
+.premieres-stories-kicker {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+.premieres-stories-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.premieres-stories-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding: 2px 2px 10px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+}
+.premieres-stories-rail::-webkit-scrollbar { display: none; }
+
+.premieres-story {
+  flex: 0 0 auto;
+  width: min(52vw, 196px);
+  scroll-snap-align: start;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 18px;
+}
+.premieres-story:focus-visible {
+  outline: 2px solid rgba(255, 138, 184, 0.75);
+  outline-offset: 3px;
+}
+.premieres-story-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0a0a12;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  isolation: isolate;
+}
+.premieres-story-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 1;
+  transition: opacity 0.25s ease;
+}
+.premieres-story-poster--ph {
+  background: linear-gradient(160deg, #1a1a28, #0c0c14 55%, #181828);
+}
+.premieres-story-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  pointer-events: none;
+}
+.premieres-story-frame iframe {
+  position: absolute;
+  /* cover 9:16 with 16:9 embed — crop sides */
+  top: 50%;
+  left: 50%;
+  width: 177.78%; /* 16/9 */
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: #000;
+}
+.premieres-story.is-playing .premieres-story-poster {
+  opacity: 0;
+}
+.premieres-story-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 28%),
+    linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 32%, transparent 58%);
+}
+.premieres-story-brand {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 14px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  pointer-events: none;
+  text-align: center;
+}
+.premieres-story-logo,
+.premieres-story-brand .film-title-logo {
+  display: block;
+  max-width: min(88%, 168px);
+  max-height: 52px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.65));
+}
+.premieres-story-title-fallback {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+}
+.premieres-story-date {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  height: 22px;
+  line-height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.premieres-story-live {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d8d;
+  box-shadow: 0 0 0 3px rgba(255, 77, 141, 0.28);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.premieres-story.is-playing .premieres-story-live,
+.premieres-story.is-loading .premieres-story-live {
+  opacity: 1;
+}
+.premieres-story.is-loading .premieres-story-live {
+  background: #ffc857;
+  box-shadow: 0 0 0 3px rgba(255, 200, 87, 0.28);
+  animation: premieres-story-pulse 1s ease-in-out infinite;
+}
+@keyframes premieres-story-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+.premieres-story-playhint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+.premieres-story.is-playing .premieres-story-playhint,
+.premieres-story.is-loading .premieres-story-playhint,
+.premieres-story.has-trailer-miss .premieres-story-playhint {
+  opacity: 0;
+}
+.premieres-story.has-trailer-miss .premieres-story-media::after {
+  content: none;
+}
+
+@media (max-width: 860px) {
+  .premieres-stories:not([hidden]) {
+    display: block;
+  }
+  .premieres-story {
+    width: min(58vw, 210px);
+  }
+}
+@media (max-width: 420px) {
+  .premieres-story {
+    width: min(62vw, 200px);
+  }
+  .premieres-story-logo,
+  .premieres-story-brand .film-title-logo {
+    max-height: 46px;
+  }
+}
+/* Desktop: keep stories rail available but slightly smaller; still separate from grid */
+@media (min-width: 861px) {
+  .premieres-stories:not([hidden]) {
+    display: block;
+  }
+  .premieres-story {
+    width: 168px;
+  }
+  .premieres-stories-rail {
+    gap: 14px;
+  }
+}
+
+/* Immersive stories player overlay */
+.premieres-stories-player {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: #000;
+}
+.premieres-stories-player-stage {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #000;
+  overflow: hidden;
+}
+.premieres-stories-player-frame {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+.premieres-stories-player-frame iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 56.25vw; /* fallback */
+  max-height: 100%;
+  min-height: 56.25%;
+  width: 177.78%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: #000;
+}
+.premieres-stories-player-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+.premieres-stories-player-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 22%),
+    linear-gradient(0deg, rgba(0,0,0,0.82) 0%, transparent 42%);
+}
+.premieres-stories-player-brand {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: max(28px, env(safe-area-inset-bottom, 0px));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  text-align: center;
+}
+.premieres-stories-player-brand .film-title-logo,
+.premieres-stories-player-logo {
+  max-width: min(86%, 280px);
+  max-height: 72px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 14px rgba(0,0,0,0.7));
+}
+.premieres-stories-player-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.8);
+  line-height: 1.15;
+}
+.premieres-stories-player-meta {
+  font-size: 13px;
+  color: rgba(255,255,255,0.72);
+}
+.premieres-stories-player-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.premieres-stories-player-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28%;
+  z-index: 4;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.premieres-stories-player-nav--prev { left: 0; }
+.premieres-stories-player-nav--next { right: 0; }
+.premieres-stories-player-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: rgba(255,255,255,0.8);
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(0,0,0,0.35);
+}
+body.premieres-stories-player-open {
+  overflow: hidden;
+}
