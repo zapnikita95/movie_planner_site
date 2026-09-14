@@ -30283,3 +30283,42 @@ a.collections-author-block:hover {
     font-size: 12px !important;
   }
 }
+
+
+/* Film page trailer + digital release (2026-09-14) */
+.poster-wrap.has-trailer { position: relative; }
+.poster-wrap .film-poster-trailer-play {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.08));
+  color: #fff; font-size: 42px; cursor: pointer; opacity: 0;
+  transition: opacity .18s ease;
+}
+.poster-wrap.has-trailer:hover .film-poster-trailer-play,
+.poster-wrap.has-trailer:focus-within .film-poster-trailer-play {
+  opacity: .92;
+}
+@media (hover: none) {
+  .poster-wrap.has-trailer .film-poster-trailer-play { opacity: .78; font-size: 36px; }
+}
+.film-page-trailer { margin-top: 14px; }
+.film-digital-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 6px 0 0; padding: 4px 10px; border-radius: 999px;
+  background: rgba(120, 200, 255, 0.14); color: #b8e4ff;
+  font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em;
+}
+.home-poster-tile-wrap.has-trailer-preview { position: relative; }
+.home-poster-tile-wrap .home-poster-trailer-play {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  z-index: 5; width: 42px; height: 42px; border-radius: 999px; border: 0;
+  background: rgba(0,0,0,0.62); color: #fff; font-size: 16px;
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+.home-poster-tile-wrap.has-trailer-preview:hover .home-poster-trailer-play {
+  display: inline-flex;
+}
+@media (hover: none) {
+  .home-poster-tile-wrap .home-poster-trailer-play { display: none !important; }
+}
