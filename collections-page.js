@@ -396,11 +396,22 @@
     return /^\d+$/.test(String(fid));
   }
 
+  function kpRatingBandClass(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    if (n < 4) return " poster-kp-rating--low";
+    if (n < 5) return " poster-kp-rating--mid";
+    if (n < 7) return " poster-kp-rating--amber";
+    return " poster-kp-rating--high";
+  }
+
   function posterKpRatingHtml(f) {
-    var label = formatKpRatingBadge(f && (f.rating_kp != null ? f.rating_kp : f.rating));
+    var raw = f && (f.rating_kp != null ? f.rating_kp : f.rating);
+    var label = formatKpRatingBadge(raw);
     if (!label) return "";
     return (
-      '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + esc(label) + '" aria-label="КП ' + esc(label) + '">'
+      '<span class="poster-kp-rating' + kpRatingBandClass(raw)
+      + '" title="Рейтинг Кинопоиска ' + esc(label) + '" aria-label="КП ' + esc(label) + '">'
       + esc(label)
       + "</span>"
     );
@@ -503,9 +514,7 @@
       '<div id="collections-detail-films-block">'
       + filmsGridHtml(slice, { ranked: !!st.ranked })
       + detailFilmsPagerHtml(all.length, st.page, pageSize)
-      + (st.ctaHtml
-        ? '<div class="collections-detail-cta">' + st.ctaHtml + "</div>"
-        : "")
+      + (st.ctaHtml ? st.ctaHtml : "")
       + "</div>"
     );
   }
@@ -1286,8 +1295,10 @@
           page: 1,
           ranked: false,
           tagId: String(tid),
-          ctaHtml: '<button type="button" class="btn btn-primary btn-full" data-coll-action="import-public" data-coll-id="'
-            + esc(String(tid)) + '">Добавить все в базу</button>',
+          ctaHtml: '<button type="button" class="collections-import-fab" data-coll-action="import-public" data-coll-id="'
+            + esc(String(tid)) + '" title="Добавить все в базу" aria-label="Добавить все в базу">'
+            + '<span class="collections-import-fab-plus" aria-hidden="true">+</span>'
+            + '<span class="collections-import-fab-label">Добавить все в базу</span></button>',
           prefixHtml: "",
         };
         body.innerHTML = detailFilmsSectionHtml();
@@ -1744,11 +1755,15 @@
       if (body) {
         var cta;
         if (hasSiteAuth()) {
-          cta = '<button type="button" class="btn btn-primary btn-full" data-coll-action="import-public" data-coll-id="'
-            + esc(String(c.id || "")) + '">Добавить все в базу</button>';
+          cta = '<button type="button" class="collections-import-fab" data-coll-action="import-public" data-coll-id="'
+            + esc(String(c.id || "")) + '" title="Добавить все в базу" aria-label="Добавить все в базу">'
+            + '<span class="collections-import-fab-plus" aria-hidden="true">+</span>'
+            + '<span class="collections-import-fab-label">Добавить все в базу</span></button>';
         } else {
-          cta = '<button type="button" class="btn btn-primary btn-full" data-coll-action="guest-import">'
-            + "Добавить все в базу</button>";
+          cta = '<button type="button" class="collections-import-fab" data-coll-action="guest-import"'
+            + ' title="Добавить все в базу" aria-label="Добавить все в базу">'
+            + '<span class="collections-import-fab-plus" aria-hidden="true">+</span>'
+            + '<span class="collections-import-fab-label">Добавить все в базу</span></button>';
         }
         var intro = "";
         if (shortCode === "nyt-top100-21c") {
