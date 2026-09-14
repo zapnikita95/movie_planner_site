@@ -11405,12 +11405,21 @@
     return list;
   }
 
+  function siteSearchKpRatingBandClass(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 4) return ' poster-kp-rating--low';
+    if (n < 5) return ' poster-kp-rating--mid';
+    if (n < 7) return ' poster-kp-rating--amber';
+    return ' poster-kp-rating--high';
+  }
+
   function siteSearchKpRatingHtml(it) {
     const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
     const n = Number(raw);
     if (!Number.isFinite(n) || n <= 0) return '';
     const label = n.toFixed(1);
-    return '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
+    return '<span class="poster-kp-rating' + siteSearchKpRatingBandClass(n) + '" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
   }
 
   function siteSearchResultCardHtml(it) {
@@ -15050,6 +15059,23 @@
     }
   }
 
+  function premierePosterMetaLine(it) {
+    const year = it && it.year ? String(it.year) : '';
+    let genres = [];
+    const raw = it && it.genres;
+    if (Array.isArray(raw)) {
+      genres = raw.map((g) => (g && typeof g === 'object' ? String(g.genre || g.name || '') : String(g || '')).trim()).filter(Boolean);
+    } else {
+      genres = String(raw || '').split(/[,;|/·•]+/).map((s) => s.trim()).filter(Boolean);
+    }
+    genres = genres.slice(0, 3);
+    const genrePart = genres.join(', ');
+    if (year && genrePart) return escapeHtml(year) + ' · ' + escapeHtml(genrePart);
+    if (year) return escapeHtml(year);
+    if (genrePart) return escapeHtml(genrePart);
+    return '';
+  }
+
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
@@ -15088,7 +15114,7 @@
         </div>
         <div class="premiere-poster-tile-body">
           <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>
-          ${year ? `<div class="premiere-poster-tile-meta">${year}</div>` : ''}
+          ${(() => { const cardMeta = premierePosterMetaLine(it); return cardMeta ? `<div class="premiere-poster-tile-meta" title="${cardMeta}">${cardMeta}</div>` : ''; })()}
         </div>
         ${preview}
       </div>`;

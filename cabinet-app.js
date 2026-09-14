@@ -10815,13 +10815,33 @@
     return attrs;
   }
 
+  function formatHoverActorsLine(actors, maxNames) {
+    const lim = maxNames == null ? 6 : maxNames;
+    const raw = String(actors || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    const parts = raw.split(/,\s*/).map((s) => s.trim()).filter(Boolean);
+    if (!parts.length) return raw;
+    if (parts.length <= lim) return parts.join(', ');
+    return parts.slice(0, lim).join(', ') + '…';
+  }
+
   function renderHomeHoverPreview(opts) {
     const o = opts || {};
     const title = o.title || '';
     const poster = o.poster || '';
     const metaHtml = o.metaHtml || '';
-    const desc = shortPremiereDescription(o.description || '', 180);
-    if (!title && !metaHtml && !desc) return '';
+    const desc = shortPremiereDescription(o.description || '', 220);
+    const director = String(o.director || '').trim();
+    const actorsLine = formatHoverActorsLine(o.actors, 6);
+    const castParts = [];
+    if (director && director !== 'Не указан') {
+      castParts.push('<div class="home-film-preview-cast-row"><span class="home-film-preview-cast-k">Реж.</span> ' + escapeHtml(director) + '</div>');
+    }
+    if (actorsLine) {
+      castParts.push('<div class="home-film-preview-cast-row home-film-preview-cast-row--actors"><span class="home-film-preview-cast-k">В ролях</span> ' + escapeHtml(actorsLine) + '</div>');
+    }
+    const castHtml = castParts.length ? ('<div class="home-film-preview-cast">' + castParts.join('') + '</div>') : '';
+    if (!title && !metaHtml && !desc && !castHtml) return '';
     return '<div class="home-film-preview" aria-hidden="true">'
       + '<div class="home-film-preview-poster">' + (poster
         ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
@@ -10829,7 +10849,8 @@
       + '<div class="home-film-preview-body">'
       + '<div class="home-film-preview-title">' + escapeHtml(title) + '</div>'
       + (metaHtml ? '<div class="home-film-preview-meta">' + metaHtml + '</div>' : '')
-      + (desc ? '<div class="home-film-preview-desc">' + escapeHtml(desc) + '</div>' : '')
+      + castHtml
+      + '<div class="home-film-preview-desc' + (desc ? '' : ' is-empty') + '">' + (desc ? escapeHtml(desc) : '') + '</div>'
       + '</div></div>';
   }
 
@@ -13196,6 +13217,50 @@
     });
   }
 
+
+  function parseLibraryGenres(item) {
+    const raw = item && item.genres;
+    if (Array.isArray(raw)) {
+      return raw.map((g) => {
+        if (g && typeof g === 'object') return String(g.genre || g.name || '').trim();
+        return String(g || '').trim();
+      }).filter(Boolean);
+    }
+    return String(raw || '').split(/[,;|/·•]+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  function collectLibraryGenreOptions(items) {
+    const seen = new Map();
+    (items || []).forEach((it) => {
+      parseLibraryGenres(it).forEach((name) => {
+        const key = name.toLowerCase();
+        if (!seen.has(key)) seen.set(key, name);
+      });
+    });
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'ru'));
+  }
+
+  function syncLibraryGenreSelect(selectId, items) {
+    const sel = document.getElementById(selectId);
+    if (!sel || sel.tagName !== 'SELECT') return;
+    const genres = collectLibraryGenreOptions(items);
+    const prev = String(sel.value || '').trim();
+    const prevLower = prev.toLowerCase();
+    const stillValid = !!(prev && genres.some((g) => g.toLowerCase() === prevLower));
+    const keep = stillValid ? prev : '';
+    sel.innerHTML = ['<option value="">Любой</option>'].concat(genres.map((g) => {
+      const selAttr = g.toLowerCase() === keep.toLowerCase() ? ' selected' : '';
+      return '<option value="' + escapeHtml(g) + '"' + selAttr + '>' + escapeHtml(g) + '</option>';
+    })).join('');
+    sel.value = keep;
+  }
+
+  function filmMatchesGenreFilter(item, genreFilter) {
+    const g = String(genreFilter || '').trim().toLowerCase();
+    if (!g) return true;
+    return parseLibraryGenres(item).some((x) => x.toLowerCase() === g);
+  }
+
   function sectionFilterState(section) {
     const typeEl = document.getElementById('section-filter-' + section + '-type');
     const yearFromEl = document.getElementById('section-filter-' + section + '-year-from');
@@ -13380,6 +13445,8 @@
       poster: poster,
       metaHtml: metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '',
       description: desc || '',
+      director: m.director || '',
+      actors: m.actors || '',
       emoji: '🎬',
     });
     return `
@@ -13406,10 +13473,11 @@
       return;
     }
     const query = sectionSearchQuery('unwatched');
-    const fs = sectionFilterState('unwatched');
     const sourceItems = (unwatchedActiveTagId && Array.isArray(unwatchedActiveTagFilmItems))
       ? unwatchedActiveTagFilmItems
       : unwatchedItems;
+    syncLibraryGenreSelect('section-filter-unwatched-genre', sourceItems);
+    const fs = sectionFilterState('unwatched');
     let list = filterByTitle(sourceItems, query, 'title', ['actors', 'director', 'genres', 'year']);
     if (!unwatchedActiveTagFilmItems) list = list.filter(filmMatchesActiveUnwatchedTag);
     list = list.filter((m) => {
@@ -13418,7 +13486,7 @@
       const y = parseInt(String(m.year || ''), 10);
       if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
       if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
-      if (fs.genre && String(m.genres || '').toLowerCase().indexOf(fs.genre) === -1) return false;
+      if (!filmMatchesGenreFilter(m, fs.genre)) return false;
       return true;
     });
     list.sort((a, b) => Number(Boolean(b.has_upcoming_plan)) - Number(Boolean(a.has_upcoming_plan)));
@@ -13433,6 +13501,7 @@
     }
     el.innerHTML = list.length ? list.map(renderUnwatchedCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
     updateUnwatchedCompactLabels();
+    bindUnwatchedHoverEnrichment();
     enrichUnwatchedStubTitles(list);
   }
 
@@ -13463,6 +13532,94 @@
         if (prevDesc && film.description) prevDesc.textContent = shortPremiereDescription(film.description, 180);
       }).catch(function () {});
     });
+  }
+
+
+  function enrichBaseHoverPreviewOnEnter(card) {
+    if (!card || card.getAttribute('data-preview-enriched') === '1') return;
+    const fid = String(card.getAttribute('data-film-id') || '').trim();
+    if (!fid) return;
+    const descEl = card.querySelector('.home-film-preview-desc');
+    const hasDesc = !!(descEl && descEl.textContent && descEl.textContent.trim() && !descEl.classList.contains('is-loading'));
+    const hasCast = !!card.querySelector('.home-film-preview-cast');
+    if (hasDesc && hasCast) {
+      card.setAttribute('data-preview-enriched', '1');
+      return;
+    }
+    const cacheKey = 'base:' + fid;
+    if (_homeFilmPreviewCache.has(cacheKey)) {
+      applyBaseHoverEnrichment(card, _homeFilmPreviewCache.get(cacheKey));
+      return;
+    }
+    if (descEl && !hasDesc) {
+      descEl.classList.remove('is-empty');
+      descEl.classList.add('is-loading');
+      descEl.textContent = 'Загружаем описание…';
+    }
+    api('/api/site/film/' + encodeURIComponent(fid)).then((data) => {
+      if (!data || !data.success || !data.film) {
+        if (descEl && !hasDesc) {
+          descEl.classList.remove('is-loading');
+          descEl.textContent = '';
+          descEl.classList.add('is-empty');
+        }
+        return;
+      }
+      const film = data.film;
+      let actors = film.actors || '';
+      if (!actors && Array.isArray(film.cast_actors)) actors = film.cast_actors.join(', ');
+      const payload = {
+        description: (typeof pickFilmDescription === 'function' ? pickFilmDescription(film) : '') || film.description || '',
+        director: film.director || '',
+        actors: actors,
+        genres: film.genres || '',
+        year: film.year || '',
+      };
+      _homeFilmPreviewCache.set(cacheKey, payload);
+      applyBaseHoverEnrichment(card, payload);
+    }).catch(() => {
+      if (descEl && !hasDesc) {
+        descEl.classList.remove('is-loading');
+        descEl.textContent = '';
+        descEl.classList.add('is-empty');
+      }
+    });
+  }
+
+  function applyBaseHoverEnrichment(card, payload) {
+    if (!card || !payload) return;
+    card.setAttribute('data-preview-enriched', '1');
+    const pop = card.querySelector('.home-film-preview');
+    if (!pop) return;
+    const title = card.getAttribute('data-title')
+      || ((card.querySelector('.home-film-preview-title') || {}).textContent || '');
+    const poster = card.getAttribute('data-poster') || '';
+    const metaEl = card.querySelector('.home-film-preview-meta');
+    let metaHtml = metaEl ? metaEl.innerHTML : '';
+    if (!metaHtml) {
+      const metaParts = [payload.year ? String(payload.year) : '', payload.genres || ''].filter(Boolean);
+      metaHtml = metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '';
+    }
+    const html = renderHomeHoverPreview({
+      title: title,
+      poster: poster,
+      metaHtml: metaHtml,
+      description: payload.description || '',
+      director: payload.director || '',
+      actors: payload.actors || '',
+    });
+    if (html) pop.outerHTML = html;
+  }
+
+  function bindUnwatchedHoverEnrichment() {
+    const list = document.getElementById('unwatched-list');
+    if (!list || list.dataset.hoverEnrichBound === '1') return;
+    list.dataset.hoverEnrichBound = '1';
+    list.addEventListener('pointerenter', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.film-card-v2--hover-preview') : null;
+      if (!card || !list.contains(card)) return;
+      enrichBaseHoverPreviewOnEnter(card);
+    }, true);
   }
 
   function bindUnwatchedSortIcons() {
@@ -13715,13 +13872,14 @@
       el.innerHTML = '<p class="empty-hint">Нет сериалов. Добавьте в боте или отметьте просмотр в карточке.</p>';
       return;
     }
+    syncLibraryGenreSelect('section-filter-' + ctx.sectionKey + '-genre', seriesItems);
     const fs = sectionFilterState(ctx.sectionKey);
     const list = filterByTitle(seriesItems, sectionSearchQuery(ctx.sectionKey), 'title', ['actors', 'genres', 'year']).filter((s) => {
       if (!seriesMatchesStatusFilter(s, _seriesStatusFilter)) return false;
       const y = parseInt(String(s.year || ''), 10);
       if (fs.yearFrom != null && (Number.isNaN(y) || y < fs.yearFrom)) return false;
       if (fs.yearTo != null && (Number.isNaN(y) || y > fs.yearTo)) return false;
-      if (fs.genre && String(s.genres || '').toLowerCase().indexOf(fs.genre) === -1) return false;
+      if (!filmMatchesGenreFilter(s, fs.genre)) return false;
       return true;
     });
     el.innerHTML = list.length ? list.map(renderSeriesCard).join('') : '<p class="empty-hint">Ничего не найдено</p>';
@@ -19841,12 +19999,21 @@
     });
   }
 
+  function siteSearchKpRatingBandClass(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 4) return ' poster-kp-rating--low';
+    if (n < 5) return ' poster-kp-rating--mid';
+    if (n < 7) return ' poster-kp-rating--amber';
+    return ' poster-kp-rating--high';
+  }
+
   function siteSearchKpRatingHtml(it) {
     const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
     const n = Number(raw);
     if (!Number.isFinite(n) || n <= 0) return '';
     const label = n.toFixed(1);
-    return '<span class="poster-kp-rating" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
+    return '<span class="poster-kp-rating' + siteSearchKpRatingBandClass(n) + '" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
   }
 
   function siteSearchResultCardHtml(it) {
@@ -26239,6 +26406,17 @@
     }
   }
 
+  function premierePosterMetaLine(it) {
+    const year = it && it.year ? String(it.year) : '';
+    const genres = (typeof parsePremiereGenres === 'function' ? parsePremiereGenres(it) : [])
+      .slice(0, 3);
+    const genrePart = genres.join(', ');
+    if (year && genrePart) return escapeHtml(year) + ' · ' + escapeHtml(genrePart);
+    if (year) return escapeHtml(year);
+    if (genrePart) return escapeHtml(genrePart);
+    return '';
+  }
+
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
@@ -26264,6 +26442,7 @@
       const datePill = formatPremiereDateDdMm(it.premiere_date);
       const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
       const metaParts = [datePill, year, it.genres || ''].filter(Boolean);
+      const cardMeta = premierePosterMetaLine(it);
       const preview = renderHomeHoverPreview({
         title: it.title || '',
         poster: poster,
@@ -26281,7 +26460,7 @@
         </div>
         <div class="premiere-poster-tile-body">
           <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>
-          ${year ? `<div class="premiere-poster-tile-meta">${year}</div>` : ''}
+          ${cardMeta ? `<div class="premiere-poster-tile-meta" title="${cardMeta}">${cardMeta}</div>` : ''}
         </div>
         ${preview}
       </div>`;

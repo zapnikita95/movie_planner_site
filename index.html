@@ -2560,9 +2560,11 @@
                                     <span class="base-filter-chip-k">Год до</span>
                                     <input type="text" id="section-filter-unwatched-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
                                 </label>
-                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                <label class="base-filter-chip base-filter-chip--select base-filter-chip--wide">
                                     <span class="base-filter-chip-k">Жанр</span>
-                                    <input type="text" id="section-filter-unwatched-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                    <select id="section-filter-unwatched-genre" class="base-filter-chip-native" aria-label="Жанр">
+                                        <option value="">Любой</option>
+                                    </select>
                                 </label>
                             </div>
                             <div class="base-sort-icon-group" id="unwatched-sort" role="group" aria-label="Сортировка">
@@ -2611,9 +2613,11 @@
                                     <span class="base-filter-chip-k">Год до</span>
                                     <input type="text" id="section-filter-series-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
                                 </label>
-                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                <label class="base-filter-chip base-filter-chip--select base-filter-chip--wide">
                                     <span class="base-filter-chip-k">Жанр</span>
-                                    <input type="text" id="section-filter-series-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                    <select id="section-filter-series-genre" class="base-filter-chip-native" aria-label="Жанр">
+                                        <option value="">Любой</option>
+                                    </select>
                                 </label>
                             </div>
                         </div>
@@ -2646,17 +2650,18 @@
                                     <span class="base-filter-chip-k">Год до</span>
                                     <input type="text" id="section-filter-series-hub-year-to" class="base-filter-chip-native" placeholder="—" inputmode="numeric" aria-label="Год до">
                                 </label>
-                                <label class="base-filter-chip base-filter-chip--field base-filter-chip--wide">
+                                <label class="base-filter-chip base-filter-chip--select base-filter-chip--wide">
                                     <span class="base-filter-chip-k">Жанр</span>
-                                    <input type="text" id="section-filter-series-hub-genre" class="base-filter-chip-native" placeholder="Любой" aria-label="Жанр">
+                                    <select id="section-filter-series-hub-genre" class="base-filter-chip-native" aria-label="Жанр">
+                                        <option value="">Любой</option>
+                                    </select>
                                 </label>
                             </div>
                         </div>
                         <div id="series-hub-list" class="cards-list"></div>
                     </div>
                 </section>
-                <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch">
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="watch"></span><span class="section-title-text">Что посмотреть</span></h2>
+                <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch" aria-label="Смотреть">
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
@@ -3836,7 +3841,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260914pointerCapture1';
+        var V='20260914collUxFilters1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
