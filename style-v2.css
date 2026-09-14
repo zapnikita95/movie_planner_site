@@ -27192,6 +27192,7 @@ body.staff-standalone-page .staff-awards-loading {
 }
 
 /* Partner watch (FLEX / TVigle / IVI) — separate left slot; toolbar icons stay centered under CTA */
+/* PARTNER_WATCH_LOGO_GAP1 — smaller logos + right gutter so FLEX/2SUB never cover eye/star/share/expand */
 .film-toolbar-icons-shell {
   position: relative;
   width: 100%;
@@ -27201,16 +27202,29 @@ body.staff-standalone-page .staff-awards-loading {
   .film-toolbar-partners-slot {
     position: absolute;
     left: 0;
+    /* Reserve ~half of 4×58px icon cluster + gap so logos cannot reach the eye button */
+    right: calc(50% + min(140px, 28%) + 16px);
     top: 50%;
     transform: translateY(-50%);
-    z-index: 2;
+    z-index: 1;
     pointer-events: none;
-    max-width: min(42%, 220px);
+    width: auto;
+    max-width: min(38%, 168px);
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    box-sizing: border-box;
+    overflow: hidden;
   }
   .film-toolbar-partners-slot .film-partner-watch-block {
     pointer-events: auto;
+    align-items: flex-start;
+    max-width: 100%;
+    min-width: 0;
   }
   .film-toolbar-icons-shell > .film-toolbar-icons {
+    position: relative;
+    z-index: 2;
     width: 100%;
     max-width: 100%;
     justify-content: center;
@@ -27239,6 +27253,8 @@ body.staff-standalone-page .staff-awards-loading {
   align-items: center;
   gap: 4px;
   box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 .film-partner-watch__label {
   font-size: 11px;
@@ -27252,21 +27268,26 @@ body.staff-standalone-page .staff-awards-loading {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
 }
 .film-partner-watch__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border: none;
   background: transparent;
   border-radius: 10px;
   text-decoration: none;
   transition: background 0.15s ease, opacity 0.15s ease, transform 0.12s ease;
   opacity: 0.92;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 .film-partner-watch__icon:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -27279,32 +27300,32 @@ body.staff-standalone-page .staff-awards-loading {
 .film-partner-watch__logo {
   display: block;
   height: auto;
-  max-height: 22px;
+  max-height: 18px;
   width: auto;
-  max-width: 88px;
+  max-width: min(100%, 64px);
   object-fit: contain;
 }
 .film-partner-watch-block--desktop .film-partner-watch__logo {
-  max-height: 24px;
-  max-width: 72px;
+  max-height: 18px;
+  max-width: min(100%, 56px);
 }
-/* 2SUB official wordmark — same footprint as prior badge; object-fit keeps aspect */
+/* 2SUB wordmark — compact so dual logos fit left gutter without covering toolbar icons */
 .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
-  max-height: 34px;
-  max-width: 118px;
-  height: 34px;
+  max-height: 22px;
+  max-width: min(100%, 72px);
+  height: auto;
   width: auto;
   object-fit: contain;
 }
 .film-partner-watch-block--desktop .film-partner-watch__icon--2sub .film-partner-watch__logo--2sub {
-  max-height: 36px;
-  max-width: 124px;
-  height: 36px;
+  max-height: 22px;
+  max-width: min(100%, 76px);
+  height: auto;
   object-fit: contain;
 }
 .film-partner-watch__icon--tvigle .film-partner-watch__logo {
-  max-width: 64px;
-  max-height: 20px;
+  max-width: 52px;
+  max-height: 16px;
 }
 .film-partner-watch-mobile-anchor {
   width: 100%;
