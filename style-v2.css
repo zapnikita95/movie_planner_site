@@ -9742,24 +9742,30 @@ footer.footer .footer-bottom a:hover { color: #fff; }
   padding: 4px 0;
   box-sizing: border-box;
 }
-.cards-list .film-card-v2 .glass-cta {
+.cards-list .film-card-v2 .glass-cta,
+.cards-list .film-card-v2 .film-toolbar-plan.glass-cta,
+.cards-list .film-card-v2 .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta,
+body.in-cabinet #unwatched-list .glass-cta,
+body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta,
+body.in-cabinet #unwatched-list .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta {
   gap: 4px;
   max-width: none;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 10px 0 8px;
-  justify-content: center;
+  padding: 0 10px !important;
+  justify-content: center !important;
   overflow: hidden;
 }
 .cards-list .film-card-v2 .glass-cta__icon {
   margin-left: 0;
   flex-shrink: 0;
 }
-.cards-list .film-card-v2 .glass-cta__label {
+.cards-list .film-card-v2 .glass-cta__label,
+body.in-cabinet #unwatched-list .glass-cta__label {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
-  text-align: left;
+  text-align: center;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
@@ -21175,6 +21181,14 @@ body.mp-scroll-lock {
   height: 28px;
   font-size: 10px;
 }
+/* База library cards: KP rating bottom-left (replaces universal gold rate-star). */
+.film-card-v2-poster > .poster-kp-rating,
+#unwatched-list .film-card-v2-poster > .poster-kp-rating {
+  left: 8px;
+  right: auto;
+  bottom: 8px;
+  top: auto;
+}
 .collections-film-card.is-in-library .poster-add-library-btn { display: none; }
 
 .mp-onboard-pick-tile { border: 2px solid transparent; border-radius: 12px; transition: border-color .15s ease, opacity .32s ease, transform .32s ease; }
@@ -30216,22 +30230,22 @@ a.collections-author-block:hover {
   body.in-cabinet #unwatched-list .glass-cta,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta,
   body.in-cabinet #unwatched-list .film-toolbar-plan-wrap .action-dropdown-btn.glass-cta {
-    display: grid !important;
-    grid-template-columns: 24px minmax(0, 1fr) 10px !important;
-    column-gap: 3px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     min-height: 42px !important;
     height: 42px !important;
-    padding: 6px 7px !important;
+    padding: 6px 8px !important;
     border-radius: 16px !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
   }
   body.in-cabinet #unwatched-list .glass-cta__icon {
-    grid-column: 1 !important;
-    justify-self: center !important;
+    flex: 0 0 auto !important;
     width: 22px !important;
     height: 22px !important;
     margin: 0 !important;
@@ -30239,11 +30253,12 @@ a.collections-author-block:hover {
   body.in-cabinet #unwatched-list .glass-cta__label,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .glass-cta__label,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .action-dropdown-btn-text {
-    grid-column: 2 !important;
+    flex: 0 1 auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    width: 100% !important;
-    font-size: 0 !important;
+    width: auto !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
     line-height: 1 !important;
     text-align: center !important;
     white-space: nowrap !important;
@@ -30253,20 +30268,11 @@ a.collections-author-block:hover {
   body.in-cabinet #unwatched-list .glass-cta__label::after,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .glass-cta__label::after,
   body.in-cabinet #unwatched-list .film-toolbar-plan.glass-cta .action-dropdown-btn-text::after {
-    content: "В план";
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1;
+    content: none !important;
   }
   body.in-cabinet #unwatched-list .glass-cta__caret {
-    grid-column: 3 !important;
-    justify-self: end !important;
-    margin: 0 !important;
+    flex: 0 0 auto !important;
+    margin: 0 0 0 2px !important;
     font-size: 12px !important;
   }
 }
