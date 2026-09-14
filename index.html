@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260914premStories3" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260914premStories3">
+<link rel="preload" href="/style-v2.css?v=20260914logoClsEmpty1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260914logoClsEmpty1">
     <script>
       (function () {
         try {
@@ -665,7 +665,15 @@
             }
             return (
               '<section class="hero film-hero-with-tag film-page--boot" data-kp-id="' + esc(boot.kp_id || '') + '">' +
-                '<div class="poster-wrap' + sensCls + '">' + posterHtml + '</div>' +
+                '<div class="film-poster-col">' +
+                  '<div class="poster-wrap' + sensCls + '">' + posterHtml + '</div>' +
+                  '<div id="film-trailer-slot" class="film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved" aria-hidden="true">' +
+                    '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
+                      '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
+                      '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
+                    '</button>' +
+                  '</div>' +
+                '</div>' +
                 '<div class="hero-content">' +
                   '<h1 id="film-title">' + esc(title + year) + '</h1>' +
                   '<div class="film-hero-meta-stack">' +
@@ -3848,7 +3856,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260914premStories3';
+        var V='20260914logoClsEmpty1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

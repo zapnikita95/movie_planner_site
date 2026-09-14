@@ -291,10 +291,14 @@
   function resolveRailTitleLogoUrl(url) {
     var u = String(url || "").trim();
     if (!u || u === "null" || u === "undefined") return "";
-    if (/^https?:\/\//i.test(u) || u.indexOf("data:") === 0) return u;
     if (global.MpFilmPage && typeof global.MpFilmPage.resolveTitleLogoUrl === "function") {
       return global.MpFilmPage.resolveTitleLogoUrl(u);
     }
+    var tmdb = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (tmdb) u = "/api/public/poster/tmdb/" + tmdb[1] + "/" + tmdb[2];
+    u = u.replace(/(\/api\/public\/poster\/tmdb\/)original(\/)/gi, "$1w500$2");
+    u = u.replace(/(\/t\/p\/)original(\/)/gi, "$1w500$2");
+    if (/^https?:\/\//i.test(u) || u.indexOf("data:") === 0) return u;
     var base = "";
     try {
       base = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || (global.location && global.location.origin) || "";
