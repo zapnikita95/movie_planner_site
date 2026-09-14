@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260914kpWidgetProxy2
+ * MARKER:20260914kpHlsPlay1
  */
 (function (global) {
   'use strict';
@@ -802,6 +802,13 @@
       } catch (_e) {}
       return { kind: 'kp_widget', url: pub };
     }
+    if (playKind === 'hls' && playUrl) {
+      return { kind: 'hls', url: playUrl.charAt(0) === '/' ? (String(API_BASE || '').replace(/\/$/, '') + playUrl) : playUrl };
+    }
+    var hls = String(d.hls_url || '').trim();
+    if (hls) {
+      return { kind: 'hls', url: hls.charAt(0) === '/' ? (String(API_BASE || '').replace(/\/$/, '') + hls) : hls };
+    }
     if (playKind === 'kp_widget' && playUrl) {
       var a = asKp(playUrl);
       if (a) return a;
@@ -847,18 +854,69 @@
       .catch(function () { return null; });
   }
 
+  function mountHlsVideo(container, url, opts) {
+    opts = opts || {};
+    var video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.playsInline = true;
+    video.controls = opts.controls !== false;
+    video.autoplay = opts.autoplay !== false;
+    video.muted = opts.muted !== false;
+    video.loop = !!opts.loop;
+    video.preload = 'auto';
+    video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;object-fit:contain;';
+    var src = String(url || '');
+    var canNative = video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL');
+    if (canNative) video.src = src;
+    else if (window.Hls && window.Hls.isSupported()) {
+      var hls = new window.Hls({ enableWorker: true });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      container._mpHls = hls;
+    } else video.src = src;
+    container.appendChild(video);
+    try { var p = video.play(); if (p && p.catch) p.catch(function () {}); } catch (_e) {}
+    return video;
+  }
+
+  function ensureHlsLib() {
+    if (window.Hls) return Promise.resolve(window.Hls);
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+      s.onload = function () { resolve(window.Hls); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+  }
+
   function mountTrailerPlaybackEmbed(container, playback) {
     if (!container || !playback || !playback.url) return;
     container.innerHTML = '';
     container.hidden = false;
     container.removeAttribute('hidden');
+    try { if (container._mpHls) { container._mpHls.destroy(); container._mpHls = null; } } catch (_h) {}
+    if (playback.kind === 'hls') {
+      var go = function () {
+        mountHlsVideo(container, playback.url, {
+          autoplay: playback.autoplay !== false,
+          muted: playback.muted !== false,
+          controls: playback.controls !== false,
+          loop: !!playback.loop,
+        });
+      };
+      var probe = document.createElement('video');
+      var native = probe.canPlayType('application/vnd.apple.mpegurl') || probe.canPlayType('application/x-mpegURL');
+      if (native) go(); else ensureHlsLib().then(go);
+      return;
+    }
     var iframe = document.createElement('iframe');
     iframe.src = playback.url;
     iframe.title = 'Трейлер';
     iframe.setAttribute('allowfullscreen', '');
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
     iframe.allowFullscreen = true;
-    // Proxied KP widget is same-origin; YT still cross-origin.
     iframe.setAttribute('referrerpolicy', playback.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
     iframe.setAttribute('frameborder', '0');
     iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
@@ -6121,6 +6179,9 @@
     prefetchTitleLogoUrl: prefetchTitleLogoUrl,
     applyFilmTitleLogo: applyFilmTitleLogo,
     pickTrailerPlayback: pickTrailerPlayback,
+    mountTrailerPlaybackEmbed: mountTrailerPlaybackEmbed,
+    mountHlsVideo: mountHlsVideo,
+    ensureHlsLib: ensureHlsLib,
     publicizeKpWidgetPlayUrl: publicizeKpWidgetPlayUrl,
     isKpWidgetUrl: isKpWidgetUrl,
     normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,

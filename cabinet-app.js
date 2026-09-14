@@ -13883,6 +13883,12 @@
     // directly — upstream sends X-Frame-Options: DENY.
     const playKind = String(d.play_kind || '').trim();
     const playUrl = String(d.play_url || '').trim();
+    const hlsUrl = String(d.hls_url || '').trim();
+    if ((playKind === 'hls' && playUrl) || hlsUrl) {
+      const u = hlsUrl || playUrl;
+      const abs = u.charAt(0) === '/' ? (String(API_BASE || '').replace(/\/$/, '') + u) : u;
+      return { kind: 'hls', url: abs };
+    }
     if (playKind === 'kp_widget' && playUrl) {
       const pub = publicizeKpWidgetPlayUrlLocal(playUrl) || playUrl;
       if (pub && !/widgets?\.kinopoisk\.ru/i.test(pub)) {
@@ -26816,7 +26822,7 @@
 
 
   /* ——— Premieres stories trailer rail (mobile-first, tvoe.live-style) ——— */
-  /* MARKER:20260914kpWidgetProxy2 — only playable trailers in the rail */
+  /* MARKER:20260914kpHlsPlay1 — only playable trailers in the rail */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
   let _premieresStoriesItems = [];
@@ -26910,7 +26916,7 @@
   function isPlayableStoryTrailer(d) {
     if (!d || d.success === false) return false;
     const play = pickStoryPlayback(d);
-    return !!(play && play.url && (play.kind === 'kp_widget' || play.kind === 'youtube'));
+    return !!(play && play.url && (play.kind === 'hls' || play.kind === 'kp_widget' || play.kind === 'youtube'));
   }
 
   function renderPremieresStories(items) {
@@ -27076,6 +27082,65 @@
     return pickHoverPlayback(d);
   }
 
+
+  function mountStoryPlayback(frame, play, opts) {
+    opts = opts || {};
+    if (!frame || !play || !play.url) return;
+    frame.innerHTML = '';
+    frame.hidden = false;
+    frame.removeAttribute('hidden');
+    try { if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; } } catch (_h) {}
+    let src = play.url;
+    if (src && src.charAt(0) === '/') src = String(API_BASE || '').replace(/\/$/, '') + src;
+    if (play.kind === 'hls') {
+      const finish = () => {
+        if (window.MpFilmPage && typeof window.MpFilmPage.mountHlsVideo === 'function') {
+          window.MpFilmPage.mountHlsVideo(frame, src, {
+            autoplay: opts.autoplay !== false,
+            muted: opts.muted !== false,
+            controls: !!opts.controls,
+            loop: !!opts.loop,
+          });
+          const v = frame.querySelector('video');
+          if (v) {
+            if (opts.pointerNone) v.style.pointerEvents = 'none';
+            if (!opts.controls) v.style.objectFit = 'cover';
+          }
+          return;
+        }
+        const video = document.createElement('video');
+        video.setAttribute('playsinline', '');
+        video.playsInline = true;
+        video.autoplay = opts.autoplay !== false;
+        video.muted = opts.muted !== false;
+        video.controls = !!opts.controls;
+        video.preload = 'auto';
+        video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:' + (opts.controls ? 'contain' : 'cover') + ';background:#000;border:0;';
+        if (opts.pointerNone) video.style.pointerEvents = 'none';
+        if (window.Hls && window.Hls.isSupported()) {
+          const hls = new window.Hls();
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          frame._mpHls = hls;
+        } else video.src = src;
+        frame.appendChild(video);
+        try { const p = video.play(); if (p && p.catch) p.catch(() => {}); } catch (_e) {}
+      };
+      if (window.MpFilmPage && window.MpFilmPage.ensureHlsLib) window.MpFilmPage.ensureHlsLib().then(finish);
+      else finish();
+      return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.src = src;
+    iframe.title = 'Трейлер';
+    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
+    if (opts.pointerNone) iframe.style.pointerEvents = 'none';
+    frame.appendChild(iframe);
+  }
+
   function mountPremieresStoryTrailer(card) {
     if (!card) return;
     const kp = String(card.getAttribute('data-kp') || '').replace(/\D/g, '');
@@ -27105,23 +27170,7 @@
       stopAllPremieresStoryTrailers(kp);
       const frame = card.querySelector('[data-trailer-frame]');
       if (!frame) return;
-      frame.hidden = false;
-      frame.removeAttribute('hidden');
-      frame.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      let src = play.url;
-      if (src && src.charAt(0) === '/') {
-        src = String(API_BASE || '').replace(/\/$/, '') + src;
-      }
-      iframe.src = src;
-      iframe.title = 'Трейлер';
-      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-      iframe.setAttribute('allowfullscreen', '');
-      iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
-      iframe.setAttribute('loading', 'eager');
-      // Block pointer events so swipe still works on the rail
-      iframe.style.pointerEvents = 'none';
-      frame.appendChild(iframe);
+      mountStoryPlayback(frame, play, { autoplay: true, muted: true, controls: false, pointerNone: true, loop: true });
       card.classList.add('is-playing');
       card.setAttribute('data-play-kind', play.kind || '');
       _premieresStoriesActiveKp = kp;
@@ -27319,18 +27368,7 @@
         return;
       }
       if (frame) {
-        frame.innerHTML = '';
-        const iframe = document.createElement('iframe');
-        let src = play.url;
-        if (src && src.charAt(0) === '/') {
-          src = String(API_BASE || '').replace(/\/$/, '') + src;
-        }
-        iframe.src = src;
-        iframe.title = 'Трейлер';
-        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-        iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
-        frame.appendChild(iframe);
+        mountStoryPlayback(frame, play, { autoplay: true, muted: false, controls: true, pointerNone: false, loop: false });
         const posterEl = lb.querySelector('.premieres-stories-player-poster');
         if (posterEl) posterEl.style.opacity = '0';
       }
