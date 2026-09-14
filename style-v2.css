@@ -30831,6 +30831,9 @@ body.film-trailer-lightbox-open {
   overflow: hidden;
   max-width: 100%;
 }
+.premieres-story-title-fallback[hidden] {
+  display: none !important;
+}
 .premieres-story-date {
   position: absolute;
   top: 10px;
