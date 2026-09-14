@@ -13417,7 +13417,13 @@ main.film-page .hero::after {
 .film-hero-poster-wrap,
 .film-hero-main,
 #section-film .poster-wrap,
-#section-film .hero-content {
+#section-film .hero-content,
+#section-film .film-poster-col,
+#section-film .film-page-trailer--under-poster,
+main.film-page .film-poster-col,
+main.film-page .film-page-trailer--under-poster,
+#film-page-content .film-poster-col,
+#film-page-content .film-page-trailer--under-poster {
   position: relative;
   z-index: 1;
 }
@@ -16822,6 +16828,8 @@ body.film-standalone-page {
       pointer-events: none;
     }
     .poster-wrap,
+    .film-poster-col,
+    .film-page-trailer--under-poster,
     .hero-content { position: relative; z-index: 1; }
     .hero-content {
       min-width: 0;
@@ -27570,7 +27578,7 @@ body.staff-standalone-page .staff-awards-loading {
 .film-partner-watch__label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted, #b4b4be);
+  color: #e8e8f0;
   line-height: 1.2;
   text-decoration: none;
   text-align: center;
@@ -30503,8 +30511,11 @@ a.collections-author-block:hover {
   text-overflow: ellipsis;
 }
 
-/* Desktop /f/{kp}: poster column keeps pill under афиша in grid layouts */
+/* Desktop /f/{kp}: poster column keeps pill under афиша in grid layouts.
+   Must sit above hero::before/::after backdrop (same z-index as .poster-wrap / .hero-content). */
 .film-poster-col {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -30524,6 +30535,8 @@ a.collections-author-block:hover {
 
 /* Desktop /f/{kp}: compact pill under poster → fullscreen trailer lightbox */
 .film-page-trailer--under-poster {
+  position: relative;
+  z-index: 1;
   margin: 10px 0 0;
   width: 100%;
   max-width: 100%;
@@ -30532,6 +30545,8 @@ a.collections-author-block:hover {
   overflow: visible !important;
 }
 .film-trailer-pill {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -30541,28 +30556,36 @@ a.collections-author-block:hover {
   min-height: 40px;
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(12, 12, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
+  -webkit-text-fill-color: #fff;
   font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 .film-trailer-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 138, 184, 0.45);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 138, 184, 0.55);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
 }
 .film-trailer-pill:focus-visible {
   outline: 2px solid rgba(255, 138, 184, 0.7);
   outline-offset: 2px;
 }
+.film-trailer-pill-ico,
+.film-trailer-pill-label {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
 .film-trailer-pill-ico {
   font-size: 11px;
   line-height: 1;
-  opacity: 0.95;
+  opacity: 1;
 }
 @media (min-width: 861px) {
   /* Keep pill under poster column, not stretching hero-content */
