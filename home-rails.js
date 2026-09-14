@@ -316,7 +316,7 @@
     if (!src) return esc(t);
     return (
       '<img class="film-title-logo home-pre-card-title-logo" src="' + esc(src) + '" alt="' + esc(t) +
-      '" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var n=this.nextElementSibling;if(n){n.classList.remove(\'visually-hidden\');}">' +
+      '" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="max-height:28px;max-width:100%;width:auto;height:auto;object-fit:contain;display:block" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var n=this.nextElementSibling;if(n){n.classList.remove(\'visually-hidden\');}">' +
       '<span class="home-pre-card-title-text visually-hidden film-title-text">' + esc(t) + "</span>"
     );
   }

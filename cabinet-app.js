@@ -13786,7 +13786,7 @@
     if (!src) return '';
     const cls = className || 'film-title-logo';
     const alt = escapeHtml(title || 'Логотип названия');
-    return '<img class="' + cls + '" src="' + escapeHtml(src) + '" alt="' + alt + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var t=this.nextElementSibling;if(t){t.classList.remove(\'visually-hidden\');t.style.opacity=\'1\';}">';
+    return '<img class="' + cls + '" src="' + escapeHtml(src) + '" alt="' + alt + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="max-height:48px;max-width:100%;width:auto;height:auto;object-fit:contain;display:block" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var t=this.nextElementSibling;if(t){t.classList.remove(\'visually-hidden\');t.style.opacity=\'1\';}">';
   }
 
   function titleWithOptionalLogoHtml(title, logoUrl, opts) {
