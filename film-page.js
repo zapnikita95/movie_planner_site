@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260911guestToolbarIcons1
+ * MARKER:20260914titleLogo1
  */
 (function (global) {
   'use strict';
@@ -471,7 +471,9 @@
     }
     if (slots.titleEl && titleRu) {
       var cleanTitle = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
+      slots.titleEl.classList.remove('has-title-logo');
       slots.titleEl.textContent = cleanTitle;
+      slots.titleEl.setAttribute('data-title-text', cleanTitle);
       setFilmHeaderTitle(cleanTitle);
     }
     setReservedLine(slots.enEl, pickFilmTitleEn(film));
@@ -481,6 +483,7 @@
     if (heroTag && film && film.genres) {
       heroTag.setAttribute('data-genres', String(film.genres));
     }
+    try { syncFilmTitleLogo(scope, film, kpForTitle); } catch (_logo) {}
   }
 
 
@@ -528,6 +531,142 @@
   }
 
   var _trailerCacheByKp = {};
+  var _titleLogoCacheByKp = {};
+
+  function resolveTitleLogoUrl(url) {
+    var u = String(url || '').trim();
+    if (!u || u === 'null' || u === 'undefined') return '';
+    if (/^https?:\/\//i.test(u) || u.indexOf('data:') === 0) return u;
+    if (u.charAt(0) === '/') return API_BASE.replace(/\/$/, '') + u;
+    return API_BASE.replace(/\/$/, '') + '/' + u.replace(/^\.\//, '');
+  }
+
+  function pickTitleLogoFromFilm(film) {
+    if (!film || typeof film !== 'object') return '';
+    return resolveTitleLogoUrl(
+      film.title_logo || film.logo_url || film.titleLogo || film.logoUrl || ''
+    );
+  }
+
+  function fetchFilmTitleLogoByKp(kpId, opts) {
+    opts = opts || {};
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(null);
+    if (_titleLogoCacheByKp[kp] && !opts.force) {
+      return Promise.resolve(_titleLogoCacheByKp[kp]);
+    }
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/title-logo';
+    return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success || d.miss) {
+          _titleLogoCacheByKp[kp] = null;
+          return null;
+        }
+        var resolved = resolveTitleLogoUrl(d.title_logo || d.logo_url || d.url || '');
+        var payload = resolved ? {
+          title_logo: resolved,
+          logo_url: resolved,
+          lang: d.lang || null,
+          source: d.source || null,
+          kp_id: kp,
+        } : null;
+        _titleLogoCacheByKp[kp] = payload;
+        return payload;
+      })
+      .catch(function () {
+        _titleLogoCacheByKp[kp] = null;
+        return null;
+      });
+  }
+
+  function applyFilmTitleLogo(titleEl, opts) {
+    opts = opts || {};
+    if (!titleEl) return;
+    var text = String(opts.text != null ? opts.text : (titleEl.getAttribute('data-title-text') || titleEl.textContent || '')).trim();
+    var logoUrl = resolveTitleLogoUrl(opts.logoUrl || opts.title_logo || '');
+    if (text) titleEl.setAttribute('data-title-text', text);
+
+    function paintTextOnly() {
+      titleEl.classList.remove('has-title-logo');
+      titleEl.textContent = text || titleEl.getAttribute('data-title-text') || '';
+    }
+
+    if (!logoUrl) {
+      paintTextOnly();
+      return;
+    }
+
+    titleEl.classList.add('has-title-logo');
+    titleEl.innerHTML = '';
+    var img = document.createElement('img');
+    img.className = 'film-title-logo';
+    img.src = logoUrl;
+    img.alt = text || 'Логотип названия';
+    img.decoding = 'async';
+    img.loading = 'eager';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', function () {
+      paintTextOnly();
+    });
+    var span = document.createElement('span');
+    span.className = 'film-title-text visually-hidden';
+    span.textContent = text || '';
+    titleEl.appendChild(img);
+    titleEl.appendChild(span);
+  }
+
+  function syncFilmTitleLogo(root, film, kpHint) {
+    var scope = root && root.querySelector ? root : document;
+    var titleEl = (scope.querySelector && scope.querySelector('#film-title, .hero-content > h1'))
+      || document.getElementById('film-title');
+    if (!titleEl) return;
+    var text = String(
+      (film && (film.title || film.name)) ||
+      titleEl.getAttribute('data-title-text') ||
+      ''
+    ).replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!text) {
+      var raw = String(titleEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      if (raw && !/загрузка/i.test(raw)) text = raw;
+    }
+    var fromFilm = pickTitleLogoFromFilm(film);
+    if (fromFilm) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: fromFilm });
+      return;
+    }
+    var kp = String(
+      kpHint ||
+      (film && (film.kp_id || film.kinopoiskId || film.id)) ||
+      (scope.querySelector && (scope.querySelector('.film-hero-with-tag') || {}).getAttribute &&
+        (scope.querySelector('.film-hero-with-tag').getAttribute('data-kp-id') || '')) ||
+      ''
+    ).replace(/\D/g, '');
+    if (!kp) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: '' });
+      return;
+    }
+    // Keep text until logo resolves; avoid flash of empty hero.
+    if (text && !titleEl.classList.contains('has-title-logo')) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: '' });
+    }
+    fetchFilmTitleLogoByKp(kp).then(function (payload) {
+      var live = document.getElementById('film-title');
+      if (!live) return;
+      var liveKp = '';
+      try {
+        var hero = document.querySelector('.film-hero-with-tag');
+        liveKp = hero ? String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '') : '';
+      } catch (_e) {}
+      if (liveKp && liveKp !== kp) return;
+      var t = live.getAttribute('data-title-text') || text;
+      applyFilmTitleLogo(live, {
+        text: t,
+        logoUrl: payload && payload.title_logo ? payload.title_logo : '',
+      });
+    });
+  }
+
 
   function youtubeNocookieEmbedUrl(youtubeId, opts) {
     opts = opts || {};
@@ -4828,7 +4967,11 @@
           var title = titleBase;
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
-          if (tEl) tEl.textContent = title;
+          if (tEl) {
+            tEl.classList.remove('has-title-logo');
+            tEl.textContent = title;
+            tEl.setAttribute('data-title-text', title);
+          }
           setFilmHeaderTitle(title);
           setFilmDescription(pickFilmDescription(f));
           // DoD: never leave hero without plot when public API already has it.
@@ -5750,6 +5893,9 @@
     renderFilmPage: renderFilmPage,
     parseFilmRoute: parseFilmRoute,
     fetchFilmTrailerByKp: fetchFilmTrailerByKp,
+    fetchFilmTitleLogoByKp: fetchFilmTitleLogoByKp,
+    resolveTitleLogoUrl: resolveTitleLogoUrl,
+    applyFilmTitleLogo: applyFilmTitleLogo,
     pickTrailerPlayback: pickTrailerPlayback,
     normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,
     youtubeNocookieEmbedUrl: youtubeNocookieEmbedUrl,

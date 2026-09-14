@@ -10891,6 +10891,7 @@
     const director = normalizeHoverCastText(o.director || '');
     const actorsLine = formatHoverActorsLine(o.actors, 6);
     const kpAttr = o.kpId ? (' data-kp-id="' + escapeHtml(String(o.kpId)) + '"') : '';
+    const titleLogo = pickItemTitleLogo(o) || resolveTitleLogoUrl(o.titleLogo || o.title_logo || '');
     const castParts = [];
     if (director) {
       castParts.push('<div class="home-film-preview-cast-row"><span class="home-film-preview-cast-k">Реж.</span> ' + escapeHtml(director) + '</div>');
@@ -10900,13 +10901,17 @@
     }
     const castHtml = castParts.length ? ('<div class="home-film-preview-cast">' + castParts.join('') + '</div>') : '';
     if (!title && !metaHtml && !desc && !castHtml) return '';
-    return '<div class="home-film-preview home-film-preview--hover-trailer" aria-hidden="true"' + kpAttr + '>'
+    const titleInner = titleWithOptionalLogoHtml(title, titleLogo, {
+      logoClass: 'film-title-logo home-film-preview-title-logo',
+      textClass: 'home-film-preview-title-text',
+    });
+    return '<div class="home-film-preview home-film-preview--hover-trailer' + (titleLogo ? ' has-title-logo' : '') + '" aria-hidden="true"' + kpAttr + '>'
       + '<div class="home-film-preview-main">'
       + '<div class="home-film-preview-poster">' + (poster
         ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy"' + mpPosterOnErrorAttr() + '>')
         : ('<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" class="mp-poster-placeholder" loading="lazy">')) + '</div>'
       + '<div class="home-film-preview-body">'
-      + '<div class="home-film-preview-title">' + escapeHtml(title) + '</div>'
+      + '<div class="home-film-preview-title' + (titleLogo ? ' has-title-logo' : '') + '">' + titleInner + '</div>'
       + (metaHtml ? '<div class="home-film-preview-meta">' + metaHtml + '</div>' : '')
       + castHtml
       + '<div class="home-film-preview-desc' + (desc ? '' : ' is-empty') + '">' + (desc ? escapeHtml(desc) : '') + '</div>'
@@ -11455,14 +11460,20 @@
         : '<div class="home-pre-card-poster-img premiere-poster-tile-img premiere-poster-tile-img--ph"></div>';
       // div, not button — nested bell controls must not split the card out of the rail (invalid nested buttons).
       const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
-      return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + '>'
+      const titleLogo = pickItemTitleLogo(it);
+      const titleHtml = titleWithOptionalLogoHtml(it.title || '—', titleLogo, {
+        logoClass: 'film-title-logo home-pre-card-title-logo',
+        textClass: 'home-pre-card-title-text',
+      });
+      return '<div class="home-pre-card' + (titleLogo ? ' has-title-logo' : '') + '" role="listitem" tabindex="0"' + attrs
+        + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '') + '>'
         + '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">'
         + img
         + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
         + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
-        + '<div class="home-pre-card-title">' + escapeHtml(it.title || '—') + '</div>'
+        + '<div class="home-pre-card-title' + (titleLogo ? ' has-title-logo' : '') + '">' + titleHtml + '</div>'
         + '</div></div>';
     }).join('') + '</div>';
   }
@@ -11704,6 +11715,7 @@
     reorderHomeDashboardBlocks(root);
     renderHomeMoreLinks(hidden);
     try { bindHomePosterPreviewEnrichOnce(root); } catch (_) {}
+    try { warmTitleLogosInScope(root); } catch (_) {}
     // Rails mount once from renderHomeDashboardFromCache.finally — not here.
   }
 
@@ -13692,6 +13704,7 @@
       director: normalizeHoverCastText(payload.director || ''),
       actors: normalizeHoverCastText(payload.actors || ''),
       kpId: card.getAttribute('data-kp-id') || '',
+      title_logo: card.getAttribute('data-title-logo') || payload.title_logo || payload.logo_url || '',
     });
     if (html) pop.outerHTML = html;
     if (wasPlaying) {
@@ -13726,6 +13739,69 @@
 
   const _hoverTrailerCache = new Map();
   let _hoverTrailerSeq = 0;
+  const _titleLogoCache = new Map();
+
+  function resolveTitleLogoUrl(url) {
+    const u = String(url || '').trim();
+    if (!u || u === 'null' || u === 'undefined') return '';
+    if (/^https?:\/\//i.test(u) || u.indexOf('data:') === 0) return u;
+    if (window.MpFilmPage && typeof window.MpFilmPage.resolveTitleLogoUrl === 'function') {
+      return window.MpFilmPage.resolveTitleLogoUrl(u);
+    }
+    const base = String(API_BASE || '').replace(/\/$/, '');
+    if (u.charAt(0) === '/') return base + u;
+    return base + '/' + u.replace(/^\.\//, '');
+  }
+
+  function pickItemTitleLogo(it) {
+    if (!it) return '';
+    return resolveTitleLogoUrl(it.title_logo || it.logo_url || it.titleLogo || '');
+  }
+
+  function fetchTitleLogoByKp(kpId) {
+    const kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve('');
+    if (_titleLogoCache.has(kp)) return Promise.resolve(_titleLogoCache.get(kp));
+    const viaPage = window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function'
+      ? window.MpFilmPage.fetchFilmTitleLogoByKp(kp)
+      : fetch(API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/title-logo', {
+          method: 'GET', mode: 'cors', credentials: 'omit',
+        }).then((r) => r.ok ? r.json() : null).then((d) => {
+          if (!d || !d.success || d.miss) return null;
+          return {
+            title_logo: resolveTitleLogoUrl(d.title_logo || d.logo_url || d.url || ''),
+          };
+        }).catch(() => null);
+    return viaPage.then((payload) => {
+      const url = payload
+        ? resolveTitleLogoUrl(payload.title_logo || payload.logo_url || '')
+        : '';
+      _titleLogoCache.set(kp, url || '');
+      return url || '';
+    });
+  }
+
+  function titleLogoImgHtml(logoUrl, title, className) {
+    const src = resolveTitleLogoUrl(logoUrl);
+    if (!src) return '';
+    const cls = className || 'film-title-logo';
+    const alt = escapeHtml(title || 'Логотип названия');
+    return '<img class="' + cls + '" src="' + escapeHtml(src) + '" alt="' + alt + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var t=this.nextElementSibling;if(t){t.classList.remove(\'visually-hidden\');t.style.opacity=\'1\';}">';
+  }
+
+  function titleWithOptionalLogoHtml(title, logoUrl, opts) {
+    opts = opts || {};
+    const t = title || '';
+    const logoClass = opts.logoClass || 'film-title-logo';
+    const textClass = opts.textClass || '';
+    const img = titleLogoImgHtml(logoUrl, t, logoClass);
+    if (!img) {
+      return '<span class="' + textClass + '">' + escapeHtml(t || '—') + '</span>';
+    }
+    const textCls = (textClass ? textClass + ' ' : '') + 'visually-hidden film-title-text';
+    return img + '<span class="' + textCls + '">' + escapeHtml(t || '') + '</span>';
+  }
+
 
   function isDesktopHoverTrailerEnabled() {
     try {
@@ -26724,24 +26800,31 @@
       const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
       const metaParts = [datePill, year, it.genres || ''].filter(Boolean);
       const cardMeta = premierePosterMetaLine(it);
+      const titleLogo = pickItemTitleLogo(it);
       const preview = renderHomeHoverPreview({
         title: it.title || '',
         poster: poster,
         metaHtml: metaParts.length ? escapeHtml(metaParts.slice(0, 2).join(' · ')) : '',
         description: it.description || '',
         kpId: it.kp_id || '',
+        title_logo: titleLogo,
         emoji: '🎭',
       });
       const navAttrs = homeDashNavAttrs(it)
-        + (it.description ? (' data-description="' + escapeHtml(String(it.description).slice(0, 500)) + '"') : '');
-      return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
+        + (it.description ? (' data-description="' + escapeHtml(String(it.description).slice(0, 500)) + '"') : '')
+        + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '');
+      const titleHtml = titleWithOptionalLogoHtml(it.title || '', titleLogo, {
+        logoClass: 'film-title-logo premiere-poster-tile-title-logo',
+        textClass: 'premiere-poster-tile-title-text',
+      });
+      return `<div class="premiere-poster-tile${titleLogo ? ' has-title-logo' : ''}"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
           ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
           <span data-stop-card-click="1">${bell}</span>
         </div>
         <div class="premiere-poster-tile-body">
-          <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>
+          <div class="premiere-poster-tile-title${titleLogo ? ' has-title-logo' : ''}">${titleHtml}</div>
           ${cardMeta ? `<div class="premiere-poster-tile-meta" title="${cardMeta}">${cardMeta}</div>` : ''}
         </div>
         ${preview}
@@ -26783,6 +26866,58 @@
       });
     });
     bindPremieresHoverTrailer();
+    try { warmTitleLogosInScope(grid); } catch (_logoWarm) {}
+  }
+
+  function warmTitleLogosInScope(scope) {
+    const root = scope || document;
+    const nodes = root.querySelectorAll
+      ? root.querySelectorAll('.premiere-poster-tile, .home-pre-card, .home-film-preview[data-kp-id]')
+      : [];
+    const seen = {};
+    Array.prototype.forEach.call(nodes, (node) => {
+      const kp = String(
+        node.getAttribute('data-kp-id')
+        || node.getAttribute('data-kp')
+        || ''
+      ).replace(/\D/g, '');
+      if (!kp || seen[kp]) return;
+      if (node.getAttribute('data-title-logo')) return;
+      seen[kp] = 1;
+      fetchTitleLogoByKp(kp).then((url) => {
+        if (!url) return;
+        node.setAttribute('data-title-logo', url);
+        const titleEls = node.querySelectorAll
+          ? node.querySelectorAll('.premiere-poster-tile-title, .home-pre-card-title, .home-film-preview-title')
+          : [];
+        Array.prototype.forEach.call(titleEls, (el) => {
+          if (!el || el.classList.contains('has-title-logo')) return;
+          const text = (el.textContent || '').trim();
+          el.classList.add('has-title-logo');
+          const isPreview = el.classList.contains('home-film-preview-title');
+          const isCard = el.classList.contains('home-pre-card-title');
+          el.innerHTML = titleWithOptionalLogoHtml(text, url, {
+            logoClass: 'film-title-logo ' + (isPreview
+              ? 'home-film-preview-title-logo'
+              : (isCard ? 'home-pre-card-title-logo' : 'premiere-poster-tile-title-logo')),
+            textClass: isPreview
+              ? 'home-film-preview-title-text'
+              : (isCard ? 'home-pre-card-title-text' : 'premiere-poster-tile-title-text'),
+          });
+        });
+        node.classList.add('has-title-logo');
+        // Rebuild hover preview title if present without logo.
+        const popTitle = node.querySelector && node.querySelector('.home-film-preview-title:not(.has-title-logo)');
+        if (popTitle) {
+          const t = (popTitle.textContent || node.getAttribute('data-title') || '').trim();
+          popTitle.classList.add('has-title-logo');
+          popTitle.innerHTML = titleWithOptionalLogoHtml(t, url, {
+            logoClass: 'film-title-logo home-film-preview-title-logo',
+            textClass: 'home-film-preview-title-text',
+          });
+        }
+      });
+    });
   }
 
   function formatPremiereDateDdMm(s) {

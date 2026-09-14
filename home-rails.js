@@ -288,6 +288,39 @@
     );
   }
 
+  function resolveRailTitleLogoUrl(url) {
+    var u = String(url || "").trim();
+    if (!u || u === "null" || u === "undefined") return "";
+    if (/^https?:\/\//i.test(u) || u.indexOf("data:") === 0) return u;
+    if (global.MpFilmPage && typeof global.MpFilmPage.resolveTitleLogoUrl === "function") {
+      return global.MpFilmPage.resolveTitleLogoUrl(u);
+    }
+    var base = "";
+    try {
+      base = (global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || (global.location && global.location.origin) || "";
+    } catch (_e) {}
+    base = String(base || "").replace(/\/$/, "");
+    if (!base) return u;
+    if (u.charAt(0) === "/") return base + u;
+    return base + "/" + u.replace(/^\.\//, "");
+  }
+
+  function pickRailTitleLogo(p) {
+    if (!p) return "";
+    return resolveRailTitleLogoUrl(p.title_logo || p.logo_url || "");
+  }
+
+  function railTitleWithLogoHtml(title, logoUrl) {
+    var t = title || "—";
+    var src = resolveRailTitleLogoUrl(logoUrl);
+    if (!src) return esc(t);
+    return (
+      '<img class="film-title-logo home-pre-card-title-logo" src="' + esc(src) + '" alt="' + esc(t) +
+      '" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.removeAttribute(\'src\');this.classList.add(\'is-broken\');var n=this.nextElementSibling;if(n){n.classList.remove(\'visually-hidden\');}">' +
+      '<span class="home-pre-card-title-text visually-hidden film-title-text">' + esc(t) + "</span>"
+    );
+  }
+
   function premiereCardHtml(p, opts, tileIndex) {
     opts = opts || {};
     var hideNotify = opts.hideNotify;
@@ -306,14 +339,17 @@
       : "";
     var attrs = siteFilmAttrs(p);
     var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(p)) || "";
+    var titleLogo = pickRailTitleLogo(p);
+    if (titleLogo) attrs += ' data-title-logo="' + esc(titleLogo) + '"';
+    var titleHtml = railTitleWithLogoHtml(p.title || "—", titleLogo);
     return (
-      '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
+      '<div class="home-pre-card' + (titleLogo ? " has-title-logo" : "") + '" role="listitem" tabindex="0"' + attrs + ">" +
       '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">' +
       img + datePillHtml +
       (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
       '<div class="home-pre-card-body">' +
-      '<div class="home-pre-card-title">' + esc(p.title || "—") + "</div>" +
+      '<div class="home-pre-card-title' + (titleLogo ? " has-title-logo" : "") + '">' + titleHtml + "</div>" +
       "</div></div>"
     );
   }
@@ -334,7 +370,40 @@
 
     function afterAppend(batch) {
       warmRailImages(container);
+      try { warmRailTitleLogos(container, batch || []); } catch (_e) {}
       if (typeof config.onBatch === "function") config.onBatch(container, batch || []);
+    }
+
+    function warmRailTitleLogos(root, batch) {
+      if (!root || railId !== "premieres") return;
+      var items = batch || [];
+      items.forEach(function (p) {
+        if (pickRailTitleLogo(p)) return;
+        var kp = p && p.kp_id != null ? String(p.kp_id).replace(/\D/g, "") : "";
+        if (!kp) return;
+        var fetchFn = global.MpFilmPage && global.MpFilmPage.fetchFilmTitleLogoByKp;
+        var pms = fetchFn
+          ? fetchFn(kp)
+          : fetch(((global.MpApiConfig && global.MpApiConfig.API_ORIGIN) || "") + "/api/public/film/" + encodeURIComponent(kp) + "/title-logo", {
+              method: "GET", mode: "cors", credentials: "omit",
+            }).then(function (r) { return r.ok ? r.json() : null; });
+        Promise.resolve(pms).then(function (payload) {
+          var url = payload
+            ? resolveRailTitleLogoUrl(payload.title_logo || payload.logo_url || payload.url || "")
+            : "";
+          if (!url) return;
+          p.title_logo = url;
+          p.logo_url = url;
+          var card = root.querySelector('.home-pre-card[data-kp-id="' + kp + '"]');
+          if (!card || card.getAttribute("data-title-logo")) return;
+          card.setAttribute("data-title-logo", url);
+          card.classList.add("has-title-logo");
+          var titleEl = card.querySelector(".home-pre-card-title");
+          if (!titleEl || titleEl.classList.contains("has-title-logo")) return;
+          titleEl.classList.add("has-title-logo");
+          titleEl.innerHTML = railTitleWithLogoHtml(p.title || "—", url);
+        }).catch(function () {});
+      });
     }
 
     function renderAppend(batch, startIndex) {
