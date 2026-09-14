@@ -5353,7 +5353,7 @@
   function siteTournamentNomScore(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
-      return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
+      return Number(item.cinema_month || 0); // confirmed visits only (visit_confirmed)
     }
     return Number(item[nom.field] || 0);
   }
@@ -6245,7 +6245,7 @@
   function tournamentNomScoreSite(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
-      return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
+      return Number(item.cinema_month || 0); // confirmed visits only (visit_confirmed)
     }
     return Number(item[nom.field] || 0);
   }
