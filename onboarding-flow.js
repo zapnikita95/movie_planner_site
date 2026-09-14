@@ -243,6 +243,7 @@
   }
 
   function dismissAllOnboardingLayers(deps) {
+    releaseStuckPagePointerState();
     try {
       document
         .querySelectorAll(
@@ -304,6 +305,7 @@
     const o = opts || {};
     const dismissX = o.dismissX !== false;
     return new Promise(function (resolve) {
+      releaseStuckPagePointerState();
       const ov = document.createElement("div");
       ov.className = overlayClass(deps, "mp-dialog-overlay mp-onboard-dialog-overlay");
       ov.setAttribute("role", "dialog");
@@ -321,7 +323,14 @@
         html +
         "</div>";
       deps.lockViewportScroll();
+      const onDocPtrDown = function () {
+        releaseStuckPagePointerState();
+      };
+      document.addEventListener("pointerdown", onDocPtrDown, true);
       const close = function (val) {
+        try {
+          document.removeEventListener("pointerdown", onDocPtrDown, true);
+        } catch (_rm) {}
         deps.unlockViewportScroll();
         try {
           ov.remove();
@@ -810,6 +819,34 @@
     );
   }
 
+  /** Home poster rails use setPointerCapture for drag-scroll; a stuck capture
+   *  retargets clicks to the rail while CSS :hover still highlights chips under
+   *  the cursor (Chrome desktop). Release before any onboarding dialog. */
+  function releaseStuckPagePointerState() {
+    try {
+      const sels =
+        ".home-rail--draggable, .film-page-similar-rail, .landing-vitrine-viewport, .landing-vitrine-viewport--duo";
+      document.querySelectorAll(sels).forEach(function (el) {
+        try {
+          el.classList.remove("is-dragging");
+        } catch (_c) {}
+        if (typeof el.hasPointerCapture !== "function" || typeof el.releasePointerCapture !== "function") {
+          return;
+        }
+        for (let id = 0; id < 32; id++) {
+          try {
+            if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+          } catch (_r) {}
+        }
+      });
+      const blocker = document.getElementById("mp-touch-blocker");
+      if (blocker) blocker.classList.remove("active");
+      try {
+        window._mpHomeRailSuppressClickUntil = 0;
+      } catch (_s) {}
+    } catch (_e) {}
+  }
+
   function attachOnboardOverlayGuards(ov, scrollSelector) {
     if (!ov || ov._obOverlayGuards) return;
     ov._obOverlayGuards = true;
@@ -822,6 +859,18 @@
       },
       { passive: false, capture: true },
     );
+    // If a rail still holds capture, pointer events never reach the dialog —
+    // clear on the way down (document capture runs before retargeted target).
+    if (!ov._obPointerReleaseBound) {
+      ov._obPointerReleaseBound = true;
+      ov.addEventListener(
+        "pointerdown",
+        function () {
+          releaseStuckPagePointerState();
+        },
+        true,
+      );
+    }
   }
 
   async function stepInterest(deps) {
@@ -1541,20 +1590,41 @@
       showBack: true,
       bind: function (ov, close) {
         const picked = [];
-        ov.querySelectorAll("[data-ob-gen]").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            const g = btn.getAttribute("data-ob-gen") || "";
-            const i = picked.indexOf(g);
-            if (i >= 0) {
-              picked.splice(i, 1);
-              btn.classList.remove("chip-on");
-            } else {
-              picked.push(g);
-              btn.classList.add("chip-on");
-            }
-          });
-        });
-        ov.querySelector("[data-ob-continue]")?.addEventListener("click", function () {
+        let lastToggleAt = 0;
+        let lastToggleGen = "";
+        function toggleGen(btn) {
+          if (!btn) return;
+          const g = btn.getAttribute("data-ob-gen") || "";
+          if (!g) return;
+          const now = Date.now();
+          // pointerup + click can both fire — debounce same chip
+          if (g === lastToggleGen && now - lastToggleAt < 350) return;
+          lastToggleAt = now;
+          lastToggleGen = g;
+          const i = picked.indexOf(g);
+          if (i >= 0) {
+            picked.splice(i, 1);
+            btn.classList.remove("chip-on");
+          } else {
+            picked.push(g);
+            btn.classList.add("chip-on");
+          }
+        }
+        function onGenEvent(ev) {
+          releaseStuckPagePointerState();
+          const btn =
+            ev.target && ev.target.closest ? ev.target.closest("[data-ob-gen]") : null;
+          if (!btn || !ov.contains(btn)) return;
+          if (ev.type === "pointerup" && ev.button != null && ev.button !== 0) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleGen(btn);
+        }
+        ov.addEventListener("click", onGenEvent);
+        ov.addEventListener("pointerup", onGenEvent);
+        ov.querySelector("[data-ob-continue]")?.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
           close({ genres: picked.slice() });
         });
       },
