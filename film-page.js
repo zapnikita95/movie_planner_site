@@ -483,6 +483,248 @@
     }
   }
 
+
+  function formatDigitalReleaseDisplay(iso) {
+    var s = String(iso || '').trim();
+    if (!s) return '';
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[3] + '.' + m[2] + '.' + m[1];
+    var dmy = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dmy) {
+      var dd = dmy[1].length < 2 ? '0' + dmy[1] : dmy[1];
+      var mm = dmy[2].length < 2 ? '0' + dmy[2] : dmy[2];
+      return dd + '.' + mm + '.' + dmy[3];
+    }
+    return s;
+  }
+
+  function syncFilmDigitalReleaseChip(root, film) {
+    var scope = root && root.querySelector ? root : document;
+    var hero = scope.querySelector
+      ? (scope.querySelector('.film-hero-with-tag, section.hero, .hero-content') || scope)
+      : document;
+    if (!hero || !hero.querySelector) return;
+    var slots = ensureFilmHeroMetaStack(hero);
+    var stack = slots.stack;
+    if (!stack) return;
+    var existing = stack.querySelector('.film-digital-chip, #film-digital-chip');
+    var iso = film && (film.digital_release || film.digitalRelease);
+    var label = formatDigitalReleaseDisplay(iso);
+    if (!label) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (!existing) {
+      existing = document.createElement('span');
+      existing.id = 'film-digital-chip';
+      existing.className = 'film-digital-chip chip';
+      existing.setAttribute('title', 'Цифровой релиз');
+      var metaEl = slots.metaEl;
+      if (metaEl && metaEl.parentNode === stack) metaEl.insertAdjacentElement('afterend', existing);
+      else stack.appendChild(existing);
+    }
+    existing.textContent = 'В цифре · ' + label;
+    existing.removeAttribute('hidden');
+  }
+
+  var _trailerCacheByKp = {};
+
+  function youtubeNocookieEmbedUrl(youtubeId, opts) {
+    opts = opts || {};
+    var id = String(youtubeId || '').trim();
+    if (!id) return '';
+    var q = 'rel=0&modestbranding=1&playsinline=1';
+    if (opts.autoplay) q += '&autoplay=1';
+    if (opts.mute !== false && (opts.autoplay || opts.mute)) q += '&mute=1';
+    return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?' + q;
+  }
+
+  function isKpWidgetUrl(url) {
+    var u = String(url || '').trim().toLowerCase();
+    return !!u && (u.indexOf('widgets.kinopoisk.ru') >= 0 || u.indexOf('widget.kinopoisk.ru') >= 0);
+  }
+
+  function normalizeKpWidgetPlayUrl(url, opts) {
+    opts = opts || {};
+    var raw = String(url || '').trim();
+    if (!isKpWidgetUrl(raw)) return '';
+    try {
+      var u = new URL(raw);
+      u.searchParams.set('onlyPlayer', '1');
+      u.searchParams.set('cover', '1');
+      if (opts.autoplay !== false) u.searchParams.set('autoplay', '1');
+      if (opts.muted !== false) u.searchParams.set('muted', '1');
+      return u.toString();
+    } catch (_e) {
+      var sep = raw.indexOf('?') >= 0 ? '&' : '?';
+      var extra = 'onlyPlayer=1&cover=1';
+      if (opts.autoplay !== false) extra += '&autoplay=1';
+      if (opts.muted !== false) extra += '&muted=1';
+      return raw + sep + extra;
+    }
+  }
+
+  /** Hover/RF playback: KP widget first, else YouTube nocookie. Never a proxy. */
+  function pickTrailerPlayback(d, opts) {
+    opts = opts || {};
+    var autoplay = opts.autoplay !== false;
+    var muted = opts.muted !== false;
+    if (!d) return null;
+    var playUrl = String(d.play_url || '').trim();
+    var playKind = String(d.play_kind || '').trim();
+    if (playUrl && (playKind === 'kp_widget' || playKind === 'youtube')) {
+      if (playKind === 'kp_widget') {
+        playUrl = normalizeKpWidgetPlayUrl(playUrl, { autoplay: autoplay, muted: muted }) || playUrl;
+      } else if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
+        playUrl += (playUrl.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&mute=1';
+      }
+      return { kind: playKind, url: playUrl };
+    }
+    var widget = String(d.widget_url || '').trim();
+    if (isKpWidgetUrl(widget)) {
+      return {
+        kind: 'kp_widget',
+        url: normalizeKpWidgetPlayUrl(widget, { autoplay: autoplay, muted: muted }),
+      };
+    }
+    var yt = String(d.youtube_id || '').trim();
+    if (yt) {
+      return {
+        kind: 'youtube',
+        url: youtubeNocookieEmbedUrl(yt, { autoplay: autoplay, mute: muted }),
+      };
+    }
+    return null;
+  }
+
+  function fetchFilmTrailerByKp(kpId, opts) {
+    opts = opts || {};
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(null);
+    if (_trailerCacheByKp[kp] && !opts.force) {
+      return Promise.resolve(_trailerCacheByKp[kp]);
+    }
+    var q = '';
+    if (opts.title) q += (q ? '&' : '?') + 'title=' + encodeURIComponent(String(opts.title));
+    if (opts.year) q += (q ? '&' : '?') + 'year=' + encodeURIComponent(String(opts.year));
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/trailer' + q;
+    return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success) return null;
+        _trailerCacheByKp[kp] = d;
+        return d;
+      })
+      .catch(function () { return null; });
+  }
+
+  function mountYoutubeTrailerEmbed(container, youtubeId) {
+    if (!container || !youtubeId) return;
+    container.innerHTML = '';
+    container.hidden = false;
+    container.removeAttribute('hidden');
+    var iframe = document.createElement('iframe');
+    iframe.src = youtubeNocookieEmbedUrl(youtubeId);
+    iframe.title = 'Трейлер';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    iframe.allowFullscreen = true;
+    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    container.appendChild(iframe);
+  }
+
+  function ensureFilmTrailerSlot(hero) {
+    if (!hero) return null;
+    var content = hero.querySelector('.hero-content') || hero;
+    var slot = content.querySelector('#film-trailer-slot, .film-page-trailer');
+    if (slot) return slot;
+    slot = document.createElement('div');
+    slot.id = 'film-trailer-slot';
+    slot.className = 'film-page-trailer film-modal-trailer';
+    slot.innerHTML =
+      '<button type="button" class="film-modal-trailer-btn" id="film-trailer-play-btn" hidden>▶ Смотреть трейлер</button>' +
+      '<div class="film-modal-trailer-embed" id="film-trailer-embed" hidden></div>';
+    var toolbar = content.querySelector('.film-page-toolbar');
+    if (toolbar && toolbar.parentNode) toolbar.insertAdjacentElement('afterend', slot);
+    else content.appendChild(slot);
+    return slot;
+  }
+
+  function setPosterTrailerPlayControl(hero, youtubeId) {
+    if (!hero) return;
+    var wrap = hero.querySelector('.poster-wrap');
+    if (!wrap) return;
+    var btn = wrap.querySelector('.film-poster-trailer-play, .film-modal-poster-play');
+    if (!youtubeId) {
+      if (btn) btn.remove();
+      wrap.classList.remove('has-trailer');
+      return;
+    }
+    wrap.classList.add('has-trailer');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'film-poster-trailer-play film-modal-poster-play';
+      btn.setAttribute('aria-label', 'Смотреть трейлер');
+      btn.title = 'Трейлер';
+      btn.innerHTML = '<span aria-hidden="true">▶</span>';
+      wrap.appendChild(btn);
+    }
+    btn.hidden = false;
+    btn.onclick = function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var embed = document.getElementById('film-trailer-embed');
+      var slot = document.getElementById('film-trailer-slot');
+      if (slot) slot.hidden = false;
+      if (embed) {
+        mountYoutubeTrailerEmbed(embed, youtubeId);
+        try { embed.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_s) {}
+      }
+    };
+  }
+
+  function mountFilmTrailerUI(film) {
+    var kp = film && (film.kp_id || film.kinopoiskId);
+    kp = String(kp || '').replace(/\D/g, '');
+    var hero = document.querySelector('.film-hero-with-tag, #film-page-content .hero, main.film-page .hero');
+    if (!hero || !kp) return;
+    var slot = ensureFilmTrailerSlot(hero);
+    var btn = slot && slot.querySelector('#film-trailer-play-btn');
+    var embed = slot && slot.querySelector('#film-trailer-embed');
+    if (film.digital_release) syncFilmDigitalReleaseChip(document, film);
+    fetchFilmTrailerByKp(kp, { title: film.title, year: film.year }).then(function (d) {
+      if (!d) return;
+      if (d.digital_release) {
+        film.digital_release = film.digital_release || d.digital_release;
+        syncFilmDigitalReleaseChip(document, film);
+      }
+      var yt = d.youtube_id;
+      if (!yt) {
+        setPosterTrailerPlayControl(hero, null);
+        if (btn) btn.hidden = true;
+        if (embed) { embed.innerHTML = ''; embed.hidden = true; }
+        return;
+      }
+      setPosterTrailerPlayControl(hero, yt);
+      if (btn) {
+        btn.hidden = false;
+        btn.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (embed) mountYoutubeTrailerEmbed(embed, yt);
+          btn.hidden = true;
+        };
+      }
+      try {
+        if (/#trailer/i.test(String(location.hash || '')) && embed) {
+          mountYoutubeTrailerEmbed(embed, yt);
+          if (btn) btn.hidden = true;
+        }
+      } catch (_h) {}
+    });
+  }
+
+
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
     if (!s || /no-poster|kinopoiskapiunofficial\.tech\/images\/posters/i.test(s)) return '';
@@ -4622,7 +4864,9 @@
             }
           }
           syncFilmHeroMeta(document, f);
+          syncFilmDigitalReleaseChip(document, f);
           syncFilmExtRatings(document, f);
+          try { mountFilmTrailerUI(f); } catch (_tr) {}
           applyFilmMediaSensitive(document.querySelector('.film-page') || document.getElementById('film-page-content') || document, filmMediaSensitive(f));
 
           if (f.is_series) {
@@ -5358,7 +5602,7 @@
   function filmPosterFsIgnoreEl(el) {
     if (!el || !el.closest) return true;
     return !!el.closest(
-      'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .mp-poster-fs-overlay'
+      'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .film-poster-trailer-play, .film-modal-poster-play, .film-modal-trailer-btn, .mp-poster-fs-overlay'
     );
   }
 
@@ -5505,6 +5749,11 @@
     bootstrap: bootstrap,
     renderFilmPage: renderFilmPage,
     parseFilmRoute: parseFilmRoute,
+    fetchFilmTrailerByKp: fetchFilmTrailerByKp,
+    pickTrailerPlayback: pickTrailerPlayback,
+    normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,
+    youtubeNocookieEmbedUrl: youtubeNocookieEmbedUrl,
+    mountFilmTrailerUI: mountFilmTrailerUI,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
     standaloneNavHtml: standaloneNavHtml,

@@ -184,6 +184,7 @@
 
   function warmRailImages(container) {
     if (!container) return;
+    try { bindHomePosterTrailerPreview(container); } catch (_tr) {}
     var imgs = container.querySelectorAll("img[data-rail-warm='1']");
     if (!imgs.length) return;
     var railRect = container.getBoundingClientRect();
@@ -540,6 +541,68 @@
       applied += ctl.prependItems(batch) || 0;
     });
     return applied;
+  }
+
+
+  var _railTrailerCache = {};
+  function bindHomePosterTrailerPreview(container) {
+    if (!container || container.getAttribute("data-trailer-preview-bound") === "1") return;
+    container.setAttribute("data-trailer-preview-bound", "1");
+    container.addEventListener("mouseenter", function (e) {
+      var wrap = e.target && e.target.closest ? e.target.closest(".home-poster-tile-wrap") : null;
+      if (!wrap || wrap.getAttribute("data-trailer-checked") === "1") return;
+      var tile = wrap.querySelector(".home-poster-tile[data-kp-id]");
+      var kp = tile ? String(tile.getAttribute("data-kp-id") || "").replace(/\D/g, "") : "";
+      if (!kp) return;
+      wrap.setAttribute("data-trailer-checked", "1");
+      var fetchFn = (global.MpFilmPage && global.MpFilmPage.fetchFilmTrailerByKp)
+        ? global.MpFilmPage.fetchFilmTrailerByKp
+        : null;
+      function apply(d) {
+        if (!d || !d.youtube_id) return;
+        wrap.classList.add("has-trailer-preview");
+        if (wrap.querySelector(".home-poster-trailer-play")) return;
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-poster-trailer-play";
+        btn.setAttribute("aria-label", "Трейлер");
+        btn.title = "Трейлер";
+        btn.textContent = "▶";
+        btn.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          try {
+            window.location.href = "/f/" + encodeURIComponent(kp) + "#trailer";
+          } catch (_e) {
+            window.location.href = "/f/" + encodeURIComponent(kp);
+          }
+        });
+        wrap.appendChild(btn);
+      }
+      if (_railTrailerCache[kp]) {
+        apply(_railTrailerCache[kp]);
+        return;
+      }
+      if (fetchFn) {
+        fetchFn(kp).then(function (d) {
+          if (d) _railTrailerCache[kp] = d;
+          apply(d);
+        });
+        return;
+      }
+      var apiBase = (global.MpFilmPage && global.MpFilmPage.API_BASE) || (global.MP_API_BASE) || "";
+      if (!apiBase && global.MpApiConfig && global.MpApiConfig.apiBase) apiBase = global.MpApiConfig.apiBase;
+      if (!apiBase) return;
+      fetch(String(apiBase).replace(/\/$/, "") + "/api/public/film/" + encodeURIComponent(kp) + "/trailer", {
+        method: "GET", mode: "cors", credentials: "omit",
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (d && d.success) _railTrailerCache[kp] = d;
+          apply(d && d.success ? d : null);
+        })
+        .catch(function () {});
+    }, true);
   }
 
   global.MPHomeRails = {

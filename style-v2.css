@@ -11194,6 +11194,71 @@ a.link-inline:hover {
   pointer-events: none;
   transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
 }
+/* Hover trailer layout: poster+meta on top, 16:9 player below */
+.home-film-preview.home-film-preview--hover-trailer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 44px));
+}
+.home-film-preview-main {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.home-film-preview.has-trailer-playing {
+  width: min(420px, calc(100vw - 36px));
+}
+.home-film-preview-trailer {
+  display: none;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  aspect-ratio: 16 / 9;
+  position: relative;
+}
+.home-film-preview.has-trailer-playing .home-film-preview-trailer,
+.home-film-preview.is-trailer-loading .home-film-preview-trailer {
+  display: block;
+}
+.home-film-preview-trailer[hidden] {
+  display: none !important;
+}
+.home-film-preview-trailer-frame {
+  position: absolute;
+  inset: 0;
+  background: #0a0910;
+}
+.home-film-preview-trailer-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
+}
+.home-film-preview.is-trailer-loading .home-film-preview-trailer-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(255,255,255,0.04), rgba(255,90,165,0.12), rgba(255,255,255,0.04));
+  background-size: 200% 100%;
+  animation: mpHoverTrailerShimmer 1.1s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes mpHoverTrailerShimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (hover: none), (max-width: 640px) {
+  .home-film-preview-trailer,
+  .premiere-poster-tile .home-film-preview,
+  #section-unwatched .film-card-v2--hover-preview .home-film-preview {
+    display: none !important;
+  }
+}
 .home-dash-row:hover .home-premiere-preview,
 .home-dash-row:hover .home-film-preview,
 
@@ -11315,6 +11380,13 @@ a.link-inline:hover {
 }
 .home-film-preview-cast-row--actors {
   -webkit-line-clamp: 2;
+}
+
+.home-film-preview.has-trailer-playing .home-film-preview-desc {
+  -webkit-line-clamp: 3;
+}
+.home-film-preview.has-trailer-playing .home-film-preview-cast-row--actors {
+  -webkit-line-clamp: 1;
 }
 .home-film-preview-cast-k {
   color: rgba(255,255,255,0.45);
@@ -30282,4 +30354,43 @@ a.collections-author-block:hover {
     margin: 0 0 0 2px !important;
     font-size: 12px !important;
   }
+}
+
+
+/* Film page trailer + digital release (2026-09-14) */
+.poster-wrap.has-trailer { position: relative; }
+.poster-wrap .film-poster-trailer-play {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.08));
+  color: #fff; font-size: 42px; cursor: pointer; opacity: 0;
+  transition: opacity .18s ease;
+}
+.poster-wrap.has-trailer:hover .film-poster-trailer-play,
+.poster-wrap.has-trailer:focus-within .film-poster-trailer-play {
+  opacity: .92;
+}
+@media (hover: none) {
+  .poster-wrap.has-trailer .film-poster-trailer-play { opacity: .78; font-size: 36px; }
+}
+.film-page-trailer { margin-top: 14px; }
+.film-digital-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 6px 0 0; padding: 4px 10px; border-radius: 999px;
+  background: rgba(120, 200, 255, 0.14); color: #b8e4ff;
+  font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em;
+}
+.home-poster-tile-wrap.has-trailer-preview { position: relative; }
+.home-poster-tile-wrap .home-poster-trailer-play {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  z-index: 5; width: 42px; height: 42px; border-radius: 999px; border: 0;
+  background: rgba(0,0,0,0.62); color: #fff; font-size: 16px;
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+.home-poster-tile-wrap.has-trailer-preview:hover .home-poster-trailer-play {
+  display: inline-flex;
+}
+@media (hover: none) {
+  .home-poster-tile-wrap .home-poster-trailer-play { display: none !important; }
 }
