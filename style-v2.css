@@ -30741,9 +30741,18 @@ body.film-trailer-lightbox-open {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   /* Spill padding so first/last active rings are never clipped by overflow */
-  padding: 8px 10px 14px;
-  margin: 0 -10px;
+  padding: 10px 0 16px;
+  margin: 0;
   scrollbar-width: none;
+}
+/* Scrollable end-caps: always reserve room for the active ring on edge chips */
+.premieres-stories-rail::before,
+.premieres-stories-rail::after {
+  content: '';
+  flex: 0 0 12px;
+  width: 12px;
+  height: 1px;
+  pointer-events: none;
 }
 .premieres-stories-rail::-webkit-scrollbar { display: none; }
 
@@ -31380,9 +31389,13 @@ body.premieres-stories-player-open {
   .premieres-stories-rail {
     gap: 12px;
     scroll-snap-type: x proximity;
-    /* Keep FULL active ring visible on first/last chips */
-    padding: 10px 12px 16px;
-    margin: 0 -12px;
+    padding: 12px 0 18px;
+    margin: 0;
+  }
+  .premieres-stories-rail::before,
+  .premieres-stories-rail::after {
+    flex-basis: 14px;
+    width: 14px;
   }
   .premieres-story-media {
     aspect-ratio: 2 / 3;
@@ -31390,12 +31403,12 @@ body.premieres-stories-player-open {
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
   }
   .premieres-story.is-active-story .premieres-story-media {
-    /* Outer ring + rail spill padding (see .premieres-stories-rail) so edge chips never clip */
-    outline: none;
+    /* INSET ring only — never clipped by rail overflow (recurring bug) */
+    outline: none !important;
+    outline-offset: 0 !important;
     box-shadow:
-      0 0 0 2px rgba(255, 255, 255, 0.94),
-      inset 0 0 0 1.5px rgba(255, 255, 255, 0.88),
-      0 8px 22px rgba(0, 0, 0, 0.35);
+      inset 0 0 0 2.5px rgba(255, 255, 255, 0.95),
+      0 8px 22px rgba(0, 0, 0, 0.35) !important;
   }
   .premieres-stories--desktop .premieres-story-title-fallback {
     font-size: 11px;
@@ -31710,7 +31723,7 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === 20260915trailerUx1: FS chrome + hover bridge + chip title/ring === */
+/* === 20260915trailerUx1b: FS chrome + hover bridge + chip title/ring === */
 
 /* Hover preview: card + popup as one hit group */
 .premiere-poster-tile.is-preview-open .home-film-preview,
