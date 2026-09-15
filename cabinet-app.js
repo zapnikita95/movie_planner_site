@@ -26836,7 +26836,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
-  /* MARKER:20260915premDeskStage1 — desktop hover stage, landscape FS, progress auto-advance */
+  /* MARKER:20260915premDeskStage2 — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
   const PREMIERES_STORY_FALLBACK_MS = 22000;
@@ -26851,6 +26851,9 @@
   let _premieresStoriesProgressTimer = 0;
   let _premieresStoriesStageToken = 0;
   let _premieresStoriesResumeAt = 0;
+  let _premieresStoriesHoverTimer = 0;
+  let _premieresStoriesHoverPendingIdx = -1;
+  const PREMIERES_STORIES_HOVER_DWELL_MS = 2000;
   const _premieresStoryTrailerCache = new Map();
 
   function isPremieresStoriesViewport() {
@@ -26914,15 +26917,70 @@
         + '<div class="premieres-stories-stage-frame" data-stage-frame></div>'
         + '<div class="premieres-stories-stage-scrim" aria-hidden="true"></div>'
         + '<div class="premieres-stories-stage-brand">'
+        + '<a class="premieres-stories-stage-title-link" data-stage-film-link="1" href="#">'
         + '<div class="premieres-stories-stage-title-slot"></div>'
+        + '</a>'
         + '<div class="premieres-stories-stage-meta" hidden></div>'
         + '</div>'
+        + '<div class="premieres-stories-stage-actions">'
         + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
+        + '<a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>'
+        + '</div>'
         + '</div>';
       const head = root.querySelector('.premieres-stories-head');
       if (head && head.nextSibling) root.insertBefore(stage, head.nextSibling);
       else root.insertBefore(stage, root.firstChild);
     }
+
+    // Upgrade stage chrome if static HTML is older than DeskStage2
+    (function upgradePremieresStoriesStage() {
+      const stage = document.getElementById('premieres-stories-stage');
+      if (!stage) return;
+      const shell = stage.querySelector('.premieres-stories-stage-shell');
+      if (!shell) return;
+      const brand = shell.querySelector('.premieres-stories-stage-brand');
+      if (brand && !brand.querySelector('.premieres-stories-stage-title-link')) {
+        const slot = brand.querySelector('.premieres-stories-stage-title-slot');
+        if (slot) {
+          const link = document.createElement('a');
+          link.className = 'premieres-stories-stage-title-link';
+          link.setAttribute('data-stage-film-link', '1');
+          link.href = '#';
+          slot.parentNode.insertBefore(link, slot);
+          link.appendChild(slot);
+        }
+      }
+      if (!shell.querySelector('.premieres-stories-stage-actions')) {
+        const expand = shell.querySelector('.premieres-stories-stage-expand');
+        const actions = document.createElement('div');
+        actions.className = 'premieres-stories-stage-actions';
+        if (expand) actions.appendChild(expand);
+        else {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'premieres-stories-stage-expand';
+          btn.setAttribute('aria-label', 'Смотреть на весь экран');
+          btn.textContent = '▶ На весь экран';
+          actions.appendChild(btn);
+        }
+        const film = document.createElement('a');
+        film.className = 'premieres-stories-stage-filmpage';
+        film.setAttribute('data-stage-film-link', '1');
+        film.href = '#';
+        film.textContent = 'Страница фильма';
+        actions.appendChild(film);
+        shell.appendChild(actions);
+      } else if (!shell.querySelector('.premieres-stories-stage-filmpage')) {
+        const actions = shell.querySelector('.premieres-stories-stage-actions');
+        const film = document.createElement('a');
+        film.className = 'premieres-stories-stage-filmpage';
+        film.setAttribute('data-stage-film-link', '1');
+        film.href = '#';
+        film.textContent = 'Страница фильма';
+        actions.appendChild(film);
+      }
+    })();
+
     if (!document.getElementById('premieres-stories-progress-rail')) {
       const prog = document.createElement('div');
       prog.className = 'premieres-stories-progress premieres-stories-progress--rail';
@@ -27055,9 +27113,14 @@
   function advancePremieresStory(fromIdx) {
     const items = _premieresStoriesItems || [];
     if (!items.length) return;
+    // Desktop landscape fullscreen: watch current trailer to the end — no auto-switch.
+    const player = document.getElementById('premieres-stories-player');
+    if (player && player.classList.contains('premieres-stories-player--landscape')) {
+      return;
+    }
     let next = (typeof fromIdx === 'number' ? fromIdx : _premieresStoriesActiveIdx) + 1;
     if (next >= items.length) next = 0;
-    if (document.getElementById('premieres-stories-player')) {
+    if (player) {
       openPremieresStoriesPlayer(next);
       return;
     }
@@ -27073,6 +27136,12 @@
     clearStoriesProgressTicker();
     const token = ++_premieresStoriesProgressToken;
     const fallbackMs = opts.fallbackMs || PREMIERES_STORY_FALLBACK_MS;
+    const noAdvance = !!opts.noAdvance;
+    const freezeProgress = !!opts.freezeProgress;
+    if (freezeProgress) {
+      paintStoriesProgressBars(idx, 0);
+      return;
+    }
     const startedAt = performance.now();
     let completed = false;
     const finish = () => {
@@ -27080,7 +27149,7 @@
       completed = true;
       paintStoriesProgressBars(idx, 1);
       clearStoriesProgressTicker();
-      advancePremieresStory(idx);
+      if (!noAdvance) advancePremieresStory(idx);
     };
     const tickFallback = () => {
       if (token !== _premieresStoriesProgressToken) return;
@@ -27233,6 +27302,7 @@
         if (!chip || !rail.contains(chip)) return;
         e.preventDefault();
         e.stopPropagation();
+        clearPremieresStoriesHoverDwell();
         const idx = parseInt(chip.getAttribute('data-story-idx') || '0', 10) || 0;
         // Desktop: click expands landscape FS (continue from hover if same).
         // Mobile: immersive vertical stories player.
@@ -27240,6 +27310,7 @@
       });
       rail.addEventListener('pointerover', (e) => {
         if (!isDesktopStoriesHoverMode()) return;
+        if (document.getElementById('premieres-stories-player')) return;
         const chip = e.target && e.target.closest ? e.target.closest('.premieres-story') : null;
         if (!chip || !rail.contains(chip)) return;
         const related = e.relatedTarget && e.relatedTarget.closest
@@ -27247,24 +27318,31 @@
           : null;
         if (related === chip) return;
         const idx = parseInt(chip.getAttribute('data-story-idx') || '0', 10) || 0;
-        if (idx === _premieresStoriesActiveIdx && premieresStoriesStageEl()
-            && !premieresStoriesStageEl().hidden
-            && premieresStoriesStageEl().classList.contains('is-playing')) {
-          return;
-        }
-        playPremieresStoryAt(idx, { source: 'stage' });
+        schedulePremieresStoriesHoverPlay(idx);
+      });
+      rail.addEventListener('pointerleave', () => {
+        clearPremieresStoriesHoverDwell();
       });
     }
+
+    bindPremieresStoriesRailDragScroll(rail);
 
     const stage = premieresStoriesStageEl();
     if (stage && !stage.dataset.bound) {
       stage.dataset.bound = '1';
       stage.addEventListener('click', (e) => {
+        if (e.target.closest && e.target.closest('[data-stage-film-link], a')) return;
         const expand = e.target && e.target.closest
-          ? e.target.closest('.premieres-stories-stage-expand, .premieres-stories-stage-shell')
+          ? e.target.closest('.premieres-stories-stage-expand')
           : null;
-        if (!expand || !stage.contains(expand)) return;
-        if (e.target.closest && e.target.closest('a')) return;
+        const shell = e.target && e.target.closest
+          ? e.target.closest('.premieres-stories-stage-shell')
+          : null;
+        if (!expand && !shell) return;
+        if (!stage.contains(expand || shell)) return;
+        if (!expand && e.target.closest && e.target.closest('.premieres-stories-stage-actions, .premieres-stories-stage-brand')) {
+          return;
+        }
         e.preventDefault();
         const idx = _premieresStoriesActiveIdx >= 0 ? _premieresStoriesActiveIdx : 0;
         openPremieresStoriesPlayer(idx, { fromHover: true });
@@ -27461,8 +27539,12 @@
     const dateLabel = typeof formatPremiereDate === 'function'
       ? formatPremiereDate(it.premiere_date)
       : (it.premiere_date || '');
+    const filmHref = '/f/' + encodeURIComponent(String(kp || '').replace(/\D/g, ''));
     const slot = stage.querySelector('.premieres-stories-stage-title-slot');
     const meta = stage.querySelector('.premieres-stories-stage-meta');
+    stage.querySelectorAll('[data-stage-film-link]').forEach((a) => {
+      try { a.setAttribute('href', filmHref); } catch (_h) {}
+    });
     const applyBrand = (logoUrl) => {
       if (!slot) return;
       const logo = resolveTitleLogoUrl(logoUrl || '');
@@ -27487,10 +27569,95 @@
     }
     if (window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function') {
       window.MpFilmPage.fetchFilmTitleLogoByKp(kp).then((payload) => {
+        if (String(_premieresStoriesActiveKp || '') !== String(kp || '')) return;
         const url = pickRuTitleLogoForStory(it, payload);
         if (url) applyBrand(url);
       }).catch(() => {});
     }
+  }
+
+  function clearPremieresStoriesHoverDwell() {
+    if (_premieresStoriesHoverTimer) {
+      try { clearTimeout(_premieresStoriesHoverTimer); } catch (_t) {}
+      _premieresStoriesHoverTimer = 0;
+    }
+    _premieresStoriesHoverPendingIdx = -1;
+  }
+
+  function schedulePremieresStoriesHoverPlay(idx) {
+    if (!isDesktopStoriesHoverMode()) return;
+    const i = parseInt(idx, 10) || 0;
+    if (i === _premieresStoriesActiveIdx && premieresStoriesStageEl()
+        && !premieresStoriesStageEl().hidden
+        && premieresStoriesStageEl().classList.contains('is-playing')) {
+      clearPremieresStoriesHoverDwell();
+      return;
+    }
+    if (_premieresStoriesHoverPendingIdx === i && _premieresStoriesHoverTimer) return;
+    clearPremieresStoriesHoverDwell();
+    _premieresStoriesHoverPendingIdx = i;
+    _premieresStoriesHoverTimer = setTimeout(() => {
+      _premieresStoriesHoverTimer = 0;
+      _premieresStoriesHoverPendingIdx = -1;
+      if (!isDesktopStoriesHoverMode()) return;
+      if (document.getElementById('premieres-stories-player')) return;
+      playPremieresStoryAt(i, { source: 'stage', fromHoverDwell: true });
+    }, PREMIERES_STORIES_HOVER_DWELL_MS);
+  }
+
+  function bindPremieresStoriesRailDragScroll(rail) {
+    if (!rail || rail._mpStoriesDragBound) return;
+    rail._mpStoriesDragBound = true;
+    rail.classList.add('premieres-stories-rail--draggable');
+    let active = false;
+    let dragging = false;
+    let startX = 0;
+    let startScroll = 0;
+    const THRESH = 6;
+    rail.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return;
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest('a, input, select, textarea, [data-story-film-link]')) return;
+      active = true;
+      dragging = false;
+      startX = e.clientX;
+      startScroll = rail.scrollLeft;
+    });
+    rail.addEventListener('pointermove', (e) => {
+      if (!active) return;
+      const dx = e.clientX - startX;
+      if (!dragging && Math.abs(dx) > THRESH) {
+        dragging = true;
+        clearPremieresStoriesHoverDwell();
+        rail.classList.add('is-dragging');
+        try { rail.setPointerCapture(e.pointerId); } catch (_c) {}
+      }
+      if (!dragging) return;
+      e.preventDefault();
+      rail.scrollLeft = startScroll - dx;
+    });
+    function endDrag(e) {
+      const wasDragging = dragging;
+      active = false;
+      rail.classList.remove('is-dragging');
+      try {
+        if (e && e.pointerId != null) rail.releasePointerCapture(e.pointerId);
+      } catch (_r) {}
+      if (wasDragging) {
+        try { mpHomeRailSuppressClick(400); } catch (_s) {}
+        setTimeout(() => { dragging = false; }, 0);
+      }
+    }
+    rail.addEventListener('pointerup', endDrag);
+    rail.addEventListener('pointercancel', endDrag);
+    rail.addEventListener('lostpointercapture', endDrag);
+    rail.addEventListener('dragstart', (e) => { e.preventDefault(); });
+    rail.addEventListener('click', (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      dragging = false;
+    }, true);
   }
 
   function playPremieresStoryAt(idx, opts) {
@@ -27563,10 +27730,12 @@
         if (token !== _premieresStoriesStageToken) return;
         stage.classList.remove('is-loading');
       });
-      // Keep active chip scrolled into view
-      const chip = document.querySelector('#premieres-stories-rail .premieres-story[data-story-idx="' + i + '"]');
-      if (chip && chip.scrollIntoView) {
-        try { chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_s) {}
+      // Auto-center only for programmatic advance — not while user drag-scrolls / dwells
+      if (!opts.fromHoverDwell) {
+        const chip = document.querySelector('#premieres-stories-rail .premieres-story[data-story-idx="' + i + '"]');
+        if (chip && chip.scrollIntoView) {
+          try { chip.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }); } catch (_s) {}
+        }
       }
       return;
     }
@@ -27764,6 +27933,7 @@
       || (window.matchMedia && window.matchMedia('(min-width: 861px)').matches);
 
     // Pause rail/stage playback while immersive is open
+    clearPremieresStoriesHoverDwell();
     stopAllPremieresStoryTrailers();
     clearStoriesProgressTicker();
     const stageEl = premieresStoriesStageEl();
@@ -27792,29 +27962,89 @@
       try { document.addEventListener('keydown', _premieresStoriesPlayerKey, true); } catch (_k) {}
     }
     lb.className = 'premieres-stories-player' + (desktop ? ' premieres-stories-player--landscape' : '');
+    const filmHref = '/f/' + encodeURIComponent(kp);
+    const prevIdx = (i - 1 + items.length) % items.length;
+    const nextIdx = (i + 1) % items.length;
+    const prevIt = items[prevIdx];
+    const nextIt = items[nextIdx];
+    const prevKp = String((prevIt && (prevIt.kp_id || prevIt.kpId)) || '').replace(/\D/g, '');
+    const nextKp = String((nextIt && (nextIt.kp_id || nextIt.kpId)) || '').replace(/\D/g, '');
+    const prevTitle = storyDisplayTitle(prevIt);
+    const nextTitle = storyDisplayTitle(nextIt);
+    const prevPoster = storyPosterUrl(prevIt, prevKp);
+    const nextPoster = storyPosterUrl(nextIt, nextKp);
+    const navPrevHtml = desktop ? (
+      '<button type="button" class="premieres-stories-player-side premieres-stories-player-side--prev" aria-label="Предыдущий: '
+      + escapeHtml(prevTitle || 'фильм') + '">'
+      + (prevPoster ? ('<img class="premieres-stories-player-side-poster" src="' + escapeHtml(prevPoster)
+        + '" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"'
+        + ' onerror="this.onerror=null;this.src=\'' + escapeHtml(posterUrl(prevKp)) + '\';">') : '')
+      + '<span class="premieres-stories-player-side-label">'
+      + '<span class="premieres-stories-player-side-dir">← Предыдущий</span>'
+      + '<span class="premieres-stories-player-side-name">' + escapeHtml(prevTitle || '') + '</span>'
+      + '</span></button>'
+    ) : '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--prev" aria-label="Предыдущий"></button>';
+    const navNextHtml = desktop ? (
+      '<button type="button" class="premieres-stories-player-side premieres-stories-player-side--next" aria-label="Следующий: '
+      + escapeHtml(nextTitle || 'фильм') + '">'
+      + (nextPoster ? ('<img class="premieres-stories-player-side-poster" src="' + escapeHtml(nextPoster)
+        + '" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"'
+        + ' onerror="this.onerror=null;this.src=\'' + escapeHtml(posterUrl(nextKp)) + '\';">') : '')
+      + '<span class="premieres-stories-player-side-label">'
+      + '<span class="premieres-stories-player-side-dir">Следующий →</span>'
+      + '<span class="premieres-stories-player-side-name">' + escapeHtml(nextTitle || '') + '</span>'
+      + '</span></button>'
+    ) : '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--next" aria-label="Следующий"></button>';
     lb.innerHTML =
       '<div class="premieres-stories-progress premieres-stories-progress--player" id="premieres-stories-progress-player" aria-hidden="true"></div>'
+      + (desktop ? navPrevHtml : '')
       + '<div class="premieres-stories-player-stage">'
       + '<button type="button" class="premieres-stories-player-close" aria-label="Закрыть">×</button>'
-      + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--prev" aria-label="Предыдущий"></button>'
-      + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--next" aria-label="Следующий"></button>'
+      + (desktop ? '' : navPrevHtml)
+      + (desktop ? '' : navNextHtml)
       + (poster ? ('<img class="premieres-stories-player-poster" src="' + escapeHtml(poster) + '" alt=""'
         + ' onerror="this.onerror=null;this.src=\'' + escapeHtml(posterUrl(kp)) + '\';">') : '')
       + '<div class="premieres-stories-player-frame"></div>'
       + '<div class="premieres-stories-player-scrim" aria-hidden="true"></div>'
       + '<div class="premieres-stories-player-brand">'
+      + '<a class="premieres-stories-player-title-link" data-player-film-link="1" href="' + escapeHtml(filmHref) + '">'
       + '<div class="premieres-stories-player-title-slot"></div>'
+      + '</a>'
       + (dateLabel ? ('<div class="premieres-stories-player-meta">' + escapeHtml(dateLabel) + '</div>') : '')
-      + '</div></div>';
+      + '</div>'
+      + (desktop
+        ? ('<div class="premieres-stories-player-actions">'
+          + '<a class="premieres-stories-player-filmpage" data-player-film-link="1" href="' + escapeHtml(filmHref) + '">Страница фильма</a>'
+          + '</div>')
+        : '')
+      + '</div>'
+      + (desktop ? navNextHtml : '');
 
-    paintStoriesProgressBars(i, 0);
+    if (desktop) {
+      // Hide + freeze progress in landscape fullscreen — watch current trailer fully.
+      const prog = document.getElementById('premieres-stories-progress-player');
+      if (prog) {
+        prog.hidden = true;
+        prog.setAttribute('hidden', '');
+        prog.innerHTML = '';
+      }
+      clearStoriesProgressTicker();
+    } else {
+      paintStoriesProgressBars(i, 0);
+    }
 
     const closeBtn = lb.querySelector('.premieres-stories-player-close');
-    const prevBtn = lb.querySelector('.premieres-stories-player-nav--prev');
-    const nextBtn = lb.querySelector('.premieres-stories-player-nav--next');
+    const prevBtn = lb.querySelector('.premieres-stories-player-nav--prev, .premieres-stories-player-side--prev');
+    const nextBtn = lb.querySelector('.premieres-stories-player-nav--next, .premieres-stories-player-side--next');
     if (closeBtn) closeBtn.addEventListener('click', (e) => { e.preventDefault(); closePremieresStoriesPlayer(); });
     if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i - 1); });
     if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i + 1); });
+    lb.querySelectorAll('[data-player-film-link]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        // Allow normal navigation / SPA routing; close overlay first.
+        try { closePremieresStoriesPlayer(); } catch (_c) {}
+      });
+    });
 
     const slot = lb.querySelector('.premieres-stories-player-title-slot');
     const applyBrand = (logoUrl) => {
@@ -27832,6 +28062,7 @@
     applyBrand(pickRuTitleLogoForStory(it, null));
     if (window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function') {
       window.MpFilmPage.fetchFilmTitleLogoByKp(kp).then((payload) => {
+        if (_premieresStoriesPlayerIdx !== i) return;
         const url = pickRuTitleLogoForStory(it, payload);
         if (url) applyBrand(url);
       }).catch(() => {});
@@ -27877,6 +28108,11 @@
         if (posterEl) posterEl.style.opacity = '0';
         whenStoryMediaReady(frame, (media) => {
           if (_premieresStoriesPlayerIdx !== i) return;
+          if (desktop) {
+            // Landscape FS: play through, no progress bars / no auto-advance.
+            clearStoriesProgressTicker();
+            return;
+          }
           bindStoriesProgressWatch(media, i, {});
         });
       }

@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260914logoClsEmpty1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260914logoClsEmpty1">
+<link rel="preload" href="/style-v2.css?v=20260915premDeskStage2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260915premDeskStage2">
     <script>
       (function () {
         try {
@@ -2771,10 +2771,15 @@
                                 <div class="premieres-stories-stage-frame" data-stage-frame></div>
                                 <div class="premieres-stories-stage-scrim" aria-hidden="true"></div>
                                 <div class="premieres-stories-stage-brand">
-                                    <div class="premieres-stories-stage-title-slot"></div>
+                                    <a class="premieres-stories-stage-title-link" data-stage-film-link="1" href="#">
+                                        <div class="premieres-stories-stage-title-slot"></div>
+                                    </a>
                                     <div class="premieres-stories-stage-meta" hidden></div>
                                 </div>
-                                <button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>
+                                <div class="premieres-stories-stage-actions">
+                                    <button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>
+                                    <a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>
+                                </div>
                             </div>
                         </div>
                         <div class="premieres-stories-progress premieres-stories-progress--rail" id="premieres-stories-progress-rail" aria-hidden="true"></div>
@@ -3869,7 +3874,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260915premDeskStage1';
+        var V='20260915premDeskStage2';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
