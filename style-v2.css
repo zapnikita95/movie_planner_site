@@ -30740,8 +30740,9 @@ body.film-trailer-lightbox-open {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  padding: 2px 2px 10px;
-  margin: 0 -2px;
+  /* Spill padding so first/last active rings are never clipped by overflow */
+  padding: 8px 10px 14px;
+  margin: 0 -10px;
   scrollbar-width: none;
 }
 .premieres-stories-rail::-webkit-scrollbar { display: none; }
@@ -30831,9 +30832,9 @@ a.premieres-story-brand {
 }
 .premieres-story-brand {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 14px;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
   z-index: 4;
   display: flex;
   flex-direction: column;
@@ -30856,17 +30857,24 @@ a.premieres-story-brand {
 .premieres-story-title-fallback {
   margin: 0;
   max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 4px; /* keep Unbounded glyphs off chip edge */
   font-family: Unbounded, Inter, system-ui, sans-serif;
-  font-size: clamp(15px, 4.2vw, 18px);
+  font-size: clamp(13px, 3.6vw, 16px);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: 0.01em;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  hyphens: auto;
+  text-overflow: clip; /* never mid-glyph ellipsis garbage */
 }
 .premieres-story-title-fallback[hidden] {
   display: none !important;
@@ -30995,7 +31003,12 @@ a.premieres-story-brand {
 .premieres-stories-player-frame {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background: #000;
+}
+.premieres-stories-player-poster.is-faded,
+.premieres-stories-player-poster[aria-hidden="true"] {
+  pointer-events: none !important;
 }
 .premieres-stories-player-frame iframe {
   position: absolute;
@@ -31367,7 +31380,9 @@ body.premieres-stories-player-open {
   .premieres-stories-rail {
     gap: 12px;
     scroll-snap-type: x proximity;
-    padding-top: 4px;
+    /* Keep FULL active ring visible on first/last chips */
+    padding: 10px 12px 16px;
+    margin: 0 -12px;
   }
   .premieres-story-media {
     aspect-ratio: 2 / 3;
@@ -31375,8 +31390,24 @@ body.premieres-stories-player-open {
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
   }
   .premieres-story.is-active-story .premieres-story-media {
-    outline: 2px solid rgba(255, 255, 255, 0.88);
-    outline-offset: 2px;
+    /* Outer ring + rail spill padding (see .premieres-stories-rail) so edge chips never clip */
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.94),
+      inset 0 0 0 1.5px rgba(255, 255, 255, 0.88),
+      0 8px 22px rgba(0, 0, 0, 0.35);
+  }
+  .premieres-stories--desktop .premieres-story-title-fallback {
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 0 3px;
+    -webkit-line-clamp: 4;
+    max-height: 5.2em;
+  }
+  .premieres-stories--desktop .premieres-story-brand {
+    left: 6px;
+    right: 6px;
+    bottom: 8px;
   }
   /* Hide in-chip play chrome on desktop — stage is the hero */
   .premieres-stories--desktop .premieres-story-frame,
@@ -31678,3 +31709,175 @@ main.film-page .hero-content > h1.film-title-slot {
   display: none !important;
 }
 
+
+/* === 20260915trailerUx1: FS chrome + hover bridge + chip title/ring === */
+
+/* Hover preview: card + popup as one hit group */
+.premiere-poster-tile.is-preview-open .home-film-preview,
+#section-unwatched .film-card-v2--hover-preview.is-preview-open .home-film-preview,
+.premiere-poster-tile:hover .home-film-preview,
+#section-unwatched .film-card-v2--hover-preview:hover .home-film-preview {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.premiere-poster-tile.is-preview-open .home-film-preview {
+  transform: translateX(-50%) translateY(0) scale(1);
+  z-index: 9999;
+}
+#section-unwatched .film-card-v2--hover-preview.is-preview-open .home-film-preview {
+  transform: translateX(-50%) translateY(0) scale(1);
+  z-index: 40;
+}
+/* Invisible bridge covering the gap between card and popup */
+.premiere-poster-tile .home-film-preview::after,
+#section-unwatched .film-card-v2--hover-preview .home-film-preview::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 18px;
+  pointer-events: auto;
+}
+.home-film-preview-trailer-frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  border: 0;
+}
+.home-film-preview-trailer-bar {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+.home-film-preview-trailer-bar[hidden] { display: none !important; }
+.home-film-preview-trailer-pause,
+.home-film-preview-trailer-expand {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.home-film-preview-trailer-pause:hover,
+.home-film-preview-trailer-expand:hover {
+  background: rgba(0,0,0,0.75);
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* Landscape / immersive player chrome (Chrome-style auto-hide) */
+.premieres-stories-player-chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(0deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.premieres-stories-player--landscape.is-chrome-visible .premieres-stories-player-chrome {
+  opacity: 1;
+  pointer-events: auto;
+}
+.premieres-stories-player--landscape .premieres-stories-player-brand {
+  bottom: 72px;
+  pointer-events: none;
+  max-width: min(520px, 60%);
+}
+.premieres-stories-player--landscape .premieres-stories-player-title-link {
+  pointer-events: auto;
+}
+.premieres-stories-player--landscape .premieres-stories-player-actions {
+  bottom: 72px;
+}
+.psp-chrome-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.psp-chrome-btn:hover {
+  background: rgba(0,0,0,0.7);
+  border-color: rgba(255,255,255,0.4);
+}
+.psp-chrome-time {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 650;
+  color: rgba(255,255,255,0.9);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.psp-chrome-sep { margin: 0 4px; opacity: 0.55; }
+.psp-chrome-seek-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.psp-chrome-seek {
+  width: 100%;
+  height: 6px;
+  accent-color: #ff8ab8;
+  cursor: pointer;
+}
+.premieres-stories-player-fsbtn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.premieres-stories-player-fsbtn:hover {
+  background: rgba(0,0,0,0.7);
+  border-color: rgba(255,255,255,0.4);
+}
+.premieres-stories-player-stage:fullscreen,
+.premieres-stories-player-stage:-webkit-full-screen {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+}

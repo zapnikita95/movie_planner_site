@@ -10932,6 +10932,10 @@
       + '</div></div>'
       + '<div class="home-film-preview-trailer" hidden>'
       + '<div class="home-film-preview-trailer-frame" data-trailer-frame="1"></div>'
+      + '<div class="home-film-preview-trailer-bar" hidden>'
+      + '<button type="button" class="home-film-preview-trailer-pause" data-hover-trailer-pause="1" aria-label="Пауза">❚❚</button>'
+      + '<button type="button" class="home-film-preview-trailer-expand" data-hover-trailer-expand="1" aria-label="На весь экран">⛶</button>'
+      + '</div>'
       + '</div></div>';
   }
 
@@ -13726,26 +13730,12 @@
 
   function bindUnwatchedHoverEnrichment() {
     const list = document.getElementById('unwatched-list');
-    if (!list || list.dataset.hoverEnrichBound === '1') return;
+    if (!list) return;
+    // Keep legacy flag so older callers don't double-bind differently
+    if (list.dataset.hoverEnrichBound === '1' && list.dataset.hoverPreviewGroupBound === '1') return;
     list.dataset.hoverEnrichBound = '1';
-    list.addEventListener('pointerover', (e) => {
-      const card = e.target && e.target.closest ? e.target.closest('.film-card-v2--hover-preview') : null;
-      if (!card || !list.contains(card)) return;
-      const from = e.relatedTarget && e.relatedTarget.closest
-        ? e.relatedTarget.closest('.film-card-v2--hover-preview')
-        : null;
-      if (from === card) return;
+    bindFilmCardHoverPreviewGroup(list, '.film-card-v2--hover-preview', (card) => {
       enrichBaseHoverPreviewOnEnter(card);
-      mountHoverTrailerOnCard(card);
-    });
-    list.addEventListener('pointerout', (e) => {
-      const card = e.target && e.target.closest ? e.target.closest('.film-card-v2--hover-preview') : null;
-      if (!card || !list.contains(card)) return;
-      const to = e.relatedTarget && e.relatedTarget.closest
-        ? e.relatedTarget.closest('.film-card-v2--hover-preview')
-        : null;
-      if (to === card) return;
-      stopHoverTrailerOnCard(card);
     });
   }
 
@@ -13928,20 +13918,123 @@
     return null;
   }
 
+  const HOVER_PREVIEW_LEAVE_GRACE_MS = 180;
+
+  function clearHoverPreviewCloseTimer(card) {
+    if (!card || !card._mpHoverCloseTimer) return;
+    try { clearTimeout(card._mpHoverCloseTimer); } catch (_t) {}
+    card._mpHoverCloseTimer = 0;
+  }
+
+  function openHoverPreviewGroup(card) {
+    if (!card) return;
+    clearHoverPreviewCloseTimer(card);
+    card.classList.add('is-preview-open');
+  }
+
+  function scheduleCloseHoverPreviewGroup(card) {
+    if (!card) return;
+    clearHoverPreviewCloseTimer(card);
+    card._mpHoverCloseTimer = setTimeout(() => {
+      card._mpHoverCloseTimer = 0;
+      card.classList.remove('is-preview-open');
+      stopHoverTrailerOnCard(card);
+    }, HOVER_PREVIEW_LEAVE_GRACE_MS);
+  }
+
+  function bindHoverTrailerControls(card) {
+    if (!card || card._mpHoverCtrlBound) return;
+    card._mpHoverCtrlBound = true;
+    card.addEventListener('click', (e) => {
+      const pauseBtn = e.target && e.target.closest ? e.target.closest('[data-hover-trailer-pause]') : null;
+      const expandBtn = e.target && e.target.closest ? e.target.closest('[data-hover-trailer-expand]') : null;
+      if (!pauseBtn && !expandBtn) return;
+      if (!card.contains(pauseBtn || expandBtn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const frame = card.querySelector('[data-trailer-frame]');
+      const video = frame ? frame.querySelector('video') : null;
+      if (pauseBtn) {
+        if (video) {
+          if (video.paused) {
+            try { const p = video.play(); if (p && p.catch) p.catch(() => {}); } catch (_p) {}
+            pauseBtn.textContent = '❚❚';
+            pauseBtn.setAttribute('aria-label', 'Пауза');
+          } else {
+            try { video.pause(); } catch (_p) {}
+            pauseBtn.textContent = '▶';
+            pauseBtn.setAttribute('aria-label', 'Смотреть');
+          }
+        }
+        return;
+      }
+      if (expandBtn) {
+        const kp = hoverTrailerKpFromCard(card);
+        const playKind = ((card.querySelector('.home-film-preview') || {}).getAttribute('data-play-kind') || '');
+        // Prefer premiere landscape player when on premieres; else film lightbox.
+        try {
+          if (card.classList.contains('premiere-poster-tile') && typeof openPremieresStoriesPlayer === 'function') {
+            const items = _premieresStoriesItems || [];
+            let idx = items.findIndex((it) => String((it && (it.kp_id || it.kpId)) || '').replace(/\D/g, '') === kp);
+            if (idx < 0) {
+              // Fall back: open lightbox with current playback if available
+              idx = -1;
+            }
+            if (idx >= 0) {
+              let resumeAt = 0;
+              if (video && video.currentTime) resumeAt = video.currentTime;
+              stopHoverTrailerOnCard(card);
+              card.classList.remove('is-preview-open');
+              openPremieresStoriesPlayer(idx, { resumeAt: resumeAt });
+              return;
+            }
+          }
+        } catch (_op) {}
+        try {
+          if (window.MpFilmPage && typeof window.MpFilmPage.openFilmTrailerLightbox === 'function') {
+            const meta = hoverTrailerTitleYear(card);
+            fetchHoverTrailerPayload(kp, meta).then((d) => {
+              let play = null;
+              if (window.MpFilmPage.pickTrailerPlayback) {
+                play = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: false });
+              } else {
+                play = pickHoverPlayback(d);
+              }
+              if (!play || !play.url) return;
+              if (play.kind === 'hls') play.controls = true;
+              window.MpFilmPage.openFilmTrailerLightbox(play);
+            }).catch(() => {});
+          }
+        } catch (_lb) {}
+      }
+    }, true);
+  }
+
   function stopHoverTrailerOnCard(card) {
     if (!card) return;
+    clearHoverPreviewCloseTimer(card);
     card._mpHoverTrailerActive = false;
     card._mpHoverTrailerToken = 0;
     const pop = card.querySelector('.home-film-preview');
     if (pop) pop.classList.remove('has-trailer-playing', 'is-trailer-loading');
     const slot = card.querySelector('.home-film-preview-trailer');
+    const bar = card.querySelector('.home-film-preview-trailer-bar');
     const frame = card.querySelector('[data-trailer-frame]');
     if (frame) {
+      try { if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; } } catch (_h) {}
       try {
         const ifr = frame.querySelector('iframe');
         if (ifr) ifr.src = 'about:blank';
       } catch (_b) {}
+      try {
+        const v = frame.querySelector('video');
+        if (v) v.pause();
+      } catch (_v) {}
       frame.innerHTML = '';
+    }
+    if (bar) {
+      bar.hidden = true;
+      bar.setAttribute('hidden', '');
     }
     if (slot) {
       slot.hidden = true;
@@ -13956,8 +14049,11 @@
     const pop = card.querySelector('.home-film-preview');
     const slot = card.querySelector('.home-film-preview-trailer');
     const frame = card.querySelector('[data-trailer-frame]');
+    const bar = card.querySelector('.home-film-preview-trailer-bar');
     if (!pop || !slot || !frame) return;
-    if (card._mpHoverTrailerActive && String(card._mpHoverTrailerKp || '') === kp && frame.querySelector('iframe')) {
+    bindHoverTrailerControls(card);
+    if (card._mpHoverTrailerActive && String(card._mpHoverTrailerKp || '') === kp
+        && (frame.querySelector('video') || frame.querySelector('iframe'))) {
       return;
     }
     const token = ++_hoverTrailerSeq;
@@ -13977,17 +14073,39 @@
         slot.hidden = true;
         slot.setAttribute('hidden', '');
         frame.innerHTML = '';
+        if (bar) { bar.hidden = true; bar.setAttribute('hidden', ''); }
         return;
       }
       frame.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.src = play.url;
-      iframe.title = 'Трейлер';
-      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-      iframe.setAttribute('allowfullscreen', '');
-      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-      iframe.setAttribute('loading', 'eager');
-      frame.appendChild(iframe);
+      // HLS / video with usable controls; widgets/youtube via iframe
+      if (play.kind === 'hls' && typeof mountStoryPlayback === 'function') {
+        mountStoryPlayback(frame, play, {
+          autoplay: true,
+          muted: true,
+          controls: true,
+          pointerNone: false,
+          loop: true,
+          objectFit: 'cover',
+        });
+        if (bar) {
+          bar.hidden = false;
+          bar.removeAttribute('hidden');
+        }
+      } else {
+        const iframe = document.createElement('iframe');
+        iframe.src = play.url;
+        iframe.title = 'Трейлер';
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('referrerpolicy', play.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
+        iframe.setAttribute('loading', 'eager');
+        iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
+        frame.appendChild(iframe);
+        if (bar) {
+          bar.hidden = false;
+          bar.removeAttribute('hidden');
+        }
+      }
       pop.classList.add('has-trailer-playing');
       pop.setAttribute('data-play-kind', play.kind || '');
     }).catch(() => {
@@ -13995,21 +14113,44 @@
       pop.classList.remove('is-trailer-loading');
       slot.hidden = true;
       slot.setAttribute('hidden', '');
+      if (bar) { bar.hidden = true; bar.setAttribute('hidden', ''); }
+    });
+  }
+
+  function bindFilmCardHoverPreviewGroup(root, cardSelector, onEnter) {
+    if (!root || root.dataset.hoverPreviewGroupBound === '1') return;
+    root.dataset.hoverPreviewGroupBound = '1';
+    const resolveCard = (node) => {
+      if (!node || !node.closest) return null;
+      const card = node.closest(cardSelector);
+      if (!card || !root.contains(card)) return null;
+      return card;
+    };
+    root.addEventListener('pointerover', (e) => {
+      const card = resolveCard(e.target);
+      if (!card) return;
+      const fromCard = resolveCard(e.relatedTarget);
+      if (fromCard === card) return;
+      openHoverPreviewGroup(card);
+      if (typeof onEnter === 'function') onEnter(card);
+      mountHoverTrailerOnCard(card);
+    });
+    root.addEventListener('pointerout', (e) => {
+      const card = resolveCard(e.target);
+      if (!card) return;
+      const toCard = resolveCard(e.relatedTarget);
+      if (toCard === card) return;
+      // Still inside combined card+popup hit area?
+      const to = e.relatedTarget;
+      if (to && card.contains(to)) return;
+      scheduleCloseHoverPreviewGroup(card);
     });
   }
 
   function bindPremieresHoverTrailer() {
     const grid = document.getElementById('premieres-grid');
-    if (!grid || grid.dataset.hoverTrailerBound === '1') return;
-    grid.dataset.hoverTrailerBound = '1';
-    grid.addEventListener('pointerover', (e) => {
-      const card = e.target && e.target.closest ? e.target.closest('.premiere-poster-tile') : null;
-      if (!card || !grid.contains(card)) return;
-      const from = e.relatedTarget && e.relatedTarget.closest
-        ? e.relatedTarget.closest('.premiere-poster-tile')
-        : null;
-      if (from === card) return;
-      mountHoverTrailerOnCard(card);
+    if (!grid) return;
+    bindFilmCardHoverPreviewGroup(grid, '.premiere-poster-tile', (card) => {
       const descEl = card.querySelector('.home-film-preview-desc');
       if (descEl && (!descEl.textContent || !descEl.textContent.trim())) {
         const fromAttr = card.getAttribute('data-description') || '';
@@ -14018,15 +14159,6 @@
           descEl.classList.remove('is-empty');
         }
       }
-    });
-    grid.addEventListener('pointerout', (e) => {
-      const card = e.target && e.target.closest ? e.target.closest('.premiere-poster-tile') : null;
-      if (!card || !grid.contains(card)) return;
-      const to = e.relatedTarget && e.relatedTarget.closest
-        ? e.relatedTarget.closest('.premiere-poster-tile')
-        : null;
-      if (to === card) return;
-      stopHoverTrailerOnCard(card);
     });
   }
 
@@ -27442,6 +27574,233 @@
     return pickHoverPlayback(d);
   }
 
+  function formatStoriesPlayerTime(sec) {
+    const s = Math.max(0, Math.floor(Number(sec) || 0));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m + ':' + String(r).padStart(2, '0');
+  }
+
+  function teardownLandscapePlayerChrome(lb) {
+    if (!lb) return;
+    if (lb._mpChromeTimer) {
+      try { clearTimeout(lb._mpChromeTimer); } catch (_t) {}
+      lb._mpChromeTimer = 0;
+    }
+    if (lb._mpChromeCleanup) {
+      try { lb._mpChromeCleanup(); } catch (_c) {}
+      lb._mpChromeCleanup = null;
+    }
+    lb.classList.remove('is-chrome-visible', 'is-chrome-idle');
+  }
+
+  function bindLandscapePlayerChrome(lb, frame) {
+    if (!lb || !frame) return;
+    if (!lb.classList.contains('premieres-stories-player--landscape')) return;
+    const stage = lb.querySelector('.premieres-stories-player-stage');
+    if (!stage) return;
+    teardownLandscapePlayerChrome(lb);
+
+    let chrome = stage.querySelector('.premieres-stories-player-chrome');
+    if (!chrome) {
+      chrome = document.createElement('div');
+      chrome.className = 'premieres-stories-player-chrome';
+      chrome.innerHTML =
+        '<button type="button" class="psp-chrome-btn psp-chrome-play" aria-label="Пауза" title="Пауза">❚❚</button>'
+        + '<div class="psp-chrome-time"><span data-cur>0:00</span><span class="psp-chrome-sep">/</span><span data-dur>0:00</span></div>'
+        + '<div class="psp-chrome-seek-wrap">'
+        + '<input type="range" class="psp-chrome-seek" min="0" max="1000" value="0" step="1" aria-label="Перемотка">'
+        + '</div>'
+        + '<button type="button" class="psp-chrome-btn psp-chrome-fs" aria-label="На весь экран" title="На весь экран">⛶</button>';
+      stage.appendChild(chrome);
+    }
+
+    const playBtn = chrome.querySelector('.psp-chrome-play');
+    const seek = chrome.querySelector('.psp-chrome-seek');
+    const curEl = chrome.querySelector('[data-cur]');
+    const durEl = chrome.querySelector('[data-dur]');
+    const fsBtn = chrome.querySelector('.psp-chrome-fs');
+    let scrubbing = false;
+    const IDLE_MS = 2400;
+
+    const getVideo = () => frame.querySelector('video');
+
+    const showChrome = () => {
+      lb.classList.add('is-chrome-visible');
+      lb.classList.remove('is-chrome-idle');
+      if (lb._mpChromeTimer) {
+        try { clearTimeout(lb._mpChromeTimer); } catch (_t) {}
+      }
+      lb._mpChromeTimer = setTimeout(() => {
+        lb._mpChromeTimer = 0;
+        if (chrome.matches(':hover')) {
+          showChrome();
+          return;
+        }
+        lb.classList.remove('is-chrome-visible');
+        lb.classList.add('is-chrome-idle');
+      }, IDLE_MS);
+    };
+
+    const syncUi = () => {
+      const v = getVideo();
+      if (!v) return;
+      const dur = Number.isFinite(v.duration) ? v.duration : 0;
+      const cur = Number.isFinite(v.currentTime) ? v.currentTime : 0;
+      if (curEl) curEl.textContent = formatStoriesPlayerTime(cur);
+      if (durEl) durEl.textContent = formatStoriesPlayerTime(dur);
+      if (seek && !scrubbing && dur > 0) {
+        seek.value = String(Math.round((cur / dur) * 1000));
+      }
+      if (playBtn) {
+        const paused = !!v.paused;
+        playBtn.textContent = paused ? '▶' : '❚❚';
+        playBtn.setAttribute('aria-label', paused ? 'Смотреть' : 'Пауза');
+        playBtn.title = paused ? 'Смотреть' : 'Пауза';
+      }
+    };
+
+    const onPlayToggle = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const v = getVideo();
+      if (!v) return;
+      if (v.paused) {
+        try { const p = v.play(); if (p && p.catch) p.catch(() => {}); } catch (_p) {}
+      } else {
+        try { v.pause(); } catch (_p) {}
+      }
+      syncUi();
+      showChrome();
+    };
+
+    const onSeekInput = () => {
+      scrubbing = true;
+      showChrome();
+      const v = getVideo();
+      if (!v || !seek) return;
+      const dur = Number.isFinite(v.duration) ? v.duration : 0;
+      if (dur <= 0) return;
+      const next = (Number(seek.value) / 1000) * dur;
+      if (curEl) curEl.textContent = formatStoriesPlayerTime(next);
+    };
+
+    const onSeekCommit = () => {
+      const v = getVideo();
+      if (v && seek) {
+        const dur = Number.isFinite(v.duration) ? v.duration : 0;
+        if (dur > 0) {
+          try { v.currentTime = (Number(seek.value) / 1000) * dur; } catch (_s) {}
+        }
+      }
+      scrubbing = false;
+      syncUi();
+      showChrome();
+    };
+
+    const onFs = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const v = getVideo();
+      const target = stage;
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          const exit = document.exitFullscreen || document.webkitExitFullscreen;
+          if (exit) exit.call(document);
+        } else if (target.requestFullscreen) {
+          target.requestFullscreen();
+        } else if (target.webkitRequestFullscreen) {
+          target.webkitRequestFullscreen();
+        } else if (v && v.webkitEnterFullscreen) {
+          v.webkitEnterFullscreen();
+        }
+      } catch (_fs) {}
+      showChrome();
+    };
+
+    const onMove = () => showChrome();
+    const onFsChange = () => {
+      const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (fsBtn) {
+        fsBtn.textContent = on ? '⤢' : '⛶';
+        fsBtn.setAttribute('aria-label', on ? 'Свернуть' : 'На весь экран');
+        fsBtn.title = on ? 'Свернуть' : 'На весь экран';
+      }
+      showChrome();
+    };
+
+    const armVideo = () => {
+      const v = getVideo();
+      if (!v || v._mpChromeBound) return v;
+      v._mpChromeBound = true;
+      try { v.controls = false; } catch (_c) {}
+      v.addEventListener('timeupdate', syncUi);
+      v.addEventListener('play', syncUi);
+      v.addEventListener('pause', syncUi);
+      v.addEventListener('loadedmetadata', syncUi);
+      v.addEventListener('durationchange', syncUi);
+      syncUi();
+      return v;
+    };
+
+    if (playBtn) playBtn.addEventListener('click', onPlayToggle);
+    if (seek) {
+      seek.addEventListener('input', onSeekInput);
+      seek.addEventListener('change', onSeekCommit);
+      seek.addEventListener('pointerup', onSeekCommit);
+    }
+    if (fsBtn) fsBtn.addEventListener('click', onFs);
+    stage.addEventListener('mousemove', onMove);
+    stage.addEventListener('pointerdown', onMove);
+    chrome.addEventListener('mouseenter', showChrome);
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+
+    const onStageClick = (e) => {
+      if (e.target && e.target.closest && e.target.closest('.premieres-stories-player-chrome, .premieres-stories-player-actions, .premieres-stories-player-brand, .premieres-stories-player-close, a, button')) {
+        return;
+      }
+      onPlayToggle(e);
+    };
+    stage.addEventListener('click', onStageClick);
+
+    let tries = 0;
+    const waitVideo = () => {
+      if (armVideo()) {
+        showChrome();
+        return;
+      }
+      if (tries++ < 40) setTimeout(waitVideo, 80);
+      else showChrome();
+    };
+    waitVideo();
+
+    lb._mpChromeCleanup = () => {
+      stage.removeEventListener('mousemove', onMove);
+      stage.removeEventListener('pointerdown', onMove);
+      stage.removeEventListener('click', onStageClick);
+      chrome.removeEventListener('mouseenter', showChrome);
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+      if (playBtn) playBtn.removeEventListener('click', onPlayToggle);
+      if (fsBtn) fsBtn.removeEventListener('click', onFs);
+      if (seek) {
+        seek.removeEventListener('input', onSeekInput);
+        seek.removeEventListener('change', onSeekCommit);
+        seek.removeEventListener('pointerup', onSeekCommit);
+      }
+      const v = getVideo();
+      if (v) {
+        v.removeEventListener('timeupdate', syncUi);
+        v.removeEventListener('play', syncUi);
+        v.removeEventListener('pause', syncUi);
+        v.removeEventListener('loadedmetadata', syncUi);
+        v.removeEventListener('durationchange', syncUi);
+        v._mpChromeBound = false;
+      }
+    };
+  }
+
   function mountStoryPlayback(frame, play, opts) {
     opts = opts || {};
     if (!frame || !play || !play.url) return null;
@@ -27854,6 +28213,7 @@
     const lb = document.getElementById('premieres-stories-player');
     let resume = 0;
     if (lb) {
+      try { teardownLandscapePlayerChrome(lb); } catch (_tc) {}
       try {
         const v = lb.querySelector('video');
         if (v && v.currentTime) resume = v.currentTime;
@@ -27906,13 +28266,13 @@
     if (i < 0) i = items.length - 1;
     if (i >= items.length) i = 0;
 
-    // Capture resume time from hover stage when expanding
-    let resumeAt = 0;
-    if (opts.fromHover) {
+    // Capture resume time from hover stage / card preview when expanding
+    let resumeAt = Number(opts.resumeAt) || 0;
+    if (opts.fromHover || resumeAt <= 0) {
       try {
         const stage = premieresStoriesStageEl();
         const v = stage && stage.querySelector('video');
-        if (v && v.currentTime) resumeAt = v.currentTime;
+        if (v && v.currentTime) resumeAt = Math.max(resumeAt, v.currentTime);
       } catch (_r) {}
     }
     if (_premieresStoriesResumeAt > 0 && i === _premieresStoriesActiveIdx) {
@@ -28015,6 +28375,7 @@
       + (desktop
         ? ('<div class="premieres-stories-player-actions">'
           + '<a class="premieres-stories-player-filmpage" data-player-film-link="1" href="' + escapeHtml(filmHref) + '">Страница фильма</a>'
+          + '<button type="button" class="premieres-stories-player-fsbtn" data-player-fs="1" aria-label="На весь экран">⛶ На весь экран</button>'
           + '</div>')
         : '')
       + '</div>'
@@ -28043,6 +28404,28 @@
       a.addEventListener('click', (e) => {
         // Allow normal navigation / SPA routing; close overlay first.
         try { closePremieresStoriesPlayer(); } catch (_c) {}
+      });
+    });
+    lb.querySelectorAll('[data-player-fs]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const stageEl = lb.querySelector('.premieres-stories-player-stage');
+        const v = lb.querySelector('.premieres-stories-player-frame video');
+        const target = stageEl || lb;
+        try {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) exit.call(document);
+          } else if (target.requestFullscreen) {
+            target.requestFullscreen();
+          } else if (target.webkitRequestFullscreen) {
+            target.webkitRequestFullscreen();
+          } else if (v && v.webkitEnterFullscreen) {
+            v.webkitEnterFullscreen();
+          }
+        } catch (_fs) {}
+        try { lb.classList.add('is-chrome-visible'); } catch (_v) {}
       });
     });
 
@@ -28105,12 +28488,17 @@
           resumeAt: resumeAt,
         });
         const posterEl = lb.querySelector('.premieres-stories-player-poster');
-        if (posterEl) posterEl.style.opacity = '0';
+        if (posterEl) {
+          posterEl.style.opacity = '0';
+          posterEl.style.pointerEvents = 'none';
+          posterEl.setAttribute('aria-hidden', 'true');
+        }
         whenStoryMediaReady(frame, (media) => {
           if (_premieresStoriesPlayerIdx !== i) return;
           if (desktop) {
             // Landscape FS: play through, no progress bars / no auto-advance.
             clearStoriesProgressTicker();
+            try { bindLandscapePlayerChrome(lb, frame); } catch (_ch) {}
             return;
           }
           bindStoriesProgressWatch(media, i, {});

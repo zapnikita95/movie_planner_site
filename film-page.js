@@ -6179,6 +6179,8 @@
     prefetchTitleLogoUrl: prefetchTitleLogoUrl,
     applyFilmTitleLogo: applyFilmTitleLogo,
     pickTrailerPlayback: pickTrailerPlayback,
+    openFilmTrailerLightbox: openFilmTrailerLightbox,
+    closeFilmTrailerLightbox: closeFilmTrailerLightbox,
     mountTrailerPlaybackEmbed: mountTrailerPlaybackEmbed,
     mountHlsVideo: mountHlsVideo,
     ensureHlsLib: ensureHlsLib,
