@@ -2758,12 +2758,26 @@
                     </div>
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
-                    <h2 class="section-title"><span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
+                    <h2 class="section-title visually-hidden"><span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
                     <div id="premieres-stories" class="premieres-stories" hidden>
                         <div class="premieres-stories-head">
                             <span class="premieres-stories-kicker">Трейлеры</span>
                         </div>
+                        <div id="premieres-stories-stage" class="premieres-stories-stage" hidden aria-hidden="true">
+                            <div class="premieres-stories-progress" id="premieres-stories-progress-stage" aria-hidden="true"></div>
+                            <div class="premieres-stories-stage-shell">
+                                <img class="premieres-stories-stage-poster" alt="" hidden>
+                                <div class="premieres-stories-stage-frame" data-stage-frame></div>
+                                <div class="premieres-stories-stage-scrim" aria-hidden="true"></div>
+                                <div class="premieres-stories-stage-brand">
+                                    <div class="premieres-stories-stage-title-slot"></div>
+                                    <div class="premieres-stories-stage-meta" hidden></div>
+                                </div>
+                                <button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>
+                            </div>
+                        </div>
+                        <div class="premieres-stories-progress premieres-stories-progress--rail" id="premieres-stories-progress-rail" aria-hidden="true"></div>
                         <div id="premieres-stories-rail" class="premieres-stories-rail" role="list" aria-label="Трейлеры премьер"></div>
                     </div>
                     <div class="premieres-toolbar" aria-label="Фильтры премьер">
@@ -3855,7 +3869,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260915premCover1';
+        var V='20260915premDeskStage1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

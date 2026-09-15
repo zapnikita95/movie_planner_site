@@ -26835,15 +26835,22 @@
   }
 
 
-  /* ——— Premieres stories trailer rail (mobile-first, tvoe.live-style) ——— */
-  /* MARKER:20260914kpHlsPlay1 — only playable trailers in the rail */
+  /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
+  /* MARKER:20260915premDeskStage1 — desktop hover stage, landscape FS, progress auto-advance */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
+  const PREMIERES_STORY_FALLBACK_MS = 22000;
   let _premieresStoriesItems = [];
   let _premieresStoriesObserver = null;
   let _premieresStoriesActiveKp = '';
+  let _premieresStoriesActiveIdx = -1;
   let _premieresStoriesPlayerIdx = -1;
   let _premieresStoriesRenderToken = 0;
+  let _premieresStoriesProgressToken = 0;
+  let _premieresStoriesProgressRaf = 0;
+  let _premieresStoriesProgressTimer = 0;
+  let _premieresStoriesStageToken = 0;
+  let _premieresStoriesResumeAt = 0;
   const _premieresStoryTrailerCache = new Map();
 
   function isPremieresStoriesViewport() {
@@ -26855,31 +26862,83 @@
     }
   }
 
+  function isDesktopStoriesHoverMode() {
+    try {
+      return window.matchMedia('(hover: hover) and (pointer: fine)').matches
+        && window.matchMedia('(min-width: 861px)').matches;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function premieresStoriesStageEl() {
+    return document.getElementById('premieres-stories-stage');
+  }
+
   function ensurePremieresStoriesDom() {
     let root = document.getElementById('premieres-stories');
-    if (root) {
-      try {
-        root.querySelectorAll('.premieres-stories-hint').forEach((el) => el.remove());
-      } catch (_h) {}
-      return root;
+    if (!root) {
+      const section = document.getElementById('section-premieres');
+      if (!section) return null;
+      root = document.createElement('div');
+      root.id = 'premieres-stories';
+      root.className = 'premieres-stories';
+      root.hidden = true;
+      const toolbar = section.querySelector('.premieres-toolbar');
+      if (toolbar && toolbar.parentNode) toolbar.parentNode.insertBefore(root, toolbar);
+      else {
+        const grid = document.getElementById('premieres-grid');
+        if (grid && grid.parentNode) grid.parentNode.insertBefore(root, grid);
+        else section.appendChild(root);
+      }
     }
-    const section = document.getElementById('section-premieres');
-    if (!section) return null;
-    root = document.createElement('div');
-    root.id = 'premieres-stories';
-    root.className = 'premieres-stories';
-    root.hidden = true;
-    root.innerHTML =
-      '<div class="premieres-stories-head">'
-      + '<span class="premieres-stories-kicker">Трейлеры</span>'
-      + '</div>'
-      + '<div id="premieres-stories-rail" class="premieres-stories-rail" role="list" aria-label="Трейлеры премьер"></div>';
-    const toolbar = section.querySelector('.premieres-toolbar');
-    if (toolbar && toolbar.parentNode) toolbar.parentNode.insertBefore(root, toolbar);
-    else {
-      const grid = document.getElementById('premieres-grid');
-      if (grid && grid.parentNode) grid.parentNode.insertBefore(root, grid);
-      else section.appendChild(root);
+    try {
+      root.querySelectorAll('.premieres-stories-hint').forEach((el) => el.remove());
+    } catch (_h) {}
+    if (!root.querySelector('.premieres-stories-head')) {
+      const head = document.createElement('div');
+      head.className = 'premieres-stories-head';
+      head.innerHTML = '<span class="premieres-stories-kicker">Трейлеры</span>';
+      root.insertBefore(head, root.firstChild);
+    }
+    if (!document.getElementById('premieres-stories-stage')) {
+      const stage = document.createElement('div');
+      stage.id = 'premieres-stories-stage';
+      stage.className = 'premieres-stories-stage';
+      stage.hidden = true;
+      stage.setAttribute('aria-hidden', 'true');
+      stage.innerHTML =
+        '<div class="premieres-stories-progress" id="premieres-stories-progress-stage" aria-hidden="true"></div>'
+        + '<div class="premieres-stories-stage-shell">'
+        + '<img class="premieres-stories-stage-poster" alt="" hidden>'
+        + '<div class="premieres-stories-stage-frame" data-stage-frame></div>'
+        + '<div class="premieres-stories-stage-scrim" aria-hidden="true"></div>'
+        + '<div class="premieres-stories-stage-brand">'
+        + '<div class="premieres-stories-stage-title-slot"></div>'
+        + '<div class="premieres-stories-stage-meta" hidden></div>'
+        + '</div>'
+        + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
+        + '</div>';
+      const head = root.querySelector('.premieres-stories-head');
+      if (head && head.nextSibling) root.insertBefore(stage, head.nextSibling);
+      else root.insertBefore(stage, root.firstChild);
+    }
+    if (!document.getElementById('premieres-stories-progress-rail')) {
+      const prog = document.createElement('div');
+      prog.className = 'premieres-stories-progress premieres-stories-progress--rail';
+      prog.id = 'premieres-stories-progress-rail';
+      prog.setAttribute('aria-hidden', 'true');
+      const rail = document.getElementById('premieres-stories-rail');
+      if (rail) root.insertBefore(prog, rail);
+      else root.appendChild(prog);
+    }
+    if (!document.getElementById('premieres-stories-rail')) {
+      const rail = document.createElement('div');
+      rail.id = 'premieres-stories-rail';
+      rail.className = 'premieres-stories-rail';
+      rail.setAttribute('role', 'list');
+      rail.setAttribute('aria-label', 'Трейлеры премьер');
+      root.appendChild(rail);
     }
     return root;
   }
@@ -26912,7 +26971,6 @@
       if (url && (!lang || lang === 'ru')) return url;
       return '';
     }
-    // Premiere list logos are RU-oriented TMDB wordmarks when present.
     return pickItemTitleLogo(it) || '';
   }
 
@@ -26932,6 +26990,144 @@
     if (!d || d.success === false) return false;
     const play = pickStoryPlayback(d);
     return !!(play && play.url && (play.kind === 'hls' || play.kind === 'kp_widget' || play.kind === 'youtube'));
+  }
+
+  function paintStoriesProgressBars(activeIdx, ratio) {
+    const n = (_premieresStoriesItems || []).length;
+    const idx = Math.max(0, Math.min(n - 1, activeIdx | 0));
+    const r = Math.max(0, Math.min(1, Number(ratio) || 0));
+    const targets = [
+      document.getElementById('premieres-stories-progress-stage'),
+      document.getElementById('premieres-stories-progress-rail'),
+      document.getElementById('premieres-stories-progress-player'),
+    ];
+    targets.forEach((el) => {
+      if (!el) return;
+      if (!n) {
+        el.innerHTML = '';
+        return;
+      }
+      if (el.childElementCount !== n) {
+        let html = '';
+        for (let i = 0; i < n; i++) {
+          html += '<div class="premieres-stories-progress-seg" data-seg="' + i + '"><i></i></div>';
+        }
+        el.innerHTML = html;
+      }
+      const segs = el.querySelectorAll('.premieres-stories-progress-seg');
+      segs.forEach((seg, i) => {
+        const fill = seg.querySelector('i');
+        if (!fill) return;
+        let w = 0;
+        if (i < idx) w = 1;
+        else if (i === idx) w = r;
+        fill.style.width = (w * 100).toFixed(2) + '%';
+        seg.classList.toggle('is-active', i === idx);
+        seg.classList.toggle('is-done', i < idx);
+      });
+    });
+    const rail = document.getElementById('premieres-stories-rail');
+    if (rail) {
+      rail.querySelectorAll('.premieres-story').forEach((card) => {
+        const i = parseInt(card.getAttribute('data-story-idx') || '-1', 10);
+        const mini = card.querySelector('.premieres-story-progress > i');
+        if (!mini) return;
+        let w = 0;
+        if (i < idx) w = 1;
+        else if (i === idx) w = r;
+        mini.style.width = (w * 100).toFixed(2) + '%';
+      });
+    }
+  }
+
+  function clearStoriesProgressTicker() {
+    _premieresStoriesProgressToken += 1;
+    if (_premieresStoriesProgressRaf) {
+      try { cancelAnimationFrame(_premieresStoriesProgressRaf); } catch (_r) {}
+      _premieresStoriesProgressRaf = 0;
+    }
+    if (_premieresStoriesProgressTimer) {
+      try { clearTimeout(_premieresStoriesProgressTimer); } catch (_t) {}
+      _premieresStoriesProgressTimer = 0;
+    }
+  }
+
+  function advancePremieresStory(fromIdx) {
+    const items = _premieresStoriesItems || [];
+    if (!items.length) return;
+    let next = (typeof fromIdx === 'number' ? fromIdx : _premieresStoriesActiveIdx) + 1;
+    if (next >= items.length) next = 0;
+    if (document.getElementById('premieres-stories-player')) {
+      openPremieresStoriesPlayer(next);
+      return;
+    }
+    if (isDesktopStoriesHoverMode()) {
+      playPremieresStoryAt(next, { source: 'stage' });
+    } else {
+      playPremieresStoryAt(next, { source: 'chip' });
+    }
+  }
+
+  function bindStoriesProgressWatch(mediaEl, idx, opts) {
+    opts = opts || {};
+    clearStoriesProgressTicker();
+    const token = ++_premieresStoriesProgressToken;
+    const fallbackMs = opts.fallbackMs || PREMIERES_STORY_FALLBACK_MS;
+    const startedAt = performance.now();
+    let completed = false;
+    const finish = () => {
+      if (completed || token !== _premieresStoriesProgressToken) return;
+      completed = true;
+      paintStoriesProgressBars(idx, 1);
+      clearStoriesProgressTicker();
+      advancePremieresStory(idx);
+    };
+    const tickFallback = () => {
+      if (token !== _premieresStoriesProgressToken) return;
+      const elapsed = performance.now() - startedAt;
+      const ratio = Math.min(1, elapsed / fallbackMs);
+      paintStoriesProgressBars(idx, ratio);
+      if (ratio >= 1) {
+        finish();
+        return;
+      }
+      _premieresStoriesProgressRaf = requestAnimationFrame(tickFallback);
+    };
+    paintStoriesProgressBars(idx, 0);
+    if (mediaEl && mediaEl.tagName === 'VIDEO') {
+      const onTime = () => {
+        if (token !== _premieresStoriesProgressToken) return;
+        const dur = Number(mediaEl.duration);
+        if (dur && isFinite(dur) && dur > 0.5) {
+          paintStoriesProgressBars(idx, Math.min(1, (mediaEl.currentTime || 0) / dur));
+        }
+      };
+      const onEnded = () => finish();
+      mediaEl.addEventListener('timeupdate', onTime);
+      mediaEl.addEventListener('ended', onEnded);
+      // If metadata never yields duration, still advance via fallback.
+      _premieresStoriesProgressTimer = setTimeout(() => {
+        if (token !== _premieresStoriesProgressToken) return;
+        const dur = Number(mediaEl.duration);
+        if (!dur || !isFinite(dur) || dur < 0.5) tickFallback();
+      }, 1200);
+      // Safety: if ended never fires, fallback after max(duration, fallback).
+      const safety = () => {
+        if (token !== _premieresStoriesProgressToken || completed) return;
+        const dur = Number(mediaEl.duration);
+        const wait = (dur && isFinite(dur) && dur > 1) ? (dur * 1000 + 800) : fallbackMs;
+        _premieresStoriesProgressTimer = setTimeout(() => {
+          if (token !== _premieresStoriesProgressToken || completed) return;
+          if (mediaEl.ended || (dur && mediaEl.currentTime >= dur - 0.35)) finish();
+          else if (!dur || !isFinite(dur)) finish();
+        }, wait);
+      };
+      if (mediaEl.readyState >= 1) safety();
+      else mediaEl.addEventListener('loadedmetadata', safety, { once: true });
+      return;
+    }
+    // iframe / unknown — timed segment
+    tickFallback();
   }
 
   function renderPremieresStories(items) {
@@ -26954,9 +27150,10 @@
       root.hidden = true;
       rail.innerHTML = '';
       stopAllPremieresStoryTrailers();
+      clearPremieresStoriesStage();
+      clearStoriesProgressTicker();
       return;
     }
-    // Probe trailers first — never show chips that resolve to «Трейлер пока недоступен».
     Promise.all(slice.map((it) => {
       const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
       const title = storyDisplayTitle(it);
@@ -26983,9 +27180,12 @@
       root.hidden = true;
       rail.innerHTML = '';
       stopAllPremieresStoryTrailers();
+      clearPremieresStoriesStage();
+      clearStoriesProgressTicker();
       return;
     }
     root.hidden = false;
+    root.classList.toggle('premieres-stories--desktop', isDesktopStoriesHoverMode());
     rail.innerHTML = list.map((it, idx) => {
       const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
       const title = storyDisplayTitle(it);
@@ -27008,6 +27208,7 @@
         + (logo ? (' data-title-logo="' + escapeHtml(logo) + '"') : '')
         + ' aria-label="Трейлер: ' + escapeHtml(title || 'фильм') + '">'
         + '<div class="premieres-story-media">'
+        + '<div class="premieres-story-progress" aria-hidden="true"><i></i></div>'
         + posterHtml
         + '<div class="premieres-story-frame" data-trailer-frame hidden></div>'
         + '<div class="premieres-story-scrim" aria-hidden="true"></div>'
@@ -27018,12 +27219,13 @@
         + '</div></button>';
     }).join('');
 
+    paintStoriesProgressBars(0, 0);
+
     if (!rail.dataset.storiesBound) {
       rail.dataset.storiesBound = '1';
       rail.addEventListener('click', (e) => {
         const filmLink = e.target && e.target.closest ? e.target.closest('[data-story-film-link]') : null;
         if (filmLink && rail.contains(filmLink)) {
-          // Title/logo → film card. Let the <a> navigate.
           e.stopPropagation();
           return;
         }
@@ -27032,11 +27234,56 @@
         e.preventDefault();
         e.stopPropagation();
         const idx = parseInt(chip.getAttribute('data-story-idx') || '0', 10) || 0;
-        openPremieresStoriesPlayer(idx);
+        // Desktop: click expands landscape FS (continue from hover if same).
+        // Mobile: immersive vertical stories player.
+        openPremieresStoriesPlayer(idx, { fromHover: isDesktopStoriesHoverMode() });
+      });
+      rail.addEventListener('pointerover', (e) => {
+        if (!isDesktopStoriesHoverMode()) return;
+        const chip = e.target && e.target.closest ? e.target.closest('.premieres-story') : null;
+        if (!chip || !rail.contains(chip)) return;
+        const related = e.relatedTarget && e.relatedTarget.closest
+          ? e.relatedTarget.closest('.premieres-story')
+          : null;
+        if (related === chip) return;
+        const idx = parseInt(chip.getAttribute('data-story-idx') || '0', 10) || 0;
+        if (idx === _premieresStoriesActiveIdx && premieresStoriesStageEl()
+            && !premieresStoriesStageEl().hidden
+            && premieresStoriesStageEl().classList.contains('is-playing')) {
+          return;
+        }
+        playPremieresStoryAt(idx, { source: 'stage' });
       });
     }
+
+    const stage = premieresStoriesStageEl();
+    if (stage && !stage.dataset.bound) {
+      stage.dataset.bound = '1';
+      stage.addEventListener('click', (e) => {
+        const expand = e.target && e.target.closest
+          ? e.target.closest('.premieres-stories-stage-expand, .premieres-stories-stage-shell')
+          : null;
+        if (!expand || !stage.contains(expand)) return;
+        if (e.target.closest && e.target.closest('a')) return;
+        e.preventDefault();
+        const idx = _premieresStoriesActiveIdx >= 0 ? _premieresStoriesActiveIdx : 0;
+        openPremieresStoriesPlayer(idx, { fromHover: true });
+      });
+    }
+
     bindPremieresStoriesAutoplay(rail);
     warmPremieresStoriesAssets(list);
+  }
+
+  function markActiveStoryChip(idx) {
+    const rail = document.getElementById('premieres-stories-rail');
+    if (!rail) return;
+    rail.querySelectorAll('.premieres-story').forEach((card) => {
+      const i = parseInt(card.getAttribute('data-story-idx') || '-1', 10);
+      const on = i === idx;
+      card.classList.toggle('is-active-story', on);
+      if (!on) card.classList.remove('is-playing', 'is-loading');
+    });
   }
 
   function stopPremieresStoryTrailer(card) {
@@ -27045,6 +27292,9 @@
     card._mpStoryActive = false;
     const frame = card.querySelector('[data-trailer-frame]');
     if (frame) {
+      try {
+        if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; }
+      } catch (_h) {}
       try {
         const ifr = frame.querySelector('iframe');
         if (ifr) ifr.src = 'about:blank';
@@ -27063,6 +27313,24 @@
       if (exceptKp && kp === String(exceptKp)) return;
       stopPremieresStoryTrailer(card);
     });
+  }
+
+  function clearPremieresStoriesStage() {
+    const stage = premieresStoriesStageEl();
+    if (!stage) return;
+    stage.hidden = true;
+    stage.setAttribute('aria-hidden', 'true');
+    stage.classList.remove('is-playing', 'is-loading');
+    const frame = stage.querySelector('[data-stage-frame]');
+    if (frame) {
+      try { if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; } } catch (_h) {}
+      frame.innerHTML = '';
+    }
+    const poster = stage.querySelector('.premieres-stories-stage-poster');
+    if (poster) {
+      poster.removeAttribute('src');
+      poster.hidden = true;
+    }
   }
 
   function fetchStoryTrailerPayload(kp, meta) {
@@ -27088,7 +27356,6 @@
     if (window.MpFilmPage && typeof window.MpFilmPage.pickTrailerPlayback === 'function') {
       const via = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: true });
       if (via && via.url && !/widgets?\.kinopoisk\.ru/i.test(via.url)) return via;
-      // If film-page still returned a direct KP host, force proxy.
       if (via && via.url) {
         const pub = publicizeKpWidgetPlayUrlLocal(via.url);
         if (pub) return { kind: 'kp_widget', url: pub };
@@ -27097,10 +27364,9 @@
     return pickHoverPlayback(d);
   }
 
-
   function mountStoryPlayback(frame, play, opts) {
     opts = opts || {};
-    if (!frame || !play || !play.url) return;
+    if (!frame || !play || !play.url) return null;
     frame.innerHTML = '';
     frame.hidden = false;
     frame.removeAttribute('hidden');
@@ -27119,7 +27385,17 @@
           const v = frame.querySelector('video');
           if (v) {
             if (opts.pointerNone) v.style.pointerEvents = 'none';
-            if (!opts.controls) v.style.objectFit = 'cover';
+            if (!opts.controls) v.style.objectFit = opts.objectFit || 'cover';
+            else v.style.objectFit = opts.objectFit || 'contain';
+            if (opts.resumeAt && opts.resumeAt > 0.4) {
+              try {
+                const seek = () => {
+                  try { v.currentTime = opts.resumeAt; } catch (_s) {}
+                };
+                if (v.readyState >= 1) seek();
+                else v.addEventListener('loadedmetadata', seek, { once: true });
+              } catch (_e) {}
+            }
           }
           return;
         }
@@ -27130,7 +27406,9 @@
         video.muted = opts.muted !== false;
         video.controls = !!opts.controls;
         video.preload = 'auto';
-        video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:' + (opts.controls ? 'contain' : 'cover') + ';background:#000;border:0;';
+        video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:'
+          + (opts.objectFit || (opts.controls ? 'contain' : 'cover'))
+          + ';background:#000;border:0;';
         if (opts.pointerNone) video.style.pointerEvents = 'none';
         if (window.Hls && window.Hls.isSupported()) {
           const hls = new window.Hls();
@@ -27143,7 +27421,7 @@
       };
       if (window.MpFilmPage && window.MpFilmPage.ensureHlsLib) window.MpFilmPage.ensureHlsLib().then(finish);
       else finish();
-      return;
+      return frame;
     }
     const iframe = document.createElement('iframe');
     iframe.src = src;
@@ -27154,13 +27432,160 @@
     iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
     if (opts.pointerNone) iframe.style.pointerEvents = 'none';
     frame.appendChild(iframe);
+    return frame;
   }
 
-  function mountPremieresStoryTrailer(card) {
+  function storyMediaFromFrame(frame) {
+    if (!frame) return null;
+    return frame.querySelector('video') || frame.querySelector('iframe');
+  }
+
+  function whenStoryMediaReady(frame, cb, tries) {
+    tries = typeof tries === 'number' ? tries : 25;
+    const media = storyMediaFromFrame(frame);
+    if (media) {
+      cb(media);
+      return;
+    }
+    if (tries <= 0) {
+      cb(null);
+      return;
+    }
+    setTimeout(() => whenStoryMediaReady(frame, cb, tries - 1), 60);
+  }
+
+  function updateStageBrand(it, kp) {
+    const stage = premieresStoriesStageEl();
+    if (!stage || !it) return;
+    const title = storyDisplayTitle(it);
+    const dateLabel = typeof formatPremiereDate === 'function'
+      ? formatPremiereDate(it.premiere_date)
+      : (it.premiere_date || '');
+    const slot = stage.querySelector('.premieres-stories-stage-title-slot');
+    const meta = stage.querySelector('.premieres-stories-stage-meta');
+    const applyBrand = (logoUrl) => {
+      if (!slot) return;
+      const logo = resolveTitleLogoUrl(logoUrl || '');
+      if (logo) {
+        slot.innerHTML = '<img class="film-title-logo premieres-stories-stage-logo" src="'
+          + escapeHtml(logo) + '" alt="' + escapeHtml(title) + '"'
+          + ' onerror="this.onerror=null;this.remove();var t=this.parentNode&&this.parentNode.querySelector(\'.premieres-stories-stage-title\');if(t){t.hidden=false;}">'
+          + '<div class="premieres-stories-stage-title" hidden>' + escapeHtml(title) + '</div>';
+      } else {
+        slot.innerHTML = '<div class="premieres-stories-stage-title">' + escapeHtml(title) + '</div>';
+      }
+    };
+    applyBrand(pickRuTitleLogoForStory(it, null));
+    if (meta) {
+      if (dateLabel) {
+        meta.hidden = false;
+        meta.textContent = dateLabel;
+      } else {
+        meta.hidden = true;
+        meta.textContent = '';
+      }
+    }
+    if (window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function') {
+      window.MpFilmPage.fetchFilmTitleLogoByKp(kp).then((payload) => {
+        const url = pickRuTitleLogoForStory(it, payload);
+        if (url) applyBrand(url);
+      }).catch(() => {});
+    }
+  }
+
+  function playPremieresStoryAt(idx, opts) {
+    opts = opts || {};
+    const items = _premieresStoriesItems || [];
+    if (!items.length) return;
+    let i = parseInt(idx, 10);
+    if (isNaN(i)) i = 0;
+    if (i < 0) i = items.length - 1;
+    if (i >= items.length) i = 0;
+    const it = items[i];
+    const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
+    _premieresStoriesActiveIdx = i;
+    _premieresStoriesActiveKp = kp;
+    markActiveStoryChip(i);
+    paintStoriesProgressBars(i, 0);
+
+    const desktop = isDesktopStoriesHoverMode();
+    const source = opts.source || (desktop ? 'stage' : 'chip');
+
+    if (source === 'stage' || desktop) {
+      // Desktop cinematic stage above the rail
+      stopAllPremieresStoryTrailers();
+      const stage = premieresStoriesStageEl();
+      const root = ensurePremieresStoriesDom();
+      if (root) root.classList.add('premieres-stories--desktop');
+      if (!stage) return;
+      stage.hidden = false;
+      stage.removeAttribute('aria-hidden');
+      stage.classList.add('is-loading');
+      stage.classList.remove('is-playing');
+      const poster = storyPosterUrl(it, kp);
+      const posterEl = stage.querySelector('.premieres-stories-stage-poster');
+      if (posterEl) {
+        posterEl.hidden = false;
+        posterEl.style.opacity = '1';
+        posterEl.src = poster || posterUrl(kp);
+        posterEl.onerror = function () {
+          this.onerror = null;
+          this.src = posterUrl(kp);
+        };
+      }
+      updateStageBrand(it, kp);
+      const token = ++_premieresStoriesStageToken;
+      const frame = stage.querySelector('[data-stage-frame]');
+      fetchStoryTrailerPayload(kp, { title: storyDisplayTitle(it), year: it.year || '' }).then((d) => {
+        if (token !== _premieresStoriesStageToken || _premieresStoriesActiveIdx !== i) return;
+        const play = pickStoryPlayback(d);
+        stage.classList.remove('is-loading');
+        if (!play || !play.url || !frame) return;
+        mountStoryPlayback(frame, play, {
+          autoplay: true,
+          muted: true,
+          controls: false,
+          pointerNone: true,
+          loop: false,
+          objectFit: 'cover',
+          resumeAt: opts.resumeAt || 0,
+        });
+        stage.classList.add('is-playing');
+        if (posterEl) {
+          setTimeout(() => { try { posterEl.style.opacity = '0'; } catch (_p) {} }, 280);
+        }
+        // Wait a tick for <video> mount
+        whenStoryMediaReady(frame, (media) => {
+          if (token !== _premieresStoriesStageToken) return;
+          bindStoriesProgressWatch(media, i, {});
+        });
+      }).catch(() => {
+        if (token !== _premieresStoriesStageToken) return;
+        stage.classList.remove('is-loading');
+      });
+      // Keep active chip scrolled into view
+      const chip = document.querySelector('#premieres-stories-rail .premieres-story[data-story-idx="' + i + '"]');
+      if (chip && chip.scrollIntoView) {
+        try { chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_s) {}
+      }
+      return;
+    }
+
+    // Mobile: play inside the chip
+    clearPremieresStoriesStage();
+    const card = document.querySelector('#premieres-stories-rail .premieres-story[data-story-idx="' + i + '"]');
+    if (!card) return;
+    stopAllPremieresStoryTrailers(kp);
+    mountPremieresStoryTrailer(card, i);
+    try { card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_s2) {}
+  }
+
+  function mountPremieresStoryTrailer(card, idx) {
     if (!card) return;
     const kp = String(card.getAttribute('data-kp') || '').replace(/\D/g, '');
     if (!kp) return;
-    if (card._mpStoryActive && card.classList.contains('is-playing') && card.querySelector('iframe')) {
+    const i = typeof idx === 'number' ? idx : (parseInt(card.getAttribute('data-story-idx') || '0', 10) || 0);
+    if (card._mpStoryActive && card.classList.contains('is-playing') && card.querySelector('video, iframe')) {
       return;
     }
     const token = (card._mpStoryToken = (card._mpStoryToken || 0) + 1);
@@ -27177,7 +27602,6 @@
       const play = pickStoryPlayback(d);
       card.classList.remove('is-loading');
       if (!play || !play.url) {
-        // Rail is filtered to playable only — hide dead chip if resolve races.
         card.classList.add('has-trailer-miss');
         try { card.hidden = true; card.setAttribute('hidden', ''); } catch (_h) {}
         return;
@@ -27185,10 +27609,16 @@
       stopAllPremieresStoryTrailers(kp);
       const frame = card.querySelector('[data-trailer-frame]');
       if (!frame) return;
-      mountStoryPlayback(frame, play, { autoplay: true, muted: true, controls: false, pointerNone: true, loop: true });
+      mountStoryPlayback(frame, play, { autoplay: true, muted: true, controls: false, pointerNone: true, loop: false });
       card.classList.add('is-playing');
       card.setAttribute('data-play-kind', play.kind || '');
       _premieresStoriesActiveKp = kp;
+      _premieresStoriesActiveIdx = i;
+      markActiveStoryChip(i);
+      whenStoryMediaReady(frame, (media) => {
+        if (card._mpStoryToken !== token) return;
+        bindStoriesProgressWatch(media, i, {});
+      });
     }).catch(() => {
       if (card._mpStoryToken !== token) return;
       card.classList.remove('is-loading');
@@ -27205,37 +27635,33 @@
     }
     const cards = Array.prototype.slice.call(rail.querySelectorAll('.premieres-story'));
     if (!cards.length) return;
-    // Prefer IO: autoplay the most-visible card in the rail viewport.
+
+    if (isDesktopStoriesHoverMode()) {
+      // Desktop: start cinematic stage on first trailer; hover switches.
+      setTimeout(() => playPremieresStoryAt(0, { source: 'stage' }), 60);
+      return;
+    }
+
     if (typeof IntersectionObserver === 'function') {
       const ratios = new Map();
       _premieresStoriesObserver = new IntersectionObserver((entries) => {
+        // While progress-driven autoplay owns the queue, only kick the first card via IO.
+        if (_premieresStoriesActiveIdx >= 0 && (_premieresStoriesProgressToken > 0)) {
+          // still update ratios but don't fight progress auto-advance
+        }
         entries.forEach((en) => {
           ratios.set(en.target, en.isIntersecting ? en.intersectionRatio : 0);
         });
-        let best = null;
-        let bestR = 0.35;
-        ratios.forEach((r, el) => {
-          if (r > bestR) { bestR = r; best = el; }
-        });
-        if (!best) return;
-        const kp = best.getAttribute('data-kp') || '';
-        if (kp && kp === _premieresStoriesActiveKp && best.classList.contains('is-playing')) return;
-        stopAllPremieresStoryTrailers(kp);
-        mountPremieresStoryTrailer(best);
       }, { root: rail, threshold: [0.35, 0.55, 0.75, 0.9] });
       cards.forEach((c) => _premieresStoriesObserver.observe(c));
     }
-    // Kick first card immediately for snappy feel.
-    if (cards[0]) {
-      setTimeout(() => mountPremieresStoryTrailer(cards[0]), 80);
-    }
+    setTimeout(() => playPremieresStoryAt(0, { source: 'chip' }), 80);
   }
 
   function warmPremieresStoriesAssets(list) {
     (list || []).slice(0, 8).forEach((it) => {
       const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
       if (!kp) return;
-      // Warm logo (RU only) onto chip if missing — keep styled nameRu visible otherwise.
       const card = document.querySelector('#premieres-stories-rail .premieres-story[data-kp="' + kp + '"]');
       if (card && !card.getAttribute('data-title-logo')) {
         const via = window.MpFilmPage && typeof window.MpFilmPage.fetchFilmTitleLogoByKp === 'function'
@@ -27251,23 +27677,41 @@
           if (brand) brand.innerHTML = storyBrandHtml(card.getAttribute('data-title') || storyDisplayTitle(it), url);
         }).catch(() => {});
       }
-      // Prefetch trailer payloads in background (first few).
       fetchStoryTrailerPayload(kp, { title: storyDisplayTitle(it), year: it.year || '' });
     });
   }
 
   function closePremieresStoriesPlayer() {
     const lb = document.getElementById('premieres-stories-player');
+    let resume = 0;
     if (lb) {
       try {
-        const frame = lb.querySelector('.premieres-stories-player-frame');
-        if (frame) frame.innerHTML = '';
+        const v = lb.querySelector('video');
+        if (v && v.currentTime) resume = v.currentTime;
       } catch (_e) {}
+      try {
+        const frame = lb.querySelector('.premieres-stories-player-frame');
+        if (frame) {
+          try { if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; } } catch (_h) {}
+          frame.innerHTML = '';
+        }
+      } catch (_e2) {}
       lb.remove();
     }
     try { document.body.classList.remove('premieres-stories-player-open'); } catch (_b) {}
     try { document.removeEventListener('keydown', _premieresStoriesPlayerKey, true); } catch (_k) {}
+    const idx = _premieresStoriesPlayerIdx;
     _premieresStoriesPlayerIdx = -1;
+    clearStoriesProgressTicker();
+    // Resume stage/chip autoplay after closing fullscreen
+    if (idx >= 0 && (_premieresStoriesItems || []).length) {
+      _premieresStoriesResumeAt = resume;
+      if (isDesktopStoriesHoverMode()) {
+        playPremieresStoryAt(idx, { source: 'stage', resumeAt: resume });
+      } else {
+        playPremieresStoryAt(idx, { source: 'chip' });
+      }
+    }
   }
 
   function _premieresStoriesPlayerKey(e) {
@@ -27284,14 +27728,31 @@
     }
   }
 
-  function openPremieresStoriesPlayer(idx) {
+  function openPremieresStoriesPlayer(idx, opts) {
+    opts = opts || {};
     const items = _premieresStoriesItems || [];
     if (!items.length) return;
     let i = parseInt(idx, 10);
     if (isNaN(i)) i = 0;
     if (i < 0) i = items.length - 1;
     if (i >= items.length) i = 0;
+
+    // Capture resume time from hover stage when expanding
+    let resumeAt = 0;
+    if (opts.fromHover) {
+      try {
+        const stage = premieresStoriesStageEl();
+        const v = stage && stage.querySelector('video');
+        if (v && v.currentTime) resumeAt = v.currentTime;
+      } catch (_r) {}
+    }
+    if (_premieresStoriesResumeAt > 0 && i === _premieresStoriesActiveIdx) {
+      resumeAt = Math.max(resumeAt, _premieresStoriesResumeAt);
+      _premieresStoriesResumeAt = 0;
+    }
+
     _premieresStoriesPlayerIdx = i;
+    _premieresStoriesActiveIdx = i;
     const it = items[i];
     const kp = String(it.kp_id || it.kpId || '').replace(/\D/g, '');
     const title = storyDisplayTitle(it);
@@ -27299,11 +27760,30 @@
     const dateLabel = typeof formatPremiereDate === 'function'
       ? formatPremiereDate(it.premiere_date)
       : (it.premiere_date || '');
+    const desktop = isDesktopStoriesHoverMode() || opts.fromHover
+      || (window.matchMedia && window.matchMedia('(min-width: 861px)').matches);
+
+    // Pause rail/stage playback while immersive is open
+    stopAllPremieresStoryTrailers();
+    clearStoriesProgressTicker();
+    const stageEl = premieresStoriesStageEl();
+    if (stageEl) {
+      const sf = stageEl.querySelector('[data-stage-frame]');
+      if (sf) {
+        try { if (sf._mpHls) { sf._mpHls.destroy(); sf._mpHls = null; } } catch (_h) {}
+        // keep poster visible under FS; mute stage media
+        try {
+          const sv = sf.querySelector('video');
+          if (sv) sv.pause();
+        } catch (_p) {}
+        sf.innerHTML = '';
+      }
+    }
+
     let lb = document.getElementById('premieres-stories-player');
     if (!lb) {
       lb = document.createElement('div');
       lb.id = 'premieres-stories-player';
-      lb.className = 'premieres-stories-player';
       lb.setAttribute('role', 'dialog');
       lb.setAttribute('aria-modal', 'true');
       lb.setAttribute('aria-label', 'Трейлер');
@@ -27311,8 +27791,10 @@
       try { document.body.classList.add('premieres-stories-player-open'); } catch (_b) {}
       try { document.addEventListener('keydown', _premieresStoriesPlayerKey, true); } catch (_k) {}
     }
+    lb.className = 'premieres-stories-player' + (desktop ? ' premieres-stories-player--landscape' : '');
     lb.innerHTML =
-      '<div class="premieres-stories-player-stage">'
+      '<div class="premieres-stories-progress premieres-stories-progress--player" id="premieres-stories-progress-player" aria-hidden="true"></div>'
+      + '<div class="premieres-stories-player-stage">'
       + '<button type="button" class="premieres-stories-player-close" aria-label="Закрыть">×</button>'
       + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--prev" aria-label="Предыдущий"></button>'
       + '<button type="button" class="premieres-stories-player-nav premieres-stories-player-nav--next" aria-label="Следующий"></button>'
@@ -27325,6 +27807,8 @@
       + (dateLabel ? ('<div class="premieres-stories-player-meta">' + escapeHtml(dateLabel) + '</div>') : '')
       + '</div></div>';
 
+    paintStoriesProgressBars(i, 0);
+
     const closeBtn = lb.querySelector('.premieres-stories-player-close');
     const prevBtn = lb.querySelector('.premieres-stories-player-nav--prev');
     const nextBtn = lb.querySelector('.premieres-stories-player-nav--next');
@@ -27332,7 +27816,6 @@
     if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i - 1); });
     if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); openPremieresStoriesPlayer(i + 1); });
 
-    // Branding: RU logo preferred, else clear nameRu (never blank / never English when RU exists)
     const slot = lb.querySelector('.premieres-stories-player-title-slot');
     const applyBrand = (logoUrl) => {
       if (!slot) return;
@@ -27356,7 +27839,6 @@
       fetchTitleLogoByKp(kp).then((url) => { if (url) applyBrand(url); }).catch(() => {});
     }
 
-    // Trailer autoplay (unmuted for immersive tap-open). Rail only includes playable.
     const frame = lb.querySelector('.premieres-stories-player-frame');
     fetchStoryTrailerPayload(kp, { title: title, year: it.year || '' }).then((d) => {
       if (_premieresStoriesPlayerIdx !== i) return;
@@ -27371,7 +27853,6 @@
         if (pub) play = { kind: 'kp_widget', url: pub };
       }
       if (!play || !play.url) {
-        // Should be rare (pre-filtered). Skip to next playable rather than dead empty state.
         if (items.length > 1) {
           openPremieresStoriesPlayer(i + 1);
         } else if (frame) {
@@ -27383,16 +27864,27 @@
         return;
       }
       if (frame) {
-        mountStoryPlayback(frame, play, { autoplay: true, muted: false, controls: true, pointerNone: false, loop: false });
+        mountStoryPlayback(frame, play, {
+          autoplay: true,
+          muted: false,
+          controls: true,
+          pointerNone: false,
+          loop: false,
+          objectFit: desktop ? 'contain' : 'cover',
+          resumeAt: resumeAt,
+        });
         const posterEl = lb.querySelector('.premieres-stories-player-poster');
         if (posterEl) posterEl.style.opacity = '0';
+        whenStoryMediaReady(frame, (media) => {
+          if (_premieresStoriesPlayerIdx !== i) return;
+          bindStoriesProgressWatch(media, i, {});
+        });
       }
     }).catch(() => {
       if (_premieresStoriesPlayerIdx !== i) return;
       if (items.length > 1) openPremieresStoriesPlayer(i + 1);
     });
 
-    // Simple swipe on stage
     const stage = lb.querySelector('.premieres-stories-player-stage');
     if (stage && !stage._swipeBound) {
       stage._swipeBound = true;

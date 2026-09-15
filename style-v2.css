@@ -31106,6 +31106,327 @@ body.premieres-stories-player-open {
   overflow: hidden;
 }
 
+/* === Premieres desktop cinematic stage + stories progress (20260915premDeskStage1) === */
+#section-premieres > h2.section-title.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.premieres-stories-progress {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 10px;
+  box-sizing: border-box;
+}
+.premieres-stories-progress--rail {
+  padding: 0 2px;
+  margin: 0 0 8px;
+}
+.premieres-stories-progress--player {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  left: 14px;
+  right: 14px;
+  z-index: 6;
+  margin: 0;
+}
+.premieres-stories-progress-seg {
+  flex: 1 1 0;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  min-width: 0;
+}
+.premieres-stories-progress-seg > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: #fff;
+  border-radius: inherit;
+  transform-origin: left center;
+}
+.premieres-stories-progress-seg.is-active > i {
+  background: #fff;
+}
+.premieres-stories-progress-seg.is-done > i {
+  width: 100% !important;
+}
+
+.premieres-story-progress {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 6;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.premieres-story.is-active-story .premieres-story-progress,
+.premieres-story.is-playing .premieres-story-progress {
+  opacity: 1;
+}
+.premieres-story-progress > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: #fff;
+}
+
+/* Desktop cinematic hover stage — above the chips rail */
+.premieres-stories-stage {
+  display: none;
+  position: relative;
+  margin: 0 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #050508;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.premieres-stories-stage-shell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: min(52vh, 520px);
+  background: #000;
+  cursor: pointer;
+  overflow: hidden;
+}
+.premieres-stories-stage-frame,
+.premieres-stories-stage-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.premieres-stories-stage-poster {
+  object-fit: cover;
+  z-index: 1;
+  transition: opacity 0.35s ease;
+}
+.premieres-stories-stage-frame {
+  z-index: 2;
+  background: #000;
+}
+.premieres-stories-stage-frame video,
+.premieres-stories-stage-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+  background: #000;
+}
+.premieres-stories-stage-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 28%),
+    linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 38%, transparent 62%);
+}
+.premieres-stories-stage-brand {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 28px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+  max-width: min(560px, 70%);
+}
+.premieres-stories-stage-logo,
+.premieres-stories-stage-brand .film-title-logo {
+  display: block;
+  max-width: min(100%, 420px);
+  max-height: 96px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.75));
+}
+.premieres-stories-stage-title {
+  margin: 0;
+  font-family: Unbounded, Inter, system-ui, sans-serif;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.75);
+}
+.premieres-stories-stage-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.02em;
+}
+.premieres-stories-stage-expand {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.premieres-stories-stage-expand:hover {
+  background: rgba(0, 0, 0, 0.72);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.premieres-stories-stage .premieres-stories-progress {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 6;
+  margin: 0;
+}
+
+@media (min-width: 861px) {
+  .premieres-stories:not([hidden]) {
+    display: block;
+  }
+  .premieres-stories-stage:not([hidden]) {
+    display: block;
+  }
+  /* Desktop chips are selectors under the stage — keep compact */
+  .premieres-story {
+    width: 120px;
+  }
+  .premieres-stories-rail {
+    gap: 12px;
+    scroll-snap-type: x proximity;
+    padding-top: 4px;
+  }
+  .premieres-story-media {
+    aspect-ratio: 2 / 3;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  }
+  .premieres-story.is-active-story .premieres-story-media {
+    outline: 2px solid rgba(255, 255, 255, 0.88);
+    outline-offset: 2px;
+  }
+  /* Hide in-chip play chrome on desktop — stage is the hero */
+  .premieres-stories--desktop .premieres-story-frame,
+  .premieres-stories--desktop .premieres-story-playhint,
+  .premieres-stories--desktop .premieres-story-live {
+    display: none !important;
+  }
+  .premieres-stories--desktop .premieres-story-poster {
+    opacity: 1 !important;
+  }
+  .premieres-stories-progress--rail {
+    display: none;
+  }
+  .premieres-stories-head {
+    padding-bottom: 10px;
+  }
+  .premieres-stories-kicker {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+@media (max-width: 860px) {
+  .premieres-stories-stage {
+    display: none !important;
+  }
+  .premieres-stories-progress--rail {
+    display: flex;
+  }
+}
+
+/* Desktop immersive = landscape cinema, not vertical phone */
+@media (min-width: 861px) {
+  .premieres-stories-player--landscape {
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+    padding: 24px 32px;
+  }
+  .premieres-stories-player--landscape .premieres-stories-player-stage {
+    flex: 0 1 auto;
+    width: min(1120px, 96vw);
+    max-width: 1120px;
+    aspect-ratio: 16 / 9;
+    max-height: min(82vh, 720px);
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .premieres-stories-player--landscape .premieres-stories-player-frame iframe,
+  .premieres-stories-player--landscape .premieres-stories-player-frame video {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    transform: none !important;
+    aspect-ratio: auto !important;
+    object-fit: contain;
+    top: 0 !important;
+    left: 0 !important;
+  }
+  .premieres-stories-player--landscape .premieres-stories-player-brand {
+    align-items: flex-start;
+    text-align: left;
+    left: 28px;
+    right: 28px;
+    bottom: 24px;
+    max-width: 560px;
+  }
+  .premieres-stories-player--landscape .premieres-stories-player-logo,
+  .premieres-stories-player--landscape .premieres-stories-player-brand .film-title-logo {
+    max-width: min(90%, 420px);
+    max-height: 96px;
+    object-position: left center;
+  }
+  .premieres-stories-player--landscape .premieres-stories-player-nav {
+    width: 18%;
+  }
+  .premieres-stories-player--landscape .premieres-stories-progress--player {
+    left: max(32px, calc(50% - 560px));
+    right: max(32px, calc(50% - 560px));
+    top: max(18px, env(safe-area-inset-top, 0px));
+  }
+}
+
+
 
 /* === Title logo CLS + trailer slot reserve + no empty poster pending (2026-09-14) === */
 #film-title.film-title-slot,
