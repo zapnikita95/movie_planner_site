@@ -31761,39 +31761,6 @@ main.film-page .hero-content > h1.film-title-slot {
   background: #000;
   border: 0;
 }
-.home-film-preview-trailer-bar {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  z-index: 3;
-  display: flex;
-  gap: 6px;
-  pointer-events: auto;
-}
-.home-film-preview-trailer-bar[hidden] { display: none !important; }
-.home-film-preview-trailer-pause,
-.home-film-preview-trailer-expand {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.home-film-preview-trailer-pause:hover,
-.home-film-preview-trailer-expand:hover {
-  background: rgba(0,0,0,0.75);
-  border-color: rgba(255,255,255,0.4);
-}
-
 /* Landscape / immersive player chrome (Chrome-style auto-hide) */
 .premieres-stories-player-chrome {
   position: absolute;
