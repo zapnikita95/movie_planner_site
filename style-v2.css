@@ -31890,7 +31890,8 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === guestPlansDense3 discovery === */
+/* === guestFirmBtns1 discovery === */
+/* AGENT: guest CTAs = ONLY .btn.btn-primary / .btn.btn-secondary (+ .btn-small). No gray leftovers. */
 body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
   display: none !important;
   visibility: hidden !important;
@@ -31900,13 +31901,15 @@ body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
 body.guest-cabinet-preview #section-plans .plans-entity-switcher-row {
   display: none !important;
 }
-/* cards-list grid trapped guest discover in one ~240px column — break out.
+/* cards-list grid trapped guest discover in one ~240px column — break out FULL WIDTH.
    Also: .cabinet-sections was width:1600 inside a ~1392 container → right posters clipped. */
 body.guest-cabinet-preview .cabinet-sections,
 body.guest-cabinet-preview #section-plans,
 body.guest-cabinet-preview #section-plans .cabinet-plans-today,
 body.guest-cabinet-preview #section-plans .plans-today-list,
 body.guest-cabinet-preview #section-plans .plans-today-list.cards-list,
+body.guest-cabinet-preview #section-unwatched,
+body.guest-cabinet-preview #section-unwatched #unwatched-list,
 body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   display: block !important;
   width: 100% !important;
@@ -31929,34 +31932,47 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   overflow-x: clip;
 }
 .guest-discover-hero {
-  margin: 0 0 20px;
-  padding: 16px 18px;
+  margin: 0 auto 22px;
+  padding: 18px 20px;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(255,126,182,0.16), rgba(120,110,255,0.12) 48%, rgba(20,20,28,0.35));
   border: 1px solid rgba(255,255,255,0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+/* Center «Что посмотрим?» / База intro — never left-column sparse */
 .guest-discover-hero--compact {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px 18px;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
-.guest-discover-hero-copy { flex: 1 1 220px; min-width: 0; }
+.guest-discover-hero-copy {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 40rem;
+  text-align: center;
+}
 .guest-discover-hero--compact .guest-discover-cta-row {
-  flex: 1 1 auto;
-  justify-content: flex-start;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 100%;
   max-width: 100%;
 }
 .guest-discover-hero h3 {
-  margin: 0 0 4px; font-family: Unbounded, sans-serif; font-weight: 800;
-  font-size: clamp(1.12rem, 2.2vw, 1.4rem); letter-spacing: -0.02em;
+  margin: 0 0 6px; font-family: Unbounded, sans-serif; font-weight: 800;
+  font-size: clamp(1.12rem, 2.2vw, 1.45rem); letter-spacing: -0.02em;
 }
 .guest-discover-hero p {
-  margin: 0; opacity: 0.82; font-size: 14px; line-height: 1.4; max-width: 52ch;
+  margin: 0 auto; opacity: 0.82; font-size: 14px; line-height: 1.4; max-width: 46ch;
 }
 .guest-discover-rail-title {
   margin: 20px 0 12px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
@@ -31977,9 +31993,25 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
 }
 .guest-discover-cta-row {
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 0; flex: 0 0 auto;
+  justify-content: center;
+  align-items: center;
 }
 .guest-discover-hero:not(.guest-discover-hero--compact) .guest-discover-cta-row { margin-top: 14px; }
-.guest-discover-cta-row .btn { min-width: 0; }
+/* Firm pill system only — tame global 60px landing .btn-primary/.btn-secondary */
+.guest-discover-cta-row .btn {
+  min-width: 0;
+  height: auto !important;
+  min-height: 44px;
+  padding: 10px 22px !important;
+  font-size: 14px !important;
+  font-weight: 700;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+.guest-discover-cta-row .btn.btn-primary {
+  box-shadow: 0 0 22px rgba(255, 45, 123, 0.28);
+}
 .guest-discover-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
@@ -32019,7 +32051,7 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   transition: transform 0.2s ease;
 }
 .guest-discover-card-link:hover .guest-discover-card-poster img {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 .guest-discover-card-meta { min-width: 0; padding: 0 2px; }
 .guest-discover-card-title {
@@ -32027,8 +32059,8 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   font-weight: 700;
   line-height: 1.25;
   display: -webkit-box;
-  -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .guest-discover-card-year {
@@ -32036,28 +32068,20 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   font-size: 12px;
   opacity: 0.62;
 }
-.guest-discover-plan-btn {
-  appearance: none;
-  -webkit-appearance: none;
+/* «В план» = firm .btn.btn-small.btn-secondary, full card width */
+.guest-discover-card .btn.guest-discover-plan-btn,
+.guest-discover-card .btn.btn-small {
   width: 100%;
-  min-height: 34px;
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,45,123,0.35);
-  background: linear-gradient(135deg, rgba(255,45,123,0.22), rgba(155,77,255,0.18));
-  color: #fff;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  height: auto !important;
+  min-height: 36px;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  box-shadow: none;
 }
-.guest-discover-plan-btn:hover {
-  border-color: rgba(255,45,123,0.7);
-  background: linear-gradient(135deg, rgba(255,45,123,0.4), rgba(155,77,255,0.3));
-}
-.guest-discover-plan-btn:active { transform: scale(0.98); }
+
 body.guest-cabinet-preview #section-unwatched .base-section-toolbar,
 body.guest-cabinet-preview #section-unwatched .cabinet-hint,
 body.guest-cabinet-preview #section-plans .cabinet-plans-toolbar,
@@ -32089,5 +32113,5 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
     grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
     gap: 12px 10px;
   }
-  .guest-discover-plan-btn { min-height: 32px; font-size: 11px; }
+  .guest-discover-card .btn.guest-discover-plan-btn { min-height: 34px; font-size: 11px !important; padding: 7px 10px !important; }
 }
