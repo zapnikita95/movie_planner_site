@@ -26836,7 +26836,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
-  /* MARKER:20260915premDeskStage2 — dwell hover, drag rail, FS watch-full, film page nav */
+  /* MARKER:20260915premDeskStage2b — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
   const PREMIERES_STORY_FALLBACK_MS = 22000;
@@ -26923,8 +26923,8 @@
         + '<div class="premieres-stories-stage-meta" hidden></div>'
         + '</div>'
         + '<div class="premieres-stories-stage-actions">'
-        + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
         + '<a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>'
+        + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
         + '</div>'
         + '</div>';
       const head = root.querySelector('.premieres-stories-head');
@@ -26954,6 +26954,12 @@
         const expand = shell.querySelector('.premieres-stories-stage-expand');
         const actions = document.createElement('div');
         actions.className = 'premieres-stories-stage-actions';
+        const film = document.createElement('a');
+        film.className = 'premieres-stories-stage-filmpage';
+        film.setAttribute('data-stage-film-link', '1');
+        film.href = '#';
+        film.textContent = 'Страница фильма';
+        actions.appendChild(film);
         if (expand) actions.appendChild(expand);
         else {
           const btn = document.createElement('button');
@@ -26963,12 +26969,6 @@
           btn.textContent = '▶ На весь экран';
           actions.appendChild(btn);
         }
-        const film = document.createElement('a');
-        film.className = 'premieres-stories-stage-filmpage';
-        film.setAttribute('data-stage-film-link', '1');
-        film.href = '#';
-        film.textContent = 'Страница фильма';
-        actions.appendChild(film);
         shell.appendChild(actions);
       } else if (!shell.querySelector('.premieres-stories-stage-filmpage')) {
         const actions = shell.querySelector('.premieres-stories-stage-actions');

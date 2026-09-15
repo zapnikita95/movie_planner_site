@@ -31106,7 +31106,7 @@ body.premieres-stories-player-open {
   overflow: hidden;
 }
 
-/* === Premieres desktop cinematic stage + stories progress (20260915premDeskStage2) === */
+/* === Premieres desktop cinematic stage + stories progress (20260915premDeskStage2b) === */
 #section-premieres > h2.section-title.visually-hidden {
   position: absolute !important;
   width: 1px !important;
@@ -31300,20 +31300,21 @@ body.premieres-stories-player-open {
 }
 .premieres-stories-stage-actions {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  right: 14px;
+  bottom: 14px;
   z-index: 5;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
   pointer-events: auto;
+  max-width: min(420px, calc(100% - 36px));
 }
 .premieres-stories-stage-expand,
 .premieres-stories-stage-filmpage {
-  height: 40px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.55);
