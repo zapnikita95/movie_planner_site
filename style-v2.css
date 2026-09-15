@@ -31890,37 +31890,185 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === guestBrowse1 discovery === */
+/* === guestPlansDense1 discovery === */
 body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
-.guest-discover { margin: 8px 0 28px; padding: 0 2px 8px; }
+/* Orphan «Планы в» — select hidden for guests, kill leftover label row */
+body.guest-cabinet-preview #section-plans .plans-entity-switcher-row {
+  display: none !important;
+}
+/* cards-list grid trapped guest discover in one ~240px column — break out */
+body.guest-cabinet-preview #section-plans .plans-today-list,
+body.guest-cabinet-preview #section-plans .plans-today-list.cards-list,
+body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-columns: none !important;
+  margin-bottom: 8px;
+}
+body.guest-cabinet-preview #section-plans .cabinet-plans-today {
+  width: 100%;
+  max-width: none;
+}
+.guest-discover {
+  margin: 4px 0 32px;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
 .guest-discover-hero {
-  margin: 0 0 18px; padding: 18px 20px; border-radius: 18px;
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 18px;
   background: linear-gradient(135deg, rgba(255,126,182,0.16), rgba(120,110,255,0.12) 48%, rgba(20,20,28,0.35));
   border: 1px solid rgba(255,255,255,0.08);
 }
+.guest-discover-hero--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+}
+.guest-discover-hero-copy { flex: 1 1 240px; min-width: 0; }
 .guest-discover-hero h3 {
-  margin: 0 0 6px; font-family: Unbounded, sans-serif; font-weight: 800;
-  font-size: clamp(1.15rem, 2.4vw, 1.45rem); letter-spacing: -0.02em;
+  margin: 0 0 4px; font-family: Unbounded, sans-serif; font-weight: 800;
+  font-size: clamp(1.12rem, 2.2vw, 1.4rem); letter-spacing: -0.02em;
 }
-.guest-discover-hero p { margin: 0; opacity: 0.82; font-size: 15px; line-height: 1.45; max-width: 46ch; }
+.guest-discover-hero p {
+  margin: 0; opacity: 0.82; font-size: 14px; line-height: 1.4; max-width: 52ch;
+}
 .guest-discover-rail-title {
-  margin: 18px 0 10px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
-  text-transform: uppercase; opacity: 0.72;
+  margin: 20px 0 12px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; opacity: 0.78;
 }
-.guest-discover .home-poster-rail { margin: 0 0 6px; }
-.guest-discover-cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.guest-discover .home-poster-rail {
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+}
+.guest-discover .home-poster-tile-wrap {
+  flex: 0 0 156px;
+  min-width: 156px;
+  max-width: 172px;
+}
+.guest-discover-cta-row {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 0; flex: 0 0 auto;
+}
+.guest-discover-hero:not(.guest-discover-hero--compact) .guest-discover-cta-row { margin-top: 14px; }
 .guest-discover-cta-row .btn { min-width: 0; }
+.guest-discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 14px 12px;
+  margin: 0 0 8px;
+  width: 100%;
+}
+.guest-discover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.guest-discover-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.guest-discover-card-poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+}
+.guest-discover-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+.guest-discover-card-link:hover .guest-discover-card-poster img {
+  transform: scale(1.04);
+}
+.guest-discover-card-meta { min-width: 0; padding: 0 2px; }
+.guest-discover-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.guest-discover-card-year {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.62;
+}
+.guest-discover-plan-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,45,123,0.35);
+  background: linear-gradient(135deg, rgba(255,45,123,0.22), rgba(155,77,255,0.18));
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.guest-discover-plan-btn:hover {
+  border-color: rgba(255,45,123,0.7);
+  background: linear-gradient(135deg, rgba(255,45,123,0.4), rgba(155,77,255,0.3));
+}
+.guest-discover-plan-btn:active { transform: scale(0.98); }
 body.guest-cabinet-preview #section-unwatched .base-section-toolbar,
 body.guest-cabinet-preview #section-unwatched .cabinet-hint,
 body.guest-cabinet-preview #section-plans .cabinet-plans-toolbar,
 body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !important; }
+@media (min-width: 700px) {
+  .guest-discover-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px 14px;
+  }
+  .guest-discover .home-poster-tile-wrap {
+    flex: 0 0 168px;
+    min-width: 168px;
+    max-width: 184px;
+  }
+}
+@media (min-width: 1100px) {
+  .guest-discover-grid {
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 18px 16px;
+  }
+}
 @media (max-width: 860px) {
   body.landing-guest-home #landing-root-nav,
   body.guest-cabinet-preview #landing-root-nav {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
+  .guest-discover-hero--compact { padding: 14px 14px; }
+  .guest-discover-grid {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 12px 10px;
+  }
+  .guest-discover-plan-btn { min-height: 32px; font-size: 11px; }
 }

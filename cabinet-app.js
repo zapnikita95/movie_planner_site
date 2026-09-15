@@ -1,4 +1,4 @@
-/* MARKER:guestBrowse1 — no guest /home; browse-first База+Планы */
+/* MARKER:guestPlansDense1 — full-width guest /plans discovery, no «Планы в» */
 /**
  * Movie Planner — личный кабинет на сайте
  * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
@@ -13096,14 +13096,14 @@
 
   function fetchGuestDiscoverRails() {
     const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
-    const prem = fetch(base + '/api/public/premieres?period=soon&limit=16', { credentials: 'omit' })
+    const prem = fetch(base + '/api/public/premieres?period=soon&limit=24', { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         const raw = (d && (d.items || d.films || d.premieres)) || [];
         return (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
       })
       .catch(function () { return []; });
-    const buzz = fetch(base + '/api/public/buzz?days=7&limit=16&view=films', { credentials: 'omit' })
+    const buzz = fetch(base + '/api/public/buzz?days=7&limit=24&view=films', { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         const raw = (d && (d.items || d.films)) || [];
@@ -13124,6 +13124,37 @@
     return rail.replace('class="home-poster-rail', 'class="home-poster-rail guest-discover-rail" data-guest-rail="' + railId + '"');
   }
 
+  function renderGuestDiscoverCardHtml(it, opts) {
+    const o = opts || {};
+    if (!it || !it.kp_id) return '';
+    const kp = String(it.kp_id).replace(/\D/g, '');
+    if (!kp) return '';
+    const poster = it.poster || (typeof posterUrl === 'function' ? posterUrl(kp) : '');
+    const title = escapeHtml(it.title || '—');
+    const year = it.year ? escapeHtml(String(it.year)) : '';
+    const img = poster
+      ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + (typeof mpPosterOnErrorAttr === 'function' ? mpPosterOnErrorAttr() : '') + '>'
+      : '<img src="' + (typeof MP_POSTER_PLACEHOLDER !== 'undefined' ? MP_POSTER_PLACEHOLDER : '') + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
+    const planLabel = o.planLabel || 'В план';
+    return '<article class="guest-discover-card">'
+      + '<a class="guest-discover-card-link" href="/f/' + encodeURIComponent(kp) + '" data-kp-id="' + kp + '">'
+      + '<div class="guest-discover-card-poster">' + img + '</div>'
+      + '<div class="guest-discover-card-meta">'
+      + '<div class="guest-discover-card-title">' + title + '</div>'
+      + (year ? ('<div class="guest-discover-card-year">' + year + '</div>') : '')
+      + '</div></a>'
+      + '<button type="button" class="guest-discover-plan-btn" data-guest-plan-kp="' + kp + '" data-stop-card-click="1">'
+      + escapeHtml(planLabel) + '</button>'
+      + '</article>';
+  }
+
+  function renderGuestDiscoverGridHtml(items, gridId, opts) {
+    if (!items || !items.length) return '';
+    const cards = items.map(function (it) { return renderGuestDiscoverCardHtml(it, opts); }).filter(Boolean).join('');
+    if (!cards) return '';
+    return '<div class="guest-discover-grid" data-guest-grid="' + gridId + '" role="list">' + cards + '</div>';
+  }
+
   function bindGuestDiscoverClicksOnce(root) {
     if (!root || root._mpGuestDiscoverBound) return;
     root._mpGuestDiscoverBound = true;
@@ -13137,7 +13168,7 @@
         if (kp && typeof openFilmWithFallback === 'function') openFilmWithFallback(kp);
         return;
       }
-      const tile = e.target.closest('.home-poster-tile, .home-pre-card, a[href^="/f/"]');
+      const tile = e.target.closest('.guest-discover-card-link, .home-poster-tile, .home-pre-card, a[href^="/f/"]');
       if (!tile) return;
       if (e.target.closest('[data-stop-card-click]')) return;
       const href = tile.getAttribute('href') || '';
@@ -13152,38 +13183,56 @@
   function guestPlansDiscoveryHtml(rails) {
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
-    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 12), 'plans-premieres');
-    const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 12), 'plans-buzz');
+    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { planLabel: 'В план' });
+    const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 18), 'plans-buzz');
+    const buzzGrid = (!buzzRail && buzz.length)
+      ? renderGuestDiscoverGridHtml(buzz.slice(0, 14), 'plans-buzz-grid', { planLabel: 'В план' })
+      : '';
+    const discussExtra = renderGuestDiscoverGridHtml(
+      (buzz.length >= 8 ? buzz.slice(8, 20) : []),
+      'plans-discuss-more',
+      { planLabel: 'В план' }
+    );
     return '<div class="guest-discover guest-discover--plans" id="guest-plans-discover">'
-      + '<div class="guest-discover-hero">'
-      + '<h3>Что запланировать?</h3>'
-      + '<p>Выберите фильм или сериал — премьеры и то, что сейчас обсуждают. Сохранение плана попросит войти.</p>'
+      + '<div class="guest-discover-hero guest-discover-hero--compact">'
+      + '<div class="guest-discover-hero-copy">'
+      + '<h3>Что посмотрим?</h3>'
+      + '<p>Листайте афишу и тренды — вход понадобится только чтобы сохранить план.</p>'
+      + '</div>'
       + '<div class="guest-discover-cta-row">'
-      + '<a class="btn btn-secondary" href="/premieres">Календарь премьер</a>'
+      + '<a class="btn btn-secondary" href="/premieres">Премьеры</a>'
       + '<a class="btn btn-secondary" href="/whattowatch">Подобрать</a>'
-      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти и вести свои планы</button>'
+      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
-      + (premRail ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premRail) : '')
+      + (premGrid ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premGrid) : '')
       + (buzzRail ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzRail) : '')
+      + (buzzGrid ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzGrid) : '')
+      + (discussExtra ? ('<div class="guest-discover-rail-title">Ещё обсуждают</div>' + discussExtra) : '')
       + '</div>';
   }
 
   function guestBaseDiscoveryHtml(rails) {
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
-    const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 14), 'base-buzz');
-    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 14), 'base-premieres');
+    const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', { planLabel: 'В план' });
+    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 16), 'base-premieres');
+    const premGrid = (!premRail && prem.length)
+      ? renderGuestDiscoverGridHtml(prem.slice(0, 14), 'base-premieres-grid', { planLabel: 'В план' })
+      : '';
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
-      + '<div class="guest-discover-hero">'
+      + '<div class="guest-discover-hero guest-discover-hero--compact">'
+      + '<div class="guest-discover-hero-copy">'
       + '<h3>База фильмов</h3>'
-      + '<p>Смотрите афишу и тренды без входа. Чтобы сохранить в свою коллекцию, оценить или отметить просмотр — войдите.</p>'
+      + '<p>Смотрите афишу и тренды без входа. Сохранение — после входа.</p>'
+      + '</div>'
       + '<div class="guest-discover-cta-row">'
       + '<a class="btn btn-secondary" href="/premieres">Премьеры</a>'
       + '<a class="btn btn-secondary" href="/buzz">В тренде</a>'
-      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти в базу</button>'
+      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
-      + (buzzRail ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzRail) : '')
+      + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
       + (premRail ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premRail) : '')
+      + (premGrid ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premGrid) : '')
       + '</div>';
   }
 
