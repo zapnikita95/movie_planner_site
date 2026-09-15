@@ -1,4 +1,4 @@
-/* MARKER:guestFirmBtns1 — centered guest hero + firm .btn pills only */
+/* MARKER:guestFirmBtns2 — no orphan sibling titles; firm secondary gradient-border */
 /**
  * Movie Planner — личный кабинет на сайте
  * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).

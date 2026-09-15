@@ -31890,7 +31890,7 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === guestFirmBtns1 discovery === */
+/* === guestFirmBtns2 discovery === */
 /* AGENT: guest CTAs = ONLY .btn.btn-primary / .btn.btn-secondary (+ .btn-small). No gray leftovers. */
 body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
   display: none !important;
@@ -31902,15 +31902,24 @@ body.guest-cabinet-preview #section-plans .plans-entity-switcher-row {
   display: none !important;
 }
 /* cards-list grid trapped guest discover in one ~240px column — break out FULL WIDTH.
-   Also: .cabinet-sections was width:1600 inside a ~1392 container → right posters clipped. */
-body.guest-cabinet-preview .cabinet-sections,
-body.guest-cabinet-preview #section-plans,
-body.guest-cabinet-preview #section-plans .cabinet-plans-today,
-body.guest-cabinet-preview #section-plans .plans-today-list,
-body.guest-cabinet-preview #section-plans .plans-today-list.cards-list,
-body.guest-cabinet-preview #section-unwatched,
-body.guest-cabinet-preview #section-unwatched #unwatched-list,
-body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
+   Also: .cabinet-sections was width:1600 inside a ~1392 container → right posters clipped.
+   CRITICAL: never force display:block on #section-plans / #section-unwatched themselves —
+   that overrides .cabinet-section.hidden and leaves an orphan sibling title
+   («Планы» above База / «База» below Plans) which reads as left-stuck dual chrome. */
+body.guest-cabinet-preview .cabinet-sections {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+body.guest-cabinet-preview #section-plans:not(.hidden),
+body.guest-cabinet-preview #section-plans:not(.hidden) .cabinet-plans-today,
+body.guest-cabinet-preview #section-plans:not(.hidden) .plans-today-list,
+body.guest-cabinet-preview #section-plans:not(.hidden) .plans-today-list.cards-list,
+body.guest-cabinet-preview #section-unwatched:not(.hidden),
+body.guest-cabinet-preview #section-unwatched:not(.hidden) #unwatched-list,
+body.guest-cabinet-preview #section-unwatched:not(.hidden) #unwatched-list.cards-list {
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -31918,8 +31927,8 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   grid-template-columns: none !important;
   box-sizing: border-box;
 }
-body.guest-cabinet-preview #section-plans .plans-today-list,
-body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
+body.guest-cabinet-preview #section-plans:not(.hidden) .plans-today-list,
+body.guest-cabinet-preview #section-unwatched:not(.hidden) #unwatched-list.cards-list {
   margin-bottom: 8px;
 }
 .guest-discover {
@@ -31997,7 +32006,9 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   align-items: center;
 }
 .guest-discover-hero:not(.guest-discover-hero--compact) .guest-discover-cta-row { margin-top: 14px; }
-/* Firm pill system only — tame global 60px landing .btn-primary/.btn-secondary */
+/* Firm pill system only — tame global 60px landing .btn-primary/.btn-secondary.
+   Re-assert gradient-border secondary: a later top-level `.btn-secondary { background:rgba... }`
+   (film-toolbar leftovers) otherwise paints charcoal flat fakes. */
 .guest-discover-cta-row .btn {
   min-width: 0;
   height: auto !important;
@@ -32009,7 +32020,22 @@ body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   box-sizing: border-box;
   box-shadow: none;
 }
-.guest-discover-cta-row .btn.btn-primary {
+.guest-discover .btn.btn-secondary,
+.guest-discover-cta-row .btn.btn-secondary,
+.guest-discover-card .btn.btn-secondary {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+}
+.guest-discover-cta-row .btn.btn-primary,
+.guest-discover-card .btn.btn-primary {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
   box-shadow: 0 0 22px rgba(255, 45, 123, 0.28);
 }
 .guest-discover-grid {
