@@ -11393,7 +11393,7 @@
     return '<div class="home-poster-rail home-rail--draggable" role="list">' + items.map((m) => {
       const poster = vitrine
         ? seriesShowcasePosterSrc(m)
-        : (m.poster || (m.kp_id ? posterUrl(m.kp_id) : ''));
+        : premiereCoverPosterSrc(m);
       const img = poster
         ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + mpPosterOnErrorAttr() + '>'
         : '<img src="' + MP_POSTER_PLACEHOLDER + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
@@ -13069,11 +13069,9 @@
 
 
   function guestDiscoverPosterSrc(it) {
-    if (!it) return '';
-    const p = it.poster_thumb || it.poster || '';
-    if (p) return String(p);
-    const kp = String(it.kp_id || '').replace(/\D/g, '');
-    return kp ? posterUrl(kp) : '';
+    /* Same class of bug as premieres: buzz/API may bake branded popcorn while
+       /f/ boot already has real KP MDS art. Never prefer placeholder over KP CDN. */
+    return typeof premiereCoverPosterSrc === 'function' ? premiereCoverPosterSrc(it) : '';
   }
 
   function guestDiscoverNormalizeItem(it) {
@@ -13094,6 +13092,39 @@
     };
   }
 
+  function guestDiscoverEnrichMeta(items) {
+    const list = Array.isArray(items) ? items : [];
+    const need = list.filter(function (it) {
+      return it && it.kp_id && (!it.year || !it.genres || !it.description);
+    }).slice(0, 18);
+    if (!need.length) return Promise.resolve(list);
+    const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
+    return Promise.all(need.map(function (it) {
+      return fetch(base + '/api/public/film/' + encodeURIComponent(it.kp_id), { credentials: 'omit' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          const f = (d && (d.film || d.item || d)) || {};
+          if (!it.year && f.year) it.year = f.year;
+          if (!it.genres && f.genres) {
+            it.genres = Array.isArray(f.genres)
+              ? f.genres.map(function (g) { return (g && (g.name || g)) || ''; }).filter(Boolean).join(', ')
+              : String(f.genres || '');
+          }
+          if (!it.description && f.description) it.description = f.description;
+          const filmPoster = f.poster_url || f.poster || '';
+          if (filmPoster && !/film-poster-placeholder/i.test(String(filmPoster))) {
+            it.poster = typeof premiereCoverPosterSrc === 'function'
+              ? premiereCoverPosterSrc(Object.assign({}, it, { poster: filmPoster, poster_url: filmPoster }))
+              : filmPoster;
+          } else if (typeof premiereCoverPosterSrc === 'function') {
+            it.poster = premiereCoverPosterSrc(it);
+          }
+          return it;
+        })
+        .catch(function () { return it; });
+    })).then(function () { return list; });
+  }
+
   function fetchGuestDiscoverRails() {
     const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
     const prem = fetch(base + '/api/public/premieres?period=soon&limit=24', { credentials: 'omit' })
@@ -13109,6 +13140,7 @@
         const raw = (d && (d.items || d.films)) || [];
         return (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
       })
+      .then(function (items) { return guestDiscoverEnrichMeta(items); })
       .catch(function () { return []; });
     return Promise.all([prem, buzz]).then(function (pair) {
       return { premieres: pair[0] || [], buzz: pair[1] || [] };
@@ -13129,22 +13161,47 @@
     if (!it || !it.kp_id) return '';
     const kp = String(it.kp_id).replace(/\D/g, '');
     if (!kp) return '';
-    const poster = it.poster || (typeof posterUrl === 'function' ? posterUrl(kp) : '');
-    const title = escapeHtml(it.title || '—');
-    const year = it.year ? escapeHtml(String(it.year)) : '';
-    const img = poster
-      ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"' + (typeof mpPosterOnErrorAttr === 'function' ? mpPosterOnErrorAttr() : '') + '>'
-      : '<img src="' + (typeof MP_POSTER_PLACEHOLDER !== 'undefined' ? MP_POSTER_PLACEHOLDER : '') + '" alt="" loading="lazy" decoding="async" class="card-poster--placeholder">';
-    const planLabel = o.planLabel || 'В план';
-    return '<article class="guest-discover-card">'
+    const poster = typeof premiereCoverPosterSrc === 'function'
+      ? premiereCoverPosterSrc(it)
+      : (it.poster || (typeof posterUrl === 'function' ? posterUrl(kp) : ''));
+    const titleRaw = it.title || '—';
+    const title = escapeHtml(titleRaw);
+    const year = it.year ? String(it.year) : '';
+    const genres = String(it.genres || '').trim();
+    const genreShort = genres.split(',').map(function (g) { return g.trim(); }).filter(Boolean).slice(0, 2).join(', ');
+    const metaLine = [year, genreShort].filter(Boolean).join(' · ');
+    const imgSrc = poster || (typeof MP_POSTER_PLACEHOLDER !== 'undefined' ? MP_POSTER_PLACEHOLDER : '');
+    const img = imgSrc
+      ? '<img src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + (typeof mpPosterOnErrorAttr === 'function' ? mpPosterOnErrorAttr() : '') + '>'
+      : '';
+    const isPremiere = !!(it.premiere_date || o.forcePremiere);
+    const addBtn = '<button type="button" class="poster-add-library-btn guest-discover-add-btn" data-guest-add-kp="' + kp + '" data-guest-add-title="' + title + '" data-stop-card-click="1" title="Добавить в базу" aria-label="Добавить в базу">+</button>';
+    const bell = isPremiere && typeof renderPremiereNotifyButton === 'function'
+      ? ('<span data-stop-card-click="1">' + renderPremiereNotifyButton(it, 'premiere-poster-bell') + '</span>')
+      : '';
+    const overlays = '<div class="guest-discover-card-overlays" data-stop-card-click="1">' + addBtn + bell + '</div>';
+    const desc = String(it.description || '').trim();
+    const preview = typeof renderHomeHoverPreview === 'function'
+      ? renderHomeHoverPreview({
+          title: titleRaw,
+          poster: imgSrc,
+          metaHtml: metaLine ? escapeHtml(metaLine) : '',
+          description: desc,
+          kpId: kp,
+        })
+      : '';
+    const descAttr = desc ? (' data-description="' + escapeHtml(desc.slice(0, 500)) + '"') : '';
+    const posterAttr = imgSrc ? (' data-poster="' + escapeHtml(imgSrc) + '"') : '';
+    const titleAttr = ' data-title="' + escapeHtml(titleRaw) + '"';
+    const yearAttr = year ? (' data-year="' + escapeHtml(year) + '"') : '';
+    return '<article class="guest-discover-card guest-discover-card--hover-preview"' + titleAttr + posterAttr + descAttr + yearAttr + ' data-kp-id="' + kp + '">'
       + '<a class="guest-discover-card-link" href="/f/' + encodeURIComponent(kp) + '" data-kp-id="' + kp + '">'
-      + '<div class="guest-discover-card-poster">' + img + '</div>'
+      + '<div class="guest-discover-card-poster premiere-poster-media">' + img + overlays + '</div>'
       + '<div class="guest-discover-card-meta">'
       + '<div class="guest-discover-card-title">' + title + '</div>'
-      + (year ? ('<div class="guest-discover-card-year">' + year + '</div>') : '')
+      + (metaLine ? ('<div class="guest-discover-card-year">' + escapeHtml(metaLine) + '</div>') : '')
       + '</div></a>'
-      + '<button type="button" class="btn btn-small btn-secondary guest-discover-plan-btn" data-guest-plan-kp="' + kp + '" data-stop-card-click="1">'
-      + escapeHtml(planLabel) + '</button>'
+      + preview
       + '</article>';
   }
 
@@ -13155,17 +13212,99 @@
     return '<div class="guest-discover-grid" data-guest-grid="' + gridId + '" role="list">' + cards + '</div>';
   }
 
+  function bindGuestDiscoverHoverPreview(root) {
+    if (!root || typeof bindFilmCardHoverPreviewGroup !== 'function') return;
+    // Allow re-bind after remount (innerHTML wipe clears listeners + dataset).
+    try { delete root.dataset.hoverPreviewGroupBound; } catch (_) { root.dataset.hoverPreviewGroupBound = ''; }
+    bindFilmCardHoverPreviewGroup(root, '.guest-discover-card--hover-preview', function (card) {
+      const descEl = card.querySelector('.home-film-preview-desc');
+      if (descEl && (!descEl.textContent || !descEl.textContent.trim())) {
+        const fromAttr = card.getAttribute('data-description') || '';
+        if (fromAttr) {
+          descEl.textContent = typeof shortPremiereDescription === 'function'
+            ? shortPremiereDescription(fromAttr, 220)
+            : fromAttr;
+          descEl.classList.remove('is-empty');
+        }
+      }
+    });
+  }
+
+  function showGuestPlanFollowUp(kp, title) {
+    const id = 'mp-guest-plan-followup';
+    let el = document.getElementById(id);
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = id;
+    el.className = 'guest-plan-followup';
+    el.setAttribute('role', 'status');
+    el.innerHTML = ''
+      + '<div class="guest-plan-followup-copy">В базе. Добавить в план?</div>'
+      + '<div class="guest-plan-followup-actions">'
+      + '<button type="button" class="btn btn-small btn-primary" data-guest-followup-plan="1">Добавить в план</button>'
+      + '<button type="button" class="btn btn-small btn-secondary" data-guest-followup-dismiss="1">Позже</button>'
+      + '</div>';
+    document.body.appendChild(el);
+    const close = function () { try { el.remove(); } catch (_) {} };
+    el.querySelector('[data-guest-followup-dismiss]').addEventListener('click', close);
+    el.querySelector('[data-guest-followup-plan]').addEventListener('click', function () {
+      close();
+      if (!requireAuthForAction('Войдите, чтобы добавить фильм в план')) return;
+      if (typeof openSiteFilmPlanModal === 'function') openSiteFilmPlanModal(kp, title || '', 'home');
+      else if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kp);
+    });
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(close, 8000);
+  }
+
+  function guestDiscoverAddToBase(btn) {
+    if (!btn) return;
+    const kp = String(btn.getAttribute('data-guest-add-kp') || '').replace(/\D/g, '');
+    const title = btn.getAttribute('data-guest-add-title') || '';
+    if (!kp) return;
+    if (!requireAuthForAction('Войдите, чтобы добавить фильм в базу')) return;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = '…';
+    api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
+      .then(function (data) {
+        if (!data || !data.success) {
+          btn.disabled = false;
+          btn.textContent = prev || '+';
+          try { showToast((data && (data.error || data.message)) || 'Не удалось добавить', { type: 'error' }); } catch (_) {}
+          return;
+        }
+        btn.classList.add('is-added');
+        btn.textContent = '✓';
+        btn.setAttribute('aria-label', 'Уже в базе');
+        btn.title = 'Уже в базе';
+        try { if (typeof loadUnwatched === 'function') loadUnwatched(); } catch (_) {}
+        showGuestPlanFollowUp(kp, title);
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = prev || '+';
+        try { showToast('Ошибка сети', { type: 'error' }); } catch (_) {}
+      });
+  }
+
   function bindGuestDiscoverClicksOnce(root) {
     if (!root || root._mpGuestDiscoverBound) return;
     root._mpGuestDiscoverBound = true;
     root.addEventListener('click', function (e) {
-      const planBtn = e.target.closest('[data-guest-plan-kp]');
-      if (planBtn) {
+      const addBtn = e.target.closest('[data-guest-add-kp]');
+      if (addBtn) {
         e.preventDefault();
         e.stopPropagation();
-        const kp = String(planBtn.getAttribute('data-guest-plan-kp') || '').replace(/\D/g, '');
-        if (!requireAuthForAction('Войдите, чтобы добавить фильм в план')) return;
-        if (kp && typeof openFilmWithFallback === 'function') openFilmWithFallback(kp);
+        guestDiscoverAddToBase(addBtn);
+        return;
+      }
+      const premiereBtn = e.target.closest('[data-action="premiere-notify-on"],[data-action="premiere-notify-off"]');
+      if (premiereBtn && root.contains(premiereBtn)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlePremiereNotifyButton(premiereBtn);
         return;
       }
       const tile = e.target.closest('.guest-discover-card-link, .home-poster-tile, .home-pre-card, a[href^="/f/"]');
@@ -13187,15 +13326,15 @@
        custom `.guest-*-btn` skins, or legacy non-pill buttons on this site. */
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
-    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { planLabel: 'В план' });
+    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { forcePremiere: true });
     const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 18), 'plans-buzz');
     const buzzGrid = (!buzzRail && buzz.length)
-      ? renderGuestDiscoverGridHtml(buzz.slice(0, 14), 'plans-buzz-grid', { planLabel: 'В план' })
+      ? renderGuestDiscoverGridHtml(buzz.slice(0, 14), 'plans-buzz-grid', {})
       : '';
     const discussExtra = renderGuestDiscoverGridHtml(
       (buzz.length >= 8 ? buzz.slice(8, 20) : []),
       'plans-discuss-more',
-      { planLabel: 'В план' }
+      {}
     );
     return '<div class="guest-discover guest-discover--plans" id="guest-plans-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
@@ -13219,8 +13358,8 @@
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
     /* Prefer dense poster GRID on База (full-bleed), rail only as fallback. */
-    const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', { planLabel: 'В план' });
-    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'base-premieres-grid', { planLabel: 'В план' });
+    const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', {});
+    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'base-premieres-grid', { forcePremiere: true });
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
@@ -13244,6 +13383,7 @@
       if (!isGuestCabinetPreview()) return;
       listEl.innerHTML = guestPlansDiscoveryHtml(rails);
       bindGuestDiscoverClicksOnce(listEl);
+      bindGuestDiscoverHoverPreview(listEl);
       try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
     });
   }
@@ -13255,6 +13395,7 @@
       if (!isGuestCabinetPreview()) return;
       listEl.innerHTML = guestBaseDiscoveryHtml(rails);
       bindGuestDiscoverClicksOnce(listEl);
+      bindGuestDiscoverHoverPreview(listEl);
       try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
     });
   }
