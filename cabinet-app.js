@@ -232,6 +232,20 @@
     return '/api/public/poster/kp/st/images/film_iphone/iphone360_' + kp + '.jpg';
   }
 
+  /** Premiere grid/rail: never prefer branded popcorn over KP CDN / real art.
+   *  Snapshot often bakes placeholder while /f/ (live probe) already has art;
+   *  stories already skipped placeholders — match that for the cover grid. */
+  function premiereCoverPosterSrc(it) {
+    const kp = it && (it.kp_id || it.kpId || it.kp);
+    const raw = cleanPosterUrl(it && (it.poster || it.poster_url || it.poster_thumb));
+    if (raw && !/film-poster-placeholder/i.test(raw)) return raw;
+    if (kp) {
+      const fb = posterUrl(kp);
+      if (fb && !/film-poster-placeholder/i.test(fb)) return fb;
+    }
+    return MP_POSTER_PLACEHOLDER;
+  }
+
   function isKpFilmCdnTemplateUrl(src, kpId) {
     const s = String(src || '').trim().toLowerCase();
     if (!s || (s.indexOf('st.kp.yandex.net') < 0 && s.indexOf('/api/public/poster/kp/st/') < 0)) return false;
@@ -11450,10 +11464,10 @@
   function renderHomePremiereRailHtml(items) {
     if (!items || !items.length) return '';
     return '<div class="home-prem-rail home-rail--draggable" role="list">' + items.slice(0, 12).map((it) => {
-      const poster = it.poster || posterUrl(it.kp_id);
+      const poster = premiereCoverPosterSrc(it);
       const datePill = typeof formatPremiereDateDdMm === 'function' ? formatPremiereDateDdMm(it.premiere_date) : '';
       const attrs = homeDashNavAttrs(it);
-      const imgSrc = cleanPosterUrl(poster) || MP_POSTER_PLACEHOLDER;
+      const imgSrc = poster || MP_POSTER_PLACEHOLDER;
       const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
       const img = imgSrc
         ? '<img class="home-pre-card-poster-img premiere-poster-tile-img" src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + mpPosterOnErrorAttr() + '>'
@@ -26882,10 +26896,11 @@
   }
 
   function storyPosterUrl(it, kp) {
-    const raw = String((it && (it.poster || it.poster_thumb)) || '').trim();
-    if (raw && raw.toLowerCase().indexOf('placeholder') < 0) {
-      const abs = resolveTitleLogoUrl(raw);
+    const src = premiereCoverPosterSrc(Object.assign({}, it || {}, { kp_id: kp || (it && it.kp_id) }));
+    if (src && !/film-poster-placeholder/i.test(src)) {
+      const abs = resolveTitleLogoUrl(src);
       if (abs) return abs;
+      return src;
     }
     return posterUrl(kp);
   }
@@ -27423,7 +27438,7 @@
     }
     try { renderPremieresStories(items); } catch (_st2) {}
     grid.innerHTML = items.map((it) => {
-      const poster = it.poster || posterUrl(it.kp_id);
+      const poster = premiereCoverPosterSrc(it);
       const year = it.year ? escapeHtml(String(it.year)) : '';
       const datePill = formatPremiereDateDdMm(it.premiere_date);
       const bell = renderPremiereNotifyButton(it, 'premiere-poster-bell');
@@ -27447,7 +27462,7 @@
       const titleHtml = '<span class="premiere-poster-tile-title-text">' + escapeHtml(displayTitle) + '</span>';
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
-          ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
+          ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${mpPosterOnErrorAttr()}>` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
           ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
           <span data-stop-card-click="1">${bell}</span>
         </div>
