@@ -31403,12 +31403,11 @@ body.premieres-stories-player-open {
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
   }
   .premieres-story.is-active-story .premieres-story-media {
-    /* INSET ring only — never clipped by rail overflow (recurring bug) */
+    /* Real border (not outline/outer shadow): survives rail overflow + media overflow:hidden */
     outline: none !important;
     outline-offset: 0 !important;
-    box-shadow:
-      inset 0 0 0 2.5px rgba(255, 255, 255, 0.95),
-      0 8px 22px rgba(0, 0, 0, 0.35) !important;
+    border: 2.5px solid rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35) !important;
   }
   .premieres-stories--desktop .premieres-story-title-fallback {
     font-size: 11px;
@@ -31723,7 +31722,7 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === 20260915trailerUx1b: FS chrome + hover bridge + chip title/ring === */
+/* === 20260915trailerUx1c: FS chrome + hover bridge + chip title/ring === */
 
 /* Hover preview: card + popup as one hit group */
 .premiere-poster-tile.is-preview-open .home-film-preview,
