@@ -1,4 +1,4 @@
-/* MARKER:guestPlansDense3 — cabinet-sections 100%, no right clip */
+/* MARKER:guestFirmBtns1 — centered guest hero + firm .btn pills only */
 /**
  * Movie Planner — личный кабинет на сайте
  * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
@@ -13143,7 +13143,7 @@
       + '<div class="guest-discover-card-title">' + title + '</div>'
       + (year ? ('<div class="guest-discover-card-year">' + year + '</div>') : '')
       + '</div></a>'
-      + '<button type="button" class="guest-discover-plan-btn" data-guest-plan-kp="' + kp + '" data-stop-card-click="1">'
+      + '<button type="button" class="btn btn-small btn-secondary guest-discover-plan-btn" data-guest-plan-kp="' + kp + '" data-stop-card-click="1">'
       + escapeHtml(planLabel) + '</button>'
       + '</article>';
   }
@@ -13181,6 +13181,10 @@
   }
 
   function guestPlansDiscoveryHtml(rails) {
+    /* AGENT NOTE (durable): Movie Planner guest/cabinet CTAs must use ONLY the firm
+       button system — `.btn.btn-primary` / `.btn.btn-secondary` (optionally `.btn-small`
+       for compact). Pill 50px + CTA gradient. NEVER invent gray/plain leftovers,
+       custom `.guest-*-btn` skins, or legacy non-pill buttons on this site. */
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
     const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { planLabel: 'В план' });
@@ -13200,9 +13204,9 @@
       + '<p>Листайте афишу и тренды — вход понадобится только чтобы сохранить план.</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
-      + '<a class="btn btn-secondary" href="/premieres">Премьеры</a>'
-      + '<a class="btn btn-secondary" href="/whattowatch">Подобрать</a>'
-      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти</button>'
+      + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
+      + '<a class="btn btn-small btn-secondary" href="/whattowatch">Подобрать</a>'
+      + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
       + (premGrid ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premGrid) : '')
       + (buzzRail ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzRail) : '')
@@ -13214,11 +13218,9 @@
   function guestBaseDiscoveryHtml(rails) {
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
+    /* Prefer dense poster GRID on База (full-bleed), rail only as fallback. */
     const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', { planLabel: 'В план' });
-    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 16), 'base-premieres');
-    const premGrid = (!premRail && prem.length)
-      ? renderGuestDiscoverGridHtml(prem.slice(0, 14), 'base-premieres-grid', { planLabel: 'В план' })
-      : '';
+    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'base-premieres-grid', { planLabel: 'В план' });
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
@@ -13226,12 +13228,11 @@
       + '<p>Смотрите афишу и тренды без входа. Сохранение — после входа.</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
-      + '<a class="btn btn-secondary" href="/premieres">Премьеры</a>'
-      + '<a class="btn btn-secondary" href="/buzz">В тренде</a>'
-      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти</button>'
+      + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
+      + '<a class="btn btn-small btn-secondary" href="/buzz">В тренде</a>'
+      + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
       + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
-      + (premRail ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premRail) : '')
       + (premGrid ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premGrid) : '')
       + '</div>';
   }
