@@ -164,8 +164,15 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
     z-index: 302;
   }
 
+  /* Гость: без «Главная»; База browse-first */
   body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href$="/home"],
-  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href$="/watchlist"] {
+  body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href$="/home"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  body.landing-guest-home #landing-root-nav .cabinet-nav-btn[href$="/watchlist"],
+  body.guest-cabinet-preview #landing-root-nav .cabinet-nav-btn[href$="/watchlist"] {
     display: inline-flex !important;
   }
 
@@ -208,7 +215,7 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
     bottom: 0 !important;
     top: auto !important;
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     justify-items: stretch !important;
     align-items: stretch !important;
     justify-content: unset !important;
@@ -268,11 +275,10 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
     display: none !important;
   }
 
-  /* Гость без авторизации: 4 таба — Планы / Смотреть / Премьеры / В тренде */
+  /* Гость: без Главная; База видна */
   body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/home"],
-  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"],
   body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/home"],
-  body.landing-guest-home.landing-root-page #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"] {
+  body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
@@ -704,7 +710,7 @@ body.landing-guest-home main#landing:not(.hidden) {
   body.landing-guest-home .landing-steps--center,
   body.landing-guest-home.landing-root-page .landing-steps--center {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 16px 12px !important;
     margin: 24px auto 0 !important;
     max-width: 100% !important;
