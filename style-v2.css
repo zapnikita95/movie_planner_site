@@ -2579,18 +2579,14 @@ body.in-cabinet #cabinet-readonly.cabinet.film-page-mode ~ footer.footer {
     backdrop-filter: blur(14px);
     overflow: visible;
   }
-  /* Guest mobile: 4 tabs — Планы / Смотреть / Премьеры / В тренде (лого → лендинг /) */
+  /* Guest mobile: hide Главная+Турнир; База browse-first visible */
   body.landing-root-page #landing-root-nav .cabinet-nav-btn[href$="/home"],
-  body.landing-root-page #landing-root-nav .cabinet-nav-btn[href$="/watchlist"],
   body.landing-root-page #landing-root-nav .cabinet-nav-btn[href$="/tournament"],
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/home"],
-  body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/watchlist"],
   body.film-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/tournament"],
   body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/home"],
-  body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/watchlist"],
   body.staff-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/tournament"],
   body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/home"],
-  body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/watchlist"],
   body.user-standalone-page .film-standalone-nav .cabinet-nav-btn[href$="/tournament"] {
     display: none !important;
   }
@@ -15418,11 +15414,10 @@ body.landing-root-page #landing-root-nav.hidden {
   body.landing-guest-home #landing-root-nav,
   body.landing-guest-home #landing-root-nav.hidden {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     visibility: visible !important;
   }
-  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/home"],
-  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/watchlist"] {
+  body.landing-guest-home #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
     display: none !important;
   }
 }

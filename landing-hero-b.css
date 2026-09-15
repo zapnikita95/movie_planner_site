@@ -235,7 +235,7 @@ body.landing-guest-home.landing-root-page.film-standalone-page .logo > span {
   }
 
   body.landing-guest-home #landing-root-nav .cabinet-nav-btn,
-  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn:not([href$="/home"]):not([href$="/watchlist"]) {
+  body.landing-guest-home.landing-root-page #landing-root-nav .cabinet-nav-btn:not([href$="/home"]) {
     flex: unset !important;
     width: 100% !important;
     min-width: 0 !important;
