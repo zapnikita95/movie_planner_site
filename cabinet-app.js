@@ -1,3 +1,4 @@
+/* MARKER:guestBrowse1 — no guest /home; browse-first База+Планы */
 /**
  * Movie Planner — личный кабинет на сайте
  * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
@@ -866,7 +867,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { home: true, plans: true, premieres: true, buzz: true, whattowatch: true, club: true };
+  const GUEST_CABINET_SECTIONS = { plans: true, premieres: true, buzz: true, whattowatch: true, club: true, unwatched: true };
 
   function isClubPath(pathname) {
     try {
@@ -1034,7 +1035,7 @@
   function guestCabinetBottomNavPath() {
     try {
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      if (bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
+      if (bootPath === '/plans' || bootPath === '/watchlist' || bootPath === '/premieres' || bootPath === '/buzz'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0
@@ -1073,6 +1074,10 @@
         try { btnPath = new URL(btnPath, window.location.origin).pathname.replace(/\/$/, '') || '/'; } catch (_) {}
         b.classList.toggle('active', !!href && btnPath === href);
       });
+      document.querySelectorAll('#cabinet-readonly .cabinet-nav-btn[data-section="home"]').forEach((b) => {
+        b.classList.add('hidden');
+        b.setAttribute('hidden', '');
+      });
     } catch (_) {}
   }
 
@@ -1102,7 +1107,12 @@
       if (staffIdFromPathname(window.location.pathname)) return false;
 
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-      let sec = sectionId || sectionFromPath(bootPath) || 'home';
+      /* Гость: /home → маркетинг, не кабинетная «Главная» */
+      if (bootPath === '/home' || sectionId === 'home') {
+        try { window.location.replace('/' + (window.location.search || '') + (window.location.hash || '')); } catch (_) {}
+        return true;
+      }
+      let sec = sectionId || sectionFromPath(bootPath) || 'plans';
       const wtwState = typeof wtwStateFromPath === 'function' ? wtwStateFromPath(bootPath) : null;
       if (wtwState) {
         sec = 'whattowatch';
@@ -1111,9 +1121,11 @@
         try { sessionStorage.setItem('mp_wtw_scope', wtwState.scope); } catch (_) {}
       } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
         sec = 'whattowatch';
+      } else if (bootPath === '/watchlist' || sec === 'unwatched') {
+        sec = 'unwatched';
       }
-      if (sec !== 'home' && sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch' && sec !== 'club') return false;
-      const guestPathOk = bootPath === '/home' || bootPath === '/plans' || bootPath === '/premieres' || bootPath === '/buzz'
+      if (sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch' && sec !== 'club' && sec !== 'unwatched') return false;
+      const guestPathOk = bootPath === '/plans' || bootPath === '/watchlist' || bootPath === '/premieres' || bootPath === '/buzz'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0
@@ -4370,7 +4382,7 @@
       return true;
     }
     const sec = sectionFromPath(path);
-    if (sec === 'home' || sec === 'plans' || sec === 'premieres' || sec === 'buzz' || sec === 'whattowatch') {
+    if (sec === 'plans' || sec === 'premieres' || sec === 'buzz' || sec === 'whattowatch' || sec === 'unwatched') {
       bootGuestCabinetPreview(sec);
       return true;
     }
@@ -10932,10 +10944,6 @@
       + '</div></div>'
       + '<div class="home-film-preview-trailer" hidden>'
       + '<div class="home-film-preview-trailer-frame" data-trailer-frame="1"></div>'
-      + '<div class="home-film-preview-trailer-bar" hidden>'
-      + '<button type="button" class="home-film-preview-trailer-pause" data-hover-trailer-pause="1" aria-label="Пауза">❚❚</button>'
-      + '<button type="button" class="home-film-preview-trailer-expand" data-hover-trailer-expand="1" aria-label="На весь экран">⛶</button>'
-      + '</div>'
       + '</div></div>';
   }
 
@@ -13059,6 +13067,148 @@
     }
   }
 
+
+  function guestDiscoverPosterSrc(it) {
+    if (!it) return '';
+    const p = it.poster_thumb || it.poster || '';
+    if (p) return String(p);
+    const kp = String(it.kp_id || '').replace(/\D/g, '');
+    return kp ? posterUrl(kp) : '';
+  }
+
+  function guestDiscoverNormalizeItem(it) {
+    if (!it || typeof it !== 'object') return null;
+    const kp = String(it.kp_id || it.kinopoisk_id || '').replace(/\D/g, '');
+    if (!kp) return null;
+    return {
+      kp_id: kp,
+      title: it.title || it.name || '—',
+      year: it.year || '',
+      poster: guestDiscoverPosterSrc(it),
+      description: it.description || '',
+      genres: Array.isArray(it.genres) ? it.genres.map(function (g) {
+        return (g && (g.name || g)) || '';
+      }).filter(Boolean).join(', ') : (it.genres || ''),
+      rating_kp: it.rating_kp || it.rating || null,
+      premiere_date: it.premiere_date || '',
+    };
+  }
+
+  function fetchGuestDiscoverRails() {
+    const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
+    const prem = fetch(base + '/api/public/premieres?period=soon&limit=16', { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        const raw = (d && (d.items || d.films || d.premieres)) || [];
+        return (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
+      })
+      .catch(function () { return []; });
+    const buzz = fetch(base + '/api/public/buzz?days=7&limit=16&view=films', { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        const raw = (d && (d.items || d.films)) || [];
+        return (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
+      })
+      .catch(function () { return []; });
+    return Promise.all([prem, buzz]).then(function (pair) {
+      return { premieres: pair[0] || [], buzz: pair[1] || [] };
+    });
+  }
+
+  function renderGuestDiscoverRailHtml(items, railId) {
+    if (!items || !items.length) return '';
+    const rail = typeof renderHomePosterRailHtml === 'function'
+      ? renderHomePosterRailHtml(items, { vitrine: false })
+      : '';
+    if (!rail) return '';
+    return rail.replace('class="home-poster-rail', 'class="home-poster-rail guest-discover-rail" data-guest-rail="' + railId + '"');
+  }
+
+  function bindGuestDiscoverClicksOnce(root) {
+    if (!root || root._mpGuestDiscoverBound) return;
+    root._mpGuestDiscoverBound = true;
+    root.addEventListener('click', function (e) {
+      const planBtn = e.target.closest('[data-guest-plan-kp]');
+      if (planBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const kp = String(planBtn.getAttribute('data-guest-plan-kp') || '').replace(/\D/g, '');
+        if (!requireAuthForAction('Войдите, чтобы добавить фильм в план')) return;
+        if (kp && typeof openFilmWithFallback === 'function') openFilmWithFallback(kp);
+        return;
+      }
+      const tile = e.target.closest('.home-poster-tile, .home-pre-card, a[href^="/f/"]');
+      if (!tile) return;
+      if (e.target.closest('[data-stop-card-click]')) return;
+      const href = tile.getAttribute('href') || '';
+      const kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-kp') || href.replace(/^\/f\//, '')).replace(/\D/g, '');
+      if (!kp) return;
+      e.preventDefault();
+      if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kp);
+      else window.location.assign('/f/' + kp);
+    });
+  }
+
+  function guestPlansDiscoveryHtml(rails) {
+    const prem = (rails && rails.premieres) || [];
+    const buzz = (rails && rails.buzz) || [];
+    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 12), 'plans-premieres');
+    const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 12), 'plans-buzz');
+    return '<div class="guest-discover guest-discover--plans" id="guest-plans-discover">'
+      + '<div class="guest-discover-hero">'
+      + '<h3>Что запланировать?</h3>'
+      + '<p>Выберите фильм или сериал — премьеры и то, что сейчас обсуждают. Сохранение плана попросит войти.</p>'
+      + '<div class="guest-discover-cta-row">'
+      + '<a class="btn btn-secondary" href="/premieres">Календарь премьер</a>'
+      + '<a class="btn btn-secondary" href="/whattowatch">Подобрать</a>'
+      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти и вести свои планы</button>'
+      + '</div></div>'
+      + (premRail ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premRail) : '')
+      + (buzzRail ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzRail) : '')
+      + '</div>';
+  }
+
+  function guestBaseDiscoveryHtml(rails) {
+    const prem = (rails && rails.premieres) || [];
+    const buzz = (rails && rails.buzz) || [];
+    const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 14), 'base-buzz');
+    const premRail = renderGuestDiscoverRailHtml(prem.slice(0, 14), 'base-premieres');
+    return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
+      + '<div class="guest-discover-hero">'
+      + '<h3>База фильмов</h3>'
+      + '<p>Смотрите афишу и тренды без входа. Чтобы сохранить в свою коллекцию, оценить или отметить просмотр — войдите.</p>'
+      + '<div class="guest-discover-cta-row">'
+      + '<a class="btn btn-secondary" href="/premieres">Премьеры</a>'
+      + '<a class="btn btn-secondary" href="/buzz">В тренде</a>'
+      + '<button type="button" class="btn btn-primary" data-guest-auth-cta="1">Войти в базу</button>'
+      + '</div></div>'
+      + (buzzRail ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzRail) : '')
+      + (premRail ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premRail) : '')
+      + '</div>';
+  }
+
+  function mountGuestPlansDiscovery(listEl) {
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Подбираем фильмы…</p></div>';
+    fetchGuestDiscoverRails().then(function (rails) {
+      if (!isGuestCabinetPreview()) return;
+      listEl.innerHTML = guestPlansDiscoveryHtml(rails);
+      bindGuestDiscoverClicksOnce(listEl);
+      try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+    });
+  }
+
+  function mountGuestBaseDiscovery(listEl) {
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Загружаем афишу…</p></div>';
+    fetchGuestDiscoverRails().then(function (rails) {
+      if (!isGuestCabinetPreview()) return;
+      listEl.innerHTML = guestBaseDiscoveryHtml(rails);
+      bindGuestDiscoverClicksOnce(listEl);
+      try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+    });
+  }
+
   function _plansHubAction(action, iconKey, label, extraClass) {
     const cls = 'home-emoji-btn mp-icon-btn' + (extraClass ? (' ' + extraClass) : '');
     return '<div class="plans-empty-hub-action">'
@@ -13070,6 +13220,9 @@
   }
 
   function _plansEmptyMessage() {
+    if (isGuestCabinetPreview()) {
+      return '<div class="plans-list-empty-wrap guest-plans-empty-host" id="guest-plans-empty-host"><p class="empty-hint">Подбираем фильмы…</p></div>';
+    }
     if (_plansViewFilter === 'premieres') {
       return '<div class="plans-list-empty-wrap plans-empty-premieres">'
         + '<p class="empty-hint">Пока нет напоминаний о премьерах.</p>'
@@ -13096,6 +13249,7 @@
     const items = _getPlansListForView();
     if (!items.length) {
       listEl.innerHTML = _plansEmptyMessage();
+      if (isGuestCabinetPreview()) mountGuestPlansDiscovery(listEl);
       return;
     }
     listEl.innerHTML = items.map(_renderPlanCard).join('');
@@ -13137,8 +13291,8 @@
       if (hub) {
         e.preventDefault();
         const action = hub.getAttribute('data-plans-hub');
-        if (isGuestCabinetPreview() && !requireAuthForAction()) return;
         if (action === 'schedule') {
+          if (!requireAuthForAction('Войдите, чтобы добавить план')) return;
           openAddFilmModal();
           return;
         }
@@ -13152,6 +13306,12 @@
           if (typeof renderPremieresSection === 'function') renderPremieresSection(true);
           return;
         }
+      }
+      const guestAuthCta = e.target.closest('[data-guest-auth-cta]');
+      if (guestAuthCta) {
+        e.preventDefault();
+        requireAuthForAction('Войдите, чтобы вести свою базу и планы');
+        return;
       }
       const act = e.target.closest('[data-plans-action]');
       if (act) {
@@ -13207,6 +13367,15 @@
   }
 
   function loadPlans() {
+    if (isGuestCabinetPreview()) {
+      try {
+        _plansByEntity = { personal: { home: [], cinema: [], premieres: [] } };
+        _plansData = { home: [], cinema: [], premieres: [] };
+        _plansEntityFilter = 'personal';
+      } catch (_) {}
+      renderPlansList();
+      return;
+    }
     const profilesReady = _planEntityProfilesPromise || initHeaderPlanTarget();
     profilesReady.then(() => {
       const entities = [{ key: 'personal' }].concat(
@@ -13942,74 +14111,6 @@
     }, HOVER_PREVIEW_LEAVE_GRACE_MS);
   }
 
-  function bindHoverTrailerControls(card) {
-    if (!card || card._mpHoverCtrlBound) return;
-    card._mpHoverCtrlBound = true;
-    card.addEventListener('click', (e) => {
-      const pauseBtn = e.target && e.target.closest ? e.target.closest('[data-hover-trailer-pause]') : null;
-      const expandBtn = e.target && e.target.closest ? e.target.closest('[data-hover-trailer-expand]') : null;
-      if (!pauseBtn && !expandBtn) return;
-      if (!card.contains(pauseBtn || expandBtn)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const frame = card.querySelector('[data-trailer-frame]');
-      const video = frame ? frame.querySelector('video') : null;
-      if (pauseBtn) {
-        if (video) {
-          if (video.paused) {
-            try { const p = video.play(); if (p && p.catch) p.catch(() => {}); } catch (_p) {}
-            pauseBtn.textContent = '❚❚';
-            pauseBtn.setAttribute('aria-label', 'Пауза');
-          } else {
-            try { video.pause(); } catch (_p) {}
-            pauseBtn.textContent = '▶';
-            pauseBtn.setAttribute('aria-label', 'Смотреть');
-          }
-        }
-        return;
-      }
-      if (expandBtn) {
-        const kp = hoverTrailerKpFromCard(card);
-        const playKind = ((card.querySelector('.home-film-preview') || {}).getAttribute('data-play-kind') || '');
-        // Prefer premiere landscape player when on premieres; else film lightbox.
-        try {
-          if (card.classList.contains('premiere-poster-tile') && typeof openPremieresStoriesPlayer === 'function') {
-            const items = _premieresStoriesItems || [];
-            let idx = items.findIndex((it) => String((it && (it.kp_id || it.kpId)) || '').replace(/\D/g, '') === kp);
-            if (idx < 0) {
-              // Fall back: open lightbox with current playback if available
-              idx = -1;
-            }
-            if (idx >= 0) {
-              let resumeAt = 0;
-              if (video && video.currentTime) resumeAt = video.currentTime;
-              stopHoverTrailerOnCard(card);
-              card.classList.remove('is-preview-open');
-              openPremieresStoriesPlayer(idx, { resumeAt: resumeAt });
-              return;
-            }
-          }
-        } catch (_op) {}
-        try {
-          if (window.MpFilmPage && typeof window.MpFilmPage.openFilmTrailerLightbox === 'function') {
-            const meta = hoverTrailerTitleYear(card);
-            fetchHoverTrailerPayload(kp, meta).then((d) => {
-              let play = null;
-              if (window.MpFilmPage.pickTrailerPlayback) {
-                play = window.MpFilmPage.pickTrailerPlayback(d, { autoplay: true, muted: false });
-              } else {
-                play = pickHoverPlayback(d);
-              }
-              if (!play || !play.url) return;
-              if (play.kind === 'hls') play.controls = true;
-              window.MpFilmPage.openFilmTrailerLightbox(play);
-            }).catch(() => {});
-          }
-        } catch (_lb) {}
-      }
-    }, true);
-  }
-
   function stopHoverTrailerOnCard(card) {
     if (!card) return;
     clearHoverPreviewCloseTimer(card);
@@ -14018,7 +14119,6 @@
     const pop = card.querySelector('.home-film-preview');
     if (pop) pop.classList.remove('has-trailer-playing', 'is-trailer-loading');
     const slot = card.querySelector('.home-film-preview-trailer');
-    const bar = card.querySelector('.home-film-preview-trailer-bar');
     const frame = card.querySelector('[data-trailer-frame]');
     if (frame) {
       try { if (frame._mpHls) { frame._mpHls.destroy(); frame._mpHls = null; } } catch (_h) {}
@@ -14031,10 +14131,6 @@
         if (v) v.pause();
       } catch (_v) {}
       frame.innerHTML = '';
-    }
-    if (bar) {
-      bar.hidden = true;
-      bar.setAttribute('hidden', '');
     }
     if (slot) {
       slot.hidden = true;
@@ -14049,9 +14145,7 @@
     const pop = card.querySelector('.home-film-preview');
     const slot = card.querySelector('.home-film-preview-trailer');
     const frame = card.querySelector('[data-trailer-frame]');
-    const bar = card.querySelector('.home-film-preview-trailer-bar');
     if (!pop || !slot || !frame) return;
-    bindHoverTrailerControls(card);
     if (card._mpHoverTrailerActive && String(card._mpHoverTrailerKp || '') === kp
         && (frame.querySelector('video') || frame.querySelector('iframe'))) {
       return;
@@ -14073,7 +14167,6 @@
         slot.hidden = true;
         slot.setAttribute('hidden', '');
         frame.innerHTML = '';
-        if (bar) { bar.hidden = true; bar.setAttribute('hidden', ''); }
         return;
       }
       frame.innerHTML = '';
@@ -14087,10 +14180,6 @@
           loop: true,
           objectFit: 'cover',
         });
-        if (bar) {
-          bar.hidden = false;
-          bar.removeAttribute('hidden');
-        }
       } else {
         const iframe = document.createElement('iframe');
         iframe.src = play.url;
@@ -14101,10 +14190,6 @@
         iframe.setAttribute('loading', 'eager');
         iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
         frame.appendChild(iframe);
-        if (bar) {
-          bar.hidden = false;
-          bar.removeAttribute('hidden');
-        }
       }
       pop.classList.add('has-trailer-playing');
       pop.setAttribute('data-play-kind', play.kind || '');
@@ -14113,7 +14198,6 @@
       pop.classList.remove('is-trailer-loading');
       slot.hidden = true;
       slot.setAttribute('hidden', '');
-      if (bar) { bar.hidden = true; bar.setAttribute('hidden', ''); }
     });
   }
 
@@ -14216,6 +14300,10 @@
   function loadUnwatched() {
     const sec = document.getElementById('section-unwatched');
     if (sec && sec.classList.contains('hidden')) return;
+    if (isGuestCabinetPreview()) {
+      mountGuestBaseDiscovery(document.getElementById('unwatched-list'));
+      return;
+    }
     api('/api/site/unwatched').then((data) => {
       unwatchedItems = Array.isArray(data && data.items) ? data.items : [];
       bindUnwatchedCompactControls();
@@ -27496,6 +27584,26 @@
     });
   }
 
+  /** Horizontally nudge chip into the stories rail — never scroll the page (user may be reading below). */
+  function scrollStoriesChipInRail(chip) {
+    const rail = document.getElementById('premieres-stories-rail');
+    if (!rail || !chip || !rail.contains(chip)) return;
+    try {
+      const pad = 12;
+      const railLeft = rail.scrollLeft;
+      const viewW = rail.clientWidth;
+      const chipLeft = chip.offsetLeft;
+      const chipRight = chipLeft + chip.offsetWidth;
+      let next = railLeft;
+      if (chipLeft < railLeft + pad) next = Math.max(0, chipLeft - pad);
+      else if (chipRight > railLeft + viewW - pad) next = Math.max(0, chipRight - viewW + pad);
+      if (Math.abs(next - railLeft) > 1) {
+        if (typeof rail.scrollTo === 'function') rail.scrollTo({ left: next, behavior: 'smooth' });
+        else rail.scrollLeft = next;
+      }
+    } catch (_s) {}
+  }
+
   function stopPremieresStoryTrailer(card) {
     if (!card) return;
     card.classList.remove('is-playing', 'is-loading');
@@ -28089,12 +28197,10 @@
         if (token !== _premieresStoriesStageToken) return;
         stage.classList.remove('is-loading');
       });
-      // Auto-center only for programmatic advance — not while user drag-scrolls / dwells
+      // Keep chip visible in the rail only — never scrollIntoView (would yank page up to stage)
       if (!opts.fromHoverDwell) {
         const chip = document.querySelector('#premieres-stories-rail .premieres-story[data-story-idx="' + i + '"]');
-        if (chip && chip.scrollIntoView) {
-          try { chip.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }); } catch (_s) {}
-        }
+        if (chip) scrollStoriesChipInRail(chip);
       }
       return;
     }
@@ -28105,7 +28211,7 @@
     if (!card) return;
     stopAllPremieresStoryTrailers(kp);
     mountPremieresStoryTrailer(card, i);
-    try { card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } catch (_s2) {}
+    scrollStoriesChipInRail(card);
   }
 
   function mountPremieresStoryTrailer(card, idx) {
@@ -29231,9 +29337,9 @@
         if (!getToken() && sectionNeedsAuthForGuest(sec)) {
           requireAuthForAction('Войдите, чтобы открыть этот раздел');
           try {
-            history.replaceState(null, '', '/home');
-            if (!bootGuestCabinetPreview('home') && isGuestCabinetPreview()) {
-              showSection('home', { skipPush: true });
+            history.replaceState(null, '', '/plans');
+            if (!bootGuestCabinetPreview('plans') && isGuestCabinetPreview()) {
+              showSection('plans', { skipPush: true });
             }
           } catch (_) {}
           return;
@@ -29478,8 +29584,13 @@
         handleAuthEntryDeepLinks();
         return;
       }
+      const guestDeepPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+      if (guestDeepPath === '/home') {
+        try { window.location.replace('/' + (window.location.search || '') + (window.location.hash || '')); } catch (_) {}
+        return;
+      }
       const guestDeep = sectionFromPath(window.location.pathname);
-      if (guestDeep === 'home' || guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch' || guestDeep === 'club') {
+      if (guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch' || guestDeep === 'club' || guestDeep === 'unwatched') {
         if (bootGuestCabinetPreview(guestDeep)) {
           handleAuthEntryDeepLinks();
           return;
@@ -29487,8 +29598,8 @@
       }
       if (guestDeep && sectionNeedsAuthForGuest(guestDeep)) {
         rememberPostLoginPath(window.location.pathname);
-        try { history.replaceState(null, '', '/home'); } catch (_) {}
-        bootGuestCabinetPreview('home');
+        try { history.replaceState(null, '', '/plans'); } catch (_) {}
+        bootGuestCabinetPreview('plans');
         requireAuthForAction('Войдите, чтобы открыть этот раздел');
         handleAuthEntryDeepLinks();
         return;

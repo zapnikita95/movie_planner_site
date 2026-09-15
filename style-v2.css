@@ -31893,3 +31893,39 @@ main.film-page .hero-content > h1.film-title-slot {
   border-radius: 0 !important;
   aspect-ratio: auto !important;
 }
+
+
+/* === guestBrowse1 discovery === */
+body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+.guest-discover { margin: 8px 0 28px; padding: 0 2px 8px; }
+.guest-discover-hero {
+  margin: 0 0 18px; padding: 18px 20px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,126,182,0.16), rgba(120,110,255,0.12) 48%, rgba(20,20,28,0.35));
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.guest-discover-hero h3 {
+  margin: 0 0 6px; font-family: Unbounded, sans-serif; font-weight: 800;
+  font-size: clamp(1.15rem, 2.4vw, 1.45rem); letter-spacing: -0.02em;
+}
+.guest-discover-hero p { margin: 0; opacity: 0.82; font-size: 15px; line-height: 1.45; max-width: 46ch; }
+.guest-discover-rail-title {
+  margin: 18px 0 10px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  text-transform: uppercase; opacity: 0.72;
+}
+.guest-discover .home-poster-rail { margin: 0 0 6px; }
+.guest-discover-cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.guest-discover-cta-row .btn { min-width: 0; }
+body.guest-cabinet-preview #section-unwatched .base-section-toolbar,
+body.guest-cabinet-preview #section-unwatched .cabinet-hint,
+body.guest-cabinet-preview #section-plans .cabinet-plans-toolbar,
+body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !important; }
+@media (max-width: 860px) {
+  body.landing-guest-home #landing-root-nav,
+  body.guest-cabinet-preview #landing-root-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
