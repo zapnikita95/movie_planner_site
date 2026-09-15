@@ -11,7 +11,7 @@
   var RAIL_PREFETCH_COOLDOWN_MS = 700;
   var RAIL_IMAGE_EAGER_COUNT = 6;
   var RAIL_IMAGE_WARM_MARGIN_PX = 280;
-  var RAIL_CACHE_VERSION = 13;
+  var RAIL_CACHE_VERSION = 14;
   var RAIL_CACHE_TTL_MS = 10 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_MS = 60 * 60 * 1000;
   var RAIL_CACHE_TTL_PREMIERES_STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -30,6 +30,8 @@
   function normalizeRailPoster(url) {
     var u = String(url || "").trim();
     if (!u) return "";
+    // Branded popcorn is not real art — treat as empty so rails fall back to KP CDN.
+    if (/film-poster-placeholder/i.test(u)) return "";
     var m = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
     if (m) return "/api/public/poster/tmdb/" + m[1] + "/" + m[2];
     m = u.match(/^https?:\/\/avatars\.mds\.yandex\.net\/(get-kinopoisk-image\/[^?#]+)/i);
