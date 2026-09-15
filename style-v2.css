@@ -11252,7 +11252,8 @@ a.link-inline:hover {
 @media (hover: none), (max-width: 640px) {
   .home-film-preview-trailer,
   .premiere-poster-tile .home-film-preview,
-  #section-unwatched .film-card-v2--hover-preview .home-film-preview {
+  #section-unwatched .film-card-v2--hover-preview .home-film-preview,
+  .guest-discover-card--hover-preview .home-film-preview {
     display: none !important;
   }
 }
@@ -32094,18 +32095,106 @@ body.guest-cabinet-preview #section-unwatched:not(.hidden) #unwatched-list.cards
   font-size: 12px;
   opacity: 0.62;
 }
-/* «В план» = firm .btn.btn-small.btn-secondary, full card width */
-.guest-discover-card .btn.guest-discover-plan-btn,
-.guest-discover-card .btn.btn-small {
-  width: 100%;
-  height: auto !important;
+/* Desktop: year · genre under title (mobile keeps compact) */
+@media (min-width: 861px) {
+  .guest-discover-card-year {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.25;
+    min-height: 1.25em;
+  }
+  .guest-discover-card--hover-preview {
+    position: relative;
+  }
+  .guest-discover-card--hover-preview > .home-film-preview {
+    /* Same hover popup family as authorized film cards / premieres */
+  }
+}
+
+/* Poster corner overlays: + (BL) + premiere bell (BR). No under-card «В план». */
+.guest-discover-card-poster { position: relative; }
+.guest-discover-card-overlays {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.guest-discover-card-overlays > * { pointer-events: auto; }
+.guest-discover-card-overlays .guest-discover-add-btn {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+}
+.guest-discover-card-overlays .guest-discover-add-btn.is-added {
+  background: rgba(61, 214, 140, 0.88);
+  border-color: rgba(255,255,255,0.85);
+  font-size: 14px;
+}
+.guest-discover-card-overlays > span[data-stop-card-click] {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  line-height: 0;
+}
+.guest-discover-card .btn.guest-discover-plan-btn { display: none !important; }
+
+/* Progressive disclosure after + → base */
+.guest-plan-followup {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 99999;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 12px;
+  max-width: min(440px, 92vw);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(20, 20, 28, 0.96);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  color: #fff;
+}
+.guest-plan-followup-copy {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  flex: 1 1 140px;
+}
+.guest-plan-followup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.guest-plan-followup .btn.btn-small {
   min-height: 36px;
-  padding: 8px 12px !important;
+  padding: 8px 14px !important;
+  border-radius: 50px !important;
   font-size: 12px !important;
   font-weight: 700;
-  border-radius: 50px !important;
-  box-sizing: border-box;
-  box-shadow: none;
+}
+
+/* Rudiment: cabinet gradient page titles + icons — keep in DOM for SEO, never show again */
+.cabinet .cabinet-section > h2.section-title:not(.film-tag-view-title):not(#section-settings-title),
+.cabinet .cabinet-section > h2.section-title.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  display: block !important;
+  background: none !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 body.guest-cabinet-preview #section-unwatched .base-section-toolbar,
@@ -32139,5 +32228,39 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
     grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
     gap: 12px 10px;
   }
-  .guest-discover-card .btn.guest-discover-plan-btn { min-height: 34px; font-size: 11px !important; padding: 7px 10px !important; }
+  .guest-discover-card-overlays .guest-discover-add-btn { width: 30px; height: 30px; font-size: 18px; }
+}
+
+/* === guestBazaRage1: guest discover hover preview (desktop) + bridge === */
+.guest-discover-card--hover-preview {
+  position: relative;
+  overflow: visible;
+}
+.guest-discover-card--hover-preview .home-film-preview {
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(8px) scale(.98);
+  z-index: 50;
+}
+.guest-discover-card--hover-preview.is-preview-open .home-film-preview,
+.guest-discover-card--hover-preview:hover .home-film-preview {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+  z-index: 50;
+}
+.guest-discover-card--hover-preview .home-film-preview::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 18px;
+  pointer-events: auto;
+}
+@media (hover: none), (max-width: 860px) {
+  .guest-discover-card--hover-preview .home-film-preview {
+    display: none !important;
+  }
 }
