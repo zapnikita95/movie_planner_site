@@ -31890,7 +31890,7 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === guestPlansDense2 discovery === */
+/* === guestPlansDense3 discovery === */
 body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
   display: none !important;
   visibility: hidden !important;
@@ -31900,7 +31900,9 @@ body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
 body.guest-cabinet-preview #section-plans .plans-entity-switcher-row {
   display: none !important;
 }
-/* cards-list grid trapped guest discover in one ~240px column — break out */
+/* cards-list grid trapped guest discover in one ~240px column — break out.
+   Also: .cabinet-sections was width:1600 inside a ~1392 container → right posters clipped. */
+body.guest-cabinet-preview .cabinet-sections,
 body.guest-cabinet-preview #section-plans,
 body.guest-cabinet-preview #section-plans .cabinet-plans-today,
 body.guest-cabinet-preview #section-plans .plans-today-list,

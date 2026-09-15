@@ -1,4 +1,4 @@
-/* MARKER:guestPlansDense2 — contain guest /plans width, no CTA clip */
+/* MARKER:guestPlansDense3 — cabinet-sections 100%, no right clip */
 /**
  * Movie Planner — личный кабинет на сайте
  * Страницы: movie-planner.ru. API: same-origin (movie-planner.ru).
