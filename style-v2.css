@@ -31890,7 +31890,7 @@ main.film-page .hero-content > h1.film-title-slot {
 }
 
 
-/* === guestPlansDense1 discovery === */
+/* === guestPlansDense2 discovery === */
 body.guest-cabinet-preview #landing-root-nav a.cabinet-nav-btn[href$="/home"] {
   display: none !important;
   visibility: hidden !important;
@@ -31901,25 +31901,30 @@ body.guest-cabinet-preview #section-plans .plans-entity-switcher-row {
   display: none !important;
 }
 /* cards-list grid trapped guest discover in one ~240px column — break out */
+body.guest-cabinet-preview #section-plans,
+body.guest-cabinet-preview #section-plans .cabinet-plans-today,
 body.guest-cabinet-preview #section-plans .plans-today-list,
 body.guest-cabinet-preview #section-plans .plans-today-list.cards-list,
 body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
   display: block !important;
   width: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   grid-template-columns: none !important;
-  margin-bottom: 8px;
+  box-sizing: border-box;
 }
-body.guest-cabinet-preview #section-plans .cabinet-plans-today {
-  width: 100%;
-  max-width: none;
+body.guest-cabinet-preview #section-plans .plans-today-list,
+body.guest-cabinet-preview #section-unwatched #unwatched-list.cards-list {
+  margin-bottom: 8px;
 }
 .guest-discover {
   margin: 4px 0 32px;
   padding: 0;
   width: 100%;
-  max-width: none;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
+  overflow-x: clip;
 }
 .guest-discover-hero {
   margin: 0 0 20px;
@@ -31934,8 +31939,16 @@ body.guest-cabinet-preview #section-plans .cabinet-plans-today {
   align-items: center;
   justify-content: space-between;
   gap: 12px 18px;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
-.guest-discover-hero-copy { flex: 1 1 240px; min-width: 0; }
+.guest-discover-hero-copy { flex: 1 1 220px; min-width: 0; }
+.guest-discover-hero--compact .guest-discover-cta-row {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  max-width: 100%;
+}
 .guest-discover-hero h3 {
   margin: 0 0 4px; font-family: Unbounded, sans-serif; font-weight: 800;
   font-size: clamp(1.12rem, 2.2vw, 1.4rem); letter-spacing: -0.02em;
@@ -31950,6 +31963,10 @@ body.guest-cabinet-preview #section-plans .cabinet-plans-today {
 .guest-discover .home-poster-rail {
   margin: 0 0 10px;
   padding-bottom: 6px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 .guest-discover .home-poster-tile-wrap {
   flex: 0 0 156px;
