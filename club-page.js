@@ -236,11 +236,15 @@
 
   function markClubPlanWatched(fid) { fid = String(fid ? fid : ''); if (!fid) return; if (state.watchedBusy[fid]) return; state.watchedBusy[fid] = true; render(); req('/api/site/film/' + encodeURIComponent(fid) + '/watched', { method: 'POST', headers: { 'X-Movie-Planner-Library-Chat': String(state.id) }, body: JSON.stringify({ watched: true }) }).then(function(d) { if (!d) throw new Error('watch_failed'); if (d.success === false) throw new Error(d.error ? d.error : 'watch_failed'); var plans = state.club.plans ? state.club.plans : []; plans.forEach(function(p) { if (planFilmId(p) === fid) p.member_watched = true; }); toast(String.fromCharCode(1060,1080,1083,1100,1084,1086,1090,32,1086,1090,1084,1077,1095,1077,1085)); }).catch(function(e) { toast(e && e.message ? e.message : 'watch_failed', { type: 'error' }); }).then(function() { delete state.watchedBusy[fid]; render(); }); }
 
-  function clubScheduleAction(x) { return state.member ? clubPlanAction(x) : '<button type="button" class="club-mini-btn" data-club-join>' + String.fromCharCode(1042,1089,1090,1091,1087,1080,1090,1100) + '</button>'; }
+  function clubScheduleAction(x) {
+    var watch = state.member ? clubPlanAction(x) : '<button type="button" class="club-mini-btn" data-club-join>' + String.fromCharCode(1042,1089,1090,1091,1087,1080,1090,1100) + '</button>';
+    return '<div class="club-schedule-actions">' + clubCalendarControls(x) + clubTgAnnounceBtn(x) + watch + '</div>';
+  }
 
   function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
 
   /* MARKER clubHistAdmin1 — analytics admin-only + member history + recording filter */
+  /* MARKER clubShareCal1 — post share + ICS/Google calendar + TG announce stub */
   /* MARKER clubOnboarding1 — sample analytics + first-open tips (client-only, no DB rows) */
   function onboardingStorageKey() {
     return 'mp_club_onboarding_v1_' + String(state.id || '');
@@ -798,6 +802,249 @@
     return 'https://movie-planner.ru' + publicPath(club) + '?invite=1';
   }
 
+  function clubPageUrl(club) {
+    return 'https://movie-planner.ru' + publicPath(club || state.club);
+  }
+
+  function postDeepLink(p) {
+    var base = clubPageUrl(state.club);
+    var id = p && p.id != null ? String(p.id) : '';
+    if (!id) return base;
+    var join = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + join + 'post=' + encodeURIComponent(id);
+  }
+
+  function findPost(pid) {
+    return (state.posts || []).find(function (p) { return String(p.id) === String(pid); });
+  }
+
+  function findPlan(pid) {
+    return ((state.club && state.club.plans) || []).find(function (p) { return String(p.id || '') === String(pid || ''); });
+  }
+
+  function copyText(v, okMsg) {
+    var done = function () { toast(okMsg || 'Скопировано'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(String(v)).then(done).catch(function () { fallback(String(v), done); });
+    } else fallback(String(v), done);
+  }
+
+  function postExcerpt(p, maxLen) {
+    maxLen = maxLen || 280;
+    var titlePart = String((p && p.title) || '').trim();
+    var bodyPart = String((p && p.body) || '').replace(/\s+/g, ' ').trim();
+    var text = titlePart && bodyPart ? (titlePart + '\n' + bodyPart) : (titlePart || bodyPart);
+    if (text.length > maxLen) text = text.slice(0, maxLen - 1).trim() + '…';
+    return text;
+  }
+
+  function postAnnounceText(p) {
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var titlePart = String((p && p.title) || '').trim();
+    var bodyPart = String((p && p.body) || '').trim();
+    var lines = ['🎬 Киноклуб «' + clubName + '»', ''];
+    if (titlePart) lines.push(titlePart);
+    if (bodyPart) lines.push(bodyPart);
+    if (!titlePart && !bodyPart) lines.push('Новый пост в ленте клуба');
+    lines.push('', '🔗 ' + postDeepLink(p));
+    return lines.join('\n');
+  }
+
+  function sharePost(pid) {
+    var p = findPost(pid);
+    if (!p) return;
+    var url = postDeepLink(p);
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var excerpt = postExcerpt(p, 220);
+    var shareText = (excerpt ? excerpt + '\n\n' : '') + 'Киноклуб «' + clubName + '»';
+    if (navigator.share) {
+      navigator.share({ title: clubName, text: shareText, url: url }).catch(function () {
+        copyText(url, 'Ссылка скопирована');
+      });
+      return;
+    }
+    copyText(url, 'Ссылка скопирована');
+  }
+
+  function copyPostAnnounce(pid) {
+    var p = findPost(pid);
+    if (!p) return;
+    copyText(postAnnounceText(p), 'Анонс скопирован');
+  }
+
+  function focusDeepLinkedPost() {
+    try {
+      var params = new URLSearchParams(location.search || '');
+      var pid = params.get('post');
+      if (!pid && location.hash) {
+        var hm = String(location.hash || '').match(/^#post[_/-]?(\d+)/i);
+        if (hm) pid = hm[1];
+      }
+      if (!pid || !root) return;
+      var el = root.querySelector('[data-club-post-id="' + String(pid).replace(/"/g, '') + '"]');
+      if (!el) return;
+      el.classList.add('is-deep-linked');
+      if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (_) {}
+  }
+
+  function moscowParts(d) {
+    var fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    var parts = {};
+    fmt.formatToParts(d).forEach(function (p) { if (p.type !== 'literal') parts[p.type] = p.value; });
+    return parts;
+  }
+
+  function icsLocalStamp(d) {
+    var p = moscowParts(d);
+    return p.year + p.month + p.day + 'T' + p.hour + p.minute + p.second;
+  }
+
+  function icsEscape(s) {
+    return String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  }
+
+  function planDurationMs(p) {
+    var mins = Number(p && (p.duration_minutes || p.runtime || p.film_runtime) || 0);
+    if (!mins || mins < 30) mins = 150;
+    return mins * 60 * 1000;
+  }
+
+  function planEventTimes(p) {
+    var start = new Date(planDate(p));
+    if (isNaN(start.getTime())) return null;
+    var end = new Date(start.getTime() + planDurationMs(p));
+    return { start: start, end: end };
+  }
+
+  function buildPlanIcs(p) {
+    var times = planEventTimes(p);
+    if (!times) return '';
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var summary = title(p) + ' — ' + clubName;
+    var desc = [];
+    var pd = planDescription(p, 500);
+    if (pd) desc.push(pd);
+    desc.push('Киноклуб: ' + clubName);
+    desc.push(clubPageUrl(state.club) + '#schedule');
+    if (state.member && p.zoom_url) desc.push('Обсуждение: ' + p.zoom_url);
+    var uid = 'club-plan-' + String(p.id || icsLocalStamp(times.start)) + '@movie-planner.ru';
+    var lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Movie Planner//Cinema Club//RU',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:' + uid,
+      'DTSTAMP:' + icsLocalStamp(new Date()) ,
+      'DTSTART;TZID=Europe/Moscow:' + icsLocalStamp(times.start),
+      'DTEND;TZID=Europe/Moscow:' + icsLocalStamp(times.end),
+      'SUMMARY:' + icsEscape(summary),
+      'DESCRIPTION:' + icsEscape(desc.join(String.fromCharCode(10))),
+      'URL:' + clubPageUrl(state.club) + '#schedule',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+    return lines.join('\r\n');
+  }
+
+  function googleCalendarUrl(p) {
+    var times = planEventTimes(p);
+    if (!times) return '';
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var text = title(p) + ' — ' + clubName;
+    var details = [];
+    var pd = planDescription(p, 500);
+    if (pd) details.push(pd);
+    details.push('Киноклуб: ' + clubName);
+    details.push(clubPageUrl(state.club) + '#schedule');
+    var dates = icsLocalStamp(times.start) + '/' + icsLocalStamp(times.end);
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent(text)
+      + '&dates=' + encodeURIComponent(dates)
+      + '&details=' + encodeURIComponent(details.join('\n'))
+      + '&ctz=' + encodeURIComponent('Europe/Moscow');
+  }
+
+  function downloadPlanIcs(pid) {
+    var p = findPlan(pid);
+    if (!p) return;
+    var ics = buildPlanIcs(p);
+    if (!ics) { toast('Нет даты сеанса', { type: 'error' }); return; }
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'movie-planner-' + String(p.id || 'plan') + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (_) {} a.remove(); }, 500);
+    toast('Файл календаря скачан');
+  }
+
+  function toggleCalMenu(pid, force) {
+    if (!root) return;
+    root.querySelectorAll('[data-club-cal-menu]').forEach(function (menu) {
+      var open = String(menu.getAttribute('data-club-cal-menu')) === String(pid);
+      if (open) {
+        var next = force == null ? menu.hasAttribute('hidden') : !!force;
+        if (next) menu.removeAttribute('hidden');
+        else menu.setAttribute('hidden', '');
+      } else {
+        menu.setAttribute('hidden', '');
+      }
+    });
+  }
+
+  function planTgCaption(p) {
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var when = fmt(planDate(p));
+    var lines = [
+      '🎬 Анонс киноклуба «' + clubName + '»',
+      '',
+      title(p),
+      when ? ('📅 ' + when + ' (МСК)') : '',
+      planDescription(p, 320) || '',
+      '',
+      '🔗 ' + clubPageUrl(state.club) + '#schedule'
+    ].filter(function (x, i, arr) { return x !== '' || (i > 0 && arr[i - 1] !== ''); });
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+
+  function announcePlanTelegram(pid) {
+    var p = findPlan(pid);
+    if (!p) return;
+    var caption = planTgCaption(p);
+    var url = clubPageUrl(state.club) + '#schedule';
+    var share = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(caption);
+    copyText(caption, 'Текст анонса скопирован — можно вставить в Telegram');
+    try { window.open(share, '_blank', 'noopener'); } catch (_) {}
+  }
+
+  function clubCalendarControls(p) {
+    if (!p || !planDate(p) || !p.id) return '';
+    var pid = String(p.id);
+    var g = googleCalendarUrl(p);
+    return '<div class="club-cal-wrap">'
+      + '<button type="button" class="btn btn-secondary" data-club-cal-toggle="' + esc(pid) + '">В календарь</button>'
+      + '<div class="club-cal-menu" hidden data-club-cal-menu="' + esc(pid) + '">'
+      + '<button type="button" class="btn btn-secondary" data-club-cal-ics="' + esc(pid) + '">Скачать .ics</button>'
+      + (g ? '<a class="btn btn-secondary" href="' + esc(g) + '" target="_blank" rel="noopener noreferrer" data-club-cal-google="' + esc(pid) + '">Google Календарь</a>' : '')
+      + '</div></div>';
+  }
+
+  function clubTgAnnounceBtn(p) {
+    if (!state.admin || !p || !p.id) return '';
+    return '<button type="button" class="btn btn-secondary" data-club-plan-tg="' + esc(String(p.id))
+      + '" title="Скопирует текст и откроет шаринг Telegram (без автопостинга ботом)">Анонс в Telegram</button>';
+  }
+
+
   function maybeCanonicalize(club) {
     try {
       var slug = club && (club.public_slug || club.slug);
@@ -1088,7 +1335,15 @@
   function commentsToggleHtml(p) { var key = String(p.id), count = Number(p.comments_count || 0), open = !!commentState(key).open; return "<button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(key) + "\" aria-expanded=\"" + (open ? "true" : "false") + "\" aria-label=\"Комментарии\"><span class=\"club-comments-icon\">" + icon("chat", { size: "sm" }) + "</span>" + (count ? "<span class=\"club-comments-count\">" + count + "</span>" : "") + "</button>"; }
   function commentsPanelHtml(p) { var key = String(p.id), cs = commentState(key); if (!cs.open) return ""; var out = "<div class=\"club-comments club-comments-panel\">"; if (cs.busy) out += "<div class=\"club-comments-status\">Загружаем комментарии…</div>"; else if (cs.error) out += "<div class=\"club-comments-status\">" + esc(cs.error) + "</div>"; else if (!cs.items.length) out += "<div class=\"club-comments-status\">Пока нет комментариев</div>"; else out += "<div class=\"club-comments-list\">" + cs.items.map(function(c) { var who = String(c.author_name || "Участник"), av = c.author_avatar_url || "/api/avatar/" + encodeURIComponent(String(c.author_user_id || "")) + ".jpg"; return "<div class=\"club-comment\"><img class=\"club-comment-av\" src=\"" + esc(av) + "\" alt=\"\" loading=\"lazy\"><div class=\"club-comment-main\"><div class=\"club-comment-head\"><b>" + esc(who) + "</b><span>" + esc(relativeWhen(c.created_at)) + "</span>" + (commentCanDelete(c) ? "<button type=\"button\" class=\"club-comment-del\" data-club-comment-delete=\"" + esc(c.id) + "\" data-club-comment-post=\"" + esc(key) + "\">Удалить</button>" : "") + "</div><div class=\"club-comment-body\">" + linkify(c.body) + "</div></div></div>"; }).join("") + "</div>"; if (state.member) { var draft = state.commentDrafts[key] || ""; out += "<form class=\"club-comment-compose\" data-club-comment-form=\"" + esc(key) + "\"><textarea maxlength=\"2000\" rows=\"2\" placeholder=\"Написать комментарий…\">" + esc(draft) + "</textarea><button type=\"submit\" class=\"club-mini-btn\"" + (cs.sending ? " disabled" : "") + ">" + (cs.sending ? "Отправляем…" : "Отправить") + "</button></form>"; } else out += "<div class=\"club-comments-login\">Войдите и вступите в клуб, чтобы комментировать. <button type=\"button\" data-club-comments-login>Войти</button></div>"; return out + "</div>"; }
   function pollActionHtml(p) { var poll = p && p.poll, mine = p && p.my_votes || [], editing = !!(state.pollEdits && state.pollEdits[String(p.id)]); if (!poll || !poll.options) return ""; if (mine.length && !editing) return poll.allow_change_vote ? "<button type=\"button\" class=\"club-poll-vote-btn club-poll-edit-btn\" data-club-poll-edit=\"" + esc(p.id) + "\">Изменить голос</button>" : ""; var label = mine.length ? "Сохранить голос" : "Проголосовать"; return "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (!state.member ? " disabled" : "") + ">" + label + "</button>"; }
-  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + commentsToggleHtml(p) + reactionHtml(p) + pollActionHtml(p) + "</div>"; }
+  function postShareHtml(p) {
+    if (!p || p.id == null) return "";
+    var pid = esc(String(p.id));
+    return "<div class=\"club-post-share\">"
+      + "<button type=\"button\" class=\"btn btn-secondary\" data-club-post-share=\"" + pid + "\">Поделиться</button>"
+      + "<button type=\"button\" class=\"btn btn-secondary\" data-club-post-announce=\"" + pid + "\">Скопировать анонс</button>"
+      + "</div>";
+  }
+  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + commentsToggleHtml(p) + reactionHtml(p) + pollActionHtml(p) + postShareHtml(p) + "</div>"; }
 
   function toggleComments(postId) {
     var cs = commentState(postId);
@@ -1761,7 +2016,7 @@
       (meta ? '<p class="club-plan-dialog-meta">' + esc(meta) + '</p>' : '') +
       (desc ? '<p class="club-plan-dialog-desc">' + esc(desc) + '</p>' : loading) +
       (castHtml ? '<div class="club-plan-dialog-facts">' + castHtml + '</div>' : '') +
-      '<div class="club-plan-dialog-actions">' + (l ? '<a class="club-mini-btn club-mini-btn-link" href="' + esc(l) + '">Открыть фильм</a>' : '') + clubPlanAction(p) + '</div>' +
+      '<div class="club-plan-dialog-actions">' + (l ? '<a class="club-mini-btn club-mini-btn-link" href="' + esc(l) + '">Открыть фильм</a>' : '') + clubCalendarControls(p) + clubTgAnnounceBtn(p) + clubPlanAction(p) + '</div>' +
       '</div></div></div>';
   }
 
@@ -1980,6 +2235,8 @@
       settingsPanel() +
       '</main></div></div>';
     bind();
+
+    if (state.tab === 'feed') setTimeout(focusDeepLinkedPost, 0);
     syncClubOverlays();
   }
 
@@ -2169,6 +2426,7 @@
   }
 
   function tab(t, replace) {
+    if (/^post[_\/-]?\d+/i.test(String(t || ''))) t = 'feed';
     if (t === 'analytics' || t === 'analitika') t = 'stats';
     if (t === 'istoriya' || t === 'istoria') t = 'history';
     var a = ['feed', 'schedule', 'films', 'members', 'stats', 'history', 'settings'];
@@ -2539,7 +2797,26 @@
       b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); } };
     });
     root.querySelectorAll('[data-club-plan-watched]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); markClubPlanWatched(b.getAttribute('data-club-plan-watched')); }; });
-    root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { if (e.target.closest && e.target.closest('a')) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
+    root.querySelectorAll('[data-club-post-share]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sharePost(b.getAttribute('data-club-post-share')); };
+    });
+    root.querySelectorAll('[data-club-post-announce]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); copyPostAnnounce(b.getAttribute('data-club-post-announce')); };
+    });
+    root.querySelectorAll('[data-club-cal-toggle]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); toggleCalMenu(b.getAttribute('data-club-cal-toggle')); };
+    });
+    root.querySelectorAll('[data-club-cal-ics]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); downloadPlanIcs(b.getAttribute('data-club-cal-ics')); toggleCalMenu(b.getAttribute('data-club-cal-ics'), false); };
+    });
+    root.querySelectorAll('[data-club-cal-google]').forEach(function (a) {
+      a.onclick = function (e) { e.stopPropagation(); toggleCalMenu(a.getAttribute('data-club-cal-google'), false); };
+    });
+    root.querySelectorAll('[data-club-plan-tg]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); announcePlanTelegram(b.getAttribute('data-club-plan-tg')); };
+    });
+
+    root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { if (e.target.closest && e.target.closest('a,button,.club-cal-wrap,.club-cal-menu')) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
     root.querySelectorAll('[data-club-plan-close]').forEach(function (b) { b.onclick = function (e) { if (b.classList.contains('club-plan-dialog-backdrop') && e.target !== b) return; closePlanDialog(); }; });
     root.querySelectorAll('[data-club-film-link]').forEach(function (a) { a.onclick = function () { try { history.pushState({ clubTab: 'schedule' }, '', location.pathname + location.search + '#schedule'); } catch (_) {} }; });
     root.querySelectorAll('[data-club-tab]').forEach(function (b) {
@@ -3074,8 +3351,13 @@
     root = document.getElementById('club-page-root');
     if (!root || !id) return;
     var h = String(location.hash || '').replace(/^#\/?/, '');
+    if (/^post[_\/-]?\d+/i.test(h)) h = 'feed';
     if (h === 'analytics' || h === 'analitika') h = 'stats';
     state.tab = h || 'feed';
+    try {
+      var qp = new URLSearchParams(location.search || '');
+      if (qp.get('post')) state.tab = 'feed';
+    } catch (_) {}
     load(id);
   }
 
