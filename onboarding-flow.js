@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260917watchWith2";
+  const OB_FLOW_V = "20260917onboardOpaque1";
 
   let _obKpImportPoll = null;
 

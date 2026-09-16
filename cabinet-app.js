@@ -4124,7 +4124,7 @@
       const existing = document.querySelector('script[src*="onboarding-flow.js"]');
       if (!existing) {
         const s = document.createElement('script');
-        s.src = '/onboarding-flow.js?v=20260917watchWith2'; // keep in sync with index.html pin
+        s.src = '/onboarding-flow.js?v=20260917onboardOpaque1'; // keep in sync with index.html pin
         s.async = true;
         s.onload = function () { /* wait below */ };
         s.onerror = function () { resolve(false); };
