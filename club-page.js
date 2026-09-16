@@ -48,6 +48,8 @@
     planPicker: null,
     scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
     analytics: null, analyticsBusy: false, analyticsError: "", analyticsDays: 90,
+    history: null, historyBusyLoad: false, historyError: "",
+    historyFilter: "all",
     historyNoteEdit: null, historyBusy: {}, attendanceBusy: {},
     onboardingForceHidden: false
   };
@@ -238,6 +240,7 @@
 
   function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
 
+  /* MARKER clubHistAdmin1 — analytics admin-only + member history + recording filter */
   /* MARKER clubOnboarding1 — sample analytics + first-open tips (client-only, no DB rows) */
   function onboardingStorageKey() {
     return 'mp_club_onboarding_v1_' + String(state.id || '');
@@ -397,7 +400,7 @@
       '<button type="button" class="btn btn-secondary" data-club-onboard-dismiss aria-label="Закрыть">Закрыть</button></div>' +
       '<p class="club-onboard-lead">Короткий чеклист — что появится после первых сеансов. Примеры ниже полупрозрачные и помечены «Пример».</p>' +
       '<ul class="club-onboard-list">' +
-      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Аналитика</b><span>метрики, явка и история сеансов</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Аналитика</b><span>метрики и явка — только для админов; история с записями — для участников</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="schedule"><b>Расписание</b><span>список и календарь с точками сеансов</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пришло: N</b><span>явка по залу после сеанса (для админов)</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Заметка + запись</b><span>текст и ссылка на запись обсуждения</span></button></li>' +
@@ -428,7 +431,7 @@
   }
 
   function loadAnalytics(force) {
-    if (!state.id) return;
+    if (!state.id || !state.admin) return;
     if (state.analyticsBusy) return;
     if (state.analytics && !force) return;
     state.analyticsBusy = true;
@@ -439,6 +442,7 @@
       .then(function (d) {
         if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось загрузить аналитику');
         state.analytics = d;
+        if (d.history) state.history = { history: d.history, period_days: d.period_days || days };
       })
       .catch(function (e) {
         state.analyticsError = (e && e.message) || 'Не удалось загрузить аналитику';
@@ -446,6 +450,33 @@
       })
       .then(function () {
         state.analyticsBusy = false;
+        render();
+      });
+  }
+
+  function loadHistory(force) {
+    if (!state.id || (!state.member && !state.admin)) return;
+    if (state.admin) {
+      loadAnalytics(force);
+      return;
+    }
+    if (state.historyBusyLoad) return;
+    if (state.history && !force) return;
+    state.historyBusyLoad = true;
+    state.historyError = '';
+    render();
+    var days = state.analyticsDays || 90;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/history?days=' + encodeURIComponent(days))
+      .then(function (d) {
+        if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось загрузить историю');
+        state.history = d;
+      })
+      .catch(function (e) {
+        state.historyError = (e && e.message) || 'Не удалось загрузить историю';
+        state.history = state.history || null;
+      })
+      .then(function () {
+        state.historyBusyLoad = false;
         render();
       });
   }
@@ -469,7 +500,78 @@
     return '<div class="club-metric"><span>' + esc(label) + '</span><b>' + esc(value == null || value === '' ? '—' : value) + '</b>' + (hint ? '<em>' + esc(hint) + '</em>' : '') + '</div>';
   }
 
+  function historyFilterBar() {
+    var f = state.historyFilter || 'all';
+    function chip(id, label) {
+      return '<button type="button" class="btn btn-secondary" data-club-history-filter="' + id + '"' + (f === id ? ' aria-pressed="true"' : '') + '>' + label + '</button>';
+    }
+    return '<div class="club-history-filter" role="group" aria-label="Фильтр истории">' +
+      chip('all', 'Все') +
+      chip('with', 'С записью') +
+      chip('without', 'Без записи') +
+      '</div>';
+  }
+
+  function filterHistoryRows(history) {
+    var f = state.historyFilter || 'all';
+    return (history || []).filter(function (h) {
+      var url = h && h.note && h.note.recording_url;
+      var has = !!(url && String(url).trim());
+      if (f === 'with') return has;
+      if (f === 'without') return !has;
+      return true;
+    });
+  }
+
+  function historyRowsHtml(history, usingSample) {
+    var filtered = filterHistoryRows(history);
+    return filtered.map(function (h) {
+      var note = h.note || {};
+      var isSampleRow = usingSample || String(h.plan_id || '').indexOf('sample-') === 0;
+      var editing = !isSampleRow && state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
+      var busy = !!(state.historyBusy && state.historyBusy[h.plan_id]);
+      var attBusy = !!(state.attendanceBusy && state.attendanceBusy[h.plan_id]);
+      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">' + (isSampleRow ? 'Запись (пример)' : 'Открыть запись') + '</a>' : '';
+      var noteBody = note.body ? '<p class="club-history-note">' + esc(note.body) + '</p>' : '<p class="club-analytics-empty">Заметок пока нет.</p>';
+      var adminAtt = '';
+      var adminNote = '';
+      if (state.admin && !isSampleRow) {
+        adminAtt = '<label class="club-inline-field">Пришло: N <input type="number" min="0" inputmode="numeric" data-club-att-input="' + esc(h.plan_id) + '" value="' + (h.attendance_count != null ? esc(h.attendance_count) : '') + '" placeholder="число"><button type="button" class="btn btn-primary" data-club-att-save="' + esc(h.plan_id) + '"' + (attBusy ? ' disabled' : '') + '>' + (attBusy ? '…' : 'Сохранить') + '</button></label>';
+        if (editing) {
+          adminNote = '<div class="club-note-edit">' +
+            '<label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(h.plan_id) + '" rows="3" placeholder="Что обсуждали, выводы…">' + esc(note.body || '') + '</textarea></label>' +
+            '<label class="club-field club-field-recording"><span>Ссылка на запись</span><input type="url" data-club-note-url="' + esc(h.plan_id) + '" value="' + esc(note.recording_url || '') + '" placeholder="https://…" inputmode="url" autocomplete="url"><small>Отдельное поле — URL записи обсуждения (YouTube, Zoom, Discord…)</small></label>' +
+            '<div class="club-analytics-actions"><button type="button" class="btn btn-primary" data-club-note-save="' + esc(h.plan_id) + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Сохраняем…' : 'Сохранить заметку') + '</button>' +
+            '<button type="button" class="btn btn-secondary" data-club-note-cancel="' + esc(h.plan_id) + '">Отмена</button></div></div>';
+        } else {
+          adminNote = '<button type="button" class="btn btn-secondary" data-club-note-edit="' + esc(h.plan_id) + '">' + (note.body || note.recording_url ? 'Редактировать заметку' : 'Добавить заметку') + '</button>';
+        }
+      } else if (isSampleRow) {
+        adminAtt = '<span class="club-inline-field">Пришло: N <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> ' + sampleBadge('пример') + '</span>';
+      }
+      var poster = h.poster ? '<img src="' + esc(h.poster) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>';
+      return '<article class="club-history-card' + (isSampleRow ? ' club-sample-card' : '') + (note.recording_url ? ' has-recording' : '') + '">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + (isSampleRow ? ' ' + sampleBadge('Пример') : '') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
+        '<p class="club-history-meta">Явка N: <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> · отметок MP: <b>' + esc(String(h.members_watched_count || 0)) + '</b></p>' +
+        noteBody + '<div class="club-history-actions">' + link + adminAtt + adminNote + '</div></div></article>';
+    }).join('');
+  }
+
+  function historySectionHtml(history, usingSample, opts) {
+    opts = opts || {};
+    var title = opts.title || 'История сеансов';
+    var histRows = historyRowsHtml(history, usingSample);
+    var emptyMsg = (state.historyFilter && state.historyFilter !== 'all')
+      ? empty('Нет сеансов по фильтру', 'Смените фильтр «Все / С записью / Без записи».')
+      : empty('История пока пуста', 'Прошедшие сеансы клуба появятся здесь. Админы смогут указать «Пришло: N» и заметку со ссылкой на запись.');
+    return '<section class="club-analytics-section' + (usingSample ? ' club-sample-section' : '') + '"><div class="club-history-head"><h3>' + esc(title) + (usingSample ? ' ' + sampleBadge('Пример') : '') + '</h3>' + historyFilterBar() + '</div>' +
+      (histRows ? '<div class="club-history-list">' + histRows + '</div>' : emptyMsg) +
+      '</section>';
+  }
+
   function analyticsPanel() {
+    if (!state.admin) {
+      return '<div class="club-analytics-locked"><h2 class="club-analytics-title">Аналитика</h2><p class="club-panel-hint">Аналитика доступна администраторам</p></div>';
+    }
     var a = state.analytics;
     var usingSample = false;
     var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">Аналитика клуба</h2><p class="club-panel-hint">Сеансы за ' + esc(String(state.analyticsDays || 90)) + ' дней · явка N (зал) и отметки участников MP</p></div><div class="club-analytics-actions">' +
@@ -545,38 +647,7 @@
       extraCard('No-show среди RSVP', extras.no_show_among_rsvp) +
       '</div></section>';
 
-    var histRows = history.map(function (h) {
-      var note = h.note || {};
-      var isSampleRow = usingSample || String(h.plan_id || '').indexOf('sample-') === 0;
-      var editing = !isSampleRow && state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
-      var busy = !!(state.historyBusy && state.historyBusy[h.plan_id]);
-      var attBusy = !!(state.attendanceBusy && state.attendanceBusy[h.plan_id]);
-      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">' + (isSampleRow ? 'Запись (пример)' : 'Запись') + '</a>' : '';
-      var noteBody = note.body ? '<p class="club-history-note">' + esc(note.body) + '</p>' : '<p class="club-analytics-empty">Заметок пока нет.</p>';
-      var adminAtt = '';
-      var adminNote = '';
-      if (state.admin && !isSampleRow) {
-        adminAtt = '<label class="club-inline-field">Пришло: N <input type="number" min="0" inputmode="numeric" data-club-att-input="' + esc(h.plan_id) + '" value="' + (h.attendance_count != null ? esc(h.attendance_count) : '') + '" placeholder="число"><button type="button" class="btn btn-primary" data-club-att-save="' + esc(h.plan_id) + '"' + (attBusy ? ' disabled' : '') + '>' + (attBusy ? '…' : 'Сохранить') + '</button></label>';
-        if (editing) {
-          adminNote = '<div class="club-note-edit"><label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(h.plan_id) + '" rows="3">' + esc(note.body || '') + '</textarea></label>' +
-            '<label class="club-field"><span>Ссылка на запись (URL)</span><input type="url" data-club-note-url="' + esc(h.plan_id) + '" value="' + esc(note.recording_url || '') + '" placeholder="https://…"></label>' +
-            '<div class="club-analytics-actions"><button type="button" class="btn btn-primary" data-club-note-save="' + esc(h.plan_id) + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Сохраняем…' : 'Сохранить заметку') + '</button>' +
-            '<button type="button" class="btn btn-secondary" data-club-note-cancel="' + esc(h.plan_id) + '">Отмена</button></div></div>';
-        } else {
-          adminNote = '<button type="button" class="btn btn-secondary" data-club-note-edit="' + esc(h.plan_id) + '">' + (note.body || note.recording_url ? 'Редактировать заметку' : 'Добавить заметку') + '</button>';
-        }
-      } else if (isSampleRow) {
-        adminAtt = '<span class="club-inline-field">Пришло: N <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> ' + sampleBadge('пример') + '</span>';
-      }
-      var poster = h.poster ? '<img src="' + esc(h.poster) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>';
-      return '<article class="club-history-card' + (isSampleRow ? ' club-sample-card' : '') + '">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + (isSampleRow ? ' ' + sampleBadge('Пример') : '') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
-        '<p class="club-history-meta">Явка N: <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> · отметок MP: <b>' + esc(String(h.members_watched_count || 0)) + '</b></p>' +
-        noteBody + '<div class="club-history-actions">' + link + adminAtt + adminNote + '</div></div></article>';
-    }).join('');
-
-    var historyHtml = '<section class="club-analytics-section' + (usingSample ? ' club-sample-section' : '') + '"><h3>История сеансов' + (usingSample ? ' ' + sampleBadge('Пример') : '') + '</h3>' +
-      (histRows ? '<div class="club-history-list">' + histRows + '</div>' : empty('История пока пуста', 'Прошедшие сеансы клуба появятся здесь. Админы смогут указать «Пришло: N» и заметку со ссылкой на запись.')) +
-      '</section>';
+    var historyHtml = historySectionHtml(history, usingSample, { title: 'История сеансов' });
 
     var wrapOpen = usingSample ? '<div class="club-sample-wrap" data-club-sample="analytics">' : '';
     var wrapClose = usingSample ? '</div>' : '';
@@ -594,6 +665,41 @@
       : extrasHtml;
 
     return head + wrapOpen + sampleHead + baseWrapped + peopleWrapped + contentWrapped + extrasWrapped + historyHtml + wrapClose;
+  }
+
+  function historyPanel() {
+    if (!state.member && !state.admin) {
+      return empty('История для участников', 'Вступите в киноклуб, чтобы видеть прошедшие сеансы, заметки и записи.');
+    }
+    if (state.admin) {
+      // Admins use history inside analytics; keep panel usable if hashed to #history.
+      var a = state.analytics;
+      if (state.analyticsBusy && !a) return '<p class="club-loading">Загружаем историю…</p>';
+      if (state.analyticsError && !a) return empty('Не удалось загрузить историю', state.analyticsError);
+      var hist = (a && a.history) || (state.history && state.history.history) || [];
+      var usingSample = false;
+      if ((!a || analyticsLooksEmpty(a)) && shouldShowSampleData()) {
+        hist = (buildSampleAnalytics().history || []);
+        usingSample = true;
+      }
+      var headA = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">История сеансов</h2><p class="club-panel-hint">Заметки и ссылки на записи. Полные метрики — во вкладке «Аналитика».</p></div></div>';
+      return headA + historySectionHtml(hist, usingSample);
+    }
+    var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">История сеансов</h2><p class="club-panel-hint">Прошедшие сеансы · заметки и ссылки на записи</p></div><div class="club-analytics-actions">' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="30"' + (state.analyticsDays === 30 ? ' aria-pressed="true"' : '') + '>30 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="90"' + (state.analyticsDays === 90 ? ' aria-pressed="true"' : '') + '>90 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="365"' + (state.analyticsDays === 365 ? ' aria-pressed="true"' : '') + '>Год</button>' +
+      '<button type="button" class="btn btn-primary" data-club-history-refresh' + (state.historyBusyLoad ? ' disabled' : '') + '>' + (state.historyBusyLoad ? 'Загрузка…' : 'Обновить') + '</button></div></div>';
+    if (state.historyBusyLoad && !state.history) return head + '<p class="club-loading">Загружаем историю…</p>';
+    if (state.historyError && !state.history) return head + empty('Не удалось загрузить историю', state.historyError);
+    if (!state.history) return head + empty('История появится здесь', 'Откройте вкладку ещё раз или нажмите «Обновить».');
+    var histM = state.history.history || [];
+    var usingSampleM = false;
+    if ((!histM || !histM.length) && shouldShowSampleData()) {
+      histM = (buildSampleAnalytics().history || []);
+      usingSampleM = true;
+    }
+    return head + historySectionHtml(histM, usingSampleM);
   }
 
   function saveAttendance(planId) {
@@ -616,7 +722,9 @@
       if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить');
       toast('Явка N сохранена');
       state.analytics = null;
-      loadAnalytics(true);
+      state.history = null;
+      if (state.tab === 'history') loadHistory(true);
+      else loadAnalytics(true);
     }).catch(function (e) {
       toast((e && e.message) || 'Не удалось сохранить явку', { type: 'error' });
     }).then(function () {
@@ -644,7 +752,9 @@
       toast('Заметка сохранена');
       state.historyNoteEdit = null;
       state.analytics = null;
-      loadAnalytics(true);
+      state.history = null;
+      if (state.tab === 'history') loadHistory(true);
+      else loadAnalytics(true);
     }).catch(function (e) {
       toast((e && e.message) || 'Не удалось сохранить заметку', { type: 'error' });
     }).then(function () {
@@ -1843,7 +1953,7 @@
       btn('schedule', 'Расписание') +
       btn('films', 'Фильмы') +
       btn('members', 'Участники') +
-      btn('stats', 'Аналитика') +
+      (settings ? btn('stats', 'Аналитика') : (state.member ? btn('history', 'История') : '')) +
       (settings ? btn('settings', 'Настройки') : '') +
       '</nav><section class="club-panel' +
       (state.tab === 'feed' ? ' is-active' : '') +
@@ -1853,11 +1963,20 @@
       schedule() +
       films() +
       members() +
-      '<section class="club-panel' +
-      (state.tab === 'stats' ? ' is-active' : '') +
-      '" data-club-panel="stats">' +
-      analyticsPanel() +
-      '</section>' +
+      (settings
+        ? ('<section class="club-panel' +
+          (state.tab === 'stats' ? ' is-active' : '') +
+          '" data-club-panel="stats">' +
+          analyticsPanel() +
+          '</section>')
+        : '') +
+      ((!settings && state.member)
+        ? ('<section class="club-panel' +
+          (state.tab === 'history' ? ' is-active' : '') +
+          '" data-club-panel="history">' +
+          historyPanel() +
+          '</section>')
+        : '') +
       settingsPanel() +
       '</main></div></div>';
     bind();
@@ -2051,8 +2170,13 @@
 
   function tab(t, replace) {
     if (t === 'analytics' || t === 'analitika') t = 'stats';
-    var a = ['feed', 'schedule', 'films', 'members', 'stats', 'settings'];
-    if (a.indexOf(t) < 0 || (t === 'settings' && !state.admin)) t = 'feed';
+    if (t === 'istoriya' || t === 'istoria') t = 'history';
+    var a = ['feed', 'schedule', 'films', 'members', 'stats', 'history', 'settings'];
+    if (a.indexOf(t) < 0) t = 'feed';
+    if (t === 'settings' && !state.admin) t = 'feed';
+    if (t === 'stats' && !state.admin) t = state.member ? 'history' : 'feed';
+    if (t === 'history' && state.admin) t = 'stats';
+    if (t === 'history' && !state.member && !state.admin) t = 'feed';
     state.tab = t;
     try {
       history[replace ? 'replaceState' : 'pushState'](
@@ -2063,6 +2187,7 @@
     } catch (_) {}
     render();
     if (t === 'stats') loadAnalytics(false);
+    if (t === 'history') loadHistory(false);
   }
 
 
@@ -2439,13 +2564,26 @@
     root.querySelectorAll('[data-club-analytics-refresh]').forEach(function (b) {
       b.onclick = function () { loadAnalytics(true); };
     });
+    root.querySelectorAll('[data-club-history-refresh]').forEach(function (b) {
+      b.onclick = function () { state.history = null; loadHistory(true); };
+    });
+    root.querySelectorAll('[data-club-history-filter]').forEach(function (b) {
+      b.onclick = function () {
+        var f = b.getAttribute('data-club-history-filter') || 'all';
+        if (state.historyFilter === f) return;
+        state.historyFilter = f;
+        render();
+      };
+    });
     root.querySelectorAll('[data-club-analytics-days]').forEach(function (b) {
       b.onclick = function () {
         var d = parseInt(b.getAttribute('data-club-analytics-days'), 10) || 90;
-        if (state.analyticsDays === d && state.analytics) return;
+        if (state.analyticsDays === d && (state.analytics || state.history)) return;
         state.analyticsDays = d;
         state.analytics = null;
-        loadAnalytics(true);
+        state.history = null;
+        if (state.tab === 'history') loadHistory(true);
+        else loadAnalytics(true);
       };
     });
     root.querySelectorAll('[data-club-att-save]').forEach(function (b) {
