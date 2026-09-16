@@ -3559,7 +3559,7 @@
         <button type="button" class="add-film-modal-close" data-action="close-invite-confirm-modal" aria-label="Закрыть">&times;</button>
         <div id="invite-confirm-emoji" style="font-size:56px;line-height:1;margin-bottom:10px">👥</div>
         <h2 class="add-film-title" id="invite-confirm-title">Присоединиться к группе?</h2>
-        <p class="add-film-hint" id="invite-confirm-hint">Вас пригласили в совместную коллекцию фильмов. После вступления вы увидите планы и фильмы участников.</p>
+        <p class="add-film-hint" id="invite-confirm-hint">Вас пригласили в совместную группу Movie Planner. После вступления будут общие планы и фильмы — личная библиотека останется отдельно.</p>
         <div id="invite-confirm-meta" class="share-invite-meta" style="margin:10px 0"></div>
         <p class="add-film-hint" id="invite-confirm-consent" style="display:none;margin:8px 0 0;font-size:13px">Вступая, вы соглашаетесь получать уведомления о планах и предложениях этой группы.</p>
         <div id="invite-confirm-status" class="add-film-status"></div>
@@ -4129,7 +4129,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260917collRatingBr1';
+        var V='20260917watchWith1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
