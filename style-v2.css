@@ -21193,7 +21193,7 @@ body.mp-scroll-lock {
 .movie-poster-meta { font-size: 11px; color: var(--text-muted, #a1a1aa); margin-top: 3px; }
 .search-poster-media { position: relative; }
 
-/* Poster overlays (collections): + / ✓ in-lib / eye watched (BL) + KP (BR); rating badge wins BL */
+/* Poster overlays (collections): + / ✓ / eye (BL) + KP (BR); user rating badge BR like cabinet (hides KP when set) */
 .poster-add-library-btn {
   position: absolute;
   left: 8px;
@@ -21273,11 +21273,9 @@ body.mp-scroll-lock {
   transform: scale(1.06);
   outline: none;
 }
-/* User rating badge on collection posters: same chip, BL (replaces status icon) */
+/* User rating on collection posters: inherit .film-card-user-rating-badge (BR); do NOT force left */
 .search-poster-media > .collections-poster-user-rating.film-card-user-rating-badge {
-  left: 8px;
-  right: auto;
-  bottom: 8px;
+  /* keep default right:8px; bottom:8px from .film-card-user-rating-badge */
   z-index: 3;
 }
 .poster-kp-rating {
