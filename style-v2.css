@@ -32554,3 +32554,84 @@ html.mp-hover-portal-open body {
 .club-analytics-locked{padding:28px 18px;border-radius:18px;background:var(--club-card,#16161d);border:1px solid var(--club-line,rgba(255,255,255,.08));text-align:center}
 .club-analytics-locked .club-analytics-title{margin:0 0 8px}
 .club-history-card.has-recording{border-color:rgba(239,28,122,.28)}
+
+
+/* MARKER clubGlowGap1 — soft club hero glow + tighter nav→club gap (desktop+mobile). */
+/* Glow on section (not .club-page) so it can bloom into the nav gap; opaque page bg hid ::before. */
+body.in-cabinet:has(#section-club:not(.hidden)) #section-club,
+html.mp-section-boot #section-club {
+  position: relative;
+  isolation: isolate;
+  overflow: visible !important;
+}
+body.in-cabinet:has(#section-club:not(.hidden)) #section-club::before,
+html.mp-section-boot #section-club::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  top: -64px;
+  height: min(520px, 70vh);
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 78% 62% at 50% 18%,
+    rgba(118, 44, 255, 0.36) 0%,
+    rgba(90, 32, 170, 0.22) 28%,
+    rgba(26, 11, 40, 0.12) 52%,
+    transparent 78%
+  );
+}
+
+.club-page {
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+@media (min-width: 769px) {
+  body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-readonly > .container > .cabinet-nav,
+  body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-readonly > div > div.cabinet-nav,
+  body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-onboarding > .container > .cabinet-nav,
+  body.in-cabinet:has(#section-club:not(.hidden)) #cabinet-onboarding > div > div.cabinet-nav,
+  html.mp-section-boot #cabinet-readonly:has(#section-club) > .container > .cabinet-nav {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  body.in-cabinet:has(#section-club:not(.hidden)) .cabinet-sections,
+  html.mp-section-boot #cabinet-readonly:has(#section-club) .cabinet-sections {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  body.in-cabinet:has(#section-club:not(.hidden)) #section-club,
+  html.mp-section-boot #section-club {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  body.in-cabinet:has(#section-club:not(.hidden)) .club-page,
+  html.mp-section-boot #section-club .club-page {
+    margin-top: -32px !important;
+    padding-top: 18px !important;
+  }
+  body.in-cabinet:has(#section-club:not(.hidden)) #section-club::before,
+  html.mp-section-boot #section-club::before {
+    top: -80px;
+  }
+}
+
+@media (max-width: 768px) {
+  body.in-cabinet:has(#section-club:not(.hidden)) .club-page,
+  html.mp-section-boot #section-club .club-page {
+    margin-top: -10px !important;
+    padding-top: 6px !important;
+  }
+  body.in-cabinet:has(#section-club:not(.hidden)) #section-club::before,
+  html.mp-section-boot #section-club::before {
+    top: -40px;
+    height: min(420px, 62vh);
+  }
+}
