@@ -1390,7 +1390,8 @@ body {
 body.in-cabinet,
 body.film-standalone-page,
 body.user-standalone-page,
-body.staff-standalone-page {
+body.staff-standalone-page,
+body.in-search-page {
   background: var(--bg-main);
 }
 
@@ -1401,7 +1402,9 @@ body.film-standalone-page .parallax-emoji,
 body.user-standalone-page .parallax-bg,
 body.user-standalone-page .parallax-emoji,
 body.staff-standalone-page .parallax-bg,
-body.staff-standalone-page .parallax-emoji {
+body.staff-standalone-page .parallax-emoji,
+body.in-search-page .parallax-bg,
+body.in-search-page .parallax-emoji {
   display: none !important;
 }
 
@@ -14891,6 +14894,12 @@ body.login-only-overlay .parallax-bg {
   gap: 6px;
 }
 
+#site-search-root {
+  position: relative;
+  z-index: 1;
+  min-height: 60vh;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
 .site-search-page {
   max-width: 1180px;
   margin: 0 auto 44px;
@@ -15710,7 +15719,15 @@ body.landing-root-page #landing-root-nav.hidden {
     margin-top: 14px;
     margin-bottom: 6px;
   }
-  body.in-search-page #landing-root-nav {
+  /* Guest search reuses #landing-root-nav (browse-first). Auth uses .site-search-nav-wrap. */
+  body.in-search-page:not(.landing-root-page) #landing-root-nav {
+    display: none !important;
+  }
+  body.in-search-page.landing-root-page #landing-root-nav {
+    display: flex !important;
+    visibility: visible !important;
+  }
+  body.in-search-page.landing-root-page .site-search-nav-wrap {
     display: none !important;
   }
   body.in-search-page .site-search-nav-wrap {
@@ -15743,10 +15760,10 @@ body.landing-root-page #landing-root-nav.hidden {
     overflow: visible;
     flex-wrap: nowrap;
   }
-  body.in-search-page .site-search-nav-wrap .film-standalone-nav .cabinet-nav-btn:nth-child(3),
-  body.in-search-page .site-search-nav-wrap .film-standalone-nav .cabinet-nav-btn:nth-child(6),
-  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="premieres"],
-  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="tournament"] {
+  /* Auth search nav: hide Турнир only; keep Главная for logged-in (not active on /search). */
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[href$="/tournament"],
+  body.in-search-page .site-search-nav-wrap .cabinet-nav-btn[data-section="tournament"],
+  body.in-search-page .site-search-nav-wrap .mp-nav-tournament {
     display: none !important;
   }
   body.in-search-page .site-search-nav-wrap .cabinet-nav-btn {

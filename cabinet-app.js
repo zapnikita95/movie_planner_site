@@ -5579,6 +5579,17 @@
     const root = document.getElementById('site-search-root');
     if (root) root.classList.add('hidden');
     document.body.classList.remove('in-search-page');
+    /* Search-only shell: next route (cabinet / film / guest База) re-applies what it needs. */
+    try {
+      if (!guestCabinetBottomNavPath() && !document.body.classList.contains('in-cabinet')) {
+        document.body.classList.remove('landing-root-page');
+        const path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+        if (!/^\/f\//.test(path) && !/^\/s\//.test(path) && !isMarketingRootPath(path)) {
+          document.body.classList.remove('film-standalone-page');
+          setLandingRootNavVisible(false);
+        }
+      }
+    } catch (_) {}
     try { document.documentElement.classList.remove('mp-search-boot'); } catch (_) {}
     document.querySelectorAll('#film-page-content, .staff-page-content, #staff-root').forEach((el) => {
       el.classList.remove('hidden');
@@ -5737,9 +5748,23 @@
     root.classList.remove('hidden');
     const header = document.getElementById('site-header');
     if (header) header.classList.remove('hidden');
-    document.body.classList.remove('in-cabinet', 'in-public-stats');
-    document.body.classList.add('in-search-page');
-    setLandingRootNavVisible(false);
+    document.body.classList.remove('in-cabinet', 'in-public-stats', 'guest-cabinet-preview');
+    /* Same solid shell/подклад as guest База/Премьеры (var(--bg-main), no landing parallax). */
+    document.body.classList.add('in-search-page', 'film-standalone-page');
+    if (!getToken()) {
+      document.body.classList.add('landing-root-page');
+      /* Guest browse-first nav = #landing-root-nav (no Главная). mountSiteSearchNav wires it. */
+    } else {
+      /* Hide guest landing nav without clearing film-standalone-page (setLandingRootNavVisible(false) would). */
+      try {
+        const nav = document.getElementById('landing-root-nav');
+        if (nav) {
+          nav.classList.add('hidden');
+          nav.setAttribute('hidden', '');
+        }
+        document.body.classList.remove('landing-root-page', 'landing-guest-home');
+      } catch (_) {}
+    }
     hideHeaderSearchDropdown();
     updateSearchPageChrome();
   }
@@ -10985,13 +11010,15 @@
   function homePosterPreviewMetaFromTile(tile) {
     const kp = String(tile.getAttribute('data-kp-id') || '').replace(/\D/g, '');
     const posterAttr = tile.getAttribute('data-poster') || '';
+    const ratingAttr = tile.getAttribute('data-rating-kp');
+    const ratingN = ratingAttr != null && ratingAttr !== '' ? Number(ratingAttr) : NaN;
     return {
       title: tile.getAttribute('data-title') || (tile.querySelector('.home-poster-tile-title') || {}).textContent || '',
       year: tile.getAttribute('data-year') || (tile.querySelector('.home-poster-tile-year') || {}).textContent || '',
       poster: cleanPosterUrl(posterAttr) || (kp ? posterUrl(kp) : ''),
-      description: '',
-      genres: '',
-      rating_kp: null,
+      description: tile.getAttribute('data-description') || '',
+      genres: tile.getAttribute('data-genres') || '',
+      rating_kp: Number.isFinite(ratingN) ? ratingN : null,
       film_id: tile.getAttribute('data-film-id') || '',
     };
   }
@@ -21239,22 +21266,55 @@
     return '<span class="poster-kp-rating' + siteSearchKpRatingBandClass(n) + '" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
   }
 
+  function siteSearchGenresText(it) {
+    if (!it) return '';
+    if (typeof it.genres === 'string') return it.genres;
+    if (Array.isArray(it.genres)) {
+      return it.genres.map(function (g) {
+        return (g && (g.genre || g.name || g)) || '';
+      }).filter(Boolean).join(', ');
+    }
+    return '';
+  }
+
   function siteSearchResultCardHtml(it) {
     const poster = cleanPosterUrl(it.poster);
-    const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
-    const year = it.year && String(it.year) !== 'null' ? String(it.year) : '—';
-    const kpAttr = escapeHtml(String(it.kp_id || ''));
+    const typeLabel = it.type === 'series' || it.is_series ? 'Сериал' : 'Фильм';
+    const yearRaw = it.year && String(it.year) !== 'null' ? String(it.year) : '';
+    const year = yearRaw || '—';
+    const kpRaw = String(it.kp_id || '').replace(/\D/g, '');
+    const kpAttr = escapeHtml(kpRaw);
     const imgSrc = poster || MP_POSTER_PLACEHOLDER;
     const img = '<img src="' + escapeHtml(imgSrc) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">';
     const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
     const kpBadge = siteSearchKpRatingHtml(it);
+    const genresText = siteSearchGenresText(it);
+    const tileAttrs = ' data-kp-id="' + kpAttr + '"'
+      + (it.title ? (' data-title="' + escapeHtml(it.title) + '"') : '')
+      + (yearRaw ? (' data-year="' + escapeHtml(yearRaw) + '"') : '')
+      + (poster ? (' data-poster="' + escapeHtml(poster) + '"') : '')
+      + (it.rating_kp != null ? (' data-rating-kp="' + escapeHtml(String(it.rating_kp)) + '"') : '')
+      + (genresText ? (' data-genres="' + escapeHtml(genresText) + '"') : '');
+    const previewMeta = {
+      title: it.title || '',
+      year: yearRaw,
+      poster: poster,
+      description: it.description || '',
+      genres: genresText,
+      rating_kp: it.rating_kp != null ? it.rating_kp : (it.rating != null ? it.rating : null),
+    };
+    const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
     const body = '<div class="home-poster-tile-img' + sensCls + '">' + img + kpBadge + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
     if (getToken()) {
-      return '<div class="home-poster-tile-wrap"><button type="button" class="home-poster-tile site-search-card" data-site-search-kp="' + kpAttr + '">' + body + '</button></div>';
+      return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
+        + '<button type="button" class="home-poster-tile site-search-card" data-site-search-kp="' + kpAttr + '"' + tileAttrs + '>' + body + '</button>'
+        + preview + '</div>';
     }
-    return '<div class="home-poster-tile-wrap"><a class="home-poster-tile site-search-card" href="' + buildFilmShareUrl(it.kp_id) + '">' + body + '</a></div>';
+    return '<div class="home-poster-tile-wrap" data-preview-ready="1">'
+      + '<a class="home-poster-tile site-search-card" href="' + buildFilmShareUrl(it.kp_id) + '"' + tileAttrs + '>' + body + '</a>'
+      + preview + '</div>';
   }
 
   function siteSearchCloseExpandPanel() {
@@ -21566,18 +21626,138 @@
         if (kp) openFilmNav(kp, null);
       });
     });
+    try { bindSiteSearchHoverPreview(results); } catch (_) {}
+  }
+
+  function paintSiteSearchKpBadge(tile, rating) {
+    if (!tile || rating == null) return;
+    const n = Number(rating);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const poster = tile.querySelector('.home-poster-tile-img');
+    if (!poster || poster.querySelector('.poster-kp-rating')) return;
+    const badge = siteSearchKpRatingHtml({ rating_kp: n });
+    if (badge) poster.insertAdjacentHTML('beforeend', badge);
+    try { tile.setAttribute('data-rating-kp', String(n)); } catch (_) {}
+  }
+
+  function enrichSiteSearchPosterPreview(wrap, tile, pop) {
+    if (!tile || !pop) return;
+    const fid = String(tile.getAttribute('data-film-id') || '').trim();
+    const kp = String(tile.getAttribute('data-kp-id') || tile.getAttribute('data-site-search-kp') || '').replace(/\D/g, '');
+    const cacheKey = fid ? ('search-f:' + fid) : ('search-kp:' + kp);
+    if (_homeFilmPreviewCache.has(cacheKey)) {
+      const cached = _homeFilmPreviewCache.get(cacheKey);
+      updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), cached));
+      paintSiteSearchKpBadge(tile, cached.rating_kp);
+      return;
+    }
+    if (!fid && !kp) return;
+    const descEl = pop.querySelector('.home-poster-preview-pop-desc');
+    if (descEl) {
+      descEl.classList.remove('is-empty');
+      descEl.classList.add('is-loading');
+      if (!descEl.textContent || !descEl.textContent.trim()) descEl.textContent = 'Загружаем описание…';
+    }
+    const applyPayload = function (payload) {
+      if (!payload) {
+        if (descEl) {
+          descEl.classList.remove('is-loading');
+          descEl.classList.add('is-empty');
+          descEl.textContent = '';
+        }
+        return;
+      }
+      _homeFilmPreviewCache.set(cacheKey, payload);
+      updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), payload));
+      paintSiteSearchKpBadge(tile, payload.rating_kp);
+    };
+    const fromFilm = function (film) {
+      if (!film) return null;
+      let genres = film.genres || '';
+      if (Array.isArray(genres)) {
+        genres = genres.map(function (g) { return (g && (g.genre || g.name || g)) || ''; }).filter(Boolean).join(', ');
+      }
+      return {
+        title: film.title || homePosterPreviewMetaFromTile(tile).title,
+        year: film.year || homePosterPreviewMetaFromTile(tile).year || '',
+        poster: cleanPosterUrl(film.poster_url || film.poster) || homePosterPreviewMetaFromTile(tile).poster,
+        description: (typeof pickFilmDescription === 'function' ? pickFilmDescription(film) : '') || film.description || '',
+        genres: genres,
+        rating_kp: film.rating_kp != null ? film.rating_kp : (film.rating != null ? film.rating : null),
+      };
+    };
+    if (fid && getToken()) {
+      api('/api/site/film/' + encodeURIComponent(fid)).then(function (data) {
+        applyPayload(fromFilm(data && data.film));
+      }).catch(function () { applyPayload(null); });
+      return;
+    }
+    fetch(getPublicApiBase() + '/api/public/film/' + encodeURIComponent(kp), { method: 'GET', mode: 'cors' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        applyPayload(fromFilm(data && (data.film || data.item || data)));
+      })
+      .catch(function () { applyPayload(null); });
+  }
+
+  function bindSiteSearchHoverPreview(root) {
+    if (!root || typeof bindFilmCardHoverPreviewGroup !== 'function') return;
+    /* Remount after each paint (innerHTML wipe). Same portal as База/Премьеры. */
+    try { delete root.dataset.hoverPreviewGroupBound; } catch (_) { root.dataset.hoverPreviewGroupBound = ''; }
+    bindFilmCardHoverPreviewGroup(root, '.home-poster-tile-wrap', function (wrap) {
+      const tile = wrap.querySelector('.home-poster-tile');
+      const pop = (typeof hoverPreviewPopForCard === 'function' ? hoverPreviewPopForCard(wrap) : null)
+        || wrap.querySelector('.home-poster-preview-pop');
+      if (!tile || !pop) return;
+      enrichSiteSearchPosterPreview(wrap, tile, pop);
+      try { positionHoverPreviewInViewport(wrap); } catch (_p) {}
+    });
   }
 
   function mountSiteSearchNav() {
     const wrap = document.getElementById('site-search-nav-wrap');
     if (!wrap) return;
+    /* Guest: same browse-first Phosphor nav as База/Премьеры (#landing-root-nav) — no Главная, no highlight on /search. */
+    if (!getToken()) {
+      wrap.innerHTML = '';
+      wrap.classList.add('hidden');
+      wrap.setAttribute('aria-hidden', 'true');
+      setLandingRootNavVisible(true);
+      try {
+        document.querySelectorAll('#landing-root-nav .cabinet-nav-btn').forEach(function (b) {
+          b.classList.remove('active');
+          b.removeAttribute('aria-current');
+        });
+        if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(document.getElementById('landing-root-nav'));
+      } catch (_) {}
+      return;
+    }
+    wrap.classList.remove('hidden');
+    wrap.removeAttribute('aria-hidden');
     if (global.MpFilmPage && typeof MpFilmPage.standaloneNavHtml === 'function') {
       wrap.innerHTML = MpFilmPage.standaloneNavHtml();
+    } else if (global.MpFilmPage && typeof MpFilmPage.mountStandaloneCabinetNav === 'function') {
+      wrap.innerHTML = '';
+      try { MpFilmPage.mountStandaloneCabinetNav('#site-search-root'); } catch (_) {}
     } else {
       const srcNav = document.querySelector('#cabinet-readonly .cabinet-nav');
       if (srcNav) wrap.innerHTML = srcNav.outerHTML;
     }
+    /* /search must not mark «Главная» active (browse-first). */
+    wrap.querySelectorAll('.cabinet-nav-btn').forEach(function (b) {
+      const href = (b.getAttribute('href') || '').replace(/\/$/, '') || '';
+      const sec = b.getAttribute('data-section') || '';
+      const isHome = href === '/home' || sec === 'home';
+      if (isHome || b.classList.contains('active')) {
+        if (isHome) {
+          b.classList.remove('active');
+          b.removeAttribute('aria-current');
+        }
+      }
+    });
     wrap.querySelectorAll('.cabinet-nav-btn[data-section]').forEach(function (btn) {
+      if (btn.dataset.mpSearchNavBound === '1') return;
+      btn.dataset.mpSearchNavBound = '1';
       btn.addEventListener('click', function (e) {
         const sec = btn.getAttribute('data-section');
         if (!sec || !getToken()) return;
@@ -21587,13 +21767,18 @@
       });
     });
     wrap.querySelectorAll('a.cabinet-nav-btn[href]').forEach(function (a) {
+      if (a.dataset.mpSearchNavBound === '1') return;
+      a.dataset.mpSearchNavBound = '1';
       a.addEventListener('click', function (e) {
-        if (getToken()) return;
-        const path = (a.getAttribute('href') || '').replace(/\/$/, '') || '/';
-        if (path === '/home' || path === '/' || path === '/premieres') return;
+        if (!getToken()) return;
+        const href = a.getAttribute('href') || '';
+        if (!href) return;
         e.preventDefault();
-        if (window.MpPublicFilmLogin) window.MpPublicFilmLogin.open('nav');
-        else global.location.href = '/?open_login=1&__spa=' + encodeURIComponent('/search');
+        hideSiteSearchScreen();
+        try { history.pushState({}, '', href); } catch (_) {}
+        const sec = sectionFromPath(href);
+        if (sec) showSection(sec);
+        else global.location.href = href;
       });
     });
     try { if (window.MPIcons && MPIcons.hydrate) MPIcons.hydrate(wrap); } catch (_) {}
