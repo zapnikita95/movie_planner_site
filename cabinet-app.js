@@ -14123,6 +14123,7 @@
           fresh._mpPortalHoverBound = false;
           card._mpHoverPop = fresh;
           fresh._mpHoverCard = card;
+          try { ensureHoverPortalRoot().appendChild(fresh); } catch (_r) { try { document.body.appendChild(fresh); } catch (_b2) {} }
           try { bindPortaledHoverPreviewEvents(card, fresh); } catch (_b) {}
         } else {
           card._mpHoverPop = null;
@@ -14326,8 +14327,8 @@
   }
 
   const HOVER_PREVIEW_LEAVE_GRACE_MS = 180;
-  const HOVER_PREVIEW_VIEWPORT_PAD = 12;
-  const HOVER_PREVIEW_Z = 10050;
+  const HOVER_PREVIEW_VIEWPORT_PAD = 28;
+  const HOVER_PREVIEW_Z = 250000;
 
   function clearHoverPreviewCloseTimer(card) {
     if (!card || !card._mpHoverCloseTimer) return;
@@ -14347,10 +14348,14 @@
     pop.style.removeProperty('z-index');
     pop.style.removeProperty('width');
     pop.style.removeProperty('max-width');
+    pop.style.removeProperty('opacity');
+    pop.style.removeProperty('visibility');
+    pop.style.removeProperty('pointer-events');
+    pop.style.removeProperty('margin');
     pop.classList.remove('is-preview-flipped-below');
   }
 
-  /** Left chrome (sidebar / sticky nav) that must not cover the popup. */
+  /** Left chrome (sidebar / sticky nav / fixed rail) that must not cover the popup. */
   function getHoverPreviewSafeLeft(vLeft, vw, vh, pad) {
     let safe = vLeft + pad;
     const sels = [
@@ -14361,20 +14366,47 @@
       '[data-mp-left-chrome]',
       'nav.cabinet-side-nav',
       '#cabinet-side-nav',
+      'aside.club-aside',
+      '.settings-social-nav',
     ];
+    function consider(el) {
+      if (!el || el === document.body || el === document.documentElement) return;
+      let st = null;
+      try { st = window.getComputedStyle(el); } catch (_s) { st = null; }
+      if (!st) return;
+      if (st.display === 'none' || st.visibility === 'hidden' || st.opacity === '0') return;
+      const r = el.getBoundingClientRect();
+      if (!(r.width >= 48) || !(r.width <= Math.max(360, vw * 0.45))) return;
+      if (!(r.height >= Math.min(120, vh * 0.2))) return;
+      if (r.left > vLeft + Math.min(96, vw * 0.22)) return;
+      if (r.right <= safe) return;
+      // Ignore full-bleed overlays / headers.
+      if (r.width >= vw * 0.7) return;
+      safe = Math.ceil(r.right) + 10;
+    }
     for (let i = 0; i < sels.length; i++) {
       let el = null;
       try { el = document.querySelector(sels[i]); } catch (_q) { el = null; }
-      if (!el) continue;
-      let st = null;
-      try { st = window.getComputedStyle(el); } catch (_s) { st = null; }
-      if (st && (st.display === 'none' || st.visibility === 'hidden' || st.opacity === '0')) continue;
-      const r = el.getBoundingClientRect();
-      if (!(r.width >= 48) || !(r.height >= Math.min(160, vh * 0.25))) continue;
-      if (r.left > vLeft + Math.min(80, vw * 0.2)) continue;
-      if (r.right <= safe) continue;
-      safe = Math.ceil(r.right) + 8;
+      consider(el);
     }
+    // Generic left rails: fixed/sticky tall columns hugging the left edge.
+    try {
+      const nodes = document.body.querySelectorAll('aside, nav, [class*="sidebar"], [class*="side-nav"], [class*="SideNav"], [data-mp-left-chrome]');
+      for (let i = 0; i < nodes.length && i < 40; i++) consider(nodes[i]);
+    } catch (_g) {}
+    try {
+      const probeYs = [Math.round(vh * 0.35), Math.round(vh * 0.5), Math.round(vh * 0.65)];
+      for (let pi = 0; pi < probeYs.length; pi++) {
+        const el = document.elementFromPoint(Math.round(vLeft + 8), probeYs[pi]);
+        let cur = el;
+        for (let d = 0; d < 8 && cur; d++) {
+          const st = window.getComputedStyle(cur);
+          const pos = st.position;
+          if (pos === 'fixed' || pos === 'sticky') consider(cur);
+          cur = cur.parentElement;
+        }
+      }
+    } catch (_p) {}
     return safe;
   }
 
@@ -14382,6 +14414,18 @@
     if (!card) return null;
     if (card._mpHoverPop && document.contains(card._mpHoverPop)) return card._mpHoverPop;
     return card.querySelector('.home-film-preview');
+  }
+
+  function ensureHoverPortalRoot() {
+    let root = document.getElementById('mp-hover-portal-root');
+    if (root && root.isConnected) return root;
+    root = document.createElement('div');
+    root.id = 'mp-hover-portal-root';
+    root.setAttribute('data-mp-hover-portal-root', '1');
+    root.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(root);
+    try { document.documentElement.classList.add('mp-hover-portal-ready'); } catch (_c) {}
+    return root;
   }
 
   function bindPortaledHoverPreviewEvents(card, pop) {
@@ -14398,12 +14442,53 @@
     });
   }
 
-  /** Escape overflow:hidden/clip parents: portal to body + position:fixed above chrome. */
-  function portalHoverPreview(card) { /* MARKER:20260916hoverPortal1b */
+  /** If left-center of preview is covered by chrome, nudge right past it and keep z high. */
+  function ensureHoverPreviewClearsChrome(pop, safeLeft, safeRight) {
+    if (!pop) return safeLeft;
+    let leftSafe = safeLeft;
+    try {
+      const r = pop.getBoundingClientRect();
+      const y = Math.round(r.top + Math.min(48, Math.max(12, r.height * 0.28)));
+      const xs = [r.left + 2, r.left + 10, r.left + 18];
+      for (let i = 0; i < xs.length; i++) {
+        const x = Math.round(xs[i]);
+        if (x < 0 || x > (window.innerWidth || 0)) continue;
+        const el = document.elementFromPoint(x, y);
+        if (!el) continue;
+        if (pop === el || pop.contains(el)) continue;
+        // Covered by something else — treat as left chrome if it sits on the left.
+        let cur = el;
+        for (let d = 0; d < 6 && cur; d++) {
+          const rr = cur.getBoundingClientRect();
+          const st = window.getComputedStyle(cur);
+          if (rr.width >= 48 && rr.width <= Math.max(400, (window.innerWidth || 0) * 0.5)
+              && rr.left <= 96 && rr.right > leftSafe
+              && st.visibility !== 'hidden' && st.display !== 'none') {
+            leftSafe = Math.max(leftSafe, Math.ceil(rr.right) + 10);
+          }
+          cur = cur.parentElement;
+        }
+      }
+    } catch (_e) {}
+    if (leftSafe > safeLeft) {
+      const r = pop.getBoundingClientRect();
+      let nextLeft = leftSafe;
+      const popW = r.width || pop.offsetWidth || 320;
+      if (nextLeft + popW > safeRight) nextLeft = Math.max(leftSafe, safeRight - popW);
+      pop.style.setProperty('left', Math.round(nextLeft) + 'px', 'important');
+      pop.style.setProperty('z-index', String(HOVER_PREVIEW_Z), 'important');
+    }
+    return leftSafe;
+  }
+
+  /** Escape overflow:hidden/clip parents: portal to body layer + position:fixed above chrome. */
+  function portalHoverPreview(card) { /* MARKER:20260916hoverPortal1c */
     if (!card) return null;
     let pop = hoverPreviewPopForCard(card);
     if (!pop) return null;
-    if (pop.parentElement === document.body && pop.classList.contains('is-preview-portaled')) {
+    const root = ensureHoverPortalRoot();
+    if ((pop.parentElement === root || pop.parentElement === document.body) && pop.classList.contains('is-preview-portaled')) {
+      if (pop.parentElement !== root) root.appendChild(pop);
       card._mpHoverPop = pop;
       pop._mpHoverCard = card;
       bindPortaledHoverPreviewEvents(card, pop);
@@ -14413,10 +14498,11 @@
     card._mpHoverPopHomeNext = pop.nextSibling;
     pop.classList.add('is-preview-portaled');
     pop.setAttribute('data-mp-hover-portaled', '1');
-    document.body.appendChild(pop);
+    root.appendChild(pop);
     card._mpHoverPop = pop;
     pop._mpHoverCard = card;
     bindPortaledHoverPreviewEvents(card, pop);
+    try { document.documentElement.classList.add('mp-hover-portal-open'); } catch (_o) {}
     return pop;
   }
 
@@ -14445,13 +14531,17 @@
     card._mpHoverPopHomeParent = null;
     card._mpHoverPopHomeNext = null;
     try { delete pop._mpHoverCard; } catch (_d) { pop._mpHoverCard = null; }
+    try {
+      const still = document.querySelector('.home-film-preview.is-preview-portaled, .home-film-preview[data-mp-hover-portaled="1"]');
+      if (!still) document.documentElement.classList.remove('mp-hover-portal-open');
+    } catch (_c) {}
   }
 
   /**
    * Keep home-film-preview fully visible: portal above chrome, clamp to viewport,
    * and never under a left sidebar/panel.
    */
-  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortal1b */
+  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortal1c */
     if (!card) return;
     const pop = portalHoverPreview(card);
     if (!pop) return;
@@ -14467,40 +14557,49 @@
     const safeBottom = vTop + vh - pad;
 
     pop.classList.remove('is-preview-flipped-below');
-    pop.style.position = 'fixed';
-    pop.style.zIndex = String(HOVER_PREVIEW_Z);
-    pop.style.right = 'auto';
-    pop.style.bottom = 'auto';
-    pop.style.transform = 'none';
+    pop.style.setProperty('position', 'fixed', 'important');
+    pop.style.setProperty('z-index', String(HOVER_PREVIEW_Z), 'important');
+    pop.style.setProperty('right', 'auto', 'important');
+    pop.style.setProperty('bottom', 'auto', 'important');
+    pop.style.setProperty('transform', 'none', 'important');
     pop.style.removeProperty('--mp-preview-shift-x');
-    pop.style.opacity = '1';
-    pop.style.visibility = 'visible';
-    pop.style.pointerEvents = 'auto';
+    pop.style.setProperty('opacity', '1', 'important');
+    pop.style.setProperty('visibility', 'visible', 'important');
+    pop.style.setProperty('pointer-events', 'auto', 'important');
+    pop.style.setProperty('margin', '0', 'important');
 
     const cardRect = card.getBoundingClientRect();
     const wide = pop.classList.contains('has-trailer-playing') || pop.classList.contains('is-trailer-loading');
     const maxW = Math.max(200, safeRight - safeLeft);
     const preferW = Math.min(wide ? 420 : 380, maxW);
     if (!(pop.offsetWidth > 40)) {
-      pop.style.width = Math.round(preferW) + 'px';
-      pop.style.maxWidth = Math.round(maxW) + 'px';
+      pop.style.setProperty('width', Math.round(preferW) + 'px', 'important');
+      pop.style.setProperty('max-width', Math.round(maxW) + 'px', 'important');
     } else {
-      pop.style.maxWidth = Math.round(maxW) + 'px';
+      pop.style.setProperty('max-width', Math.round(maxW) + 'px', 'important');
     }
 
     let popW = pop.offsetWidth || preferW;
     let popH = pop.offsetHeight || 220;
     if (popW > maxW) {
-      pop.style.width = Math.round(maxW) + 'px';
+      pop.style.setProperty('width', Math.round(maxW) + 'px', 'important');
       popW = maxW;
       popH = pop.offsetHeight || popH;
     }
 
+    function clampLeft(centered) {
+      let left = centered;
+      // Near left edge: grow right from max(safeLeft, card.left) so left poster/trailer edges stay clear.
+      if (left < safeLeft) {
+        left = Math.max(safeLeft, Math.min(cardRect.left, safeRight - popW));
+      }
+      if (left + popW > safeRight) left = safeRight - popW;
+      if (left < safeLeft) left = safeLeft;
+      return left;
+    }
+
     // Center over card, then clamp — prefer staying over the card when possible.
-    let left = cardRect.left + (cardRect.width - popW) / 2;
-    if (left < safeLeft) left = safeLeft;
-    if (left + popW > safeRight) left = safeRight - popW;
-    if (left < safeLeft) left = safeLeft;
+    let left = clampLeft(cardRect.left + (cardRect.width - popW) / 2);
 
     let top = cardRect.top - popH - 8;
     if (top < safeTop) {
@@ -14513,16 +14612,13 @@
       top = Math.max(safeTop, safeBottom - popH);
     }
 
-    pop.style.left = Math.round(left) + 'px';
-    pop.style.top = Math.round(top) + 'px';
+    pop.style.setProperty('left', Math.round(left) + 'px', 'important');
+    pop.style.setProperty('top', Math.round(top) + 'px', 'important');
 
     // Re-measure after trailer chrome / layout, clamp again.
     popW = pop.offsetWidth || popW;
     popH = pop.offsetHeight || popH;
-    left = cardRect.left + (cardRect.width - popW) / 2;
-    if (left < safeLeft) left = safeLeft;
-    if (left + popW > safeRight) left = safeRight - popW;
-    if (left < safeLeft) left = safeLeft;
+    left = clampLeft(cardRect.left + (cardRect.width - popW) / 2);
     if (pop.classList.contains('is-preview-flipped-below')) {
       top = cardRect.bottom + 8;
       if (top + popH > safeBottom) top = Math.max(safeTop, safeBottom - popH);
@@ -14534,13 +14630,30 @@
         if (top + popH > safeBottom) top = Math.max(safeTop, safeBottom - popH);
       }
     }
-    pop.style.left = Math.round(left) + 'px';
-    pop.style.top = Math.round(top) + 'px';
+    pop.style.setProperty('left', Math.round(left) + 'px', 'important');
+    pop.style.setProperty('top', Math.round(top) + 'px', 'important');
+    ensureHoverPreviewClearsChrome(pop, safeLeft, safeRight);
   }
 
   function openHoverPreviewGroup(card) {
     if (!card) return;
     clearHoverPreviewCloseTimer(card);
+    // Only one desktop hover preview at a time — close/unportal others (kill leftover inline opacity).
+    try {
+      document.querySelectorAll('.is-preview-open').forEach(function (other) {
+        if (!other || other === card) return;
+        clearHoverPreviewCloseTimer(other);
+        other.classList.remove('is-preview-open');
+        try { stopHoverTrailerOnCard(other); } catch (_s) {}
+        try { unportalHoverPreview(other); } catch (_u) {}
+      });
+      document.querySelectorAll('.home-film-preview.is-preview-portaled, .home-film-preview[data-mp-hover-portaled="1"]').forEach(function (pop) {
+        const owner = pop._mpHoverCard;
+        if (owner && owner !== card) {
+          try { unportalHoverPreview(owner); } catch (_u2) {}
+        }
+      });
+    } catch (_o) {}
     card.classList.add('is-preview-open');
     try { positionHoverPreviewInViewport(card); } catch (_p) {}
     clearTimeout(card._mpHoverClampTimer);
