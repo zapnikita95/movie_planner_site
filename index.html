@@ -54,8 +54,9 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260916flexClick1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260916flexClick1">
+
+<link rel="preload" href="/style-v2.css?v=20260916searchHover1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260916searchHover1">
     <script>
       (function () {
         try {
@@ -80,8 +81,9 @@
           if (hasStoredSiteSession()) return;
           document.documentElement.classList.add('mp-landing-guest-boot');
           /* document.write = render-blocking (createElement+append does NOT — FOUC giant .hero-title) */
-          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916flexClick1" as="style">');
-          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916flexClick1">');
+
+          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916searchHover1" as="style">');
+          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916searchHover1">');
         } catch (_) {}
       })();
     </script>
@@ -529,7 +531,7 @@
               '<p class="mp-search-loading-text">Ищем фильмы и людей…</p></div>';
           }
           function paintSearchBoot() {
-            document.body.classList.add('in-search-page');
+            document.body.classList.add('in-search-page', 'film-standalone-page', 'landing-root-page');
             var landing = document.getElementById('landing');
             if (landing) landing.classList.add('hidden');
             var cabinet = document.getElementById('cabinet-readonly');
@@ -553,6 +555,19 @@
                   '<div class="site-search-status">' + loadingHtml() + '</div>' +
                 '</div>' +
               '</section>';
+            try {
+              var hasSession = document.documentElement.classList.contains('mp-session')
+                || document.documentElement.classList.contains('mp-auth-boot');
+              var nav = document.getElementById('landing-root-nav');
+              if (nav && !hasSession) {
+                nav.classList.remove('hidden');
+                nav.removeAttribute('hidden');
+                nav.querySelectorAll('.cabinet-nav-btn').forEach(function (b) {
+                  b.classList.remove('active');
+                  b.removeAttribute('aria-current');
+                });
+              }
+            } catch (_nav) {}
           }
           if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintSearchBoot);
           else paintSearchBoot();
@@ -3943,7 +3958,8 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260916flexClick1';
+
+        var V='20260916searchHover1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
