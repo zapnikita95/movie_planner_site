@@ -38,7 +38,14 @@
   }
 
   function cleanTitle(s) {
-    return esc(stripHtml(s));
+    return esc(plainTitle(s));
+  }
+
+  function plainTitle(s) {
+    var t = stripHtml(s);
+    // Drop legacy «— от cinemadepot (…)» credits stuffed into tag names
+    var m = t.split(/\s+[—–-]\s+от\s+/);
+    return (m[0] || t).trim();
   }
 
   function iconHtml(key, opts) {
@@ -232,7 +239,7 @@
   function detailHeroHtml(coll, films, hintText) {
     var filmList = films || [];
     var posters = filterPosterUrls(filmList.map(function (f) { return pickPoster(f); }));
-    var name = stripHtml(coll.name || "Подборка");
+    var name = plainTitle(coll.name || "Подборка");
     var filmCount = coll.films_count || filmList.length || 0;
     var hint = hintText || (filmCount + " фильмов");
     var layout = heroMosaicLayout(filmCount, name);
@@ -693,11 +700,13 @@
 
   function applyDetailSeo(coll) {
     if (!coll) return;
-    var name = stripHtml(coll.name || "Подборка");
+    var name = plainTitle(coll.name || "Подборка");
     var count = Number(coll.films_count || 0);
     var code = coll.short_code || "";
     var title = name + " — коллекция фильмов | Movie Planner";
-    var desc = "Подборка «" + name + "»: " + count + " фильмов. Откройте список в Movie Planner и добавьте в свою базу.";
+    var desc = (coll.description && String(coll.description).trim())
+      || ("Подборка «" + name + "»: " + count + " фильмов. Откройте список в Movie Planner и добавьте в свою базу.");
+    if (desc.length > 480) desc = desc.slice(0, 479) + "…";
     if (code === "venice-2026") {
       title = "Венецианский кинофестиваль 2026 — программа и фильмы конкурса | Movie Planner";
       desc = "Подборка фильмов 83-го Венецианского кинофестиваля (2–12 сентября 2026): основной конкурс, фильм открытия и закрытия.";
