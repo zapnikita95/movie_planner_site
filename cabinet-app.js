@@ -10983,8 +10983,22 @@
         if (t) chips.push('<span class="home-poster-preview-pop-chip">' + escapeHtml(t) + '</span>');
       });
     }
-    if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
-      chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+    try {
+      if (window.MpPosterRating && window.MpPosterRating.displayPosterRating) {
+        const d = window.MpPosterRating.displayPosterRating(meta);
+        if (d.value != null && d.label) {
+          const chip = window.MpPosterRating.sourceChip
+            ? window.MpPosterRating.sourceChip(d.source, d.label)
+            : (('' + (d.source === 'imdb' ? 'IMDb ' : 'КП ')) + d.label);
+          chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">' + escapeHtml(chip) + '</span>');
+        }
+      } else if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
+    } catch (_) {
+      if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
     }
     return chips.join('');
   }
@@ -11012,6 +11026,10 @@
     const posterAttr = tile.getAttribute('data-poster') || '';
     const ratingAttr = tile.getAttribute('data-rating-kp');
     const ratingN = ratingAttr != null && ratingAttr !== '' ? Number(ratingAttr) : NaN;
+    const ratingImdbAttr = tile.getAttribute('data-rating-imdb');
+    const ratingImdbN = ratingImdbAttr != null && ratingImdbAttr !== '' ? Number(ratingImdbAttr) : NaN;
+    const kpVotesAttr = tile.getAttribute('data-rating-kp-votes');
+    const imdbVotesAttr = tile.getAttribute('data-rating-imdb-votes');
     return {
       title: tile.getAttribute('data-title') || (tile.querySelector('.home-poster-tile-title') || {}).textContent || '',
       year: tile.getAttribute('data-year') || (tile.querySelector('.home-poster-tile-year') || {}).textContent || '',
@@ -11019,6 +11037,9 @@
       description: tile.getAttribute('data-description') || '',
       genres: tile.getAttribute('data-genres') || '',
       rating_kp: Number.isFinite(ratingN) ? ratingN : null,
+      rating_imdb: Number.isFinite(ratingImdbN) ? ratingImdbN : null,
+      rating_kp_votes: kpVotesAttr != null && kpVotesAttr !== '' ? Number(kpVotesAttr) : null,
+      rating_imdb_votes: imdbVotesAttr != null && imdbVotesAttr !== '' ? Number(imdbVotesAttr) : null,
       film_id: tile.getAttribute('data-film-id') || '',
     };
   }
@@ -11048,6 +11069,9 @@
         description: pickFilmDescription(film) || '',
         genres: film.genres || '',
         rating_kp: film.rating_kp != null ? film.rating_kp : null,
+        rating_imdb: film.rating_imdb != null ? film.rating_imdb : null,
+        rating_kp_votes: film.rating_kp_votes != null ? film.rating_kp_votes : null,
+        rating_imdb_votes: film.rating_imdb_votes != null ? film.rating_imdb_votes : null,
       };
       _homeFilmPreviewCache.set(cacheKey, payload);
       updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), payload));
@@ -14086,6 +14110,9 @@
         genres: film.genres || '',
         year: film.year || '',
         rating_kp: film.rating_kp != null ? film.rating_kp : null,
+        rating_imdb: film.rating_imdb != null ? film.rating_imdb : null,
+        rating_kp_votes: film.rating_kp_votes != null ? film.rating_kp_votes : null,
+        rating_imdb_votes: film.rating_imdb_votes != null ? film.rating_imdb_votes : null,
       };
       if (payload.actors) return payload;
       return fetchPublicCastActorsLine(kp || film.kp_id).then((line) => {
@@ -14096,14 +14123,19 @@
       if (!payload) return;
       _homeFilmPreviewCache.set(cacheKey, payload);
       applyBaseHoverEnrichment(card, payload);
-      if (payload.rating_kp != null) {
+      if (payload.rating_kp != null || payload.rating_imdb != null) {
         try {
           const item = (unwatchedItems || []).find((x) => String(x.film_id) === String(fid));
-          if (item && item.rating_kp == null) item.rating_kp = payload.rating_kp;
+          if (item) {
+            if (item.rating_kp == null && payload.rating_kp != null) item.rating_kp = payload.rating_kp;
+            if (item.rating_imdb == null && payload.rating_imdb != null) item.rating_imdb = payload.rating_imdb;
+            if (item.rating_kp_votes == null && payload.rating_kp_votes != null) item.rating_kp_votes = payload.rating_kp_votes;
+            if (item.rating_imdb_votes == null && payload.rating_imdb_votes != null) item.rating_imdb_votes = payload.rating_imdb_votes;
+          }
         } catch (_) {}
         const poster = card.querySelector('.film-card-v2-poster');
         if (poster && !poster.querySelector('.poster-kp-rating')) {
-          const badge = siteSearchKpRatingHtml({ rating_kp: payload.rating_kp });
+          const badge = siteSearchKpRatingHtml(payload);
           if (badge) poster.insertAdjacentHTML('beforeend', badge);
         }
       }
@@ -21259,6 +21291,11 @@
   }
 
   function siteSearchKpRatingHtml(it) {
+    try {
+      if (window.MpPosterRating && typeof window.MpPosterRating.posterRatingHtml === 'function') {
+        return window.MpPosterRating.posterRatingHtml(it, escapeHtml);
+      }
+    } catch (_) {}
     const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
     const n = Number(raw);
     if (!Number.isFinite(n) || n <= 0) return '';
@@ -21289,11 +21326,20 @@
     const sensCls = (window.MpAdultMedia && window.MpAdultMedia.posterClass(it)) || '';
     const kpBadge = siteSearchKpRatingHtml(it);
     const genresText = siteSearchGenresText(it);
+    let ratingAttrs = '';
+    try {
+      if (window.MpPosterRating && typeof window.MpPosterRating.ratingDataAttrs === 'function') {
+        ratingAttrs = window.MpPosterRating.ratingDataAttrs(it, escapeHtml);
+      }
+    } catch (_) {}
+    if (!ratingAttrs && it.rating_kp != null) {
+      ratingAttrs = ' data-rating-kp="' + escapeHtml(String(it.rating_kp)) + '"';
+    }
     const tileAttrs = ' data-kp-id="' + kpAttr + '"'
       + (it.title ? (' data-title="' + escapeHtml(it.title) + '"') : '')
       + (yearRaw ? (' data-year="' + escapeHtml(yearRaw) + '"') : '')
       + (poster ? (' data-poster="' + escapeHtml(poster) + '"') : '')
-      + (it.rating_kp != null ? (' data-rating-kp="' + escapeHtml(String(it.rating_kp)) + '"') : '')
+      + ratingAttrs
       + (genresText ? (' data-genres="' + escapeHtml(genresText) + '"') : '');
     const previewMeta = {
       title: it.title || '',
@@ -21302,6 +21348,11 @@
       description: it.description || '',
       genres: genresText,
       rating_kp: it.rating_kp != null ? it.rating_kp : (it.rating != null ? it.rating : null),
+      rating_imdb: it.rating_imdb != null ? it.rating_imdb : null,
+      rating_kp_votes: it.rating_kp_votes != null ? it.rating_kp_votes : null,
+      rating_imdb_votes: it.rating_imdb_votes != null ? it.rating_imdb_votes : null,
+      poster_rating: it.poster_rating != null ? it.poster_rating : (it.display_rating != null ? it.display_rating : null),
+      poster_rating_source: it.poster_rating_source || it.display_rating_source || null,
     };
     const preview = '<div class="home-poster-preview-pop" aria-hidden="true">' + homePosterPreviewPopHtml(previewMeta) + '</div>';
     const body = '<div class="home-poster-tile-img' + sensCls + '">' + img + kpBadge + '</div>'
@@ -21629,15 +21680,29 @@
     try { bindSiteSearchHoverPreview(results); } catch (_) {}
   }
 
-  function paintSiteSearchKpBadge(tile, rating) {
-    if (!tile || rating == null) return;
-    const n = Number(rating);
-    if (!Number.isFinite(n) || n <= 0) return;
+  function paintSiteSearchKpBadge(tile, ratingOrFilm) {
+    if (!tile || ratingOrFilm == null) return;
+    const film = (ratingOrFilm && typeof ratingOrFilm === 'object')
+      ? ratingOrFilm
+      : { rating_kp: ratingOrFilm };
     const poster = tile.querySelector('.home-poster-tile-img');
     if (!poster || poster.querySelector('.poster-kp-rating')) return;
-    const badge = siteSearchKpRatingHtml({ rating_kp: n });
-    if (badge) poster.insertAdjacentHTML('beforeend', badge);
-    try { tile.setAttribute('data-rating-kp', String(n)); } catch (_) {}
+    const badge = siteSearchKpRatingHtml(film);
+    if (!badge) return;
+    poster.insertAdjacentHTML('beforeend', badge);
+    try {
+      if (film.rating_kp != null) tile.setAttribute('data-rating-kp', String(film.rating_kp));
+      if (film.rating_imdb != null) tile.setAttribute('data-rating-imdb', String(film.rating_imdb));
+      if (film.rating_kp_votes != null) tile.setAttribute('data-rating-kp-votes', String(film.rating_kp_votes));
+      if (film.rating_imdb_votes != null) tile.setAttribute('data-rating-imdb-votes', String(film.rating_imdb_votes));
+      if (window.MpPosterRating && window.MpPosterRating.displayPosterRating) {
+        const d = window.MpPosterRating.displayPosterRating(film);
+        if (d.value != null) {
+          tile.setAttribute('data-poster-rating', String(d.label || d.value));
+          if (d.source) tile.setAttribute('data-poster-rating-source', d.source);
+        }
+      }
+    } catch (_) {}
   }
 
   function enrichSiteSearchPosterPreview(wrap, tile, pop) {
@@ -21648,7 +21713,7 @@
     if (_homeFilmPreviewCache.has(cacheKey)) {
       const cached = _homeFilmPreviewCache.get(cacheKey);
       updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), cached));
-      paintSiteSearchKpBadge(tile, cached.rating_kp);
+      paintSiteSearchKpBadge(tile, cached);
       return;
     }
     if (!fid && !kp) return;
@@ -21669,7 +21734,7 @@
       }
       _homeFilmPreviewCache.set(cacheKey, payload);
       updateHomePosterPreviewPop(pop, Object.assign({}, homePosterPreviewMetaFromTile(tile), payload));
-      paintSiteSearchKpBadge(tile, payload.rating_kp);
+      paintSiteSearchKpBadge(tile, payload);
     };
     const fromFilm = function (film) {
       if (!film) return null;
@@ -21684,6 +21749,11 @@
         description: (typeof pickFilmDescription === 'function' ? pickFilmDescription(film) : '') || film.description || '',
         genres: genres,
         rating_kp: film.rating_kp != null ? film.rating_kp : (film.rating != null ? film.rating : null),
+        rating_imdb: film.rating_imdb != null ? film.rating_imdb : null,
+        rating_kp_votes: film.rating_kp_votes != null ? film.rating_kp_votes : null,
+        rating_imdb_votes: film.rating_imdb_votes != null ? film.rating_imdb_votes : null,
+        poster_rating: film.poster_rating != null ? film.poster_rating : (film.display_rating != null ? film.display_rating : null),
+        poster_rating_source: film.poster_rating_source || film.display_rating_source || null,
       };
     };
     if (fid && getToken()) {
@@ -29477,10 +29547,12 @@
         + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '');
       // Grid: Russian text title only — never English TMDB wordmarks on RU cards.
       const titleHtml = '<span class="premiere-poster-tile-title-text">' + escapeHtml(displayTitle) + '</span>';
+      const kpBadge = siteSearchKpRatingHtml(it);
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${mpPosterOnErrorAttr()}>` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
           ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
+          ${kpBadge || ''}
           <span data-stop-card-click="1">${bell}</span>
         </div>
         <div class="premiere-poster-tile-body">

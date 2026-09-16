@@ -406,6 +406,11 @@
   }
 
   function posterKpRatingHtml(f) {
+    try {
+      if (window.MpPosterRating && typeof window.MpPosterRating.posterRatingHtml === "function") {
+        return window.MpPosterRating.posterRatingHtml(f, esc);
+      }
+    } catch (_e) {}
     var raw = f && (f.rating_kp != null ? f.rating_kp : f.rating);
     var label = formatKpRatingBadge(raw);
     if (!label) return "";
@@ -1085,6 +1090,13 @@
       if (!af) return;
       if (af.already_in_base_film_id) f.already_in_base_film_id = af.already_in_base_film_id;
       if (af.rating_kp != null && f.rating_kp == null) f.rating_kp = af.rating_kp;
+      if (af.rating_imdb != null && f.rating_imdb == null) f.rating_imdb = af.rating_imdb;
+      if (af.rating_kp_votes != null && f.rating_kp_votes == null) f.rating_kp_votes = af.rating_kp_votes;
+      if (af.rating_imdb_votes != null && f.rating_imdb_votes == null) f.rating_imdb_votes = af.rating_imdb_votes;
+      if (af.poster_rating != null && f.poster_rating == null) f.poster_rating = af.poster_rating;
+      if (af.poster_rating_source && !f.poster_rating_source) f.poster_rating_source = af.poster_rating_source;
+      if (af.display_rating != null && f.poster_rating == null) f.poster_rating = af.display_rating;
+      if (af.display_rating_source && !f.poster_rating_source) f.poster_rating_source = af.display_rating_source;
       if (af.watched != null && f.watched == null) f.watched = af.watched;
     });
     return films;
