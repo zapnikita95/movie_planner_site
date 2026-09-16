@@ -479,11 +479,26 @@
     deps.navigate("/", { replace: true });
   }
 
+  async function showImportInProgressTip(deps) {
+    await showCenterDialog(
+      deps,
+      '<div class="mp-onboard-title">Библиотека заполняется</div>' +
+        '<p class="mp-onboard-text">Оценки подтянутся в фоне. Пока ищите фильмы, ставьте планы и смотрите рекомендации.</p>' +
+        '<button type="button" class="btn btn-primary btn-full" data-ob-close="ok" style="margin-top:16px">Понятно</button>',
+      {},
+    );
+  }
+
   async function handoffToCabinetAfterImport(deps, st, meta, onComplete) {
     dismissAllOnboardingLayers(deps);
     try {
       await saveInterest(deps, buildInterestPayload(st, meta));
     } catch (_e) {}
+    if (st.importStarted && !st.importDone && !st.importFillingTipShown) {
+      await showImportInProgressTip(deps);
+      st.importFillingTipShown = true;
+      writeState(st);
+    }
     await deps.markFirstOnboardingDoneAsync();
     if (deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
     finishWithOnboardHandoff(deps, onComplete);
@@ -1029,17 +1044,24 @@
       }
 
       function importStartedPanelHtml() {
+        const progressLine = statusText
+          ? '<p class="muted small" style="margin:10px 0 0;line-height:1.45" data-ob-import-status>' +
+            deps.escapeHtml(statusText) +
+            "</p>"
+          : "";
         return (
           '<div class="mp-onboard-import-started">' +
           '<p class="mp-onboard-text"><strong>Импорт идёт в фоне</strong></p>' +
           '<p class="muted small" style="margin-top:8px;line-height:1.45">' +
-          "Сообщим, когда оценки появятся в профиле. Процесс занимает до пары часов — можно спокойно пользоваться кабинетом.</p>" +
+          "Сообщим, когда оценки появятся в профиле. Пока зайдите в кабинет. Библиотека заполнится сама.</p>" +
           (coinsAdvance > 0
             ? '<p class="mp-onboard-text" style="margin-top:10px"><strong>+' +
               coinsAdvance +
               " монеток</strong> уже на балансе.</p>"
             : "") +
-          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">В кабинет</button>' +
+          progressLine +
+          '<button type="button" class="btn btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Перейти в кабинет</button>' +
+          '<button type="button" class="btn btn-secondary btn-full" data-ob-stay-progress style="margin-top:10px">Смотреть прогресс</button>' +
           "</div>"
         );
       }
@@ -1256,11 +1278,57 @@
         busy = false;
         kpProbe = null;
         coinsAdvance = Number((resp && resp.coins_awarded) || 0);
-        statusText = "";
+        statusText = friendlyImportStatusText(
+          (resp && resp.job) || { status: "running", phase: "starting" },
+          "Импорт с Кинопоиска начат",
+        );
         errText = "";
         beginOnboardingImportBgPoll(deps);
-        // Don't trap behind the import dialog — continue into cabinet immediately.
-        finishImportAndContinue();
+        paint();
+        // Keep an obvious cabinet CTA — do not auto-leave the dialog.
+        startStayProgressPoll();
+      }
+
+      function startStayProgressPoll() {
+        stopPoll();
+        const tick = async function () {
+          if (!importStartedUi) return;
+          try {
+            const s = await deps.apiGet("/api/miniapp/ratings/import-status", {
+              bypassCache: true,
+            });
+            const job = s && s.job;
+            if (job && job.status === "running") {
+              const next = friendlyImportStatusText(job, "Импорт с Кинопоиска начат");
+              if (next && next !== statusText) {
+                statusText = next;
+                const live = ov.querySelector("[data-ob-import-status]");
+                if (live) live.textContent = statusText;
+                else paint();
+              }
+              return;
+            }
+            stopPoll();
+            if (job && job.status === "done") {
+              const imported = Number(job.imported || 0);
+              finish({
+                inlineDone: true,
+                imported: imported,
+                show_tournament_intro: Boolean(
+                  s.show_tournament_intro || (job && job.show_tournament_intro),
+                ),
+                tournament_intro_image_url:
+                  (s && s.tournament_intro_image_url) ||
+                  (job && job.tournament_intro_image_url) ||
+                  "",
+              });
+            }
+          } catch (_e) {}
+        };
+        void tick();
+        pollTimer = setInterval(function () {
+          void tick();
+        }, 2000);
       }
 
       async function startKpImport(extraBody, opts) {
@@ -1457,6 +1525,16 @@
           if (ev.target.closest("[data-ob-continue-onboard]") || ev.target.closest("[data-ob-dismiss-import]")) {
             ev.preventDefault();
             finishImportAndContinue();
+            return;
+          }
+          if (ev.target.closest("[data-ob-stay-progress]")) {
+            ev.preventDefault();
+            const live = ov.querySelector("[data-ob-import-status]");
+            if (live) {
+              try {
+                live.scrollIntoView({ block: "nearest", behavior: "smooth" });
+              } catch (_e) {}
+            }
             return;
           }
           if (ev.target.closest("[data-ob-x]")) {
@@ -2737,13 +2815,20 @@
       st.importPrompted = true;
       if (imp && (imp.importStarted || imp.continued)) {
         st.importStarted = true;
-        st.awaitImportReturn = true;
+        st.awaitImportReturn = false;
         st.pendingImportWantPicker = false;
         st.importSkipped = false;
         st.coinsAdvance = Number(imp.coinsAdvance || 0);
         if (st.coinsAdvance > 0) st.coinsAdvanceShown = true;
         writeState(st);
         beginOnboardingImportBgPoll(deps);
+        if (!st.importFillingTipShown) {
+          await showImportInProgressTip(deps);
+          st.importFillingTipShown = true;
+          writeState(st);
+        }
+        await finishOnboardingTail(deps, st, meta, onComplete);
+        return;
       } else if (imp && imp.inlineDone) {
         st.importDone = (imp.imported || 0) > 0;
         st.importSkipped = !st.importDone;
