@@ -630,6 +630,84 @@
     });
   }
 
+  function staffYtIconHtml() {
+    return '<span class="film-review-yt" aria-hidden="true" title="YouTube">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+      '<path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/>' +
+      '</svg></span>';
+  }
+
+  function withStaffReviewUtm(url, channel, personId) {
+    try {
+      var u = new URL(String(url || ''), SITE_ORIGIN);
+      u.searchParams.set('utm_source', 'movie_planner');
+      u.searchParams.set('utm_medium', 'staff_reviews');
+      u.searchParams.set('utm_campaign', 'person_' + String(personId || ''));
+      if (channel) u.searchParams.set('utm_content', String(channel).slice(0, 40));
+      return u.toString();
+    } catch (_e) {
+      return String(url || '');
+    }
+  }
+
+  function staffReviewsInlineHtml(items, personId) {
+    var ytSvg = staffYtIconHtml();
+    var lis = (items || []).slice(0, 8).map(function (it) {
+      if (!it || !it.url) return '';
+      var title = escapeHtml(it.title || 'Видео');
+      var ch = escapeHtml(it.channel_title || '');
+      var url = escapeHtml(withStaffReviewUtm(it.url, it.channel_title || '', personId));
+      var chBit = ch ? '<span class="film-review-channel"> ' + ch + '</span>' : '';
+      return '<li class="film-review-item">' + ytSvg +
+        '<a class="film-review-link" href="' + url + '" target="_blank" rel="noopener nofollow"' +
+        ' data-review-out="1" data-review-view="staff_reviews"' +
+        ' data-review-platform="youtube" data-review-channel="' + ch + '">' +
+        title + chBit + '</a></li>';
+    }).filter(Boolean).join('');
+    if (!lis) return '';
+    return '<div class="film-desc-reviews-title">Разборы на YouTube</div>' +
+      '<ul class="film-desc-reviews-list">' + lis + '</ul>';
+  }
+
+  function renderStaffPersonReviews(items, personId) {
+    var section = document.getElementById('staff-reviews-section');
+    if (!section) return;
+    var html = staffReviewsInlineHtml(items || [], personId);
+    if (!html) {
+      section.classList.add('hidden');
+      section.innerHTML = '';
+      return;
+    }
+    section.classList.remove('hidden');
+    section.innerHTML = html;
+  }
+
+  var _staffReviewsPrefetch = null;
+
+  function prefetchStaffPersonReviews(personId) {
+    if (isCatalogPersonId(personId)) return Promise.resolve(null);
+    var pid = String(personId || '');
+    if (_staffReviewsPrefetch && _staffReviewsPrefetch.pid === pid) {
+      return _staffReviewsPrefetch.promise;
+    }
+    var promise = fetch(API_BASE + '/api/public/person/' + encodeURIComponent(pid) + '/reviews', {
+      method: 'GET',
+      mode: 'cors',
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    _staffReviewsPrefetch = { pid: pid, promise: promise };
+    return promise;
+  }
+
+  function loadStaffPersonReviews(personId) {
+    if (isCatalogPersonId(personId)) return Promise.resolve();
+    return prefetchStaffPersonReviews(personId).then(function (d) {
+      if (!d || !d.success) return;
+      renderStaffPersonReviews(d.items || [], personId);
+    });
+  }
+
   var STAFF_MONTHS_GEN = [
     'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
     'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
@@ -1188,6 +1266,13 @@
     );
   }
 
+  function staffReviewsSectionHtml() {
+    return (
+      '<section class="staff-reviews-anchor film-desc-reviews-inline hidden" id="staff-reviews-section" aria-label="Разборы на YouTube" aria-live="polite">' +
+      '</section>'
+    );
+  }
+
   function staffSocialHref(raw) {
     var url = String(raw || '').trim();
     if (!url) return '';
@@ -1296,6 +1381,7 @@
       '<div id="staff-bio-root" class="staff-bio-root hidden" data-pane="bio">' +
         (metaHtml || '') +
         (aboutHtml || '') +
+        staffReviewsSectionHtml() +
         staffFactsSectionHtml() +
       '</div>'
     );
@@ -3139,6 +3225,7 @@
         if (earlyFacts.length) renderStaffPersonFacts(earlyFacts);
       }
       prefetchStaffPersonFacts(personId);
+      prefetchStaffPersonReviews(personId);
       try {
         if (global.MpHeaderSearchScroll && typeof global.MpHeaderSearchScroll.refresh === 'function') {
           global.MpHeaderSearchScroll.refresh();
@@ -3556,6 +3643,7 @@
         bootFacts = { web_facts: boot.web_facts || [], kp_facts: boot.kp_facts || [] };
       }
       loadStaffPersonFacts(personId, bootFacts);
+      loadStaffPersonReviews(personId);
       loadStaffBuzzBlock(article, data);
       root.querySelectorAll('.staff-import-btn').forEach(function (btn) {
         var rk = btn.getAttribute('data-role-key') || '';
@@ -3803,6 +3891,7 @@
     }
     // Facts in parallel with /head — don't wait for filmography paint
     prefetchStaffPersonFacts(personId);
+    prefetchStaffPersonReviews(personId);
     return fetch(API_BASE + '/api/public/person/' + encodeURIComponent(personId) + '/head', { method: 'GET', mode: 'cors' })
       .then(function (r) {
         if (!r.ok) throw new Error('http_' + r.status);

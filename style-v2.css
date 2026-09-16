@@ -7447,6 +7447,13 @@ body.film-standalone-page .film-page-similar-section,
   padding-top: 0 !important;
   margin-top: 8px !important;
 }
+#staff-reviews-section.staff-reviews-anchor {
+  margin: 0.75rem 0 1rem;
+}
+#staff-reviews-section.staff-reviews-anchor.hidden {
+  display: none;
+}
+
 .film-desc-reviews-title {
   margin: 14px 0 6px;
   font-weight: 600;
