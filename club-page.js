@@ -46,7 +46,7 @@
     pollEdits: {} ,
     comments: {},
     planPicker: null,
-    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
+    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDayKey: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
     analytics: null, analyticsBusy: false, analyticsError: "", analyticsDays: 90,
     history: null, historyBusyLoad: false, historyError: "",
     historyFilter: "all",
@@ -245,6 +245,91 @@
 
   /* MARKER clubHistAdmin1 — analytics admin-only + member history + recording filter */
   /* MARKER clubShareCal1 — post share + ICS/Google calendar + TG announce stub */
+  /* MARKER clubCalStack1 — stacked day posters + day list dialog for multi-film days */
+
+  function calendarDayStackHtml(items) {
+    items = items || [];
+    if (!items.length) return '';
+    var n = items.length;
+    var maxLayers = Math.min(3, n);
+    var cards = '';
+    for (var li = maxLayers - 1; li >= 0; li--) {
+      var p = items[li];
+      var im = poster(p);
+      var cls = 'club-cal-stack-card club-cal-stack-layer-' + li;
+      cards += im
+        ? '<img class="' + cls + '" src="' + esc(im) + '" alt="" loading="lazy">'
+        : '<div class="' + cls + ' club-cal-stack-empty" aria-hidden="true">🎬</div>';
+    }
+    var badge = n > 1
+      ? '<span class="club-cal-stack-badge" aria-label="' + n + ' сеанса">×' + n + '</span>'
+      : '';
+    return '<div class="club-cal-stack' + (n > 1 ? ' is-multi' : ' is-single') + '" aria-hidden="true">' + cards + badge + '</div>';
+  }
+
+  function dayTitleRu(key) {
+    if (!key) return 'Сеансы';
+    try {
+      var d = new Date(String(key) + 'T12:00:00');
+      if (isNaN(d.getTime())) return 'Сеансы';
+      var label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      return 'Сеансы · ' + label;
+    } catch (_) {
+      return 'Сеансы';
+    }
+  }
+
+  function plansForDayKey(key) {
+    return schedulePlans().filter(function (item) {
+      var d = new Date(planDate(item));
+      return !isNaN(d.getTime()) && dayKey(d) === String(key || '');
+    });
+  }
+
+  function openScheduleDay(key) {
+    key = String(key || '');
+    if (!key) return;
+    var items = plansForDayKey(key);
+    if (!items.length) return;
+    if (items.length === 1) {
+      state.scheduleDayKey = null;
+      state.scheduleDialog = items[0];
+      loadPlanDetail(items[0]);
+      render();
+      return;
+    }
+    state.scheduleDialog = null;
+    state.scheduleDayKey = key;
+    render();
+  }
+
+  function closeScheduleDay() {
+    state.scheduleDayKey = null;
+    render();
+  }
+
+  function scheduleDayDialogHtml() {
+    var key = state.scheduleDayKey;
+    if (!key) return '';
+    var items = plansForDayKey(key);
+    if (!items.length) return '';
+    var rows = items.map(function (p) {
+      var im = poster(p);
+      var t = title(p);
+      var dt = planDate(p);
+      var pid = p && p.id != null ? String(p.id) : '';
+      return '<button type="button" class="club-day-plan-row"' + (pid ? ' data-club-plan-open="' + esc(pid) + '"' : '') + '>' +
+        (im ? '<img src="' + esc(im) + '" alt="" loading="lazy">' : '<div class="club-day-plan-empty">🎬</div>') +
+        '<div class="club-day-plan-copy"><time>' + esc(fmt(dt)) + '</time><b>' + esc(t) + '</b>' +
+        '<span>' + esc(planTypeLabel(p)) + '</span></div></button>';
+    }).join('');
+    return '<div class="club-plan-dialog-backdrop" data-club-day-close><div class="club-day-dialog" role="dialog" aria-modal="true" aria-label="' + esc(dayTitleRu(key)) + '">' +
+      '<button type="button" class="club-plan-dialog-close" data-club-day-close aria-label="Закрыть">×</button>' +
+      '<h3 class="club-day-dialog-title">' + esc(dayTitleRu(key)) + '</h3>' +
+      '<p class="club-day-dialog-hint">Выберите сеанс</p>' +
+      '<div class="club-day-plan-list">' + rows + '</div></div></div>';
+  }
+
   /* MARKER clubOnboarding1 — sample analytics + first-open tips (client-only, no DB rows) */
   function onboardingStorageKey() {
     return 'mp_club_onboarding_v1_' + String(state.id || '');
@@ -2037,9 +2122,9 @@
         sampleCalendarDotsHtml(month).keys.forEach(function (k) { sampleKeys[k] = true; });
       }
       for (var i = 0; i < 42; i++) {
-        var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], thumbs = items.slice(0, 3).map(function (p) { return poster(p) ? "<img src=\"" + esc(poster(p)) + "\" alt=\"\" loading=\"lazy\">" : ""; }).join("");
+        var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], stack = calendarDayStackHtml(items);
         var isSampleDot = !!(inside && sampleKeys[key] && !items.length);
-        days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + (isSampleDot ? " has-sample-plan club-sample-day" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (thumbs ? "<div class=\"club-calendar-thumbs\">" + thumbs + "</div>" : "") + (isSampleDot ? "<div class=\"club-calendar-sample-dot\" title=\"пример\">" + sampleBadge("пример") + "</div>" : "") + "</div>";
+        days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + (items.length > 1 ? " has-stack" : "") + (isSampleDot ? " has-sample-plan club-sample-day" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (stack || "") + (isSampleDot ? "<div class=\"club-calendar-sample-dot\" title=\"пример\">" + sampleBadge("пример") + "</div>" : "") + "</div>";
       }
       content = (showSamples ? sampleBanner("На календаре — пример точек сеансов. Реальные появятся после планирования.") : "") + "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
     } else {
@@ -2048,7 +2133,7 @@
       else content = empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь.");
     }
     var listActive = state.scheduleView === "list", calActive = !listActive;
-    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDialogHtml();
+    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDayDialogHtml() + scheduleDialogHtml();
   }
 
   function films() {
@@ -2776,7 +2861,7 @@
 
   function openPlanDialog(id) {
     var p = (state.club && state.club.plans || []).find(function (item) { return String(item.id || '') === String(id || ''); });
-    if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); }
+    if (p) { state.scheduleDayKey = null; state.scheduleDialog = p; loadPlanDetail(p); render(); }
   }
 
   function closePlanDialog() { state.scheduleDialog = null; render(); }
@@ -2794,7 +2879,10 @@
     });
     root.querySelectorAll('[data-club-calendar-nav]').forEach(function (b) { b.onclick = function () { shiftCalendar(b.getAttribute('data-club-calendar-nav')); }; });
     root.querySelectorAll('[data-club-calendar-day]').forEach(function (b) {
-      b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); } };
+      b.onclick = function () { openScheduleDay(b.getAttribute('data-club-calendar-day')); };
+    });
+    root.querySelectorAll('[data-club-day-close]').forEach(function (b) {
+      b.onclick = function (e) { if (b.classList.contains('club-plan-dialog-backdrop') && e.target !== b) return; closeScheduleDay(); };
     });
     root.querySelectorAll('[data-club-plan-watched]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); markClubPlanWatched(b.getAttribute('data-club-plan-watched')); }; });
     root.querySelectorAll('[data-club-post-share]').forEach(function (b) {
@@ -3269,6 +3357,7 @@
     state.scheduleView = 'list';
     state.calendarMonth = calendarMonthKey(new Date());
     state.scheduleDialog = null;
+    state.scheduleDayKey = null;
     state.leaveConfirm = false;
     state.leaveBusy = false;
     state.analytics = null;
