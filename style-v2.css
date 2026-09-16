@@ -27631,16 +27631,19 @@ body.staff-standalone-page .staff-awards-loading {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 4px;
+  padding: 8px 10px;
   border: none;
   background: transparent;
   border-radius: 10px;
   text-decoration: none;
+  cursor: pointer;
   transition: background 0.15s ease, opacity 0.15s ease, transform 0.12s ease;
   opacity: 0.92;
   flex: 0 1 auto;
-  min-width: 0;
+  min-width: 44px;
+  min-height: 36px;
   max-width: 100%;
+  box-sizing: border-box;
 }
 .film-partner-watch__icon:hover {
   background: rgba(255, 255, 255, 0.1);

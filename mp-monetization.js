@@ -704,8 +704,23 @@
   }
 
   function bindPartnerIconClick(a, partner, kpId, surface) {
-    a.addEventListener('click', function () {
+    a.addEventListener('click', function (e) {
+      /* Explicit open — native target=_blank was a no-op for some users/agents
+         even when elementFromPoint hit the logo (same pattern as ticket partners). */
+      e.preventDefault();
+      e.stopPropagation();
       trackStreamPartnerClick(partner, kpId, surface);
+      var url = (partner && partner.url) || (a && a.getAttribute('href')) || '';
+      if (!url) return;
+      var win = null;
+      try {
+        win = window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (_o) {
+        win = null;
+      }
+      if (!win) {
+        try { window.location.assign(url); } catch (_l) {}
+      }
     });
   }
 
