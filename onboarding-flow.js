@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260917watchWith1";
+  const OB_FLOW_V = "20260917watchWith2";
 
   let _obKpImportPoll = null;
 
@@ -1033,7 +1033,7 @@
   async function stepWatchWithChoice(deps) {
     const html =
       '<div class="mp-onboard-title">Смотришь обычно один, вдвоём или компанией?</div>' +
-      '<p class="mp-onboard-text muted small">Один — тоже нормально. Можно пропустить создание группы.</p>' +
+      '<p class="mp-onboard-text muted small">Если смотрите без компании, можно пропустить создание группы</p>' +
       '<div class="mp-onboard-db-list">' +
       watchWithPickButton("solo", "🙋", "Один") +
       watchWithPickButton("partner", "💑", "С партнёром (вдвоём)") +
@@ -1060,7 +1060,7 @@
       : (WATCH_WITH_DEFAULTS[kind] && WATCH_WITH_DEFAULTS[kind].title) || "Совместная группа";
     var body = isClub
       ? "Можно вести киноклуб на movie-planner.ru: расписание просмотров, статистика и уведомления участникам. Личная библиотека остаётся отдельно."
-      : "Совместная группа — отдельно от личной библиотеки. Общие планы, что смотрели и что хотите посмотреть вместе.";
+      : "Вы можете создать совместную группу и вместе вести списки просмотров и общую базу. База совместной группы ведётся отдельно от личной базы.";
     var createLabel = isClub ? "Создать киноклуб" : "Создать группу";
     var html =
       '<div class="mp-onboard-title">' +
