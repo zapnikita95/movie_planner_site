@@ -32334,11 +32334,27 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
   transform: translateX(0) translateY(0) scale(1);
 }
 
-/* MARKER:20260916hoverPortal1 — hover preview portaled above chrome (escape overflow clip/sidebar) */
+/* MARKER:20260916hoverPortal1c — portal layer above ALL chrome; only portaled preview visible */
+#mp-hover-portal-root,
+[data-mp-hover-portal-root="1"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 250000 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  transform: none !important;
+  contain: none !important;
+}
+html.mp-hover-portal-open,
+html.mp-hover-portal-open body {
+  overflow-x: visible !important;
+}
 .home-film-preview.is-preview-portaled,
 .home-film-preview[data-mp-hover-portaled="1"] {
   position: fixed !important;
-  z-index: 10050 !important;
+  z-index: 250000 !important;
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
@@ -32364,11 +32380,17 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
   height: 28px;
 }
 
-/* MARKER:20260916hoverPortal1b — desktop: only portaled preview is visible (CSS :hover clips in overflow) */
+/* Desktop: kill in-card CSS :hover preview (overflow-x:clip ancestors crop it) */
 @media (hover: hover) and (min-width: 641px) {
   .guest-discover-card--hover-preview > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .guest-discover-card--hover-preview:hover > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .guest-discover-card--hover-preview.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
   #section-unwatched .film-card-v2--hover-preview > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
-  .premiere-poster-tile > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]) {
+  #section-unwatched .film-card-v2--hover-preview:hover > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  #section-unwatched .film-card-v2--hover-preview.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .premiere-poster-tile > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .premiere-poster-tile:hover > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .premiere-poster-tile.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]) {
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
