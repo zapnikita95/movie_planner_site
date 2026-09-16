@@ -1,0 +1,147 @@
+{
+  "marker": "hoverPortalAuth1",
+  "codeShare": {
+    "ok": true,
+    "assetV": "20260916hoverPortalAuth1",
+    "htmlHasV": true,
+    "hoverPreviewPopForCardIncludesPosterPop": true,
+    "sharedPortalSelIncludesPosterPop": true,
+    "cssHidesInCardPosterPop": true,
+    "bindCallSites": [
+      {
+        "root": "root",
+        "selector": ".home-poster-tile-wrap"
+      },
+      {
+        "root": "root",
+        "selector": ".guest-discover-card--hover-preview"
+      },
+      {
+        "root": "list",
+        "selector": ".film-card-v2--hover-preview"
+      },
+      {
+        "root": "grid",
+        "selector": ".premiere-poster-tile"
+      }
+    ],
+    "surfaces": {
+      "guestDiscover": "shared bindFilmCardHoverPreviewGroup",
+      "authBaseUnwatched": "shared bindFilmCardHoverPreviewGroup",
+      "premieres": "shared bindFilmCardHoverPreviewGroup",
+      "authHomeRails": "FIXED → shared bindFilmCardHoverPreviewGroup",
+      "plansGuest": "via guest-discover cards (shared)",
+      "buzzGuestGrids": "via guest-discover cards on База/Планы (shared)",
+      "whattowatch": "no home-film-preview hover (flip cards)",
+      "homeRailsTrailerBtn": "home-rails.js play overlay only — not synopsis pop"
+    }
+  },
+  "liveGuest": {
+    "baza": {
+      "left": {
+        "ok": true,
+        "parent": "mp-hover-portal-root",
+        "parentOk": true,
+        "zIndex": "250000",
+        "position": "fixed",
+        "rect": {
+          "left": 28,
+          "right": 448,
+          "top": 48,
+          "width": 420,
+          "height": 386.625
+        },
+        "clippedLeft": false,
+        "clippedRight": false,
+        "efpOk": true,
+        "efpInfo": {
+          "tag": "DIV",
+          "id": "",
+          "cls": "home-film-preview home-film-preview--hover-trailer is-preview-portaled has-trail"
+        },
+        "secondNonPortaled": [],
+        "visibleCount": 1,
+        "rootExists": true,
+        "side": "left",
+        "cardIndex": 0,
+        "cardLeft": 24,
+        "cardTitle": "Надежда"
+      },
+      "right": {
+        "ok": true,
+        "parent": "mp-hover-portal-root",
+        "parentOk": true,
+        "zIndex": "250000",
+        "position": "fixed",
+        "rect": {
+          "left": 992,
+          "right": 1412,
+          "top": 48,
+          "width": 420,
+          "height": 386.625
+        },
+        "clippedLeft": false,
+        "clippedRight": false,
+        "efpOk": true,
+        "efpInfo": {
+          "tag": "DIV",
+          "id": "",
+          "cls": "home-film-preview home-film-preview--hover-trailer is-preview-portaled has-trail"
+        },
+        "secondNonPortaled": [],
+        "visibleCount": 1,
+        "rootExists": true,
+        "side": "right",
+        "cardIndex": 6,
+        "cardLeft": 1230.84375,
+        "cardTitle": "Добро пожаловать в Декорадо"
+      }
+    },
+    "premieres": {
+      "left": {
+        "ok": true,
+        "rect": {
+          "left": 28,
+          "right": 408,
+          "top": 500,
+          "width": 380
+        },
+        "parent": "mp-hover-portal-root",
+        "zIndex": "250000",
+        "cardIndex": 0
+      },
+      "right": {
+        "ok": true,
+        "rect": {
+          "left": 1032,
+          "right": 1412,
+          "top": 508,
+          "width": 380
+        },
+        "parent": "mp-hover-portal-root",
+        "zIndex": "250000",
+        "cardIndex": 5
+      }
+    },
+    "ok": true
+  },
+  "authHomeFixture": {
+    "ok": true,
+    "leftOk": true,
+    "rightOk": true,
+    "ghostHidden": true,
+    "leftRect": {
+      "left": 230,
+      "right": 610,
+      "top": 28
+    },
+    "rightRect": {
+      "left": 1032,
+      "right": 1412,
+      "top": 28
+    },
+    "note": "CSS+DOM portal contract for auth home-poster-preview-pop (no live auth session)"
+  },
+  "authSession": "unavailable on box — fixture + code-share proof",
+  "ok": true
+}
