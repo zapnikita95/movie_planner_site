@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260916hoverPortalAuth1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260916hoverPortalAuth1">
+<link rel="preload" href="/style-v2.css?v=20260916flexClick1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260916flexClick1">
     <script>
       (function () {
         try {
@@ -80,8 +80,8 @@
           if (hasStoredSiteSession()) return;
           document.documentElement.classList.add('mp-landing-guest-boot');
           /* document.write = render-blocking (createElement+append does NOT — FOUC giant .hero-title) */
-          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916hoverPortalAuth1" as="style">');
-          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916hoverPortalAuth1">');
+          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916flexClick1" as="style">');
+          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916flexClick1">');
         } catch (_) {}
       })();
     </script>
@@ -1092,7 +1092,46 @@
           </div>
         </div>
       </div>
-    </header>
+    
+<!-- MP_HEADER_SEARCH_ENTER_FALLBACK -->
+    <script>
+    /* MP_HEADER_SEARCH_ENTER_FALLBACK — Enter → /search even if cabinet-app.js not loaded yet */
+    (function () {
+      function go(q) {
+        q = String(q || '').trim();
+        if (q.length < 2) return;
+        try {
+          if (window.__mpOpenSiteSearchPage) {
+            window.__mpOpenSiteSearchPage(q);
+            return;
+          }
+        } catch (_) {}
+        var url = '/search?q=' + encodeURIComponent(q);
+        if (location.pathname.replace(/\/$/, '') === '/search') {
+          try { history.replaceState({ view: 'search', q: q }, '', url); } catch (_) {}
+          location.reload();
+          return;
+        }
+        location.href = url;
+      }
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+        if (e.defaultPrevented) return;
+        var input = document.getElementById('header-search-input');
+        if (!input || document.activeElement !== input) return;
+        // If cabinet already bound native handler, let it run (it will navigate).
+        // Fallback only when app mark missing after a tick — actually fire always as backup
+        // when app has not set the flag yet.
+        if (window.__mpHeaderSearchBound) return;
+        var v = input.value.trim();
+        if (v.length < 2) return;
+        e.preventDefault();
+        go(v);
+      }, true);
+    })();
+    </script>
+
+</header>
     <script>
       (function () {
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
@@ -3904,7 +3943,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260916hoverPortalAuth1';
+        var V='20260916flexClick1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

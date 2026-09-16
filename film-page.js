@@ -3404,7 +3404,6 @@
     var filmCabinetRoute = !!(document.getElementById('cabinet-readonly') &&
       document.getElementById('cabinet-readonly').classList.contains('film-page-mode'));
     if (document.body && document.body.classList.contains('in-cabinet') && !filmCabinetRoute) return;
-    global.__MP_HEADER_SEARCH_BOUND = true;
     var input = document.getElementById('header-search-input');
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
@@ -3419,6 +3418,9 @@
       'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
     ];
     if (!input || !dd) return;
+    /* Only mark bound after we know we will attach Enter → /search listeners */
+    global.__MP_HEADER_SEARCH_BOUND = true;
+    try { global.__mpHeaderSearchBound = true; } catch (_b) {}
     function escapeText(v) {
       return String(v || '').replace(/[&<>"']/g, function (c) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
