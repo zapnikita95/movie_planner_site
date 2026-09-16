@@ -48,7 +48,8 @@
     planPicker: null,
     scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
     analytics: null, analyticsBusy: false, analyticsError: "", analyticsDays: 90,
-    historyNoteEdit: null, historyBusy: {}, attendanceBusy: {}
+    historyNoteEdit: null, historyBusy: {}, attendanceBusy: {},
+    onboardingForceHidden: false
   };
   var root;
   var overlayHost;
@@ -237,6 +238,195 @@
 
   function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
 
+  /* MARKER clubOnboarding1 — sample analytics + first-open tips (client-only, no DB rows) */
+  function onboardingStorageKey() {
+    return 'mp_club_onboarding_v1_' + String(state.id || '');
+  }
+
+  function isOnboardingDismissed() {
+    if (state.onboardingForceHidden) return true;
+    try {
+      return localStorage.getItem(onboardingStorageKey()) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function dismissOnboarding() {
+    try {
+      localStorage.setItem(onboardingStorageKey(), '1');
+    } catch (_) {}
+    state.onboardingForceHidden = true;
+    render();
+  }
+
+  function analyticsLooksEmpty(a) {
+    if (!a || a.sample || a.demo) return true;
+    var b = a.base || {};
+    var hist = a.history || [];
+    var sessions = Number(b.sessions_count || 0);
+    if (sessions > 0) return false;
+    if (hist && hist.length) return false;
+    if (b.hall_attendance_total != null && Number(b.hall_attendance_total) > 0) return false;
+    if ((b.attendance_trend || []).some(function (p) { return p && p.attendance_count != null; })) return false;
+    return true;
+  }
+
+  function clubHasUpcomingPlans() {
+    return !!(state.club && state.club.plans && state.club.plans.length);
+  }
+
+  function shouldShowSampleData() {
+    // Real past sessions / attendance → never show samples (e.g. «Первый киноклуб»).
+    if (state.analytics && !analyticsLooksEmpty(state.analytics) && !state.analytics.sample) return false;
+    if (state.analytics && analyticsLooksEmpty(state.analytics)) return true;
+    // Before analytics loads: only if club has no films/history signal.
+    var films = state.club && state.club.films;
+    var n = Number(films);
+    if (!isNaN(n) && n > 0) return false;
+    if (films && String(films) !== '—' && String(films) !== '0') return false;
+    return true;
+  }
+
+  function shouldShowOnboarding() {
+    if (!state.id || !state.club) return false;
+    if (isOnboardingDismissed()) return false;
+    // Tips once for empty clubs; hide when real analytics exist.
+    if (state.analytics && !analyticsLooksEmpty(state.analytics) && !state.analytics.sample) return false;
+    return shouldShowSampleData();
+  }
+
+  function sampleBadge(label) {
+    return '<span class="club-sample-badge" title="Это пример, не данные клуба">' + esc(label || 'Пример') + '</span>';
+  }
+
+  function sampleBanner(text) {
+    return '<div class="club-sample-banner" role="note">' + sampleBadge('Так будет выглядеть') + '<p>' + esc(text) + '</p></div>';
+  }
+
+  function isoDaysAgo(n) {
+    return new Date(Date.now() - Number(n || 0) * 86400000).toISOString();
+  }
+
+  function buildSampleAnalytics() {
+    return {
+      success: true,
+      sample: true,
+      demo: true,
+      chat_id: state.id,
+      period_days: state.analyticsDays || 90,
+      base: {
+        sessions_count: 4,
+        avg_attendance: 12,
+        attendance_trend: [
+          { attendance_count: 8, plan_datetime: isoDaysAgo(60) },
+          { attendance_count: 11, plan_datetime: isoDaysAgo(45) },
+          { attendance_count: 14, plan_datetime: isoDaysAgo(30) },
+          { attendance_count: 12, plan_datetime: isoDaysAgo(14) }
+        ],
+        members_watched_total: 18,
+        hall_attendance_total: 45,
+        unique_films: 4,
+        response_rate_pct: 72,
+        nudged_count: 10,
+        responded_count: 7
+      },
+      people: {
+        active_members: 6,
+        top_members: [
+          { name: 'Аня (пример)', watched_marks: 4, user_id: 'sample1' },
+          { name: 'Игорь (пример)', watched_marks: 3, user_id: 'sample2' },
+          { name: 'Лена (пример)', watched_marks: 2, user_id: 'sample3' }
+        ],
+        newcomers: [
+          { name: 'Мария (пример)', joined_at: isoDaysAgo(10), user_id: 'sample4' }
+        ]
+      },
+      content: {
+        top_films: [
+          { title: 'Бегущий по лезвию (пример)', sessions: 1 },
+          { title: 'Амели (пример)', sessions: 1 }
+        ],
+        top_genres: [
+          { genre: 'драма', count: 2 },
+          { genre: 'фантастика', count: 1 }
+        ],
+        avg_rating_after_session: 8.2
+      },
+      extras: {
+        rsvp_fact_funnel: { available: true, label: 'RSVP 15 → пришло 12 (пример)' },
+        best_day_of_week: { available: true, label: 'Четверг · средняя явка 13 (пример)' },
+        best_time: { available: true, label: '19:00 (пример)' },
+        season_comparison: { available: true, label: 'Этот период: 4 сеанса · прошлый: 3 (пример)' },
+        no_show_among_rsvp: { available: true, label: '≈20% no-show среди RSVP (пример)' }
+      },
+      history: [
+        {
+          plan_id: 'sample-h1',
+          title: 'Бегущий по лезвию',
+          plan_datetime: isoDaysAgo(14),
+          attendance_count: 12,
+          members_watched_count: 5,
+          poster: '',
+          note: {
+            body: 'Пример заметки: обсудили финал, спорили про режиссёрскую версию.',
+            recording_url: 'https://movie-planner.ru'
+          }
+        },
+        {
+          plan_id: 'sample-h2',
+          title: 'Амели',
+          plan_datetime: isoDaysAgo(30),
+          attendance_count: 14,
+          members_watched_count: 7,
+          poster: '',
+          note: {
+            body: 'Пример: тёплый вечер, много новичков. Ссылку на запись можно добавить сюда.',
+            recording_url: ''
+          }
+        }
+      ]
+    };
+  }
+
+  function onboardingHtml() {
+    if (!shouldShowOnboarding()) return '';
+    return '<div class="club-onboard" role="dialog" aria-label="Онбординг киноклуба">' +
+      '<div class="club-onboard-card">' +
+      '<div class="club-onboard-head"><h2>Как устроен киноклуб</h2>' +
+      '<button type="button" class="btn btn-secondary" data-club-onboard-dismiss aria-label="Закрыть">Закрыть</button></div>' +
+      '<p class="club-onboard-lead">Короткий чеклист — что появится после первых сеансов. Примеры ниже полупрозрачные и помечены «Пример».</p>' +
+      '<ul class="club-onboard-list">' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Аналитика</b><span>метрики, явка и история сеансов</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="schedule"><b>Расписание</b><span>список и календарь с точками сеансов</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пришло: N</b><span>явка по залу после сеанса (для админов)</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Заметка + запись</b><span>текст и ссылка на запись обсуждения</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пуш «смотрели?»</b><span>напоминание участникам отметить просмотр</span></button></li>' +
+      '</ul>' +
+      '<div class="club-onboard-actions"><button type="button" class="btn btn-primary" data-club-onboard-dismiss>Понятно</button></div>' +
+      '</div></div>';
+  }
+
+  function sampleScheduleListHtml() {
+    return '<div class="club-sample-wrap" aria-label="Примеры расписания">' +
+      sampleBanner('Так будет выглядеть расписание после того, как вы запланируете сеансы.') +
+      '<article class="club-schedule-item club-sample-card">' +
+      '<div class="club-poster-empty">🎬</div><div><div class="club-when">чт, 19:00 · ' + sampleBadge('пример') + '</div>' +
+      '<h3>Бегущий по лезвию</h3><p class="club-plan-type">Совместный просмотр (пример)</p></div></article>' +
+      '<article class="club-schedule-item club-sample-card">' +
+      '<div class="club-poster-empty">🎬</div><div><div class="club-when">вс, 18:30 · ' + sampleBadge('пример') + '</div>' +
+      '<h3>Амели</h3><p class="club-plan-type">Обсуждение (пример)</p></div></article></div>';
+  }
+
+  function sampleCalendarDotsHtml(month) {
+    // Place 2 translucent sample dots on mid-month weekdays inside current grid month.
+    var y = month.getFullYear(), m = month.getMonth();
+    var d1 = new Date(y, m, 12);
+    var d2 = new Date(y, m, 19);
+    function key(d) { return dayKey(d); }
+    return { keys: [key(d1), key(d2)] };
+  }
+
   function loadAnalytics(force) {
     if (!state.id) return;
     if (state.analyticsBusy) return;
@@ -281,6 +471,7 @@
 
   function analyticsPanel() {
     var a = state.analytics;
+    var usingSample = false;
     var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">Аналитика клуба</h2><p class="club-panel-hint">Сеансы за ' + esc(String(state.analyticsDays || 90)) + ' дней · явка N (зал) и отметки участников MP</p></div><div class="club-analytics-actions">' +
       '<button type="button" class="btn btn-secondary" data-club-analytics-days="30"' + (state.analyticsDays === 30 ? ' aria-pressed="true"' : '') + '>30 дн.</button>' +
       '<button type="button" class="btn btn-secondary" data-club-analytics-days="90"' + (state.analyticsDays === 90 ? ' aria-pressed="true"' : '') + '>90 дн.</button>' +
@@ -289,11 +480,16 @@
     if (state.analyticsBusy && !a) return head + '<p class="club-loading">Считаем метрики…</p>';
     if (state.analyticsError && !a) return head + empty('Не удалось загрузить аналитику', state.analyticsError);
     if (!a) return head + empty('Аналитика появится здесь', 'Откройте вкладку ещё раз или нажмите «Обновить».');
+    if (analyticsLooksEmpty(a) && shouldShowSampleData()) {
+      a = buildSampleAnalytics();
+      usingSample = true;
+    }
     var b = a.base || {};
     var people = a.people || {};
     var content = a.content || {};
     var extras = a.extras || {};
     var history = a.history || [];
+    var sampleHead = usingSample ? sampleBanner('Пример аналитики нового клуба. Реальные цифры появятся после первых сеансов — это не данные участников.') : '';
     var rate = b.response_rate_pct != null ? (b.response_rate_pct + '%') : '—';
     var rateHint = b.nudged_count ? ('ответили ' + (b.responded_count || 0) + ' из ' + b.nudged_count + ' получивших «смотрели?»') : 'Нет данных по напоминаниям «смотрели?»';
     var hallVs = (b.hall_attendance_total != null)
@@ -351,14 +547,15 @@
 
     var histRows = history.map(function (h) {
       var note = h.note || {};
-      var editing = state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
+      var isSampleRow = usingSample || String(h.plan_id || '').indexOf('sample-') === 0;
+      var editing = !isSampleRow && state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
       var busy = !!(state.historyBusy && state.historyBusy[h.plan_id]);
       var attBusy = !!(state.attendanceBusy && state.attendanceBusy[h.plan_id]);
-      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">Запись</a>' : '';
+      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">' + (isSampleRow ? 'Запись (пример)' : 'Запись') + '</a>' : '';
       var noteBody = note.body ? '<p class="club-history-note">' + esc(note.body) + '</p>' : '<p class="club-analytics-empty">Заметок пока нет.</p>';
       var adminAtt = '';
       var adminNote = '';
-      if (state.admin) {
+      if (state.admin && !isSampleRow) {
         adminAtt = '<label class="club-inline-field">Пришло: N <input type="number" min="0" inputmode="numeric" data-club-att-input="' + esc(h.plan_id) + '" value="' + (h.attendance_count != null ? esc(h.attendance_count) : '') + '" placeholder="число"><button type="button" class="btn btn-primary" data-club-att-save="' + esc(h.plan_id) + '"' + (attBusy ? ' disabled' : '') + '>' + (attBusy ? '…' : 'Сохранить') + '</button></label>';
         if (editing) {
           adminNote = '<div class="club-note-edit"><label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(h.plan_id) + '" rows="3">' + esc(note.body || '') + '</textarea></label>' +
@@ -368,18 +565,35 @@
         } else {
           adminNote = '<button type="button" class="btn btn-secondary" data-club-note-edit="' + esc(h.plan_id) + '">' + (note.body || note.recording_url ? 'Редактировать заметку' : 'Добавить заметку') + '</button>';
         }
+      } else if (isSampleRow) {
+        adminAtt = '<span class="club-inline-field">Пришло: N <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> ' + sampleBadge('пример') + '</span>';
       }
       var poster = h.poster ? '<img src="' + esc(h.poster) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>';
-      return '<article class="club-history-card">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
+      return '<article class="club-history-card' + (isSampleRow ? ' club-sample-card' : '') + '">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + (isSampleRow ? ' ' + sampleBadge('Пример') : '') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
         '<p class="club-history-meta">Явка N: <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> · отметок MP: <b>' + esc(String(h.members_watched_count || 0)) + '</b></p>' +
         noteBody + '<div class="club-history-actions">' + link + adminAtt + adminNote + '</div></div></article>';
     }).join('');
 
-    var historyHtml = '<section class="club-analytics-section"><h3>История сеансов</h3>' +
+    var historyHtml = '<section class="club-analytics-section' + (usingSample ? ' club-sample-section' : '') + '"><h3>История сеансов' + (usingSample ? ' ' + sampleBadge('Пример') : '') + '</h3>' +
       (histRows ? '<div class="club-history-list">' + histRows + '</div>' : empty('История пока пуста', 'Прошедшие сеансы клуба появятся здесь. Админы смогут указать «Пришло: N» и заметку со ссылкой на запись.')) +
       '</section>';
 
-    return head + baseHtml + peopleHtml + contentHtml + extrasHtml + historyHtml;
+    var wrapOpen = usingSample ? '<div class="club-sample-wrap" data-club-sample="analytics">' : '';
+    var wrapClose = usingSample ? '</div>' : '';
+    var baseWrapped = usingSample
+      ? baseHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>База</h3>', '<h3>База ' + sampleBadge('Пример') + '</h3>', 1)
+      : baseHtml;
+    var peopleWrapped = usingSample
+      ? peopleHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Люди</h3>', '<h3>Люди ' + sampleBadge('Пример') + '</h3>', 1)
+      : peopleHtml;
+    var contentWrapped = usingSample
+      ? contentHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Контент</h3>', '<h3>Контент ' + sampleBadge('Пример') + '</h3>', 1)
+      : contentHtml;
+    var extrasWrapped = usingSample
+      ? extrasHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Дополнительно</h3>', '<h3>Дополнительно ' + sampleBadge('Пример') + '</h3>', 1)
+      : extrasHtml;
+
+    return head + wrapOpen + sampleHead + baseWrapped + peopleWrapped + contentWrapped + extrasWrapped + historyHtml + wrapClose;
   }
 
   function saveAttendance(planId) {
@@ -1192,7 +1406,21 @@
 
   function syncClubOverlays() {
     var host = ensureOverlayHost();
-    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
+    host.innerHTML = onboardingHtml() + fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
+    host.querySelectorAll('[data-club-onboard-dismiss]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dismissOnboarding();
+      };
+    });
+    host.querySelectorAll('[data-club-onboard-tab]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        var t = b.getAttribute('data-club-onboard-tab') || 'stats';
+        dismissOnboarding();
+        tab(t);
+      };
+    });
     // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
     var fab = host.querySelector('[data-club-compose-open]');
     if (fab) fab.onclick = openCompose;
@@ -1429,6 +1657,7 @@
 
   function schedule() {
     var plans = schedulePlans();
+    var showSamples = !plans.length && shouldShowSampleData();
     var rows = plans.map(function (p) {
       var im = poster(p), l = clubLink(p), t = title(p), dt = planDate(p), desc = planDescription(p);
       return "<article class=\"club-schedule-item club-schedule-item-clickable\"" + (p.id ? " data-club-plan-open=\"" + esc(p.id) + "\"" : "") + ">" + (im ? "<img src=\"" + esc(im) + "\" alt=\"\" loading=\"lazy\">" : "<div class=\"club-poster-empty\">🎬</div>") + "<div><div class=\"club-when\">" + esc(fmt(dt)) + "</div><h3>" + (l ? "<a data-club-film-link href=\"" + esc(l) + "\">" + esc(t) + "</a>" : esc(t)) + "</h3>" + (desc ? "<p class=\"club-plan-description\">" + esc(desc) + "</p>" : "") + "<p class=\"club-plan-type\">" + esc(planTypeLabel(p)) + "</p>" + (state.member && p.zoom_url ? "<p><a href=\"" + esc(p.zoom_url) + "\" rel=\"noopener\">Ссылка на обсуждение</a></p>" : "") + "</div>" + clubScheduleAction(p) + "</article>";
@@ -1438,9 +1667,21 @@
       var month = calendarMonthStart(state.calendarMonth), monthName = month.toLocaleString("ru-RU", { month: "long", year: "numeric" });
       var first = (month.getDay() + 6) % 7, days = "", byDay = {};
       plans.forEach(function (p) { var d = new Date(planDate(p)); if (!isNaN(d.getTime()) && d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()) (byDay[dayKey(d)] || (byDay[dayKey(d)] = [])).push(p); });
-      for (var i = 0; i < 42; i++) { var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], thumbs = items.slice(0, 3).map(function (p) { return poster(p) ? "<img src=\"" + esc(poster(p)) + "\" alt=\"\" loading=\"lazy\">" : ""; }).join(""); days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (thumbs ? "<div class=\"club-calendar-thumbs\">" + thumbs + "</div>" : "") + "</div>"; }
-      content = "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
-    } else { content = rows || empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь."); }
+      var sampleKeys = {};
+      if (showSamples) {
+        sampleCalendarDotsHtml(month).keys.forEach(function (k) { sampleKeys[k] = true; });
+      }
+      for (var i = 0; i < 42; i++) {
+        var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], thumbs = items.slice(0, 3).map(function (p) { return poster(p) ? "<img src=\"" + esc(poster(p)) + "\" alt=\"\" loading=\"lazy\">" : ""; }).join("");
+        var isSampleDot = !!(inside && sampleKeys[key] && !items.length);
+        days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + (isSampleDot ? " has-sample-plan club-sample-day" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (thumbs ? "<div class=\"club-calendar-thumbs\">" + thumbs + "</div>" : "") + (isSampleDot ? "<div class=\"club-calendar-sample-dot\" title=\"пример\">" + sampleBadge("пример") + "</div>" : "") + "</div>";
+      }
+      content = (showSamples ? sampleBanner("На календаре — пример точек сеансов. Реальные появятся после планирования.") : "") + "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
+    } else {
+      if (rows) content = rows;
+      else if (showSamples) content = sampleScheduleListHtml();
+      else content = empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь.");
+    }
     var listActive = state.scheduleView === "list", calActive = !listActive;
     return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDialogHtml();
   }
@@ -2181,6 +2422,20 @@
         tab(b.getAttribute('data-club-tab'));
       };
     });
+    root.querySelectorAll('[data-club-onboard-dismiss]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dismissOnboarding();
+      };
+    });
+    root.querySelectorAll('[data-club-onboard-tab]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        var t = b.getAttribute('data-club-onboard-tab') || 'stats';
+        dismissOnboarding();
+        tab(t);
+      };
+    });
     root.querySelectorAll('[data-club-analytics-refresh]').forEach(function (b) {
       b.onclick = function () { loadAnalytics(true); };
     });
@@ -2607,6 +2862,7 @@
     state.historyNoteEdit = null;
     state.historyBusy = {};
     state.attendanceBusy = {};
+    state.onboardingForceHidden = false;
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
     syncClubOverlays();
 
@@ -2657,6 +2913,8 @@
           // one paint with club + members + posts
           render();
           refreshClubPlanWatched();
+          // Prefetch analytics so empty clubs can show sample metrics + onboarding promptly.
+          if (shouldShowSampleData()) loadAnalytics(false);
           if (state.tab === 'stats' || state.tab === 'analytics' || state.tab === 'analitika') {
             if (state.tab !== 'stats') state.tab = 'stats';
             loadAnalytics(false);
