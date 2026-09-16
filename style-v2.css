@@ -21113,8 +21113,8 @@ body.in-cabinet #section-settings .settings-content {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  color: #0b0b13;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent, #ff2d7b), var(--accent-end, #9b4dff));
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -21150,8 +21150,8 @@ body.in-cabinet #section-settings .settings-content {
   touch-action: manipulation;
 }
 .mp-onboard-emoji-btn.active {
-  border-color: rgba(251, 191, 36, 0.7);
-  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(168, 85, 247, 0.7);
+  background: rgba(168, 85, 247, 0.18);
 }
 .mp-onboard-field-label {
   display: block;
