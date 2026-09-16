@@ -21526,6 +21526,7 @@
   }
 
   function openSiteSearchPage(query, opts) {
+    try { window.__mpOpenSiteSearchPage = openSiteSearchPage; } catch (_) {}
     const q = String(query || '').trim();
     if (!q) return;
     try {
@@ -21829,6 +21830,7 @@
   }
 
   function bindHeaderSearch() {
+    try { window.__mpOpenSiteSearchPage = openSiteSearchPage; } catch (_) {}
     if (window.__MP_HEADER_SEARCH_BOUND) return;
     window.__MP_HEADER_SEARCH_BOUND = true;
     window.__MP_CABINET_HEADER_SEARCH = true;
@@ -21919,6 +21921,8 @@
         }
       }
     });
+    try { window.__mpHeaderSearchBound = true; } catch (_) {}
+
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         input.value = '';
