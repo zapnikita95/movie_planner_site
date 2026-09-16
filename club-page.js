@@ -46,7 +46,9 @@
     pollEdits: {} ,
     comments: {},
     planPicker: null,
-    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false
+    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
+    analytics: null, analyticsBusy: false, analyticsError: "", analyticsDays: 90,
+    historyNoteEdit: null, historyBusy: {}, attendanceBusy: {}
   };
   var root;
   var overlayHost;
@@ -234,6 +236,209 @@
   function clubScheduleAction(x) { return state.member ? clubPlanAction(x) : '<button type="button" class="club-mini-btn" data-club-join>' + String.fromCharCode(1042,1089,1090,1091,1087,1080,1090,1100) + '</button>'; }
 
   function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
+
+  function loadAnalytics(force) {
+    if (!state.id) return;
+    if (state.analyticsBusy) return;
+    if (state.analytics && !force) return;
+    state.analyticsBusy = true;
+    state.analyticsError = '';
+    render();
+    var days = state.analyticsDays || 90;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/analytics?days=' + encodeURIComponent(days))
+      .then(function (d) {
+        if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось загрузить аналитику');
+        state.analytics = d;
+      })
+      .catch(function (e) {
+        state.analyticsError = (e && e.message) || 'Не удалось загрузить аналитику';
+        state.analytics = state.analytics || null;
+      })
+      .then(function () {
+        state.analyticsBusy = false;
+        render();
+      });
+  }
+
+  function sparkline(points) {
+    var vals = (points || []).map(function (p) { return p && p.attendance_count != null ? Number(p.attendance_count) : null; }).filter(function (n) { return n != null && !isNaN(n); });
+    if (vals.length < 2) return '<p class="club-analytics-empty">Нужно минимум 2 сеанса с явкой N для графика.</p>';
+    var max = Math.max.apply(null, vals.concat([1]));
+    var min = Math.min.apply(null, vals);
+    var w = 320, h = 64, pad = 4;
+    var step = (w - pad * 2) / (vals.length - 1);
+    var coords = vals.map(function (v, i) {
+      var x = pad + i * step;
+      var y = h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    return '<svg class="club-sparkline" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Динамика явки"><polyline fill="none" stroke="url(#clubSparkGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="' + coords.join(' ') + '"/><defs><linearGradient id="clubSparkGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ef1c7a"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs></svg>';
+  }
+
+  function metricCard(label, value, hint) {
+    return '<div class="club-metric"><span>' + esc(label) + '</span><b>' + esc(value == null || value === '' ? '—' : value) + '</b>' + (hint ? '<em>' + esc(hint) + '</em>' : '') + '</div>';
+  }
+
+  function analyticsPanel() {
+    var a = state.analytics;
+    var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">Аналитика клуба</h2><p class="club-panel-hint">Сеансы за ' + esc(String(state.analyticsDays || 90)) + ' дней · явка N (зал) и отметки участников MP</p></div><div class="club-analytics-actions">' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="30"' + (state.analyticsDays === 30 ? ' aria-pressed="true"' : '') + '>30 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="90"' + (state.analyticsDays === 90 ? ' aria-pressed="true"' : '') + '>90 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="365"' + (state.analyticsDays === 365 ? ' aria-pressed="true"' : '') + '>Год</button>' +
+      '<button type="button" class="btn btn-primary" data-club-analytics-refresh' + (state.analyticsBusy ? ' disabled' : '') + '>' + (state.analyticsBusy ? 'Загрузка…' : 'Обновить') + '</button></div></div>';
+    if (state.analyticsBusy && !a) return head + '<p class="club-loading">Считаем метрики…</p>';
+    if (state.analyticsError && !a) return head + empty('Не удалось загрузить аналитику', state.analyticsError);
+    if (!a) return head + empty('Аналитика появится здесь', 'Откройте вкладку ещё раз или нажмите «Обновить».');
+    var b = a.base || {};
+    var people = a.people || {};
+    var content = a.content || {};
+    var extras = a.extras || {};
+    var history = a.history || [];
+    var rate = b.response_rate_pct != null ? (b.response_rate_pct + '%') : '—';
+    var rateHint = b.nudged_count ? ('ответили ' + (b.responded_count || 0) + ' из ' + b.nudged_count + ' получивших «смотрели?»') : 'Нет данных по напоминаниям «смотрели?»';
+    var hallVs = (b.hall_attendance_total != null)
+      ? (String(b.members_watched_total || 0) + ' отметок MP · зал N суммарно ' + b.hall_attendance_total)
+      : 'Отметок MP: ' + (b.members_watched_total || 0) + (b.hall_attendance_total == null ? ' · явка N ещё не заполнена' : '');
+    var baseHtml = '<section class="club-analytics-section"><h3>База</h3><div class="club-metrics">' +
+      metricCard('Сеансов', b.sessions_count, 'за период') +
+      metricCard('Средняя явка N', b.avg_attendance, 'факт по залу') +
+      metricCard('Уникальные фильмы', b.unique_films) +
+      metricCard('Отметки «смотрели»', b.members_watched_total, hallVs) +
+      metricCard('Отклик на «смотрели?»', rate, rateHint) +
+      '</div><div class="club-analytics-chart"><h4>Динамика явки N</h4>' + sparkline(b.attendance_trend || []) + '</div></section>';
+
+    var topPeople = (people.top_members || []).map(function (m) {
+      return '<li><b>' + esc(m.name || ('Участник ' + m.user_id)) + '</b><span>' + esc(String(m.watched_marks || 0)) + ' отметок</span></li>';
+    }).join('');
+    var newcomers = (people.newcomers || []).map(function (m) {
+      return '<li><b>' + esc(m.name || ('Участник ' + m.user_id)) + '</b><span>' + esc(fmt(m.joined_at) || 'новичок') + '</span></li>';
+    }).join('');
+    var peopleHtml = '<section class="club-analytics-section"><h3>Люди</h3><div class="club-metrics">' +
+      metricCard('Активные участники', people.active_members, 'ставили отметки за период') +
+      metricCard('Новички', (people.newcomers || []).length, 'вступили за период') +
+      '</div><div class="club-analytics-cols"><div class="club-analytics-list"><h4>Топ по отметкам</h4>' +
+      (topPeople ? '<ul>' + topPeople + '</ul>' : '<p class="club-analytics-empty">Пока нет отметок участников.</p>') +
+      '</div><div class="club-analytics-list"><h4>Новички</h4>' +
+      (newcomers ? '<ul>' + newcomers + '</ul>' : '<p class="club-analytics-empty">Новых участников за период нет.</p>') +
+      '</div></div></section>';
+
+    var genres = (content.top_genres || []).map(function (g) {
+      return '<li><b>' + esc(g.genre) + '</b><span>' + esc(String(g.count)) + '</span></li>';
+    }).join('');
+    var films = (content.top_films || []).map(function (f) {
+      return '<li><b>' + esc(f.title) + '</b><span>' + esc(String(f.sessions)) + ' сеанс.</span></li>';
+    }).join('');
+    var contentHtml = '<section class="club-analytics-section"><h3>Контент</h3><div class="club-metrics">' +
+      metricCard('Средняя оценка после сеанса', content.avg_rating_after_session, 'по оценкам участников клуба') +
+      '</div><div class="club-analytics-cols"><div class="club-analytics-list"><h4>Топ фильмов</h4>' +
+      (films ? '<ul>' + films + '</ul>' : '<p class="club-analytics-empty">Мало сеансов для топа фильмов.</p>') +
+      '</div><div class="club-analytics-list"><h4>Топ жанров</h4>' +
+      (genres ? '<ul>' + genres + '</ul>' : '<p class="club-analytics-empty">Жанры появятся, когда у фильмов заполнены жанры.</p>') +
+      '</div></div></section>';
+
+    function extraCard(title, block) {
+      block = block || {};
+      var avail = !!block.available;
+      return '<div class="club-extra' + (avail ? '' : ' is-stub') + '"><h4>' + esc(title) + '</h4><p>' + esc(block.label || 'Пока недостаточно данных') + '</p></div>';
+    }
+    var extrasHtml = '<section class="club-analytics-section"><h3>Дополнительно</h3><div class="club-extras">' +
+      extraCard('RSVP → факт', extras.rsvp_fact_funnel) +
+      extraCard('Лучший день недели', extras.best_day_of_week) +
+      extraCard('Лучшее время', extras.best_time) +
+      extraCard('Сравнение периодов', extras.season_comparison) +
+      extraCard('No-show среди RSVP', extras.no_show_among_rsvp) +
+      '</div></section>';
+
+    var histRows = history.map(function (h) {
+      var note = h.note || {};
+      var editing = state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
+      var busy = !!(state.historyBusy && state.historyBusy[h.plan_id]);
+      var attBusy = !!(state.attendanceBusy && state.attendanceBusy[h.plan_id]);
+      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">Запись</a>' : '';
+      var noteBody = note.body ? '<p class="club-history-note">' + esc(note.body) + '</p>' : '<p class="club-analytics-empty">Заметок пока нет.</p>';
+      var adminAtt = '';
+      var adminNote = '';
+      if (state.admin) {
+        adminAtt = '<label class="club-inline-field">Пришло: N <input type="number" min="0" inputmode="numeric" data-club-att-input="' + esc(h.plan_id) + '" value="' + (h.attendance_count != null ? esc(h.attendance_count) : '') + '" placeholder="число"><button type="button" class="btn btn-primary" data-club-att-save="' + esc(h.plan_id) + '"' + (attBusy ? ' disabled' : '') + '>' + (attBusy ? '…' : 'Сохранить') + '</button></label>';
+        if (editing) {
+          adminNote = '<div class="club-note-edit"><label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(h.plan_id) + '" rows="3">' + esc(note.body || '') + '</textarea></label>' +
+            '<label class="club-field"><span>Ссылка на запись (URL)</span><input type="url" data-club-note-url="' + esc(h.plan_id) + '" value="' + esc(note.recording_url || '') + '" placeholder="https://…"></label>' +
+            '<div class="club-analytics-actions"><button type="button" class="btn btn-primary" data-club-note-save="' + esc(h.plan_id) + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Сохраняем…' : 'Сохранить заметку') + '</button>' +
+            '<button type="button" class="btn btn-secondary" data-club-note-cancel="' + esc(h.plan_id) + '">Отмена</button></div></div>';
+        } else {
+          adminNote = '<button type="button" class="btn btn-secondary" data-club-note-edit="' + esc(h.plan_id) + '">' + (note.body || note.recording_url ? 'Редактировать заметку' : 'Добавить заметку') + '</button>';
+        }
+      }
+      var poster = h.poster ? '<img src="' + esc(h.poster) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>';
+      return '<article class="club-history-card">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
+        '<p class="club-history-meta">Явка N: <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> · отметок MP: <b>' + esc(String(h.members_watched_count || 0)) + '</b></p>' +
+        noteBody + '<div class="club-history-actions">' + link + adminAtt + adminNote + '</div></div></article>';
+    }).join('');
+
+    var historyHtml = '<section class="club-analytics-section"><h3>История сеансов</h3>' +
+      (histRows ? '<div class="club-history-list">' + histRows + '</div>' : empty('История пока пуста', 'Прошедшие сеансы клуба появятся здесь. Админы смогут указать «Пришло: N» и заметку со ссылкой на запись.')) +
+      '</section>';
+
+    return head + baseHtml + peopleHtml + contentHtml + extrasHtml + historyHtml;
+  }
+
+  function saveAttendance(planId) {
+    planId = String(planId || '');
+    if (!planId || !state.admin) return;
+    var input = (overlayHost || root).querySelector('[data-club-att-input="' + planId + '"]') || root.querySelector('[data-club-att-input="' + planId + '"]');
+    var raw = input ? input.value : '';
+    var n = raw === '' ? null : parseInt(raw, 10);
+    if (raw !== '' && (isNaN(n) || n < 0)) {
+      toast('Введите целое число ≥ 0', { type: 'error' });
+      return;
+    }
+    state.attendanceBusy[planId] = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/plans/' + encodeURIComponent(planId) + '/attendance', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendance_count: n })
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить');
+      toast('Явка N сохранена');
+      state.analytics = null;
+      loadAnalytics(true);
+    }).catch(function (e) {
+      toast((e && e.message) || 'Не удалось сохранить явку', { type: 'error' });
+    }).then(function () {
+      delete state.attendanceBusy[planId];
+      render();
+    });
+  }
+
+  function saveHistoryNote(planId) {
+    planId = String(planId || '');
+    if (!planId || !state.admin) return;
+    var host = overlayHost || root;
+    var bodyEl = host.querySelector('[data-club-note-body="' + planId + '"]') || root.querySelector('[data-club-note-body="' + planId + '"]');
+    var urlEl = host.querySelector('[data-club-note-url="' + planId + '"]') || root.querySelector('[data-club-note-url="' + planId + '"]');
+    var body = bodyEl ? bodyEl.value : '';
+    var url = urlEl ? urlEl.value : '';
+    state.historyBusy[planId] = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/plans/' + encodeURIComponent(planId) + '/notes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: body, recording_url: url })
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить заметку');
+      toast('Заметка сохранена');
+      state.historyNoteEdit = null;
+      state.analytics = null;
+      loadAnalytics(true);
+    }).catch(function (e) {
+      toast((e && e.message) || 'Не удалось сохранить заметку', { type: 'error' });
+    }).then(function () {
+      delete state.historyBusy[planId];
+      render();
+    });
+  }
+
 
   function calendarMonthStart(value) { var d = value ? new Date(value + "T00:00:00") : new Date(); if (isNaN(d.getTime())) d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
 
@@ -1397,7 +1602,7 @@
       btn('schedule', 'Расписание') +
       btn('films', 'Фильмы') +
       btn('members', 'Участники') +
-      btn('stats', 'Статистика') +
+      btn('stats', 'Аналитика') +
       (settings ? btn('settings', 'Настройки') : '') +
       '</nav><section class="club-panel' +
       (state.tab === 'feed' ? ' is-active' : '') +
@@ -1410,16 +1615,7 @@
       '<section class="club-panel' +
       (state.tab === 'stats' ? ' is-active' : '') +
       '" data-club-panel="stats">' +
-      (c.films
-        ? '<div class="club-highlight"><div><span>Просмотры клуба</span><b>' +
-          esc(c.films) +
-          '</b></div><div><span>Участники</span><b>' +
-          esc(c.members || '—') +
-          '</b></div></div>'
-        : empty(
-            'Статистика появится позже',
-            'Нужны подтверждённые просмотры и оценки участников клуба.'
-          )) +
+      analyticsPanel() +
       '</section>' +
       settingsPanel() +
       '</main></div></div>';
@@ -1613,6 +1809,7 @@
   }
 
   function tab(t, replace) {
+    if (t === 'analytics' || t === 'analitika') t = 'stats';
     var a = ['feed', 'schedule', 'films', 'members', 'stats', 'settings'];
     if (a.indexOf(t) < 0 || (t === 'settings' && !state.admin)) t = 'feed';
     state.tab = t;
@@ -1624,6 +1821,7 @@
       );
     } catch (_) {}
     render();
+    if (t === 'stats') loadAnalytics(false);
   }
 
 
@@ -1982,6 +2180,30 @@
       b.onclick = function () {
         tab(b.getAttribute('data-club-tab'));
       };
+    });
+    root.querySelectorAll('[data-club-analytics-refresh]').forEach(function (b) {
+      b.onclick = function () { loadAnalytics(true); };
+    });
+    root.querySelectorAll('[data-club-analytics-days]').forEach(function (b) {
+      b.onclick = function () {
+        var d = parseInt(b.getAttribute('data-club-analytics-days'), 10) || 90;
+        if (state.analyticsDays === d && state.analytics) return;
+        state.analyticsDays = d;
+        state.analytics = null;
+        loadAnalytics(true);
+      };
+    });
+    root.querySelectorAll('[data-club-att-save]').forEach(function (b) {
+      b.onclick = function () { saveAttendance(b.getAttribute('data-club-att-save')); };
+    });
+    root.querySelectorAll('[data-club-note-edit]').forEach(function (b) {
+      b.onclick = function () { state.historyNoteEdit = b.getAttribute('data-club-note-edit'); render(); };
+    });
+    root.querySelectorAll('[data-club-note-cancel]').forEach(function (b) {
+      b.onclick = function () { state.historyNoteEdit = null; render(); };
+    });
+    root.querySelectorAll('[data-club-note-save]').forEach(function (b) {
+      b.onclick = function () { saveHistoryNote(b.getAttribute('data-club-note-save')); };
     });
     root.querySelectorAll('[data-club-tab-jump]').forEach(function (b) {
       b.onclick = function () {
@@ -2379,6 +2601,12 @@
     state.scheduleDialog = null;
     state.leaveConfirm = false;
     state.leaveBusy = false;
+    state.analytics = null;
+    state.analyticsBusy = false;
+    state.analyticsError = '';
+    state.historyNoteEdit = null;
+    state.historyBusy = {};
+    state.attendanceBusy = {};
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
     syncClubOverlays();
 
@@ -2429,6 +2657,10 @@
           // one paint with club + members + posts
           render();
           refreshClubPlanWatched();
+          if (state.tab === 'stats' || state.tab === 'analytics' || state.tab === 'analitika') {
+            if (state.tab !== 'stats') state.tab = 'stats';
+            loadAnalytics(false);
+          }
         });
       })
       .catch(function (e) {
@@ -2446,6 +2678,7 @@
     root = document.getElementById('club-page-root');
     if (!root || !id) return;
     var h = String(location.hash || '').replace(/^#\/?/, '');
+    if (h === 'analytics' || h === 'analitika') h = 'stats';
     state.tab = h || 'feed';
     load(id);
   }
