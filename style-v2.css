@@ -32334,7 +32334,7 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
   transform: translateX(0) translateY(0) scale(1);
 }
 
-/* MARKER:20260916hoverPortal1c — portal layer above ALL chrome; only portaled preview visible */
+/* MARKER:20260916hoverPortalAuth1 — portal layer above ALL chrome; film + home-rail pops */
 #mp-hover-portal-root,
 [data-mp-hover-portal-root="1"] {
   position: fixed !important;
@@ -32352,7 +32352,9 @@ html.mp-hover-portal-open body {
   overflow-x: visible !important;
 }
 .home-film-preview.is-preview-portaled,
-.home-film-preview[data-mp-hover-portaled="1"] {
+.home-film-preview[data-mp-hover-portaled="1"],
+.home-poster-preview-pop.is-preview-portaled,
+.home-poster-preview-pop[data-mp-hover-portaled="1"] {
   position: fixed !important;
   z-index: 250000 !important;
   opacity: 1 !important;
@@ -32364,7 +32366,9 @@ html.mp-hover-portal-open body {
   bottom: auto !important;
 }
 .home-film-preview.is-preview-portaled::after,
-.home-film-preview[data-mp-hover-portaled="1"]::after {
+.home-film-preview[data-mp-hover-portaled="1"]::after,
+.home-poster-preview-pop.is-preview-portaled::after,
+.home-poster-preview-pop[data-mp-hover-portaled="1"]::after {
   content: '';
   position: absolute;
   left: 0;
@@ -32374,7 +32378,9 @@ html.mp-hover-portal-open body {
   pointer-events: auto;
 }
 .home-film-preview.is-preview-portaled.is-preview-flipped-below::after,
-.home-film-preview[data-mp-hover-portaled="1"].is-preview-flipped-below::after {
+.home-film-preview[data-mp-hover-portaled="1"].is-preview-flipped-below::after,
+.home-poster-preview-pop.is-preview-portaled.is-preview-flipped-below::after,
+.home-poster-preview-pop[data-mp-hover-portaled="1"].is-preview-flipped-below::after {
   top: auto;
   bottom: 100%;
   height: 28px;
@@ -32390,7 +32396,11 @@ html.mp-hover-portal-open body {
   #section-unwatched .film-card-v2--hover-preview.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
   .premiere-poster-tile > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
   .premiere-poster-tile:hover > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
-  .premiere-poster-tile.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]) {
+  .premiere-poster-tile.is-preview-open > .home-film-preview:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .home-poster-tile-wrap > .home-poster-preview-pop:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .home-poster-tile-wrap:hover > .home-poster-preview-pop:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .home-poster-tile-wrap:focus-within > .home-poster-preview-pop:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]),
+  .home-poster-tile-wrap.is-preview-open > .home-poster-preview-pop:not(.is-preview-portaled):not([data-mp-hover-portaled="1"]) {
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;

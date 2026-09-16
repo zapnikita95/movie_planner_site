@@ -11057,6 +11057,7 @@
       wrap.appendChild(pop);
       wrap.addEventListener('mouseenter', () => enrichHomePosterPreview(wrap, tile, pop), { passive: true });
     });
+    try { bindHomePosterPreviewEnrichOnce(root); } catch (_e) {}
   }
 
   function homeRailEmptyHtml(blockId) {
@@ -11746,13 +11747,18 @@
   function bindHomePosterPreviewEnrichOnce(scope) {
     const root = scope || document.getElementById('home-dashboard-root');
     if (!root) return;
-    root.querySelectorAll('.home-poster-tile-wrap[data-preview-ready="1"]:not([data-preview-bound])').forEach((wrap) => {
-      wrap.setAttribute('data-preview-bound', '1');
-      const tile = wrap.querySelector('.home-poster-tile');
-      const pop = wrap.querySelector('.home-poster-preview-pop');
-      if (!tile || !pop) return;
-      wrap.addEventListener('mouseenter', () => enrichHomePosterPreview(wrap, tile, pop), { passive: true });
-    });
+    /* Same portal as База/Премьеры/guest: #mp-hover-portal-root, fixed z, safeLeft. */
+    if (typeof bindFilmCardHoverPreviewGroup !== 'function') return;
+    try {
+      bindFilmCardHoverPreviewGroup(root, '.home-poster-tile-wrap', function (wrap) {
+        const tile = wrap.querySelector('.home-poster-tile');
+        const pop = (typeof hoverPreviewPopForCard === 'function' ? hoverPreviewPopForCard(wrap) : null)
+          || wrap.querySelector('.home-poster-preview-pop');
+        if (!tile || !pop) return;
+        enrichHomePosterPreview(wrap, tile, pop);
+        try { positionHoverPreviewInViewport(wrap); } catch (_p) {}
+      });
+    } catch (_b) {}
   }
 
   function fetchPublicJson(url, timeoutMs) {
@@ -14329,6 +14335,8 @@
   const HOVER_PREVIEW_LEAVE_GRACE_MS = 180;
   const HOVER_PREVIEW_VIEWPORT_PAD = 28;
   const HOVER_PREVIEW_Z = 250000;
+  /** Portaled preview nodes: film+trailer (База/Премьеры/guest) + home rail synopsis pop. */
+  const HOVER_PREVIEW_PORTALED_SEL = '.home-film-preview.is-preview-portaled, .home-film-preview[data-mp-hover-portaled="1"], .home-poster-preview-pop.is-preview-portaled, .home-poster-preview-pop[data-mp-hover-portaled="1"]';
 
   function clearHoverPreviewCloseTimer(card) {
     if (!card || !card._mpHoverCloseTimer) return;
@@ -14413,7 +14421,7 @@
   function hoverPreviewPopForCard(card) {
     if (!card) return null;
     if (card._mpHoverPop && document.contains(card._mpHoverPop)) return card._mpHoverPop;
-    return card.querySelector('.home-film-preview');
+    return card.querySelector('.home-film-preview, .home-poster-preview-pop');
   }
 
   function ensureHoverPortalRoot() {
@@ -14482,7 +14490,7 @@
   }
 
   /** Escape overflow:hidden/clip parents: portal to body layer + position:fixed above chrome. */
-  function portalHoverPreview(card) { /* MARKER:20260916hoverPortal1c */
+  function portalHoverPreview(card) { /* MARKER:20260916hoverPortalAuth1 */
     if (!card) return null;
     let pop = hoverPreviewPopForCard(card);
     if (!pop) return null;
@@ -14532,7 +14540,7 @@
     card._mpHoverPopHomeNext = null;
     try { delete pop._mpHoverCard; } catch (_d) { pop._mpHoverCard = null; }
     try {
-      const still = document.querySelector('.home-film-preview.is-preview-portaled, .home-film-preview[data-mp-hover-portaled="1"]');
+      const still = document.querySelector(HOVER_PREVIEW_PORTALED_SEL);
       if (!still) document.documentElement.classList.remove('mp-hover-portal-open');
     } catch (_c) {}
   }
@@ -14541,7 +14549,7 @@
    * Keep home-film-preview fully visible: portal above chrome, clamp to viewport,
    * and never under a left sidebar/panel.
    */
-  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortal1c */
+  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortalAuth1 */
     if (!card) return;
     const pop = portalHoverPreview(card);
     if (!pop) return;
@@ -14647,7 +14655,7 @@
         try { stopHoverTrailerOnCard(other); } catch (_s) {}
         try { unportalHoverPreview(other); } catch (_u) {}
       });
-      document.querySelectorAll('.home-film-preview.is-preview-portaled, .home-film-preview[data-mp-hover-portaled="1"]').forEach(function (pop) {
+      document.querySelectorAll(HOVER_PREVIEW_PORTALED_SEL).forEach(function (pop) {
         const owner = pop._mpHoverCard;
         if (owner && owner !== card) {
           try { unportalHoverPreview(owner); } catch (_u2) {}
@@ -14789,10 +14797,8 @@
     try { bindHoverPreviewViewportClampOnce(); } catch (_b) {}
     const resolveCard = (node) => {
       if (!node || !node.closest) return null;
-      if (node.closest && node.closest('.home-film-preview.is-preview-portaled')) {
-        const pop = node.closest('.home-film-preview.is-preview-portaled');
-        if (pop && pop._mpHoverCard) return pop._mpHoverCard;
-      }
+      const portaled = node.closest(HOVER_PREVIEW_PORTALED_SEL);
+      if (portaled && portaled._mpHoverCard) return portaled._mpHoverCard;
       const card = node.closest(cardSelector);
       if (!card || !root.contains(card)) return null;
       return card;
