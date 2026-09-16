@@ -32333,3 +32333,33 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
 .guest-discover-card--hover-preview.is-preview-open .home-film-preview {
   transform: translateX(0) translateY(0) scale(1);
 }
+
+/* MARKER:20260916hoverPortal1 — hover preview portaled above chrome (escape overflow clip/sidebar) */
+.home-film-preview.is-preview-portaled,
+.home-film-preview[data-mp-hover-portaled="1"] {
+  position: fixed !important;
+  z-index: 10050 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+.home-film-preview.is-preview-portaled::after,
+.home-film-preview[data-mp-hover-portaled="1"]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 28px;
+  pointer-events: auto;
+}
+.home-film-preview.is-preview-portaled.is-preview-flipped-below::after,
+.home-film-preview[data-mp-hover-portaled="1"].is-preview-flipped-below::after {
+  top: auto;
+  bottom: 100%;
+  height: 28px;
+}
