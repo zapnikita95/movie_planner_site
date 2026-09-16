@@ -146,9 +146,25 @@
     } catch (_e) {}
   }
 
+  /** Guest cabinet pages (База / Планы): same what-is-v2 block at bottom. */
+  function mountMpPublicPromoAtEnd(host) {
+    if (hasSiteToken() || !host) return;
+    if (host.querySelector && host.querySelector('.mp-public-promo')) return;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = buildMpPublicPromoHtml();
+    var promo = wrap.firstElementChild;
+    if (!promo) return;
+    host.appendChild(promo);
+    bindPromoRegisterBtn(promo);
+    try {
+      if (global.MPIcons && global.MPIcons.hydrate) global.MPIcons.hydrate(promo);
+    } catch (_e) {}
+  }
+
   global.MpPublicPromo = {
     buildHtml: buildMpPublicPromoHtml,
     mountAfterHero: mountMpPublicPromoAfterHero,
+    mountAtEnd: mountMpPublicPromoAtEnd,
     bindRegister: bindPromoRegisterBtn,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

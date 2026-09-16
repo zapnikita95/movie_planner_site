@@ -13142,8 +13142,17 @@
       })
       .then(function (items) { return guestDiscoverEnrichMeta(items); })
       .catch(function () { return []; });
-    return Promise.all([prem, buzz]).then(function (pair) {
-      return { premieres: pair[0] || [], buzz: pair[1] || [] };
+    const series = (typeof fetchPublicSeriesForDisplay === 'function'
+      ? fetchPublicSeriesForDisplay()
+      : Promise.resolve({ items: [] }))
+      .then(function (d) {
+        const raw = (d && d.items) || [];
+        return (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
+      })
+      .then(function (items) { return guestDiscoverEnrichMeta(items); })
+      .catch(function () { return []; });
+    return Promise.all([prem, buzz, series]).then(function (triple) {
+      return { premieres: triple[0] || [], buzz: triple[1] || [], series: triple[2] || [] };
     });
   }
 
@@ -13326,6 +13335,7 @@
        custom `.guest-*-btn` skins, or legacy non-pill buttons on this site. */
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
+    const series = (rails && rails.series) || [];
     const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { forcePremiere: true });
     const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 18), 'plans-buzz');
     const buzzGrid = (!buzzRail && buzz.length)
@@ -13336,11 +13346,13 @@
       'plans-discuss-more',
       {}
     );
+    const seriesGrid = renderGuestDiscoverGridHtml(series.slice(0, 18), 'plans-series', {});
     return '<div class="guest-discover guest-discover--plans" id="guest-plans-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
       + '<h3>Что посмотрим?</h3>'
-      + '<p>Листайте афишу и тренды — вход понадобится только чтобы сохранить план.</p>'
+      + '<p>Премьеры, тренды и то, что все обсуждают.</p>'
+      + '<p class="guest-discover-hero-soft">После регистрации, в этом разделе будут ваши планы на просмотры фильмов и сериалов дома и в кино</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
       + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
@@ -13348,6 +13360,7 @@
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
       + (premGrid ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premGrid) : '')
+      + (seriesGrid ? ('<div class="guest-discover-rail-title">Сериалы</div>' + seriesGrid) : '')
       + (buzzRail ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzRail) : '')
       + (buzzGrid ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzGrid) : '')
       + (discussExtra ? ('<div class="guest-discover-rail-title">Ещё обсуждают</div>' + discussExtra) : '')
@@ -13357,14 +13370,17 @@
   function guestBaseDiscoveryHtml(rails) {
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
+    const series = (rails && rails.series) || [];
     /* Prefer dense poster GRID on База (full-bleed), rail only as fallback. */
     const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', {});
     const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'base-premieres-grid', { forcePremiere: true });
+    const seriesGrid = renderGuestDiscoverGridHtml(series.slice(0, 18), 'base-series', {});
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
       + '<h3>База фильмов</h3>'
-      + '<p>Смотрите афишу и тренды без входа. Сохранение — после входа.</p>'
+      + '<p>Фильмы и сериалы, которые хочется смотреть — от премьер до старых любимчиков.</p>'
+      + '<p class="guest-discover-hero-soft">После регистрации, в этом разделе будет ваша база фильмов и сериалов</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
       + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
@@ -13372,6 +13388,7 @@
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
       + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
+      + (seriesGrid ? ('<div class="guest-discover-rail-title">Сериалы</div>' + seriesGrid) : '')
       + (premGrid ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premGrid) : '')
       + '</div>';
   }
@@ -13385,6 +13402,11 @@
       bindGuestDiscoverClicksOnce(listEl);
       bindGuestDiscoverHoverPreview(listEl);
       try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+      try {
+        if (window.MpPublicPromo && typeof window.MpPublicPromo.mountAtEnd === 'function') {
+          window.MpPublicPromo.mountAtEnd(listEl.querySelector('.guest-discover') || listEl);
+        }
+      } catch (_promo) {}
     });
   }
 
@@ -13397,6 +13419,11 @@
       bindGuestDiscoverClicksOnce(listEl);
       bindGuestDiscoverHoverPreview(listEl);
       try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+      try {
+        if (window.MpPublicPromo && typeof window.MpPublicPromo.mountAtEnd === 'function') {
+          window.MpPublicPromo.mountAtEnd(listEl.querySelector('.guest-discover') || listEl);
+        }
+      } catch (_promo) {}
     });
   }
 
@@ -14279,6 +14306,7 @@
   }
 
   const HOVER_PREVIEW_LEAVE_GRACE_MS = 180;
+  const HOVER_PREVIEW_VIEWPORT_PAD = 12;
 
   function clearHoverPreviewCloseTimer(card) {
     if (!card || !card._mpHoverCloseTimer) return;
@@ -14286,10 +14314,85 @@
     card._mpHoverCloseTimer = 0;
   }
 
+  function clearHoverPreviewClampStyles(pop) {
+    if (!pop || !pop.style) return;
+    pop.style.removeProperty('--mp-preview-shift-x');
+    pop.style.removeProperty('left');
+    pop.style.removeProperty('right');
+    pop.style.removeProperty('top');
+    pop.style.removeProperty('bottom');
+    pop.style.removeProperty('transform');
+    pop.classList.remove('is-preview-flipped-below');
+  }
+
+  /** Keep home-film-preview fully inside the viewport (clamp/flip vs card + trailer width). */
+  function positionHoverPreviewInViewport(card) { /* MARKER:20260916guestUx1 */
+    if (!card) return;
+    const pop = card.querySelector('.home-film-preview');
+    if (!pop) return;
+    const pad = HOVER_PREVIEW_VIEWPORT_PAD;
+    const vv = window.visualViewport;
+    const vw = (vv && vv.width) ? vv.width : window.innerWidth;
+    const vh = (vv && vv.height) ? vv.height : window.innerHeight;
+    const vLeft = (vv && typeof vv.offsetLeft === 'number') ? vv.offsetLeft : 0;
+    const vTop = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
+
+    // Absolute left (px) relative to card — avoids % + translate fights with CSS hover rules.
+    pop.classList.remove('is-preview-flipped-below');
+    pop.style.right = 'auto';
+    pop.style.bottom = 'calc(100% + 8px)';
+    pop.style.top = 'auto';
+    pop.style.removeProperty('--mp-preview-shift-x');
+    pop.style.left = '0px';
+    pop.style.transform = 'translateX(0) translateY(0) scale(1)';
+
+    const cardRect = card.getBoundingClientRect();
+    let popW = pop.offsetWidth || 0;
+    if (!(popW > 40)) {
+      const wide = pop.classList.contains('has-trailer-playing') || pop.classList.contains('is-trailer-loading');
+      popW = Math.min(wide ? 420 : 380, Math.max(240, vw - pad * 2));
+    }
+
+    function clampLeft(width) {
+      let leftPx = (cardRect.width - width) / 2;
+      let viewLeft = cardRect.left + leftPx;
+      if (viewLeft < vLeft + pad) leftPx += (vLeft + pad) - viewLeft;
+      viewLeft = cardRect.left + leftPx;
+      if (viewLeft + width > vLeft + vw - pad) {
+        leftPx -= (viewLeft + width) - (vLeft + vw - pad);
+      }
+      return leftPx;
+    }
+
+    pop.style.left = Math.round(clampLeft(popW)) + 'px';
+    pop.style.transform = 'translateX(0) translateY(0) scale(1)';
+
+    let rect = pop.getBoundingClientRect();
+    if (rect.top < vTop + pad) {
+      pop.classList.add('is-preview-flipped-below');
+      pop.style.bottom = 'auto';
+      pop.style.top = 'calc(100% + 8px)';
+    } else {
+      pop.classList.remove('is-preview-flipped-below');
+      pop.style.bottom = 'calc(100% + 8px)';
+      pop.style.top = 'auto';
+    }
+
+    // Re-measure width after trailer chrome / flip, clamp again.
+    popW = pop.offsetWidth || popW;
+    pop.style.left = Math.round(clampLeft(popW)) + 'px';
+  }
+
   function openHoverPreviewGroup(card) {
     if (!card) return;
     clearHoverPreviewCloseTimer(card);
     card.classList.add('is-preview-open');
+    try { positionHoverPreviewInViewport(card); } catch (_p) {}
+    // Trailer mount can widen the popup — reclamp shortly after.
+    clearTimeout(card._mpHoverClampTimer);
+    card._mpHoverClampTimer = setTimeout(function () {
+      try { positionHoverPreviewInViewport(card); } catch (_p2) {}
+    }, 80);
   }
 
   function scheduleCloseHoverPreviewGroup(card) {
@@ -14298,6 +14401,8 @@
     card._mpHoverCloseTimer = setTimeout(() => {
       card._mpHoverCloseTimer = 0;
       card.classList.remove('is-preview-open');
+      const pop = card.querySelector('.home-film-preview');
+      clearHoverPreviewClampStyles(pop);
       stopHoverTrailerOnCard(card);
     }, HOVER_PREVIEW_LEAVE_GRACE_MS);
   }
@@ -14384,6 +14489,7 @@
       }
       pop.classList.add('has-trailer-playing');
       pop.setAttribute('data-play-kind', play.kind || '');
+      try { positionHoverPreviewInViewport(card); } catch (_clamp) {}
     }).catch(() => {
       if (card._mpHoverTrailerToken !== token) return;
       pop.classList.remove('is-trailer-loading');
@@ -14392,9 +14498,31 @@
     });
   }
 
+  function bindHoverPreviewViewportClampOnce() {
+    if (window._mpHoverPreviewClampBound) return;
+    window._mpHoverPreviewClampBound = true;
+    const reclampOpen = function () {
+      document.querySelectorAll('.is-preview-open .home-film-preview').forEach(function (pop) {
+        const card = pop.closest('.is-preview-open');
+        if (card) {
+          try { positionHoverPreviewInViewport(card); } catch (_e) {}
+        }
+      });
+    };
+    window.addEventListener('resize', reclampOpen, { passive: true });
+    window.addEventListener('scroll', reclampOpen, { passive: true, capture: true });
+    if (window.visualViewport) {
+      try {
+        window.visualViewport.addEventListener('resize', reclampOpen, { passive: true });
+        window.visualViewport.addEventListener('scroll', reclampOpen, { passive: true });
+      } catch (_vv) {}
+    }
+  }
+
   function bindFilmCardHoverPreviewGroup(root, cardSelector, onEnter) {
     if (!root || root.dataset.hoverPreviewGroupBound === '1') return;
     root.dataset.hoverPreviewGroupBound = '1';
+    try { bindHoverPreviewViewportClampOnce(); } catch (_b) {}
     const resolveCard = (node) => {
       if (!node || !node.closest) return null;
       const card = node.closest(cardSelector);
@@ -24287,7 +24415,18 @@
     root.querySelectorAll('[data-profile-href]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const href = btn.getAttribute('data-profile-href');
-        if (href) window.open(href, '_blank', 'noopener');
+        if (!href) return;
+        // Internal site routes: same tab. External (KP, stores, etc.): new tab.
+        try {
+          const u = new URL(href, window.location.origin);
+          const sameOrigin = u.origin === window.location.origin;
+          const internalPath = /^\/(watchlist|plans|premieres|buzz|whattowatch|home|series|series-hub|clubs|club)\b/.test(u.pathname);
+          if (sameOrigin && internalPath) {
+            window.location.assign(u.pathname + u.search + u.hash);
+            return;
+          }
+        } catch (_u) {}
+        window.open(href, '_blank', 'noopener');
       });
     });
     const logoutBtn = root.querySelector('[data-profile-logout]');
@@ -29803,11 +29942,29 @@
       const rootNav = document.getElementById('landing-root-nav');
       if (rootNav && !rootNav.dataset.mpGuestAuthBound) {
         rootNav.dataset.mpGuestAuthBound = '1';
+        // Internal routes must stay same-tab (never target=_blank / window.open).
+        rootNav.querySelectorAll('a.cabinet-nav-btn').forEach(function (a) {
+          try {
+            a.removeAttribute('target');
+            if ((a.getAttribute('rel') || '').indexOf('noopener') >= 0 && !/^https?:/i.test(a.getAttribute('href') || '')) {
+              a.removeAttribute('rel');
+            }
+          } catch (_t) {}
+        });
         rootNav.addEventListener('click', function (ev) {
-          if (getToken()) return;
           const a = ev.target && ev.target.closest ? ev.target.closest('a.cabinet-nav-btn') : null;
           if (!a) return;
-          const href = (a.getAttribute('href') || '').replace(/\/$/, '') || '/';
+          // Force same-tab for in-app paths even if markup gained target=_blank.
+          const rawHref = a.getAttribute('href') || '';
+          let path = rawHref;
+          try { path = new URL(rawHref, window.location.origin).pathname; } catch (_u) {}
+          path = (path || '/').replace(/\/$/, '') || '/';
+          const isInternal = path.charAt(0) === '/' && !/^https?:/i.test(rawHref);
+          if (isInternal && a.getAttribute('target') === '_blank') {
+            a.removeAttribute('target');
+          }
+          if (getToken()) return;
+          const href = path;
           const sec = sectionFromPath(href);
           if (!sec || !sectionNeedsAuthForGuest(sec)) return;
           ev.preventDefault();

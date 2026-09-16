@@ -11268,13 +11268,13 @@ a.link-inline:hover {
 #section-unwatched .film-card-v2--hover-preview .home-film-preview {
   left: 50%;
   bottom: calc(100% + 8px);
-  transform: translateX(-50%) translateY(8px) scale(.98);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(8px) scale(.98);
   z-index: 40;
 }
 #section-unwatched .film-card-v2--hover-preview:hover .home-film-preview {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(0) scale(1);
 }
 @media (hover: none) {
   #section-unwatched .film-card-v2--hover-preview .home-film-preview {
@@ -11290,10 +11290,10 @@ a.link-inline:hover {
 .premiere-poster-tile .home-film-preview {
   left: 50%;
   bottom: calc(100% + 8px);
-  transform: translateX(-50%) translateY(8px) scale(.98);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(8px) scale(.98);
 }
 .premiere-poster-tile:hover .home-film-preview {
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(0) scale(1);
   z-index: 9999;
 }
 .home-premiere-preview-poster,
@@ -31730,11 +31730,11 @@ main.film-page .hero-content > h1.film-title-slot {
   pointer-events: auto;
 }
 .premiere-poster-tile.is-preview-open .home-film-preview {
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(0) scale(1);
   z-index: 9999;
 }
 #section-unwatched .film-card-v2--hover-preview.is-preview-open .home-film-preview {
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(0) scale(1);
   z-index: 40;
 }
 /* Invisible bridge covering the gap between card and popup */
@@ -32239,7 +32239,7 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
 .guest-discover-card--hover-preview .home-film-preview {
   left: 50%;
   bottom: calc(100% + 8px);
-  transform: translateX(-50%) translateY(8px) scale(.98);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(8px) scale(.98);
   z-index: 50;
 }
 .guest-discover-card--hover-preview.is-preview-open .home-film-preview,
@@ -32247,7 +32247,7 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(calc(-50% + var(--mp-preview-shift-x, 0px))) translateY(0) scale(1);
   z-index: 50;
 }
 .guest-discover-card--hover-preview .home-film-preview::after {
@@ -32259,8 +32259,77 @@ body.guest-cabinet-preview #section-plans #plans-filter-tabs { display: none !im
   height: 18px;
   pointer-events: auto;
 }
+/* When flipped below the card, bridge sits above the popup */
+.home-film-preview.is-preview-flipped-below::after {
+  top: auto;
+  bottom: 100%;
+  height: 18px;
+}
+.premiere-poster-tile .home-film-preview.is-preview-flipped-below,
+#section-unwatched .film-card-v2--hover-preview .home-film-preview.is-preview-flipped-below,
+.guest-discover-card--hover-preview .home-film-preview.is-preview-flipped-below {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
 @media (hover: none), (max-width: 860px) {
   .guest-discover-card--hover-preview .home-film-preview {
     display: none !important;
   }
+}
+
+/* MARKER:20260916guestUx1 hover clamp + guest series */
+
+/* MARKER:20260916guestUx1 how-it-works center (desktop) */
+@media (min-width: 1024px) {
+  body.landing-guest-home .landing-steps--center,
+  body.landing-guest-home.landing-root-page .landing-steps--center,
+  body.landing-root-page .landing-steps--center,
+  .landing-how-section .landing-steps--center {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    gap: 16px 20px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 1080px !important;
+    width: 100% !important;
+    grid-template-columns: none !important;
+  }
+  body.landing-guest-home .landing-steps--center .step,
+  body.landing-root-page .landing-steps--center .step,
+  .landing-how-section .landing-steps--center .step {
+    flex: 0 1 220px !important;
+    max-width: 240px !important;
+    min-width: 180px !important;
+    box-sizing: border-box !important;
+    border-top: none !important;
+  }
+}
+
+/* Quiet second line under guest hero subtitle */
+.guest-discover-hero-soft {
+  margin: 6px 0 0 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  color: rgba(255, 255, 255, 0.48) !important;
+  max-width: 42rem;
+}
+
+/* Guest База/Планы: landing what-is-v2 via MpPublicPromo at bottom */
+.guest-discover > .mp-public-promo {
+  margin-top: 28px;
+  margin-bottom: 8px;
+}
+.guest-discover > .mp-public-promo .what-is-v2 {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Hover clamp: JS sets left in px; keep transform without -50% centering */
+.premiere-poster-tile.is-preview-open .home-film-preview,
+#section-unwatched .film-card-v2--hover-preview.is-preview-open .home-film-preview,
+.guest-discover-card--hover-preview.is-preview-open .home-film-preview {
+  transform: translateX(0) translateY(0) scale(1);
 }
