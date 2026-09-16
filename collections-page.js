@@ -453,7 +453,7 @@
     var kp = f && f.kp_id != null ? String(f.kp_id) : "";
     var fid = filmOverlayFilmId(f);
     var rating = filmUserRatingValue(f);
-    // Priority: rating > eye (watched) > check (in library) > plus
+    // Priority: rating badge (BR) > eye (watched) > check (in library) > plus; rating replaces BL status
     if (rating && fid) {
       var label = formatUserRatingLabel(rating);
       return (
@@ -530,7 +530,7 @@
           + '<div class="search-poster-media">'
           + '<img class="movie-poster-img" src="' + esc(poster) + '" alt="' + esc(f.title || "") + '" loading="lazy"' + imgOnErrorAttr() + ">"
           + posterAddLibraryHtml(f)
-          + posterKpRatingHtml(f)
+          + (userRating ? "" : posterKpRatingHtml(f))
           + "</div>"
           + '<div class="movie-poster-body"><div class="movie-poster-title">' + esc(f.title || "—") + "</div>"
           + '<div class="movie-poster-meta">' + esc(f.year ? String(f.year) : "") + (f.is_series ? " · сериал" : "") + "</div></div>"
