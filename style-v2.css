@@ -30418,6 +30418,25 @@ a.collections-author-block:hover {
   gap: 10px;
   margin-top: 18px;
 }
+
+/* MARKER clubShareCal1 — post share + calendar menu + TG announce */
+.club-post-share{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;align-items:center}
+.club-post-action-row .club-post-share .btn{padding:7px 12px;font-size:12px;line-height:1.1;border-radius:999px}
+.club-post.is-deep-linked{outline:2px solid rgba(239,28,122,.55);outline-offset:2px;border-radius:16px}
+.club-schedule-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.club-cal-wrap{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.club-cal-menu{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:160px;padding:8px;border-radius:12px;border:1px solid var(--club-line);background:#16151d;box-shadow:0 10px 28px rgba(0,0,0,.45);z-index:4}
+.club-cal-menu[hidden]{display:none!important}
+.club-cal-menu .btn,.club-schedule-actions .btn,.club-plan-dialog-actions .club-cal-wrap .btn{padding:8px 12px;font-size:12px;border-radius:999px;text-align:center;text-decoration:none}
+.club-plan-dialog-actions .club-cal-wrap{align-items:stretch}
+.club-plan-dialog-actions .club-cal-menu{min-width:180px}
+@media (max-width:560px){
+  .club-post-action-row .club-post-share{width:100%;margin-left:0;margin-top:4px}
+  .club-post-action-row .club-post-share .btn{flex:1 1 auto}
+  .club-schedule-item{align-items:start}
+  .club-schedule-actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;width:100%}
+}
+
 @media (max-width: 700px) {
   .club-plan-dialog {
     grid-template-columns: 96px minmax(0, 1fr);
