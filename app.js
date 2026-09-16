@@ -5626,8 +5626,22 @@
         if (t) chips.push('<span class="home-poster-preview-pop-chip">' + escapeHtml(t) + '</span>');
       });
     }
-    if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
-      chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+    try {
+      if (window.MpPosterRating && window.MpPosterRating.displayPosterRating) {
+        const d = window.MpPosterRating.displayPosterRating(meta);
+        if (d.value != null && d.label) {
+          const chip = window.MpPosterRating.sourceChip
+            ? window.MpPosterRating.sourceChip(d.source, d.label)
+            : ((d.source === 'imdb' ? 'IMDb ' : 'КП ') + d.label);
+          chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">' + escapeHtml(chip) + '</span>');
+        }
+      } else if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
+    } catch (_) {
+      if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
     }
     return chips.join('');
   }
@@ -11415,6 +11429,11 @@
   }
 
   function siteSearchKpRatingHtml(it) {
+    try {
+      if (window.MpPosterRating && typeof window.MpPosterRating.posterRatingHtml === 'function') {
+        return window.MpPosterRating.posterRatingHtml(it, escapeHtml);
+      }
+    } catch (_) {}
     const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
     const n = Number(raw);
     if (!Number.isFinite(n) || n <= 0) return '';
