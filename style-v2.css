@@ -20965,7 +20965,16 @@ body.in-cabinet #section-settings .settings-content {
 }
 
 /* Extended onboarding v2 (shared with onboarding-flow.js) */
-.mp-onboard-dialog-overlay { z-index: 14050; touch-action: none; overscroll-behavior: contain; }
+.mp-onboard-dialog-overlay,
+.mp-dialog-overlay.mp-onboard-dialog-overlay {
+  z-index: 14050;
+  touch-action: none;
+  overscroll-behavior: contain;
+  /* Solid-enough dim so landing hero copy cannot read through */
+  background: rgba(5, 4, 8, 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
 /* Genre chips must stay above any stray stacking (club overlays = 13000) and receive taps. */
 .mp-onboard-genres {
   position: relative;
@@ -20994,12 +21003,29 @@ body.in-cabinet #section-settings .settings-content {
   font-weight: 700;
   box-shadow: inset 0 0 0 1px rgba(255, 45, 123, 0.45);
 }
-.mp-onboard-dialog-card {
+.mp-onboard-dialog-card,
+.mp-dialog-overlay.mp-onboard-dialog-overlay .mp-dialog-card {
   max-width: 380px;
   text-align: left;
   position: relative;
   touch-action: pan-y;
   overscroll-behavior: contain;
+  /* Opaque solid — never translucent rgba / broken --bg-surface */
+  background: #131318;
+  isolation: isolate;
+  opacity: 1;
+  border: 1px solid rgba(239, 28, 122, 0.36);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+.mp-onboard-dialog-card .mp-onboard-db-list,
+.mp-dialog-overlay.mp-onboard-dialog-overlay .mp-onboard-db-list {
+  background: #131318;
+  isolation: isolate;
+}
+.mp-onboard-dialog-card .mp-onboard-db-btn,
+.mp-dialog-overlay.mp-onboard-dialog-overlay .mp-onboard-db-btn {
+  background: #1a1a22;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .mp-onboard-title {
   font-size: 17px;
