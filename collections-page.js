@@ -396,6 +396,12 @@
     return /^\d+$/.test(String(fid));
   }
 
+  function filmIsWatched(f) {
+    if (!f) return false;
+    var w = f.watched;
+    return w === true || w === 1 || w === "1";
+  }
+
   function kpRatingBandClass(value) {
     var n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return "";
@@ -423,8 +429,15 @@
   }
 
   function posterAddLibraryHtml(f) {
-    if (filmAlreadyInLibrary(f)) return "";
     var kp = f && f.kp_id != null ? String(f.kp_id) : "";
+    if (filmIsWatched(f)) {
+      var fid = f.id || f.already_in_base_film_id || f.film_id || "";
+      return (
+        '<button type="button" class="poster-add-library-btn poster-watched-btn" data-coll-action="toggle-watched" data-kp-id="'
+        + esc(kp) + '" data-film-id="' + esc(String(fid || "")) + '" title="Просмотрен" aria-label="Просмотрен" aria-pressed="true">✓</button>'
+      );
+    }
+    if (filmAlreadyInLibrary(f)) return "";
     if (!kp) return "";
     return (
       '<button type="button" class="poster-add-library-btn" data-coll-action="add-one" data-kp-id="'
@@ -456,11 +469,16 @@
             + "</span>")
           : "";
         var inLib = filmAlreadyInLibrary(f);
+        var watched = filmIsWatched(f);
         return (
-          '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card' + (inLib ? " is-in-library" : "") + '" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
+          '<a href="' + esc(path || "#") + '" class="movie-poster collections-film-card'
+          + (inLib ? " is-in-library" : "")
+          + (watched ? " is-watched" : "")
+          + '" data-film-id="' + esc(String(fid || "")) + '" data-kp-id="' + esc(kp) + '"'
           + (path ? ' data-film-path="' + esc(path) + '"' : "")
           + (hasReview && f.nyt_review_path ? ' data-nyt-review="' + esc(String(f.nyt_review_path)) + '"' : "")
           + (inLib ? ' data-in-library="1"' : "")
+          + (watched ? ' data-watched="1"' : "")
           + '>'
           + rankBadge
           + reviewBadge
@@ -737,8 +755,14 @@
         deleteMineCollection(parseInt(id, 10));
       }
       if (action === "add-one") {
+        e.preventDefault();
         e.stopPropagation();
         addFilmToLibraryFromCollection(btn.getAttribute("data-kp-id"), btn);
+      }
+      if (action === "toggle-watched") {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWatchedFromCollection(btn);
       }
       if (action === "detail-films-page") {
         var dPageRoot = parseInt(btn.getAttribute("data-page") || "0", 10);
@@ -1152,6 +1176,72 @@
       } catch (_) {}
     }).catch(function () {
       if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      toast("Ошибка сети", { type: "error" });
+    });
+  }
+
+  function toggleWatchedFromCollection(btn) {
+    if (!btn) return;
+    if (!hasSiteAuth()) {
+      requireLoginForCollections("Войдите, чтобы отметить просмотр");
+      return;
+    }
+    var filmId = btn.getAttribute("data-film-id") || "";
+    var kpId = btn.getAttribute("data-kp-id") || "";
+    if (!filmId || !/^\d+$/.test(String(filmId))) {
+      toast("Фильм не в базе", { type: "error" });
+      return;
+    }
+    var currentlyWatched = btn.classList.contains("poster-watched-btn");
+    var next = !currentlyWatched;
+    var orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "…";
+    apiPost("/api/site/film/" + encodeURIComponent(String(filmId)) + "/watched", { watched: next }).then(function (data) {
+      if (!data || !data.success) {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        toast((data && (data.error || data.message)) || "Не удалось обновить", { type: "error" });
+        return;
+      }
+      var card = btn.closest(".collections-film-card");
+      try {
+        (_detailFilmsState.films || []).forEach(function (f) {
+          if (!f) return;
+          var same = (f.kp_id != null && kpId && String(f.kp_id) === String(kpId))
+            || (f.id != null && String(f.id) === String(filmId))
+            || (f.already_in_base_film_id != null && String(f.already_in_base_film_id) === String(filmId));
+          if (same) f.watched = next ? 1 : 0;
+        });
+      } catch (_) {}
+      if (!next) {
+        // Still in library / unwatched → remove overlay (no +).
+        if (card) {
+          card.classList.remove("is-watched");
+          card.removeAttribute("data-watched");
+          card.classList.add("is-in-library");
+          card.setAttribute("data-in-library", "1");
+        }
+        if (btn.parentNode) btn.parentNode.removeChild(btn);
+        toast("Снято: просмотрен", { type: "success" });
+        return;
+      }
+      btn.disabled = false;
+      btn.classList.add("poster-watched-btn");
+      btn.setAttribute("data-coll-action", "toggle-watched");
+      btn.setAttribute("aria-pressed", "true");
+      btn.title = "Просмотрен";
+      btn.setAttribute("aria-label", "Просмотрен");
+      btn.textContent = "✓";
+      if (card) {
+        card.classList.add("is-watched", "is-in-library");
+        card.setAttribute("data-watched", "1");
+        card.setAttribute("data-in-library", "1");
+      }
+      toast("Отмечено просмотренным", { type: "success" });
+    }).catch(function () {
+      btn.disabled = false;
+      btn.innerHTML = orig;
       toast("Ошибка сети", { type: "error" });
     });
   }
@@ -1595,8 +1685,14 @@
         if (tid) importPublicCollection(parseInt(tid, 10), btn);
       }
       if (action === "add-one") {
+        e.preventDefault();
         e.stopPropagation();
         addFilmToLibraryFromCollection(btn.getAttribute("data-kp-id"), btn);
+      }
+      if (action === "toggle-watched") {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWatchedFromCollection(btn);
       }
     });
   }
