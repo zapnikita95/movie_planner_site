@@ -14399,7 +14399,7 @@
   }
 
   /** Escape overflow:hidden/clip parents: portal to body + position:fixed above chrome. */
-  function portalHoverPreview(card) { /* MARKER:20260916hoverPortal1 */
+  function portalHoverPreview(card) { /* MARKER:20260916hoverPortal1b */
     if (!card) return null;
     let pop = hoverPreviewPopForCard(card);
     if (!pop) return null;
@@ -14451,7 +14451,7 @@
    * Keep home-film-preview fully visible: portal above chrome, clamp to viewport,
    * and never under a left sidebar/panel.
    */
-  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortal1 */
+  function positionHoverPreviewInViewport(card) { /* MARKER:20260916hoverPortal1b */
     if (!card) return;
     const pop = portalHoverPreview(card);
     if (!pop) return;
