@@ -11031,11 +11031,11 @@
     const kpVotesAttr = tile.getAttribute('data-rating-kp-votes');
     const imdbVotesAttr = tile.getAttribute('data-rating-imdb-votes');
     return {
-      title: tile.getAttribute('data-title') || '',
-      year: tile.getAttribute('data-year') || '',
-      poster: tile.getAttribute('data-poster') || '',
-      description: '',
-      genres: '',
+      title: tile.getAttribute('data-title') || (tile.querySelector('.home-poster-tile-title') || {}).textContent || '',
+      year: tile.getAttribute('data-year') || (tile.querySelector('.home-poster-tile-year') || {}).textContent || '',
+      poster: cleanPosterUrl(posterAttr) || (kp ? posterUrl(kp) : ''),
+      description: tile.getAttribute('data-description') || '',
+      genres: tile.getAttribute('data-genres') || '',
       rating_kp: Number.isFinite(ratingN) ? ratingN : null,
       rating_imdb: Number.isFinite(ratingImdbN) ? ratingImdbN : null,
       rating_kp_votes: kpVotesAttr != null && kpVotesAttr !== '' ? Number(kpVotesAttr) : null,
