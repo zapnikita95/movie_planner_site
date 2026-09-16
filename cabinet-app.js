@@ -4124,7 +4124,7 @@
       const existing = document.querySelector('script[src*="onboarding-flow.js"]');
       if (!existing) {
         const s = document.createElement('script');
-        s.src = '/onboarding-flow.js?v=20260917watchWith1'; // keep in sync with index.html pin
+        s.src = '/onboarding-flow.js?v=20260917watchWith2'; // keep in sync with index.html pin
         s.async = true;
         s.onload = function () { /* wait below */ };
         s.onerror = function () { resolve(false); };
@@ -20313,16 +20313,17 @@
         const sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
         if (Array.isArray(sessions) && sessions.some(function (s) { return s && !s.is_personal; })) return;
       } catch (_s) {}
+      const WATCH_WITH_FOLLOWUP_MARKS_THRESHOLD = 10;
       let n = Number(localStorage.getItem('mp_watch_with_followup_marks') || 0) || 0;
       n += 1;
       localStorage.setItem('mp_watch_with_followup_marks', String(n));
-      if (n < 5) return;
+      if (n < WATCH_WITH_FOLLOWUP_MARKS_THRESHOLD) return;
       // Quiet one-shot sheet
       localStorage.setItem('mp_watch_with_followup_done', '1');
       setTimeout(function () {
         showMpStackedChoiceDialog({
           title: 'Смотришь с кем-то?',
-          text: 'Можно создать совместную группу или киноклуб — отдельно от личной библиотеки.',
+          text: 'База совместной группы ведётся отдельно от личной базы.',
           primaryLabel: 'Создать группу',
           secondaryLabel: 'Не сейчас',
         }).then(function (choice) {
