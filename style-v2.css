@@ -32520,3 +32520,18 @@ html.mp-hover-portal-open body {
 .club-onboard-tip span{font-size:12px;color:var(--club-muted,#9a94a8);line-height:1.4}
 .club-onboard-actions{display:flex;justify-content:flex-end;gap:8px}
 .club-onboard-actions .btn,.club-onboard-head .btn{padding:10px 16px;font-size:13px;border-radius:999px;cursor:pointer}
+
+
+/* MARKER clubHistAdmin1 */
+.club-history-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.club-history-head h3{margin:0}
+.club-history-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.club-history-filter .btn{padding:8px 12px;font-size:12px;border-radius:999px;cursor:pointer}
+.club-history-filter .btn[aria-pressed="true"]{outline:2px solid rgba(239,28,122,.55);outline-offset:1px;background:rgba(239,28,122,.16);border-color:rgba(239,28,122,.45);color:#fff}
+.club-field-recording{margin-top:14px;padding:12px;border-radius:14px;border:1px solid rgba(239,28,122,.35);background:rgba(239,28,122,.08)}
+.club-field-recording>span{color:#ff8ab8;font-size:13px;letter-spacing:.02em}
+.club-field-recording input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--club-line,rgba(255,255,255,.12));background:rgba(0,0,0,.28);color:#fff;font:inherit}
+.club-field-recording small{display:block;margin-top:6px;font-size:11px;color:var(--club-muted,#9a94a8);line-height:1.4}
+.club-analytics-locked{padding:28px 18px;border-radius:18px;background:var(--club-card,#16161d);border:1px solid var(--club-line,rgba(255,255,255,.08));text-align:center}
+.club-analytics-locked .club-analytics-title{margin:0 0 8px}
+.club-history-card.has-recording{border-color:rgba(239,28,122,.28)}
