@@ -1029,26 +1029,17 @@
       }
 
       function importStartedPanelHtml() {
-        const src =
-          mode === "kp"
-            ? "Кинопоиска"
-            : extSource === "myshows"
-              ? "MyShows"
-              : extSource === "letterboxd"
-                ? "Letterboxd"
-                : "IMDb";
         return (
           '<div class="mp-onboard-import-started">' +
-          '<p class="mp-onboard-text"><strong>Импорт идёт</strong></p>' +
-          '<p class="muted small" style="margin-top:8px;line-height:1.45">Оценки с ' +
-          deps.escapeHtml(src) +
-          " подтянем в фоне. Можно сразу открыть кабинет — покажем, где база, поиск и «что посмотреть».</p>" +
+          '<p class="mp-onboard-text"><strong>Импорт идёт в фоне</strong></p>' +
+          '<p class="muted small" style="margin-top:8px;line-height:1.45">' +
+          "Сообщим, когда оценки появятся в профиле. Процесс занимает до пары часов — можно спокойно пользоваться кабинетом.</p>" +
           (coinsAdvance > 0
             ? '<p class="mp-onboard-text" style="margin-top:10px"><strong>+' +
               coinsAdvance +
               " монеток</strong> уже на балансе.</p>"
             : "") +
-          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">Продолжить в кабинет</button>' +
+          '<button type="button" class="btn-primary btn-full" data-ob-continue-onboard style="margin-top:16px">В кабинет</button>' +
           "</div>"
         );
       }
@@ -1267,8 +1258,9 @@
         coinsAdvance = Number((resp && resp.coins_awarded) || 0);
         statusText = "";
         errText = "";
-        paint();
         beginOnboardingImportBgPoll(deps);
+        // Don't trap behind the import dialog — continue into cabinet immediately.
+        finishImportAndContinue();
       }
 
       async function startKpImport(extraBody, opts) {
