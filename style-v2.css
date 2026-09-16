@@ -21193,7 +21193,7 @@ body.mp-scroll-lock {
 .movie-poster-meta { font-size: 11px; color: var(--text-muted, #a1a1aa); margin-top: 3px; }
 .search-poster-media { position: relative; }
 
-/* Poster overlays: + add-to-library (BL) + KP rating circle (BR) — collections + search */
+/* Poster overlays: + add / ✓ watched (BL) + KP rating circle (BR) — collections + search */
 .poster-add-library-btn {
   position: absolute;
   left: 8px;
@@ -21229,6 +21229,21 @@ body.mp-scroll-lock {
   opacity: 0.65;
   cursor: default;
   transform: none;
+}
+/* Watched: same firm circle as +, soft green fill (guest discover .is-added family) */
+.poster-add-library-btn.poster-watched-btn {
+  background: rgba(61, 214, 140, 0.88);
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #0f1610;
+  font-size: 15px;
+  font-weight: 800;
+}
+.poster-add-library-btn.poster-watched-btn:hover,
+.poster-add-library-btn.poster-watched-btn:focus-visible {
+  background: rgba(61, 214, 140, 0.98);
+  border-color: #fff;
+  transform: scale(1.06);
+  outline: none;
 }
 .poster-kp-rating {
   position: absolute;
@@ -21285,7 +21300,7 @@ body.mp-scroll-lock {
   bottom: 8px;
   top: auto;
 }
-.collections-film-card.is-in-library .poster-add-library-btn { display: none; }
+.collections-film-card.is-in-library .poster-add-library-btn:not(.poster-watched-btn) { display: none; }
 
 .mp-onboard-pick-tile { border: 2px solid transparent; border-radius: 12px; transition: border-color .15s ease, opacity .32s ease, transform .32s ease; }
 .mp-onboard-pick-tile--watched { border-color: #a855f7; box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35); }
