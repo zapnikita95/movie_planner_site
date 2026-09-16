@@ -2785,12 +2785,80 @@
       const st = JSON.parse(sessionStorage.getItem('mp_onboard_v2_state') || '{}');
       if (!st.importPrompted || !st.awaitImportReturn) return;
       st.awaitImportReturn = false;
+      if (st.importStarted) {
+        // Import already queued — resume post-import onboarding, do not mark skipped.
+        st.importSkipped = false;
+        sessionStorage.setItem('mp_onboard_v2_state', JSON.stringify(st));
+        try {
+          sessionStorage.setItem('mp_force_home_tour', '1');
+          sessionStorage.setItem('mp_show_import_filling_tip', '1');
+        } catch (_e) {}
+        showSection('home', { replace: true });
+        scheduleForcedHomeTourIfNeeded();
+        return;
+      }
       st.importSkipped = true;
       sessionStorage.setItem('mp_onboard_v2_state', JSON.stringify(st));
       if (typeof window.__mpMountExtendedOnboarding === 'function') {
         window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), function () {});
       }
     } catch (_) {}
+  }
+
+  function seedPostImportOnboardingState() {
+    try {
+      const raw = sessionStorage.getItem('mp_onboard_v2_state');
+      const st = raw ? JSON.parse(raw) : {};
+      st.importPrompted = true;
+      st.importStarted = true;
+      st.importSkipped = false;
+      st.awaitImportReturn = false;
+      st.importFillingTipShown = !!st.importFillingTipShown;
+      // If full onboarding never started, enter at post-import handoff (not interest survey).
+      if (!st.interests && !st.interest) {
+        st.postImportHandoffOnly = true;
+        st.interests = st.interests || ['movies'];
+        st.dbSource = st.dbSource || 'kp';
+      }
+      sessionStorage.setItem('mp_onboard_v2_state', JSON.stringify(st));
+    } catch (_) {}
+  }
+
+  function goCabinetAfterImportStart(opts) {
+    opts = opts || {};
+    seedPostImportOnboardingState();
+    try {
+      sessionStorage.setItem('mp_force_home_tour', '1');
+      sessionStorage.setItem('mp_show_import_filling_tip', '1');
+      sessionStorage.setItem('mp_force_friends_invite', '1');
+    } catch (_) {}
+    if (opts.replace !== false) {
+      try {
+        showSection('home', { replace: true });
+      } catch (_e) {
+        window.location.assign('/home');
+        return;
+      }
+    }
+    scheduleForcedHomeTourIfNeeded();
+  }
+
+  function maybeShowImportFillingTipFromFlag() {
+    try {
+      if (sessionStorage.getItem('mp_show_import_filling_tip') !== '1') return;
+      sessionStorage.removeItem('mp_show_import_filling_tip');
+    } catch (_) {
+      return;
+    }
+    setTimeout(function () {
+      if (document.getElementById('site-import-filling-tip')) return;
+      void showMpStackedChoiceDialog({
+        title: 'Библиотека заполняется',
+        text: 'Оценки подтянутся в фоне. Пока ищите фильмы, ставьте планы и смотрите рекомендации.',
+        primaryLabel: 'Понятно',
+        secondaryLabel: '',
+      }).catch(function () {});
+    }, 500);
   }
 
   function consumePendingPlanFromFilmPage() {
@@ -3210,7 +3278,20 @@
       return;
     }
     setTimeout(function () {
-      void maybeStartSiteHomeTour({ force: true });
+      void (async function () {
+        try {
+          if (sessionStorage.getItem('mp_show_import_filling_tip') === '1') {
+            sessionStorage.removeItem('mp_show_import_filling_tip');
+            await showMpStackedChoiceDialog({
+              title: 'Библиотека заполняется',
+              text: 'Оценки подтянутся в фоне. Пока ищите фильмы, ставьте планы и смотрите рекомендации.',
+              primaryLabel: 'Понятно',
+              secondaryLabel: '',
+            });
+          }
+        } catch (_tip) {}
+        void maybeStartSiteHomeTour({ force: true });
+      })();
     }, 900);
   }
 
@@ -25573,7 +25654,29 @@
         + '<div class="profile-import-progress-fill' + (indeterminate ? ' indeterminate' : '') + '" style="width:' + (indeterminate ? '35' : pct) + '%"></div>'
         + '</div>'
         + (label ? '<p class="profile-import-progress-label">' + escapeHtml(label) + '</p>' : '')
-        + (showHint ? '<p class="profile-import-progress-hint">' + escapeHtml(hint) + '</p>' : '');
+        + (showHint ? '<p class="profile-import-progress-hint">' + escapeHtml(hint) + '</p>' : '')
+        + '<div class="profile-import-cabinet-cta" style="margin-top:14px">'
+        + '<button type="button" class="btn btn-primary btn-full" id="profile-import-go-cabinet">Перейти в кабинет</button>'
+        + '<button type="button" class="btn btn-secondary btn-full" id="profile-import-stay-progress" style="margin-top:10px">Смотреть прогресс</button>'
+        + '</div>';
+      const goBtn = host.querySelector('#profile-import-go-cabinet');
+      if (goBtn && !goBtn._bound) {
+        goBtn._bound = true;
+        goBtn.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          goCabinetAfterImportStart({ replace: true });
+        });
+      }
+      const stayBtn = host.querySelector('#profile-import-stay-progress');
+      if (stayBtn && !stayBtn._bound) {
+        stayBtn._bound = true;
+        stayBtn.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          try {
+            host.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          } catch (_e) {}
+        });
+      }
     }
     if (importStatus) {
       importStatus.textContent = '';
@@ -25715,6 +25818,7 @@
       if (r && r.success) {
         ui.kpProbe = null;
         renderKpImportFriendPanel(root);
+        seedPostImportOnboardingState();
         if (r.user_hint) {
           renderProfileImportProgress(root, {
             status: 'running',
@@ -25724,6 +25828,15 @@
             skipped: 0,
             phase: r.mode === 'local' || r.already_running ? 'waiting_local' : 'starting',
             user_hint: r.user_hint,
+          });
+        } else {
+          renderProfileImportProgress(root, {
+            status: 'running',
+            target: profileKpImportAll ? 1500 : profileKpMaxCount,
+            processed: 0,
+            imported: 0,
+            skipped: 0,
+            phase: r.mode === 'local' || r.already_running ? 'waiting_local' : 'starting',
           });
         }
         startProfileImportPoll(root);
@@ -25739,6 +25852,7 @@
         return r;
       }
       if (r && r.error === 'import_running') {
+        seedPostImportOnboardingState();
         renderProfileImportProgress(root, {
           status: 'running',
           phase: 'waiting_local',
