@@ -32447,3 +32447,50 @@ html.mp-hover-portal-open body {
     pointer-events: none !important;
   }
 }
+
+/* MARKER clubAnalytics1 */
+.club-analytics-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.club-analytics-title{margin:0 0 4px;font-family:Unbounded,sans-serif;font-size:1.05rem;letter-spacing:-.02em}
+.club-analytics-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.club-analytics-actions .btn{padding:10px 16px;font-size:13px;border-radius:999px;cursor:pointer}
+.club-analytics-actions .btn[aria-pressed="true"]{outline:2px solid rgba(239,28,122,.55);outline-offset:1px}
+.club-analytics-section{margin:0 0 22px;padding:16px;border-radius:18px;background:var(--club-card,#16161d);border:1px solid var(--club-line,rgba(255,255,255,.08));width:100%;box-sizing:border-box}
+.club-analytics-section h3{margin:0 0 12px;font-family:Unbounded,sans-serif;font-size:15px}
+.club-analytics-section h4{margin:0 0 8px;font-size:13px;color:var(--club-muted,#9a94a8)}
+.club-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.club-metric{padding:14px;border-radius:14px;background:rgba(0,0,0,.22);border:1px solid var(--club-line,rgba(255,255,255,.06))}
+.club-metric span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--club-muted,#9a94a8);font-weight:700;margin-bottom:6px}
+.club-metric b{display:block;font-family:Unbounded,sans-serif;font-size:1.25rem;line-height:1.2}
+.club-metric em{display:block;margin-top:6px;font-style:normal;font-size:12px;line-height:1.35;color:var(--club-muted,#9a94a8)}
+.club-analytics-chart{margin-top:8px}
+.club-sparkline{width:100%;max-width:100%;height:72px;display:block}
+.club-analytics-cols{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:720px){.club-analytics-cols{grid-template-columns:1fr 1fr}}
+.club-analytics-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.club-analytics-list li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.18);border:1px solid var(--club-line,rgba(255,255,255,.05))}
+.club-analytics-list li b{font-size:13px}
+.club-analytics-list li span{font-size:12px;color:var(--club-muted,#9a94a8);white-space:nowrap}
+.club-analytics-empty{margin:0;font-size:13px;color:var(--club-muted,#9a94a8);line-height:1.45}
+.club-extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.club-extra{padding:14px;border-radius:14px;background:rgba(0,0,0,.18);border:1px solid var(--club-line,rgba(255,255,255,.06))}
+.club-extra.is-stub{opacity:.85}
+.club-extra h4{margin:0 0 6px;font-size:13px}
+.club-extra p{margin:0;font-size:12px;line-height:1.45;color:var(--club-muted,#9a94a8)}
+.club-history-list{display:grid;gap:12px}
+.club-history-card{display:grid;grid-template-columns:72px 1fr;gap:12px;padding:14px;border-radius:16px;background:rgba(0,0,0,.18);border:1px solid var(--club-line,rgba(255,255,255,.06));width:100%;box-sizing:border-box}
+.club-history-card>img,.club-history-card>.club-film-empty{width:72px;height:108px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.04)}
+.club-history-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.club-history-top h4{margin:0;font-size:15px}
+.club-history-top time{font-size:12px;color:var(--club-muted,#9a94a8)}
+.club-history-meta{margin:6px 0 8px;font-size:13px;color:#d8d4e2}
+.club-history-note{margin:0 0 10px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+.club-history-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.club-history-actions .btn{padding:9px 14px;font-size:12px;border-radius:999px;cursor:pointer}
+.club-inline-field{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;font-weight:700;color:#d8d4e2}
+.club-inline-field input{width:88px;padding:8px 10px;border-radius:10px;border:1px solid var(--club-line,rgba(255,255,255,.12));background:rgba(0,0,0,.28);color:#fff;font:inherit}
+.club-note-edit{width:100%;margin-top:8px}
+@media(max-width:560px){
+  .club-history-card{grid-template-columns:56px 1fr}
+  .club-history-card>img,.club-history-card>.club-film-empty{width:56px;height:84px}
+  .club-analytics-toolbar{flex-direction:column}
+}
