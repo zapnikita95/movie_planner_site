@@ -21104,6 +21104,107 @@ body.in-cabinet #section-settings .settings-content {
   line-height: 1;
   color: var(--text-muted, #a1a1aa);
 }
+.mp-onboard-cta-btn {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #0b0b13;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mp-onboard-cta-btn:disabled { opacity: 0.6; cursor: default; }
+.mp-onboard-skip-btn {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted, #a1a1aa);
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mp-onboard-emoji-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.mp-onboard-emoji-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  font-size: 20px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mp-onboard-emoji-btn.active {
+  border-color: rgba(251, 191, 36, 0.7);
+  background: rgba(251, 191, 36, 0.15);
+}
+.mp-onboard-field-label {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #a1a1aa);
+}
+.mp-onboard-text-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: var(--text, #f4f4f5);
+  padding: 12px 14px;
+  font-size: 15px;
+}
+.mp-onboard-status {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #f87171;
+}
+.mp-onboard-invite-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  word-break: break-all;
+}
+.mp-onboard-invite-url {
+  font-size: 13px;
+  color: var(--text, #f4f4f5);
+}
+.mp-onboard-invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.mp-onboard-share-link {
+  display: block;
+  text-align: center;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--text, #f4f4f5);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
 html.mp-scroll-lock {
   overflow: hidden;
   height: 100%;

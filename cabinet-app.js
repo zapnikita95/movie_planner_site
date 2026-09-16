@@ -2582,11 +2582,43 @@
       }
       return;
     }
+    if (p === '/whattowatch/clubs' || p === '/clubs' || p.indexOf('/whattowatch/clubs') === 0) {
+      if (typeof openSiteWhattowatch === 'function') {
+        openSiteWhattowatch({ scope: 'clubs', replace: replace });
+      } else {
+        showSection('whattowatch', { replace: replace });
+      }
+      return;
+    }
     // Онбординг поверх /f|/s — не уводим со страницы при navigate('/')
     if (p === '/' || p === '' || p === '/home') {
       if (peekContentPageFromLocation()) return;
       showSection('home', { replace: replace });
     }
+  }
+
+  function maybeResumeOnboardingAfterClub() {
+    try {
+      if (sessionStorage.getItem('mp_onboard_resume_club') !== '1') return false;
+      const raw = sessionStorage.getItem('mp_onboard_v2_state');
+      if (!raw) {
+        sessionStorage.removeItem('mp_onboard_resume_club');
+        return false;
+      }
+      const st = JSON.parse(raw || '{}') || {};
+      if (!st.awaitingClubReturn && st.watchWithDone) {
+        sessionStorage.removeItem('mp_onboard_resume_club');
+        return false;
+      }
+      // Continue questionnaire → poster feed without waiting for members.
+      st.awaitingClubReturn = true;
+      sessionStorage.setItem('mp_onboard_v2_state', JSON.stringify(st));
+      if (typeof window.__mpMountExtendedOnboarding === 'function') {
+        window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), function () {});
+        return true;
+      }
+    } catch (_e) {}
+    return false;
   }
 
   function _siteOnboardingDeps() {
@@ -3264,8 +3296,12 @@
         if (sessionStorage.getItem('mp_skip_onboard_until_home') === '1') {
           const p = (window.location.pathname || '').replace(/\/$/, '') || '/';
           if (p !== '/home') return;
+          sessionStorage.removeItem('mp_skip_onboard_until_home');
         }
       } catch (_) {}
+      try {
+        if (maybeResumeOnboardingAfterClub()) return;
+      } catch (_r) {}
       void maybeStartSiteOnboardingChain();
     }, 700);
   }
@@ -4088,7 +4124,7 @@
       const existing = document.querySelector('script[src*="onboarding-flow.js"]');
       if (!existing) {
         const s = document.createElement('script');
-        s.src = '/onboarding-flow.js?v=20260717flow1'; // keep in sync with index.html pin
+        s.src = '/onboarding-flow.js?v=20260917watchWith1'; // keep in sync with index.html pin
         s.async = true;
         s.onload = function () { /* wait below */ };
         s.onerror = function () { resolve(false); };
@@ -20263,6 +20299,43 @@
     if (curEl) curEl.textContent = v ? v + '/10' : '';
   }
 
+
+  function maybeOfferWatchWithFollowUp() {
+    try {
+      if (localStorage.getItem('mp_watch_with_followup_done') === '1') return;
+      if (localStorage.getItem('mp_watch_with_followup_refused') === '1') return;
+      const st = JSON.parse(sessionStorage.getItem('mp_onboard_v2_state') || '{}') || {};
+      // During active onboarding — never interrupt.
+      if (st && (st.interests || st.dbSource != null) && !uiTourIsDone(UI_TOUR_KEYS.onboarding)) return;
+      const ww = st.watchWith || localStorage.getItem('mp_watch_with_answer') || '';
+      if (ww && ww !== 'solo') return;
+      try {
+        const sessions = JSON.parse(localStorage.getItem('mp_site_sessions') || '[]');
+        if (Array.isArray(sessions) && sessions.some(function (s) { return s && !s.is_personal; })) return;
+      } catch (_s) {}
+      let n = Number(localStorage.getItem('mp_watch_with_followup_marks') || 0) || 0;
+      n += 1;
+      localStorage.setItem('mp_watch_with_followup_marks', String(n));
+      if (n < 5) return;
+      // Quiet one-shot sheet
+      localStorage.setItem('mp_watch_with_followup_done', '1');
+      setTimeout(function () {
+        showMpStackedChoiceDialog({
+          title: 'Смотришь с кем-то?',
+          text: 'Можно создать совместную группу или киноклуб — отдельно от личной библиотеки.',
+          primaryLabel: 'Создать группу',
+          secondaryLabel: 'Не сейчас',
+        }).then(function (choice) {
+          if (choice === 'primary') {
+            if (typeof openCreateRoomModal === 'function') openCreateRoomModal({ kind: 'friends' });
+          } else {
+            localStorage.setItem('mp_watch_with_followup_refused', '1');
+          }
+        }).catch(function () {});
+      }, 600);
+    } catch (_e) {}
+  }
+
   function setRating(filmId, rating, anchorBtn) {
     const cache = _filmModalCache[filmId];
     if (cache && cache.film && cache.film.is_virtual_room && cache.film.can_rate_in_group === false) {
@@ -20279,6 +20352,7 @@
       }
       applyCoinsFeedback(anchorBtn, Number(res.coins_added) || 0);
       applyRatingToLists(filmId, rating);
+      try { maybeOfferWatchWithFollowUp(); } catch (_ww) {}
       try {
         if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
           MPHomeRails.clearRailCache('recent-rated');
@@ -27306,7 +27380,7 @@
     const descEl = document.getElementById('create-room-desc');
     const preset = o.kind === 'cinema_club' || o.kind === 'blogger' || o.kind === 'friends' ? o.kind : null;
     _createRoomPresetKind = preset;
-    _createRoomKindLocked = preset === "cinema_club" && o.lockKind === true;
+    _createRoomKindLocked = !!o.lockKind && (preset === "cinema_club" || preset === "friends");
     _createRoomCoverFile = null;
     if (kindRow) {
       const kindHeading = document.getElementById("create-room-kind-heading");
@@ -27334,7 +27408,21 @@
     if (frequencyInput) frequencyInput.value = "";
     syncCreateRoomDescVisibility(preset || 'friends');
     renderCreateRoomKindExtra();
-    if (input) { input.value = ""; input.placeholder = createRoomNamePlaceholder(); setTimeout(() => input.focus(), 50); }
+    const emojiRow = document.getElementById('create-room-emoji-row');
+    if (emojiRow && o.defaultEmoji) {
+      emojiRow.querySelectorAll('.create-room-emoji-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-emoji') === o.defaultEmoji);
+      });
+      if (!emojiRow.querySelector('.create-room-emoji-btn.active')) {
+        const first = emojiRow.querySelector('.create-room-emoji-btn');
+        if (first) first.classList.add('active');
+      }
+    }
+    if (input) {
+      input.value = o.defaultName ? String(o.defaultName) : "";
+      input.placeholder = createRoomNamePlaceholder();
+      setTimeout(() => input.focus(), 50);
+    }
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'add-film-status'; }
     const titleEl = modal.querySelector('.add-film-title');
     if (titleEl) titleEl.textContent = preset === 'cinema_club' ? 'Создать киноклуб' : 'Создать группу';
@@ -27426,7 +27514,7 @@
     const emoji = (emojiActive && emojiActive.getAttribute('data-emoji')) || '🎬';
     if (!name) { if (statusEl) { statusEl.textContent = 'Введите название группы'; statusEl.className = 'add-film-status error'; } return; }
     const kindBtn = document.querySelector('#create-room-kind-row .create-room-kind-btn.active');
-    const groupKind = _createRoomKindLocked ? 'cinema_club' : ((kindBtn && kindBtn.getAttribute('data-kind')) || 'friends');
+    const groupKind = _createRoomKindLocked ? (_createRoomPresetKind || 'cinema_club') : ((kindBtn && kindBtn.getAttribute('data-kind')) || 'friends');
     const descEl = document.getElementById('create-room-desc');
     const description = descEl ? String(descEl.value || '').trim().slice(0, 200) : '';
     const frequencyEl = document.getElementById("create-room-frequency");

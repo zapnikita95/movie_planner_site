@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260717flow1";
+  const OB_FLOW_V = "20260917watchWith1";
 
   let _obKpImportPoll = null;
 
@@ -424,6 +424,7 @@
       db_source: st.dbSource || "",
       db_other: st.dbOther || "",
       genres: st.genres || [],
+      watch_with: st.watchWith || "",
     };
   }
 
@@ -981,6 +982,397 @@
         });
       },
     });
+  }
+
+
+  var WATCH_WITH_DEFAULTS = {
+    partner: { name: "Мы", emoji: "❤️", title: "Совместная группа с партнёром" },
+    family: { name: "Дом", emoji: "🏠", title: "Семейная группа" },
+    friends: { name: "Кино", emoji: "🍿", title: "Группа с друзьями" },
+  };
+
+  var WATCH_WITH_EMOJIS = ["❤️", "🏠", "🍿", "🎬", "👥", "🎭", "⭐", "🔥"];
+
+  function watchWithPickButton(value, emoji, label) {
+    return (
+      '<button type="button" class="mp-onboard-db-btn" data-ob-ww-pick="' +
+      value +
+      '">' +
+      '<span class="mp-onboard-db-emoji">' +
+      emoji +
+      "</span>" +
+      '<span class="mp-onboard-db-label">' +
+      label +
+      "</span>" +
+      '<span class="mp-onboard-db-arrow">›</span>' +
+      "</button>"
+    );
+  }
+
+  function watchWithUsageIntent(kind) {
+    if (kind === "solo") return "personal";
+    if (kind === "cinema_club") return "cinema_club";
+    if (kind === "partner" || kind === "family" || kind === "friends") return "friends_group";
+    return "";
+  }
+
+  async function saveWatchWithProfile(deps, kind) {
+    try {
+      if (kind) localStorage.setItem("mp_watch_with_answer", String(kind));
+    } catch (_ls) {}
+    const intent = watchWithUsageIntent(kind);
+    if (!intent || !deps || !deps.apiPost) return;
+    try {
+      await deps.apiPost("/api/site/onboarding/usage-intent", {
+        usage_intent: intent,
+        watch_with: kind || "",
+      });
+    } catch (_e) {}
+  }
+
+  async function stepWatchWithChoice(deps) {
+    const html =
+      '<div class="mp-onboard-title">Смотришь обычно один, вдвоём или компанией?</div>' +
+      '<p class="mp-onboard-text muted small">Один — тоже нормально. Можно пропустить создание группы.</p>' +
+      '<div class="mp-onboard-db-list">' +
+      watchWithPickButton("solo", "🙋", "Один") +
+      watchWithPickButton("partner", "💑", "С партнёром (вдвоём)") +
+      watchWithPickButton("family", "👨‍👩‍👧‍👦", "Семья") +
+      watchWithPickButton("friends", "👥", "С друзьями") +
+      watchWithPickButton("cinema_club", "🎬", "В киноклубе") +
+      "</div>";
+    return showCenterDialog(deps, html, {
+      showBack: true,
+      bind: function (ov, close) {
+        ov.querySelectorAll("[data-ob-ww-pick]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            close({ watchWith: btn.getAttribute("data-ob-ww-pick") || "solo" });
+          });
+        });
+      },
+    });
+  }
+
+  async function stepWatchWithExplain(deps, kind) {
+    var isClub = kind === "cinema_club";
+    var title = isClub
+      ? "Киноклуб на Movie Planner"
+      : (WATCH_WITH_DEFAULTS[kind] && WATCH_WITH_DEFAULTS[kind].title) || "Совместная группа";
+    var body = isClub
+      ? "Можно вести киноклуб на movie-planner.ru: расписание просмотров, статистика и уведомления участникам. Личная библиотека остаётся отдельно."
+      : "Совместная группа — отдельно от личной библиотеки. Общие планы, что смотрели и что хотите посмотреть вместе.";
+    var createLabel = isClub ? "Создать киноклуб" : "Создать группу";
+    var html =
+      '<div class="mp-onboard-title">' +
+      title +
+      "</div>" +
+      '<p class="mp-onboard-text">' +
+      body +
+      "</p>" +
+      '<button type="button" class="mp-onboard-cta-btn" data-ob-ww-create style="margin-top:16px">' +
+      createLabel +
+      "</button>" +
+      '<button type="button" class="mp-onboard-skip-btn" data-ob-ww-skip style="margin-top:10px">Пропустить</button>';
+    return showCenterDialog(deps, html, {
+      showBack: true,
+      bind: function (ov, close) {
+        ov.querySelector("[data-ob-ww-create]")?.addEventListener("click", function () {
+          close({ action: "create" });
+        });
+        ov.querySelector("[data-ob-ww-skip]")?.addEventListener("click", function () {
+          close({ action: "skip" });
+        });
+      },
+    });
+  }
+
+  function watchWithEmojiButtons(activeEmoji) {
+    return WATCH_WITH_EMOJIS.map(function (em) {
+      var active = em === activeEmoji ? " active" : "";
+      return (
+        '<button type="button" class="mp-onboard-emoji-btn' +
+        active +
+        '" data-ob-ww-emoji="' +
+        em +
+        '">' +
+        em +
+        "</button>"
+      );
+    }).join("");
+  }
+
+  async function stepWatchWithCreateGroup(deps, kind) {
+    var defaults = WATCH_WITH_DEFAULTS[kind] || WATCH_WITH_DEFAULTS.friends;
+    var html =
+      '<div class="mp-onboard-title">Создать группу</div>' +
+      '<p class="mp-onboard-text muted small">Название и эмодзи можно изменить</p>' +
+      '<div class="mp-onboard-emoji-row">' +
+      watchWithEmojiButtons(defaults.emoji) +
+      "</div>" +
+      '<label class="mp-onboard-field-label" for="ob-ww-name">Название</label>' +
+      '<input type="text" id="ob-ww-name" class="mp-onboard-text-input" maxlength="60" value="' +
+      deps.escapeHtml(defaults.name) +
+      '" autocomplete="off">' +
+      '<div class="mp-onboard-status" id="ob-ww-status" hidden></div>' +
+      '<button type="button" class="mp-onboard-cta-btn" data-ob-ww-submit style="margin-top:16px">Создать группу</button>' +
+      '<button type="button" class="mp-onboard-skip-btn" data-ob-ww-cancel style="margin-top:10px">Пропустить</button>';
+    return showCenterDialog(deps, html, {
+      showBack: true,
+      bind: function (ov, close) {
+        var selectedEmoji = defaults.emoji;
+        ov.querySelectorAll("[data-ob-ww-emoji]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            selectedEmoji = btn.getAttribute("data-ob-ww-emoji") || defaults.emoji;
+            ov.querySelectorAll("[data-ob-ww-emoji]").forEach(function (b) {
+              b.classList.toggle("active", b === btn);
+            });
+          });
+        });
+        ov.querySelector("[data-ob-ww-cancel]")?.addEventListener("click", function () {
+          close({ action: "skip" });
+        });
+        ov.querySelector("[data-ob-ww-submit]")?.addEventListener("click", function () {
+          var nameInp = ov.querySelector("#ob-ww-name");
+          var statusEl = ov.querySelector("#ob-ww-status");
+          var submitBtn = ov.querySelector("[data-ob-ww-submit]");
+          var name = nameInp ? String(nameInp.value || "").trim() : "";
+          if (!name) {
+            if (deps.toast) deps.toast("Введите название группы");
+            return;
+          }
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Создаём…";
+          }
+          if (statusEl) {
+            statusEl.hidden = true;
+            statusEl.textContent = "";
+          }
+          deps
+            .apiPost("/api/site/rooms", {
+              name: name,
+              emoji: selectedEmoji,
+              group_kind: "friends",
+              is_discoverable: false,
+              join_approval_mode: "any_admin",
+            })
+            .then(function (data) {
+              if (!data || !data.success) {
+                if (submitBtn) {
+                  submitBtn.disabled = false;
+                  submitBtn.textContent = "Создать группу";
+                }
+                if (statusEl) {
+                  statusEl.hidden = false;
+                  statusEl.textContent = (data && data.error) || "Не удалось создать группу";
+                }
+                return;
+              }
+              // Keep personal session active for the rest of onboarding.
+              try {
+                if (data.chat_id && data.token) {
+                  var sessions = JSON.parse(localStorage.getItem("mp_site_sessions") || "[]");
+                  if (!Array.isArray(sessions)) sessions = [];
+                  var exists = sessions.some(function (s) {
+                    return s && String(s.chat_id) === String(data.chat_id);
+                  });
+                  if (!exists) {
+                    sessions.push({
+                      chat_id: String(data.chat_id),
+                      token: data.token,
+                      name: data.name || name,
+                      is_personal: false,
+                      is_virtual: true,
+                      has_data: true,
+                    });
+                    localStorage.setItem("mp_site_sessions", JSON.stringify(sessions));
+                  }
+                }
+              } catch (_sess) {}
+              close({
+                action: "created",
+                chat_id: data.chat_id,
+                invite_url: data.invite_url,
+                name: data.name || name,
+                emoji: selectedEmoji,
+              });
+            })
+            .catch(function () {
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Создать группу";
+              }
+              if (statusEl) {
+                statusEl.hidden = false;
+                statusEl.textContent = "Ошибка сети";
+              }
+            });
+        });
+      },
+    });
+  }
+
+  async function stepWatchWithInvite(deps, info) {
+    var url = (info && info.invite_url) || "";
+    var name = (info && info.name) || "Группа";
+    var html =
+      '<div class="mp-onboard-title">Пригласите участников</div>' +
+      '<p class="mp-onboard-text">Группа «' +
+      deps.escapeHtml(name) +
+      "» готова. Можно сразу отправить ссылку — ждать второго человека не нужно.</p>" +
+      '<div class="mp-onboard-invite-box"><code class="mp-onboard-invite-url">' +
+      deps.escapeHtml(url) +
+      "</code></div>" +
+      '<div class="mp-onboard-invite-actions">' +
+      '<button type="button" class="mp-onboard-cta-btn" data-ob-ww-copy>📋 Скопировать ссылку</button>' +
+      (url
+        ? '<a class="mp-onboard-share-link" data-ob-ww-tg target="_blank" rel="noopener">Telegram</a>' +
+          '<a class="mp-onboard-share-link" data-ob-ww-wa target="_blank" rel="noopener">WhatsApp</a>'
+        : "") +
+      "</div>" +
+      '<button type="button" class="mp-onboard-skip-btn" data-ob-ww-invite-skip style="margin-top:14px">Пропустить, добавлю позже</button>';
+    return showCenterDialog(deps, html, {
+      showBack: false,
+      dismissX: true,
+      dismissVal: { action: "skip" },
+      bind: function (ov, close) {
+        var shareText = "Приглашаю в «" + name + "» в Movie Planner";
+        var tg = ov.querySelector("[data-ob-ww-tg]");
+        var wa = ov.querySelector("[data-ob-ww-wa]");
+        if (tg && url) {
+          tg.href =
+            "https://t.me/share/url?url=" +
+            encodeURIComponent(url) +
+            "&text=" +
+            encodeURIComponent(shareText);
+        }
+        if (wa && url) {
+          wa.href = "https://wa.me/?text=" + encodeURIComponent(shareText + " " + url);
+        }
+        ov.querySelector("[data-ob-ww-copy]")?.addEventListener("click", function () {
+          if (!url) return;
+          var done = function () {
+            if (deps.toast) deps.toast("📋 Ссылка скопирована");
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done).catch(done);
+          } else {
+            done();
+          }
+        });
+        ov.querySelector("[data-ob-ww-invite-skip]")?.addEventListener("click", function () {
+          close({ action: "skip" });
+        });
+      },
+    });
+  }
+
+  async function startCinemaClubFromOnboarding(deps, st) {
+    st.watchWith = "cinema_club";
+    st.awaitingClubReturn = true;
+    st.watchWithDone = false;
+    writeState(st);
+    try {
+      sessionStorage.setItem("mp_onboard_resume_club", "1");
+      sessionStorage.setItem("mp_open_create_club", "1");
+      sessionStorage.setItem("mp_skip_onboard_until_home", "1");
+    } catch (_e) {}
+    obClientLog(deps, "flow.watch-with.club.redirect", {});
+    if (typeof deps.navigate === "function") {
+      deps.navigate("/whattowatch/clubs");
+    } else {
+      try {
+        window.location.href = "/whattowatch/clubs";
+      } catch (_n) {}
+    }
+    setTimeout(function () {
+      try {
+        if (typeof window.__mpOpenCreateCinemaClub === "function") {
+          window.__mpOpenCreateCinemaClub();
+        } else if (typeof window.openCreateRoomModal === "function") {
+          window.openCreateRoomModal({ kind: "cinema_club", lockKind: true });
+        }
+      } catch (_o) {}
+    }, 120);
+  }
+
+  async function runWatchWithStep(deps, st) {
+    if (st.awaitingClubReturn) {
+      st.awaitingClubReturn = false;
+      st.watchWithDone = true;
+      if (!st.watchWith) st.watchWith = "cinema_club";
+      writeState(st);
+      try {
+        sessionStorage.removeItem("mp_onboard_resume_club");
+      } catch (_r) {}
+      void saveWatchWithProfile(deps, st.watchWith);
+      obClientLog(deps, "flow.watch-with.club.resumed", {});
+      return { ok: true };
+    }
+
+    const choice = await stepWatchWithChoice(deps);
+    if (!choice) return { abort: true };
+    if (isObBack(choice)) return { back: true };
+
+    const kind = choice.watchWith || "solo";
+    st.watchWith = kind;
+    writeState(st);
+    void saveWatchWithProfile(deps, kind);
+    obClientLog(deps, "flow.watch-with.choice", { kind: kind });
+
+    if (kind === "solo") {
+      st.watchWithDone = true;
+      writeState(st);
+      return { ok: true };
+    }
+
+    const explain = await stepWatchWithExplain(deps, kind);
+    if (!explain) {
+      st.watchWithDone = true;
+      writeState(st);
+      return { ok: true };
+    }
+    if (isObBack(explain)) {
+      delete st.watchWith;
+      writeState(st);
+      return runWatchWithStep(deps, st);
+    }
+
+    if (explain.action === "skip") {
+      st.watchWithDone = true;
+      st.watchWithSkippedInvite = true;
+      writeState(st);
+      return { ok: true };
+    }
+
+    if (kind === "cinema_club") {
+      await startCinemaClubFromOnboarding(deps, st);
+      return { paused: true };
+    }
+
+    const created = await stepWatchWithCreateGroup(deps, kind);
+    if (!created) {
+      st.watchWithDone = true;
+      st.watchWithSkippedInvite = true;
+      writeState(st);
+      return { ok: true };
+    }
+    if (isObBack(created)) {
+      return runWatchWithStep(deps, st);
+    }
+    if (created.action === "skip") {
+      st.watchWithDone = true;
+      st.watchWithSkippedInvite = true;
+      writeState(st);
+      return { ok: true };
+    }
+
+    st.watchWithGroupId = created.chat_id;
+    writeState(st);
+    await stepWatchWithInvite(deps, created);
+    st.watchWithDone = true;
+    writeState(st);
+    return { ok: true };
   }
 
   function extImportSourceHelp(source) {
@@ -2790,6 +3182,26 @@
       writeState(st);
     }
 
+    if (meta.hasMedia && st.dbSource != null && !st.watchWithDone) {
+      const ww = await runWatchWithStep(deps, st);
+      st = readState();
+      if (ww && ww.paused) {
+        return;
+      }
+      if (ww && ww.abort) {
+        if (onComplete) onComplete();
+        return;
+      }
+      if (ww && ww.back) {
+        st.dbSource = null;
+        st.dbOther = "";
+        delete st.watchWith;
+        st.watchWithDone = false;
+        writeState(st);
+        return runFlow(deps, onComplete);
+      }
+    }
+
     if (
       meta.hasMedia &&
       (st.dbSource === "kp" || st.dbSource === "myshows" || st.dbSource === "imdb" || st.dbSource === "letterboxd") &&
@@ -3273,6 +3685,24 @@
       return;
     }
 
+    // Questionnaire: watch-with before poster feed (create deferred until after auth).
+    let guestWatchWith = "solo";
+    const wwChoice = await stepWatchWithChoice(deps);
+    if (!wwChoice || isObBack(wwChoice)) {
+      if (onComplete) onComplete();
+      return;
+    }
+    guestWatchWith = wwChoice.watchWith || "solo";
+    if (guestWatchWith !== "solo") {
+      const wwExplain = await stepWatchWithExplain(deps, guestWatchWith);
+      if (wwExplain && !isObBack(wwExplain) && wwExplain.action === "create") {
+        // Need account to create group/club — continue to watched then register.
+        try {
+          sessionStorage.setItem("mp_guest_pending_watch_with", guestWatchWith);
+        } catch (_gw) {}
+      }
+    }
+
     const guestSeedUrl = guestOnboardingSeedUrl(seedMediaType, 0, GUEST_INITIAL_SEED_CHUNK);
     const watchedPick = await mountFilmPicker(deps, {
       mode: "watched",
@@ -3305,6 +3735,7 @@
       otherText: otherText,
       dbSource: dbSource,
       dbOther: dbOther,
+      watchWith: guestWatchWith || "solo",
       mediaType: seedMediaType,
       watchedItems: watchedPick.watchedItems || [],
       remainingItems: watchedPick.remainingItems || [],
@@ -3346,6 +3777,8 @@
         otherText: gst.otherText || "",
         dbSource: "none",
         dbOther: "",
+        watchWith: gst.watchWith || "",
+        watchWithDone: !!gst.watchWith,
         skipIntroCarousel: true,
       });
       void saveInterest(deps, {
@@ -3353,6 +3786,7 @@
         other_text: gst.otherText || "",
         db_source: "none",
         db_other: "",
+        watch_with: gst.watchWith || "",
       });
       void runFlow(deps, function () {});
       return true;
@@ -3367,6 +3801,8 @@
         otherText: gst.otherText || "",
         dbSource: gst.dbSource,
         dbOther: gst.dbOther || "",
+        watchWith: gst.watchWith || "",
+        // Import path answers watch-with after auth inside runFlow (db already set).
         skipIntroCarousel: true,
       });
       void saveInterest(deps, {
@@ -3374,6 +3810,7 @@
         other_text: gst.otherText || "",
         db_source: gst.dbSource,
         db_other: gst.dbOther || "",
+        watch_with: gst.watchWith || "",
       });
       void runFlow(deps, function () {});
       return true;
@@ -3412,10 +3849,33 @@
         other_text: gst.otherText || "",
         db_source: gst.dbSource || "none",
         db_other: gst.dbOther || "",
+        watch_with: gst.watchWith || "",
       });
+      if (gst.watchWith) void saveWatchWithProfile(deps, gst.watchWith);
       await deps.markFirstOnboardingDoneAsync();
       clearGuestState();
       clearState();
+      var pendingWw = "";
+      try {
+        pendingWw = sessionStorage.getItem("mp_guest_pending_watch_with") || "";
+        sessionStorage.removeItem("mp_guest_pending_watch_with");
+      } catch (_pw) {}
+      if (pendingWw === "cinema_club") {
+        try {
+          sessionStorage.setItem("mp_open_create_club", "1");
+        } catch (_c) {}
+        if (typeof deps.navigate === "function") deps.navigate("/whattowatch/clubs");
+      } else if (pendingWw && pendingWw !== "solo" && typeof window.openCreateRoomModal === "function") {
+        var def = WATCH_WITH_DEFAULTS[pendingWw] || WATCH_WITH_DEFAULTS.friends;
+        setTimeout(function () {
+          window.openCreateRoomModal({
+            kind: "friends",
+            lockKind: true,
+            defaultName: def.name,
+            defaultEmoji: def.emoji,
+          });
+        }, 400);
+      }
       if (typeof global.__mpCompleteOnboardHandoff === "function") {
         global.__mpCompleteOnboardHandoff({ reason: "guest_watched" });
       } else {
