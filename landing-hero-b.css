@@ -693,11 +693,17 @@ body.landing-guest-home main#landing:not(.hidden) {
 @media (min-width: 768px) and (max-width: 1023px) {
   body.landing-guest-home .landing-steps--center,
   body.landing-guest-home.landing-root-page .landing-steps--center {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
     gap: 20px 16px !important;
     margin: 20px auto 0 !important;
-    max-width: 100% !important;
+    max-width: 720px !important;
+    grid-template-columns: none !important;
+  }
+  body.landing-guest-home .landing-steps--center .step {
+    flex: 0 1 calc(50% - 12px) !important;
+    max-width: 320px !important;
   }
 
   body.landing-guest-home .landing-steps--center .step {
@@ -707,18 +713,26 @@ body.landing-guest-home main#landing:not(.hidden) {
 }
 
 @media (min-width: 1024px) {
+  /* 4 steps centered under title — never a 5-col grid with empty right desert */
   body.landing-guest-home .landing-steps--center,
   body.landing-guest-home.landing-root-page .landing-steps--center {
-    display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    gap: 16px 12px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    gap: 16px 20px !important;
     margin: 24px auto 0 !important;
-    max-width: 100% !important;
+    max-width: 1080px !important;
+    grid-template-columns: none !important;
   }
 
   body.landing-guest-home .landing-steps--center .step {
     border-top: none !important;
-    padding: 10px 8px !important;
+    padding: 10px 12px !important;
+    flex: 0 1 220px !important;
+    max-width: 240px !important;
+    min-width: 180px !important;
+    box-sizing: border-box !important;
   }
 
   body.landing-guest-home .landing-steps--center .step p {
@@ -1369,3 +1383,5 @@ body.landing-guest-home #landing > section:not(.landing-hero-b):not(.landing-fra
     scroll-snap-type: none;
   }
 }
+
+/* MARKER:20260916guestUx1 how-it-works center */
