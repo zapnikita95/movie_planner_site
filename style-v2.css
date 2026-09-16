@@ -23918,6 +23918,20 @@ body:not(.in-cabinet) .nyt-century-article > .nyt-ballot-list {
     min-width: 0;
     box-sizing: border-box;
   }
+  /* PARTNER_WATCH_CLICK2 — shell icons: shrink hitbox; only real buttons receive clicks */
+  #film-page-content .film-toolbar-icons-shell > .film-toolbar-icons,
+  #section-film .film-toolbar-icons-shell > .film-toolbar-icons,
+  main.film-page .film-toolbar-icons-shell > .film-toolbar-icons {
+    width: max-content !important;
+    max-width: 100% !important;
+    margin-inline: auto;
+    pointer-events: none;
+  }
+  #film-page-content .film-toolbar-icons-shell > .film-toolbar-icons > *,
+  #section-film .film-toolbar-icons-shell > .film-toolbar-icons > *,
+  main.film-page .film-toolbar-icons-shell > .film-toolbar-icons > * {
+    pointer-events: auto;
+  }
 
   #film-page-content .film-icon-btn,
   #section-film .film-icon-btn,
@@ -27558,11 +27572,15 @@ body.staff-standalone-page .staff-awards-loading {
   .film-toolbar-icons-shell > .film-toolbar-icons {
     position: relative;
     z-index: 2;
-    /* Do not stretch a transparent hitbox over «Смотреть на» logos on the left */
+    /* Empty flex gutters must not steal FLEX/2SUB clicks (see PARTNER_WATCH_CLICK2) */
     width: max-content;
     max-width: 100%;
     margin-inline: auto;
     justify-content: center;
+    pointer-events: none;
+  }
+  .film-toolbar-icons-shell > .film-toolbar-icons > * {
+    pointer-events: auto;
   }
   /* TICKET_CENTER_GUTTER1 — stream logos в том же gutter, по центру как «Билеты» */
   .film-page-toolbar[data-ticket-partners] .film-toolbar-partners-slot {
