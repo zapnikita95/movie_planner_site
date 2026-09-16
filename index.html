@@ -55,8 +55,8 @@
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
 
-<link rel="preload" href="/style-v2.css?v=20260916searchHover1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260916searchHover1">
+<link rel="preload" href="/style-v2.css?v=20260916searchEarly1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260916searchEarly1">
     <script>
       (function () {
         try {
@@ -82,8 +82,8 @@
           document.documentElement.classList.add('mp-landing-guest-boot');
           /* document.write = render-blocking (createElement+append does NOT — FOUC giant .hero-title) */
 
-          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916searchHover1" as="style">');
-          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916searchHover1">');
+          document.write('<link rel="preload" href="/landing-hero-b.css?v=20260916searchEarly1" as="style">');
+          document.write('<link rel="stylesheet" href="/landing-hero-b.css?v=20260916searchEarly1">');
         } catch (_) {}
       })();
     </script>
@@ -1108,11 +1108,33 @@
         </div>
       </div>
     
-<!-- MP_HEADER_SEARCH_ENTER_FALLBACK -->
+<!-- MP_HEADER_SEARCH_EARLY -->
     <script>
-    /* MP_HEADER_SEARCH_ENTER_FALLBACK — Enter → /search even if cabinet-app.js not loaded yet */
+    /* MP_HEADER_SEARCH_EARLY — dropdown + Enter→/search before cabinet-app.js binds.
+       Heavy / must not feel dead: focus/type always opens a panel; Enter always goes to /search. */
     (function () {
-      function go(q) {
+      var DEBOUNCE_MS = 220;
+      var timer = null;
+      var seq = 0;
+      var ctrl = null;
+
+      function bound() {
+        return !!(window.__mpHeaderSearchBound || window.__MP_CABINET_HEADER_SEARCH);
+      }
+
+      function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+
+      function apiBase() {
+        try {
+          if (window.MP_API_BASE) return String(window.MP_API_BASE).replace(/\/$/, '');
+          if (window.__MP_API_BASE) return String(window.__MP_API_BASE).replace(/\/$/, '');
+        } catch (_) {}
+        return '';
+      }
+
+      function goSearch(q) {
         q = String(q || '').trim();
         if (q.length < 2) return;
         try {
@@ -1122,27 +1144,173 @@
           }
         } catch (_) {}
         var url = '/search?q=' + encodeURIComponent(q);
-        if (location.pathname.replace(/\/$/, '') === '/search') {
+        if ((location.pathname || '').replace(/\/$/, '') === '/search') {
           try { history.replaceState({ view: 'search', q: q }, '', url); } catch (_) {}
           location.reload();
           return;
         }
         location.href = url;
       }
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
-        if (e.defaultPrevented) return;
+
+      function openUi() {
+        var dd = document.getElementById('header-search-dropdown');
+        var wrap = document.getElementById('header-search');
+        var icon = document.getElementById('header-search-icon-btn');
+        if (!dd) return null;
+        dd.classList.remove('hidden');
+        try { document.body.classList.add('header-search-dropdown-open'); } catch (_) {}
+        if (wrap) wrap.classList.remove('header-search--retracted');
+        if (icon) {
+          icon.setAttribute('aria-label', 'Закрыть поиск');
+          icon.classList.add('header-search-icon-btn--close');
+        }
+        return dd;
+      }
+
+      function paint(html) {
+        var dd = openUi();
+        if (!dd) return;
+        dd.innerHTML = html;
+      }
+
+      function loadingHtml(q) {
+        var hint = q && q.length >= 2
+          ? ('Ищем «' + esc(q) + '»… Enter — открыть выдачу')
+          : 'Подсказки загружаются… можно сразу вводить запрос';
+        return '<div class="hs-hub mp-search-early">'
+          + '<div class="mp-search-loading" role="status" aria-live="polite" aria-busy="true">'
+          + '<div class="mp-search-loading-rings" aria-hidden="true"><span></span><span></span></div>'
+          + '<p class="mp-search-loading-text">' + hint + '</p></div>'
+          + (q && q.length >= 2
+            ? '<button type="button" class="header-search-chip mp-search-early-go" data-mp-early-go="1">Открыть поиск «' + esc(q) + '»</button>'
+            : '')
+          + '</div>';
+      }
+
+      function resultsHtml(q, items, persons) {
+        items = items || [];
+        persons = persons || [];
+        var html = '<div class="hs-hub mp-search-early">';
+        if (!items.length && !persons.length) {
+          html += '<div class="header-search-recent-title">Ничего не нашлось</div>';
+        }
+        if (persons.length) {
+          html += '<div class="header-search-recent-title">Люди</div>';
+          persons.slice(0, 3).forEach(function (p) {
+            var id = String((p && (p.staff_id || p.person_id || p.id)) || '').replace(/[^\w\-]/g, '');
+            var name = esc((p && (p.name_ru || p.name || p.title)) || '—');
+            var href = id ? ('/s/' + encodeURIComponent(id)) : '#';
+            html += '<a class="header-search-result" href="' + href + '">' + name + '</a>';
+          });
+        }
+        if (items.length) {
+          html += '<div class="header-search-recent-title">Фильмы</div>';
+          items.slice(0, 6).forEach(function (it) {
+            var kp = String((it && it.kp_id) || '').replace(/\D/g, '');
+            var title = esc((it && it.title) || '—');
+            var year = (it && it.year) ? (' · ' + esc(String(it.year))) : '';
+            var href = kp ? ('/f/' + encodeURIComponent(kp)) : '#';
+            html += '<a class="header-search-result" href="' + href + '">' + title + year + '</a>';
+          });
+        }
+        html += '<button type="button" class="header-search-chip mp-search-early-go" data-mp-early-go="1">Все результаты по «' + esc(q) + '»</button>';
+        html += '</div>';
+        return html;
+      }
+
+      function fetchSuggest(q) {
+        q = String(q || '').trim();
+        if (q.length < 2) {
+          paint(loadingHtml(''));
+          return;
+        }
+        paint(loadingHtml(q));
+        var my = ++seq;
+        if (ctrl) { try { ctrl.abort(); } catch (_) {} }
+        ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var url = apiBase() + '/api/public/search?q=' + encodeURIComponent(q.slice(0, 60)) + '&limit=6&person_limit=3&type=any';
+        fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', signal: ctrl ? ctrl.signal : undefined })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (my !== seq || bound()) return;
+            var items = (data && (data.items || data.films)) || [];
+            var persons = (data && data.persons) || [];
+            paint(resultsHtml(q, items, persons));
+          })
+          .catch(function () {
+            if (my !== seq || bound()) return;
+            paint(loadingHtml(q));
+          });
+      }
+
+      function onInput() {
+        if (bound()) return;
         var input = document.getElementById('header-search-input');
-        if (!input || document.activeElement !== input) return;
-        // If cabinet already bound native handler, let it run (it will navigate).
-        // Fallback only when app mark missing after a tick — actually fire always as backup
-        // when app has not set the flag yet.
-        if (window.__mpHeaderSearchBound) return;
+        if (!input) return;
+        var clearBtn = document.getElementById('header-search-clear');
         var v = input.value.trim();
-        if (v.length < 2) return;
-        e.preventDefault();
-        go(v);
-      }, true);
+        if (clearBtn) clearBtn.classList.toggle('hidden', !v);
+        openUi();
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () {
+          if (bound()) return;
+          fetchSuggest(v);
+        }, DEBOUNCE_MS);
+      }
+
+      function onFocus() {
+        if (bound()) return;
+        var input = document.getElementById('header-search-input');
+        openUi();
+        paint(loadingHtml(input ? input.value.trim() : ''));
+        if (input && input.value.trim().length >= 2) fetchSuggest(input.value);
+      }
+
+      function bind() {
+        var input = document.getElementById('header-search-input');
+        var dd = document.getElementById('header-search-dropdown');
+        if (!input) return;
+        input.addEventListener('focus', onFocus);
+        input.addEventListener('input', onInput);
+        input.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+          var v = input.value.trim();
+          if (v.length < 2) return;
+          // Always open full search page — even if cabinet later bound mid-keypress.
+          e.preventDefault();
+          e.stopPropagation();
+          goSearch(v);
+        }, true);
+        if (dd) {
+          dd.addEventListener('click', function (e) {
+            var go = e.target && e.target.closest && e.target.closest('[data-mp-early-go]');
+            if (!go) return;
+            e.preventDefault();
+            goSearch(input.value.trim());
+          });
+        }
+        var icon = document.getElementById('header-search-icon-btn');
+        if (icon) {
+          icon.addEventListener('click', function () {
+            if (bound()) return;
+            var open = document.body.classList.contains('header-search-dropdown-open');
+            if (open) {
+              try {
+                dd && dd.classList.add('hidden');
+                document.body.classList.remove('header-search-dropdown-open');
+                icon.classList.remove('header-search-icon-btn--close');
+                icon.setAttribute('aria-label', 'Поиск');
+              } catch (_) {}
+            } else {
+              input.focus();
+              onFocus();
+            }
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+      else bind();
     })();
     </script>
 
@@ -3959,7 +4127,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260916searchHover1';
+        var V='20260916searchEarly1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
