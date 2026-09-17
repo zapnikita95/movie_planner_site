@@ -32194,6 +32194,8 @@ body.guest-cabinet-preview #section-unwatched:not(.hidden) #unwatched-list.cards
   width: 100%;
   max-width: 100%;
 }
+.guest-discover-hero h1,
+.guest-discover-hero h1.guest-discover-h1,
 .guest-discover-hero h3 {
   margin: 0 0 6px; font-family: Unbounded, sans-serif; font-weight: 800;
   font-size: clamp(1.12rem, 2.2vw, 1.45rem); letter-spacing: -0.02em;
