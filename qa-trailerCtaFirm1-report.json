@@ -1,0 +1,93 @@
+{
+  "ok": true,
+  "desktop": {
+    "ok": true,
+    "labels": [
+      "На весь экран",
+      "Страница фильма",
+      "Купить билеты"
+    ],
+    "rects": [
+      {
+        "text": "На весь экран",
+        "className": "btn btn-secondary btn-small premieres-stories-stage-expand",
+        "top": 434,
+        "left": 1028,
+        "height": 32,
+        "width": 113
+      },
+      {
+        "text": "Страница фильма",
+        "className": "btn btn-secondary btn-small premieres-stories-stage-filmpage",
+        "top": 434,
+        "left": 1147,
+        "height": 32,
+        "width": 136
+      },
+      {
+        "text": "Купить билеты",
+        "className": "btn btn-primary btn-small premieres-stories-stage-tickets",
+        "top": 434,
+        "left": 1289,
+        "height": 32,
+        "width": 112
+      }
+    ],
+    "sameRow": true,
+    "heightOk": true,
+    "wrap": "nowrap",
+    "firmOnly": true,
+    "orderOk": true,
+    "overflow": false,
+    "vw": 1440,
+    "actionsWidth": 373
+  },
+  "mobile": {
+    "ok": true,
+    "labels": [
+      "На весь экран",
+      "Страница фильма",
+      "Купить билеты"
+    ],
+    "rects": [
+      {
+        "text": "На весь экран",
+        "className": "btn btn-secondary btn-small premieres-stories-stage-expand",
+        "top": 408,
+        "left": 41,
+        "height": 30,
+        "width": 99
+      },
+      {
+        "text": "Страница фильма",
+        "className": "btn btn-secondary btn-small premieres-stories-stage-filmpage",
+        "top": 408,
+        "left": 146,
+        "height": 30,
+        "width": 121
+      },
+      {
+        "text": "Купить билеты",
+        "className": "btn btn-primary btn-small premieres-stories-stage-tickets",
+        "top": 408,
+        "left": 273,
+        "height": 30,
+        "width": 102
+      }
+    ],
+    "sameRow": true,
+    "heightOk": true,
+    "wrap": "nowrap",
+    "firmOnly": true,
+    "orderOk": true,
+    "overflow": false,
+    "vw": 390,
+    "actionsWidth": 334
+  },
+  "screenshots": {
+    "desktop": "/workspace/movie_planner_site/qa-trailerCtaFirm1-desktop.png",
+    "desktopZoom": "/workspace/movie_planner_site/qa-trailerCtaFirm1-desktop-cta-zoom.png",
+    "mobile": "/workspace/movie_planner_site/qa-trailerCtaFirm1-mobile390.png",
+    "mobileZoom": "/workspace/movie_planner_site/qa-trailerCtaFirm1-mobile390-cta-zoom.png"
+  }
+}
