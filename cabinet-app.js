@@ -13575,14 +13575,14 @@
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
-      + '<h3>База фильмов</h3>'
-      + '<p>Фильмы и сериалы, которые хочется смотреть — от премьер до старых любимчиков.</p>'
-      + '<p class="guest-discover-hero-soft">После регистрации, в этом разделе будет ваша база фильмов и сериалов</p>'
+      + '<h1 class="guest-discover-h1">Мой список просмотра</h1>'
+      + '<p>Личная база фильмов и сериалов: отмечайте просмотренное, держите очередь «хочу посмотреть», ставьте оценки и заметки. Синхронизация между сайтом, приложением и Telegram-ботом.</p>'
+      + '<p class="guest-discover-hero-soft">После входа здесь будет ваш список просмотра — непросмотренное, сериалы и оценки.</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
-      + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
-      + '<a class="btn btn-small btn-secondary" href="/buzz">В тренде</a>'
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
+      + '<a class="btn btn-small btn-secondary" href="https://t.me/movie_planner_bot?start=start" target="_blank" rel="noopener">Telegram-бот</a>'
+      + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
       + '</div></div>'
       + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
       + (nowGrid ? ('<div class="guest-discover-rail-title">Сейчас в кино</div>' + nowGrid) : '')
@@ -28178,7 +28178,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
-  /* MARKER:20260917onboardCloseX1 — Сейчас в кино rail + trailer ticket CTA */
+  /* MARKER:20260917watchlistGsc1 — Сейчас в кино rail + trailer ticket CTA */
   /* MARKER:20260915premDeskStage2b — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
