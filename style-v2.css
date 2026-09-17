@@ -33082,3 +33082,31 @@ html.mp-section-boot #section-club::before {
     max-height: 32px;
   }
 }
+
+/* MARKER:20260918gscIntents2 — durable GSC hubs lead copy */
+.premieres-page-h1,
+.whattowatch-page-h1 {
+  margin: 8px 16px 6px;
+  font-family: Unbounded, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  line-height: 1.2;
+  color: #f2f2f7;
+}
+.premieres-seo-lead,
+.whattowatch-seo-lead {
+  margin: 0 16px 14px;
+  max-width: 52rem;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(228, 228, 236, 0.88);
+}
+.premieres-seo-lead a,
+.whattowatch-seo-lead a {
+  color: #c4b5fd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cabinet-premieres .premieres-page-h1 + .premieres-seo-lead + .section-title.visually-hidden {
+  position: absolute;
+}

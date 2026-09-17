@@ -56,8 +56,8 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
 
 
-<link rel="preload" href="/style-v2.css?v=20260917watchlistGsc1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260917watchlistGsc1">
+<link rel="preload" href="/style-v2.css?v=20260918gscIntents2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260918gscIntents2">
     <script>
       (function () {
         try {
@@ -94,11 +94,11 @@
         var path = (location.pathname || '/').replace(/\/$/, '') || '/';
         var routeTitles = {
           '/watchlist': 'Мой список просмотра — трекер фильмов и сериалов · Movie Planner',
-          '/series': 'Трекер сериалов — прогресс по эпизодам · Movie Planner',
+          '/series': 'Трекер сериалов — отмечать серии и прогресс · Movie Planner',
           '/plans': 'Планы просмотра · Movie Planner',
-          '/premieres': 'Премьеры фильмов и сериалов · Movie Planner',
+          '/premieres': 'Премьеры фильмов и сериалов — календарь выхода · Movie Planner',
           '/buzz': 'В тренде · Movie Planner',
-          '/whattowatch': 'Что посмотреть · Movie Planner',
+          '/whattowatch': 'Что посмотреть — подбор фильмов и сериалов · Movie Planner',
           '/ratings': 'Оценки и история просмотров · Movie Planner',
           '/stats': 'Статистика просмотров · Movie Planner',
           '/groups': 'Общий список фильмов с друзьями · Movie Planner'
@@ -469,7 +469,7 @@
             return;
           }
           if (sectionId === 'home') { try { location.replace('/' + (location.search || '')); } catch (_) {} return; }
-          if (sectionId !== 'premieres' && sectionId !== 'buzz' && sectionId !== 'whattowatch' && sectionId !== 'plans' && sectionId !== 'club' && sectionId !== 'unwatched') return;
+          if (sectionId !== 'premieres' && sectionId !== 'buzz' && sectionId !== 'whattowatch' && sectionId !== 'plans' && sectionId !== 'club' && sectionId !== 'unwatched' && sectionId !== 'series') return;
           document.body.classList.remove('landing-guest-home');
           document.documentElement.classList.add('mp-guest-cabinet-boot');
           injectSectionBootCss(sectionId);
@@ -501,7 +501,7 @@
                 content.setAttribute('data-clubs-boot', '1');
                 content.innerHTML =
                   '<div class="plan-mode-toggle wtw-scope-toggle" aria-hidden="true">'
-                  + '<span class="plan-mode">Непросмотренные</span>'
+                  + '<span class="plan-mode">Хочу посмотреть</span>'
                   + '<span class="plan-mode">Со всего мира</span>'
                   + '<span class="plan-mode">Коллекции</span>'
                   + '<span class="plan-mode active">Киноклубы</span>'
@@ -2758,10 +2758,10 @@
                 <section id="section-unwatched" class="cabinet-section hidden">
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
-                    <p hidden id="watchlist-seo-blurb">Мой список просмотра в Movie Planner — отмечайте просмотренные фильмы и сериалы, ведите очередь «хочу посмотреть», оценки и заметки. <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Как вести список просмотренных</a> · <a href="/articles/gde-otmechat-prosmotrennye-filmy.html">Где отмечать просмотренные</a>.</p>
+                    <p hidden id="watchlist-seo-blurb">Мой список просмотра в Movie Planner — очередь «хочу посмотреть», отметка просмотренного, оценки и заметки. <a href="/articles/kak-vesti-watchlist.html">Как вести watchlist</a> · <a href="/articles/kak-vesti-spisok-prosmotrennyh-filmov.html">Список просмотренных</a> · <a href="/whattowatch">Что посмотреть</a>.</p>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
-                            <button type="button" class="base-tab active" data-base-section="unwatched">Непросмотренные</button>
+                            <button type="button" class="base-tab active" data-base-section="unwatched">Хочу посмотреть</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
@@ -2769,7 +2769,7 @@
                         <div class="base-section-tools-row base-section-tools-row--stack base-section-tools-row--search-only">
                             <div class="base-search-wrap">
                                 <span class="base-search-icon mp-icon" data-mp-icon="search" aria-hidden="true"></span>
-                                <input type="text" id="section-search-unwatched" class="section-search base-search-input" placeholder="Найти" data-section="unwatched" aria-label="Поиск в разделе Непросмотренные" autocomplete="off">
+                                <input type="text" id="section-search-unwatched" class="section-search base-search-input" placeholder="Найти" data-section="unwatched" aria-label="Поиск в разделе Хочу посмотреть" autocomplete="off">
                             </div>
                         </div>
                         <div class="base-compact-actions" aria-label="Инструменты базы">
@@ -2822,11 +2822,12 @@
                     <div id="unwatched-list" class="cards-list"></div>
                 </section>
                 <section id="section-series" class="cabinet-section hidden">
+                    <p hidden id="series-seo-blurb">Трекер сериалов Movie Planner — отмечайте серии, смотрите прогресс по сезонам и включайте уведомления о новых эпизодах. <a href="/articles/treker-serialov-telegram.html">Гайд по трекеру сериалов</a> · <a href="/watchlist">Мой список просмотра</a>.</p>
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
-                            <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
+                            <button type="button" class="base-tab" data-base-section="unwatched">Хочу посмотреть</button>
                             <button type="button" class="base-tab active" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab" data-base-section="ratings">Оценки</button>
                         </div>
@@ -2906,6 +2907,8 @@
                     </div>
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch" aria-label="Смотреть">
+                    <h1 class="guest-discover-h1 whattowatch-page-h1" id="whattowatch-page-h1">Что посмотреть</h1>
+                    <p class="whattowatch-seo-lead" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди <a href="/watchlist">«хочу посмотреть»</a>, по эмоции, пожеланиям или из каталога. Коллекции и киноклубы — рядом.</p>
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
@@ -2913,7 +2916,7 @@
                     <span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">База</span></h2>
                     <div class="base-section-toolbar">
                         <div class="base-tabs" role="tablist" aria-label="База">
-                            <button type="button" class="base-tab" data-base-section="unwatched">Непросмотренные</button>
+                            <button type="button" class="base-tab" data-base-section="unwatched">Хочу посмотреть</button>
                             <button type="button" class="base-tab" data-base-section="series">Сериалы</button>
                             <button type="button" class="base-tab active" data-base-section="ratings">Оценки</button>
                         </div>
@@ -2997,6 +3000,8 @@
                     </div>
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
+                    <h1 class="guest-discover-h1 premieres-page-h1">Премьеры фильмов и сериалов</h1>
+                    <p class="premieres-seo-lead">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Откройте карточку, чтобы увидеть дату выхода и добавить в <a href="/watchlist">список «хочу посмотреть»</a>.</p>
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
@@ -3066,7 +3071,7 @@
                             </select>
                         </label>
                     </div>
-                    <p class="cabinet-hint">Афиша кинопремьер России. Включайте напоминания, добавляйте релизы в базу и открывайте карточки фильмов прямо на сайте.</p>
+                    <p class="cabinet-hint">Афиша кинопремьер России по дате выхода. Включайте напоминания, добавляйте релизы в <a href="/watchlist">список просмотра</a> и открывайте карточки фильмов.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
@@ -3666,7 +3671,7 @@
             <div class="cabinet-nav">
                 <button type="button" class="cabinet-nav-btn active" data-section="onboard-main">Главная</button>
                 <button type="button" class="cabinet-nav-btn" data-section="onboard-plans"><span class="cabinet-nav-btn-emoji" data-mp-icon="plans"></span><span class="cabinet-nav-btn-text">Планы</span></button>
-                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">Непросмотренные</span></button>
+                <button type="button" class="cabinet-nav-btn" data-section="onboard-unwatched"><span class="cabinet-nav-btn-emoji" data-mp-icon="library"></span><span class="cabinet-nav-btn-text">Хочу посмотреть</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="onboard-series"><span class="cabinet-nav-btn-emoji" data-mp-icon="series"></span><span class="cabinet-nav-btn-text">Сериалы</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="onboard-ratings"><span class="cabinet-nav-btn-emoji" data-mp-icon="ratings"></span><span class="cabinet-nav-btn-text">Оценки</span></button>
                 <button type="button" class="cabinet-nav-btn" data-section="onboard-about"><span class="cabinet-nav-btn-emoji" data-mp-icon="about"></span><span class="cabinet-nav-btn-text">О проекте</span></button>
@@ -3726,7 +3731,7 @@
                 </section>
                 <section id="section-onboard-unwatched" class="cabinet-section hidden">
                     <h2 class="section-title visually-hidden">
-                    <span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">Непросмотренные</span></h2>
+                    <span class="section-title-emoji" data-mp-icon="library"></span><span class="section-title-text">Хочу посмотреть</span></h2>
                     <p class="onboard-empty-hint">Добавьте первый фильм в боте (поиск или ссылка с Кинопоиска/IMDb) или через расширение — он появится здесь.</p>
                     <a href="https://t.me/movie_planner_bot?start=start" class="btn btn-primary" target="_blank" rel="noopener">Открыть меню в Telegram</a>
                 </section>
@@ -4137,7 +4142,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260917watchlistGsc1';
+        var V='20260918gscIntents2';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
