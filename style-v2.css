@@ -30717,19 +30717,10 @@ a.collections-author-block:hover {
 
 /* Film page trailer + digital release (2026-09-14) */
 .poster-wrap.has-trailer { position: relative; }
-.poster-wrap .film-poster-trailer-play {
-  position: absolute; inset: 0; z-index: 3;
-  display: flex; align-items: center; justify-content: center;
-  border: 0; background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.08));
-  color: #fff; font-size: 42px; cursor: pointer; opacity: 0;
-  transition: opacity .18s ease;
-}
-.poster-wrap.has-trailer:hover .film-poster-trailer-play,
-.poster-wrap.has-trailer:focus-within .film-poster-trailer-play {
-  opacity: .92;
-}
-@media (hover: none) {
-  .poster-wrap.has-trailer .film-poster-trailer-play { opacity: .78; font-size: 36px; }
+/* Center Play removed — trailer opens from bottom «Смотреть трейлер» only. */
+.poster-wrap .film-poster-trailer-play,
+.poster-wrap .film-modal-poster-play {
+  display: none !important;
 }
 .film-page-trailer { margin-top: 14px; }
 .film-digital-chip {
