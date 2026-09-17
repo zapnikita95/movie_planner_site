@@ -305,10 +305,26 @@
       has_affiliate: partner && partner.has_affiliate ? '1' : '0',
       commission_model: (partner && partner.commission_model) || 'unknown',
     };
+    /* Clear goal name for Metrika UI + keep stream_click for older dashboards. */
+    metrikaGoal('streaming_affiliate_click', params);
     metrikaGoal('stream_click', params);
     if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub' || key === 'start') {
       metrikaGoal('stream_partner_' + key, params);
     }
+  }
+
+  function trackTicketPartnerClick(partner, kpId, surface) {
+    var key = (partner && partner.key) || 'other';
+    var params = {
+      partner: key,
+      platform: key,
+      kp_id: String(kpId || ''),
+      surface: surface || 'unknown',
+      placement: 'film_tickets',
+      has_affiliate: partner && partner.has_affiliate ? '1' : '0',
+      commission_model: (partner && partner.commission_model) || 'unknown',
+    };
+    metrikaGoal('ticket_cta_click', params);
   }
 
   function ticketPartnerLogoUrl(partner) {
@@ -340,7 +356,7 @@
   function bindTicketPartnerClick(a, partner, kpId, surface) {
     a.addEventListener('click', function (e) {
       e.preventDefault();
-      trackStreamPartnerClick(partner, kpId, surface);
+      trackTicketPartnerClick(partner, kpId, surface);
       var url = partner && partner.url;
       if (url) {
         try {
@@ -1638,6 +1654,8 @@
     mountCourseOffers: mountCourseOffers,
     mountTicketPartners: mountTicketPartners,
     metrikaGoal: metrikaGoal,
+    trackTicketPartnerClick: trackTicketPartnerClick,
+    trackStreamPartnerClick: trackStreamPartnerClick,
     fetchConfig: fetchConfig,
     collectTicketPartners: collectTicketPartners,
     extractTicketPartnersPayload: extractTicketPartnersPayload,
