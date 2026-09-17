@@ -867,7 +867,7 @@
     return cabinetReadonlyActive() && !getToken();
   }
 
-  const GUEST_CABINET_SECTIONS = { plans: true, premieres: true, buzz: true, whattowatch: true, club: true, unwatched: true };
+  const GUEST_CABINET_SECTIONS = { plans: true, premieres: true, buzz: true, whattowatch: true, club: true, unwatched: true, series: true };
 
   function isClubPath(pathname) {
     try {
@@ -1036,6 +1036,7 @@
     try {
       const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
       if (bootPath === '/plans' || bootPath === '/watchlist' || bootPath === '/premieres' || bootPath === '/buzz'
+        || bootPath === '/series'
         || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0
@@ -1123,10 +1124,12 @@
         sec = 'whattowatch';
       } else if (bootPath === '/watchlist' || sec === 'unwatched') {
         sec = 'unwatched';
+      } else if (bootPath === '/series' || sec === 'series') {
+        sec = 'series';
       }
-      if (sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch' && sec !== 'club' && sec !== 'unwatched') return false;
+      if (sec !== 'plans' && sec !== 'premieres' && sec !== 'buzz' && sec !== 'whattowatch' && sec !== 'club' && sec !== 'unwatched' && sec !== 'series') return false;
       const guestPathOk = bootPath === '/plans' || bootPath === '/watchlist' || bootPath === '/premieres' || bootPath === '/buzz'
-        || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
+        || bootPath === '/series' || bootPath === '/whattowatch' || bootPath.indexOf('/whattowatch/') === 0
         || bootPath === '/clubs'
         || bootPath.indexOf('/features/collections') === 0
         || isClubPath(bootPath);
@@ -10760,7 +10763,7 @@
 
   const HOME_BLOCK_META = {
     plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
-    unwatched: { title: 'Непросмотренные', section: 'unwatched', moreLabel: 'Весь список →' },
+    unwatched: { title: 'Хочу посмотреть', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
     recent_ratings: { title: 'Недавние оценки', section: 'stats', moreLabel: 'Статистика →' },
@@ -12636,7 +12639,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Непросмотренные', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
+    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Хочу посмотреть', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -13576,12 +13579,13 @@
       + '<div class="guest-discover-hero guest-discover-hero--compact">'
       + '<div class="guest-discover-hero-copy">'
       + '<h1 class="guest-discover-h1">Мой список просмотра</h1>'
-      + '<p>Личная база фильмов и сериалов: отмечайте просмотренное, держите очередь «хочу посмотреть», ставьте оценки и заметки. Синхронизация между сайтом, приложением и Telegram-ботом.</p>'
-      + '<p class="guest-discover-hero-soft">После входа здесь будет ваш список просмотра — непросмотренное, сериалы и оценки.</p>'
+      + '<p>Личная база фильмов и сериалов: очередь «хочу посмотреть», отметка просмотренного, оценки и заметки. Синхронизация между сайтом, приложением и Telegram-ботом.</p>'
+      + '<p class="guest-discover-hero-soft">После входа здесь будет ваш список: вкладка «Хочу посмотреть», сериалы и оценки.</p>'
       + '</div>'
       + '<div class="guest-discover-cta-row">'
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '<a class="btn btn-small btn-secondary" href="https://t.me/movie_planner_bot?start=start" target="_blank" rel="noopener">Telegram-бот</a>'
+      + '<a class="btn btn-small btn-secondary" href="/whattowatch">Что посмотреть</a>'
       + '<a class="btn btn-small btn-secondary" href="/premieres">Премьеры</a>'
       + '</div></div>'
       + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
@@ -13614,6 +13618,49 @@
     fetchGuestDiscoverRails().then(function (rails) {
       if (!isGuestCabinetPreview()) return;
       listEl.innerHTML = guestBaseDiscoveryHtml(rails);
+      bindGuestDiscoverClicksOnce(listEl);
+      bindGuestDiscoverHoverPreview(listEl);
+      try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+      try {
+        if (window.MpPublicPromo && typeof window.MpPublicPromo.mountAtEnd === 'function') {
+          window.MpPublicPromo.mountAtEnd(listEl.querySelector('.guest-discover') || listEl);
+        }
+      } catch (_promo) {}
+    });
+  }
+
+
+  function guestSeriesDiscoveryHtml(rails) {
+    const nowPlaying = (rails && rails.nowPlaying) || [];
+    const prem = (rails && rails.premieres) || [];
+    const series = (rails && rails.series) || [];
+    const nowGrid = renderGuestDiscoverGridHtml(nowPlaying.slice(0, 14), 'series-now-playing', { forcePremiere: true });
+    const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'series-premieres-grid', { forcePremiere: true });
+    const seriesGrid = renderGuestDiscoverGridHtml(series.slice(0, 18), 'series-upcoming', {});
+    return '<div class="guest-discover guest-discover--series" id="guest-series-discover">'
+      + '<div class="guest-discover-hero guest-discover-hero--compact">'
+      + '<div class="guest-discover-hero-copy">'
+      + '<h1 class="guest-discover-h1">Трекер сериалов</h1>'
+      + '<p>Отмечайте серии, смотрите прогресс по сезонам и включайте уведомления о новых эпизодах. Синхронизация между сайтом, приложением и Telegram-ботом.</p>'
+      + '<p class="guest-discover-hero-soft">После входа здесь будет ваш список сериалов с прогрессом S/E.</p>'
+      + '</div>'
+      + '<div class="guest-discover-cta-row">'
+      + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
+      + '<a class="btn btn-small btn-secondary" href="https://t.me/movie_planner_bot?start=start" target="_blank" rel="noopener">Telegram-бот</a>'
+      + '<a class="btn btn-small btn-secondary" href="/watchlist">Мой список просмотра</a>'
+      + '</div></div>'
+      + (seriesGrid ? ('<div class="guest-discover-rail-title">Скоро выходят</div>' + seriesGrid) : '')
+      + (nowGrid ? ('<div class="guest-discover-rail-title">Сейчас в кино</div>' + nowGrid) : '')
+      + (premGrid ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premGrid) : '')
+      + '</div>';
+  }
+
+  function mountGuestSeriesDiscovery(listEl) {
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Загружаем сериалы…</p></div>';
+    fetchGuestDiscoverRails().then(function (rails) {
+      if (!isGuestCabinetPreview()) return;
+      listEl.innerHTML = guestSeriesDiscoveryHtml(rails);
       bindGuestDiscoverClicksOnce(listEl);
       bindGuestDiscoverHoverPreview(listEl);
       try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
@@ -15336,6 +15383,10 @@
     const el = document.getElementById(ctx.elId);
     const sec = document.getElementById('section-series');
     if (sec && sec.classList.contains('hidden') && ctx.elId === 'series-list') return;
+    if (isGuestCabinetPreview() && ctx.elId === 'series-list') {
+      mountGuestSeriesDiscovery(el);
+      return;
+    }
     bindSeriesStatusFiltersOnce();
     if (!seriesItems.length && el) {
       el.innerHTML = '<p class="empty-hint">Загружаем…</p>';
@@ -22684,7 +22735,7 @@
     library: {
       key: 'library',
       icon: 'watchlist',
-      label: 'Непросмотренные',
+      label: 'Хочу посмотреть',
       scopeHint: 'Подбор из вашего списка',
       kicker: 'ИЗ БАЗЫ',
       modes: [
@@ -24029,6 +24080,11 @@
     if (isColl) paintWtwCollectionsPanel();
     else if (isClubs) paintWtwClubsPanel();
     else bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
+    try {
+      if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAtEnd === 'function') {
+        window.MpPublicPromo.mountAtEnd(root);
+      }
+    } catch (_promo) {}
   }
 
   window.__mpWtwCollectionsBack = function () {
@@ -28178,7 +28234,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
-  /* MARKER:20260917watchlistGsc1 — Сейчас в кино rail + trailer ticket CTA */
+  /* MARKER:20260918gscIntents2 — Сейчас в кино rail + trailer ticket CTA */
   /* MARKER:20260915premDeskStage2b — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
@@ -30939,7 +30995,7 @@
         return;
       }
       const guestDeep = sectionFromPath(window.location.pathname);
-      if (guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch' || guestDeep === 'club' || guestDeep === 'unwatched') {
+      if (guestDeep === 'plans' || guestDeep === 'premieres' || guestDeep === 'buzz' || guestDeep === 'whattowatch' || guestDeep === 'club' || guestDeep === 'unwatched' || guestDeep === 'series') {
         if (bootGuestCabinetPreview(guestDeep)) {
           handleAuthEntryDeepLinks();
           return;
