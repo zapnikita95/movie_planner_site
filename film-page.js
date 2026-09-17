@@ -985,6 +985,12 @@
 
   function filmPosterColWithTrailerHtml(posterWrapInnerHtml, opts) {
     var eager = !!(opts && opts.showTrailerPill);
+    if (!eager) {
+      try {
+        var bootEarly = readMpRouteBoot();
+        if (bootEarly && bootEarly.has_trailer === true) eager = true;
+      } catch (_be) {}
+    }
     return (
       '<div class="film-poster-col">' +
         posterWrapInnerHtml +
