@@ -29284,17 +29284,35 @@
         const href = String((primary && primary.url) || '').trim();
         premieresStoriesTicketAnchors().forEach((a) => {
           a.hidden = false;
+          const fireTicketGoal = function (surface) {
+            const params = {
+              partner: (primary && (primary.key || primary.partner)) || 'ticket',
+              kp_id: kid,
+              surface: surface || 'premieres_stories',
+              placement: 'premieres_stories_tickets',
+            };
+            try {
+              if (window.MpMonetization && typeof window.MpMonetization.metrikaGoal === 'function') {
+                window.MpMonetization.metrikaGoal('ticket_cta_click', params);
+              } else if (typeof window.ym === 'function') {
+                window.ym(110038199, 'reachGoal', 'ticket_cta_click', params);
+              }
+            } catch (_ym) {}
+          };
           if (href) {
             a.href = href;
             a.target = '_blank';
             a.rel = 'noopener sponsored nofollow';
-            a.onclick = null;
+            a.onclick = function () {
+              fireTicketGoal(a.hasAttribute('data-stage-tickets') ? 'premieres_stories_stage' : (a.hasAttribute('data-player-tickets') ? 'premieres_stories_player' : 'premieres_stories'));
+            };
           } else {
             a.href = filmHref;
             a.removeAttribute('target');
             a.rel = '';
             a.onclick = function (e) {
               e.preventDefault();
+              fireTicketGoal('premieres_stories_film_fallback');
               try {
                 if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kid);
                 else window.location.assign(filmHref);

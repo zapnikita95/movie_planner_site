@@ -249,6 +249,38 @@
     }
   }
 
+  function metrikaPlanetaClick(meta) {
+    meta = meta || {};
+    try {
+      if (global.MpMonetization && typeof global.MpMonetization.metrikaGoal === "function") {
+        global.MpMonetization.metrikaGoal("planeta_click", meta);
+        return;
+      }
+    } catch (_m) {}
+    try {
+      if (typeof global.ym === "function") {
+        global.ym(110038199, "reachGoal", "planeta_click", meta);
+      }
+    } catch (_y) {}
+  }
+
+  function bindLandingDonationsClicks(track) {
+    if (!track || track.getAttribute("data-mp-planeta-bound") === "1") return;
+    track.setAttribute("data-mp-planeta-bound", "1");
+    track.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest("a.landing-donation-card") : null;
+      if (!a) return;
+      var href = a.getAttribute("href") || "";
+      metrikaPlanetaClick({
+        surface: "landing_donations",
+        href: href.slice(0, 180),
+        host: (function () {
+          try { return new URL(href, global.location.origin).hostname; } catch (_u) { return ""; }
+        })(),
+      });
+    });
+  }
+
   function donationCard(it) {
     if (!it) return "";
     var pct = Math.max(0, Math.min(100, Number(it.progress_pct) || 0));
@@ -283,6 +315,7 @@
   function loadDonations() {
     var track = document.getElementById("landing-donations-track");
     if (!track) return Promise.resolve();
+    bindLandingDonationsClicks(track);
     var cached = readCache(donationsCacheKey);
     if (cached && cached.items && cached.items.length) {
       paintTrack(track, cached.items.map(donationCard).join(""));

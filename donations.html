@@ -488,10 +488,44 @@
     );
   }
 
+  function metrikaPlanetaClick(meta) {
+    meta = meta || {};
+    try {
+      if (window.MpMonetization && typeof window.MpMonetization.metrikaGoal === 'function') {
+        window.MpMonetization.metrikaGoal('planeta_click', meta);
+        return;
+      }
+    } catch (_m) {}
+    try {
+      if (typeof window.ym === 'function') {
+        window.ym(110038199, 'reachGoal', 'planeta_click', meta);
+      }
+    } catch (_y) {}
+  }
+
+  function bindDonationsOutboundClicks() {
+    var grid = document.getElementById('donations-grid');
+    if (!grid || grid.getAttribute('data-mp-planeta-bound') === '1') return;
+    grid.setAttribute('data-mp-planeta-bound', '1');
+    grid.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a.donation-tile') : null;
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      metrikaPlanetaClick({
+        surface: 'donations_page',
+        href: href.slice(0, 180),
+        host: (function () {
+          try { return new URL(href, location.origin).hostname; } catch (_u) { return ''; }
+        })(),
+      });
+    });
+  }
+
   function loadGrid() {
     var grid = document.getElementById('donations-grid');
     var empty = document.getElementById('donations-empty');
     if (!grid) return;
+    bindDonationsOutboundClicks();
     fetch(API + '/api/public/donations?limit=24', { credentials: 'omit' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
