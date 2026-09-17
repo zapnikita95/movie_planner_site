@@ -32997,3 +32997,53 @@ html.mp-section-boot #section-club::before {
     height:33px;
   }
 }
+
+
+/* ——— Сейчас в кино + trailer «в прокате» / Купить билеты ——— */
+.premieres-now-playing {
+  margin: 0 0 1.25rem;
+}
+.premieres-now-playing-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.65rem;
+}
+.premieres-now-playing-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.premieres-now-playing-rail {
+  margin: 0;
+}
+.premieres-story-badge--in-theaters {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.45rem;
+  z-index: 3;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: #fff;
+  background: linear-gradient(135deg, #e11d48, #f97316);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.premieres-stories-stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.premieres-stories-stage-tickets[hidden] {
+  display: none !important;
+}
+.premieres-stories-stage-tickets {
+  text-decoration: none;
+}

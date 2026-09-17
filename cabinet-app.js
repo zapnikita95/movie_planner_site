@@ -11966,9 +11966,7 @@
       .then((data) => {
         let items = (data && data.success && data.items) ? data.items.slice() : [];
         if (period === 'in_theaters') {
-          if (typeof filterPremieresHubNowPlaying === 'function') {
-            items = filterPremieresHubNowPlaying(items);
-          }
+          items = filterPremieresNowPlayingMsk(items);
         } else {
           items = filterPremieresUpcomingMsk(items, { keepUndated: true, guestFallback: true });
         }
@@ -13301,7 +13299,18 @@
 
   function fetchGuestDiscoverRails() {
     const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
-    const prem = fetch(base + '/api/public/premieres?period=soon&limit=24', { credentials: 'omit' })
+    const nowPlaying = fetch(base + '/api/public/premieres?period=in_theaters&limit=24', { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        const raw = (d && (d.items || d.films || d.premieres)) || [];
+        let items = (Array.isArray(raw) ? raw : []).map(guestDiscoverNormalizeItem).filter(Boolean);
+        if (typeof filterPremieresNowPlayingMsk === 'function') {
+          items = filterPremieresNowPlayingMsk(items);
+        }
+        return items;
+      })
+      .catch(function () { return []; });
+    const prem = fetch(base + '/api/public/premieres?period=upcoming&limit=24', { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         const raw = (d && (d.items || d.films || d.premieres)) || [];
@@ -13325,8 +13334,13 @@
       })
       .then(function (items) { return guestDiscoverEnrichMeta(items); })
       .catch(function () { return []; });
-    return Promise.all([prem, buzz, series]).then(function (triple) {
-      return { premieres: triple[0] || [], buzz: triple[1] || [], series: triple[2] || [] };
+    return Promise.all([nowPlaying, prem, buzz, series]).then(function (quad) {
+      return {
+        nowPlaying: quad[0] || [],
+        premieres: quad[1] || [],
+        buzz: quad[2] || [],
+        series: quad[3] || [],
+      };
     });
   }
 
@@ -13507,9 +13521,14 @@
        button system — `.btn.btn-primary` / `.btn.btn-secondary` (optionally `.btn-small`
        for compact). Pill 50px + CTA gradient. NEVER invent gray/plain leftovers,
        custom `.guest-*-btn` skins, or legacy non-pill buttons on this site. */
+    const nowPlaying = (rails && rails.nowPlaying) || [];
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
     const series = (rails && rails.series) || [];
+    const nowRail = renderGuestDiscoverRailHtml(nowPlaying.slice(0, 18), 'plans-now-playing');
+    const nowGrid = (!nowRail && nowPlaying.length)
+      ? renderGuestDiscoverGridHtml(nowPlaying.slice(0, 14), 'plans-now-playing-grid', { forcePremiere: true })
+      : '';
     const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'plans-premieres', { forcePremiere: true });
     const buzzRail = renderGuestDiscoverRailHtml(buzz.slice(0, 18), 'plans-buzz');
     const buzzGrid = (!buzzRail && buzz.length)
@@ -13533,6 +13552,8 @@
       + '<a class="btn btn-small btn-secondary" href="/whattowatch">Подобрать</a>'
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
+      + (nowRail ? ('<div class="guest-discover-rail-title">Сейчас в кино</div>' + nowRail) : '')
+      + (nowGrid ? ('<div class="guest-discover-rail-title">Сейчас в кино</div>' + nowGrid) : '')
       + (premGrid ? ('<div class="guest-discover-rail-title">Скоро в кино</div>' + premGrid) : '')
       + (seriesGrid ? ('<div class="guest-discover-rail-title">Сериалы</div>' + seriesGrid) : '')
       + (buzzRail ? ('<div class="guest-discover-rail-title">Сейчас обсуждают</div>' + buzzRail) : '')
@@ -13542,11 +13563,13 @@
   }
 
   function guestBaseDiscoveryHtml(rails) {
+    const nowPlaying = (rails && rails.nowPlaying) || [];
     const prem = (rails && rails.premieres) || [];
     const buzz = (rails && rails.buzz) || [];
     const series = (rails && rails.series) || [];
     /* Prefer dense poster GRID on База (full-bleed), rail only as fallback. */
     const buzzGrid = renderGuestDiscoverGridHtml(buzz.slice(0, 18), 'base-buzz', {});
+    const nowGrid = renderGuestDiscoverGridHtml(nowPlaying.slice(0, 14), 'base-now-playing', { forcePremiere: true });
     const premGrid = renderGuestDiscoverGridHtml(prem.slice(0, 18), 'base-premieres-grid', { forcePremiere: true });
     const seriesGrid = renderGuestDiscoverGridHtml(series.slice(0, 18), 'base-series', {});
     return '<div class="guest-discover guest-discover--base" id="guest-base-discover">'
@@ -13562,6 +13585,7 @@
       + '<button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Войти</button>'
       + '</div></div>'
       + (buzzGrid ? ('<div class="guest-discover-rail-title">В тренде</div>' + buzzGrid) : '')
+      + (nowGrid ? ('<div class="guest-discover-rail-title">Сейчас в кино</div>' + nowGrid) : '')
       + (seriesGrid ? ('<div class="guest-discover-rail-title">Сериалы</div>' + seriesGrid) : '')
       + (premGrid ? ('<div class="guest-discover-rail-title">Премьеры</div>' + premGrid) : '')
       + '</div>';
@@ -27708,20 +27732,41 @@
     const p = String(period || '');
     return p === 'upcoming' || p === 'in_theaters';
   }
-  /** «Сейчас в прокате» в поиске: только с датой, недавно вышли или скоро (МСК). */
-  function filterPremieresHubNowPlaying(items) {
+  /** «Сейчас в кино»: premiere in last 14d (MSK); 15–21d only if flagged hot/buzz. */
+  function filterPremieresNowPlayingMsk(items, opts) {
+    opts = opts || {};
     const today = premiereTodayYmdMsk();
     if (!today) return (items || []).slice();
     const tParts = today.split('-').map(Number);
     const tUtc = Date.UTC(tParts[0], tParts[1] - 1, tParts[2]);
+    const baseDays = typeof opts.baseDays === 'number' ? opts.baseDays : 14;
+    const hotDays = typeof opts.hotDays === 'number' ? opts.hotDays : 21;
+    const hotSet = opts.hotKpSet || null;
     return (items || []).filter((p) => {
-      const ymd = premiereExtractYmd(p.premiere_date);
+      const ymd = premiereExtractYmd(p && (p.premiere_date || p.release_date));
       if (!ymd) return false;
       const pParts = ymd.split('-').map(Number);
       const pUtc = Date.UTC(pParts[0], pParts[1] - 1, pParts[2]);
-      const delta = Math.round((pUtc - tUtc) / 86400000);
-      return delta >= -30 && delta <= 120;
+      const delta = Math.round((tUtc - pUtc) / 86400000); // days since premiere
+      if (delta < 0) return false;
+      if (delta <= baseDays) return true;
+      if (delta <= hotDays) {
+        if (p && (p.in_buzz || p.hot || p.is_hot || p.buzz_hot)) return true;
+        const kp = String((p && (p.kp_id || p.kpId)) || '').replace(/\D/g, '');
+        return !!(hotSet && kp && hotSet.has(kp));
+      }
+      return false;
     });
+  }
+
+  /** Search hub «Сейчас в прокате» — same theatrical window as «Сейчас в кино». */
+  function filterPremieresHubNowPlaying(items) {
+    return filterPremieresNowPlayingMsk(items);
+  }
+
+  function isPremiereItemNowPlaying(it) {
+    if (!it) return false;
+    return filterPremieresNowPlayingMsk([it]).length > 0;
   }
 
   /** Текущий / следующий месяц: только даты строго после сегодня (МСК), как «Скоро» в миниаппе. */
@@ -27818,7 +27863,9 @@
   function premieresBaseVisibleForGrid(raw) {
     const opts = !getToken() ? { guestFallback: true, keepUndated: true } : { keepUndated: false };
     let items = dedupePremieresByKp(raw || []);
-    if (_premieresPeriod === 'upcoming' || _premieresPeriod === 'in_theaters') {
+    if (_premieresPeriod === 'in_theaters') {
+      items = filterPremieresNowPlayingMsk(items);
+    } else if (_premieresPeriod === 'upcoming') {
       items = filterPremieresUpcomingMsk(items, opts);
     } else if (premierePeriodTargetYm(_premieresPeriod)) {
       // Guard against thin-list top-up leaking other months (e.g. Sep into «прошедший месяц»).
@@ -27883,12 +27930,13 @@
     }));
   }
 
-  /** Если site-лента тонкая — добираем публичный upcoming (только для upcoming/in_theaters). */
+  /** Если site-лента тонкая — добираем публичный feed (upcoming / in_theaters separately). */
   function topUpPremieresFromPublic() {
     if (!premieresPeriodAllowsPublicTopUp(_premieresPeriod)) {
       return Promise.resolve(0);
     }
-    return fetchPublicPremieresForDisplay('upcoming').then((prem) => {
+    const topUpPeriod = _premieresPeriod === 'in_theaters' ? 'in_theaters' : 'upcoming';
+    return fetchPublicPremieresForDisplay(topUpPeriod).then((prem) => {
       const extra = (prem && prem.items) ? prem.items : [];
       if (!extra.length) return 0;
       const before = premieresVisibleForGrid(_premieresData).length;
@@ -28049,6 +28097,12 @@
     const typeSel = document.getElementById('premieres-type');
     const sortSel = document.getElementById('premieres-sort');
     if (periodSel) {
+      try {
+        const qPeriod = new URLSearchParams(window.location.search || '').get('period');
+        if (qPeriod && periodSel.querySelector('option[value="' + qPeriod + '"]')) {
+          periodSel.value = qPeriod;
+        }
+      } catch (_qp) {}
       if (!periodSel.value) periodSel.value = 'upcoming';
       _premieresPeriod = periodSel.value || 'upcoming';
       if (!periodSel._bound) {
@@ -28124,6 +28178,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
+  /* MARKER:20260917nowInTheaters1 — Сейчас в кино rail + trailer ticket CTA */
   /* MARKER:20260915premDeskStage2b — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
@@ -28212,6 +28267,7 @@
         + '</div>'
         + '<div class="premieres-stories-stage-actions">'
         + '<a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>'
+        + '<a class="btn btn-primary btn-small premieres-stories-stage-tickets" data-stage-tickets="1" hidden href="#">Купить билеты</a>'
         + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
         + '</div>'
         + '</div>';
@@ -28267,6 +28323,21 @@
         film.textContent = 'Страница фильма';
         actions.appendChild(film);
       }
+      if (!shell.querySelector('[data-stage-tickets]')) {
+        const actions = shell.querySelector('.premieres-stories-stage-actions');
+        if (actions) {
+          const tickets = document.createElement('a');
+          tickets.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
+          tickets.setAttribute('data-stage-tickets', '1');
+          tickets.hidden = true;
+          tickets.href = '#';
+          tickets.textContent = 'Купить билеты';
+          const expand = actions.querySelector('.premieres-stories-stage-expand');
+          if (expand) actions.insertBefore(tickets, expand);
+          else actions.appendChild(tickets);
+        }
+      }
+
     })();
 
     if (!document.getElementById('premieres-stories-progress-rail')) {
@@ -28500,6 +28571,13 @@
       seen.add(kp);
       candidates.push(it);
     });
+    // Prioritize «Сейчас в кино» theatricals in the trailer carousel.
+    candidates.sort((a, b) => {
+      const aNow = isPremiereItemNowPlaying(a) ? 0 : 1;
+      const bNow = isPremiereItemNowPlaying(b) ? 0 : 1;
+      if (aNow !== bNow) return aNow - bNow;
+      return String(b.premiere_date || '').localeCompare(String(a.premiere_date || ''));
+    });
     const slice = candidates.slice(0, PREMIERES_STORIES_CANDIDATE_MAX);
     const token = ++_premieresStoriesRenderToken;
     if (!slice.length) {
@@ -28571,7 +28649,9 @@
         + '<div class="premieres-story-scrim" aria-hidden="true"></div>'
         + '<span class="premieres-story-playhint" aria-hidden="true">▶</span>'
         + '<span class="premieres-story-live" aria-hidden="true"></span>'
-        + (datePill ? ('<span class="premieres-story-date">' + escapeHtml(datePill) + '</span>') : '')
+        + (isPremiereItemNowPlaying(it)
+          ? '<span class="premieres-story-badge premieres-story-badge--in-theaters">в прокате</span>'
+          : (datePill ? ('<span class="premieres-story-date">' + escapeHtml(datePill) + '</span>') : ''))
         + '<a class="premieres-story-brand" href="/f/' + encodeURIComponent(kp) + '" data-story-film-link="1" aria-label="Карточка: ' + escapeHtml(title || 'фильм') + '">' + storyBrandHtml(title, logo) + '</a>'
         + '</div></button>';
     }).join('');
@@ -28704,6 +28784,7 @@
   function clearPremieresStoriesStage() {
     const stage = premieresStoriesStageEl();
     if (!stage) return;
+    try { hidePremieresStoriesTicketCta(); } catch (_t) {}
     stage.hidden = true;
     stage.setAttribute('aria-hidden', 'true');
     stage.classList.remove('is-playing', 'is-loading');
@@ -29109,6 +29190,105 @@
         if (url) applyBrand(url);
       }).catch(() => {});
     }
+    try { syncPremieresStoriesTicketCta(it, kp); } catch (_tix) {}
+  }
+
+  let _premieresStoriesTicketGen = 0;
+
+  function hidePremieresStoriesTicketCta() {
+    const stage = premieresStoriesStageEl();
+    if (!stage) return;
+    const a = stage.querySelector('[data-stage-tickets]');
+    if (!a) return;
+    a.hidden = true;
+    a.removeAttribute('href');
+    a.onclick = null;
+  }
+
+  /** «Купить билеты» only when live partners exist — never a dead button. */
+  function syncPremieresStoriesTicketCta(it, kp) {
+    const stage = premieresStoriesStageEl();
+    if (!stage) return;
+    let a = stage.querySelector('[data-stage-tickets]');
+    if (!a) {
+      const actions = stage.querySelector('.premieres-stories-stage-actions');
+      if (!actions) return;
+      a = document.createElement('a');
+      a.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
+      a.setAttribute('data-stage-tickets', '1');
+      a.hidden = true;
+      a.textContent = 'Купить билеты';
+      const expand = actions.querySelector('.premieres-stories-stage-expand');
+      if (expand) actions.insertBefore(a, expand);
+      else actions.appendChild(a);
+    }
+    const kid = String(kp || '').replace(/\D/g, '');
+    if (!kid) {
+      hidePremieresStoriesTicketCta();
+      return;
+    }
+    const gen = ++_premieresStoriesTicketGen;
+    a.hidden = true;
+    a.removeAttribute('href');
+    a.onclick = null;
+    const filmHref = '/f/' + encodeURIComponent(kid);
+    const apiBase = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '')
+      || (typeof API_BASE !== 'undefined' ? API_BASE : '')
+      || '';
+    const title = encodeURIComponent(String((it && (it.title || it.nameRu)) || '').trim());
+    let url = String(apiBase).replace(/\/$/, '') + '/api/public/film/' + encodeURIComponent(kid) + '/ticket-partners?city=moscow';
+    if (title) url += '&title=' + title;
+    fetch(url, { credentials: 'omit' })
+      .then((r) => (r && r.ok ? r.json() : null))
+      .then((data) => {
+        if (gen !== _premieresStoriesTicketGen) return;
+        if (String(_premieresStoriesActiveKp || '') !== kid) return;
+        let partners = [];
+        try {
+          if (window.MpMonetization && typeof window.MpMonetization.extractTicketPartnersPayload === 'function') {
+            partners = window.MpMonetization.collectTicketPartners(
+              window.MpMonetization.extractTicketPartnersPayload(data)
+            ) || [];
+          } else {
+            const raw = (data && (data.partners || data.ticket_partners)) || [];
+            partners = Array.isArray(raw) ? raw.filter((p) => p && p.url && p.has_affiliate !== false) : [];
+          }
+        } catch (_e) {
+          partners = [];
+        }
+        if (!partners.length) {
+          hidePremieresStoriesTicketCta();
+          return;
+        }
+        const primary = partners[0];
+        const href = String((primary && primary.url) || '').trim();
+        a.hidden = false;
+        if (href) {
+          a.href = href;
+          a.target = '_blank';
+          a.rel = 'noopener sponsored nofollow';
+          a.onclick = null;
+        } else {
+          a.href = filmHref;
+          a.removeAttribute('target');
+          a.rel = '';
+          a.onclick = function (e) {
+            e.preventDefault();
+            try {
+              if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kid);
+              else window.location.assign(filmHref);
+            } catch (_o) {
+              window.location.assign(filmHref);
+            }
+            // Scroll to tickets block on /f/ when same-page navigation lands.
+            try { sessionStorage.setItem('mp_scroll_tickets', kid); } catch (_s) {}
+          };
+        }
+      })
+      .catch(() => {
+        if (gen !== _premieresStoriesTicketGen) return;
+        hidePremieresStoriesTicketCta();
+      });
   }
 
   function clearPremieresStoriesHoverDwell() {
@@ -29706,6 +29886,64 @@
 
 
 
+
+  function renderPremieresNowPlayingRail(rawItems) {
+    const host = document.getElementById('premieres-now-playing');
+    let rail = document.getElementById('premieres-now-playing-rail');
+    if (!host || !rail) return;
+    if (_premieresPeriod === 'in_theaters') {
+      host.hidden = true;
+      rail.innerHTML = '';
+      return;
+    }
+    let items = filterPremieresNowPlayingMsk(dedupePremieresByKp(rawItems || []));
+    items = filterPremieresByType(items);
+    items = filterPremieresByGenre(items);
+    items = items.slice(0, 24);
+    if (!items.length) {
+      host.hidden = true;
+      rail.innerHTML = '';
+      return;
+    }
+    host.hidden = false;
+    if (typeof renderHomePosterRailHtml === 'function') {
+      const html = renderHomePosterRailHtml(items, { vitrine: false, forcePremiere: true });
+      if (html) {
+        const wrapped = html.replace(
+          'class="home-poster-rail',
+          'class="home-poster-rail premieres-now-playing-rail" id="premieres-now-playing-rail" role="list"'
+        );
+        rail.outerHTML = wrapped;
+        rail = document.getElementById('premieres-now-playing-rail');
+      } else {
+        rail.innerHTML = '';
+      }
+    } else {
+      rail.innerHTML = items.map((it) => {
+        const kp = String(it.kp_id || '').replace(/\D/g, '');
+        const title = escapeHtml(it.title || '—');
+        const year = it.year ? String(it.year) : '';
+        const genres = String(it.genres || '').trim();
+        const genreShort = genres.split(',').map((g) => g.trim()).filter(Boolean).slice(0, 2).join(', ');
+        const metaLine = [year, genreShort].filter(Boolean).join(' · ');
+        const poster = typeof premiereCoverPosterSrc === 'function'
+          ? premiereCoverPosterSrc(it)
+          : (it.poster || (typeof posterUrl === 'function' ? posterUrl(kp) : ''));
+        return '<a class="home-poster-tile" href="/f/' + encodeURIComponent(kp) + '" data-kp="' + escapeHtml(kp) + '">'
+          + '<div class="home-poster-media"><img src="' + escapeHtml(poster || '') + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>'
+          + '<div class="home-poster-title">' + title + '</div>'
+          + (metaLine ? ('<div class="home-poster-meta">' + escapeHtml(metaLine) + '</div>') : '')
+          + '</a>';
+      }).join('');
+    }
+    try {
+      const nextRail = document.getElementById('premieres-now-playing-rail') || rail;
+      if (nextRail && typeof bindFilmCardHoverPreviewGroup === 'function') {
+        bindFilmCardHoverPreviewGroup(nextRail, '.home-poster-tile, .home-pre-card', function (card) { return card; });
+      }
+    } catch (_h) {}
+  }
+
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
@@ -29727,6 +29965,7 @@
       return;
     }
     try { renderPremieresStories(items); } catch (_st2) {}
+    try { renderPremieresNowPlayingRail(_premieresData); } catch (_np) {}
     grid.innerHTML = items.map((it) => {
       const poster = premiereCoverPosterSrc(it);
       const year = it.year ? escapeHtml(String(it.year)) : '';

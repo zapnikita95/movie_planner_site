@@ -56,8 +56,8 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
 
 
-<link rel="preload" href="/style-v2.css?v=20260917onboardOpaque1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260917onboardOpaque1">
+<link rel="preload" href="/style-v2.css?v=20260917nowInTheaters1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260917nowInTheaters1">
     <script>
       (function () {
         try {
@@ -3000,6 +3000,12 @@
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
+                    <section id="premieres-now-playing" class="premieres-now-playing" hidden aria-label="Сейчас в кино">
+                        <div class="premieres-now-playing-head">
+                            <h3 class="premieres-now-playing-title">Сейчас в кино</h3>
+                        </div>
+                        <div id="premieres-now-playing-rail" class="home-poster-rail premieres-now-playing-rail" role="list"></div>
+                    </section>
                     <div id="premieres-stories" class="premieres-stories" hidden>
                         <div class="premieres-stories-head">
                             <span class="premieres-stories-kicker">Трейлеры</span>
@@ -3018,6 +3024,7 @@
                                 </div>
                                 <div class="premieres-stories-stage-actions">
                                     <a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>
+                                    <a class="btn btn-primary btn-small premieres-stories-stage-tickets" data-stage-tickets="1" hidden href="#">Купить билеты</a>
                                     <button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>
                                 </div>
                             </div>
@@ -3030,6 +3037,7 @@
                             <span class="base-filter-chip-k">Дата</span>
                             <select id="premieres-period" class="base-filter-chip-native premieres-period-select" aria-label="Дата">
                                 <option value="upcoming" selected>Все даты</option>
+                                <option value="in_theaters">Сейчас в кино</option>
                                 <option value="prev_month">Прошедший месяц</option>
                                 <option value="current_month">Этот месяц</option>
                                 <option value="next_month">Следующий месяц</option>
@@ -4129,7 +4137,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260917onboardOpaque1';
+        var V='20260917nowInTheaters1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
