@@ -997,13 +997,6 @@
     );
   }
 
-  function isDesktopFilmTrailerPill() {
-    try {
-      return window.matchMedia('(min-width: 861px)').matches;
-    } catch (_e) {
-      return true;
-    }
-  }
 
   function ensureFilmTrailerSlot(hero) {
     if (!hero) return null;
@@ -1050,33 +1043,11 @@
     var wrap = hero.querySelector('.poster-wrap');
     if (!wrap) return;
     var btn = wrap.querySelector('.film-poster-trailer-play, .film-modal-poster-play');
-    // Desktop: compact pill under poster only — no giant poster overlay.
-    if (isDesktopFilmTrailerPill()) {
-      if (btn) btn.remove();
-      wrap.classList.remove('has-trailer');
-      return;
-    }
-    if (!onPlay) {
-      if (btn) btn.remove();
-      wrap.classList.remove('has-trailer');
-      return;
-    }
-    wrap.classList.add('has-trailer');
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'film-poster-trailer-play film-modal-poster-play';
-      btn.setAttribute('aria-label', 'Смотреть трейлер');
-      btn.title = 'Трейлер';
-      btn.innerHTML = '<span aria-hidden="true">▶</span>';
-      wrap.appendChild(btn);
-    }
-    btn.hidden = false;
-    btn.onclick = function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      onPlay();
-    };
+    // Never show center Play on poster (mobile or desktop) — bottom
+    // «Смотреть трейлер» pill opens the trailer lightbox.
+    void onPlay;
+    if (btn) btn.remove();
+    wrap.classList.remove('has-trailer');
   }
 
   function mountFilmTrailerUI(film) {
@@ -1548,13 +1519,23 @@
     return MP_POSTER_PLACEHOLDER;
   }
 
+  /** Hero: upgrade KP iphone360 (~360px) → film_big (~667px / MDS x1000). */
+  function upgradeHeroPosterUrl(src) {
+    var s = String(src || '');
+    var m = s.match(/iphone360_(\d+)\.jpg/i);
+    if (m) {
+      return '/api/public/poster/kp/st/images/film_big/' + m[1] + '.jpg';
+    }
+    return s;
+  }
+
   function resolveFilmPosterDisplay(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
-    if (next) return next;
+    if (next) return upgradeHeroPosterUrl(next);
     var cur = currentFilmPosterFromDom();
-    if (cur) return cur;
+    if (cur) return upgradeHeroPosterUrl(cur);
     var fallback = defaultPosterForKp(kpId);
-    if (fallback) return fallback;
+    if (fallback) return upgradeHeroPosterUrl(fallback);
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -1582,7 +1563,7 @@
   }
 
   function applyFilmPosterEl(posterUrl, kpId) {
-    var next = cleanPosterUrl(posterUrl);
+    var next = upgradeHeroPosterUrl(cleanPosterUrl(posterUrl));
     var cur = currentFilmPosterFromDom();
     if (!next) {
       if (isGoodFilmPosterUrl(cur)) {
