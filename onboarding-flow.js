@@ -32,7 +32,7 @@
   const UNWATCHED_RANDOM_MIN = 10;
   const WANT_BOOTSTRAP_MIN = 10;
   const TAIL_PREFETCH_RATIO = 0.65;
-  const OB_FLOW_V = "20260917onboardOpaque1";
+  const OB_FLOW_V = "20260917onboardCloseX1";
 
   let _obKpImportPoll = null;
 
@@ -295,6 +295,11 @@
     return !!(val && val.__back === true);
   }
 
+  function isObClose(val) {
+    if (val == null) return true;
+    return !!(val && val.action === "close");
+  }
+
   function overlayClass(deps, base) {
     let c = base || "mp-dialog-overlay mp-onboard-dialog-overlay";
     if (deps && deps.isDesktop) c += " mp-onboard--desktop";
@@ -304,6 +309,8 @@
   function showCenterDialog(deps, html, opts) {
     const o = opts || {};
     const dismissX = o.dismissX !== false;
+    const dismissResult =
+      o.dismissVal !== undefined ? o.dismissVal : { action: "close" };
     return new Promise(function (resolve) {
       releaseStuckPagePointerState();
       const ov = document.createElement("div");
@@ -331,20 +338,32 @@
         try {
           document.removeEventListener("pointerdown", onDocPtrDown, true);
         } catch (_rm) {}
+        try {
+          document.removeEventListener("keydown", onKey, true);
+        } catch (_rk) {}
         deps.unlockViewportScroll();
         try {
           ov.remove();
         } catch (_e2) {}
         resolve(val);
       };
+      const onKey = function (ev) {
+        if (ev.key === "Escape" || ev.key === "Esc") {
+          if (!dismissX) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          close(dismissResult);
+        }
+      };
+      document.addEventListener("keydown", onKey, true);
       ov.addEventListener("click", function (ev) {
-        if (ev.target === ov && o.backdropClose) close(null);
+        if (ev.target === ov && o.backdropClose) close(dismissResult);
       });
       ov.querySelector("[data-ob-back]")?.addEventListener("click", function () {
         close({ __back: true });
       });
       ov.querySelector("[data-ob-x]")?.addEventListener("click", function () {
-        close(o.dismissVal != null ? o.dismissVal : null);
+        close(dismissResult);
       });
       document.body.appendChild(ov);
       ov.querySelectorAll("[data-ob-close]").forEach(function (btn) {
@@ -478,6 +497,18 @@
       sessionStorage.setItem("mp_force_friends_invite", "1");
     } catch (_e2) {}
     deps.navigate("/", { replace: true });
+  }
+
+  async function leaveOnboardingEarly(deps, onComplete) {
+    try {
+      if (deps && deps.markFirstOnboardingDoneAsync) {
+        await deps.markFirstOnboardingDoneAsync();
+      }
+    } catch (_e) {}
+    try {
+      if (deps && deps.markOnboardingSessionComplete) deps.markOnboardingSessionComplete();
+    } catch (_e2) {}
+    finishWithOnboardHandoff(deps, onComplete);
   }
 
   async function showImportInProgressTip(deps) {
@@ -694,12 +725,23 @@
       }
 
       function close() {
+        try {
+          document.removeEventListener("keydown", onIntroKey, true);
+        } catch (_rk) {}
         deps.unlockViewportScroll();
         try {
           ov.remove();
         } catch (_e) {}
         resolve(true);
       }
+
+      function onIntroKey(ev) {
+        if (ev.key === "Escape" || ev.key === "Esc") {
+          ev.preventDefault();
+          close();
+        }
+      }
+      document.addEventListener("keydown", onIntroKey, true);
 
       function goNext() {
         if (idx < INTRO_SLIDES.length - 1) {
@@ -1233,8 +1275,6 @@
       '<button type="button" class="mp-onboard-skip-btn" data-ob-ww-invite-skip style="margin-top:14px">Пропустить, добавлю позже</button>';
     return showCenterDialog(deps, html, {
       showBack: false,
-      dismissX: true,
-      dismissVal: { action: "skip" },
       bind: function (ov, close) {
         var shareText = "Приглашаю в «" + name + "» в Movie Planner";
         var tg = ov.querySelector("[data-ob-ww-tg]");
@@ -1311,7 +1351,7 @@
     }
 
     const choice = await stepWatchWithChoice(deps);
-    if (!choice) return { abort: true };
+    if (isObClose(choice)) return { abort: true };
     if (isObBack(choice)) return { back: true };
 
     const kind = choice.watchWith || "solo";
@@ -1327,11 +1367,7 @@
     }
 
     const explain = await stepWatchWithExplain(deps, kind);
-    if (!explain) {
-      st.watchWithDone = true;
-      writeState(st);
-      return { ok: true };
-    }
+    if (isObClose(explain)) return { abort: true };
     if (isObBack(explain)) {
       delete st.watchWith;
       writeState(st);
@@ -1351,12 +1387,7 @@
     }
 
     const created = await stepWatchWithCreateGroup(deps, kind);
-    if (!created) {
-      st.watchWithDone = true;
-      st.watchWithSkippedInvite = true;
-      writeState(st);
-      return { ok: true };
-    }
+    if (isObClose(created)) return { abort: true };
     if (isObBack(created)) {
       return runWatchWithStep(deps, st);
     }
@@ -1369,7 +1400,8 @@
 
     st.watchWithGroupId = created.chat_id;
     writeState(st);
-    await stepWatchWithInvite(deps, created);
+    const invited = await stepWatchWithInvite(deps, created);
+    if (isObClose(invited)) return { abort: true };
     st.watchWithDone = true;
     writeState(st);
     return { ok: true };
@@ -1420,11 +1452,21 @@
       function finish(val) {
         stopPoll();
         stopOnboardingImportBgPoll();
+        try {
+          document.removeEventListener("keydown", onImportKey, true);
+        } catch (_rk) {}
         deps.unlockViewportScroll();
         try {
           ov.remove();
         } catch (_e) {}
         resolve(val);
+      }
+
+      function onImportKey(ev) {
+        if (ev.key !== "Escape" && ev.key !== "Esc") return;
+        ev.preventDefault();
+        if (importStartedUi) finishImportAndContinue();
+        else finish({ action: "close" });
       }
 
       function finishImportAndContinue() {
@@ -1931,7 +1973,7 @@
           }
           if (ev.target.closest("[data-ob-x]")) {
             if (importStartedUi) finishImportAndContinue();
-            else finish({ skipped: true });
+            else finish({ action: "close" });
             return;
           }
           if (ev.target.closest("[data-ob-skip]")) {
@@ -2018,6 +2060,7 @@
         });
       }
 
+      document.addEventListener("keydown", onImportKey, true);
       deps.lockViewportScroll();
       document.body.appendChild(ov);
       paint();
@@ -2342,16 +2385,29 @@
         ov._obChromeBound = true;
         function onBack() {
           obClientLog(deps, "picker.nav.back", { mode: mode });
+          try {
+            document.removeEventListener("keydown", onPickKey, true);
+          } catch (_rk) {}
           deps.unlockViewportScroll();
           ov.remove();
           resolve({ __back: true });
         }
         function onClose() {
           obClientLog(deps, "picker.nav.close", { mode: mode });
+          try {
+            document.removeEventListener("keydown", onPickKey, true);
+          } catch (_rk) {}
           deps.unlockViewportScroll();
           ov.remove();
-          resolve(null);
+          resolve({ action: "close" });
         }
+        function onPickKey(ev) {
+          if (ev.key === "Escape" || ev.key === "Esc") {
+            ev.preventDefault();
+            onClose();
+          }
+        }
+        document.addEventListener("keydown", onPickKey, true);
         function wantTitleHtml() {
           return mediaType === "any"
             ? 'Какие фильмы и сериалы вы <em class="mp-onboard-em">хотели бы посмотреть</em>?'
@@ -2929,10 +2985,23 @@
         ov.remove();
         resolve({ __back: true });
       });
-      ov.querySelector("#ob-prem-x")?.addEventListener("click", function () {
+      function premClose() {
+        try {
+          document.removeEventListener("keydown", onPremKey, true);
+        } catch (_rk) {}
         deps.unlockViewportScroll();
         ov.remove();
-        resolve(null);
+        resolve({ action: "close" });
+      }
+      function onPremKey(ev) {
+        if (ev.key === "Escape" || ev.key === "Esc") {
+          ev.preventDefault();
+          premClose();
+        }
+      }
+      document.addEventListener("keydown", onPremKey, true);
+      ov.querySelector("#ob-prem-x")?.addEventListener("click", function () {
+        premClose();
       });
       ov.querySelector("#ob-prem-continue")?.addEventListener("click", async function () {
         const btn = ov.querySelector("#ob-prem-continue");
@@ -3020,10 +3089,8 @@
     });
     if (!st.interests && !st.interest) {
       const s1 = await stepInterest(deps);
-      if (!s1) {
-        await deps.markFirstOnboardingDoneAsync();
-        clearState();
-        if (onComplete) onComplete();
+      if (isObClose(s1)) {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       st.interests = s1.interests || [];
@@ -3105,9 +3172,8 @@
           if (onComplete) onComplete();
           return;
         }
-        if (!pick || pick.phase !== "done") {
-          dismissAllOnboardingLayers(deps);
-          if (onComplete) onComplete();
+        if (isObClose(pick) || !pick || pick.phase !== "done") {
+          await leaveOnboardingEarly(deps, onComplete);
           return;
         }
         st.wantItems = pick.wantItems || [];
@@ -3132,9 +3198,8 @@
           if (onComplete) onComplete();
           return;
         }
-        if (!pick || pick.phase !== "done") {
-          dismissAllOnboardingLayers(deps);
-          if (onComplete) onComplete();
+        if (isObClose(pick) || !pick || pick.phase !== "done") {
+          await leaveOnboardingEarly(deps, onComplete);
           return;
         }
         st.wantItems = pick.wantItems || [];
@@ -3154,9 +3219,8 @@
         writeState(st);
         return runFlow(deps, onComplete);
       }
-      if (!prem) {
-        dismissAllOnboardingLayers(deps);
-        if (onComplete) onComplete();
+      if (isObClose(prem)) {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       st.premiereWantItems = (prem && prem.premiereWantItems) || [];
@@ -3166,8 +3230,8 @@
 
     if (meta.hasMedia && st.dbSource == null) {
       const s2 = await stepDbSource(deps);
-      if (!s2) {
-        if (onComplete) onComplete();
+      if (isObClose(s2)) {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       if (isObBack(s2)) {
@@ -3189,7 +3253,7 @@
         return;
       }
       if (ww && ww.abort) {
-        if (onComplete) onComplete();
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       if (ww && ww.back) {
@@ -3223,6 +3287,10 @@
         st.dbOther = "";
         writeState(st);
         return runFlow(deps, onComplete);
+      }
+      if (isObClose(imp)) {
+        await leaveOnboardingEarly(deps, onComplete);
+        return;
       }
       st.importPrompted = true;
       if (imp && (imp.importStarted || imp.continued)) {
@@ -3275,9 +3343,8 @@
         tailSeedUrl: onboardingRatedTailUrl(seedMediaType),
         showBack: false,
       });
-      if (!pick || pick.phase !== "done") {
-        if (!pick) dismissAllOnboardingLayers(deps);
-        if (onComplete) onComplete();
+      if (isObClose(pick) || !pick || pick.phase !== "done") {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       st.wantItems = pick.wantItems || [];
@@ -3289,8 +3356,8 @@
     if (!importInProgress && needsManualPicker && !st.genresDone) {
       const genres = deps.WTW_GENRES_FALLBACK || [];
       const sg = await stepGenres(deps, genres);
-      if (!sg) {
-        if (onComplete) onComplete();
+      if (isObClose(sg)) {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       if (isObBack(sg)) {
@@ -3329,9 +3396,8 @@
         dismissAllOnboardingLayers(deps);
         return runFlow(deps, onComplete);
       }
-      if (!pick || pick.phase !== "done") {
-        dismissAllOnboardingLayers(deps);
-        if (onComplete) onComplete();
+      if (isObClose(pick) || !pick || pick.phase !== "done") {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       st.wantItems = pick.wantItems || [];
@@ -3347,9 +3413,8 @@
         if (onComplete) onComplete();
         return;
       }
-      if (!prem) {
-        dismissAllOnboardingLayers(deps);
-        if (onComplete) onComplete();
+      if (isObClose(prem)) {
+        await leaveOnboardingEarly(deps, onComplete);
         return;
       }
       st.premiereWantItems = (prem && prem.premiereWantItems) || [];
@@ -3378,7 +3443,11 @@
           writeState(st);
           return runFlow(deps, onComplete);
         }
-        if (onComplete) onComplete();
+        await leaveOnboardingEarly(deps, onComplete);
+        return;
+      }
+      if (isObClose(film)) {
+        await dismissPlanPickToHome(deps, st, meta, onComplete);
         return;
       }
       if (film) {
@@ -3479,7 +3548,7 @@
         });
       },
     });
-    if (!go) {
+    if (isObClose(go) || !go) {
       if (typeof onComplete === "function") onComplete(false);
       return;
     }
@@ -3609,7 +3678,7 @@
     }
     obClientLog(deps, "guest.flow.start", {});
     const s1 = await stepInterest(deps);
-    if (!s1) {
+    if (isObClose(s1)) {
       if (onComplete) onComplete();
       return;
     }
@@ -3645,7 +3714,11 @@
     }
 
     const s2 = await stepDbSource(deps);
-    if (!s2 || isObBack(s2)) {
+    if (isObClose(s2)) {
+      if (onComplete) onComplete();
+      return;
+    }
+    if (isObBack(s2)) {
       if (onComplete) onComplete();
       return;
     }
