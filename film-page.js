@@ -983,12 +983,15 @@
   }
 
 
-  function filmPosterColWithTrailerHtml(posterWrapInnerHtml) {
+  function filmPosterColWithTrailerHtml(posterWrapInnerHtml, opts) {
+    var eager = !!(opts && opts.showTrailerPill);
     return (
       '<div class="film-poster-col">' +
         posterWrapInnerHtml +
-        '<div id="film-trailer-slot" class="film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved" aria-hidden="true">' +
-          '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
+        '<div id="film-trailer-slot" class="film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved"' +
+          (eager ? '' : ' aria-hidden="true"') + '>' +
+          '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn"' +
+            (eager ? '' : ' hidden') + '>' +
             '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
             '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
           '</button>' +
@@ -1050,6 +1053,46 @@
     wrap.classList.remove('has-trailer');
   }
 
+  function revealFilmTrailerPill(slot, btn) {
+    if (btn) {
+      btn.hidden = false;
+      btn.removeAttribute('hidden');
+    }
+    if (slot) {
+      slot.removeAttribute('aria-hidden');
+      slot.classList.remove('film-page-trailer--reserved-empty');
+    }
+  }
+
+  function hideFilmTrailerPill(slot, btn) {
+    if (btn) {
+      btn.hidden = true;
+      btn.setAttribute('hidden', '');
+      btn.classList.remove('is-resolving');
+    }
+    if (slot) slot.setAttribute('aria-hidden', 'true');
+  }
+
+  function setFilmTrailerPillResolving(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('is-resolving', !!on);
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
+  function filmSaysHasTrailer(film) {
+    if (!film) return false;
+    if (film.has_trailer === true || film.hasTrailer === true) return true;
+    try {
+      var boot = readMpRouteBoot();
+      if (boot && boot.has_trailer === true) {
+        var bootKp = String(boot.kp_id || '').replace(/\D/g, '');
+        var filmKp = String(film.kp_id || film.kinopoiskId || '').replace(/\D/g, '');
+        if (!bootKp || !filmKp || bootKp === filmKp) return true;
+      }
+    } catch (_b) {}
+    return false;
+  }
+
   function mountFilmTrailerUI(film) {
     var kp = film && (film.kp_id || film.kinopoiskId);
     kp = String(kp || '').replace(/\D/g, '');
@@ -1064,20 +1107,25 @@
       var legacyModal = hero.querySelector('.film-modal-trailer:not(.film-page-trailer--under-poster)');
       if (legacyModal && legacyModal.id !== 'film-trailer-slot') legacyModal.remove();
     } catch (_leg) {}
-    if (film.digital_release) syncFilmDigitalReleaseChip(document, film);
-    fetchFilmTrailerByKp(kp, { title: film.title, year: film.year }).then(function (d) {
-      if (!d) return;
+    if (film && film.digital_release) syncFilmDigitalReleaseChip(document, film);
+
+    // #1: if we already know a trailer exists, show the pill NOW — do not wait for /trailer.
+    var eager = filmSaysHasTrailer(film);
+    if (eager) revealFilmTrailerPill(slot, btn);
+    setPosterTrailerPlayControl(hero, null);
+
+    var resolveGen = (mountFilmTrailerUI._gen || 0) + 1;
+    mountFilmTrailerUI._gen = resolveGen;
+    var playbackReady = null;
+    var resolvePromise = fetchFilmTrailerByKp(kp, { title: film && film.title, year: film && film.year }).then(function (d) {
+      if (mountFilmTrailerUI._gen !== resolveGen) return null;
+      if (!d) return null;
       if (d.digital_release) {
-        film.digital_release = film.digital_release || d.digital_release;
-        syncFilmDigitalReleaseChip(document, film);
+        if (film) film.digital_release = film.digital_release || d.digital_release;
+        syncFilmDigitalReleaseChip(document, film || { digital_release: d.digital_release });
       }
       var playback = pickTrailerPlayback(d, { autoplay: true, muted: false });
-      if (!playback) {
-        setPosterTrailerPlayControl(hero, null);
-        if (btn) btn.hidden = true;
-        return;
-      }
-      // Autoplay in lightbox: unmute YouTube for click-to-play; mute KP widget defaults ok.
+      if (!playback) return null;
       if (playback.kind === 'youtube') {
         playback = {
           kind: 'youtube',
@@ -1092,21 +1140,51 @@
           }) || playback.url,
         };
       }
-      function playNow() {
+      return playback;
+    });
+
+    function playWhenReady() {
+      if (playbackReady) {
+        openFilmTrailerLightbox(playbackReady);
+        return;
+      }
+      setFilmTrailerPillResolving(btn, true);
+      resolvePromise.then(function (playback) {
+        setFilmTrailerPillResolving(btn, false);
+        if (mountFilmTrailerUI._gen !== resolveGen) return;
+        if (!playback) {
+          hideFilmTrailerPill(slot, btn);
+          return;
+        }
+        playbackReady = playback;
         openFilmTrailerLightbox(playback);
+      }).catch(function () {
+        setFilmTrailerPillResolving(btn, false);
+      });
+    }
+
+    if (btn) {
+      btn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        playWhenReady();
+      };
+    }
+
+    resolvePromise.then(function (playback) {
+      if (mountFilmTrailerUI._gen !== resolveGen) return;
+      if (!playback) {
+        // Only hide when we never claimed a trailer (no flash for known hits).
+        if (!eager) hideFilmTrailerPill(slot, btn);
+        else hideFilmTrailerPill(slot, btn);
+        setPosterTrailerPlayControl(hero, null);
+        return;
       }
-      setPosterTrailerPlayControl(hero, playNow);
-      if (btn) {
-        btn.hidden = false;
-        if (slot) slot.removeAttribute('aria-hidden');
-        btn.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          playNow();
-        };
-      }
+      playbackReady = playback;
+      revealFilmTrailerPill(slot, btn);
+      setPosterTrailerPlayControl(hero, null);
       try {
-        if (/#trailer/i.test(String(location.hash || ''))) playNow();
+        if (/#trailer/i.test(String(location.hash || ''))) playWhenReady();
       } catch (_h) {}
     });
   }
@@ -4149,7 +4227,7 @@
     });
   }
 
-  function buildFilmMainInnerHtml(kpId, poster, mediaSensitive) {
+  function buildFilmMainInnerHtml(kpId, poster, mediaSensitive, opts) {
     var kpNumeric = numericKpFilmId(kpId);
     var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
@@ -4161,11 +4239,19 @@
         '</button>')
       : '';
     var sensitiveCls = mediaSensitive ? ' mp-media-sensitive' : '';
+    var showTrailerPill = !!(opts && opts.showTrailerPill);
+    if (!showTrailerPill) {
+      try {
+        var bootPill = readMpRouteBoot();
+        if (bootPill && bootPill.has_trailer === true) showTrailerPill = true;
+      } catch (_bp) {}
+    }
     return (
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
         filmPosterColWithTrailerHtml(
-          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>'
+          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>',
+          { showTrailerPill: showTrailerPill }
         ) +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
@@ -4308,6 +4394,18 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
+    // Eager trailer pill: mount as soon as boot paints (do not wait for /api/public/film).
+    try {
+      if (bootKp) {
+        mountFilmTrailerUI({
+          kp_id: bootKp,
+          title: boot.title,
+          year: boot.year,
+          has_trailer: boot.has_trailer === true,
+          digital_release: boot.digital_release || null,
+        });
+      }
+    } catch (_trBoot) {}
     // fest-/movie- keys contain years (…-2025); never treat those digits as kp_id → empty /facts wipe.
     if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest' && meta.mode !== 'mp') {
       try {

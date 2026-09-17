@@ -30858,6 +30858,17 @@ a.collections-author-block:hover {
   line-height: 1;
   opacity: 1;
 }
+.film-trailer-pill.is-resolving {
+  opacity: 0.72;
+  pointer-events: none;
+}
+.film-trailer-pill.is-resolving .film-trailer-pill-ico {
+  animation: mp-trailer-pill-spin 0.8s linear infinite;
+}
+@keyframes mp-trailer-pill-spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (min-width: 861px) {
   /* Keep pill under poster column, not stretching hero-content */
   .film-hero-with-tag > .film-page-trailer--under-poster,
