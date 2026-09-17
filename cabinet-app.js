@@ -4124,7 +4124,7 @@
       const existing = document.querySelector('script[src*="onboarding-flow.js"]');
       if (!existing) {
         const s = document.createElement('script');
-        s.src = '/onboarding-flow.js?v=20260917onboardOpaque1'; // keep in sync with index.html pin
+        s.src = '/onboarding-flow.js?v=20260917onboardCloseX1'; // keep in sync with index.html pin
         s.async = true;
         s.onload = function () { /* wait below */ };
         s.onerror = function () { resolve(false); };
@@ -28178,7 +28178,7 @@
 
 
   /* ——— Premieres stories trailer rail (desktop stage + mobile stories) ——— */
-  /* MARKER:20260917nowInTheaters1 — Сейчас в кино rail + trailer ticket CTA */
+  /* MARKER:20260917onboardCloseX1 — Сейчас в кино rail + trailer ticket CTA */
   /* MARKER:20260915premDeskStage2b — dwell hover, drag rail, FS watch-full, film page nav */
   const PREMIERES_STORIES_MAX = 16;
   const PREMIERES_STORIES_CANDIDATE_MAX = 40;
