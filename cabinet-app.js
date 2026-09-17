@@ -28266,9 +28266,9 @@
         + '<div class="premieres-stories-stage-meta" hidden></div>'
         + '</div>'
         + '<div class="premieres-stories-stage-actions">'
-        + '<a class="premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>'
+        + '<button type="button" class="btn btn-secondary btn-small premieres-stories-stage-expand" aria-label="Смотреть на весь экран">На весь экран</button>'
+        + '<a class="btn btn-secondary btn-small premieres-stories-stage-filmpage" data-stage-film-link="1" href="#">Страница фильма</a>'
         + '<a class="btn btn-primary btn-small premieres-stories-stage-tickets" data-stage-tickets="1" hidden href="#">Купить билеты</a>'
-        + '<button type="button" class="premieres-stories-stage-expand" aria-label="Смотреть на весь экран">▶ На весь экран</button>'
         + '</div>'
         + '</div>';
       const head = root.querySelector('.premieres-stories-head');
@@ -28276,7 +28276,7 @@
       else root.insertBefore(stage, root.firstChild);
     }
 
-    // Upgrade stage chrome if static HTML is older than DeskStage2
+    // Upgrade stage chrome: firm pills, order = expand → filmpage → tickets, nowrap row
     (function upgradePremieresStoriesStage() {
       const stage = document.getElementById('premieres-stories-stage');
       if (!stage) return;
@@ -28294,51 +28294,54 @@
           link.appendChild(slot);
         }
       }
-      if (!shell.querySelector('.premieres-stories-stage-actions')) {
-        const expand = shell.querySelector('.premieres-stories-stage-expand');
-        const actions = document.createElement('div');
+      let actions = shell.querySelector('.premieres-stories-stage-actions');
+      if (!actions) {
+        actions = document.createElement('div');
         actions.className = 'premieres-stories-stage-actions';
-        const film = document.createElement('a');
-        film.className = 'premieres-stories-stage-filmpage';
-        film.setAttribute('data-stage-film-link', '1');
-        film.href = '#';
-        film.textContent = 'Страница фильма';
-        actions.appendChild(film);
-        if (expand) actions.appendChild(expand);
-        else {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'premieres-stories-stage-expand';
-          btn.setAttribute('aria-label', 'Смотреть на весь экран');
-          btn.textContent = '▶ На весь экран';
-          actions.appendChild(btn);
-        }
         shell.appendChild(actions);
-      } else if (!shell.querySelector('.premieres-stories-stage-filmpage')) {
-        const actions = shell.querySelector('.premieres-stories-stage-actions');
-        const film = document.createElement('a');
-        film.className = 'premieres-stories-stage-filmpage';
+      }
+      let expand = actions.querySelector('.premieres-stories-stage-expand')
+        || shell.querySelector('.premieres-stories-stage-expand');
+      if (!expand) {
+        expand = document.createElement('button');
+        expand.type = 'button';
+        expand.setAttribute('aria-label', 'Смотреть на весь экран');
+        expand.textContent = 'На весь экран';
+      } else {
+        expand.textContent = 'На весь экран';
+      }
+      expand.type = 'button';
+      expand.className = 'btn btn-secondary btn-small premieres-stories-stage-expand';
+      expand.setAttribute('aria-label', 'Смотреть на весь экран');
+
+      let film = actions.querySelector('.premieres-stories-stage-filmpage');
+      if (!film) {
+        film = document.createElement('a');
         film.setAttribute('data-stage-film-link', '1');
         film.href = '#';
         film.textContent = 'Страница фильма';
-        actions.appendChild(film);
       }
-      if (!shell.querySelector('[data-stage-tickets]')) {
-        const actions = shell.querySelector('.premieres-stories-stage-actions');
-        if (actions) {
-          const tickets = document.createElement('a');
-          tickets.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
-          tickets.setAttribute('data-stage-tickets', '1');
-          tickets.hidden = true;
-          tickets.href = '#';
-          tickets.textContent = 'Купить билеты';
-          const expand = actions.querySelector('.premieres-stories-stage-expand');
-          if (expand) actions.insertBefore(tickets, expand);
-          else actions.appendChild(tickets);
-        }
-      }
+      film.className = 'btn btn-secondary btn-small premieres-stories-stage-filmpage';
+      film.setAttribute('data-stage-film-link', '1');
+      if (!film.textContent.trim()) film.textContent = 'Страница фильма';
 
+      let tickets = actions.querySelector('[data-stage-tickets]');
+      if (!tickets) {
+        tickets = document.createElement('a');
+        tickets.setAttribute('data-stage-tickets', '1');
+        tickets.hidden = true;
+        tickets.href = '#';
+        tickets.textContent = 'Купить билеты';
+      }
+      tickets.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
+      if (!tickets.textContent.trim()) tickets.textContent = 'Купить билеты';
+
+      // Exact L→R order Nikita: fullscreen, film page, tickets
+      actions.appendChild(expand);
+      actions.appendChild(film);
+      actions.appendChild(tickets);
     })();
+
 
     if (!document.getElementById('premieres-stories-progress-rail')) {
       const prog = document.createElement('div');
@@ -29195,42 +29198,59 @@
 
   let _premieresStoriesTicketGen = 0;
 
-  function hidePremieresStoriesTicketCta() {
+  function premieresStoriesTicketAnchors() {
+    const out = [];
     const stage = premieresStoriesStageEl();
-    if (!stage) return;
-    const a = stage.querySelector('[data-stage-tickets]');
-    if (!a) return;
-    a.hidden = true;
-    a.removeAttribute('href');
-    a.onclick = null;
+    if (stage) {
+      stage.querySelectorAll('[data-stage-tickets]').forEach((el) => out.push(el));
+    }
+    const lb = document.getElementById('premieres-stories-player');
+    if (lb) {
+      lb.querySelectorAll('[data-player-tickets]').forEach((el) => out.push(el));
+    }
+    return out;
+  }
+
+  function hidePremieresStoriesTicketCta() {
+    premieresStoriesTicketAnchors().forEach((a) => {
+      a.hidden = true;
+      a.removeAttribute('href');
+      a.onclick = null;
+    });
   }
 
   /** «Купить билеты» only when live partners exist — never a dead button. */
   function syncPremieresStoriesTicketCta(it, kp) {
     const stage = premieresStoriesStageEl();
-    if (!stage) return;
-    let a = stage.querySelector('[data-stage-tickets]');
-    if (!a) {
-      const actions = stage.querySelector('.premieres-stories-stage-actions');
-      if (!actions) return;
-      a = document.createElement('a');
-      a.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
-      a.setAttribute('data-stage-tickets', '1');
-      a.hidden = true;
-      a.textContent = 'Купить билеты';
-      const expand = actions.querySelector('.premieres-stories-stage-expand');
-      if (expand) actions.insertBefore(a, expand);
-      else actions.appendChild(a);
+    if (stage) {
+      let a = stage.querySelector('[data-stage-tickets]');
+      if (!a) {
+        const actions = stage.querySelector('.premieres-stories-stage-actions');
+        if (actions) {
+          a = document.createElement('a');
+          a.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
+          a.setAttribute('data-stage-tickets', '1');
+          a.hidden = true;
+          a.textContent = 'Купить билеты';
+          actions.appendChild(a);
+        }
+      } else {
+        a.className = 'btn btn-primary btn-small premieres-stories-stage-tickets';
+      }
     }
+    const anchors = premieresStoriesTicketAnchors();
+    if (!anchors.length) return;
     const kid = String(kp || '').replace(/\D/g, '');
     if (!kid) {
       hidePremieresStoriesTicketCta();
       return;
     }
     const gen = ++_premieresStoriesTicketGen;
-    a.hidden = true;
-    a.removeAttribute('href');
-    a.onclick = null;
+    anchors.forEach((a) => {
+      a.hidden = true;
+      a.removeAttribute('href');
+      a.onclick = null;
+    });
     const filmHref = '/f/' + encodeURIComponent(kid);
     const apiBase = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '')
       || (typeof API_BASE !== 'undefined' ? API_BASE : '')
@@ -29262,28 +29282,29 @@
         }
         const primary = partners[0];
         const href = String((primary && primary.url) || '').trim();
-        a.hidden = false;
-        if (href) {
-          a.href = href;
-          a.target = '_blank';
-          a.rel = 'noopener sponsored nofollow';
-          a.onclick = null;
-        } else {
-          a.href = filmHref;
-          a.removeAttribute('target');
-          a.rel = '';
-          a.onclick = function (e) {
-            e.preventDefault();
-            try {
-              if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kid);
-              else window.location.assign(filmHref);
-            } catch (_o) {
-              window.location.assign(filmHref);
-            }
-            // Scroll to tickets block on /f/ when same-page navigation lands.
-            try { sessionStorage.setItem('mp_scroll_tickets', kid); } catch (_s) {}
-          };
-        }
+        premieresStoriesTicketAnchors().forEach((a) => {
+          a.hidden = false;
+          if (href) {
+            a.href = href;
+            a.target = '_blank';
+            a.rel = 'noopener sponsored nofollow';
+            a.onclick = null;
+          } else {
+            a.href = filmHref;
+            a.removeAttribute('target');
+            a.rel = '';
+            a.onclick = function (e) {
+              e.preventDefault();
+              try {
+                if (typeof openFilmWithFallback === 'function') openFilmWithFallback(kid);
+                else window.location.assign(filmHref);
+              } catch (_o) {
+                window.location.assign(filmHref);
+              }
+              try { sessionStorage.setItem('mp_scroll_tickets', kid); } catch (_s) {}
+            };
+          }
+        });
       })
       .catch(() => {
         if (gen !== _premieresStoriesTicketGen) return;
@@ -29726,12 +29747,11 @@
       + '</a>'
       + (dateLabel ? ('<div class="premieres-stories-player-meta">' + escapeHtml(dateLabel) + '</div>') : '')
       + '</div>'
-      + (desktop
-        ? ('<div class="premieres-stories-player-actions">'
-          + '<a class="premieres-stories-player-filmpage" data-player-film-link="1" href="' + escapeHtml(filmHref) + '">Страница фильма</a>'
-          + '<button type="button" class="premieres-stories-player-fsbtn" data-player-fs="1" aria-label="На весь экран">⛶ На весь экран</button>'
-          + '</div>')
-        : '')
+      + '<div class="premieres-stories-player-actions">'
+      + '<button type="button" class="btn btn-secondary btn-small premieres-stories-player-fsbtn" data-player-fs="1" aria-label="На весь экран">На весь экран</button>'
+      + '<a class="btn btn-secondary btn-small premieres-stories-player-filmpage" data-player-film-link="1" href="' + escapeHtml(filmHref) + '">Страница фильма</a>'
+      + '<a class="btn btn-primary btn-small premieres-stories-player-tickets" data-player-tickets="1" hidden href="#">Купить билеты</a>'
+      + '</div>'
       + '</div>'
       + (desktop ? navNextHtml : '');
 
@@ -29760,6 +29780,8 @@
         try { closePremieresStoriesPlayer(); } catch (_c) {}
       });
     });
+
+    try { syncPremieresStoriesTicketCta(it, kp); } catch (_ptix) {}
     lb.querySelectorAll('[data-player-fs]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();

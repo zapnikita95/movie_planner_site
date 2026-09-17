@@ -31574,45 +31574,51 @@ body.premieres-stories-player-open {
   bottom: 14px;
   z-index: 5;
   display: flex;
-  flex-wrap: wrap-reverse;
-  gap: 8px;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  gap: 6px;
   align-items: center;
   justify-content: flex-end;
   pointer-events: auto;
-  max-width: min(420px, calc(100% - 36px));
+  max-width: calc(100% - 28px);
+  white-space: nowrap;
 }
-.premieres-stories-stage-expand,
-.premieres-stories-stage-filmpage {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  font-size: 13px;
+/* Firm pills only — tame landing 60px .btn-primary/.btn-secondary; ONE row, never wrap */
+.premieres-stories-stage-actions .btn {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: auto !important;
+  min-height: 32px;
+  max-height: 34px;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
   font-weight: 700;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
+  line-height: 1.15 !important;
+  border-radius: 50px !important;
   box-sizing: border-box;
-  line-height: 1;
+  box-shadow: none;
+  white-space: nowrap;
+  text-decoration: none;
+  transform: none !important;
 }
-.premieres-stories-stage-expand:hover,
-.premieres-stories-stage-filmpage:hover {
-  background: rgba(0, 0, 0, 0.72);
-  border-color: rgba(255, 255, 255, 0.35);
+.premieres-stories-stage-actions .btn.btn-secondary {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
 }
-.premieres-stories-stage-filmpage {
-  border-color: rgba(255, 138, 184, 0.35);
-  background: rgba(255, 138, 184, 0.16);
+.premieres-stories-stage-actions .btn.btn-primary {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(255, 45, 123, 0.22);
 }
-.premieres-stories-stage-filmpage:hover {
-  background: rgba(255, 138, 184, 0.28);
-  border-color: rgba(255, 138, 184, 0.55);
+.premieres-stories-stage-actions .btn.btn-primary:hover,
+.premieres-stories-stage-actions .btn.btn-secondary:hover {
+  transform: none !important;
 }
 .premieres-stories-stage .premieres-stories-progress {
   position: absolute;
@@ -31867,32 +31873,8 @@ body.premieres-stories-player-open {
     text-underline-offset: 3px;
   }
   .premieres-stories-player--landscape .premieres-stories-player-actions {
-    position: absolute;
     right: 22px;
     bottom: 22px;
-    z-index: 6;
-    display: flex;
-    gap: 8px;
-    pointer-events: auto;
-  }
-  .premieres-stories-player--landscape .premieres-stories-player-filmpage {
-    height: 40px;
-    padding: 0 16px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 138, 184, 0.4);
-    background: rgba(255, 138, 184, 0.18);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .premieres-stories-player--landscape .premieres-stories-player-filmpage:hover {
-    background: rgba(255, 138, 184, 0.3);
-    border-color: rgba(255, 138, 184, 0.6);
   }
   /* Keep cinema stage clear of side chips */
   .premieres-stories-player--landscape .premieres-stories-player-stage {
@@ -32112,26 +32094,7 @@ main.film-page .hero-content > h1.film-title-slot {
   accent-color: #ff8ab8;
   cursor: pointer;
 }
-.premieres-stories-player-fsbtn {
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(0,0,0,0.45);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.premieres-stories-player-fsbtn:hover {
-  background: rgba(0,0,0,0.7);
-  border-color: rgba(255,255,255,0.4);
-}
+/* player-fsbtn uses .btn.btn-secondary.btn-small — no custom glass skin */
 .premieres-stories-player-stage:fullscreen,
 .premieres-stories-player-stage:-webkit-full-screen {
   width: 100vw !important;
@@ -33046,15 +33009,72 @@ html.mp-section-boot #section-club::before {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
-.premieres-stories-stage-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-.premieres-stories-stage-tickets[hidden] {
+.premieres-stories-stage-tickets[hidden],
+.premieres-stories-player-tickets[hidden] {
   display: none !important;
 }
-.premieres-stories-stage-tickets {
+.premieres-stories-stage-tickets,
+.premieres-stories-player-tickets {
   text-decoration: none;
+}
+/* Player overlay CTAs — same firm pills, same single-row order */
+.premieres-stories-player-actions {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+  max-width: calc(100% - 28px);
+  white-space: nowrap;
+}
+.premieres-stories-player-actions .btn {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: auto !important;
+  min-height: 32px;
+  max-height: 34px;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  line-height: 1.15 !important;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  box-shadow: none;
+  white-space: nowrap;
+  text-decoration: none;
+  transform: none !important;
+}
+.premieres-stories-player-actions .btn.btn-secondary {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+}
+.premieres-stories-player-actions .btn.btn-primary {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(255, 45, 123, 0.22);
+}
+.premieres-stories-player-actions .btn.btn-primary:hover,
+.premieres-stories-player-actions .btn.btn-secondary:hover {
+  transform: none !important;
+}
+@media (max-width: 420px) {
+  .premieres-stories-stage-actions .btn,
+  .premieres-stories-player-actions .btn {
+    padding: 5px 9px !important;
+    font-size: 11px !important;
+    min-height: 30px;
+    max-height: 32px;
+  }
 }
