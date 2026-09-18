@@ -13614,6 +13614,37 @@
 
   function mountGuestBaseDiscovery(listEl) {
     if (!listEl) return;
+    let localItems = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('mp_guest_library_v1') || '[]');
+      localItems = Array.isArray(parsed) ? parsed.filter((item) => item && item.key) : [];
+    } catch (_) {}
+    if (localItems.length) {
+      const cards = localItems.map((item) => {
+        const href = '/f/' + encodeURIComponent(String(item.key));
+        const poster = cleanPosterUrl(item.poster) || posterUrl(item.kp_id);
+        const status = item.watched
+          ? 'Просмотрено'
+          : (Number(item.rating) ? ('Оценка: ' + Number(item.rating) + '/10') : 'В списке просмотра');
+        return '<article class="guest-discover-card">'
+          + '<a class="guest-discover-card-link" href="' + escapeHtml(href) + '">'
+          + '<div class="guest-discover-card-poster premiere-poster-media"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></div>'
+          + '<div class="guest-discover-card-meta">'
+          + '<div class="guest-discover-card-title">' + escapeHtml(item.title || 'Фильм') + '</div>'
+          + '<div class="guest-discover-card-year">' + escapeHtml([item.year || '', status].filter(Boolean).join(' · ')) + '</div>'
+          + '</div></a></article>';
+      }).join('');
+      listEl.innerHTML = '<div class="guest-discover guest-discover--base">'
+        + '<div class="guest-discover-hero guest-discover-hero--compact">'
+        + '<div class="guest-discover-hero-copy"><h1 class="guest-discover-h1">Моя база</h1>'
+        + '<p>Фильмы сохранены в этом браузере.</p></div>'
+        + '<div class="guest-discover-cta-row"><button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Сохранить навсегда</button></div>'
+        + '</div><div class="guest-discover-rail-title">Мои фильмы</div>'
+        + '<div class="guest-discover-grid" role="list">' + cards + '</div></div>';
+      bindGuestDiscoverClicksOnce(listEl);
+      try { if (window.MpIcons && MpIcons.enhance) MpIcons.enhance(listEl); } catch (_) {}
+      return;
+    }
     listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Загружаем афишу…</p></div>';
     fetchGuestDiscoverRails().then(function (rails) {
       if (!isGuestCabinetPreview()) return;

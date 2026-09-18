@@ -4641,6 +4641,7 @@
       }
 
       var hint = document.getElementById('hint');
+      var publicFilmSnapshot = null;
 
       function setPageFavicon(imgUrl) {
         var url = String(imgUrl || '').trim();
@@ -4804,6 +4805,121 @@
       }
       function rememberAction(action) {
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + pathKey); } catch (_e) {}
+      }
+      var GUEST_LIBRARY_KEY = 'mp_guest_library_v1';
+      var GUEST_ACTION_COUNT_KEY = 'mp_guest_action_count_v1';
+      var GUEST_NUDGE_KEY = 'mp_guest_signup_nudge_v1';
+      var guestMigrationPending = false;
+      function readGuestLibrary() {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(GUEST_LIBRARY_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(function (item) { return item && item.key; }) : [];
+        } catch (_e) { return []; }
+      }
+      function writeGuestLibrary(items) {
+        try { localStorage.setItem(GUEST_LIBRARY_KEY, JSON.stringify((items || []).slice(0, 200))); } catch (_e) {}
+      }
+      function currentGuestFilm(patch) {
+        var f = publicFilmSnapshot || {};
+        var boot = readMpRouteBoot() || {};
+        return Object.assign({
+          key: pathKey,
+          kp_id: numericKpFilmId(kpId) ? Number(kpId) : null,
+          catalog_id: catalogId || null,
+          title: String(f.title || boot.title || document.getElementById('film-title') && document.getElementById('film-title').textContent || 'Фильм').trim(),
+          year: Number(f.year || boot.year || 0) || null,
+          poster: String(f.poster_url || boot.poster_url || '').trim(),
+          genres: String(f.genres || '').trim(),
+          is_series: !!f.is_series,
+          in_watchlist: true,
+          watched: false,
+          rating: 0,
+        }, patch || {});
+      }
+      function syncGuestToolbar(item) {
+        item = item || readGuestLibrary().find(function (row) { return row.key === pathKey; });
+        var addBtn = document.getElementById('guest-watchlist-cta') || document.getElementById('add-btn');
+        if (addBtn && item && item.in_watchlist) {
+          addBtn.classList.add('is-active');
+          addBtn.setAttribute('aria-label', 'В списке просмотра');
+          var label = addBtn.querySelector('.glass-cta-label, .film-icon-label');
+          if (label) label.textContent = 'В списке';
+        }
+        var watchedBtn = document.getElementById('guest-watched-btn');
+        if (watchedBtn) watchedBtn.classList.toggle('is-active', !!(item && item.watched));
+        var rating = Number(item && item.rating) || 0;
+        var rateBtn = document.getElementById('rate-toggle-btn');
+        if (rateBtn && rating) {
+          rateBtn.classList.add('film-icon-btn--rated');
+          var ico = rateBtn.querySelector('.film-icon-ico');
+          if (ico) ico.textContent = String(rating);
+        }
+        document.querySelectorAll('#rate-grid [data-rate]').forEach(function (btn) {
+          btn.classList.toggle('is-selected', Number(btn.getAttribute('data-rate')) === rating);
+        });
+      }
+      function maybeNudgeGuestSignup() {
+        var count = 0;
+        try {
+          count = Number(localStorage.getItem(GUEST_ACTION_COUNT_KEY) || 0) + 1;
+          localStorage.setItem(GUEST_ACTION_COUNT_KEY, String(count));
+          if (count < 2 || localStorage.getItem(GUEST_NUDGE_KEY) === '1') return;
+          localStorage.setItem(GUEST_NUDGE_KEY, '1');
+        } catch (_e) { return; }
+        filmPageConfirmDialog(
+          'Сохранить базу?',
+          'Сейчас она хранится только в этом браузере. Войдите, чтобы не потерять фильмы и открыть совместные списки.',
+          { confirmLabel: 'Зарегистрироваться', cancelLabel: 'Продолжить без регистрации', equalButtons: true, showClose: true }
+        ).then(function (ok) { if (ok) loginNow('guest_migrate'); });
+      }
+      function saveGuestFilm(patch, message) {
+        var items = readGuestLibrary();
+        var idx = items.findIndex(function (row) { return row.key === pathKey; });
+        var previous = idx >= 0 ? items[idx] : {};
+        var item = Object.assign(currentGuestFilm(), previous, patch || {}, { updated_at: new Date().toISOString() });
+        if (!item.added_at) item.added_at = item.updated_at;
+        if (idx >= 0) items[idx] = item; else items.unshift(item);
+        writeGuestLibrary(items);
+        syncGuestToolbar(item);
+        showPublicToast(message || 'Сохранено в этом браузере');
+        try { window.dispatchEvent(new CustomEvent('mp:guest-library-updated')); } catch (_e) {}
+        maybeNudgeGuestSignup();
+        return item;
+      }
+      function migrateGuestLibrary() {
+        if (!token() || guestMigrationPending) return Promise.resolve(false);
+        var items = readGuestLibrary().filter(function (item) { return Number(item.kp_id) > 0; }).slice(0, 50);
+        if (!items.length) return Promise.resolve(false);
+        guestMigrationPending = true;
+        var migrated = {};
+        var chain = Promise.resolve();
+        items.forEach(function (item) {
+          chain = chain.then(function () {
+            return fetch(apiBase + '/api/site/add-film', {
+              method: 'POST', headers: authHeaders(), body: JSON.stringify({ kp_id: Number(item.kp_id) })
+            }).then(function (r) { if (!r.ok) throw new Error('add_' + r.status); return r.json(); })
+              .then(function (added) {
+                if (!added || !added.success || !added.film_id) throw new Error('add_failed');
+                var updates = [];
+                if (item.watched) updates.push(fetch(apiBase + '/api/site/film/' + added.film_id + '/watched', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ watched: true })
+                }));
+                if (Number(item.rating) >= 1) updates.push(fetch(apiBase + '/api/site/film/' + added.film_id + '/rating', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ rating: Number(item.rating) })
+                }));
+                return Promise.all(updates).then(function (responses) {
+                  if (responses.some(function (r) { return !r.ok; })) throw new Error('update_failed');
+                  migrated[item.key] = true;
+                });
+              }).catch(function () {});
+          });
+        });
+        return chain.then(function () {
+          var remaining = readGuestLibrary().filter(function (item) { return !migrated[item.key]; });
+          writeGuestLibrary(remaining);
+          if (Object.keys(migrated).length) showPublicToast('Фильмы перенесены в вашу базу');
+          return !!Object.keys(migrated).length;
+        }).finally(function () { guestMigrationPending = false; });
       }
       function apiGet(path) {
         return fetch(apiBase + path, { method: 'GET', mode: 'cors' }).then(function (r) {
@@ -5312,6 +5428,7 @@
             return;
           }
           var f = data.film;
+          publicFilmSnapshot = f;
           publicFilmCountry = f.country || '';
           if (data.cast && (data.cast.director || (data.cast.actors && data.cast.actors.length))) {
             applyPublicCastPayload(data.cast);
@@ -5429,6 +5546,7 @@
             }
           }
           if (hint) hint.textContent = '';
+          if (!token()) syncGuestToolbar();
           try {
             if (!token() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
               var promoRoot = document.getElementById('film-page-content')
@@ -5462,7 +5580,7 @@
         window.location.href = '/f/' + encodeURIComponent(pathKey);
       }
       function addCurrentFilm() {
-        if (!token()) { rememberAction('add'); loginNow('add'); return; }
+        if (!token()) { saveGuestFilm({ in_watchlist: true }, 'Добавлено в список в этом браузере'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d) return;
@@ -5476,7 +5594,7 @@
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
       function markWatchedCurrentFilm() {
-        if (!token()) { rememberAction('watched'); loginNow('watched'); return; }
+        if (!token()) { saveGuestFilm({ in_watchlist: true, watched: true }, 'Отмечено просмотренным в этом браузере'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
@@ -5507,7 +5625,12 @@
         startPlanFlow('home');
       }
       function setCurrentRating(v, anchor) {
-        if (!token()) { rememberAction('rate' + String(v)); loginNow('rate' + String(v)); return; }
+        if (!token()) {
+          saveGuestFilm({ in_watchlist: true, rating: Number(v) }, 'Оценка ' + String(v) + '/10 сохранена в браузере');
+          var guestPanel = document.getElementById('rating-expand-panel');
+          if (guestPanel) guestPanel.classList.add('hidden');
+          return;
+        }
         ensureFilm()
           .then(function (d) {
             if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
@@ -5631,7 +5754,6 @@
           rateToggle.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            if (!token()) { rememberAction('rate'); loginNow('rate'); return; }
             togglePanel(rateToggle, ratingPanel);
           });
         }
@@ -6070,6 +6192,7 @@
         bindLogin: !cabinetMode,
         loginNow: loginNow,
         onLoginSuccess: function () {
+          migrateGuestLibrary();
           loadAuthFilmState();
           loadFilmFriendsSocialBlock();
           consumePendingAction();
@@ -6078,9 +6201,11 @@
       });
 
       loadAuthFilmState();
+      migrateGuestLibrary();
       loadFilmFriendsSocialBlock();
       consumePendingAction();
       document.addEventListener('mp:film-refresh-auth', function () {
+        migrateGuestLibrary();
         loadAuthFilmState();
         loadFilmFriendsSocialBlock();
         consumePendingAction();
