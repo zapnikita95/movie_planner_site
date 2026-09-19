@@ -51,7 +51,8 @@
     history: null, historyBusyLoad: false, historyError: "",
     historyFilter: "all",
     historyNoteEdit: null, historyBusy: {}, attendanceBusy: {},
-    onboardingForceHidden: false
+    onboardingForceHidden: false,
+    onboardingOpen: false
   };
   var root;
   var overlayHost;
@@ -349,6 +350,13 @@
       localStorage.setItem(onboardingStorageKey(), '1');
     } catch (_) {}
     state.onboardingForceHidden = true;
+    state.onboardingOpen = false;
+    render();
+  }
+
+  function openOnboarding() {
+    if (!state.admin) return;
+    state.onboardingOpen = true;
     render();
   }
 
@@ -381,9 +389,11 @@
   }
 
   function shouldShowOnboarding() {
-    if (!state.id || !state.club) return false;
+    // This is an admin tool, not an explanation for public club visitors.
+    if (!state.id || !state.club || !state.admin) return false;
+    if (state.onboardingOpen) return true;
     if (isOnboardingDismissed()) return false;
-    // Tips once for empty clubs; hide when real analytics exist.
+    // Show once to the club author/admin while setting up an empty club.
     if (state.analytics && !analyticsLooksEmpty(state.analytics) && !state.analytics.sample) return false;
     return shouldShowSampleData();
   }
@@ -483,20 +493,18 @@
 
   function onboardingHtml() {
     if (!shouldShowOnboarding()) return '';
-    return '<div class="club-onboard" role="dialog" aria-label="Онбординг киноклуба">' +
-      '<div class="club-onboard-card">' +
-      '<div class="club-onboard-head"><h2>Как устроен киноклуб</h2>' +
-      '<button type="button" class="btn btn-secondary" data-club-onboard-dismiss aria-label="Закрыть">Закрыть</button></div>' +
-      '<p class="club-onboard-lead">Короткий чеклист — что появится после первых сеансов. Примеры ниже полупрозрачные и помечены «Пример».</p>' +
+    return '<div class="club-onboard" role="presentation">' +
+      '<div class="club-onboard-card" role="dialog" aria-modal="true" aria-labelledby="club-onboard-title">' +
+      '<div class="club-onboard-head"><h2 id="club-onboard-title">Инструменты клуба</h2>' +
+      '<button type="button" class="club-onboard-close" data-club-onboard-dismiss aria-label="Закрыть">' + icon('x', { size: 'sm' }) + '</button></div>' +
+      '<p class="club-onboard-lead">После первых сеансов здесь появятся расписание, явка и история обсуждений.</p>' +
       '<ul class="club-onboard-list">' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Аналитика</b><span>метрики и явка — только для админов; история с записями — для участников</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="schedule"><b>Расписание</b><span>список и календарь с точками сеансов</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пришло: N</b><span>явка по залу после сеанса (для админов)</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Заметка + запись</b><span>текст и ссылка на запись обсуждения</span></button></li>' +
       '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пуш «смотрели?»</b><span>напоминание участникам отметить просмотр</span></button></li>' +
-      '</ul>' +
-      '<div class="club-onboard-actions"><button type="button" class="btn btn-primary" data-club-onboard-dismiss>Понятно</button></div>' +
-      '</div></div>';
+      '</ul></div></div>';
   }
 
   function sampleScheduleListHtml() {
@@ -1857,6 +1865,28 @@
   function syncClubOverlays() {
     var host = ensureOverlayHost();
     host.innerHTML = onboardingHtml() + fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
+    var onboarding = host.querySelector('.club-onboard');
+    try {
+      document.body.classList.toggle('club-onboard-open', !!onboarding);
+    } catch (_) {}
+    host.onkeydown = onboarding
+      ? function (e) {
+          if (e.key !== 'Escape' && e.key !== 'Esc') return;
+          e.preventDefault();
+          dismissOnboarding();
+        }
+      : null;
+    if (onboarding) {
+      onboarding.onclick = function (e) {
+        if (e.target === onboarding) dismissOnboarding();
+      };
+      var onboardingClose = onboarding.querySelector('[data-club-onboard-dismiss]');
+      if (onboardingClose) {
+        setTimeout(function () {
+          try { onboardingClose.focus({ preventScroll: true }); } catch (_) { try { onboardingClose.focus(); } catch (_e) {} }
+        }, 0);
+      }
+    }
     host.querySelectorAll('[data-club-onboard-dismiss]').forEach(function (b) {
       b.onclick = function (e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -2278,7 +2308,8 @@
       (state.member ? '' : '<button type="button" class="club-btn club-btn-primary" data-club-join>Вступить</button>') +
       '<button type="button" class="club-btn club-btn-ghost" data-club-share>Поделиться</button>' +
       (settings
-        ? '<button type="button" class="club-btn club-btn-ghost" data-club-tab-jump="settings">Настройки</button>'
+        ? '<button type="button" class="club-btn club-btn-ghost" data-club-onboard-open>Инструменты клуба</button>' +
+          '<button type="button" class="club-btn club-btn-ghost" data-club-tab-jump="settings">Настройки</button>'
         : '') +
       '</div></div>' +
       (c.description
@@ -2918,6 +2949,9 @@
         dismissOnboarding();
       };
     });
+    root.querySelectorAll('[data-club-onboard-open]').forEach(function (b) {
+      b.onclick = openOnboarding;
+    });
     root.querySelectorAll('[data-club-onboard-tab]').forEach(function (b) {
       b.onclick = function (e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -3367,6 +3401,7 @@
     state.historyBusy = {};
     state.attendanceBusy = {};
     state.onboardingForceHidden = false;
+    state.onboardingOpen = false;
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
     syncClubOverlays();
 
