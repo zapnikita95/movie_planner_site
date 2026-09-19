@@ -23502,9 +23502,10 @@
   }
 
   const SITE_AI_HINTS = [
-    { text: 'Что посмотреть?', send: 'Что посмотреть?' },
-    { text: 'По жанру', send: 'Подбери комедию' },
-    { text: 'По актёру', send: 'Что с Джимом Керри я ещё не смотрел?' },
+    { text: 'Вечер вдвоём', send: 'Посоветуй красивый фильм на вечер вдвоём, без тяжёлой драмы' },
+    { text: 'Лучшее из моей базы', send: 'Выбери один лучший фильм из моих непросмотренных на сегодня и объясни почему' },
+    { text: 'Как любимое', send: 'Подбери что-то похожее на мои любимые фильмы, но чего я ещё не смотрел' },
+    { text: 'Что в кино вечером', send: 'Что хорошего сейчас идёт в кино вечером?' },
   ];
 
   function openSiteBillingFromAi() {
@@ -23555,6 +23556,12 @@
       'Формулирую ответ…',
     ];
     const AI_SESS_KEY = 'mp_site_ai_assist_sess';
+    const trackAiEvent = (event, meta) => api('/api/miniapp/analytics/event', {
+      method: 'POST',
+      body: JSON.stringify({ event, meta: Object.assign({ feature: 'ai_assistant' }, meta || {}) }),
+      timeoutMs: 15000,
+    }).catch(() => {});
+    void trackAiEvent('ai_feature_open');
     let cached = null;
     try {
       const raw = sessionStorage.getItem(AI_SESS_KEY);
@@ -23570,6 +23577,7 @@
       loadingStatusIdx: 0,
       loadingStatusTimer: null,
       paywall: null,
+      analyticsSessionId: (cached && cached.analyticsSessionId) || '',
     };
     let voiceSess = null;
     let micStream = null;
@@ -23597,6 +23605,7 @@
           messages: state.messages,
           sessionCharged: state.sessionCharged,
           draft: state.draft,
+          analyticsSessionId: state.analyticsSessionId,
         }));
       } catch (_) {}
     }
@@ -23631,6 +23640,11 @@
         const open = () => {
           const fid = card.getAttribute('data-fid');
           const kp = card.getAttribute('data-kp');
+          void trackAiEvent('ai_film_clicked', {
+            session_id: state.analyticsSessionId || undefined,
+            kp_id: kp || undefined,
+            film_id: fid || undefined,
+          });
           if (fid) openFilmPage(Number(fid), { kpId: kp ? Number(kp) : undefined });
           else if (kp) openFilmPageByKp(String(kp));
         };
@@ -23843,6 +23857,7 @@
         } else {
           state.sessionCharged = !!data.session_charged;
         }
+        if (data.analytics_session_id) state.analyticsSessionId = data.analytics_session_id;
         if (Array.isArray(data.messages) && data.messages.length) {
           state.messages = mapMessages(data.messages);
         } else {
@@ -23953,6 +23968,9 @@
           const serverMsgs = mapMessages(hist.messages || []);
           if (serverMsgs.length) {
             state.messages = serverMsgs.length >= state.messages.length ? serverMsgs : state.messages;
+          } else {
+            state.messages = [];
+            state.analyticsSessionId = '';
           }
           state.showHints = hist.show_hints !== false && !state.messages.some((m) => m && m.role === 'user');
         }
