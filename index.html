@@ -56,8 +56,8 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
 
 
-<link rel="preload" href="/style-v2.css?v=20260920castcards2" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260920castcards2">
+<link rel="preload" href="/style-v2.css?v=20260920retention5" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260920retention5">
     <script>
       (function () {
         try {
@@ -2707,6 +2707,7 @@
                         <button type="button" class="home-emoji-btn mp-icon-btn" data-home-emoji-key="voice" data-home-action="voice" data-mp-icon="voice" data-mp-icon-weight="duotone" title="Голосовой ввод" aria-label="Голосовой ввод"></button>
                     </div>
                     <div id="home-group-suggestions" class="home-group-suggestions hidden" aria-live="polite"></div>
+                    <div id="home-retention-root" class="home-retention-root" aria-live="polite"></div>
                     <div id="home-dashboard-root" class="home-dashboard-root" aria-live="polite"></div>
                     <div id="home-more-root" class="home-more-root" aria-live="polite"></div>
                 </section>
@@ -4142,7 +4143,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260920castcards2';
+        var V='20260920retention5';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
