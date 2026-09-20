@@ -56,6 +56,12 @@
     .donations-hero h1 { font-family: Unbounded, sans-serif; font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0 0 10px; }
     .donations-hero p { color: rgba(246,241,232,.72); max-width: 52ch; line-height: 1.5; }
     .donations-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .donations-legal-note {
+      max-width: 760px; margin: 18px 0 0; padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.035);
+      color: rgba(246,241,232,.68); font-size: 13px; line-height: 1.5;
+    }
+    .donations-legal-note a { color: #ff8ab8; }
     .donations-btn {
       display: inline-flex; align-items: center; justify-content: center;
       padding: 10px 16px; border-radius: 999px; font-weight: 700; text-decoration: none;
@@ -273,6 +279,7 @@
           <a class="donations-btn" href="/add-film">Добавить фильм</a>
           <a class="donations-btn" href="/premieres">Премьеры</a>
         </div>
+        <p class="donations-legal-note"><strong>Важно:</strong> Movie Planner только показывает сведения о сборах и ссылки на сторонние площадки. Мы не принимаем и не переводим деньги, не являемся оператором инвестиционной платформы и не гарантируем результат проекта. Перед платежом проверьте автора, площадку и её условия. Подробнее — в <a href="/usloviya-ispolzovaniya.html#sbori">условиях использования</a>.</p>
       </div>
 
       <h2 id="active-campaigns" class="donations-section-title" style="font-size:1.1rem;margin:8px 0 14px;font-weight:800">Активные сборы на фильмы</h2>
@@ -287,7 +294,7 @@
         </details>
         <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
           <summary style="cursor:pointer;font-weight:700">Это вместо Planeta?</summary>
-          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Нет. Movie Planner — витрина и аудитория киноманов. Деньги идут на площадке сбора (Planeta и др.). Мы помогаем найти зрителей, которые уже ищут кино.</p>
+          <p style="margin:10px 0 0;color:rgba(246,241,232,.72);line-height:1.5">Нет. Movie Planner — информационная витрина. Деньги перечисляются только на сторонней площадке (Planeta и др.); Movie Planner не принимает платежи в пользу проектов и не является оператором инвестиционной платформы.</p>
         </details>
         <details style="margin:0 0 10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.03)">
           <summary style="cursor:pointer;font-weight:700">Фильм уже снят — куда?</summary>
