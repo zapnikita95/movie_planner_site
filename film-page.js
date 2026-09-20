@@ -1362,6 +1362,31 @@
     );
   }
 
+  function buildFilmDiscoverySectionsHtml() {
+    return (
+      '<div class="film-discovery-bands">' +
+        '<section class="film-discovery-band hidden" id="film-cast-details" aria-labelledby="film-cast-details-title">' +
+          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Актёры и роли</h2></div>' +
+          '<div class="film-people-rail" id="film-people-rail"></div>' +
+        '</section>' +
+        '<section class="film-discovery-band hidden" id="film-collections-root" aria-labelledby="film-collections-title">' +
+          '<div class="film-discovery-heading"><h2 id="film-collections-title">Фильм в подборках</h2></div>' +
+          '<div class="film-collections-rail"></div>' +
+        '</section>' +
+      '</div>'
+    );
+  }
+
+  function ensureFilmDiscoverySections() {
+    if (document.getElementById('film-cast-details')) return;
+    var hero = document.querySelector('.film-hero-with-tag');
+    if (!hero || !hero.parentNode) return;
+    var holder = document.createElement('div');
+    holder.innerHTML = buildFilmDiscoverySectionsHtml();
+    var bands = holder.firstElementChild;
+    if (bands) hero.parentNode.insertBefore(bands, hero.nextSibling);
+  }
+
   function bindFilmPageSimilarRailDrag(rail) {
     if (!rail || rail._mpDragScrollBound) return;
     rail._mpDragScrollBound = true;
@@ -1542,9 +1567,11 @@
     wrap.innerHTML = html;
     var section = wrap.firstElementChild;
     if (!section) return;
+    var discovery = pageRoot.querySelector('.film-discovery-bands');
     var promo = pageRoot.querySelector('.mp-public-promo');
     var hero = pageRoot.querySelector(':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section');
-    if (promo) promo.insertAdjacentElement('beforebegin', section);
+    if (discovery) discovery.insertAdjacentElement('afterend', section);
+    else if (promo) promo.insertAdjacentElement('beforebegin', section);
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     section.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
@@ -4273,7 +4300,8 @@
           buildFilmReviewsSlotHtml() +
           '<p class="status" id="hint"></p>' +
         '</div>' +
-      '</section>'
+      '</section>' +
+      buildFilmDiscoverySectionsHtml()
     );
   }
 
@@ -4572,6 +4600,7 @@
                 '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
+            buildFilmDiscoverySectionsHtml() +
           '</main>' +
           '<aside id="film-seo-root" class="film-seo-root visually-hidden" aria-label="О фильме"></aside>' +
           '<footer class="footer">' +
@@ -4609,6 +4638,8 @@
       if (initDescWrap) bindFilmDescExpand(initDescWrap);
 
       }
+
+      ensureFilmDiscoverySections();
 
       if (tokenEarly() && !forcePublic && !cabinetMode) {
         applyStandaloneAuthChrome({
@@ -4976,6 +5007,23 @@
         }
       }
       var CAST_VISIBLE = 4;
+      function castPersonPath(entry) {
+        if (!entry) return '';
+        var path = String(entry.person_path || '').trim();
+        if (!path) {
+          var fest = String(entry.fest_person_slug || '').trim();
+          if (fest) path = '/s/fest-' + fest;
+        }
+        if (!path) {
+          var kp = String(entry.kp_person_id || '').replace(/\D/g, '');
+          if (kp) path = '/s/' + kp;
+        }
+        if (!path) {
+          var tid = String(entry.tmdb_person_id || entry.person_id || '').replace(/\D/g, '');
+          if (tid) path = '/s/tmdb-' + tid;
+        }
+        return path;
+      }
       function castPersonLink(entry) {
         if (!entry) return '';
         // KP cast uses name_ru/name_en; TMDB catalog cast uses `name`.
@@ -4983,22 +5031,7 @@
           return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
         if (!nm) return '';
-        var path = String(entry.person_path || '').trim();
-        if (!path) {
-          var fest = String(entry.fest_person_slug || '').trim();
-          if (fest) path = '/s/fest-' + fest;
-        }
-        if (!path) {
-          var kpRaw = entry.kp_person_id;
-          if (kpRaw != null && kpRaw !== '') {
-            var kp = String(kpRaw).replace(/\D/g, '');
-            if (kp) path = '/s/' + kp;
-          }
-        }
-        if (!path) {
-          var tid = String(entry.tmdb_person_id || entry.person_id || '').replace(/\D/g, '');
-          if (tid) path = '/s/tmdb-' + tid;
-        }
+        var path = castPersonPath(entry);
         if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
         var roleRaw = String(entry.character || entry.role || '').trim();
@@ -5011,6 +5044,20 @@
         var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
         if (tmdbOnly && !kpOnly) tmdbAttr = ' data-staff-tmdb="' + tmdbOnly + '"';
         return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + roleAttr + '>' + nm + '</a>';
+      }
+      function buildPublicCastDetailsHtml(actors) {
+        return (actors || []).slice(0, 12).map(function (entry) {
+          var name = String(entry.name_ru || entry.name_en || entry.name || '').trim();
+          if (!name) return '';
+          var role = String(entry.character || entry.role || '').trim();
+          var path = castPersonPath(entry);
+          var photo = String(entry.photo || '/images/person-avatar-placeholder.png').replace(/"/g, '&quot;');
+          var inner = '<img class="film-person-photo" src="' + photo + '" alt="' + escapeHtml(name) + '" loading="lazy" onerror="this.src=\'/images/person-avatar-placeholder.png\'">' +
+            '<span class="film-person-copy"><strong>' + escapeHtml(name) + '</strong>' +
+            (role ? '<small>' + escapeHtml(role) + '</small>' : '') + '</span>';
+          if (!path) return '<div class="film-person-card">' + inner + '</div>';
+          return '<a class="film-person-card staff-cast-link" href="' + escapeHtml(path) + '">' + inner + '</a>';
+        }).filter(Boolean).join('');
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
@@ -5184,6 +5231,14 @@
           markCastRootResolved(root, !!html);
           if (html) bindPublicCastLinks(root);
         });
+        var details = document.getElementById('film-cast-details');
+        var rail = document.getElementById('film-people-rail');
+        if (details && rail) {
+          var peopleHtml = buildPublicCastDetailsHtml(d.actors || []);
+          rail.innerHTML = peopleHtml;
+          details.classList.toggle('hidden', !peopleHtml);
+          if (peopleHtml) bindPublicCastLinks(rail);
+        }
         /* COURSE_OFFERS_SYNC_V1 */
         var hero = document.querySelector('.film-hero-with-tag');
         var dirKp = d.director && d.director.kp_person_id != null
@@ -5195,6 +5250,28 @@
             global.MpMonetization.mountCourseOffers(document.getElementById('film-page-content') || document.querySelector('main.film-page'), kpId);
           }
         } catch (_courseRemount) {}
+      }
+      function loadFilmCollections() {
+        var section = document.getElementById('film-collections-root');
+        if (!section || !numericKpFilmId(kpId)) return;
+        apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/collections')
+          .then(function (d) {
+            var items = d && Array.isArray(d.collections) ? d.collections : [];
+            var rail = section.querySelector('.film-collections-rail');
+            if (!rail || !items.length) return;
+            rail.innerHTML = items.slice(0, 8).map(function (item) {
+              var code = String(item.short_code || '').trim();
+              var name = String(item.name || '').trim();
+              if (!code || !name) return '';
+              var count = Number(item.films_count || 0);
+              return '<a class="film-collection-link" href="/whattowatch/collections/' + encodeURIComponent(code) + '">' +
+                '<span class="film-collection-copy"><strong>' + escapeHtml(name) + '</strong>' +
+                (count ? '<small>' + count + ' фильмов и сериалов</small>' : '') + '</span>' +
+                '<span class="film-collection-arrow" aria-hidden="true">›</span></a>';
+            }).filter(Boolean).join('');
+            section.classList.toggle('hidden', !rail.innerHTML);
+          })
+          .catch(function () {});
       }
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
@@ -5416,6 +5493,7 @@
       }
 
       loadPublicCast();
+      loadFilmCollections();
       if (!isTmdbOnly) scheduleLoadFacts();
       apiGet(publicFilmApi)
         .then(function (data) {
