@@ -19,6 +19,8 @@ assert.match(castStyles, /flex-direction:\s*column/);
 assert.match(castStyles, /aspect-ratio:\s*3\s*\/\s*4/);
 assert.match(castStyles, /white-space:\s*normal/);
 assert.doesNotMatch(castStyles, /text-overflow:\s*ellipsis/);
+assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.film-collections-rail\s*\{[\s\S]*display:\s*block/);
+assert.match(styles, /\.film-collection-link\s*\{\s*width:\s*100%/);
 
 const bottomStart = ads.indexOf('function mountFilmPageBottom()');
 const bottomEnd = ads.indexOf('\n  function mountFilmMobileStrips()', bottomStart);

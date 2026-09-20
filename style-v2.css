@@ -13701,17 +13701,12 @@ main.film-page .film-hero-crew {
   .film-discovery-heading h2 { font-size: 16px; }
   .film-people-rail { grid-auto-columns: minmax(132px, 38vw); gap: 12px; margin-right: -12px; padding-right: 12px; }
   .film-collections-rail {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(240px, 78vw);
-    grid-template-columns: none;
-    gap: 14px;
-    overflow-x: auto;
-    margin-right: -12px;
-    padding-right: 12px;
-    scrollbar-width: none;
+    display: block;
+    overflow: visible;
+    margin-right: 0;
+    padding-right: 0;
   }
-  .film-collection-link { min-height: 56px; }
+  .film-collection-link { width: 100%; min-height: 56px; }
 }
 .film-hero-crew b,
 .film-modal-crew b,
