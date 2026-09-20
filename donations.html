@@ -526,7 +526,8 @@
     var empty = document.getElementById('donations-empty');
     if (!grid) return;
     bindDonationsOutboundClicks();
-    fetch(API + '/api/public/donations?limit=24', { credentials: 'omit' })
+    // Planeta's FILM catalog is paginated and currently exceeds the old 24-card cap.
+    fetch(API + '/api/public/donations?limit=100', { credentials: 'omit' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var items = (data && data.success && data.items) ? data.items : [];
