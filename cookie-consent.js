@@ -1,12 +1,13 @@
 ﻿/**
  * Cookie consent — movie-planner.ru
- * Метрика и РСЯ подключаются только после явного выбора пользователя.
+ * Ненавязчивое уведомление: «Хорошо» или продолжение использования = согласие.
+ * Метрика и РСЯ подключаются после согласия.
  */
 (function (global) {
   'use strict';
 
-  var BUILD = '20260920legal1';
-  var STORAGE_KEY = 'mp_cookie_consent_v2';
+  var BUILD = '20260920retention7';
+  var STORAGE_KEY = 'mp_cookie_consent_v1';
   var PRIVACY_URL = '/politika-konfidentsialnosti.html#cookie';
 
   var state = {
@@ -22,6 +23,8 @@
     toggleAds: null,
     btnSettings: null,
   };
+
+  var impliedListenersBound = false;
 
   function readStored() {
     try {
@@ -112,6 +115,7 @@
 
   function closeBanner() {
     if (ui.bar) ui.bar.classList.remove('is-visible');
+    unbindImpliedConsent();
   }
 
   function openBanner(withSettings) {
@@ -127,6 +131,7 @@
     }
     if (ui.toggleAnalytics) ui.toggleAnalytics.checked = !!state.analytics;
     if (ui.toggleAds) ui.toggleAds.checked = !!state.ads;
+    bindImpliedConsent();
   }
 
   function commit(consent, close) {
@@ -141,15 +146,35 @@
     commit({ analytics: true, ads: true });
   }
 
-  function saveNecessaryOnly() {
-    commit({ analytics: false, ads: false });
-  }
-
   function saveFromSettings() {
     commit({
       analytics: !!(ui.toggleAnalytics && ui.toggleAnalytics.checked),
       ads: !!(ui.toggleAds && ui.toggleAds.checked),
     });
+  }
+
+  function onImpliedContinue(ev) {
+    if (readStored()) return;
+    if (ev && ev.target && ev.target.closest && ev.target.closest('#mp-cookie-bar')) return;
+    saveAcceptAll();
+  }
+
+  function bindImpliedConsent() {
+    if (impliedListenersBound || readStored()) return;
+    impliedListenersBound = true;
+    document.addEventListener('scroll', onImpliedContinue, { passive: true, capture: true });
+    document.addEventListener('touchstart', onImpliedContinue, { passive: true, capture: true });
+    document.addEventListener('keydown', onImpliedContinue, true);
+    document.addEventListener('click', onImpliedContinue, true);
+  }
+
+  function unbindImpliedConsent() {
+    if (!impliedListenersBound) return;
+    impliedListenersBound = false;
+    document.removeEventListener('scroll', onImpliedContinue, true);
+    document.removeEventListener('touchstart', onImpliedContinue, true);
+    document.removeEventListener('keydown', onImpliedContinue, true);
+    document.removeEventListener('click', onImpliedContinue, true);
   }
 
   function bindUi(root) {
@@ -160,11 +185,9 @@
     ui.btnSettings = root.querySelector('#mp-cookie-btn-settings');
 
     var btnOk = root.querySelector('#mp-cookie-accept');
-    var btnNecessary = root.querySelector('#mp-cookie-necessary');
     var btnSave = root.querySelector('#mp-cookie-save');
 
     if (btnOk) btnOk.addEventListener('click', saveAcceptAll);
-    if (btnNecessary) btnNecessary.addEventListener('click', saveNecessaryOnly);
     if (btnSave) btnSave.addEventListener('click', saveFromSettings);
     if (ui.btnSettings) {
       ui.btnSettings.addEventListener('click', function (ev) {
@@ -188,12 +211,11 @@
       '<div class="mp-cookie-bar" id="mp-cookie-bar" role="region" aria-labelledby="mp-cookie-title" aria-live="polite">' +
         '<div class="mp-cookie-strip">' +
           '<div class="mp-cookie-strip-text">' +
-            '<p class="mp-cookie-line" id="mp-cookie-title">Выберите, какие cookie разрешить.</p>' +
-            '<p class="mp-cookie-line mp-cookie-line--sub" id="mp-cookie-desc">Необходимые нужны для работы сайта. Аналитика и реклама включатся только с вашего согласия. <a href="' + PRIVACY_URL + '">Подробнее</a>.</p>' +
+            '<p class="mp-cookie-line" id="mp-cookie-title">Сайт использует cookie для работы сервиса, статистики и показа рекламы.</p>' +
+            '<p class="mp-cookie-line mp-cookie-line--sub" id="mp-cookie-desc">Продолжая пользоваться сайтом, вы соглашаетесь на использование cookie в соответствии с нашими <a href="' + PRIVACY_URL + '">Cookie-правилами</a>.</p>' +
             '<button type="button" class="mp-cookie-btn mp-cookie-btn-text mp-cookie-btn-settings" id="mp-cookie-btn-settings">Настроить</button>' +
           '</div>' +
-          '<button type="button" class="mp-cookie-btn mp-cookie-btn-secondary" id="mp-cookie-necessary">Только необходимые</button>' +
-          '<button type="button" class="mp-cookie-btn mp-cookie-btn-primary mp-cookie-btn-ok" id="mp-cookie-accept">Принять все</button>' +
+          '<button type="button" class="mp-cookie-btn mp-cookie-btn-primary mp-cookie-btn-ok" id="mp-cookie-accept">Хорошо</button>' +
         '</div>' +
         '<div class="mp-cookie-settings" id="mp-cookie-settings" aria-label="Настройки cookie" hidden>' +
           '<div class="mp-cookie-settings-inner">' +
