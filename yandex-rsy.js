@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260906articleHstrips1';
+  var BUILD = '20260920castcards2';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -681,21 +681,9 @@
       return;
     }
     if (afterSimilar) afterSimilar.remove();
-    if (earlyBottom && earlyBottom.isConnected) return;
     if (earlyBottom) earlyBottom.remove();
-    var pageRoot = document.getElementById('film-page-content')
-      || document.querySelector('#section-film .movie-page, main.film-page');
-    if (!pageRoot) return;
-    var hero = pageRoot.querySelector(':scope > section.film-hero-with-tag, :scope > section.hero, :scope > section');
-    var anchor = hero || pageRoot;
-    mountInlineStrip({
-      wrapId: 'mp_rsy_inline_film_bottom',
-      kind: 'film_bottom',
-      blockId: bannerId,
-      anchor: anchor,
-      position: anchor === pageRoot ? 'append' : 'after',
-      horizontal: true,
-    });
+    /* Do not split hero actions from cast/collections with an early ad. The
+       film rail mounts again after similar content is available. */
   }
 
   function mountFilmMobileStrips() {

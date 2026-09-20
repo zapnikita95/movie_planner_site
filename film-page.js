@@ -5034,8 +5034,7 @@
         var path = castPersonPath(entry);
         if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
-        var roleRaw = String(entry.character || entry.role || '').trim();
-        if (roleRaw.length > 72) roleRaw = roleRaw.slice(0, 69).replace(/\s+\S*$/, '') + '…';
+        var roleRaw = compactCastRoleLabel(entry.character || entry.role);
         var roleAttr = roleRaw ? (' data-staff-character="' + roleRaw.replace(/"/g, '&quot;') + '"') : '';
         var kpAttr = '';
         var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
@@ -5045,18 +5044,36 @@
         if (tmdbOnly && !kpOnly) tmdbAttr = ' data-staff-tmdb="' + tmdbOnly + '"';
         return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + roleAttr + '>' + nm + '</a>';
       }
+      function compactCastRoleLabel(value) {
+        var role = String(value || '').replace(/\s+/g, ' ').trim();
+        if (!role) return '';
+        role = role.replace(/^играет\s+/i, '').split(/[;|]/)[0].trim();
+        if (/^сам(?:ого|у)\s+себя(?:\s*,.*)?$/i.test(role)) return 'Самого себя';
+        if (role.indexOf(',') > 0) role = role.split(',')[0].trim();
+        role = role.replace(/[.!?]+$/, '').trim();
+        if (role.length > 56) role = role.slice(0, 53).replace(/\s+\S*$/, '') + '…';
+        return role;
+      }
       function buildPublicCastDetailsHtml(actors) {
         return (actors || []).slice(0, 12).map(function (entry) {
           var name = String(entry.name_ru || entry.name_en || entry.name || '').trim();
           if (!name) return '';
-          var role = String(entry.character || entry.role || '').trim();
+          var role = compactCastRoleLabel(entry.character || entry.role);
           var path = castPersonPath(entry);
-          var photo = String(entry.photo || '/images/person-avatar-placeholder.png').replace(/"/g, '&quot;');
-          var inner = '<img class="film-person-photo" src="' + photo + '" alt="' + escapeHtml(name) + '" loading="lazy" onerror="this.src=\'/images/person-avatar-placeholder.png\'">' +
+          var photo = cleanPosterUrl(entry.photo) || '/images/person-avatar-placeholder.png';
+          var photoAttr = ' data-staff-photo="' + escapeHtml(photo) + '"';
+          var nameAttr = ' data-staff-name="' + escapeHtml(name) + '"';
+          var roleAttr = role ? ' data-staff-character="' + escapeHtml(role) + '"' : '';
+          var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
+          var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
+          var personAttr = kpOnly
+            ? ' data-staff-kp="' + kpOnly + '"'
+            : (tmdbOnly ? ' data-staff-tmdb="' + tmdbOnly + '"' : '');
+          var inner = '<img class="film-person-photo" src="' + escapeHtml(photo) + '" alt="' + escapeHtml(name) + '" loading="lazy" onerror="this.src=\'/images/person-avatar-placeholder.png\';this.onerror=null">' +
             '<span class="film-person-copy"><strong>' + escapeHtml(name) + '</strong>' +
             (role ? '<small>' + escapeHtml(role) + '</small>' : '') + '</span>';
           if (!path) return '<div class="film-person-card">' + inner + '</div>';
-          return '<a class="film-person-card staff-cast-link" href="' + escapeHtml(path) + '">' + inner + '</a>';
+          return '<a class="film-person-card staff-cast-link" href="' + escapeHtml(path) + '"' + personAttr + nameAttr + photoAttr + roleAttr + '>' + inner + '</a>';
         }).filter(Boolean).join('');
       }
       function buildPublicCastHtml(director, actors, country) {
