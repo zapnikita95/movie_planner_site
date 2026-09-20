@@ -110,6 +110,9 @@
       font: inherit;
     }
     .donations-form-card textarea { min-height: 90px; resize: vertical; }
+    .donations-confirm { display: flex !important; align-items: flex-start; gap: 9px; font-weight: 400 !important; line-height: 1.45; }
+    .donations-confirm input { width: auto; margin: 3px 0 0; flex: 0 0 auto; }
+    .donations-confirm a { color: #ff8ab8; }
     .donations-status { margin-top: 10px; font-size: 14px; min-height: 1.2em; }
     .donations-status.ok { color: #8dffb0; }
     .donations-status.err { color: #ff8a8a; }
@@ -219,6 +222,11 @@
 
               <label for="d-note">Комментарий</label>
               <textarea id="d-note" name="note" maxlength="2000" placeholder="Кратко о проекте (по желанию)"></textarea>
+
+              <label class="donations-confirm" for="d-confirm">
+                <input id="d-confirm" name="confirm" type="checkbox" required>
+                <span>Подтверждаю достоверность сведений, наличие прав на текст и изображение и полномочия передать контактные данные. Ознакомлен(а) с <a href="/usloviya-ispolzovaniya.html#sbori" target="_blank" rel="noopener">условиями публикации</a> и <a href="/politika-konfidentsialnosti.html" target="_blank" rel="noopener">политикой обработки данных</a>.</span>
+              </label>
 
               <div style="margin-top:16px">
                 <button type="submit" class="donations-btn donations-btn--primary" id="d-submit">Отправить на модерацию</button>
@@ -332,9 +340,14 @@
         var imageUrl = (document.getElementById('d-image-url') || {}).value || '';
         var poster = document.getElementById('d-poster');
         var mode = (document.getElementById('d-image-mode') || {}).value || 'file';
+        var confirmed = !!((document.getElementById('d-confirm') || {}).checked);
         title = title.trim(); url = url.trim(); contact = contact.trim(); social = social.trim();
         if (!title || !url || !contact || !social) {
           if (status) { status.className = 'donations-status err'; status.textContent = 'Нужны название, ссылка на сбор, контакт и соцсеть автора.'; }
+          return;
+        }
+        if (!confirmed) {
+          if (status) { status.className = 'donations-status err'; status.textContent = 'Подтвердите достоверность сведений и условия публикации.'; }
           return;
         }
         var fd = new FormData();
