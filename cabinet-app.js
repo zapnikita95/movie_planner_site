@@ -10507,8 +10507,10 @@
   const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
+  const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v1:';
   let _homeDashboardCache = null;
   let _homeRetention = null;
+  let _homeRetentionInflight = null;
 
   function homeBrowserCacheKey() {
     const active = String(getActiveChatId() || '').trim();
@@ -10522,6 +10524,27 @@
     const cached = readBrowserCache(key);
     if (!cached || typeof cached !== 'object') return null;
     return cached;
+  }
+
+  function homeRetentionSessionCacheKey() {
+    const active = String(getActiveChatId() || '').trim();
+    return active ? HOME_RETENTION_SESSION_CACHE_KEY_PREFIX + active : null;
+  }
+
+  function readHomeRetentionSessionCache() {
+    const key = homeRetentionSessionCacheKey();
+    if (!key) return null;
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (!cached || !cached.data || Date.now() - Number(cached.savedAt || 0) > 15 * 60 * 1000) return null;
+      return cached.data;
+    } catch (_) { return null; }
+  }
+
+  function writeHomeRetentionSessionCache(data) {
+    const key = homeRetentionSessionCacheKey();
+    if (!key) return;
+    try { sessionStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: data })); } catch (_) {}
   }
 
   function writeHomeDashboardBrowserCache(payload) {
@@ -10848,31 +10871,9 @@
 
   function paintHomeTournamentBlock() {
     const root = document.getElementById('home-dashboard-root');
-    if (!root || isGuestCabinetPreview()) return;
-    if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return;
-    if (loadHomeSectionsHidden().indexOf('tournament') >= 0) {
-      const gone = root.querySelector('[data-home-block="tournament"]');
-      if (gone) gone.remove();
-      return;
-    }
-    const data = homeTournamentLeaderboardData();
-    const activeId = homeTournamentActiveNomId(data);
-    _homeTournamentActiveNomId = activeId;
-    const noms = (data && data.nominations) || [];
-    const nom = noms.find((n) => n.id === activeId) || noms[0] || { label: 'Оценки' };
-    const periodLabel = (data && data.period && data.period.label) || (data && data.current_month_label) || '';
-    const headExtra = periodLabel ? ('<div class="cabinet-hint">' + escapeHtml(periodLabel) + '</div>') : '';
-    const tabsHtml = data ? renderHomeTournamentTabsHtml(data, activeId) : '';
-    const rowsHtml = data
-      ? renderHomeTournamentRowsHtml(data, activeId, 5)
-      : '<p class="empty-hint home-tourn-empty">Загрузка…</p>';
-    const html = '<section class="home-dash-block home-tourn-block" data-home-block="tournament">'
-      + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
-      + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
-      + tabsHtml
-      + '<div class="home-tourn-rows" id="home-tourn-rows">' + rowsHtml + '</div></section>';
-    upsertHomeDashboardBlock(root, 'tournament', html);
-    bindHomeTournamentTabsOnce();
+    if (!root) return;
+    const existing = root.querySelector('[data-home-block="tournament"]');
+    if (existing) existing.remove();
   }
 
   let _cabinetMeCache = null;
@@ -11718,6 +11719,12 @@
     return '<div class="home-retention" data-home-retention>' + dailyHtml + goalHtml + achHtml + '</div>';
   }
 
+  function paintHomeRetention() {
+    const root = document.getElementById('home-retention-root');
+    if (!root) return;
+    root.innerHTML = renderHomeRetentionHtml();
+  }
+
   function startRetentionOnboarding() {
     try { sessionStorage.removeItem('mp_onboard_v2_state'); } catch (_) {}
     if (typeof window.__mpMountExtendedOnboarding === 'function') {
@@ -11775,7 +11782,7 @@
           _homeRetention.daily_film.claimed = true;
           _homeRetention.daily_film.film = res.film;
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
-          _paintHomeDashboardBlocks();
+          paintHomeRetention();
         }).catch(function () { claim.disabled = false; });
         return;
       }
@@ -11787,13 +11794,16 @@
 
   function loadHomeRetention() {
     if (isGuestCabinetPreview()) return Promise.resolve();
-    return api('/api/miniapp/retention/home', { timeoutMs: 12000 }).then(function (data) {
+    if (_homeRetentionInflight) return _homeRetentionInflight;
+    _homeRetentionInflight = api('/api/miniapp/retention/home', { timeoutMs: 12000 }).then(function (data) {
       if (!data || !data.success) return;
       _homeRetention = data;
-      _paintHomeDashboardBlocks();
+      writeHomeRetentionSessionCache(data);
+      paintHomeRetention();
       bindHomeRetentionOnce();
       armRetentionOnboardingOffer();
-    }).catch(function () {});
+    }).catch(function () {}).finally(function () { _homeRetentionInflight = null; });
+    return _homeRetentionInflight;
   }
 
   function openFilmWithFallback(kpId) {
@@ -11995,7 +12005,7 @@
     if (!root) return;
     const order = loadHomeSectionsOrder();
     const hidden = loadHomeSectionsHidden();
-    let html = renderHomeRetentionHtml();
+    let html = '';
     const blockOrder = isGuestCabinetPreview() ? ['premieres', 'series'] : order;
     blockOrder.forEach((bid) => {
       if (bid === 'tournament') return;
@@ -12189,6 +12199,15 @@
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
     if (_homeDashInflight) return _homeDashInflight;
 
+    if (!_homeRetention && !isGuestCabinetPreview()) {
+      _homeRetention = readHomeRetentionSessionCache();
+      if (_homeRetention) {
+        paintHomeRetention();
+        bindHomeRetentionOnce();
+      }
+    }
+    void loadHomeRetention();
+
     const hadBlocks = !!root.querySelector('.home-dash-block');
     if (!hadBlocks) {
       _paintHomeDashboardBlocks();
@@ -12272,7 +12291,6 @@
         paintHomeTournamentBlock();
         // Rails already mounted on first paint; only mount any still-unmounted containers.
         _scheduleMountHomeDashboardRails();
-        void loadHomeRetention();
       });
     return _homeDashInflight;
   }
@@ -12311,11 +12329,7 @@
   function renderHomeMoreLinks(hidden) {
     const moreRoot = document.getElementById('home-more-root');
     if (!moreRoot) return;
-    const isGroup = _cabinetMeCache && _cabinetMeCache.is_group_profile;
     const links = [];
-    if (!isGroup && !isGuestCabinetPreview() && hidden.indexOf('tournament') >= 0) {
-      links.push('<button type="button" class="home-more-row" data-home-show-section="tournament"><span class="home-more-row-icon">' + mpIcon('tournament', { size: 'sm' }) + '</span><span>Турнирная таблица</span><span class="list-arrow">›</span></button>');
-    }
     if (!links.length) {
       moreRoot.innerHTML = '';
       moreRoot.classList.add('hidden');

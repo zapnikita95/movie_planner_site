@@ -19903,7 +19903,7 @@ body.in-cabinet .inbox-fab { display: none !important; }
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
   cursor: pointer;
-  font: inherit;
+  font-family: 'Unbounded', sans-serif;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
 }
 .cabinet-home-stat:hover {
@@ -30297,6 +30297,7 @@ a.collections-author-block:hover {
   grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
   gap: 14px;
   margin: 0 0 18px;
+  font-family: 'Unbounded', sans-serif;
 }
 .home-retention > section {
   min-width: 0;
@@ -30308,7 +30309,7 @@ a.collections-author-block:hover {
 .retention-kicker {
   display: block;
   margin-bottom: 5px;
-  color: #f2c94c;
+  color: #ff5aa5;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
@@ -30345,12 +30346,28 @@ a.collections-author-block:hover {
 .retention-daily-copy strong { color: var(--text-primary); font-size: clamp(20px, 2vw, 28px); line-height: 1.12; }
 .retention-daily-copy small { margin-top: 8px; color: var(--text-muted); font-size: 13px; line-height: 1.45; }
 .retention-inline-link { margin-top: 18px; color: #ff6da6; font-weight: 750; font-size: 13px; }
-.retention-daily-claim { margin-top: 18px; width: auto; max-width: 100%; }
+.retention-daily-claim {
+  margin-top: 18px;
+  width: auto;
+  max-width: 100%;
+  border: 1px solid #ef1c7a !important;
+  border-radius: 10px;
+  background: #ef1c7a !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  min-height: 44px;
+  height: auto;
+  padding: 12px 16px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+}
+.retention-daily-claim:hover,
+.retention-daily-claim:focus-visible { border-color: #ff3b91 !important; background: #ff3b91 !important; }
 .retention-goal,
 .retention-achievements { padding: 18px; }
 .retention-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
 .retention-section-head h3 { margin: 0; color: var(--text-primary); font-size: 18px; line-height: 1.2; }
-.retention-section-head > b { color: #f2c94c; white-space: nowrap; font-size: 13px; }
+.retention-section-head > b { color: #ff5aa5; white-space: nowrap; font-size: 13px; }
 .retention-goal-steps { display: grid; gap: 9px; }
 .retention-goal-step { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 9px; align-items: center; color: var(--text-muted); }
 .retention-goal-step > span { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.19); border-radius: 50%; font-size: 11px; font-weight: 800; }
@@ -30362,13 +30379,13 @@ a.collections-author-block:hover {
 .retention-achievements { grid-column: 2; }
 .retention-ach-row { display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08); }
 .retention-ach-row:first-of-type { border-top: 0; padding-top: 0; }
-.retention-ach-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid rgba(242,201,76,.35); border-radius: 50%; background: #2a2415; font-size: 19px; }
+.retention-ach-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid rgba(239,28,122,.4); border-radius: 50%; background: rgba(239,28,122,.12); font-size: 19px; }
 .retention-ach-head { display: flex; justify-content: space-between; gap: 10px; color: var(--text-primary); font-size: 12px; }
 .retention-ach-head > span { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .retention-progress { height: 5px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.09); }
-.retention-progress i { display: block; height: 100%; border-radius: inherit; background: #f2c94c; }
+.retention-progress i { display: block; height: 100%; border-radius: inherit; background: #ef1c7a; }
 .retention-ach-prompt { margin-top: 5px; color: var(--text-muted); font-size: 11px; }
-.retention-onboarding-card { max-width: 430px; text-align: left; }
+.retention-onboarding-card { max-width: 430px; text-align: left; font-family: 'Unbounded', sans-serif; }
 .retention-onboarding-card h2 { margin: 0 0 10px; color: var(--text-primary); font-size: 26px; line-height: 1.08; }
 .retention-onboarding-card p { margin: 0 0 18px; color: var(--text-muted); line-height: 1.5; }
 .retention-onboarding-card .btn-ghost { margin-top: 8px; }
