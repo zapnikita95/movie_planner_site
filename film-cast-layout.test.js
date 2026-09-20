@@ -28,5 +28,11 @@ const bottomMount = ads.slice(bottomStart, bottomEnd);
 assert.ok(bottomStart >= 0 && bottomEnd > bottomStart, 'film bottom mount exists');
 assert.doesNotMatch(bottomMount, /anchor:\s*hero/);
 assert.match(bottomMount, /anchor:\s*shelf \|\| similar/);
+assert.match(ads, /if \(!isDesktop\(\)\) \{\s*clearFilmMobileStrips\(\);\s*return;/);
+
+const consent = fs.readFileSync('cookie-consent.js', 'utf8');
+const index = fs.readFileSync('index.html', 'utf8');
+assert.match(consent, /loadScriptOnce\('\/yandex-rsy\.js\?v=' \+ BUILD/);
+assert.match(index, /cookie-consent\.js\?v=20260920castcards4/);
 
 console.log('film cast layout contract ok');

@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var BUILD = '20260920castcards2';
+  var BUILD = '20260920castcards4';
   var HORIZONTAL_SLOT_MAX_PX = 120;
   var VIEWPORT_EDGE_PAD = 12;
   var LAYOUT_ENABLED = true;
@@ -688,9 +688,15 @@
 
   function mountFilmMobileStrips() {
     watchFilmSectionVisibility();
+    /* The 1000x120 RSY creative collapses to a cropped ~44px image strip on
+       phone widths. Keep film pages clean until a real mobile format exists. */
+    if (!isDesktop()) {
+      clearFilmMobileStrips();
+      return;
+    }
     /* Auth cabinet: #section-film is .hidden until route shows it.
        Rendering RSY into a hidden host leaves a blank slot forever. */
-    if (!isDesktop() && !filmSectionVisible()) return;
+    if (!filmSectionVisible()) return;
     /* Logged-in cabinet CSS hides .mp-rsy-inline unless body.mp-rsy-film-page.
        Desktop sets it via ensureFilmOuterRail; mobile must set it here. */
     setFilmPageOverflowVisible(true);
