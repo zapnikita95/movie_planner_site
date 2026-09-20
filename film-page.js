@@ -1366,7 +1366,7 @@
     return (
       '<div class="film-discovery-bands">' +
         '<section class="film-discovery-band hidden" id="film-cast-details" aria-labelledby="film-cast-details-title">' +
-          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Актёры и роли</h2></div>' +
+          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Создатели и актёры</h2></div>' +
           '<div class="film-people-rail" id="film-people-rail"></div>' +
         '</section>' +
         '<section class="film-discovery-band hidden" id="film-collections-root" aria-labelledby="film-collections-title">' +
@@ -4294,7 +4294,7 @@
             '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true" hidden></p>' +
             buildFilmExtRatingsSlotHtml(null) +
           '</div>' +
-          '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
+          '<div class="film-hero-crew hidden" id="film-cast-root" aria-hidden="true"></div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
           buildFilmReviewsSlotHtml() +
@@ -4592,7 +4592,7 @@
                   '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true" hidden></p>' +
                   buildFilmExtRatingsSlotHtml(null) +
                 '</div>' +
-                '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
+                '<div class="film-hero-crew hidden" id="film-cast-root" aria-hidden="true"></div>' +
                 buildFilmDescWrapHtml() +
                 buildFilmPageToolbar({ kp_id: '' }, { inBase: false, authenticated: false, canRate: true }) +
                 buildFilmReviewsSlotHtml() +
@@ -5048,17 +5048,22 @@
         var role = String(value || '').replace(/\s+/g, ' ').trim();
         if (!role) return '';
         role = role.replace(/^играет\s+/i, '').split(/[;|]/)[0].trim();
-        if (/^сам(?:ого|у)\s+себя(?:\s*,.*)?$/i.test(role)) return 'Самого себя';
+        if (/^сам(?:ого|у)\s+себя(?:\s*,.*)?$/i.test(role)) return 'Играет себя';
         if (role.indexOf(',') > 0) role = role.split(',')[0].trim();
         role = role.replace(/[.!?]+$/, '').trim();
         if (role.length > 56) role = role.slice(0, 53).replace(/\s+\S*$/, '') + '…';
         return role;
       }
-      function buildPublicCastDetailsHtml(actors) {
-        return (actors || []).slice(0, 12).map(function (entry) {
+      function buildPublicCastDetailsHtml(director, actors) {
+        var people = [];
+        if (director) {
+          people.push(Object.assign({}, director, { _mpDisplayRole: 'Режиссёр' }));
+        }
+        (actors || []).slice(0, 12).forEach(function (entry) { people.push(entry); });
+        return people.map(function (entry) {
           var name = String(entry.name_ru || entry.name_en || entry.name || '').trim();
           if (!name) return '';
-          var role = compactCastRoleLabel(entry.character || entry.role);
+          var role = entry._mpDisplayRole || compactCastRoleLabel(entry.character || entry.role);
           var path = castPersonPath(entry);
           var photo = cleanPosterUrl(entry.photo) || '/images/person-avatar-placeholder.png';
           var photoAttr = ' data-staff-photo="' + escapeHtml(photo) + '"';
@@ -5244,14 +5249,15 @@
         if (!roots.length || !d) return;
         var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
         roots.forEach(function (root) {
-          root.innerHTML = html || '';
-          markCastRootResolved(root, !!html);
-          if (html) bindPublicCastLinks(root);
+          root.innerHTML = '';
+          root.classList.add('hidden');
+          root.setAttribute('aria-hidden', 'true');
+          markCastRootResolved(root, false);
         });
         var details = document.getElementById('film-cast-details');
         var rail = document.getElementById('film-people-rail');
         if (details && rail) {
-          var peopleHtml = buildPublicCastDetailsHtml(d.actors || []);
+          var peopleHtml = buildPublicCastDetailsHtml(d.director, d.actors || []);
           rail.innerHTML = peopleHtml;
           details.classList.toggle('hidden', !peopleHtml);
           if (peopleHtml) bindPublicCastLinks(rail);

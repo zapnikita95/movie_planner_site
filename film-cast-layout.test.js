@@ -6,7 +6,11 @@ const styles = fs.readFileSync('style-v2.css', 'utf8');
 const ads = fs.readFileSync('yandex-rsy.js', 'utf8');
 
 assert.match(page, /function compactCastRoleLabel\(value\)/);
-assert.match(page, /return 'Самого себя'/);
+assert.match(page, /return 'Играет себя'/);
+assert.match(page, />Создатели и актёры</);
+assert.match(page, /_mpDisplayRole: 'Режиссёр'/);
+assert.match(page, /buildPublicCastDetailsHtml\(d\.director, d\.actors \|\| \[\]\)/);
+assert.doesNotMatch(page, /film-hero-crew is-loading" id="film-cast-root"/);
 assert.match(page, /data-staff-photo=/);
 assert.match(page, /data-staff-kp=/);
 assert.match(page, /data-staff-tmdb=/);
