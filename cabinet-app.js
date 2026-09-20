@@ -16557,7 +16557,7 @@
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
       overlay.innerHTML =
-        '<div class="mp-dialog-card ach-celebration-card ach-celebration-card--group">' +
+        '<div class="mp-dialog-card ach-celebration-card ach-celebration-card--group" tabindex="-1">' +
         '<div class="ach-celebration-burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
         '<div class="ach-celebration-kicker">' + (list.length > 1 ? 'Новые достижения · ' + list.length : 'Новое достижение') + '</div>' +
         '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(strongest.icon || '🏅') + '</div>' +
@@ -16583,7 +16583,13 @@
         }).catch(function () {}).finally(close);
       });
       document.body.appendChild(overlay);
-      try { btn.focus(); } catch (_) {}
+      try {
+        const card = overlay.querySelector('.ach-celebration-card');
+        if (card) {
+          card.scrollTop = 0;
+          card.focus({ preventScroll: true });
+        }
+      } catch (_) {}
     });
   }
 
