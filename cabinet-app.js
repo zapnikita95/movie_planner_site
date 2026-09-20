@@ -4788,6 +4788,12 @@
 
   function api(url, options = {}) {
     const token = getToken();
+    const method = String(options.method || 'GET').toUpperCase();
+    const tracksAchievementProgress = method !== 'GET' && method !== 'HEAD'
+      && /(?:\/add-film(?:\/|$)|\/rating(?:\/|$)|\/watched(?:\/|$)|\/episodes\/mark(?:\/|$)|\/plans(?:\/|$))/.test(String(url || ''));
+    const beforeProgress = tracksAchievementProgress
+      ? fetchAchievementProgressSnapshot(token)
+      : Promise.resolve(null);
     const lowRetryRoute =
       String(url || '').indexOf('/api/home/rails/') === 0 ||
       String(url || '').indexOf('/api/tournament/preview') === 0 ||
@@ -4837,7 +4843,59 @@
       if (!getActiveChatId()) window.dispatchEvent(new CustomEvent('mp:logout'));
       return body;
     });
-    return attempt(false, 0, 0).catch(() => ({ success: false, error: 'network' }));
+    return attempt(false, 0, 0).then(function (body) {
+      if (!tracksAchievementProgress || !body || body.success === false) return body;
+      Promise.resolve(beforeProgress).then(function (before) {
+        setTimeout(function () {
+          fetchAchievementProgressSnapshot(token, true).then(function (after) {
+            showAdvancedAchievementProgress(before, after);
+          });
+        }, 120);
+      });
+      return body;
+    }).catch(() => ({ success: false, error: 'network' }));
+  }
+
+  function fetchAchievementProgressSnapshot(token, force) {
+    if (!force && _homeRetention && Array.isArray(_homeRetention.achievement_progress)) {
+      return Promise.resolve(_homeRetention.achievement_progress.map(function (item) { return Object.assign({}, item); }));
+    }
+    return apiOnce('/api/miniapp/retention/home', { timeoutMs: 12000 }, token).then(function (res) {
+      const body = res && res.body;
+      return body && body.success && Array.isArray(body.achievement_progress) ? body.achievement_progress : [];
+    }).catch(function () { return []; });
+  }
+
+  function showAdvancedAchievementProgress(before, after) {
+    if (!Array.isArray(after) || !after.length) return;
+    const previous = new Map((before || []).map(function (item) { return [String(item.id || ''), Number(item.current || 0)]; }));
+    const advanced = after.filter(function (item) {
+      return previous.has(String(item.id || '')) && Number(item.current || 0) > Number(previous.get(String(item.id || '')) || 0);
+    });
+    if (!advanced.length) return;
+    const item = advanced[0];
+    const current = Number(item.current || 0);
+    const target = Math.max(1, Number(item.target || 1));
+    const pct = Math.max(0, Math.min(100, Math.round(current / target * 100)));
+    let toast = document.getElementById('achievement-progress-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'achievement-progress-toast';
+      toast.className = 'achievement-progress-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = '<div class="achievement-progress-toast-head"><span>' + escapeHtml(item.icon || '🏅') + '</span><strong>' + escapeHtml(item.name || 'Достижение') + '</strong><b>' + current + '/' + target + '</b></div>'
+      + '<div class="achievement-progress-toast-track"><i style="width:' + pct + '%"></i></div>'
+      + '<small>' + escapeHtml(item.prompt || item.description || '') + '</small>';
+    toast.classList.add('is-visible');
+    clearTimeout(window._mpAchievementProgressToastTimer);
+    window._mpAchievementProgressToastTimer = setTimeout(function () { toast.classList.remove('is-visible'); }, 4200);
+    if (_homeRetention) {
+      _homeRetention.achievement_progress = after;
+      paintHomeRetention();
+    }
   }
 
   let _profilesApiInflight = null;
@@ -10871,9 +10929,31 @@
 
   function paintHomeTournamentBlock() {
     const root = document.getElementById('home-dashboard-root');
-    if (!root) return;
-    const existing = root.querySelector('[data-home-block="tournament"]');
-    if (existing) existing.remove();
+    if (!root || isGuestCabinetPreview()) return;
+    if (_cabinetMeCache && _cabinetMeCache.is_group_profile) return;
+    if (loadHomeSectionsHidden().indexOf('tournament') >= 0) {
+      const gone = root.querySelector('[data-home-block="tournament"]');
+      if (gone) gone.remove();
+      return;
+    }
+    const data = homeTournamentLeaderboardData();
+    const activeId = homeTournamentActiveNomId(data);
+    _homeTournamentActiveNomId = activeId;
+    const noms = (data && data.nominations) || [];
+    const nom = noms.find((n) => n.id === activeId) || noms[0] || { label: 'Оценки' };
+    const periodLabel = (data && data.period && data.period.label) || (data && data.current_month_label) || '';
+    const headExtra = periodLabel ? ('<div class="cabinet-hint">' + escapeHtml(periodLabel) + '</div>') : '';
+    const tabsHtml = data ? renderHomeTournamentTabsHtml(data, activeId) : '';
+    const rowsHtml = data
+      ? renderHomeTournamentRowsHtml(data, activeId, 5)
+      : '<p class="empty-hint home-tourn-empty">Загрузка…</p>';
+    const html = '<section class="home-dash-block home-tourn-block" data-home-block="tournament">'
+      + '<div class="home-dash-head"><div><h3 class="home-dash-h">' + escapeHtml(HOME_BLOCK_META.tournament.title) + '</h3>' + headExtra + '</div>'
+      + '<button type="button" class="link-inline home-dash-more" data-home-show-section="tournament">' + escapeHtml(HOME_BLOCK_META.tournament.moreLabel) + '</button></div>'
+      + tabsHtml
+      + '<div class="home-tourn-rows" id="home-tourn-rows">' + rowsHtml + '</div></section>';
+    upsertHomeDashboardBlock(root, 'tournament', html);
+    bindHomeTournamentTabsOnce();
   }
 
   let _cabinetMeCache = null;
@@ -11705,16 +11785,21 @@
     const daily = data.daily_film || {};
     const film = daily.film || {};
     const poster = film.poster || daily.preview_poster || '';
+    const dailyLabel = (film.is_series || daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
     const dailyBody = daily.claimed && film.kp_id
-      ? '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">Фильм дня</span><strong>' + escapeHtml(film.title || 'Фильм дня') + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть фильм →</span></span></button>'
-      : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">Фильм дня</span><strong>Откройте сегодняшний фильм</strong><small>Завтра здесь будет новый</small><button type="button" class="btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
+      ? '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть →</span></span></button>'
+      : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>Откройте рекомендацию на сегодня</strong><small>Завтра здесь будет новая</small><button type="button" class="btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
     const personalization = data.personalization || {};
-    const steps = personalization.steps || [];
+    const steps = (personalization.steps || []).slice().sort(function (a, b) {
+      const aDone = Number(a.current || 0) >= Number(a.target || 1);
+      const bDone = Number(b.current || 0) >= Number(b.target || 1);
+      return Number(bDone) - Number(aDone);
+    });
     const goalHtml = Number(personalization.completed || 0) < Number(personalization.total || 0)
-      ? '<section class="retention-goal"><div class="retention-section-head"><div><span class="retention-kicker">Персонализация</span><h3>Настройте рекомендации</h3></div><b>' + Number(personalization.completed || 0) + ' из ' + Number(personalization.total || 3) + '</b></div><div class="retention-goal-steps">' + steps.map(function (step) { const done = Number(step.current || 0) >= Number(step.target || 1); return '<div class="retention-goal-step' + (done ? ' is-done' : '') + '"><span>' + (done ? '✓' : Number(step.current || 0)) + '</span><div><strong>' + escapeHtml(step.label || '') + '</strong>' + (!done && Number(step.target || 1) > 1 ? '<small>' + Number(step.current || 0) + ' / ' + Number(step.target || 1) + '</small>' : '') + '</div></div>'; }).join('') + '</div><button type="button" class="btn-secondary retention-goal-btn" data-retention-onboarding>Настроить рекомендации</button></section>'
+      ? '<section class="retention-goal"><div class="retention-section-head"><div><span class="retention-kicker">Персонализация</span><h3>Настройте рекомендации</h3></div><b>' + Number(personalization.completed || 0) + ' из ' + Number(personalization.total || 3) + '</b></div><div class="retention-goal-steps">' + steps.map(function (step, index) { const done = Number(step.current || 0) >= Number(step.target || 1); return '<div class="retention-goal-step' + (done ? ' is-done' : '') + '"><span>' + (done ? '✓' : (index + 1)) + '</span><div><strong>' + escapeHtml(step.label || '') + '</strong>' + (!done && Number(step.target || 1) > 1 ? '<small>' + Number(step.current || 0) + ' / ' + Number(step.target || 1) + '</small>' : '') + '</div></div>'; }).join('') + '</div><button type="button" class="btn-secondary retention-goal-btn" data-retention-onboarding>Настроить рекомендации</button></section>'
       : '';
     const ach = data.achievement_progress || [];
-    const achHtml = ach.length ? '<section class="retention-achievements"><div class="retention-section-head"><div><span class="retention-kicker">Следующие награды</span><h3>Вы уже близко</h3></div></div>' + ach.map(function (item) { const current = Number(item.current || 0); const target = Math.max(1, Number(item.target || 1)); const pct = Math.max(0, Math.min(100, Math.round(current / target * 100))); return '<div class="retention-ach-row"><div class="retention-ach-icon" aria-hidden="true">' + escapeHtml(item.icon || '🏅') + '</div><div class="retention-ach-main"><div class="retention-ach-head"><strong>' + escapeHtml(item.name || 'Ачивка') + '</strong><span>' + current + '/' + target + '</span></div><div class="retention-progress"><i style="width:' + pct + '%"></i></div><div class="retention-ach-prompt">' + escapeHtml(item.prompt || item.description || '') + '</div></div></div>'; }).join('') + '</section>' : '';
+    const achHtml = ach.length ? '<section class="retention-achievements"><div class="retention-section-head"><div><span class="retention-kicker">Следующие награды</span><h3>Вы уже близко</h3></div><button type="button" class="link-inline retention-all-achievements" data-home-show-section="stats">Все достижения →</button></div>' + ach.map(function (item) { const current = Number(item.current || 0); const target = Math.max(1, Number(item.target || 1)); const pct = Math.max(0, Math.min(100, Math.round(current / target * 100))); return '<div class="retention-ach-row"><div class="retention-ach-icon" aria-hidden="true">' + escapeHtml(item.icon || '🏅') + '</div><div class="retention-ach-main"><div class="retention-ach-head"><strong>' + escapeHtml(item.name || 'Ачивка') + '</strong><span>' + current + '/' + target + '</span></div><div class="retention-progress"><i style="width:' + pct + '%"></i></div><div class="retention-ach-prompt">' + escapeHtml(item.prompt || item.description || '') + '</div></div></div>'; }).join('') + '</section>' : '';
     const dailyHtml = daily.available === false ? '' : '<section class="retention-daily">' + dailyBody + '</section>';
     return '<div class="home-retention" data-home-retention>' + dailyHtml + goalHtml + achHtml + '</div>';
   }
