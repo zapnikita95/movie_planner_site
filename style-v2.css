@@ -30363,6 +30363,7 @@ a.collections-author-block:hover {
 .retention-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
 .retention-section-head h3 { margin: 0; color: var(--text-primary); font-size: 18px; line-height: 1.2; }
 .retention-section-head > b { color: #ff5aa5; white-space: nowrap; font-size: 13px; }
+.retention-all-achievements { flex: 0 0 auto; align-self: center; font-size: 11px; white-space: nowrap; }
 .retention-goal-steps { display: grid; gap: 9px; }
 .retention-goal-step { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 9px; align-items: center; color: var(--text-muted); }
 .retention-goal-step > span { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.19); border-radius: 50%; font-size: 11px; font-weight: 800; }
@@ -30385,6 +30386,32 @@ a.collections-author-block:hover {
 .retention-onboarding-card p { margin: 0 0 18px; color: var(--text-muted); line-height: 1.5; }
 .retention-onboarding-card .btn-ghost { margin-top: 8px; }
 
+.achievement-progress-toast {
+  position: fixed;
+  z-index: 10050;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(380px, calc(100vw - 28px));
+  padding: 12px 14px;
+  border: 1px solid rgba(239,28,122,.48);
+  border-radius: 12px;
+  background: rgba(20,18,25,.97);
+  box-shadow: 0 14px 38px rgba(0,0,0,.42);
+  color: var(--text-primary);
+  font-family: 'Unbounded', sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -18px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.achievement-progress-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.achievement-progress-toast-head { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; }
+.achievement-progress-toast-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.achievement-progress-toast-head b { color: #ff5aa5; font-size: 11px; }
+.achievement-progress-toast-track { height: 5px; margin-top: 9px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.1); }
+.achievement-progress-toast-track i { display: block; height: 100%; border-radius: inherit; background: #ef1c7a; }
+.achievement-progress-toast small { display: block; margin-top: 7px; color: var(--text-muted); font-size: 10px; line-height: 1.35; }
+
 @media (max-width: 760px) {
   .home-retention { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
   .retention-daily { order: 0; }
@@ -30398,6 +30425,8 @@ a.collections-author-block:hover {
   .retention-daily-claim { min-height: 42px; margin-top: 13px; padding: 9px 12px; font-size: 12px; }
   .retention-goal,
   .retention-achievements { padding: 15px; }
+  .retention-achievements .retention-section-head { align-items: center; }
+  .retention-all-achievements { font-size: 10px; }
   .retention-onboarding-card h2 { font-size: 23px; }
 }
 .collections-author-avatar-wrap { flex: 0 0 auto; }
