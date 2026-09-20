@@ -5190,6 +5190,15 @@ body.header-search-dropdown-open .header-search-glyph--close {
   text-align: center;
   box-sizing: border-box;
 }
+.ach-celebration-card--group { max-width: 480px; padding: 24px; overflow-x: hidden; }
+.ach-celebration-burst { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ach-celebration-burst i { position: absolute; top: -18px; width: 7px; height: 22px; background: #fbbf24; animation: ach-shard-fall 1.8s ease-out both; }
+.ach-celebration-burst i:nth-child(1) { left: 10%; transform: rotate(12deg); }
+.ach-celebration-burst i:nth-child(2) { left: 30%; animation-delay: .12s; background: #ff2d7b; }
+.ach-celebration-burst i:nth-child(3) { left: 52%; animation-delay: .22s; height: 15px; }
+.ach-celebration-burst i:nth-child(4) { left: 73%; animation-delay: .08s; background: #00b7d8; }
+.ach-celebration-burst i:nth-child(5) { left: 91%; animation-delay: .28s; }
+@keyframes ach-shard-fall { 0% { opacity: 0; translate: 0 -10px; } 16% { opacity: 1; } 100% { opacity: 0; translate: 8px 230px; rotate: 130deg; } }
 .ach-celebration-kicker {
   font-size: 12px;
   font-weight: 700;
@@ -5208,9 +5217,9 @@ body.header-search-dropdown-open .header-search-glyph--close {
   justify-content: center;
   font-size: 44px;
   line-height: 1;
-  background: radial-gradient(circle at 35% 30%, #fff7d6 0%, #fbbf24 42%, #b45309 100%);
+  background: #fbbf24;
   border: 3px solid #fde68a;
-  box-shadow: 0 0 22px 4px rgba(251, 191, 36, 0.45);
+  box-shadow: 0 0 0 7px rgba(251, 191, 36, 0.12);
 }
 .ach-celebration-title {
   font-family: 'Unbounded', sans-serif;
@@ -5232,12 +5241,28 @@ body.header-search-dropdown-open .header-search-glyph--close {
   font-size: 11px;
   font-weight: 700;
   color: #78350f;
-  background: linear-gradient(90deg, #fde68a, #fbbf24);
+  background: #fde68a;
 }
+.ach-celebration-list { display: grid; gap: 9px; margin: 14px 0; text-align: left; }
+.ach-celebration-row { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 12px; align-items: center; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.035); }
+.ach-celebration-row.rare { border-color: rgba(0,183,216,.38); }
+.ach-celebration-row.epic { border-color: rgba(155,77,255,.42); }
+.ach-celebration-row.legendary { border-color: rgba(251,191,36,.58); background: rgba(251,191,36,.07); }
+.ach-celebration-row-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; background: #27231a; font-size: 25px; }
+.ach-celebration-row h3 { margin: 0; color: var(--text-primary); font-size: 14px; line-height: 1.25; }
+.ach-celebration-row p { margin: 3px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.35; }
+.ach-celebration-row span { display: inline-block; margin-top: 5px; color: #fbbf24; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
 .ach-celebration-btn {
   width: 100%;
   margin-top: 4px;
 }
+@media (max-width: 540px) {
+  .ach-celebration-card--group { padding: 20px 15px 16px; }
+  .ach-celebration-card--group .ach-celebration-icon-wrap { width: 70px; height: 70px; font-size: 36px; }
+  .ach-celebration-row { grid-template-columns: 42px minmax(0,1fr); padding: 10px; }
+  .ach-celebration-row-icon { width: 40px; height: 40px; font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .ach-celebration-burst i { animation: none; display: none; } }
 
 /* Achievement panel (Все ачивки) */
 .ach-panel {
@@ -30173,6 +30198,104 @@ html.mp-section-boot #section-club .club-layout {
 a.collections-author-block:hover {
   border-color: rgba(239, 28, 122, 0.4);
   background: rgba(239, 28, 122, 0.08);
+}
+
+/* Retention loop: daily reveal, taste setup and visible achievement progress. */
+.home-retention {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  gap: 14px;
+  margin: 0 0 18px;
+}
+.home-retention > section {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.13);
+  background: #17171d;
+  border-radius: 12px;
+}
+.retention-daily { grid-row: span 2; overflow: hidden; }
+.retention-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: #f2c94c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.retention-daily-open,
+.retention-daily-locked {
+  width: 100%;
+  min-height: 236px;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.retention-daily-open { cursor: pointer; }
+.retention-daily-poster { position: relative; display: block; min-height: 236px; overflow: hidden; background: #0c0c10; }
+.retention-daily-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.retention-daily-poster--locked img { filter: blur(12px) saturate(.55); transform: scale(1.12); opacity: .48; }
+.retention-daily-poster--locked::after {
+  content: '?';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font: 900 54px/1 var(--font-display, inherit);
+  background: rgba(8,8,12,.2);
+}
+.retention-daily-copy { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 22px; min-width: 0; }
+.retention-daily-copy strong { color: var(--text-primary); font-size: clamp(20px, 2vw, 28px); line-height: 1.12; }
+.retention-daily-copy small { margin-top: 8px; color: var(--text-muted); font-size: 13px; line-height: 1.45; }
+.retention-inline-link { margin-top: 18px; color: #ff6da6; font-weight: 750; font-size: 13px; }
+.retention-daily-claim { margin-top: 18px; width: auto; max-width: 100%; }
+.retention-goal,
+.retention-achievements { padding: 18px; }
+.retention-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.retention-section-head h3 { margin: 0; color: var(--text-primary); font-size: 18px; line-height: 1.2; }
+.retention-section-head > b { color: #f2c94c; white-space: nowrap; font-size: 13px; }
+.retention-goal-steps { display: grid; gap: 9px; }
+.retention-goal-step { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 9px; align-items: center; color: var(--text-muted); }
+.retention-goal-step > span { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.19); border-radius: 50%; font-size: 11px; font-weight: 800; }
+.retention-goal-step strong { display: block; color: var(--text-primary); font-size: 13px; }
+.retention-goal-step small { display: block; margin-top: 2px; font-size: 11px; }
+.retention-goal-step.is-done > span { border-color: #69c58b; background: #24543a; color: #fff; }
+.retention-goal-step.is-done strong { color: #9adbb0; text-decoration: line-through; text-decoration-thickness: 1px; }
+.retention-goal-btn { margin-top: 15px; width: 100%; }
+.retention-achievements { grid-column: 2; }
+.retention-ach-row { display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.retention-ach-row:first-of-type { border-top: 0; padding-top: 0; }
+.retention-ach-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid rgba(242,201,76,.35); border-radius: 50%; background: #2a2415; font-size: 19px; }
+.retention-ach-head { display: flex; justify-content: space-between; gap: 10px; color: var(--text-primary); font-size: 12px; }
+.retention-ach-head > span { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.retention-progress { height: 5px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.09); }
+.retention-progress i { display: block; height: 100%; border-radius: inherit; background: #f2c94c; }
+.retention-ach-prompt { margin-top: 5px; color: var(--text-muted); font-size: 11px; }
+.retention-onboarding-card { max-width: 430px; text-align: left; }
+.retention-onboarding-card h2 { margin: 0 0 10px; color: var(--text-primary); font-size: 26px; line-height: 1.08; }
+.retention-onboarding-card p { margin: 0 0 18px; color: var(--text-muted); line-height: 1.5; }
+.retention-onboarding-card .btn-ghost { margin-top: 8px; }
+
+@media (max-width: 760px) {
+  .home-retention { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .retention-daily { order: 0; }
+  .retention-goal { order: 1; }
+  .retention-achievements { order: 2; }
+  .retention-daily-open,
+  .retention-daily-locked { grid-template-columns: 112px minmax(0,1fr); min-height: 176px; }
+  .retention-daily-poster { min-height: 176px; }
+  .retention-daily-copy { padding: 16px 14px; }
+  .retention-daily-copy strong { font-size: 18px; }
+  .retention-daily-claim { min-height: 42px; margin-top: 13px; padding: 9px 12px; font-size: 12px; }
+  .retention-goal,
+  .retention-achievements { padding: 15px; }
+  .retention-onboarding-card h2 { font-size: 23px; }
 }
 .collections-author-avatar-wrap { flex: 0 0 auto; }
 .collections-author-avatar {
