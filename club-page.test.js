@@ -16,4 +16,17 @@ assert.doesNotMatch(page, /data-club-onboard-dismiss>\u041f\u043e\u043d\u044f\u0
 assert.doesNotMatch(page, /data-club-onboard-dismiss aria-label="\u0417\u0430\u043a\u0440\u044b\u0442\u044c">\u0417\u0430\u043a\u0440\u044b\u0442\u044c/);
 assert.match(styles, /\.club-onboard-close\{/);
 
+const scheduleActionStart = page.indexOf('function clubScheduleAction');
+const scheduleActionEnd = page.indexOf('\n  function refreshClubPlanWatched', scheduleActionStart);
+const scheduleAction = page.slice(scheduleActionStart, scheduleActionEnd);
+assert.doesNotMatch(scheduleAction, /data-club-join/);
+assert.doesNotMatch(scheduleAction, /clubCalendarControls/);
+assert.match(page, /<summary>Добавить в календарь<\/summary>/);
+assert.match(page, /function filmHistoryGroups\(\)/);
+assert.match(page, /data-club-note-url=/);
+assert.match(page, /Добавить заметку и запись/);
+assert.match(page, /interactive && interactive !== b/);
+assert.match(styles, /\.club-film-history\s*\{/);
+assert.match(styles, /body\.club-plan-open\s*\{\s*overflow:\s*hidden/);
+
 console.log('club onboarding contract ok');
