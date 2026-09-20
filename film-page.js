@@ -2623,11 +2623,11 @@
       hints.cinema_plan_id != null;
     var planLabel = formatFilmPlanCtaLabel(hints, item);
     var planItems = [
-      '<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>',
-      '<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>',
+      '<button type="button" class="action-dropdown-item" data-plan-place="home">🏠 Дома</button>',
+      '<button type="button" class="action-dropdown-item" data-plan-place="cinema">🎥 В кино</button>',
     ].join('');
     if (CINEMA_CLUB_TARGETS.length) {
-      planItems += '<button type="button" class="action-dropdown-item" data-goto-plans="club">🎬 Киноклуб</button>';
+      planItems += '<button type="button" class="action-dropdown-item" data-plan-place="club">🎬 Киноклуб</button>';
     }
     if (hints.has_upcoming || hints.next_plan_start_iso) {
       planItems =
@@ -3325,12 +3325,12 @@
         if (!wasOpen) dd.classList.add('open');
       });
     });
-    root.querySelectorAll('[data-goto-plans]').forEach(function (btn) {
+    root.querySelectorAll('[data-plan-place]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         closeFilmPlanDropdowns();
-        var place = btn.getAttribute('data-goto-plans') || 'home';
+        var place = btn.getAttribute('data-plan-place') || 'home';
         if (onPickPlace) onPickPlace(place);
       });
     });

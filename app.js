@@ -9306,8 +9306,8 @@
     const yearAttr = escapeHtml(String(item.year || ''));
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
     const planItems = [
-      `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
-      `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>`,
+      `<button type="button" class="action-dropdown-item" data-plan-place="home" data-kp="${kp}" data-title="${titleAttr}">🏠 Дома</button>`,
+      `<button type="button" class="action-dropdown-item" data-plan-place="cinema" data-kp="${kp}" data-title="${titleAttr}">🎥 В кино</button>`,
       `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
     const watchItems = [];
@@ -10108,23 +10108,35 @@
       }
       return;
     }
-    const goPlansItem = e.target.closest('.action-dropdown-item[data-goto-plans]');
-    if (goPlansItem) {
+    const planPlaceItem = e.target.closest('.action-dropdown-item[data-plan-place]');
+    if (planPlaceItem) {
       e.preventDefault();
       e.stopPropagation();
       closeAllActionDropdowns();
-      const filter = goPlansItem.getAttribute('data-goto-plans') || 'all';
-      showSection('plans');
-      _plansViewFilter = filter === 'home' || filter === 'cinema' ? filter : 'all';
-      const tabs = document.getElementById('plans-filter-tabs');
-      if (tabs) {
-        tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
-          const on = b.getAttribute('data-plans-filter') === _plansViewFilter;
-          b.classList.toggle('active', on);
-          b.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
+      const place = planPlaceItem.getAttribute('data-plan-place') || 'home';
+      let kp = String(planPlaceItem.getAttribute('data-kp') || '').replace(/\D/g, '');
+      let title = planPlaceItem.getAttribute('data-title') || '';
+      if (!kp) {
+        try {
+          const pathKp = typeof kpIdFromPathname === 'function'
+            ? kpIdFromPathname(window.location.pathname)
+            : '';
+          kp = String(pathKp || '').replace(/\D/g, '');
+        } catch (_) {}
       }
-      renderPlansList();
+      if (!kp) {
+        const hero = document.querySelector('#film-page-content [data-kp-id], #section-film [data-kp-id], .film-hero[data-kp-id]');
+        if (hero) kp = String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+      }
+      if (!title) {
+        const tEl = document.getElementById('film-title');
+        if (tEl) title = String(tEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      }
+      if (kp && typeof openSiteFilmPlanModal === 'function') {
+        openSiteFilmPlanModal(kp, title, place === 'cinema' ? 'cinema' : 'home');
+      } else {
+        showToast(kp ? 'Форма плана недоступна' : 'Не удалось определить фильм', { type: 'error' });
+      }
       return;
     }
     const tvBtn = e.target.closest('[data-tv-launch="1"]');
