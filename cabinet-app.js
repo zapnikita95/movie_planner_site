@@ -13879,6 +13879,42 @@
 
   function mountGuestPlansDiscovery(listEl) {
     if (!listEl) return;
+    let localPlans = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('mp_guest_plans_v1') || '[]');
+      localPlans = Array.isArray(parsed) ? parsed.filter((item) => item && item.local_id) : [];
+    } catch (_) {}
+    if (localPlans.length) {
+      const cards = localPlans.map((item) => {
+        const href = '/f/' + encodeURIComponent(String(item.key || item.kp_id || ''));
+        const poster = cleanPosterUrl(item.poster) || posterUrl(item.kp_id);
+        const planDate = item.plan_datetime ? new Date(item.plan_datetime) : null;
+        const when = planDate && !Number.isNaN(planDate.getTime())
+          ? (planDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ', '
+            + planDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
+          : '';
+        const place = item.plan_type === 'cinema'
+          ? ('В кино' + (item.cinema_name ? (' · ' + item.cinema_name) : ''))
+          : 'Дома';
+        return '<article class="guest-discover-card">'
+          + '<a class="guest-discover-card-link" href="' + escapeHtml(href) + '">'
+          + '<div class="guest-discover-card-poster premiere-poster-media"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></div>'
+          + '<div class="guest-discover-card-meta">'
+          + '<div class="guest-discover-card-title">' + escapeHtml(item.title || 'Фильм') + '</div>'
+          + '<div class="guest-discover-card-year">' + escapeHtml([when, place].filter(Boolean).join(' · ')) + '</div>'
+          + '</div></a></article>';
+      }).join('');
+      listEl.innerHTML = '<div class="guest-discover guest-discover--plans">'
+        + '<div class="guest-discover-hero guest-discover-hero--compact">'
+        + '<div class="guest-discover-hero-copy"><h1 class="guest-discover-h1">Мои планы</h1>'
+        + '<p>Планы сохранены в этом браузере.</p></div>'
+        + '<div class="guest-discover-cta-row"><button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Сохранить навсегда</button>'
+        + '<a class="btn btn-small btn-secondary" href="/search">Добавить план</a></div></div>'
+        + '<div class="guest-discover-rail-title">Запланировано</div>'
+        + '<div class="guest-discover-grid" role="list">' + cards + '</div></div>';
+      bindGuestDiscoverClicksOnce(listEl);
+      return;
+    }
     listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Подбираем фильмы…</p></div>';
     fetchGuestDiscoverRails().then(function (rails) {
       if (!isGuestCabinetPreview()) return;

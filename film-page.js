@@ -3237,6 +3237,8 @@
     if (!authenticated) {
       var eyeIco = mpToolbarIcon('eye', { size: 'sm', className: 'film-icon-ico' }) ||
         '<span class="film-icon-ico" aria-hidden="true"><i class="ph ph-eye"></i></span>';
+      var planIco = mpToolbarIcon('calendar', { size: 'sm', className: 'film-icon-ico' }) ||
+        '<span class="film-icon-ico" aria-hidden="true">□</span>';
       return (
         '<div class="film-page-toolbar film-page-toolbar--guest">' +
           '<div class="film-toolbar-plan-wrap">' +
@@ -3244,13 +3246,16 @@
               id: 'guest-watchlist-cta',
               icon: 'watchlist',
               label: 'В список просмотра',
-              loginHint: true,
+              loginHint: false,
               dataAttrs: ' data-guest-watchlist="1"',
             }) +
           '</div>' +
           '<div class="film-toolbar-icons">' +
             '<button type="button" class="film-icon-btn" id="guest-watched-btn" data-guest-watched="1" aria-label="Просмотрено" title="Просмотрено">' +
               eyeIco + '<span class="film-icon-label">Просмотрено</span>' +
+            '</button>' +
+            '<button type="button" class="film-icon-btn" id="guest-plan-btn" data-guest-plan="1" aria-label="Запланировать" title="Запланировать">' +
+              planIco + '<span class="film-icon-label">В план</span>' +
             '</button>' +
             rateBtnOnly +
             shareInAppBtn +
@@ -4865,6 +4870,7 @@
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + pathKey); } catch (_e) {}
       }
       var GUEST_LIBRARY_KEY = 'mp_guest_library_v1';
+      var GUEST_PLANS_KEY = 'mp_guest_plans_v1';
       var GUEST_ACTION_COUNT_KEY = 'mp_guest_action_count_v1';
       var GUEST_NUDGE_KEY = 'mp_guest_signup_nudge_v1';
       var guestMigrationPending = false;
@@ -4876,6 +4882,15 @@
       }
       function writeGuestLibrary(items) {
         try { localStorage.setItem(GUEST_LIBRARY_KEY, JSON.stringify((items || []).slice(0, 200))); } catch (_e) {}
+      }
+      function readGuestPlans() {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(GUEST_PLANS_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(function (item) { return item && item.local_id; }) : [];
+        } catch (_e) { return []; }
+      }
+      function writeGuestPlans(items) {
+        try { localStorage.setItem(GUEST_PLANS_KEY, JSON.stringify((items || []).slice(0, 100))); } catch (_e) {}
       }
       function currentGuestFilm(patch) {
         var f = publicFilmSnapshot || {};
@@ -4942,6 +4957,31 @@
         showPublicToast(message || 'Сохранено в этом браузере');
         try { window.dispatchEvent(new CustomEvent('mp:guest-library-updated')); } catch (_e) {}
         maybeNudgeGuestSignup();
+        return item;
+      }
+      function saveGuestPlan(payload) {
+        var film = currentGuestFilm({ in_watchlist: true });
+        var body = payload && payload.body || {};
+        if (!body.plan_datetime) return null;
+        var items = readGuestPlans();
+        var item = {
+          local_id: 'guest-plan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          plan_type: payload.mode === 'cinema' ? 'cinema' : 'home',
+          plan_datetime: String(body.plan_datetime),
+          key: film.key,
+          kp_id: film.kp_id,
+          catalog_id: film.catalog_id,
+          title: film.title,
+          year: film.year,
+          poster: film.poster,
+          cinema_name: String(body.cinema_name || '').trim(),
+          cinema_address: String(body.cinema_address || '').trim(),
+          created_at: new Date().toISOString(),
+        };
+        items.unshift(item);
+        writeGuestPlans(items);
+        saveGuestFilm({ in_watchlist: true }, 'План сохранён в этом браузере');
+        try { window.dispatchEvent(new CustomEvent('mp:guest-plans-updated')); } catch (_e) {}
         return item;
       }
       function migrateGuestLibrary() {
@@ -5518,7 +5558,12 @@
         }
         place = place === 'cinema' ? 'cinema' : 'home';
         if (!token()) {
-          openStandalonePlanModal(isTmdbOnly ? { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId, title: filmTitleForPlan() } : { kp_id: kpId, title: filmTitleForPlan() }, place, { guestMode: true, libraryChatId: targetChatId || null, onRequireAuth: function (planPayload) { rememberPendingGuestPlan(planPayload); loginNow('plan'); } });
+          var guestFilm = currentGuestFilm();
+          openStandalonePlanModal(guestFilm, place, {
+            guestMode: true,
+            libraryChatId: targetChatId || null,
+            onGuestSave: saveGuestPlan,
+          });
           return;
         }
         var extra = targetChatId ? { libraryChatId: targetChatId } : null;
@@ -5807,12 +5852,21 @@
           try { sessionStorage.setItem('mp_public_film_action', 'add:' + pathKey); } catch (_e) {}
           addCurrentFilm();
         });
+        if (guestWatchlist) guestWatchlist.setAttribute('data-mp-guest-bound', '1');
         var guestWatched = document.getElementById('guest-watched-btn');
         if (guestWatched) guestWatched.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           markWatchedCurrentFilm();
         });
+        if (guestWatched) guestWatched.setAttribute('data-mp-guest-bound', '1');
+        var guestPlan = document.getElementById('guest-plan-btn');
+        if (guestPlan) guestPlan.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          planCurrentFilm();
+        });
+        if (guestPlan) guestPlan.setAttribute('data-mp-guest-bound', '1');
         var rg = document.getElementById('rate-grid');
         if (!rg) return;
         rg.querySelectorAll('[data-rate]').forEach(function (btn) {
