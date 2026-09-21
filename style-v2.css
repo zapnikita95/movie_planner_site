@@ -30477,7 +30477,15 @@ a.collections-author-block:hover {
   background: #17171d;
   border-radius: 12px;
 }
-.retention-daily { grid-row: span 2; overflow: hidden; }
+.retention-daily {
+  grid-row: span 2;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 100%;
+  height: 100%;
+}
 .retention-kicker {
   display: block;
   margin-bottom: 5px;
@@ -30490,9 +30498,11 @@ a.collections-author-block:hover {
 .retention-daily-open,
 .retention-daily-locked {
   width: 100%;
+  flex: 1 1 auto;
   min-height: 236px;
+  height: 100%;
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: minmax(148px, 42%) minmax(0, 1fr);
   align-items: stretch;
   padding: 0;
   border: 0;
@@ -30501,7 +30511,15 @@ a.collections-author-block:hover {
   text-align: left;
 }
 .retention-daily-open { cursor: pointer; }
-.retention-daily-poster { position: relative; display: block; min-height: 236px; overflow: hidden; background: #0c0c10; }
+.retention-daily-poster {
+  position: relative;
+  display: block;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  overflow: hidden;
+  background: #0c0c10;
+}
 .retention-daily-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .retention-daily-poster--locked img { filter: blur(12px) saturate(.55); transform: scale(1.12); opacity: .48; }
 .retention-daily-poster--locked::after {
@@ -30541,10 +30559,14 @@ a.collections-author-block:hover {
   transform: translateY(-1px);
 }
 
-/* «Фильм дня» slot/reel reveal on claim */
+/* «Фильм дня» horizontal reel reveal on claim */
 .retention-daily-reel {
   position: relative;
-  min-height: 320px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
   overflow: hidden;
   background:
     radial-gradient(90% 70% at 50% 40%, rgba(255, 90, 165, 0.18), transparent 58%),
@@ -30552,18 +30574,20 @@ a.collections-author-block:hover {
     #101016;
 }
 .retention-daily-reel-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
-  gap: 0;
-  padding: 18px 18px 16px;
-  min-height: 320px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 14px 14px;
+  min-height: 0;
+  width: 100%;
   box-sizing: border-box;
 }
 .retention-daily-reel-window {
   position: relative;
-  width: min(220px, 56vw);
-  height: 300px;
+  width: 100%;
+  height: clamp(148px, 22vw, 188px);
   overflow: hidden;
   border-radius: 14px;
   background: #0a0a0e;
@@ -30573,14 +30597,22 @@ a.collections-author-block:hover {
     0 18px 40px rgba(0,0,0,.45);
 }
 .retention-daily-reel-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  height: 100%;
+  width: max-content;
   will-change: transform;
   transform: translate3d(0, 0, 0);
 }
 .retention-daily-reel-cell {
-  height: 300px;
+  flex: 0 0 auto;
+  width: clamp(96px, 14vw, 124px);
+  height: 100%;
   display: grid;
   place-items: center;
-  padding: 14px;
+  padding: 8px 0;
   box-sizing: border-box;
 }
 .retention-daily-reel-cell img {
@@ -30594,23 +30626,23 @@ a.collections-author-block:hover {
 }
 .retention-daily-reel-hairline {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  height: 2px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 90, 165, 0.9), transparent);
+  background: linear-gradient(180deg, transparent, rgba(255, 90, 165, 0.95), transparent);
   pointer-events: none;
   z-index: 2;
   opacity: 0.95;
 }
-.retention-daily-reel-hairline--top { top: 12px; }
-.retention-daily-reel-hairline--bottom { bottom: 12px; }
+.retention-daily-reel-hairline--left { left: calc(50% - 1px - 62px); }
+.retention-daily-reel-hairline--right { left: calc(50% - 1px + 62px); }
 .retention-daily-reel-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 8, 12, 0.78) 0%, transparent 26%, transparent 74%, rgba(8, 8, 12, 0.82) 100%);
+    linear-gradient(90deg, rgba(8, 8, 12, 0.82) 0%, transparent 18%, transparent 82%, rgba(8, 8, 12, 0.86) 100%);
   z-index: 1;
 }
 .retention-daily-reel-copy {
@@ -30619,7 +30651,7 @@ a.collections-author-block:hover {
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 4px 12px 6px;
+  padding: 2px 10px 4px;
   min-width: 0;
   width: 100%;
 }
@@ -30646,31 +30678,47 @@ a.collections-author-block:hover {
 .retention-daily-reel.is-done .retention-daily-reel-window::after {
   content: '';
   position: absolute;
-  inset: 12px;
+  top: 8px;
+  bottom: 8px;
+  left: calc(50% - 62px);
+  width: 124px;
   border-radius: 10px;
   box-shadow: 0 0 0 2px rgba(255, 90, 165, 0.6), 0 0 32px rgba(255, 45, 123, 0.32);
   pointer-events: none;
   z-index: 3;
 }
 @media (max-width: 720px) {
-  .retention-daily-reel,
-  .retention-daily-reel-stage { min-height: 280px; }
-  .retention-daily-reel-stage { padding: 14px 12px 12px; }
-  .retention-daily-reel-window { width: min(168px, 48vw); height: 248px; }
-  .retention-daily-reel-cell { height: 248px; padding: 10px; }
+  .retention-daily-reel-stage { padding: 12px 10px 10px; }
+  .retention-daily-reel-window { height: 132px; }
+  .retention-daily-reel-cell { width: 88px; padding: 6px 0; }
+  .retention-daily-reel-hairline--left { left: calc(50% - 1px - 48px); }
+  .retention-daily-reel-hairline--right { left: calc(50% - 1px + 48px); }
+  .retention-daily-reel.is-done .retention-daily-reel-window::after {
+    left: calc(50% - 48px);
+    width: 96px;
+  }
   .retention-daily-reel-title { font-size: 17px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .retention-daily-reel-strip { transition: none !important; animation: none !important; }
 }
 
-.retention-daily-claimed { display: flex; flex-direction: column; gap: 0; }
+.retention-daily-claimed {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 100%;
+  height: 100%;
+}
 .retention-daily-ctas {
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
   padding: 12px 16px 16px;
   align-items: stretch;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 /* Firm pills only — tame global 60px landing .btn-primary/.btn-secondary; one row */
 .retention-daily-ctas .btn.retention-daily-cta {
@@ -30762,12 +30810,18 @@ a.collections-author-block:hover {
 
 @media (max-width: 760px) {
   .home-retention { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-  .retention-daily { order: 0; }
+  .retention-daily { order: 0; height: auto; min-height: 0; }
   .retention-goal { order: 1; }
   .retention-achievements { order: 2; }
   .retention-daily-open,
-  .retention-daily-locked { grid-template-columns: 112px minmax(0,1fr); min-height: 176px; }
-  .retention-daily-poster { min-height: 176px; }
+  .retention-daily-locked {
+    grid-template-columns: 112px minmax(0,1fr);
+    min-height: 176px;
+    height: auto;
+    flex: 0 0 auto;
+  }
+  .retention-daily-poster { min-height: 176px; height: 176px; }
+  .retention-daily-claimed { height: auto; min-height: 0; }
   .retention-daily-copy { padding: 16px 14px; }
   .retention-daily-copy strong { font-size: 18px; }
   .retention-daily-claim.btn.btn-primary { min-height: 42px; margin-top: 13px; padding: 9px 14px !important; font-size: 12px !important; }

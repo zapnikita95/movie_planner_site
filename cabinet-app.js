@@ -11890,7 +11890,7 @@
     const daily = data.daily_film || {};
     const film = daily.film || {};
     const poster = film.poster || daily.preview_poster || '';
-    const dailyLabel = (film.is_series || daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
+    const dailyLabel = retentionDailyMediaLabel(daily, film);
     const claimCtas = daily.claimed && film.kp_id
       ? ('<div class="retention-daily-ctas">'
         + '<button type="button" class="btn btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">Добавить в базу</button>'
@@ -11977,6 +11977,15 @@
     }
   }
 
+  function retentionDailyMediaLabel(daily, film) {
+    const f = film || (daily && daily.film) || {};
+    if (f.is_series === true || f.is_series === 1) return 'Сериал дня';
+    if (f.is_series === false || f.is_series === 0) return 'Фильм дня';
+    const mt = String((daily && daily.media_type) || '').toLowerCase();
+    if (mt === 'series' || mt === 'tv' || mt === 'tv_series' || mt === 'tv-show') return 'Сериал дня';
+    return 'Фильм дня';
+  }
+
   function retentionDailyReelPosters(daily, winnerPoster) {
     const out = [];
     const seen = Object.create(null);
@@ -12029,7 +12038,8 @@
     const root = opts && opts.root;
     const posters = (opts && opts.posters) || [];
     const winnerPoster = (opts && opts.winnerPoster) || '';
-    const dailyLabel = (opts && opts.dailyLabel) || 'Фильм дня';
+    let dailyLabel = (opts && opts.dailyLabel) || 'Фильм дня';
+    const claimPromise = (opts && opts.claimPromise) || null;
     if (!root) return Promise.resolve();
     const built = buildRetentionDailyReelStrip(posters, winnerPoster);
     const cellsHtml = built.strip.map(function (src, idx) {
@@ -12042,12 +12052,12 @@
       + '<div class="retention-daily-reel-stage">'
       + '<div class="retention-daily-reel-window" aria-hidden="true">'
       + '<div class="retention-daily-reel-strip">' + cellsHtml + '</div>'
-      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--top"></div>'
-      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--bottom"></div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--left"></div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--right"></div>'
       + '<div class="retention-daily-reel-glow"></div>'
       + '</div>'
       + '<div class="retention-daily-reel-copy">'
-      + '<span class="retention-kicker">' + escapeHtml(dailyLabel) + '</span>'
+      + '<span class="retention-kicker retention-daily-reel-kicker">' + escapeHtml(dailyLabel) + '</span>'
       + '<strong class="retention-daily-reel-title">Крутим ленту…</strong>'
       + '<small class="retention-daily-reel-sub">Постеры из вашей подборки</small>'
       + '</div></div></div>';
@@ -12055,36 +12065,47 @@
     const windowEl = root.querySelector('.retention-daily-reel-window');
     const titleEl = root.querySelector('.retention-daily-reel-title');
     const subEl = root.querySelector('.retention-daily-reel-sub');
+    const kickerEl = root.querySelector('.retention-daily-reel-kicker');
     if (!stripEl || !windowEl) return Promise.resolve();
 
-    function cellH() {
+    let claimedFilm = null;
+
+    function cellPitch() {
       const cell = stripEl.querySelector('.retention-daily-reel-cell');
-      const h = cell ? cell.getBoundingClientRect().height : 0;
-      return h > 0 ? h : Math.max(248, windowEl.getBoundingClientRect().height || 300);
+      if (!cell) return 122;
+      const w = cell.getBoundingClientRect().width;
+      const styles = window.getComputedStyle(stripEl);
+      const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+      return (w > 0 ? w : 112) + gap;
     }
 
     function offsetFor(index) {
-      return Math.round(index * cellH());
+      // Center cell index in the wide horizontal window — neighbors stay visible.
+      const pitch = cellPitch();
+      const cell = stripEl.querySelector('.retention-daily-reel-cell');
+      const cellW = cell ? cell.getBoundingClientRect().width : Math.max(96, pitch - 10);
+      const winW = windowEl.getBoundingClientRect().width || 320;
+      return Math.round(index * pitch - (winW - cellW) / 2);
     }
 
-    function animateTo(y, duration, easing) {
+    function animateTo(x, duration, easing) {
       return new Promise(function (resolve) {
-        const from = stripEl._reelY || 0;
-        stripEl._reelY = y;
+        const from = stripEl._reelX || 0;
+        stripEl._reelX = x;
         if (typeof stripEl.animate !== 'function') {
-          stripEl.style.transform = 'translate3d(0,' + (-y) + 'px,0)';
+          stripEl.style.transform = 'translate3d(' + (-x) + 'px,0,0)';
           setTimeout(resolve, duration);
           return;
         }
         const anim = stripEl.animate(
           [
-            { transform: 'translate3d(0,' + (-from) + 'px,0)' },
-            { transform: 'translate3d(0,' + (-y) + 'px,0)' },
+            { transform: 'translate3d(' + (-from) + 'px,0,0)' },
+            { transform: 'translate3d(' + (-x) + 'px,0,0)' },
           ],
           { duration: duration, easing: easing || 'cubic-bezier(0.15, 0.85, 0.12, 1)', fill: 'forwards' }
         );
         anim.onfinish = function () {
-          stripEl.style.transform = 'translate3d(0,' + (-y) + 'px,0)';
+          stripEl.style.transform = 'translate3d(' + (-x) + 'px,0,0)';
           try { anim.cancel(); } catch (_) {}
           resolve();
         };
@@ -12096,10 +12117,23 @@
       return new Promise(function (r) { setTimeout(r, ms); });
     }
 
+    function syncClaimedFilm() {
+      if (!claimPromise) return Promise.resolve(claimedFilm);
+      if (claimedFilm) return Promise.resolve(claimedFilm);
+      return claimPromise.then(function (res) {
+        if (res && res.film) {
+          claimedFilm = res.film;
+          dailyLabel = retentionDailyMediaLabel(null, claimedFilm);
+          if (kickerEl) kickerEl.textContent = dailyLabel;
+        }
+        return claimedFilm;
+      }).catch(function () { return null; });
+    }
+
     // Start slightly into the first loop so the first paint isn't blank.
-    const startY = offsetFor(Math.max(0, built.cellCount - 4));
-    stripEl.style.transform = 'translate3d(0,' + (-startY) + 'px,0)';
-    stripEl._reelY = startY;
+    const startX = offsetFor(Math.max(0, built.cellCount - 4));
+    stripEl.style.transform = 'translate3d(' + (-startX) + 'px,0,0)';
+    stripEl._reelX = startX;
 
     function preloadReelImages() {
       const imgs = stripEl.querySelectorAll('img');
@@ -12119,28 +12153,44 @@
       ]);
     }
 
-    return preloadReelImages().then(function () { return wait(30); })
+    if (claimPromise) {
+      claimPromise.then(function (res) {
+        if (res && res.film) {
+          claimedFilm = res.film;
+          dailyLabel = retentionDailyMediaLabel(null, claimedFilm);
+          if (kickerEl) kickerEl.textContent = dailyLabel;
+        }
+      }).catch(function () {});
+    }
+
+    return preloadReelImages().then(function () { return wait(40); })
       .then(function () {
         if (titleEl) titleEl.textContent = 'Крутим ленту…';
         if (subEl) subEl.textContent = 'Постеры из вашей подборки';
-        return animateTo(offsetFor(built.nearIndex), 2400, 'cubic-bezier(0.12, 0.78, 0.05, 1)');
+        // Longer intentional horizontal spin; near-miss while several posters still visible.
+        return animateTo(offsetFor(built.nearIndex), 3600, 'cubic-bezier(0.08, 0.82, 0.04, 1)');
       })
       .then(function () {
         if (titleEl) titleEl.textContent = 'Почти…';
-        if (subEl) subEl.textContent = 'Ещё один оборот';
+        if (subEl) subEl.textContent = 'Ещё чуть-чуть';
         var reelNear = root.querySelector('.retention-daily-reel');
         if (reelNear) reelNear.classList.add('is-near-miss');
-        return wait(320);
+        return wait(480);
+      })
+      .then(function () {
+        return syncClaimedFilm();
       })
       .then(function () {
         var reelLand = root.querySelector('.retention-daily-reel');
         if (reelLand) { reelLand.classList.remove('is-near-miss'); reelLand.classList.add('is-landing'); }
-        if (titleEl) titleEl.textContent = 'Это он';
-        if (subEl) subEl.textContent = 'Фильм дня на сегодня';
-        // Roll back / nudge from decoy onto the winner — slot tell.
-        return animateTo(offsetFor(built.winIndex), 580, 'cubic-bezier(0.2, 1.35, 0.32, 1)');
+        var landTitle = (claimedFilm && claimedFilm.title) ? String(claimedFilm.title) : dailyLabel;
+        if (kickerEl) kickerEl.textContent = dailyLabel;
+        if (titleEl) titleEl.textContent = landTitle;
+        if (subEl) subEl.textContent = claimedFilm && claimedFilm.title ? 'Это он' : 'Фильм дня на сегодня';
+        // Nudge from decoy onto the winner — neighbors still visible until settle.
+        return animateTo(offsetFor(built.winIndex), 720, 'cubic-bezier(0.18, 1.2, 0.28, 1)');
       })
-      .then(function () { return wait(420); })
+      .then(function () { return wait(520); })
       .then(function () {
         const reel = root.querySelector('.retention-daily-reel');
         if (reel) {
@@ -12162,7 +12212,7 @@
         claim.setAttribute('aria-busy', 'true');
         const daily = (_homeRetention && _homeRetention.daily_film) || {};
         const winnerPoster = (daily.preview_poster || (daily.film && daily.film.poster) || '');
-        const dailyLabel = (daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
+        const dailyLabel = retentionDailyMediaLabel(daily, daily.film);
         const section = claim.closest('.retention-daily') || document.querySelector('.retention-daily');
         const claimReq = api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' });
         const reduced = retentionPrefersReducedMotion();
@@ -12172,6 +12222,7 @@
           if (!_homeRetention.daily_film) _homeRetention.daily_film = daily;
           _homeRetention.daily_film.claimed = true;
           _homeRetention.daily_film.film = res.film;
+          _homeRetention.daily_film.media_type = (res.film && res.film.is_series) ? 'series' : 'film';
           _homeRetention.daily_film.reel_posters = [];
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
           paintHomeRetention();
@@ -12192,6 +12243,7 @@
           posters: posters,
           winnerPoster: winnerPoster,
           dailyLabel: dailyLabel,
+          claimPromise: claimReq,
         });
         Promise.all([claimReq, reveal]).then(function (pair) {
           finish(pair[0]);
