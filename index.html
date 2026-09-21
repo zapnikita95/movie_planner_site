@@ -2940,7 +2940,7 @@
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch" aria-label="Смотреть">
                     <h1 class="guest-discover-h1 whattowatch-page-h1" id="whattowatch-page-h1">Что посмотреть</h1>
-                    <p class="whattowatch-seo-lead" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди <a href="/watchlist">«хочу посмотреть»</a>, по эмоции, пожеланиям или из каталога. Коллекции, киноклубы и фестивали рядом.</p>
+                    <p class="whattowatch-seo-lead visually-hidden" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди «хочу посмотреть», по эмоции, пожеланиям или из каталога. Коллекции, киноклубы и фестивали рядом.</p>
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
@@ -3033,17 +3033,15 @@
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
                     <h1 class="guest-discover-h1 premieres-page-h1">Премьеры фильмов и сериалов</h1>
-                    <p class="premieres-seo-lead">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Откройте карточку, чтобы увидеть дату выхода и добавить в <a href="/watchlist">список «хочу посмотреть»</a>.</p>
+                    <p class="premieres-seo-lead visually-hidden">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Карточка фильма: дата выхода и список «хочу посмотреть».</p>
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
-                    <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
-                    <aside class="premieres-festivals-entry" aria-label="Фестивали">
-                        <div class="premieres-festivals-entry-copy">
-                            <h2 class="premieres-festivals-entry-title">Фестивали</h2>
-                            <p class="premieres-festivals-entry-text">Расписание, программа и подписки. Откройте афишу в разделе «Смотреть».</p>
-                        </div>
-                        <a class="btn btn-primary" href="/whattowatch/festivals">Откройте фестивали</a>
-                    </aside>
+                    <nav class="wtw-hub-chips premieres-hub-chips" aria-label="Разделы премьер" role="tablist">
+                        <button type="button" class="wtw-hub-chip is-active" data-premieres-hub="calendar" role="tab" aria-selected="true">Премьеры</button>
+                        <button type="button" class="wtw-hub-chip" data-premieres-hub="festivals" role="tab" aria-selected="false">Фестивали</button>
+                        <button type="button" class="wtw-hub-chip" data-premieres-hub="crowdfunding" role="tab" aria-selected="false">Краудфандинг</button>
+                    </nav>
+                    <div id="premieres-hub-calendar" class="premieres-hub-panel" data-premieres-panel="calendar">
                     <section id="premieres-now-playing" class="premieres-now-playing" hidden aria-label="Сейчас в кино">
                         <div class="premieres-now-playing-head">
                             <h3 class="premieres-now-playing-title">Сейчас в кино</h3>
@@ -3110,11 +3108,18 @@
                             </select>
                         </label>
                     </div>
-                    <p class="cabinet-hint">Афиша кинопремьер России по дате выхода. Включайте напоминания, добавляйте релизы в <a href="/watchlist">список просмотра</a> и открывайте карточки фильмов.</p>
+                    <p class="cabinet-hint visually-hidden">Афиша кинопремьер России по дате выхода.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
                     <div id="premieres-sentinel" class="premieres-sentinel" aria-hidden="true"></div>
+                    </div>
+                    <div id="premieres-hub-festivals" class="premieres-hub-panel" data-premieres-panel="festivals" hidden>
+                        <div id="premieres-festivals-embed" class="premieres-festivals-embed"></div>
+                    </div>
+                    <div id="premieres-hub-crowdfunding" class="premieres-hub-panel" data-premieres-panel="crowdfunding" hidden>
+                        <div id="premieres-crowdfunding-embed" class="premieres-crowdfunding-embed"></div>
+                    </div>
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading buzz-section--wide" data-buzz-boot="1">
                     <div id="buzz-section-hero" class="buzz-section-hero hidden" aria-hidden="true"></div>

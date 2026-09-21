@@ -14,6 +14,8 @@
   };
 
   var SUBS_KEY = "mp_festival_subs_v1";
+  var REMIND_KEY = "mp_festival_remind_v1";
+  var FROM_PREMIERES_KEY = "mp_fest_from_premieres";
 
   function esc(s) {
     if (global.escapeHtml) return global.escapeHtml(s);
@@ -107,18 +109,54 @@
     return list.indexOf(key) >= 0;
   }
 
-  function requireAuth(hint) {
-    if (hasSiteAuth()) return true;
-    if (typeof global.requireAuthForAction === "function") {
-      global.requireAuthForAction(hint || "Войдите, чтобы подписаться на фестиваль");
+  function readReminds() {
+    try {
+      var raw = localStorage.getItem(REMIND_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function writeReminds(list) {
+    try {
+      localStorage.setItem(REMIND_KEY, JSON.stringify(list || []));
+    } catch (_) {}
+  }
+
+  function toggleRemind(key) {
+    var id = String(key || "");
+    if (!id) return false;
+    var list = readReminds();
+    var i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(id);
+    writeReminds(list);
+    return list.indexOf(id) >= 0;
+  }
+
+  function markFromPremieres() {
+    try { sessionStorage.setItem(FROM_PREMIERES_KEY, "1"); } catch (_) {}
+  }
+
+  function consumeFromPremieres() {
+    try {
+      var on = sessionStorage.getItem(FROM_PREMIERES_KEY) === "1";
+      sessionStorage.removeItem(FROM_PREMIERES_KEY);
+      return on;
+    } catch (_) {
       return false;
     }
-    try { sessionStorage.setItem("mp_post_login_path", "/whattowatch/festivals"); } catch (_) {}
-    window.location.href = "/?open_login=1";
-    return false;
   }
 
   function openFestival(slug) {
+    var onPremieres = false;
+    try {
+      var path = (window.location.pathname || "").replace(/\/$/, "") || "/";
+      onPremieres = path === "/premieres";
+    } catch (_) {}
+    if (onPremieres) markFromPremieres();
     if (typeof global.__mpWtwOpenFestivalSlug === "function") {
       global.__mpWtwOpenFestivalSlug(slug);
       return;
@@ -127,6 +165,14 @@
   }
 
   function backToIndex() {
+    if (consumeFromPremieres()) {
+      if (typeof global.__mpPremieresOpenHub === "function") {
+        global.__mpPremieresOpenHub("festivals");
+        return;
+      }
+      window.location.href = "/premieres#festivals";
+      return;
+    }
     if (typeof global.__mpWtwFestivalsBack === "function") {
       global.__mpWtwFestivalsBack();
       return;
@@ -139,21 +185,24 @@
     return "/f/" + encodeURIComponent(String(kp));
   }
 
-  function newsStripHtml(news) {
+  function newsStripHtml(news, heading) {
     if (!news || !news.length) return "";
     var cards = news.map(function (n) {
       var cover = n.cover
         ? '<img class="fest-news-cover" src="' + esc(n.cover) + '" alt="" loading="lazy">'
         : '<span class="fest-news-cover fest-news-cover--empty" aria-hidden="true"></span>';
-      return '<button type="button" class="fest-news-card" data-fest-open="' + esc(n.festival_slug) + '">'
+      var open = n.festival_slug
+        ? ' data-fest-open="' + esc(n.festival_slug) + '"'
+        : "";
+      return '<button type="button" class="fest-news-card"' + open + ">"
         + cover
-        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(n.title) + '</span>'
+        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(n.title) + "</span>"
         + (n.festival_title ? '<span class="fest-news-meta">' + esc(n.festival_title) + "</span>" : "")
         + "</span></button>";
     }).join("");
-    return '<section class="fest-news" aria-label="Новости фестивалей">'
-      + '<h2 class="fest-block-title">Новости</h2>'
-      + '<div class="fest-news-rail">' + cards + "</div></section>";
+    return '<section class="fest-news" aria-label="' + esc(heading || "Новости фестивалей") + '">'
+      + '<h2 class="fest-block-title">' + esc(heading || "Новости") + "</h2>"
+      + '<div class="fest-news-rail fest-detail-news-rail">' + cards + "</div></section>";
   }
 
   function scheduleRowHtml(f, muted) {
@@ -184,24 +233,19 @@
       + '<h2 class="fest-block-title">График</h2>' + body + "</section>";
   }
 
-  function subsHtml(groups) {
-    if (!hasSiteAuth()) return "";
+  function subsHtml() {
     var subs = readSubs();
-    if (!subs.length) {
-      return '<section class="fest-subs" aria-label="Мои подписки">'
-        + '<h2 class="fest-block-title">Мои подписки</h2>'
-        + '<p class="cabinet-hint">Подпишитесь на фестиваль, чтобы не пропустить программу. Пока храним отметку на этом устройстве.</p>'
-        + "</section>";
-    }
+    if (!subs.length) return "";
     var data = mock();
     var rows = subs.map(function (slug) {
       var f = data && data.getFestival ? data.getFestival(slug) : null;
       if (!f) return "";
       return scheduleRowHtml(f, f.status === "past");
     }).filter(Boolean).join("");
-    return '<section class="fest-subs" aria-label="Мои подписки">'
-      + '<h2 class="fest-block-title">Мои подписки</h2>'
-      + '<div class="fest-sched-list">' + (rows || '<p class="cabinet-hint">Подписки не найдены.</p>') + "</div></section>";
+    if (!rows) return "";
+    return '<section class="fest-subs" aria-label="Подписки">'
+      + '<h2 class="fest-block-title">Подписки</h2>'
+      + '<div class="fest-sched-list">' + rows + "</div></section>";
   }
 
   function bindOpen(root) {
@@ -214,26 +258,44 @@
     });
   }
 
-  function renderIndex(root) {
+  function renderIndex(root, opts) {
     if (!root) return;
+    var options = opts || {};
     var data = mock();
     if (!data) {
       root.innerHTML = '<div class="festivals-page"><p class="cabinet-hint">Не удалось загрузить афишу фестивалей.</p></div>';
       return;
     }
-    applyIndexSeo();
+    if (!options.skipSeo) applyIndexSeo();
     var news = data.newsFeed();
     var groups = data.scheduleGroups();
     root.innerHTML = '<div class="festivals-page festivals-page--index">'
-      + newsStripHtml(news)
-      + subsHtml(groups)
+      + newsStripHtml(news, "Новости")
+      + subsHtml()
       + scheduleHtml(groups)
-      + '<p class="fest-mock-note">Афиша пока на мок-данных сайта. API бота подключим отдельно.</p>'
       + "</div>";
     bindOpen(root);
   }
 
-  function programItemHtml(it) {
+  function screeningLabel(iso) {
+    if (!iso) return "";
+    var t = Date.parse(iso);
+    if (!t) return "";
+    var d = new Date(t);
+    var day = d.getDate();
+    var months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+    var hh = d.getHours();
+    var mm = d.getMinutes();
+    var hhS = (hh < 10 ? "0" : "") + hh;
+    var mmS = (mm < 10 ? "0" : "") + mm;
+    return day + " " + months[d.getMonth()] + ", " + hhS + ":" + mmS;
+  }
+
+  function remindKey(fest, it) {
+    return String(fest.slug || "") + ":" + String((it && (it.kp_id || it.title)) || "");
+  }
+
+  function programItemHtml(fest, it) {
     var kp = it && it.kp_id ? String(it.kp_id).trim() : "";
     var href = filmHref(kp);
     var title = esc((it && it.title) || "Без названия");
@@ -241,20 +303,27 @@
     if (it && it.director) metaBits.push("Режиссёр " + it.director);
     if (it && it.venue) metaBits.push(it.venue);
     if (it && it.year) metaBits.push(String(it.year));
+    var when = screeningLabel(it && it.screening_at);
+    if (when) metaBits.push(when);
     var meta = metaBits.length ? '<span class="fest-prog-meta">' + esc(metaBits.join(" · ")) + "</span>" : "";
     var titleHtml = href
       ? '<a class="fest-prog-title" href="' + esc(href) + '">' + title + "</a>"
       : '<span class="fest-prog-title">' + title + "</span>";
+    var poster = (it && it.poster)
+      ? '<img class="fest-prog-poster" src="' + esc(it.poster) + '" alt="" loading="lazy">'
+      : "";
+    var rk = remindKey(fest, it);
+    var reminded = readReminds().indexOf(rk) >= 0;
     var actions = "";
     if (kp) {
       actions += '<button type="button" class="btn btn-primary btn-small" data-fest-add="' + esc(kp) + '">В базу</button>';
     }
-    if (it && it.screening_at) {
-      actions += '<button type="button" class="btn btn-secondary btn-small" data-fest-remind="' + esc(kp || (it.title || "")) + '">Напомните</button>';
-    }
+    actions += '<button type="button" class="btn btn-secondary btn-small" data-fest-remind="' + esc(rk) + '">'
+      + (reminded ? "Напомню" : "Напомнить") + "</button>";
     return '<article class="fest-prog-item">'
+      + poster
       + '<div class="fest-prog-copy">' + titleHtml + meta + "</div>"
-      + (actions ? '<div class="fest-prog-actions">' + actions + "</div>" : "")
+      + '<div class="fest-prog-actions">' + actions + "</div>"
       + "</article>";
   }
 
@@ -262,13 +331,60 @@
     var sections = (fest && fest.program) || [];
     if (!sections.length) return "";
     var blocks = sections.map(function (sec) {
-      var items = (sec.items || []).map(programItemHtml).join("");
+      var items = (sec.items || []).map(function (it) { return programItemHtml(fest, it); }).join("");
       return '<section class="fest-prog-section">'
         + (sec.section ? '<h3 class="fest-prog-section-title">' + esc(sec.section) + "</h3>" : "")
         + '<div class="fest-prog-list">' + items + "</div></section>";
     }).join("");
+    var kpCount = 0;
+    sections.forEach(function (sec) {
+      (sec.items || []).forEach(function (it) { if (it && it.kp_id) kpCount += 1; });
+    });
+    var bulk = kpCount
+      ? '<div class="fest-bulk-actions"><button type="button" class="btn btn-primary" data-fest-add-all="1">В базу</button></div>'
+      : "";
     return '<section class="fest-program" aria-label="Программа">'
-      + '<h2 class="fest-block-title">Программа</h2>' + blocks + "</section>";
+      + '<h2 class="fest-block-title">Программа</h2>' + bulk + blocks + "</section>";
+  }
+
+  function coversHtml(fest) {
+    var shots = (fest.covers && fest.covers.length) ? fest.covers : (fest.cover ? [fest.cover] : []);
+    if (!shots.length) return "";
+    return '<section class="fest-covers" aria-label="Обложки">'
+      + '<h2 class="fest-block-title">Обложки</h2>'
+      + '<div class="fest-covers-rail">'
+      + shots.map(function (src) {
+        return '<img class="fest-cover-shot" src="' + esc(src) + '" alt="" loading="lazy">';
+      }).join("")
+      + "</div></section>";
+  }
+
+  function peopleHtml(fest) {
+    var rows = fest.participants || [];
+    if (!rows.length) return "";
+    return '<section class="fest-people" aria-label="Участники">'
+      + '<h2 class="fest-block-title">Участники</h2>'
+      + '<div class="fest-people-list">'
+      + rows.map(function (p) {
+        return '<div class="fest-people-row"><span class="fest-people-name">' + esc(p.name || "")
+          + '</span><span class="fest-people-role">' + esc(p.role || "") + "</span></div>";
+      }).join("")
+      + "</div></section>";
+  }
+
+  function infoHtml(fest) {
+    var site = fest.official_url
+      ? '<a href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Сайт</a>'
+      : "";
+    return '<section class="fest-about">'
+      + '<h2 class="fest-block-title">О фестивале</h2>'
+      + '<dl class="fest-info-list">'
+      + (fest.dates_label ? "<div><dt>Даты</dt><dd>" + esc(fest.dates_label) + "</dd></div>" : "")
+      + (fest.place_label ? "<div><dt>Город</dt><dd>" + esc(fest.place_label) + "</dd></div>" : "")
+      + (site ? "<div><dt>Ссылка</dt><dd>" + site + "</dd></div>" : "")
+      + "</dl>"
+      + (fest.description ? '<p class="fest-about-text">' + esc(fest.description) + "</p>" : "")
+      + "</section>";
   }
 
   function heroHtml(fest, subscribed) {
@@ -276,14 +392,14 @@
       ? '<img class="fest-hero-cover" src="' + esc(fest.cover) + '" alt="">'
       : '<div class="fest-hero-cover fest-hero-cover--empty" aria-hidden="true"></div>';
     var bits = [fest.dates_label, fest.place_label].filter(Boolean);
-    var subLabel = subscribed ? "Вы подписаны" : "Подпишитесь";
+    var subLabel = subscribed ? "Вы подписаны" : "Подписаться";
     var subClass = subscribed ? "btn btn-secondary" : "btn btn-primary";
-    var share = '<button type="button" class="btn btn-secondary" data-fest-share="1">Поделитесь</button>';
+    var share = '<button type="button" class="btn btn-secondary" data-fest-share="1">Ссылка</button>';
     var official = fest.official_url
-      ? '<a class="btn btn-secondary" href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Официальный сайт</a>'
+      ? '<a class="btn btn-secondary" href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Сайт</a>'
       : "";
     var coll = fest.collection_code
-      ? '<a class="btn btn-secondary" href="/whattowatch/collections/' + encodeURIComponent(fest.collection_code) + '">Откройте коллекцию</a>'
+      ? '<a class="btn btn-secondary" href="/whattowatch/collections/' + encodeURIComponent(fest.collection_code) + '">Коллекция</a>'
       : "";
     return '<header class="fest-hero">'
       + cover
@@ -299,9 +415,21 @@
   }
 
   function addFilmToBase(kp, btn) {
-    if (!requireAuth("Войдите, чтобы добавить фильм в базу")) return;
+    if (!hasSiteAuth()) {
+      if (typeof global.requireAuthForAction === "function") {
+        global.requireAuthForAction("Войдите, чтобы добавить фильм в базу");
+      } else {
+        toast("Фильм в базе на этом устройстве появится после входа.");
+      }
+      return;
+    }
     if (typeof global.api !== "function") {
-      toast("Добавление в базу подключим вместе с API фестивалей.");
+      toast("Фильм отмечен. API базы подключим отдельно.");
+      if (btn) {
+        btn.textContent = "В базе";
+        btn.classList.remove("btn-primary");
+        btn.classList.add("btn-secondary");
+      }
       return;
     }
     if (btn) {
@@ -361,11 +489,10 @@
     var subBtn = root.querySelector("[data-fest-subscribe]");
     if (subBtn) {
       subBtn.addEventListener("click", function () {
-        if (!requireAuth("Войдите, чтобы подписаться на фестиваль")) return;
         var on = toggleSubscribe(fest.slug);
-        subBtn.textContent = on ? "Вы подписаны" : "Подпишитесь";
+        subBtn.textContent = on ? "Вы подписаны" : "Подписаться";
         subBtn.className = on ? "btn btn-secondary" : "btn btn-primary";
-        toast(on ? "Подписка включена на этом устройстве" : "Подписка снята");
+        toast(on ? "Подписка на этом устройстве" : "Подписка снята");
       });
     }
     var shareBtn = root.querySelector("[data-fest-share]");
@@ -375,10 +502,19 @@
         addFilmToBase(btn.getAttribute("data-fest-add"), btn);
       });
     });
+    var addAll = root.querySelector("[data-fest-add-all]");
+    if (addAll) {
+      addAll.addEventListener("click", function () {
+        var buttons = root.querySelectorAll("[data-fest-add]");
+        if (!buttons.length) return;
+        buttons.forEach(function (btn) { addFilmToBase(btn.getAttribute("data-fest-add"), btn); });
+      });
+    }
     root.querySelectorAll("[data-fest-remind]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        if (!requireAuth("Войдите, чтобы получить напоминание о сеансе")) return;
-        toast("Напоминание о сеансе фестиваля подключим вместе с API.");
+        var on = toggleRemind(btn.getAttribute("data-fest-remind"));
+        btn.textContent = on ? "Напомню" : "Напомнить";
+        toast(on ? "Напоминание на этом устройстве" : "Напоминание снято");
       });
     });
   }
@@ -396,14 +532,14 @@
       return;
     }
     applyDetailSeo(fest);
+    var news = data.newsForFestival ? data.newsForFestival(fest.slug) : [];
     root.innerHTML = '<div class="festivals-page festivals-page--detail">'
       + heroHtml(fest, isSubscribed(fest.slug))
-      + '<section class="fest-about">'
-      + '<h2 class="fest-block-title">О фестивале</h2>'
-      + '<p class="fest-about-text">' + esc(fest.description || "") + "</p>"
-      + "</section>"
+      + newsStripHtml(news, "Новости")
+      + coversHtml(fest)
+      + infoHtml(fest)
       + programHtml(fest)
-      + '<p class="fest-mock-note">Подписка пока локальная. Напоминания и общее API подключим в боте.</p>'
+      + peopleHtml(fest)
       + "</div>";
     bindDetail(root, fest);
   }

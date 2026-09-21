@@ -35,20 +35,80 @@
       official_url: "https://movie-planner.ru/whattowatch/collections/italian-stories-2026",
       collection_code: "italian-stories-2026",
       description:
-        "Короткий фестиваль итальянского кино в музее-усадьбе Архангельское: новые фильмы и классика. Подборка фильмов уже есть в разделе «Коллекции».",
+        "Три дня итальянского кино в музее-усадьбе Архангельское: новые фильмы, классика и встречи. Площадка усадьбы, показы вечером.",
+      covers: [
+        COVER_ITALIAN,
+        "https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900",
+        COVER_VENICE,
+      ],
+      participants: [
+        { name: "Музей-усадьба Архангельское", role: "Площадка" },
+        { name: "Итальянский институт культуры", role: "Партнёр" },
+        { name: "Паоло Соррентино", role: "Режиссёр, «Партенопа»" },
+        { name: "Маттео Гарроне", role: "Режиссёр, «Я — капитан»" },
+      ],
       program: [
         {
           section: "Основная программа",
           items: [
-            { title: "Партенопа", director: "Паоло Соррентино", year: 2024, venue: "Архангельское", kp_id: "" },
-            { title: "Я — капитан", director: "Маттео Гарроне", year: 2023, venue: "Архангельское", kp_id: "" },
-            { title: "Ещё одна жизнь", director: "Эмануэле Криалезе", year: 2023, venue: "Архангельское", kp_id: "" },
+            {
+              title: "Партенопа",
+              director: "Паоло Соррентино",
+              year: 2024,
+              venue: "Кинотеатр усадьбы",
+              kp_id: "5411300",
+              poster: COVER_ITALIAN,
+              screening_at: "2026-08-28T19:00:00+03:00",
+            },
+            {
+              title: "Я — капитан",
+              director: "Маттео Гарроне",
+              year: 2023,
+              venue: "Кинотеатр усадьбы",
+              kp_id: "4541881",
+              poster: "https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900",
+              screening_at: "2026-08-29T19:00:00+03:00",
+            },
+            {
+              title: "Ещё одна жизнь",
+              director: "Эмануэле Криалезе",
+              year: 2023,
+              venue: "Кинотеатр усадьбы",
+              kp_id: "4542093",
+              poster: "https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900",
+              screening_at: "2026-08-30T18:00:00+03:00",
+            },
             {
               title: "Сделано в Милане",
               director: "Джон Маджо",
               year: 2024,
-              venue: "Архангельское",
+              venue: "Кинотеатр усадьбы",
               kp_id: "movie-1660825",
+              poster: COVER_BEAT,
+              screening_at: "2026-08-30T20:30:00+03:00",
+            },
+          ],
+        },
+        {
+          section: "Классика",
+          items: [
+            {
+              title: "Сладкая жизнь",
+              director: "Федерико Феллини",
+              year: 1960,
+              venue: "Парк усадьбы",
+              kp_id: "349",
+              poster: COVER_VENICE,
+              screening_at: "2026-08-29T16:00:00+03:00",
+            },
+            {
+              title: "Восемь с половиной",
+              director: "Федерико Феллини",
+              year: 1963,
+              venue: "Парк усадьбы",
+              kp_id: "414",
+              poster: COVER_KARO,
+              screening_at: "2026-08-30T16:00:00+03:00",
             },
           ],
         },
@@ -66,20 +126,60 @@
       official_url: "https://www.instagram.com/karofilmart/",
       collection_code: "",
       description:
-        "Программа Каро Фильм Арт: спектакли и кинопоказы. Список как в афише. Название, режиссёр, площадка, год.",
+        "Октябрьская театральная программа Каро Фильм Арт: записи спектаклей и кинопоказы. Москва, 2–26 октября 2026.",
+      covers: [
+        COVER_KARO,
+        "https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900",
+        COVER_ITALIAN,
+      ],
+      participants: [
+        { name: "Каро Фильм Арт", role: "Организатор" },
+        { name: "Театр Старый дом", role: "Площадка" },
+        { name: "Comédie-Française", role: "Площадка" },
+        { name: "Meno fortas", role: "Площадка" },
+        { name: "МХТ имени А. П. Чехова", role: "Конкурс короткого метра" },
+        { name: "Арсений Мещеряков", role: "Режиссёр, «Скасска»" },
+        { name: "Эймунтас Някрошюс", role: "Режиссёр, «Отелло»" },
+      ],
       program: [
         {
           section: "Театральная программа",
           items: [
-            { title: "Скасска", director: "Арсений Мещеряков", year: 2025, venue: "Театр Старый дом", kp_id: "" },
-            { title: "Маскарад", director: "Анатолий Васильев", year: 1993, venue: "Comédie-Française", kp_id: "" },
-            { title: "Отелло", director: "Эймунтас Някрошюс", year: 2009, venue: "Meno fortas", kp_id: "" },
+            {
+              title: "Скасска",
+              director: "Арсений Мещеряков",
+              year: 2025,
+              venue: "Театр Старый дом",
+              kp_id: "",
+              poster: COVER_KARO,
+              screening_at: "2026-10-02T19:00:00+03:00",
+            },
+            {
+              title: "Маскарад",
+              director: "Анатолий Васильев",
+              year: 1993,
+              venue: "Comédie-Française",
+              kp_id: "",
+              poster: COVER_VENICE,
+              screening_at: "2026-10-05T19:00:00+03:00",
+            },
+            {
+              title: "Отелло",
+              director: "Эймунтас Някрошюс",
+              year: 2009,
+              venue: "Meno fortas",
+              kp_id: "",
+              poster: COVER_ITALIAN,
+              screening_at: "2026-10-12T19:00:00+03:00",
+            },
             {
               title: "Безумный день в Комеди Франсез",
               director: "Мартин Дарондо, Бертран Юскла",
               year: 2026,
               venue: "Москва",
               kp_id: "",
+              poster: COVER_BEAT,
+              screening_at: "2026-10-18T18:00:00+03:00",
             },
             {
               title: "Юрий Бутусов. Барабаны внутри",
@@ -87,6 +187,8 @@
               year: 2026,
               venue: "Москва",
               kp_id: "",
+              poster: COVER_KARO,
+              screening_at: "2026-10-22T19:30:00+03:00",
             },
             {
               title: "Конкурс короткометражного кино МХТ имени А. П. Чехова",
@@ -94,6 +196,8 @@
               year: "2025 / 2026",
               venue: "МХТ имени А. П. Чехова",
               kp_id: "",
+              poster: COVER_VENICE,
+              screening_at: "2026-10-26T16:00:00+03:00",
             },
           ],
         },
@@ -154,7 +258,7 @@
         {
           section: "Основной конкурс",
           items: [
-            { title: "Смотрите подборку Movie Planner", director: "", year: 2026, venue: "Венеция", kp_id: "" },
+            { title: "Основной конкурс", director: "", year: 2026, venue: "Венеция", kp_id: "" },
           ],
         },
       ],
@@ -170,6 +274,20 @@
       published_at: "2026-09-19",
     },
     {
+      id: "n-karo-othello",
+      festival_id: "karofilmart-theater-2026",
+      title: "«Отелло» Някрошюса в афише октября",
+      cover: COVER_ITALIAN,
+      published_at: "2026-09-18",
+    },
+    {
+      id: "n-karo-mht",
+      festival_id: "karofilmart-theater-2026",
+      title: "Короткий метр МХТ закроет программу",
+      cover: COVER_VENICE,
+      published_at: "2026-09-16",
+    },
+    {
       id: "n-beat-close",
       festival_id: "beatfilm-2026",
       title: "Beat Weekend закрылся в 18 городах",
@@ -182,6 +300,13 @@
       title: "«Итальянские истории» прошли в Архангельском",
       cover: COVER_ITALIAN,
       published_at: "2026-08-31",
+    },
+    {
+      id: "n-italian-parthenope",
+      festival_id: "italian-stories-2026",
+      title: "«Партенопа» закрыла фестиваль",
+      cover: COVER_ITALIAN,
+      published_at: "2026-08-30",
     },
     {
       id: "n-venice-wrap",
@@ -205,6 +330,11 @@
     "movie-1596296": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
     "11979853": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
     "12587600": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
+    "5411300": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
+    "4541881": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
+    "4542093": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
+    "349": [{ festival_id: "italian-stories-2026", year: 2026, section: "Классика" }],
+    "414": [{ festival_id: "italian-stories-2026", year: 2026, section: "Классика" }],
   };
 
   var STATUS_LABEL = { upcoming: "Скоро", live: "Идёт", past: "Прошёл" };
@@ -254,6 +384,8 @@
       official_url: fest.official_url,
       collection_code: fest.collection_code || "",
       description: fest.description,
+      covers: fest.covers || (fest.cover ? [fest.cover] : []),
+      participants: fest.participants || [],
       program: fest.program || [],
       status: status,
       status_label: STATUS_LABEL[status] || status,
@@ -329,6 +461,13 @@
     });
   }
 
+  function newsForFestival(slug) {
+    var key = String(slug || "").trim();
+    return newsFeed().filter(function (n) {
+      return n.festival_slug === key || n.festival_id === key;
+    });
+  }
+
   function kpItems(fest) {
     var out = [];
     var program = (fest && fest.program) || [];
@@ -352,6 +491,7 @@
     getFestival: getFestival,
     scheduleGroups: scheduleGroups,
     newsFeed: newsFeed,
+    newsForFestival: newsForFestival,
     appearancesForKp: appearancesForKp,
     kpItems: kpItems,
   };

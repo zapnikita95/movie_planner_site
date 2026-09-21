@@ -49,6 +49,15 @@ eq(Mp.appearancesForKp("missing").length, 0, "unknown kp empty");
 var karo = Mp.getFestival("karofilmart-theater-2026");
 ok(karo.program[0].items.length >= 6, "karo program from screenshot");
 ok(karo.program[0].items.some(function (it) { return it.title.indexOf("Отелло") >= 0; }), "othello row");
+ok((karo.participants || []).length >= 4, "karo participants");
+ok((karo.covers || []).length >= 2, "karo covers");
+ok(Mp.newsForFestival("karofilmart-theater-2026").length >= 2, "karo news");
+
+var italian = Mp.getFestival("italian-stories-2026");
+ok(italian.program.length >= 2, "italian sections");
+ok(italian.program[0].items.some(function (it) { return it.poster; }), "italian posters");
+ok((italian.participants || []).length >= 2, "italian participants");
+ok(Mp.newsForFestival("italian-stories-2026").length >= 1, "italian news");
 
 var beatItems = Mp.kpItems(Mp.getFestival("beatfilm-2026"));
 ok(beatItems.some(function (it) { return it.kp_id === "movie-1049286"; }), "twiggy kp");
