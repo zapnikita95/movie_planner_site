@@ -12041,6 +12041,10 @@
     let dailyLabel = (opts && opts.dailyLabel) || 'Фильм дня';
     const claimPromise = (opts && opts.claimPromise) || null;
     if (!root) return Promise.resolve();
+    try {
+      const h = root.getBoundingClientRect().height;
+      if (h > 200) root.style.minHeight = Math.round(h) + 'px';
+    } catch (_) {}
     const built = buildRetentionDailyReelStrip(posters, winnerPoster);
     const cellsHtml = built.strip.map(function (src, idx) {
       return '<div class="retention-daily-reel-cell" data-reel-i="' + idx + '">'

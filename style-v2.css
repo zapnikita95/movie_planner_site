@@ -30467,6 +30467,8 @@ a.collections-author-block:hover {
 .home-retention {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  grid-auto-rows: minmax(0, auto);
+  align-items: stretch;
   gap: 14px;
   margin: 0 0 18px;
   font-family: 'Unbounded', sans-serif;
