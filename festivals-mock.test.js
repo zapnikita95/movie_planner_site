@@ -41,6 +41,9 @@ eq(Mp.statusOf(Mp.getFestival("siberia-meetings-2026", now), now), "live", "sibe
 eq(Mp.statusOf(Mp.getFestival("flahertiana-2026", now), now), "upcoming", "flahertiana upcoming");
 eq(Mp.statusOf(Mp.getFestival("karofilmart-2026", now), now), "upcoming", "karo upcoming");
 eq(Mp.getFestival("karofilmart-2026", now).starts_at, "2026-10-14", "karo 14 Oct");
+eq(Mp.formatDateRange("2026-09-21", "2026-09-27"), "21 по 27 сентября", "same-month range");
+eq(Mp.formatDateRange("2026-09-25", "2026-10-01"), "25 сентября по 1 октября", "cross-month range");
+eq(Mp.formatDateRange("2026-10-14", "2026-10-25"), "14 по 25 октября", "karo dates");
 
 var car = Mp.scheduleCarousel(now);
 eq(car[0].slug, "siberia-meetings-2026", "carousel starts with live");

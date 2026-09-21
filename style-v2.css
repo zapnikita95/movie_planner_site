@@ -33986,13 +33986,14 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
 .fest-carousel::-webkit-scrollbar { display: none; }
 .fest-carousel-card {
   flex: 0 0 auto;
-  width: min(176px, 58vw);
+  width: min(160px, 52vw);
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  position: relative;
 }
 .fest-carousel-cover {
   display: block;
@@ -34018,8 +34019,15 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   line-height: 1.35;
 }
 .fest-carousel-card .fest-status {
-  display: inline-block;
-  margin: 6px 0 0;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  margin: 0;
+  padding: 3px 6px;
+  background: #0c0c12;
+  border-radius: 4px;
+  line-height: 1.2;
 }
 .fest-day-tabs {
   display: flex;
@@ -34049,7 +34057,7 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   color: #fff;
 }
 .film-fest-now {
-  margin: 0 0 10px;
+  margin: 4px 0 8px;
   font-size: 13px;
   line-height: 1.4;
   color: rgba(244, 246, 255, 0.7);

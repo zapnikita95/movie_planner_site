@@ -176,13 +176,8 @@
   }
 
   function timeLabel(iso) {
-    if (!iso) return "";
-    var t = Date.parse(iso);
-    if (!t) return "";
-    var d = new Date(t);
-    var hh = d.getHours();
-    var mm = d.getMinutes();
-    return ((hh < 10 ? "0" : "") + hh) + ":" + ((mm < 10 ? "0" : "") + mm);
+    var m = String(iso || "").match(/T(\d{2}):(\d{2})/);
+    return m ? m[1] + ":" + m[2] : "";
   }
 
   function remindKey(fest, it) {

@@ -5329,29 +5329,21 @@
       }
       /* TODO(bot): GET /api/public/film/:kp/festivals when the bot endpoint exists. */
       function paintFilmFestivals(section, items) {
-        var rail = section.querySelector('.film-festivals-rail');
-        if (!rail || !items || !items.length) return;
-        var live = items.filter(function (item) { return item && item.status === 'live'; });
-        section.querySelectorAll('.film-fest-now').forEach(function (el) { el.remove(); });
-        if (live.length) {
-          var first = live[0];
+        document.querySelectorAll('.film-fest-now').forEach(function (el) { el.remove(); });
+        if (section) section.classList.add('hidden');
+        var live = (items || []).filter(function (item) { return item && item.status === 'live'; });
+        if (!live.length) return;
+        var first = live[0];
+        var badge = '<p class="film-fest-now">Сейчас на фестивале · <a href="/whattowatch/festivals/' +
+          encodeURIComponent(first.slug) + '">' + escapeHtml(first.title) + '</a></p>';
+        var title = document.getElementById('film-title');
+        if (title) title.insertAdjacentHTML('afterend', badge);
+        else if (section) {
+          section.classList.remove('hidden');
           var heading = section.querySelector('.film-discovery-heading');
-          var badge = '<p class="film-fest-now">Сейчас на фестивале · <a href="/whattowatch/festivals/' +
-            encodeURIComponent(first.slug) + '">' + escapeHtml(first.title) + '</a></p>';
           if (heading) heading.insertAdjacentHTML('afterend', badge);
           else section.insertAdjacentHTML('afterbegin', badge);
         }
-        rail.innerHTML = items.slice(0, 8).map(function (item) {
-          var slug = String(item.slug || '').trim();
-          var name = String(item.title || '').trim();
-          if (!slug || !name) return '';
-          var meta = [item.year, item.section].filter(Boolean).join(' · ');
-          return '<a class="film-collection-link" href="/whattowatch/festivals/' + encodeURIComponent(slug) + '">' +
-            '<span class="film-collection-copy"><strong>' + escapeHtml(name) + '</strong>' +
-            (meta ? '<small>' + escapeHtml(String(meta)) + '</small>' : '') + '</span>' +
-            '<span class="film-collection-arrow" aria-hidden="true">›</span></a>';
-        }).filter(Boolean).join('');
-        section.classList.toggle('hidden', !rail.innerHTML);
       }
       function loadFilmFestivals(attempt) {
         var section = document.getElementById('film-festivals-root');

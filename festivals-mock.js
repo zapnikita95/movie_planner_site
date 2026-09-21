@@ -48,7 +48,7 @@
       ends_at: "2026-09-27",
       official_url: "https://www.meetingsinsiberia.ru/",
       collection_code: "",
-      description: "Документальный фестиваль в Новосибирске. 21–27 сентября 2026.",
+      description: "Документальный фестиваль в Новосибирске. С 21 по 27 сентября 2026.",
       program: [
         {
           section: "Основной конкурс",
@@ -96,7 +96,7 @@
       ends_at: "2026-09-29",
       official_url: "https://sretenie-fest.ru/",
       collection_code: "",
-      description: "Кинофестиваль «Встреча». Обнинск, 25–29 сентября 2026.",
+      description: "Кинофестиваль «Встреча». Обнинск, с 25 по 29 сентября 2026.",
       program: [
         {
           section: "Программа",
@@ -142,7 +142,7 @@
       ends_at: "2026-10-25",
       official_url: "https://www.instagram.com/karofilmart/",
       collection_code: "",
-      description: "Программа Каро Арт: спектакли и кинопоказы. Москва, 14–25 октября 2026.",
+      description: "Программа Каро Арт: спектакли и кинопоказы. Москва, с 14 по 25 октября 2026.",
       program: [
         {
           section: "Театральная программа",
@@ -168,7 +168,7 @@
       ends_at: "2026-10-24",
       official_url: "https://message2man.com/",
       collection_code: "",
-      description: "Международный фестиваль документального, короткометражного и анимационного кино. Санкт-Петербург, 16–24 октября 2026.",
+      description: "Международный фестиваль документального, короткометражного и анимационного кино. Санкт-Петербург, с 16 по 24 октября 2026.",
       program: [
         {
           section: "Документальный конкурс",
@@ -192,7 +192,7 @@
       ends_at: "2026-09-20",
       official_url: "https://beatfilmfestival.ru/news/beat-weekend-2026-daty-goroda-i-programmu",
       collection_code: "beatfilm-2026",
-      description: "Документальный фестиваль о новой культуре. 10–20 сентября 2026, 18 городов и онлайн. Не путать с июньским Beat Film Festival.",
+      description: "Документальный фестиваль о новой культуре. С 10 по 20 сентября 2026, 18 городов и онлайн. Не путать с июньским Beat Film Festival.",
       program: [
         {
           section: "Открытие и мода",
@@ -240,7 +240,7 @@
     { id: "n-sib-open", festival_id: "siberia-meetings-2026", title: "«Встречи в Сибири» открылись в Новосибирске", cover: COVER_SIB, published_at: "2026-09-21" },
     { id: "n-flah", festival_id: "flahertiana-2026", title: "Флаэртиана: программа Перми с 25 сентября", cover: COVER_FLAH, published_at: "2026-09-20" },
     { id: "n-beat-close", festival_id: "beatfilm-2026", title: "Beat Weekend закрылся в 18 городах", cover: COVER_BEAT, published_at: "2026-09-20" },
-    { id: "n-karo", festival_id: "karofilmart-2026", title: "Каро Арт: афиша 14–25 октября", cover: COVER_KARO, published_at: "2026-09-18" },
+    { id: "n-karo", festival_id: "karofilmart-2026", title: "Каро Арт, афиша с 14 октября", cover: COVER_KARO, published_at: "2026-09-18" },
   ];
 
   var APPEARANCES = {
@@ -311,17 +311,20 @@
   }
 
   function formatDateRange(start, end) {
-    function fmt(iso) {
+    var months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+    function parts(iso) {
       var d = new Date(parseDay(iso));
-      if (!iso || isNaN(d.getTime())) return "";
-      var day = d.getDate();
-      var months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-      return day + " " + months[d.getMonth()];
+      if (!iso || isNaN(d.getTime())) return null;
+      return { day: d.getDate(), month: d.getMonth(), label: d.getDate() + " " + months[d.getMonth()] };
     }
-    var a = fmt(start);
-    var b = fmt(end);
-    if (a && b && a !== b) return a + " по " + b;
-    return a || b || "";
+    var a = parts(start);
+    var b = parts(end);
+    if (a && b) {
+      if (a.month === b.month && a.day !== b.day) return a.day + " по " + b.label;
+      if (a.label !== b.label) return a.label + " по " + b.label;
+      return a.label;
+    }
+    return (a && a.label) || (b && b.label) || "";
   }
 
   function formatDayLabel(iso) {
