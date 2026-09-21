@@ -24,42 +24,37 @@ function ok(cond, msg) {
 }
 
 eq(Mp.SOURCE, "mock", "source is mock");
-ok(Mp.listFestivals().length >= 2, "at least italian + karo");
-ok(!!Mp.getFestival("italian-stories-2026"), "italian festival");
-ok(!!Mp.getFestival("karofilmart-theater-2026"), "karo festival");
+ok(Mp.listFestivals().length >= 6, "seed festivals");
+ok(!!Mp.getFestival("beatfilm-2026"), "beat weekend");
+ok(!!Mp.getFestival("karofilmart-2026"), "karo art");
+ok(!!Mp.getFestival("flahertiana-2026"), "flahertiana");
+ok(!!Mp.getFestival("siberia-meetings-2026"), "siberia");
+ok(!!Mp.getFestival("sretensky-vstrecha-2026"), "sretensky");
+ok(!!Mp.getFestival("eurasia-doc-2026"), "eurasia");
+ok(!!Mp.getFestival("message-to-man-2026"), "message to man");
 
 var now = new Date("2026-09-21T12:00:00+03:00");
-eq(Mp.statusOf(Mp.getFestival("italian-stories-2026", now), now), "past", "italian past on Sep 21");
-eq(Mp.statusOf(Mp.getFestival("karofilmart-theater-2026", now), now), "upcoming", "karo upcoming");
-eq(Mp.statusOf(Mp.getFestival("beatfilm-2026", now), now), "past", "beat past");
-eq(Mp.getFestival("karofilmart-theater-2026", now).status_label, "Скоро", "status label");
+eq(Mp.statusOf(Mp.getFestival("beatfilm-2026", now), now), "past", "beat past on Sep 21");
+eq(Mp.getFestival("beatfilm-2026", now).starts_at, "2026-09-10", "beat starts Sep 10");
+eq(Mp.getFestival("beatfilm-2026", now).ends_at, "2026-09-20", "beat ends Sep 20");
+eq(Mp.statusOf(Mp.getFestival("siberia-meetings-2026", now), now), "live", "siberia live");
+eq(Mp.statusOf(Mp.getFestival("flahertiana-2026", now), now), "upcoming", "flahertiana upcoming");
+eq(Mp.statusOf(Mp.getFestival("karofilmart-2026", now), now), "upcoming", "karo upcoming");
+eq(Mp.getFestival("karofilmart-2026", now).starts_at, "2026-10-14", "karo 14 Oct");
 
-var groups = Mp.scheduleGroups(now);
-ok(groups.upcoming.some(function (f) { return f.slug === "karofilmart-theater-2026"; }), "karo in upcoming");
-ok(groups.past.some(function (f) { return f.slug === "italian-stories-2026"; }), "italian in past");
+var car = Mp.scheduleCarousel(now);
+eq(car[0].slug, "siberia-meetings-2026", "carousel starts with live");
+ok(car.some(function (f) { return f.slug === "beatfilm-2026" && f.status === "past"; }), "beat in past tail");
+var liveIdx = car.findIndex(function (f) { return f.status === "live"; });
+var upIdx = car.findIndex(function (f) { return f.status === "upcoming"; });
+var pastIdx = car.findIndex(function (f) { return f.status === "past"; });
+ok(liveIdx >= 0 && upIdx > liveIdx && pastIdx > upIdx, "order live → upcoming → past");
 
-var news = Mp.newsFeed();
-ok(news.length >= 2, "news strip");
-ok(news[0].festival_slug, "news has slug");
+var days = Mp.programDays(Mp.getFestival("karofilmart-2026"));
+ok(days.length >= 4, "karo calendar days");
+ok(days[0].items.length >= 1, "karo day has films");
 
-var apps = Mp.appearancesForKp("movie-1660825");
-ok(apps.length >= 2, "milan on beat + italian");
-eq(Mp.appearancesForKp("missing").length, 0, "unknown kp empty");
-
-var karo = Mp.getFestival("karofilmart-theater-2026");
-ok(karo.program[0].items.length >= 6, "karo program from screenshot");
-ok(karo.program[0].items.some(function (it) { return it.title.indexOf("Отелло") >= 0; }), "othello row");
-ok((karo.participants || []).length >= 4, "karo participants");
-ok((karo.covers || []).length >= 2, "karo covers");
-ok(Mp.newsForFestival("karofilmart-theater-2026").length >= 2, "karo news");
-
-var italian = Mp.getFestival("italian-stories-2026");
-ok(italian.program.length >= 2, "italian sections");
-ok(italian.program[0].items.some(function (it) { return it.poster; }), "italian posters");
-ok((italian.participants || []).length >= 2, "italian participants");
-ok(Mp.newsForFestival("italian-stories-2026").length >= 1, "italian news");
-
-var beatItems = Mp.kpItems(Mp.getFestival("beatfilm-2026"));
-ok(beatItems.some(function (it) { return it.kp_id === "movie-1049286"; }), "twiggy kp");
+var liveApps = Mp.appearancesForKp("11979853", now);
+ok(liveApps.some(function (a) { return a.status === "live" && a.slug === "siberia-meetings-2026"; }), "live badge kp");
 
 console.log("festivals-mock.test.js ok");

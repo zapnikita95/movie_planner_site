@@ -5331,6 +5331,16 @@
       function paintFilmFestivals(section, items) {
         var rail = section.querySelector('.film-festivals-rail');
         if (!rail || !items || !items.length) return;
+        var live = items.filter(function (item) { return item && item.status === 'live'; });
+        section.querySelectorAll('.film-fest-now').forEach(function (el) { el.remove(); });
+        if (live.length) {
+          var first = live[0];
+          var heading = section.querySelector('.film-discovery-heading');
+          var badge = '<p class="film-fest-now">Сейчас на фестивале · <a href="/whattowatch/festivals/' +
+            encodeURIComponent(first.slug) + '">' + escapeHtml(first.title) + '</a></p>';
+          if (heading) heading.insertAdjacentHTML('afterend', badge);
+          else section.insertAdjacentHTML('afterbegin', badge);
+        }
         rail.innerHTML = items.slice(0, 8).map(function (item) {
           var slug = String(item.slug || '').trim();
           var name = String(item.title || '').trim();

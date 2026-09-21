@@ -1,14 +1,10 @@
 /**
- * Фестивали v1: статичный мок для сайта.
+ * Фестивали v1: статичный мок для сайта. Demo only, direct URL.
  *
- * TODO(bot): заменить на публичные эндпоинты, когда появятся в movie_planner_bot:
- *   GET /api/public/festivals
- *   GET /api/public/festivals/:slug
- *   GET /api/public/film/:kp/festivals
- * Auth later: subscribe / unsubscribe / remind (source=festival:<slug>).
+ * TODO(bot): GET /api/public/festivals, /:slug, /api/public/film/:kp/festivals
  *
- * Не деплой в прод этим PR. Контент: «Итальянские истории» + Каро Фильм Арт
- * (театральная программа с рефа karofilmart) + Beat/Venice как seed appearances.
+ * Даты относительно 2026-09-21:
+ * Beat Weekend 10–20 Sep = прошлый (не июньский Beat Film Festival).
  */
 (function (global) {
   "use strict";
@@ -21,8 +17,200 @@
     "https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900";
   var COVER_VENICE =
     "https://avatars.mds.yandex.net/get-kinopoisk-image/10592371/20b18cde-faf5-47e3-b192-db9ae8c3d4ff/600x900";
+  var COVER_FLAH =
+    "https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900";
+  var COVER_SIB =
+    "https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900";
+  var COVER_MSG =
+    "https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/d9d353ab-f01a-4797-8a3a-c06457e47c06/600x900";
+
+  function row(title, director, year, venue, kp_id, poster, screening_at) {
+    return {
+      title: title,
+      director: director || "",
+      year: year || "",
+      venue: venue || "",
+      kp_id: kp_id || "",
+      poster: poster || "",
+      screening_at: screening_at || "",
+    };
+  }
 
   var FESTIVALS = [
+    {
+      id: "siberia-meetings-2026",
+      slug: "siberia-meetings-2026",
+      title: "Встречи в Сибири",
+      cover: COVER_SIB,
+      city: "Новосибирск",
+      online: false,
+      starts_at: "2026-09-21",
+      ends_at: "2026-09-27",
+      official_url: "https://www.meetingsinsiberia.ru/",
+      collection_code: "",
+      description: "Документальный фестиваль в Новосибирске. 21–27 сентября 2026.",
+      program: [
+        {
+          section: "Основной конкурс",
+          items: [
+            row("Овсянка для чемпионов", "Константин Коста", 2025, "Победа", "11979853", COVER_BEAT, "2026-09-21T19:00:00+07:00"),
+            row("Биостанция Анива: дело длинной воли", "Александр Фёдоров", 2025, "Победа", "12587600", COVER_ITALIAN, "2026-09-22T18:30:00+07:00"),
+            row("История бетона", "Джон Уилсон", 2025, "Победа", "movie-1596296", COVER_FLAH, "2026-09-24T19:00:00+07:00"),
+            row("Лучшее лето", "Тамра Дэвис", 2025, "Победа", "movie-1596324", COVER_VENICE, "2026-09-26T18:00:00+07:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "flahertiana-2026",
+      slug: "flahertiana-2026",
+      title: "Флаэртиана",
+      cover: COVER_FLAH,
+      city: "Пермь",
+      online: false,
+      starts_at: "2026-09-25",
+      ends_at: "2026-10-01",
+      official_url: "https://www.flahertiana.ru/",
+      collection_code: "",
+      description: "Международный фестиваль документального кино. Пермь, 25 сентября по 1 октября 2026.",
+      program: [
+        {
+          section: "Международный конкурс",
+          items: [
+            row("Твигги", "Сэди Фрост", 2024, "Премьер", "movie-1049286", COVER_BEAT, "2026-09-25T18:00:00+05:00"),
+            row("Боуи: последняя глава", "Джонатан Стиасни", 2025, "Премьер", "movie-1571485", COVER_VENICE, "2026-09-26T19:00:00+05:00"),
+            row("Канье Уэст: во имя кого?", "Нико Бальестерос", 2025, "Премьер", "movie-1381066", COVER_KARO, "2026-09-28T18:30:00+05:00"),
+            row("Сделано в Милане", "Джон Маджо", 2024, "Премьер", "movie-1660825", COVER_ITALIAN, "2026-09-30T17:00:00+05:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "sretensky-vstrecha-2026",
+      slug: "sretensky-vstrecha-2026",
+      title: "Сретенский «Встреча»",
+      cover: COVER_VENICE,
+      city: "Обнинск",
+      online: false,
+      starts_at: "2026-09-25",
+      ends_at: "2026-09-29",
+      official_url: "https://sretenie-fest.ru/",
+      collection_code: "",
+      description: "Кинофестиваль «Встреча». Обнинск, 25–29 сентября 2026.",
+      program: [
+        {
+          section: "Программа",
+          items: [
+            row("Партенопа", "Паоло Соррентино", 2024, "Обнинск", "5411300", COVER_ITALIAN, "2026-09-25T19:00:00+03:00"),
+            row("Я — капитан", "Маттео Гарроне", 2023, "Обнинск", "4541881", COVER_SIB, "2026-09-27T18:00:00+03:00"),
+            row("Ещё одна жизнь", "Эмануэле Криалезе", 2023, "Обнинск", "4542093", COVER_FLAH, "2026-09-29T18:00:00+03:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "eurasia-doc-2026",
+      slug: "eurasia-doc-2026",
+      title: "Евразия.DOC",
+      cover: COVER_KARO,
+      city: "Смоленск",
+      online: false,
+      starts_at: "2026-09-28",
+      ends_at: "2026-10-04",
+      official_url: "https://eurasiadoc.ru/",
+      collection_code: "",
+      description: "Фестиваль документального кино. Смоленск, с 28 сентября 2026.",
+      program: [
+        {
+          section: "Конкурс",
+          items: [
+            row("История бетона", "Джон Уилсон", 2025, "Смоленск", "movie-1596296", COVER_FLAH, "2026-09-28T18:00:00+03:00"),
+            row("Овсянка для чемпионов", "Константин Коста", 2025, "Смоленск", "11979853", COVER_BEAT, "2026-09-30T19:00:00+03:00"),
+            row("Биостанция Анива: дело длинной воли", "Александр Фёдоров", 2025, "Смоленск", "12587600", COVER_ITALIAN, "2026-10-02T18:00:00+03:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "karofilmart-2026",
+      slug: "karofilmart-2026",
+      title: "Каро Арт",
+      cover: COVER_KARO,
+      city: "Москва",
+      online: false,
+      starts_at: "2026-10-14",
+      ends_at: "2026-10-25",
+      official_url: "https://www.instagram.com/karofilmart/",
+      collection_code: "",
+      description: "Программа Каро Арт: спектакли и кинопоказы. Москва, 14–25 октября 2026.",
+      program: [
+        {
+          section: "Театральная программа",
+          items: [
+            row("Скасска", "Арсений Мещеряков", 2025, "Театр Старый дом", "", COVER_KARO, "2026-10-14T19:00:00+03:00"),
+            row("Маскарад", "Анатолий Васильев", 1993, "Comédie-Française", "", COVER_VENICE, "2026-10-16T19:00:00+03:00"),
+            row("Отелло", "Эймунтас Някрошюс", 2009, "Meno fortas", "", COVER_ITALIAN, "2026-10-18T19:00:00+03:00"),
+            row("Безумный день в Комеди Франсез", "Мартин Дарондо, Бертран Юскла", 2026, "Москва", "", COVER_BEAT, "2026-10-21T18:00:00+03:00"),
+            row("Юрий Бутусов. Барабаны внутри", "Наталья Пешкова", 2026, "Москва", "", COVER_KARO, "2026-10-23T19:30:00+03:00"),
+            row("Конкурс короткометражного кино МХТ имени А. П. Чехова", "", "2025 / 2026", "МХТ имени А. П. Чехова", "", COVER_VENICE, "2026-10-25T16:00:00+03:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "message-to-man-2026",
+      slug: "message-to-man-2026",
+      title: "Послание к человеку",
+      cover: COVER_MSG,
+      city: "Санкт-Петербург",
+      online: false,
+      starts_at: "2026-10-16",
+      ends_at: "2026-10-24",
+      official_url: "https://message2man.com/",
+      collection_code: "",
+      description: "Международный фестиваль документального, короткометражного и анимационного кино. Санкт-Петербург, 16–24 октября 2026.",
+      program: [
+        {
+          section: "Документальный конкурс",
+          items: [
+            row("Твигги", "Сэди Фрост", 2024, "Родина", "movie-1049286", COVER_BEAT, "2026-10-16T19:00:00+03:00"),
+            row("Боуи: последняя глава", "Джонатан Стиасни", 2025, "Родина", "movie-1571485", COVER_VENICE, "2026-10-18T18:00:00+03:00"),
+            row("Лучшее лето", "Тамра Дэвис", 2025, "Родина", "movie-1596324", COVER_SIB, "2026-10-21T19:00:00+03:00"),
+            row("Сделано в Милане", "Джон Маджо", 2024, "Родина", "movie-1660825", COVER_ITALIAN, "2026-10-23T18:30:00+03:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "beatfilm-2026",
+      slug: "beatfilm-2026",
+      title: "Beat Weekend",
+      cover: COVER_BEAT,
+      city: "18 городов",
+      online: true,
+      starts_at: "2026-09-10",
+      ends_at: "2026-09-20",
+      official_url: "https://beatfilmfestival.ru/news/beat-weekend-2026-daty-goroda-i-programmu",
+      collection_code: "beatfilm-2026",
+      description: "Документальный фестиваль о новой культуре. 10–20 сентября 2026, 18 городов и онлайн. Не путать с июньским Beat Film Festival.",
+      program: [
+        {
+          section: "Открытие и мода",
+          items: [
+            row("Твигги", "Сэди Фрост", 2024, "Москва", "movie-1049286", COVER_BEAT, "2026-09-10T19:00:00+03:00"),
+            row("Сделано в Милане", "Джон Маджо", 2024, "Пионер", "movie-1660825", COVER_ITALIAN, "2026-09-12T18:00:00+03:00"),
+          ],
+        },
+        {
+          section: "Музыка",
+          items: [
+            row("Боуи: последняя глава", "Джонатан Стиасни", 2025, "Москва", "movie-1571485", COVER_VENICE, "2026-09-14T19:00:00+03:00"),
+            row("Канье Уэст: во имя кого?", "Нико Бальестерос", 2025, "Москва", "movie-1381066", COVER_KARO, "2026-09-16T19:00:00+03:00"),
+            row("Лучшее лето", "Тамра Дэвис", 2025, "Москва", "movie-1596324", COVER_SIB, "2026-09-18T18:00:00+03:00"),
+          ],
+        },
+      ],
+    },
     {
       id: "italian-stories-2026",
       slug: "italian-stories-2026",
@@ -34,231 +222,14 @@
       ends_at: "2026-08-30",
       official_url: "https://movie-planner.ru/whattowatch/collections/italian-stories-2026",
       collection_code: "italian-stories-2026",
-      description:
-        "Три дня итальянского кино в музее-усадьбе Архангельское: новые фильмы, классика и встречи. Площадка усадьбы, показы вечером.",
-      covers: [
-        COVER_ITALIAN,
-        "https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900",
-        COVER_VENICE,
-      ],
-      participants: [
-        { name: "Музей-усадьба Архангельское", role: "Площадка" },
-        { name: "Итальянский институт культуры", role: "Партнёр" },
-        { name: "Паоло Соррентино", role: "Режиссёр, «Партенопа»" },
-        { name: "Маттео Гарроне", role: "Режиссёр, «Я — капитан»" },
-      ],
+      description: "Три дня итальянского кино в музее-усадьбе Архангельское.",
       program: [
         {
           section: "Основная программа",
           items: [
-            {
-              title: "Партенопа",
-              director: "Паоло Соррентино",
-              year: 2024,
-              venue: "Кинотеатр усадьбы",
-              kp_id: "5411300",
-              poster: COVER_ITALIAN,
-              screening_at: "2026-08-28T19:00:00+03:00",
-            },
-            {
-              title: "Я — капитан",
-              director: "Маттео Гарроне",
-              year: 2023,
-              venue: "Кинотеатр усадьбы",
-              kp_id: "4541881",
-              poster: "https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900",
-              screening_at: "2026-08-29T19:00:00+03:00",
-            },
-            {
-              title: "Ещё одна жизнь",
-              director: "Эмануэле Криалезе",
-              year: 2023,
-              venue: "Кинотеатр усадьбы",
-              kp_id: "4542093",
-              poster: "https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900",
-              screening_at: "2026-08-30T18:00:00+03:00",
-            },
-            {
-              title: "Сделано в Милане",
-              director: "Джон Маджо",
-              year: 2024,
-              venue: "Кинотеатр усадьбы",
-              kp_id: "movie-1660825",
-              poster: COVER_BEAT,
-              screening_at: "2026-08-30T20:30:00+03:00",
-            },
-          ],
-        },
-        {
-          section: "Классика",
-          items: [
-            {
-              title: "Сладкая жизнь",
-              director: "Федерико Феллини",
-              year: 1960,
-              venue: "Парк усадьбы",
-              kp_id: "349",
-              poster: COVER_VENICE,
-              screening_at: "2026-08-29T16:00:00+03:00",
-            },
-            {
-              title: "Восемь с половиной",
-              director: "Федерико Феллини",
-              year: 1963,
-              venue: "Парк усадьбы",
-              kp_id: "414",
-              poster: COVER_KARO,
-              screening_at: "2026-08-30T16:00:00+03:00",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "karofilmart-theater-2026",
-      slug: "karofilmart-theater-2026",
-      title: "Каро Фильм Арт. Театральная программа",
-      cover: COVER_KARO,
-      city: "Москва",
-      online: false,
-      starts_at: "2026-10-02",
-      ends_at: "2026-10-26",
-      official_url: "https://www.instagram.com/karofilmart/",
-      collection_code: "",
-      description:
-        "Октябрьская театральная программа Каро Фильм Арт: записи спектаклей и кинопоказы. Москва, 2–26 октября 2026.",
-      covers: [
-        COVER_KARO,
-        "https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900",
-        COVER_ITALIAN,
-      ],
-      participants: [
-        { name: "Каро Фильм Арт", role: "Организатор" },
-        { name: "Театр Старый дом", role: "Площадка" },
-        { name: "Comédie-Française", role: "Площадка" },
-        { name: "Meno fortas", role: "Площадка" },
-        { name: "МХТ имени А. П. Чехова", role: "Конкурс короткого метра" },
-        { name: "Арсений Мещеряков", role: "Режиссёр, «Скасска»" },
-        { name: "Эймунтас Някрошюс", role: "Режиссёр, «Отелло»" },
-      ],
-      program: [
-        {
-          section: "Театральная программа",
-          items: [
-            {
-              title: "Скасска",
-              director: "Арсений Мещеряков",
-              year: 2025,
-              venue: "Театр Старый дом",
-              kp_id: "",
-              poster: COVER_KARO,
-              screening_at: "2026-10-02T19:00:00+03:00",
-            },
-            {
-              title: "Маскарад",
-              director: "Анатолий Васильев",
-              year: 1993,
-              venue: "Comédie-Française",
-              kp_id: "",
-              poster: COVER_VENICE,
-              screening_at: "2026-10-05T19:00:00+03:00",
-            },
-            {
-              title: "Отелло",
-              director: "Эймунтас Някрошюс",
-              year: 2009,
-              venue: "Meno fortas",
-              kp_id: "",
-              poster: COVER_ITALIAN,
-              screening_at: "2026-10-12T19:00:00+03:00",
-            },
-            {
-              title: "Безумный день в Комеди Франсез",
-              director: "Мартин Дарондо, Бертран Юскла",
-              year: 2026,
-              venue: "Москва",
-              kp_id: "",
-              poster: COVER_BEAT,
-              screening_at: "2026-10-18T18:00:00+03:00",
-            },
-            {
-              title: "Юрий Бутусов. Барабаны внутри",
-              director: "Наталья Пешкова",
-              year: 2026,
-              venue: "Москва",
-              kp_id: "",
-              poster: COVER_KARO,
-              screening_at: "2026-10-22T19:30:00+03:00",
-            },
-            {
-              title: "Конкурс короткометражного кино МХТ имени А. П. Чехова",
-              director: "",
-              year: "2025 / 2026",
-              venue: "МХТ имени А. П. Чехова",
-              kp_id: "",
-              poster: COVER_VENICE,
-              screening_at: "2026-10-26T16:00:00+03:00",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "beatfilm-2026",
-      slug: "beatfilm-2026",
-      title: "Beat Weekend / Битфилм",
-      cover: COVER_BEAT,
-      city: "18 городов",
-      online: true,
-      starts_at: "2026-09-10",
-      ends_at: "2026-09-20",
-      official_url: "https://beatfilmfestival.ru/news/beat-weekend-2026-daty-goroda-i-programmu",
-      collection_code: "beatfilm-2026",
-      description:
-        "Документальный фестиваль о новой культуре. 10–20 сентября 2026, 18 городов и онлайн на Кинопоиске.",
-      program: [
-        {
-          section: "Открытие и мода",
-          items: [
-            { title: "Твигги", director: "Сэди Фрост", year: 2024, venue: "Москва", kp_id: "movie-1049286", screening_at: "2026-09-10T19:00:00+03:00" },
-            { title: "Сделано в Милане", director: "Джон Маджо", year: 2024, venue: "Пионер", kp_id: "movie-1660825" },
-          ],
-        },
-        {
-          section: "Музыка",
-          items: [
-            { title: "Боуи: последняя глава", director: "Джонатан Стиасни", year: 2025, venue: "Москва", kp_id: "movie-1571485" },
-            { title: "Канье Уэст: во имя кого?", director: "Нико Бальестерос", year: 2025, venue: "Москва", kp_id: "movie-1381066" },
-            { title: "Лучшее лето", director: "Тамра Дэвис", year: 2025, venue: "Москва", kp_id: "movie-1596324" },
-          ],
-        },
-        {
-          section: "Документальные премьеры",
-          items: [
-            { title: "История бетона", director: "Джон Уилсон", year: 2025, venue: "Москва", kp_id: "movie-1596296" },
-            { title: "Овсянка для чемпионов", director: "Константин Коста", year: 2025, venue: "Москва", kp_id: "11979853" },
-            { title: "Биостанция Анива: дело длинной воли", director: "Александр Фёдоров", year: 2025, venue: "Москва", kp_id: "12587600" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "venice-2026",
-      slug: "venice-2026",
-      title: "Венецианский кинофестиваль",
-      cover: COVER_VENICE,
-      city: "Венеция",
-      online: false,
-      starts_at: "2026-09-02",
-      ends_at: "2026-09-12",
-      official_url: "https://www.labiennale.org/en/cinema",
-      collection_code: "venice-2026",
-      description: "83-й Венецианский кинофестиваль. 2–12 сентября 2026. Подборка фильмов — в «Коллекциях».",
-      program: [
-        {
-          section: "Основной конкурс",
-          items: [
-            { title: "Основной конкурс", director: "", year: 2026, venue: "Венеция", kp_id: "" },
+            row("Партенопа", "Паоло Соррентино", 2024, "Архангельское", "5411300", COVER_ITALIAN, "2026-08-28T19:00:00+03:00"),
+            row("Я — капитан", "Маттео Гарроне", 2023, "Архангельское", "4541881", COVER_SIB, "2026-08-29T19:00:00+03:00"),
+            row("Сделано в Милане", "Джон Маджо", 2024, "Архангельское", "movie-1660825", COVER_BEAT, "2026-08-30T20:30:00+03:00"),
           ],
         },
       ],
@@ -266,75 +237,59 @@
   ];
 
   var NEWS = [
-    {
-      id: "n-karo-theater",
-      festival_id: "karofilmart-theater-2026",
-      title: "Каро Фильм Арт открыл театральную программу",
-      cover: COVER_KARO,
-      published_at: "2026-09-19",
-    },
-    {
-      id: "n-karo-othello",
-      festival_id: "karofilmart-theater-2026",
-      title: "«Отелло» Някрошюса в афише октября",
-      cover: COVER_ITALIAN,
-      published_at: "2026-09-18",
-    },
-    {
-      id: "n-karo-mht",
-      festival_id: "karofilmart-theater-2026",
-      title: "Короткий метр МХТ закроет программу",
-      cover: COVER_VENICE,
-      published_at: "2026-09-16",
-    },
-    {
-      id: "n-beat-close",
-      festival_id: "beatfilm-2026",
-      title: "Beat Weekend закрылся в 18 городах",
-      cover: COVER_BEAT,
-      published_at: "2026-09-20",
-    },
-    {
-      id: "n-italian-wrap",
-      festival_id: "italian-stories-2026",
-      title: "«Итальянские истории» прошли в Архангельском",
-      cover: COVER_ITALIAN,
-      published_at: "2026-08-31",
-    },
-    {
-      id: "n-italian-parthenope",
-      festival_id: "italian-stories-2026",
-      title: "«Партенопа» закрыла фестиваль",
-      cover: COVER_ITALIAN,
-      published_at: "2026-08-30",
-    },
-    {
-      id: "n-venice-wrap",
-      festival_id: "venice-2026",
-      title: "Венеция-2026: итоги 83-го фестиваля",
-      cover: COVER_VENICE,
-      published_at: "2026-09-13",
-    },
+    { id: "n-sib-open", festival_id: "siberia-meetings-2026", title: "«Встречи в Сибири» открылись в Новосибирске", cover: COVER_SIB, published_at: "2026-09-21" },
+    { id: "n-flah", festival_id: "flahertiana-2026", title: "Флаэртиана: программа Перми с 25 сентября", cover: COVER_FLAH, published_at: "2026-09-20" },
+    { id: "n-beat-close", festival_id: "beatfilm-2026", title: "Beat Weekend закрылся в 18 городах", cover: COVER_BEAT, published_at: "2026-09-20" },
+    { id: "n-karo", festival_id: "karofilmart-2026", title: "Каро Арт: афиша 14–25 октября", cover: COVER_KARO, published_at: "2026-09-18" },
   ];
 
-  /* kp_id → appearances. Seed from Beat/Italian mock program. */
   var APPEARANCES = {
-    "movie-1049286": [{ festival_id: "beatfilm-2026", year: 2026, section: "Открытие и мода" }],
+    "11979853": [
+      { festival_id: "siberia-meetings-2026", year: 2026, section: "Основной конкурс" },
+      { festival_id: "eurasia-doc-2026", year: 2026, section: "Конкурс" },
+    ],
+    "12587600": [
+      { festival_id: "siberia-meetings-2026", year: 2026, section: "Основной конкурс" },
+      { festival_id: "eurasia-doc-2026", year: 2026, section: "Конкурс" },
+    ],
+    "movie-1596296": [
+      { festival_id: "siberia-meetings-2026", year: 2026, section: "Основной конкурс" },
+      { festival_id: "eurasia-doc-2026", year: 2026, section: "Конкурс" },
+    ],
+    "movie-1049286": [
+      { festival_id: "flahertiana-2026", year: 2026, section: "Международный конкурс" },
+      { festival_id: "beatfilm-2026", year: 2026, section: "Открытие и мода" },
+      { festival_id: "message-to-man-2026", year: 2026, section: "Документальный конкурс" },
+    ],
     "movie-1660825": [
+      { festival_id: "flahertiana-2026", year: 2026, section: "Международный конкурс" },
       { festival_id: "beatfilm-2026", year: 2026, section: "Открытие и мода" },
       { festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" },
+      { festival_id: "message-to-man-2026", year: 2026, section: "Документальный конкурс" },
     ],
-    "movie-1571485": [{ festival_id: "beatfilm-2026", year: 2026, section: "Музыка" }],
-    "movie-1381066": [{ festival_id: "beatfilm-2026", year: 2026, section: "Музыка" }],
-    "movie-1596324": [{ festival_id: "beatfilm-2026", year: 2026, section: "Музыка" }],
-    "movie-1596296": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
-    "11979853": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
-    "12587600": [{ festival_id: "beatfilm-2026", year: 2026, section: "Документальные премьеры" }],
-    "5411300": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
-    "4541881": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
-    "4542093": [{ festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" }],
-    "349": [{ festival_id: "italian-stories-2026", year: 2026, section: "Классика" }],
-    "414": [{ festival_id: "italian-stories-2026", year: 2026, section: "Классика" }],
+    "movie-1571485": [
+      { festival_id: "flahertiana-2026", year: 2026, section: "Международный конкурс" },
+      { festival_id: "beatfilm-2026", year: 2026, section: "Музыка" },
+      { festival_id: "message-to-man-2026", year: 2026, section: "Документальный конкурс" },
+    ],
+    "movie-1381066": [
+      { festival_id: "flahertiana-2026", year: 2026, section: "Международный конкурс" },
+      { festival_id: "beatfilm-2026", year: 2026, section: "Музыка" },
+    ],
+    "movie-1596324": [
+      { festival_id: "siberia-meetings-2026", year: 2026, section: "Основной конкурс" },
+      { festival_id: "beatfilm-2026", year: 2026, section: "Музыка" },
+      { festival_id: "message-to-man-2026", year: 2026, section: "Документальный конкурс" },
+    ],
+    "5411300": [
+      { festival_id: "sretensky-vstrecha-2026", year: 2026, section: "Программа" },
+      { festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" },
+    ],
+    "4541881": [
+      { festival_id: "sretensky-vstrecha-2026", year: 2026, section: "Программа" },
+      { festival_id: "italian-stories-2026", year: 2026, section: "Основная программа" },
+    ],
+    "4542093": [{ festival_id: "sretensky-vstrecha-2026", year: 2026, section: "Программа" }],
   };
 
   var STATUS_LABEL = { upcoming: "Скоро", live: "Идёт", past: "Прошёл" };
@@ -369,6 +324,13 @@
     return a || b || "";
   }
 
+  function formatDayLabel(iso) {
+    var d = new Date(parseDay(iso));
+    if (!iso || isNaN(d.getTime())) return "Без даты";
+    var months = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+    return d.getDate() + " " + months[d.getMonth()];
+  }
+
   function enrich(fest, now) {
     if (!fest) return null;
     var status = statusOf(fest, now);
@@ -384,8 +346,6 @@
       official_url: fest.official_url,
       collection_code: fest.collection_code || "",
       description: fest.description,
-      covers: fest.covers || (fest.cover ? [fest.cover] : []),
-      participants: fest.participants || [],
       program: fest.program || [],
       status: status,
       status_label: STATUS_LABEL[status] || status,
@@ -411,17 +371,57 @@
     return raw ? enrich(raw, now) : null;
   }
 
-  function scheduleGroups(now) {
-    var items = listFestivals(now);
+  function scheduleCarousel(now) {
+    var live = [];
     var upcoming = [];
     var past = [];
-    items.forEach(function (f) {
-      if (f.status === "past") past.push(f);
-      else upcoming.push(f);
+    listFestivals(now).forEach(function (f) {
+      if (f.status === "live") live.push(f);
+      else if (f.status === "upcoming") upcoming.push(f);
+      else past.push(f);
     });
+    live.sort(function (a, b) { return parseDay(a.starts_at) - parseDay(b.starts_at); });
     upcoming.sort(function (a, b) { return parseDay(a.starts_at) - parseDay(b.starts_at); });
     past.sort(function (a, b) { return parseDay(b.ends_at) - parseDay(a.ends_at); });
-    return { upcoming: upcoming, past: past };
+    return live.concat(upcoming, past);
+  }
+
+  function scheduleGroups(now) {
+    var items = scheduleCarousel(now);
+    return {
+      live: items.filter(function (f) { return f.status === "live"; }),
+      upcoming: items.filter(function (f) { return f.status === "upcoming" || f.status === "live"; }),
+      past: items.filter(function (f) { return f.status === "past"; }),
+    };
+  }
+
+  function programDays(fest) {
+    var map = {};
+    ((fest && fest.program) || []).forEach(function (sec) {
+      (sec.items || []).forEach(function (it) {
+        var day = String((it && it.screening_at) || "").slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) day = "";
+        if (!map[day]) map[day] = [];
+        map[day].push({
+          title: it.title,
+          director: it.director,
+          year: it.year,
+          venue: it.venue,
+          kp_id: it.kp_id,
+          poster: it.poster,
+          screening_at: it.screening_at,
+          section: sec.section || "",
+        });
+      });
+    });
+    var keys = Object.keys(map).sort();
+    return keys.map(function (day) {
+      return {
+        day: day,
+        label: day ? formatDayLabel(day) : "Без даты",
+        items: map[day],
+      };
+    });
   }
 
   function newsFeed() {
@@ -441,26 +441,6 @@
     });
   }
 
-  function normalizeKp(kp) {
-    return String(kp || "").trim();
-  }
-
-  function appearancesForKp(kp) {
-    var key = normalizeKp(kp);
-    var rows = APPEARANCES[key] || [];
-    return rows.map(function (row) {
-      var fest = bySlug(row.festival_id);
-      return {
-        festival_id: row.festival_id,
-        slug: fest ? fest.slug : row.festival_id,
-        title: fest ? fest.title : row.festival_id,
-        year: row.year,
-        section: row.section || "",
-        cover: fest ? fest.cover : "",
-      };
-    });
-  }
-
   function newsForFestival(slug) {
     var key = String(slug || "").trim();
     return newsFeed().filter(function (n) {
@@ -468,10 +448,31 @@
     });
   }
 
+  function normalizeKp(kp) {
+    return String(kp || "").trim();
+  }
+
+  function appearancesForKp(kp, now) {
+    var key = normalizeKp(kp);
+    var rows = APPEARANCES[key] || [];
+    return rows.map(function (row) {
+      var fest = getFestival(row.festival_id, now);
+      return {
+        festival_id: row.festival_id,
+        slug: fest ? fest.slug : row.festival_id,
+        title: fest ? fest.title : row.festival_id,
+        year: row.year,
+        section: row.section || "",
+        cover: fest ? fest.cover : "",
+        status: fest ? fest.status : "",
+        status_label: fest ? fest.status_label : "",
+      };
+    });
+  }
+
   function kpItems(fest) {
     var out = [];
-    var program = (fest && fest.program) || [];
-    program.forEach(function (sec) {
+    ((fest && fest.program) || []).forEach(function (sec) {
       (sec.items || []).forEach(function (it) {
         if (it && it.kp_id) out.push(it);
       });
@@ -489,7 +490,9 @@
     formatDateRange: formatDateRange,
     listFestivals: listFestivals,
     getFestival: getFestival,
+    scheduleCarousel: scheduleCarousel,
     scheduleGroups: scheduleGroups,
+    programDays: programDays,
     newsFeed: newsFeed,
     newsForFestival: newsForFestival,
     appearancesForKp: appearancesForKp,

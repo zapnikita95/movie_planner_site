@@ -1,21 +1,19 @@
 /**
- * Фестивали — индекс и страница фестиваля внутри «Смотреть».
- * Маршруты: /whattowatch/festivals , /whattowatch/festivals/:slug
- * Данные: MpFestivalsMock (пока нет public API).
+ * Фестивали — индекс и страница фестиваля.
+ * Прямые URL: /whattowatch/festivals , /whattowatch/festivals/:slug
+ * В меню Смотреть / Премьеры входа нет (demo).
  */
 (function (global) {
   "use strict";
 
   var SEO = {
     title: "Фестивали — Movie Planner",
-    description: "Кинофестивали в Movie Planner: что идёт и что скоро, программа, подписка и фильмы в базе.",
-    path: "/whattowatch/festivals",
+    description: "Кинофестивали в Movie Planner: что идёт и что скоро, программа по дням, подписка.",
     canonical: "https://movie-planner.ru/whattowatch/festivals",
   };
 
   var SUBS_KEY = "mp_festival_subs_v1";
   var REMIND_KEY = "mp_festival_remind_v1";
-  var FROM_PREMIERES_KEY = "mp_fest_from_premieres";
 
   function esc(s) {
     if (global.escapeHtml) return global.escapeHtml(s);
@@ -33,27 +31,6 @@
 
   function toast(msg, opts) {
     if (global.showToast) global.showToast(msg, opts);
-  }
-
-  function hasSiteAuth() {
-    try {
-      if (typeof global.getToken === "function" && global.getToken()) return true;
-      var active = localStorage.getItem("mp_site_active_chat_id");
-      var sessions = JSON.parse(localStorage.getItem("mp_site_sessions") || "[]");
-      if (Array.isArray(sessions)) {
-        for (var i = 0; i < sessions.length; i++) {
-          if (sessions[i] && sessions[i].token && (!active || String(sessions[i].chat_id) === String(active))) {
-            return true;
-          }
-        }
-        for (var j = 0; j < sessions.length; j++) {
-          if (sessions[j] && sessions[j].token) return true;
-        }
-      }
-      return !!localStorage.getItem("mp_site_token");
-    } catch (_) {
-      return false;
-    }
   }
 
   function applyIndexSeo() {
@@ -77,86 +54,46 @@
     } catch (_) {}
   }
 
-  function readSubs() {
+  function readJsonList(key) {
     try {
-      var raw = localStorage.getItem(SUBS_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
+      var parsed = JSON.parse(localStorage.getItem(key) || "[]");
       return Array.isArray(parsed) ? parsed.map(String) : [];
     } catch (_) {
       return [];
     }
   }
 
-  function writeSubs(list) {
-    try {
-      localStorage.setItem(SUBS_KEY, JSON.stringify(list || []));
-    } catch (_) {}
+  function writeJsonList(key, list) {
+    try { localStorage.setItem(key, JSON.stringify(list || [])); } catch (_) {}
   }
 
   function isSubscribed(slug) {
-    var key = String(slug || "");
-    return readSubs().indexOf(key) >= 0;
+    return readJsonList(SUBS_KEY).indexOf(String(slug || "")) >= 0;
   }
 
   function toggleSubscribe(slug) {
     var key = String(slug || "");
     if (!key) return false;
-    var list = readSubs();
+    var list = readJsonList(SUBS_KEY);
     var i = list.indexOf(key);
     if (i >= 0) list.splice(i, 1);
     else list.push(key);
-    writeSubs(list);
+    writeJsonList(SUBS_KEY, list);
     return list.indexOf(key) >= 0;
   }
 
-  function readReminds() {
-    try {
-      var raw = localStorage.getItem(REMIND_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.map(String) : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function writeReminds(list) {
-    try {
-      localStorage.setItem(REMIND_KEY, JSON.stringify(list || []));
-    } catch (_) {}
-  }
-
-  function toggleRemind(key) {
-    var id = String(key || "");
-    if (!id) return false;
-    var list = readReminds();
-    var i = list.indexOf(id);
+  function toggleRemind(id) {
+    var key = String(id || "");
+    if (!key) return false;
+    var list = readJsonList(REMIND_KEY);
+    var i = list.indexOf(key);
     if (i >= 0) list.splice(i, 1);
-    else list.push(id);
-    writeReminds(list);
-    return list.indexOf(id) >= 0;
-  }
-
-  function markFromPremieres() {
-    try { sessionStorage.setItem(FROM_PREMIERES_KEY, "1"); } catch (_) {}
-  }
-
-  function consumeFromPremieres() {
-    try {
-      var on = sessionStorage.getItem(FROM_PREMIERES_KEY) === "1";
-      sessionStorage.removeItem(FROM_PREMIERES_KEY);
-      return on;
-    } catch (_) {
-      return false;
-    }
+    else list.push(key);
+    writeJsonList(REMIND_KEY, list);
+    return list.indexOf(key) >= 0;
   }
 
   function openFestival(slug) {
-    var onPremieres = false;
-    try {
-      var path = (window.location.pathname || "").replace(/\/$/, "") || "/";
-      onPremieres = path === "/premieres";
-    } catch (_) {}
-    if (onPremieres) markFromPremieres();
     if (typeof global.__mpWtwOpenFestivalSlug === "function") {
       global.__mpWtwOpenFestivalSlug(slug);
       return;
@@ -165,14 +102,6 @@
   }
 
   function backToIndex() {
-    if (consumeFromPremieres()) {
-      if (typeof global.__mpPremieresOpenHub === "function") {
-        global.__mpPremieresOpenHub("festivals");
-        return;
-      }
-      window.location.href = "/premieres#festivals";
-      return;
-    }
     if (typeof global.__mpWtwFestivalsBack === "function") {
       global.__mpWtwFestivalsBack();
       return;
@@ -185,67 +114,37 @@
     return "/f/" + encodeURIComponent(String(kp));
   }
 
-  function newsStripHtml(news, heading) {
+  function newsStripHtml(news) {
     if (!news || !news.length) return "";
-    var cards = news.map(function (n) {
+    var cards = news.slice(0, 6).map(function (n) {
       var cover = n.cover
         ? '<img class="fest-news-cover" src="' + esc(n.cover) + '" alt="" loading="lazy">'
         : '<span class="fest-news-cover fest-news-cover--empty" aria-hidden="true"></span>';
-      var open = n.festival_slug
-        ? ' data-fest-open="' + esc(n.festival_slug) + '"'
-        : "";
-      return '<button type="button" class="fest-news-card"' + open + ">"
+      return '<button type="button" class="fest-news-card" data-fest-open="' + esc(n.festival_slug) + '">'
         + cover
-        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(n.title) + "</span>"
-        + (n.festival_title ? '<span class="fest-news-meta">' + esc(n.festival_title) + "</span>" : "")
-        + "</span></button>";
+        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(n.title) + "</span></span></button>";
     }).join("");
-    return '<section class="fest-news" aria-label="' + esc(heading || "Новости фестивалей") + '">'
-      + '<h2 class="fest-block-title">' + esc(heading || "Новости") + "</h2>"
-      + '<div class="fest-news-rail fest-detail-news-rail">' + cards + "</div></section>";
+    return '<section class="fest-news" aria-label="Новости">'
+      + '<h2 class="fest-block-title">Новости</h2>'
+      + '<div class="fest-news-rail">' + cards + "</div></section>";
   }
 
-  function scheduleRowHtml(f, muted) {
-    return '<button type="button" class="fest-sched-row' + (muted ? " is-past" : "") + '" data-fest-open="' + esc(f.slug) + '">'
-      + (f.cover ? '<img class="fest-sched-cover" src="' + esc(f.cover) + '" alt="" loading="lazy">' : '<span class="fest-sched-cover fest-sched-cover--empty" aria-hidden="true"></span>')
-      + '<span class="fest-sched-copy">'
-      + '<span class="fest-sched-title">' + esc(f.title) + "</span>"
-      + '<span class="fest-sched-meta">' + esc([f.dates_label, f.place_label].filter(Boolean).join(" · ")) + "</span>"
-      + "</span>"
-      + '<span class="fest-status fest-status--' + esc(f.status) + '">' + esc(f.status_label) + "</span>"
-      + "</button>";
-  }
-
-  function scheduleHtml(groups) {
-    var upcoming = (groups && groups.upcoming) || [];
-    var past = (groups && groups.past) || [];
-    var body = "";
-    if (upcoming.length) {
-      body += '<h3 class="fest-sched-head">Ближайшие</h3>'
-        + '<div class="fest-sched-list">' + upcoming.map(function (f) { return scheduleRowHtml(f, false); }).join("") + "</div>";
-    }
-    if (past.length) {
-      body += '<h3 class="fest-sched-head">Прошедшие</h3>'
-        + '<div class="fest-sched-list fest-sched-list--past">' + past.map(function (f) { return scheduleRowHtml(f, true); }).join("") + "</div>";
-    }
-    if (!body) body = '<p class="cabinet-hint">Пока нет фестивалей в афише.</p>';
+  function carouselHtml(items) {
+    if (!items || !items.length) return '<p class="cabinet-hint">Пока нет фестивалей в афише.</p>';
+    var cards = items.map(function (f) {
+      var cover = f.cover
+        ? '<img class="fest-carousel-cover" src="' + esc(f.cover) + '" alt="" loading="lazy">'
+        : '<span class="fest-carousel-cover fest-news-cover--empty" aria-hidden="true"></span>';
+      return '<button type="button" class="fest-carousel-card" data-fest-open="' + esc(f.slug) + '">'
+        + cover
+        + '<span class="fest-carousel-name">' + esc(f.title) + "</span>"
+        + '<span class="fest-carousel-meta">' + esc([f.dates_label, f.place_label].filter(Boolean).join(" · ")) + "</span>"
+        + '<span class="fest-status fest-status--' + esc(f.status) + '">' + esc(f.status_label) + "</span>"
+        + "</button>";
+    }).join("");
     return '<section class="fest-schedule" aria-label="График фестивалей">'
-      + '<h2 class="fest-block-title">График</h2>' + body + "</section>";
-  }
-
-  function subsHtml() {
-    var subs = readSubs();
-    if (!subs.length) return "";
-    var data = mock();
-    var rows = subs.map(function (slug) {
-      var f = data && data.getFestival ? data.getFestival(slug) : null;
-      if (!f) return "";
-      return scheduleRowHtml(f, f.status === "past");
-    }).filter(Boolean).join("");
-    if (!rows) return "";
-    return '<section class="fest-subs" aria-label="Подписки">'
-      + '<h2 class="fest-block-title">Подписки</h2>'
-      + '<div class="fest-sched-list">' + rows + "</div></section>";
+      + '<h2 class="fest-block-title">График</h2>'
+      + '<div class="fest-carousel">' + cards + "</div></section>";
   }
 
   function bindOpen(root) {
@@ -258,54 +157,49 @@
     });
   }
 
-  function renderIndex(root, opts) {
+  function renderIndex(root) {
     if (!root) return;
-    var options = opts || {};
     var data = mock();
     if (!data) {
       root.innerHTML = '<div class="festivals-page"><p class="cabinet-hint">Не удалось загрузить афишу фестивалей.</p></div>';
       return;
     }
-    if (!options.skipSeo) applyIndexSeo();
-    var news = data.newsFeed();
-    var groups = data.scheduleGroups();
+    applyIndexSeo();
+    var news = data.newsFeed ? data.newsFeed() : [];
+    var items = data.scheduleCarousel ? data.scheduleCarousel() : [];
     root.innerHTML = '<div class="festivals-page festivals-page--index">'
-      + newsStripHtml(news, "Новости")
-      + subsHtml()
-      + scheduleHtml(groups)
+      + '<h1 class="fest-index-title">Фестивали</h1>'
+      + newsStripHtml(news)
+      + carouselHtml(items)
       + "</div>";
     bindOpen(root);
   }
 
-  function screeningLabel(iso) {
+  function timeLabel(iso) {
     if (!iso) return "";
     var t = Date.parse(iso);
     if (!t) return "";
     var d = new Date(t);
-    var day = d.getDate();
-    var months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
     var hh = d.getHours();
     var mm = d.getMinutes();
-    var hhS = (hh < 10 ? "0" : "") + hh;
-    var mmS = (mm < 10 ? "0" : "") + mm;
-    return day + " " + months[d.getMonth()] + ", " + hhS + ":" + mmS;
+    return ((hh < 10 ? "0" : "") + hh) + ":" + ((mm < 10 ? "0" : "") + mm);
   }
 
   function remindKey(fest, it) {
     return String(fest.slug || "") + ":" + String((it && (it.kp_id || it.title)) || "");
   }
 
-  function programItemHtml(fest, it) {
+  function programRowHtml(fest, it) {
     var kp = it && it.kp_id ? String(it.kp_id).trim() : "";
     var href = filmHref(kp);
     var title = esc((it && it.title) || "Без названия");
-    var metaBits = [];
-    if (it && it.director) metaBits.push("Режиссёр " + it.director);
-    if (it && it.venue) metaBits.push(it.venue);
-    if (it && it.year) metaBits.push(String(it.year));
-    var when = screeningLabel(it && it.screening_at);
-    if (when) metaBits.push(when);
-    var meta = metaBits.length ? '<span class="fest-prog-meta">' + esc(metaBits.join(" · ")) + "</span>" : "";
+    var bits = [];
+    if (it && it.director) bits.push("Режиссёр " + it.director);
+    if (it && it.venue) bits.push(it.venue);
+    if (it && it.year) bits.push(String(it.year));
+    var tm = timeLabel(it && it.screening_at);
+    if (tm) bits.push(tm);
+    var meta = bits.length ? '<span class="fest-prog-meta">' + esc(bits.join(" · ")) + "</span>" : "";
     var titleHtml = href
       ? '<a class="fest-prog-title" href="' + esc(href) + '">' + title + "</a>"
       : '<span class="fest-prog-title">' + title + "</span>";
@@ -313,11 +207,9 @@
       ? '<img class="fest-prog-poster" src="' + esc(it.poster) + '" alt="" loading="lazy">'
       : "";
     var rk = remindKey(fest, it);
-    var reminded = readReminds().indexOf(rk) >= 0;
+    var reminded = readJsonList(REMIND_KEY).indexOf(rk) >= 0;
     var actions = "";
-    if (kp) {
-      actions += '<button type="button" class="btn btn-primary btn-small" data-fest-add="' + esc(kp) + '">В базу</button>';
-    }
+    if (kp) actions += '<button type="button" class="btn btn-primary btn-small" data-fest-add="' + esc(kp) + '">В базу</button>';
     actions += '<button type="button" class="btn btn-secondary btn-small" data-fest-remind="' + esc(rk) + '">'
       + (reminded ? "Напомню" : "Напомнить") + "</button>";
     return '<article class="fest-prog-item">'
@@ -327,49 +219,24 @@
       + "</article>";
   }
 
-  function programHtml(fest) {
-    var sections = (fest && fest.program) || [];
-    if (!sections.length) return "";
-    var blocks = sections.map(function (sec) {
-      var items = (sec.items || []).map(function (it) { return programItemHtml(fest, it); }).join("");
-      return '<section class="fest-prog-section">'
-        + (sec.section ? '<h3 class="fest-prog-section-title">' + esc(sec.section) + "</h3>" : "")
-        + '<div class="fest-prog-list">' + items + "</div></section>";
+  function calendarHtml(fest) {
+    var data = mock();
+    var days = data && data.programDays ? data.programDays(fest) : [];
+    if (!days.length) return "";
+    var tabs = days.map(function (d, i) {
+      return '<button type="button" class="fest-day-tab' + (i === 0 ? " is-active" : "") + '" data-fest-day="' + esc(d.day || "none") + '">'
+        + esc(d.label) + "</button>";
     }).join("");
-    var kpCount = 0;
-    sections.forEach(function (sec) {
-      (sec.items || []).forEach(function (it) { if (it && it.kp_id) kpCount += 1; });
-    });
-    var bulk = kpCount
-      ? '<div class="fest-bulk-actions"><button type="button" class="btn btn-primary" data-fest-add-all="1">В базу</button></div>'
-      : "";
+    var panels = days.map(function (d, i) {
+      var rows = (d.items || []).map(function (it) { return programRowHtml(fest, it); }).join("");
+      return '<div class="fest-day-panel" data-fest-day-panel="' + esc(d.day || "none") + '"' + (i === 0 ? "" : " hidden") + ">"
+        + rows + "</div>";
+    }).join("");
     return '<section class="fest-program" aria-label="Программа">'
-      + '<h2 class="fest-block-title">Программа</h2>' + bulk + blocks + "</section>";
-  }
-
-  function coversHtml(fest) {
-    var shots = (fest.covers && fest.covers.length) ? fest.covers : (fest.cover ? [fest.cover] : []);
-    if (!shots.length) return "";
-    return '<section class="fest-covers" aria-label="Обложки">'
-      + '<h2 class="fest-block-title">Обложки</h2>'
-      + '<div class="fest-covers-rail">'
-      + shots.map(function (src) {
-        return '<img class="fest-cover-shot" src="' + esc(src) + '" alt="" loading="lazy">';
-      }).join("")
-      + "</div></section>";
-  }
-
-  function peopleHtml(fest) {
-    var rows = fest.participants || [];
-    if (!rows.length) return "";
-    return '<section class="fest-people" aria-label="Участники">'
-      + '<h2 class="fest-block-title">Участники</h2>'
-      + '<div class="fest-people-list">'
-      + rows.map(function (p) {
-        return '<div class="fest-people-row"><span class="fest-people-name">' + esc(p.name || "")
-          + '</span><span class="fest-people-role">' + esc(p.role || "") + "</span></div>";
-      }).join("")
-      + "</div></section>";
+      + '<h2 class="fest-block-title">Программа</h2>'
+      + '<div class="fest-day-tabs" role="tablist" aria-label="Дни">' + tabs + "</div>"
+      + panels
+      + "</section>";
   }
 
   function infoHtml(fest) {
@@ -394,12 +261,8 @@
     var bits = [fest.dates_label, fest.place_label].filter(Boolean);
     var subLabel = subscribed ? "Вы подписаны" : "Подписаться";
     var subClass = subscribed ? "btn btn-secondary" : "btn btn-primary";
-    var share = '<button type="button" class="btn btn-secondary" data-fest-share="1">Ссылка</button>';
     var official = fest.official_url
       ? '<a class="btn btn-secondary" href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Сайт</a>'
-      : "";
-    var coll = fest.collection_code
-      ? '<a class="btn btn-secondary" href="/whattowatch/collections/' + encodeURIComponent(fest.collection_code) + '">Коллекция</a>'
       : "";
     return '<header class="fest-hero">'
       + cover
@@ -410,21 +273,17 @@
       + (bits.length ? '<p class="fest-hero-meta">' + esc(bits.join(" · ")) + "</p>" : "")
       + '<div class="fest-hero-actions">'
       + '<button type="button" class="' + subClass + '" data-fest-subscribe="' + esc(fest.slug) + '">' + esc(subLabel) + "</button>"
-      + share + official + coll
+      + official
       + "</div></div></header>";
   }
 
   function addFilmToBase(kp, btn) {
-    if (!hasSiteAuth()) {
-      if (typeof global.requireAuthForAction === "function") {
-        global.requireAuthForAction("Войдите, чтобы добавить фильм в базу");
-      } else {
-        toast("Фильм в базе на этом устройстве появится после входа.");
-      }
+    if (typeof global.requireAuthForAction === "function" && typeof global.getToken === "function" && !global.getToken()) {
+      global.requireAuthForAction("Войдите, чтобы добавить фильм в базу");
       return;
     }
     if (typeof global.api !== "function") {
-      toast("Фильм отмечен. API базы подключим отдельно.");
+      toast("Фильм отмечен на этом устройстве.");
       if (btn) {
         btn.textContent = "В базе";
         btn.classList.remove("btn-primary");
@@ -447,39 +306,13 @@
           }
         } else {
           toast((r && (r.error || r.message)) || "Не удалось добавить фильм.", { type: "error" });
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = "В базу";
-          }
+          if (btn) { btn.disabled = false; btn.textContent = "В базу"; }
         }
       })
       .catch(function () {
         toast("Ошибка сети. Не удалось добавить фильм.", { type: "error" });
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "В базу";
-        }
+        if (btn) { btn.disabled = false; btn.textContent = "В базу"; }
       });
-  }
-
-  function shareFestival(fest) {
-    var url = "https://movie-planner.ru/whattowatch/festivals/" + encodeURIComponent(fest.slug);
-    var title = fest.title || "Фестиваль";
-    if (navigator.share) {
-      navigator.share({ title: title, url: url }).catch(function () {});
-      return;
-    }
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
-          toast("Ссылка скопирована");
-        }).catch(function () {
-          toast(url);
-        });
-        return;
-      }
-    } catch (_) {}
-    toast(url);
   }
 
   function bindDetail(root, fest) {
@@ -495,21 +328,22 @@
         toast(on ? "Подписка на этом устройстве" : "Подписка снята");
       });
     }
-    var shareBtn = root.querySelector("[data-fest-share]");
-    if (shareBtn) shareBtn.addEventListener("click", function () { shareFestival(fest); });
+    root.querySelectorAll("[data-fest-day]").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var day = tab.getAttribute("data-fest-day");
+        root.querySelectorAll("[data-fest-day]").forEach(function (t) {
+          t.classList.toggle("is-active", t === tab);
+        });
+        root.querySelectorAll("[data-fest-day-panel]").forEach(function (p) {
+          p.hidden = p.getAttribute("data-fest-day-panel") !== day;
+        });
+      });
+    });
     root.querySelectorAll("[data-fest-add]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         addFilmToBase(btn.getAttribute("data-fest-add"), btn);
       });
     });
-    var addAll = root.querySelector("[data-fest-add-all]");
-    if (addAll) {
-      addAll.addEventListener("click", function () {
-        var buttons = root.querySelectorAll("[data-fest-add]");
-        if (!buttons.length) return;
-        buttons.forEach(function (btn) { addFilmToBase(btn.getAttribute("data-fest-add"), btn); });
-      });
-    }
     root.querySelectorAll("[data-fest-remind]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var on = toggleRemind(btn.getAttribute("data-fest-remind"));
@@ -532,14 +366,10 @@
       return;
     }
     applyDetailSeo(fest);
-    var news = data.newsForFestival ? data.newsForFestival(fest.slug) : [];
     root.innerHTML = '<div class="festivals-page festivals-page--detail">'
       + heroHtml(fest, isSubscribed(fest.slug))
-      + newsStripHtml(news, "Новости")
-      + coversHtml(fest)
       + infoHtml(fest)
-      + programHtml(fest)
-      + peopleHtml(fest)
+      + calendarHtml(fest)
       + "</div>";
     bindDetail(root, fest);
   }
@@ -549,7 +379,6 @@
     renderDetail: renderDetail,
     isSubscribed: isSubscribed,
     toggleSubscribe: toggleSubscribe,
-    readSubs: readSubs,
     SEO: SEO,
     SUBS_KEY: SUBS_KEY,
   };

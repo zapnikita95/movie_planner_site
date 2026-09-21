@@ -23118,7 +23118,6 @@
     { key: 'pick', label: 'Подбор' },
     { key: 'collections', label: 'Коллекции' },
     { key: 'clubs', label: 'Клубы' },
-    { key: 'festivals', label: 'Фестивали' },
   ];
   let siteWtwScope = 'library';
   let siteWtwCollectionCode = null;
@@ -24388,7 +24387,7 @@
         }
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
-        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs' || saved === 'festivals') {
+        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs') {
           siteWtwScope = saved;
         }
       }
@@ -24405,7 +24404,7 @@
     const hidePickers = isColl || isClubs || isFest;
     const isPick = !hidePickers;
     root.innerHTML =
-      renderWtwHubChipsHtml(siteWtwScope)
+      (isFest ? '' : renderWtwHubChipsHtml(siteWtwScope))
       + (isFest ? '<div id="site-wtw-festivals-panel" class="site-wtw-festivals-panel"></div>' : '')
       + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
       + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
@@ -24498,8 +24497,7 @@
           siteWtwScope = lastWtwPickScope();
           siteWtwCollectionCode = null;
           siteWtwFestivalSlug = null;
-        } else if (hub === 'collections' || hub === 'clubs' || hub === 'festivals') {
-          if (hub === 'festivals' && siteWtwScope === 'festivals' && !siteWtwFestivalSlug) return;
+        } else if (hub === 'collections' || hub === 'clubs') {
           if (hub === 'collections' && siteWtwScope === 'collections' && !siteWtwCollectionCode) return;
           if (hub === 'clubs' && siteWtwScope === 'clubs') return;
           siteWtwScope = hub;
@@ -24570,7 +24568,6 @@
     siteWtwScope = 'festivals';
     siteWtwFestivalSlug = null;
     siteWtwCollectionCode = null;
-    try { sessionStorage.setItem('mp_wtw_scope', 'festivals'); } catch (_) {}
     try {
       const wtw = document.getElementById('section-whattowatch');
       if (wtw) wtw.classList.remove('whattowatch--festival-detail');
@@ -24584,7 +24581,6 @@
     siteWtwScope = 'festivals';
     siteWtwFestivalSlug = String(slug);
     siteWtwCollectionCode = null;
-    try { sessionStorage.setItem('mp_wtw_scope', 'festivals'); } catch (_) {}
     pushWtwUrl({ scope: 'festivals', code: null, festivalSlug: siteWtwFestivalSlug, replace: false });
     const cur = visibleCabinetSectionId();
     if (cur !== 'whattowatch') {
@@ -28629,157 +28625,7 @@
     });
   }
 
-  let _premieresHub = 'calendar';
-
-  function premieresHubFromLocation() {
-    try {
-      const hash = String(window.location.hash || '').replace(/^#/, '');
-      if (hash === 'festivals' || hash === 'crowdfunding') return hash;
-      const q = new URLSearchParams(window.location.search || '').get('hub');
-      if (q === 'festivals' || q === 'crowdfunding') return q;
-    } catch (_) {}
-    return 'calendar';
-  }
-
-  function paintPremieresFestivalsEmbed() {
-    const panel = document.getElementById('premieres-festivals-embed');
-    if (!panel) return;
-    function tryPaint(attempt) {
-      try {
-        if (window.MpFestivalsPage && typeof window.MpFestivalsPage.renderIndex === 'function') {
-          window.MpFestivalsPage.renderIndex(panel, { skipSeo: true });
-          return;
-        }
-        if (attempt < 240) setTimeout(function () { tryPaint(attempt + 1); }, 50);
-      } catch (_) {}
-    }
-    tryPaint(0);
-  }
-
-  function moneyRuCrowd(n) {
-    try { return new Intl.NumberFormat('ru-RU').format(Number(n) || 0) + ' ₽'; }
-    catch (_e) { return String(n || 0) + ' ₽'; }
-  }
-
-  function crowdCardHtml(it) {
-    if (!it) return '';
-    const pct = Math.max(0, Math.min(100, Number(it.progress_pct) || 0));
-    const poster = it.image_url || it.poster || '';
-    const href = it.external_url || '/donations';
-    const title = escapeHtml(it.title || 'Сбор');
-    const meta = escapeHtml(moneyRuCrowd(it.collected) + ' · ' + pct + '%');
-    return '<a class="premieres-crowd-card" href="' + escapeHtml(href) + '" target="_blank" rel="noopener sponsored">'
-      + '<div class="premieres-crowd-poster">'
-      + (poster ? ('<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async">') : '')
-      + '<div class="premieres-crowd-bar" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
-      + '</div><div class="premieres-crowd-body"><div class="premieres-crowd-title">' + title + '</div>'
-      + '<div class="premieres-crowd-meta">' + meta + '</div></div></a>';
-  }
-
-  function crowdFallbackFromLanding() {
-    const track = document.getElementById('landing-donations-track');
-    if (!track) return [];
-    return Array.from(track.querySelectorAll('.landing-donation-card')).map((a) => {
-      const img = a.querySelector('img');
-      const titleEl = a.querySelector('.landing-pre-card-title');
-      const metaEl = a.querySelector('.landing-pre-card-meta');
-      const bar = a.querySelector('.landing-donation-bar > span');
-      const width = bar && bar.style && bar.style.width ? parseFloat(bar.style.width) : 0;
-      const meta = (metaEl && metaEl.textContent) || '';
-      const collected = (meta.match(/[\d\s]+/) || [''])[0].replace(/\s/g, '');
-      return {
-        title: titleEl ? titleEl.textContent : 'Сбор',
-        image_url: img ? img.getAttribute('src') : '',
-        external_url: a.getAttribute('href') || '/donations',
-        progress_pct: width,
-        collected: Number(collected) || 0,
-      };
-    });
-  }
-
-  function paintPremieresCrowdfundingEmbed() {
-    const root = document.getElementById('premieres-crowdfunding-embed');
-    if (!root) return;
-    if (root.getAttribute('data-crowd-ready') === '1' && root.querySelector('.premieres-crowd-card')) return;
-    root.innerHTML = '<h2 class="fest-block-title">Краудфандинг</h2>'
-      + '<div class="premieres-crowd-toolbar"><a class="btn btn-secondary" href="/donations">Все сборы</a></div>'
-      + '<div class="premieres-crowd-grid" id="premieres-crowd-grid"></div>';
-    const grid = root.querySelector('#premieres-crowd-grid');
-    const paint = (items) => {
-      if (!grid) return;
-      if (!items.length) {
-        grid.innerHTML = '<p class="cabinet-hint">Сборов пока нет.</p>';
-        return;
-      }
-      grid.innerHTML = items.map(crowdCardHtml).join('');
-      root.setAttribute('data-crowd-ready', '1');
-    };
-    const base = (typeof getPublicApiBase === 'function' ? getPublicApiBase() : '') || '';
-    fetch(base + '/api/public/donations?limit=100', { credentials: 'omit' })
-      .then((r) => r.json())
-      .then((data) => {
-        const items = (data && data.success && data.items) ? data.items : [];
-        paint(items.length ? items : crowdFallbackFromLanding());
-      })
-      .catch(() => { paint(crowdFallbackFromLanding()); });
-  }
-
-  function setPremieresHub(hub, opts) {
-    const o = opts || {};
-    const next = (hub === 'festivals' || hub === 'crowdfunding') ? hub : 'calendar';
-    _premieresHub = next;
-    try { sessionStorage.setItem('mp_premieres_hub', next); } catch (_) {}
-    const sec = document.getElementById('section-premieres');
-    if (!sec) return;
-    sec.querySelectorAll('[data-premieres-hub]').forEach((btn) => {
-      const on = btn.getAttribute('data-premieres-hub') === next;
-      btn.classList.toggle('is-active', on);
-      btn.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    ['calendar', 'festivals', 'crowdfunding'].forEach((id) => {
-      const panel = document.getElementById('premieres-hub-' + id);
-      if (panel) panel.hidden = id !== next;
-    });
-    if (next === 'festivals') paintPremieresFestivalsEmbed();
-    if (next === 'crowdfunding') paintPremieresCrowdfundingEmbed();
-    if (!o.skipHash) {
-      try {
-        const want = next === 'calendar' ? '' : '#' + next;
-        const now = String(window.location.hash || '');
-        if (now !== want) {
-          const url = window.location.pathname + window.location.search + want;
-          window.history.replaceState(window.history.state, '', url);
-        }
-      } catch (_) {}
-    }
-  }
-
-  function bindPremieresHubSwitcher() {
-    const sec = document.getElementById('section-premieres');
-    if (!sec || sec._premieresHubBound) return;
-    sec._premieresHubBound = true;
-    sec.querySelectorAll('[data-premieres-hub]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        setPremieresHub(btn.getAttribute('data-premieres-hub'));
-      });
-    });
-    window.addEventListener('hashchange', () => {
-      if (visibleCabinetSectionId() !== 'premieres') return;
-      setPremieresHub(premieresHubFromLocation(), { skipHash: true });
-    });
-  }
-
-  window.__mpPremieresOpenHub = function (hub) {
-    const cur = visibleCabinetSectionId();
-    if (cur !== 'premieres') {
-      showSection('premieres', { skipPush: false });
-    }
-    setPremieresHub(hub || 'festivals');
-  };
-
   function renderPremieresSection(forceReload) {
-    bindPremieresHubSwitcher();
-    setPremieresHub(premieresHubFromLocation(), { skipHash: false });
     const periodSel = document.getElementById('premieres-period');
     const typeSel = document.getElementById('premieres-type');
     const sortSel = document.getElementById('premieres-sort');
@@ -31429,17 +31275,27 @@
           const fromPath = typeof wtwStateFromPath === 'function'
             ? wtwStateFromPath(window.location.pathname)
             : null;
-          if (fromPath) {
+          if (fromPath && fromPath.scope === 'festivals') {
+            siteWtwScope = 'festivals';
+            siteWtwCollectionCode = null;
+            siteWtwFestivalSlug = fromPath.festivalSlug || null;
+          } else if (fromPath) {
             siteWtwScope = fromPath.scope;
             siteWtwCollectionCode = fromPath.code;
-            siteWtwFestivalSlug = fromPath.festivalSlug || null;
+            siteWtwFestivalSlug = null;
             rememberWtwPickScope(fromPath.scope);
             try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
-          } else if (siteWtwScope !== 'world' && siteWtwScope !== 'collections' && siteWtwScope !== 'clubs' && siteWtwScope !== 'festivals') {
-            siteWtwScope = 'library';
-            siteWtwCollectionCode = null;
-            siteWtwFestivalSlug = null;
-            try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
+          } else {
+            if (siteWtwScope === 'festivals') {
+              siteWtwScope = lastWtwPickScope();
+              siteWtwFestivalSlug = null;
+            }
+            if (siteWtwScope !== 'world' && siteWtwScope !== 'collections' && siteWtwScope !== 'clubs') {
+              siteWtwScope = 'library';
+              siteWtwCollectionCode = null;
+              siteWtwFestivalSlug = null;
+              try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
+            }
           }
         }
         showSection(sectionId);

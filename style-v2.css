@@ -33963,96 +33963,100 @@ a.fest-prog-title:hover { color: #ff8ab8; }
   gap: 8px;
   margin: 0 0 18px;
 }
-.premieres-donations-entry,
-.premieres-donations-pill,
-.premieres-festivals-entry { display: none !important; }
-body.in-cabinet #section-premieres .premieres-hub-chips,
-body.in-cabinet #section-premieres .wtw-hub-chips {
-  position: sticky;
-  top: 0;
-  z-index: 80;
+body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .wtw-hub-chips,
+body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-page-h1 {
+  display: none !important;
+}
+.fest-index-title {
+  margin: 8px 0 14px;
+  font-family: Unbounded, sans-serif;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.fest-carousel {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  overflow-x: auto;
-  margin: 0 0 14px;
-  padding: 8px 16px 10px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  box-sizing: border-box;
-  background: #0c0c12;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.premieres-hub-panel {
-  width: 100%;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-.premieres-festivals-embed,
-.premieres-crowdfunding-embed {
-  width: 100%;
-  max-width: min(920px, 100%);
-  margin: 0 auto;
-}
-.premieres-crowd-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
-  margin: 0 0 18px;
+  overflow-x: auto;
+  padding: 0 0 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-.premieres-crowd-card {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.fest-carousel::-webkit-scrollbar { display: none; }
+.fest-carousel-card {
+  flex: 0 0 auto;
+  width: min(176px, 58vw);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: inherit;
-  text-decoration: none;
-  background: #141418;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
 }
-.premieres-crowd-card:hover { color: inherit; text-decoration: none; }
-.premieres-crowd-poster {
-  position: relative;
+.fest-carousel-cover {
+  display: block;
+  width: 100%;
   aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
   background: #16161c;
 }
-.premieres-crowd-poster img {
+.fest-carousel-name {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.premieres-crowd-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 5px;
-  background: rgba(0, 0, 0, 0.45);
-}
-.premieres-crowd-bar > span {
-  display: block;
-  height: 100%;
-  background: #ef1c7a;
-}
-.premieres-crowd-body { padding: 10px 10px 12px; }
-.premieres-crowd-title {
+  margin: 8px 0 4px;
   font-family: Unbounded, sans-serif;
   font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.25;
 }
-.premieres-crowd-meta {
-  margin-top: 4px;
+.fest-carousel-meta {
+  display: block;
   color: rgba(244, 246, 255, 0.55);
   font-size: 12px;
+  line-height: 1.35;
 }
-.premieres-crowd-toolbar {
+.fest-carousel-card .fest-status {
+  display: inline-block;
+  margin: 6px 0 0;
+}
+.fest-day-tabs {
   display: flex;
-  justify-content: flex-end;
-  margin: 0 0 14px;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+  padding: 0 0 4px;
+  scrollbar-width: none;
+}
+.fest-day-tabs::-webkit-scrollbar { display: none; }
+.fest-day-tab {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: transparent;
+  color: #ececf2;
+  font-family: Unbounded, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fest-day-tab.is-active {
+  background: #ef1c7a;
+  border-color: #ef1c7a;
+  color: #fff;
+}
+.film-fest-now {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(244, 246, 255, 0.7);
+}
+.film-fest-now a {
+  color: #ff8ab8;
+  text-decoration: none;
 }
 .film-festivals-rail {
   display: grid;
@@ -34060,8 +34064,7 @@ body.in-cabinet #section-premieres .wtw-hub-chips {
   gap: 0 24px;
 }
 @media (min-width: 901px) {
-  body.in-cabinet #section-whattowatch .wtw-hub-chips,
-  body.in-cabinet #section-premieres .premieres-hub-chips {
+  body.in-cabinet #section-whattowatch .wtw-hub-chips {
     max-width: min(920px, 100%);
     margin-left: auto;
     margin-right: auto;
@@ -34070,14 +34073,9 @@ body.in-cabinet #section-premieres .wtw-hub-chips {
     margin-left: auto;
     margin-right: auto;
   }
-  .premieres-crowd-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 16px;
-  }
 }
 @media (max-width: 560px) {
-  body.in-cabinet #section-whattowatch .wtw-hub-chips,
-  body.in-cabinet #section-premieres .premieres-hub-chips {
+  body.in-cabinet #section-whattowatch .wtw-hub-chips {
     gap: 4px;
     overflow-x: auto;
   }

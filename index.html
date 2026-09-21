@@ -505,17 +505,15 @@
               if (content && !content.getAttribute('data-wtw-boot')) {
                 content.setAttribute('data-wtw-boot', '1');
                 var isFestBoot = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
-                var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
-                  + '<span class="wtw-hub-chip">Подбор</span>'
-                  + '<span class="wtw-hub-chip">Коллекции</span>'
-                  + '<span class="wtw-hub-chip' + (isFestBoot ? '' : ' is-active') + '">Клубы</span>'
-                  + '<span class="wtw-hub-chip' + (isFestBoot ? ' is-active' : '') + '">Фестивали</span>'
-                  + '</nav>';
                 if (isFestBoot) {
-                  content.innerHTML = chips
-                    + '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
+                  content.innerHTML = '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
                     + '<p class="clubs-loading-label">Загружаем фестивали…</p></div>';
                 } else {
+                  var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
+                    + '<span class="wtw-hub-chip">Подбор</span>'
+                    + '<span class="wtw-hub-chip">Коллекции</span>'
+                    + '<span class="wtw-hub-chip is-active">Клубы</span>'
+                    + '</nav>';
                   content.innerHTML = chips
                     + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
                     + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
@@ -3036,12 +3034,7 @@
                     <p class="premieres-seo-lead visually-hidden">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Карточка фильма: дата выхода и список «хочу посмотреть».</p>
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
-                    <nav class="wtw-hub-chips premieres-hub-chips" aria-label="Разделы премьер" role="tablist">
-                        <button type="button" class="wtw-hub-chip is-active" data-premieres-hub="calendar" role="tab" aria-selected="true">Премьеры</button>
-                        <button type="button" class="wtw-hub-chip" data-premieres-hub="festivals" role="tab" aria-selected="false">Фестивали</button>
-                        <button type="button" class="wtw-hub-chip" data-premieres-hub="crowdfunding" role="tab" aria-selected="false">Краудфандинг</button>
-                    </nav>
-                    <div id="premieres-hub-calendar" class="premieres-hub-panel" data-premieres-panel="calendar">
+                    <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
                     <section id="premieres-now-playing" class="premieres-now-playing" hidden aria-label="Сейчас в кино">
                         <div class="premieres-now-playing-head">
                             <h3 class="premieres-now-playing-title">Сейчас в кино</h3>
@@ -3113,13 +3106,6 @@
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
                     <div id="premieres-sentinel" class="premieres-sentinel" aria-hidden="true"></div>
-                    </div>
-                    <div id="premieres-hub-festivals" class="premieres-hub-panel" data-premieres-panel="festivals" hidden>
-                        <div id="premieres-festivals-embed" class="premieres-festivals-embed"></div>
-                    </div>
-                    <div id="premieres-hub-crowdfunding" class="premieres-hub-panel" data-premieres-panel="crowdfunding" hidden>
-                        <div id="premieres-crowdfunding-embed" class="premieres-crowdfunding-embed"></div>
-                    </div>
                 </section>
                 <section id="section-buzz" class="cabinet-section hidden cabinet-buzz buzz-is-loading buzz-section--wide" data-buzz-boot="1">
                     <div id="buzz-section-hero" class="buzz-section-hero hidden" aria-hidden="true"></div>
