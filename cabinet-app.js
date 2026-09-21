@@ -2277,10 +2277,69 @@
     } catch (_) {}
   }
 
-  function showCoinsInfoToast(coins) {
+  const COINS_SHOP_SINKS = [
+    { icon: '🔮', title: 'Shazam фильма', hint: 'Найти фильм по сюжету, актёрам или атмосфере', cost: 100, suffix: 'за поиск' },
+    { icon: '🖼️', title: 'Распознать по постеру', hint: 'Определить фильм по скриншоту или афише', cost: 150, suffix: 'за распознавание' },
+    { icon: '🎲', title: 'Случайная рекомендация', hint: 'Быстрый новый вариант из каталога', cost: 30, suffix: 'за подбор' },
+    { icon: '🎟️', title: 'Прикрепить билет к сеансу', hint: 'Сохранить билет в плане похода в кино', cost: 35, suffix: 'за билет' },
+    { icon: '⏳', title: 'Следить за премьерой', hint: 'Получить напоминание о выходе фильма', cost: 20, suffix: 'за фильм' },
+    { icon: '🤖', title: 'AI-помощник', hint: 'Задать вопросы о своей базе и получить подбор', cost: 100, suffix: 'за сессию' },
+    { icon: '✨', title: 'Подбор по эмоции', hint: 'Описать настроение и получить фильмы', cost: 150, suffix: 'за подбор' },
+    { icon: '📺', title: 'Новые серии', hint: 'Подписаться на уведомления о следующем эпизоде', cost: 25, suffix: 'за сериал' },
+  ];
+
+  function closeCoinsShop() {
+    const backdrop = document.getElementById('coins-shop-backdrop');
+    if (!backdrop) return;
+    backdrop.classList.remove('is-open');
+    setTimeout(function () { try { backdrop.remove(); } catch (_) {} }, 160);
+    document.body.classList.remove('coins-shop-open');
+  }
+
+  function showCoinsShop(coins) {
+    closeCoinsShop();
     const bal = coins && coins.is_infinite ? '∞' : (coins && coins.balance != null ? coins.balance : '—');
-    const streak = coins && Number(coins.streak_days) > 0 ? ' · стрик ' + Number(coins.streak_days) + ' дн.' : '';
-    showToast('🪙 Монетки: ' + bal + streak + '. +5 за фильм, +40 за оценку. Списания: подборы, билеты, премьеры и сериалы. PRO — без списаний.', { duration: 5200 });
+    const streak = coins && Number(coins.streak_days) > 0 ? Number(coins.streak_days) : 0;
+    const backdrop = document.createElement('div');
+    backdrop.id = 'coins-shop-backdrop';
+    backdrop.className = 'coins-shop-backdrop';
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('aria-labelledby', 'coins-shop-title');
+    const rows = COINS_SHOP_SINKS.map(function (item) {
+      return '<div class="coins-shop-row">'
+        + '<span class="coins-shop-row-icon" aria-hidden="true">' + item.icon + '</span>'
+        + '<span class="coins-shop-row-copy"><strong>' + item.title + '</strong><small>' + item.hint + '</small></span>'
+        + '<span class="coins-shop-price"><b>−' + item.cost + '</b><small>🪙 ' + item.suffix + '</small></span>'
+        + '</div>';
+    }).join('');
+    backdrop.innerHTML = '<div class="coins-shop-sheet" tabindex="-1">'
+      + '<button type="button" class="coins-shop-close" data-coins-shop-close aria-label="Закрыть">×</button>'
+      + '<div class="coins-shop-kicker">Ваш кино-кошелёк</div>'
+      + '<div class="coins-shop-head"><div><h2 id="coins-shop-title">Монетки</h2><p>Тратьте их на отдельные полезные действия — без обязательной подписки.</p></div>'
+      + '<div class="coins-shop-balance"><span class="header-coins-sprite" aria-hidden="true"></span><b>' + bal + '</b><small>' + (streak ? '🔥 ' + streak + ' дн. серии' : 'ваш баланс') + '</small></div></div>'
+      + '<div class="coins-shop-section-label">На что их можно потратить</div>'
+      + '<div class="coins-shop-list">' + rows + '</div>'
+      + '<div class="coins-shop-note">Монетки начисляются за активность: +5 за добавление фильма, +10 за первую оценку, +30 за активный день и +15 за фильм дня.</div>'
+      + '<div class="coins-shop-support"><div class="coins-shop-support-icon">💛</div><div class="coins-shop-support-copy"><strong>Хотите поддержать Movie Planner?</strong><p>Тариф PRO снимает монетные лимиты и даёт бесконечный доступ к функциям. А на странице сборов можно поддержать независимое кино напрямую.</p><div class="coins-shop-support-links"><a href="/pricing">Тарифы PRO</a><a href="/donations">Сборы на Planeta</a></div></div></div>'
+      + '</div>';
+    document.body.appendChild(backdrop);
+    document.body.classList.add('coins-shop-open');
+    requestAnimationFrame(function () {
+      backdrop.classList.add('is-open');
+      const sheet = backdrop.querySelector('.coins-shop-sheet');
+      if (sheet) sheet.focus();
+    });
+    backdrop.addEventListener('click', function (event) {
+      if (event.target === backdrop || event.target.closest('[data-coins-shop-close]')) closeCoinsShop();
+    });
+    backdrop.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeCoinsShop();
+    });
+  }
+
+  function showCoinsInfoToast(coins) {
+    showCoinsShop(coins);
   }
 
   let _headerCoinsPrevNum = null;
@@ -11910,20 +11969,215 @@
     document.addEventListener('click', firstAction, true);
   }
 
+  function retentionPrefersReducedMotion() {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function retentionDailyReelPosters(daily, winnerPoster) {
+    const out = [];
+    const seen = Object.create(null);
+    function push(url) {
+      const src = String(url || '').trim();
+      if (!src || seen[src]) return;
+      seen[src] = 1;
+      out.push(src);
+    }
+    const reel = (daily && Array.isArray(daily.reel_posters)) ? daily.reel_posters : [];
+    reel.forEach(push);
+    push(winnerPoster);
+    push(daily && daily.preview_poster);
+    // Pad by cycling so the strip feels like a full wheel even on thin pools.
+    if (out.length && out.length < 8) {
+      let i = 0;
+      while (out.length < 8) {
+        out.push(out[i % Math.min(out.length, 4)]);
+        i += 1;
+        if (i > 24) break;
+      }
+    }
+    return out;
+  }
+
+  function buildRetentionDailyReelStrip(posters, winnerPoster) {
+    const pool = posters.slice();
+    const win = String(winnerPoster || '').trim();
+    // Guarantee a distinct near-miss decoy immediately before the winner.
+    let decoys = pool.filter(function (p) { return p !== win; });
+    if (!decoys.length) decoys = pool.slice();
+    const decoy = decoys[Math.floor(decoys.length / 2)] || decoys[0] || win;
+    const unit = [];
+    // Mix ~8 cells ending with decoy → winner for the near-miss beat.
+    const filler = pool.filter(function (p) { return p !== win && p !== decoy; });
+    while (unit.length < 6) {
+      unit.push(filler[unit.length % Math.max(filler.length, 1)] || decoy || win);
+    }
+    unit.push(decoy);
+    unit.push(win);
+    // Triple the unit so the strip can spin through a long runway.
+    const strip = unit.concat(unit).concat(unit);
+    const loop = unit.length;
+    const nearIndex = loop + (unit.length - 2); // decoy in middle loop
+    const winIndex = loop + (unit.length - 1);  // winner right after
+    return { strip: strip, nearIndex: nearIndex, winIndex: winIndex, cellCount: unit.length };
+  }
+
+  function runRetentionDailyReelReveal(opts) {
+    const root = opts && opts.root;
+    const posters = (opts && opts.posters) || [];
+    const winnerPoster = (opts && opts.winnerPoster) || '';
+    const dailyLabel = (opts && opts.dailyLabel) || 'Фильм дня';
+    if (!root) return Promise.resolve();
+    const built = buildRetentionDailyReelStrip(posters, winnerPoster);
+    const cellsHtml = built.strip.map(function (src, idx) {
+      return '<div class="retention-daily-reel-cell" data-reel-i="' + idx + '">'
+        + '<img src="' + escapeHtml(src) + '" alt="" decoding="async" draggable="false">'
+        + '</div>';
+    }).join('');
+    root.innerHTML = ''
+      + '<div class="retention-daily-reel" role="status" aria-live="polite" aria-busy="true">'
+      + '<div class="retention-daily-reel-stage">'
+      + '<div class="retention-daily-reel-window" aria-hidden="true">'
+      + '<div class="retention-daily-reel-strip">' + cellsHtml + '</div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--top"></div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--bottom"></div>'
+      + '<div class="retention-daily-reel-glow"></div>'
+      + '</div>'
+      + '<div class="retention-daily-reel-copy">'
+      + '<span class="retention-kicker">' + escapeHtml(dailyLabel) + '</span>'
+      + '<strong class="retention-daily-reel-title">Крутим ленту…</strong>'
+      + '<small class="retention-daily-reel-sub">Постеры из вашей подборки</small>'
+      + '</div></div></div>';
+    const stripEl = root.querySelector('.retention-daily-reel-strip');
+    const windowEl = root.querySelector('.retention-daily-reel-window');
+    const titleEl = root.querySelector('.retention-daily-reel-title');
+    const subEl = root.querySelector('.retention-daily-reel-sub');
+    if (!stripEl || !windowEl) return Promise.resolve();
+
+    function cellH() {
+      const cell = stripEl.querySelector('.retention-daily-reel-cell');
+      const h = cell ? cell.getBoundingClientRect().height : 0;
+      return h > 0 ? h : Math.max(248, windowEl.getBoundingClientRect().height || 300);
+    }
+
+    function offsetFor(index) {
+      return Math.round(index * cellH());
+    }
+
+    function animateTo(y, duration, easing) {
+      return new Promise(function (resolve) {
+        const from = stripEl._reelY || 0;
+        stripEl._reelY = y;
+        if (typeof stripEl.animate !== 'function') {
+          stripEl.style.transform = 'translate3d(0,' + (-y) + 'px,0)';
+          setTimeout(resolve, duration);
+          return;
+        }
+        const anim = stripEl.animate(
+          [
+            { transform: 'translate3d(0,' + (-from) + 'px,0)' },
+            { transform: 'translate3d(0,' + (-y) + 'px,0)' },
+          ],
+          { duration: duration, easing: easing || 'cubic-bezier(0.15, 0.85, 0.12, 1)', fill: 'forwards' }
+        );
+        anim.onfinish = function () {
+          stripEl.style.transform = 'translate3d(0,' + (-y) + 'px,0)';
+          try { anim.cancel(); } catch (_) {}
+          resolve();
+        };
+        anim.oncancel = function () { resolve(); };
+      });
+    }
+
+    function wait(ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    // Start slightly into the first loop so the first paint isn't blank.
+    const startY = offsetFor(Math.max(0, built.cellCount - 4));
+    stripEl.style.transform = 'translate3d(0,' + (-startY) + 'px,0)';
+    stripEl._reelY = startY;
+
+    return wait(40)
+      .then(function () {
+        if (titleEl) titleEl.textContent = 'Крутим ленту…';
+        if (subEl) subEl.textContent = 'Постеры из вашей подборки';
+        return animateTo(offsetFor(built.nearIndex), 2400, 'cubic-bezier(0.12, 0.78, 0.05, 1)');
+      })
+      .then(function () {
+        if (titleEl) titleEl.textContent = 'Почти…';
+        if (subEl) subEl.textContent = 'Ещё один оборот';
+        var reelNear = root.querySelector('.retention-daily-reel');
+        if (reelNear) reelNear.classList.add('is-near-miss');
+        return wait(320);
+      })
+      .then(function () {
+        var reelLand = root.querySelector('.retention-daily-reel');
+        if (reelLand) { reelLand.classList.remove('is-near-miss'); reelLand.classList.add('is-landing'); }
+        if (titleEl) titleEl.textContent = 'Это он';
+        if (subEl) subEl.textContent = 'Фильм дня на сегодня';
+        // Roll back / nudge from decoy onto the winner — slot tell.
+        return animateTo(offsetFor(built.winIndex), 580, 'cubic-bezier(0.2, 1.35, 0.32, 1)');
+      })
+      .then(function () { return wait(420); })
+      .then(function () {
+        const reel = root.querySelector('.retention-daily-reel');
+        if (reel) {
+          reel.classList.add('is-done');
+          reel.setAttribute('aria-busy', 'false');
+        }
+      });
+  }
+
   function bindHomeRetentionOnce() {
+
     if (window._mpHomeRetentionBound) return;
     window._mpHomeRetentionBound = true;
     document.addEventListener('click', function (e) {
       const claim = e.target.closest('[data-retention-claim]');
       if (claim) {
+        if (claim.disabled || claim.getAttribute('aria-busy') === 'true') return;
         claim.disabled = true;
-        api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' }).then(function (res) {
+        claim.setAttribute('aria-busy', 'true');
+        const daily = (_homeRetention && _homeRetention.daily_film) || {};
+        const winnerPoster = (daily.preview_poster || (daily.film && daily.film.poster) || '');
+        const dailyLabel = (daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
+        const section = claim.closest('.retention-daily') || document.querySelector('.retention-daily');
+        const claimReq = api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' });
+        const reduced = retentionPrefersReducedMotion();
+        const finish = function (res) {
           if (!res || !res.success) throw new Error('claim');
+          if (!_homeRetention) _homeRetention = { success: true };
+          if (!_homeRetention.daily_film) _homeRetention.daily_film = daily;
           _homeRetention.daily_film.claimed = true;
           _homeRetention.daily_film.film = res.film;
+          _homeRetention.daily_film.reel_posters = [];
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
           paintHomeRetention();
-        }).catch(function () { claim.disabled = false; });
+        };
+        const fail = function () {
+          claim.disabled = false;
+          claim.removeAttribute('aria-busy');
+          try { paintHomeRetention(); } catch (_) {}
+          showToast('Не удалось открыть фильм дня', { type: 'error' });
+        };
+        if (reduced || !section) {
+          claimReq.then(finish).catch(fail);
+          return;
+        }
+        const posters = retentionDailyReelPosters(daily, winnerPoster);
+        const reveal = runRetentionDailyReelReveal({
+          root: section,
+          posters: posters,
+          winnerPoster: winnerPoster,
+          dailyLabel: dailyLabel,
+        });
+        Promise.all([claimReq, reveal]).then(function (pair) {
+          finish(pair[0]);
+        }).catch(fail);
         return;
       }
       const watchlistBtn = e.target.closest('[data-retention-watchlist-kp]');
