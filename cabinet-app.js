@@ -10564,6 +10564,20 @@
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
   const HOME_BLOCK_IDS = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const DEFAULT_HOME_SECTION_ORDER = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  /** Hide «На вечер из базы» when unwatched library is too thin for a 6–8 card rail. */
+  const EVENING_FROM_BASE_MIN_UNWATCHED = 6;
+  function homeEveningFromBaseUnwatchedCount() {
+    const counts = (_homeDashboardCache && _homeDashboardCache.counts) || {};
+    const n = Number(counts.unwatched);
+    return Number.isFinite(n) ? n : null;
+  }
+  function shouldRenderEveningFromBaseBlock() {
+    if (isGuestCabinetPreview()) return false;
+    const n = homeEveningFromBaseUnwatchedCount();
+    // Unknown count: mount shell; API/onMeta omit when pool is thin.
+    if (n == null) return true;
+    return n >= EVENING_FROM_BASE_MIN_UNWATCHED;
+  }
   const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
   const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v1:';
   let _homeDashboardCache = null;
@@ -11317,10 +11331,8 @@
 
   function homeRailEmptyHtml(blockId) {
     if (blockId === 'evening_from_base') {
-      return renderHomeBlockCtaHtml(
-        '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить в базу</button> '
-        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
-      );
+      // Thin/empty library: omit the whole section — no empty CTA for this rail.
+      return '';
     }
     if (blockId === 'unwatched') {
       return renderHomeBlockCtaHtml(
@@ -11475,14 +11487,29 @@
             try { bindHomePosterRailDragScroll(container); } catch (_) {}
           },
           onMeta: (meta) => {
-            if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
+            if (!blockEl || !meta) return;
+            if (blockId === 'evening_from_base') {
+              const total = Number(meta.total);
+              const loaded = Number(meta.loaded || 0);
+              const thin = !meta.failed && (
+                (Number.isFinite(total) && total > 0 && total < EVENING_FROM_BASE_MIN_UNWATCHED)
+                || (loaded === 0 && (!Number.isFinite(total) || total === 0))
+              );
+              if (thin) {
+                try { blockEl.remove(); } catch (_e) { blockEl.classList.add('hidden'); }
+              } else {
+                blockEl.classList.remove('hidden');
+              }
+              return;
+            }
+            if (meta.total === 0 && meta.loaded === 0 && !meta.failed) {
               // Keep habit rails visible so emptyHtml CTA stays on screen.
-              if (blockId === 'evening_from_base' || blockId === 'unwatched' || blockId === 'series') {
+              if (blockId === 'unwatched' || blockId === 'series') {
                 blockEl.classList.remove('hidden');
               } else {
                 blockEl.classList.add('hidden');
               }
-            } else if (blockEl) {
+            } else {
               blockEl.classList.remove('hidden');
             }
           },
@@ -12077,7 +12104,7 @@
     }
 
     if (blockId === 'evening_from_base') {
-      if (isGuestCabinetPreview()) return '';
+      if (!shouldRenderEveningFromBaseBlock()) return '';
       return '<section class="home-dash-block" data-home-block="evening_from_base">' + head
         + '<div class="home-section-body">'
         + '<div class="home-poster-rail home-rail--draggable" data-home-rail="evening-from-base" role="list"></div>'
@@ -12473,7 +12500,7 @@
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
-        if (existing && isGuestCabinetPreview()) existing.remove();
+        if (existing && (isGuestCabinetPreview() || bid === 'evening_from_base')) existing.remove();
         return;
       }
       if (existing) {
