@@ -34071,6 +34071,53 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 24px;
 }
+.premieres-festivals {
+  margin: 0 0 1.25rem;
+}
+.premieres-festivals-list {
+  display: flex;
+  flex-direction: column;
+}
+.premieres-fest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: inherit;
+  text-decoration: none;
+}
+.premieres-fest-row:last-child { border-bottom: 0; }
+.premieres-fest-cover {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #16161c;
+  flex-shrink: 0;
+}
+.premieres-fest-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.premieres-fest-name {
+  display: block;
+  font-family: Unbounded, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.premieres-fest-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(244, 246, 255, 0.55);
+}
+.premieres-festivals .fest-status {
+  margin-left: 8px;
+}
 @media (min-width: 901px) {
   body.in-cabinet #section-whattowatch .wtw-hub-chips {
     max-width: min(920px, 100%);

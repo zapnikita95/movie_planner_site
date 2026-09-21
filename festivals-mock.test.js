@@ -45,6 +45,12 @@ eq(Mp.formatDateRange("2026-09-21", "2026-09-27"), "21 по 27 сентября"
 eq(Mp.formatDateRange("2026-09-25", "2026-10-01"), "25 сентября по 1 октября", "cross-month range");
 eq(Mp.formatDateRange("2026-10-14", "2026-10-25"), "14 по 25 октября", "karo dates");
 
+var teaser = Mp.teaserList(now);
+ok(teaser.length >= 4, "premieres teaser has live+upcoming");
+ok(teaser.every(function (f) { return f.status !== "past"; }), "teaser skips past");
+ok(teaser[0].slug === "siberia-meetings-2026", "teaser starts with live");
+ok(!teaser.some(function (f) { return f.slug === "beatfilm-2026"; }), "beat weekend not in teaser");
+
 var car = Mp.scheduleCarousel(now);
 eq(car[0].slug, "siberia-meetings-2026", "carousel starts with live");
 ok(car.some(function (f) { return f.slug === "beatfilm-2026" && f.status === "past"; }), "beat in past tail");

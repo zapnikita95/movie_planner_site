@@ -374,6 +374,12 @@
     return raw ? enrich(raw, now) : null;
   }
 
+  function teaserList(now) {
+    return scheduleCarousel(now).filter(function (f) {
+      return f.status === "live" || f.status === "upcoming";
+    }).slice(0, 6);
+  }
+
   function scheduleCarousel(now) {
     var live = [];
     var upcoming = [];
@@ -494,6 +500,7 @@
     listFestivals: listFestivals,
     getFestival: getFestival,
     scheduleCarousel: scheduleCarousel,
+    teaserList: teaserList,
     scheduleGroups: scheduleGroups,
     programDays: programDays,
     newsFeed: newsFeed,

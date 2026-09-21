@@ -28625,6 +28625,19 @@
     });
   }
 
+  function paintPremieresFestivalsTeaser(attempt) {
+    const host = document.getElementById('premieres-festivals');
+    const list = document.getElementById('premieres-festivals-list');
+    if (!host || !list) return;
+    if (window.MpFestivalsPage && typeof window.MpFestivalsPage.renderPremieresTeaser === 'function') {
+      window.MpFestivalsPage.renderPremieresTeaser(host, list);
+      return;
+    }
+    if ((attempt || 0) < 40) {
+      setTimeout(function () { paintPremieresFestivalsTeaser((attempt || 0) + 1); }, 50);
+    }
+  }
+
   function renderPremieresSection(forceReload) {
     const periodSel = document.getElementById('premieres-period');
     const typeSel = document.getElementById('premieres-type');
@@ -28691,6 +28704,7 @@
       }
     }
     bindPremieresInfiniteScroll();
+    paintPremieresFestivalsTeaser();
     if (forceReload || !_premieresData.length) {
       loadMorePremieres(true);
     } else {
@@ -30518,6 +30532,7 @@
   }
 
   function renderPremieresList() {
+    paintPremieresFestivalsTeaser();
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
     let baseItems = premieresBaseVisibleForGrid(_premieresData);

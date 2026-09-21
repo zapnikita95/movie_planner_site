@@ -1,7 +1,7 @@
 /**
  * Фестивали — индекс и страница фестиваля.
  * Прямые URL: /whattowatch/festivals , /whattowatch/festivals/:slug
- * В меню Смотреть / Премьеры входа нет (demo).
+ * Смотреть: чипа «Фестивали» нет. На Премьерах — короткий тизер списка.
  */
 (function (global) {
   "use strict";
@@ -348,6 +348,45 @@
     });
   }
 
+  function teaserItems() {
+    var data = mock();
+    if (!data) return [];
+    if (typeof data.teaserList === "function") return data.teaserList();
+    return (data.scheduleCarousel ? data.scheduleCarousel() : []).filter(function (f) {
+      return f.status === "live" || f.status === "upcoming";
+    }).slice(0, 6);
+  }
+
+  function teaserRowHtml(f) {
+    var href = "/whattowatch/festivals/" + encodeURIComponent(f.slug || "");
+    var cover = f.cover
+      ? '<img class="premieres-fest-cover" src="' + esc(f.cover) + '" alt="" loading="lazy">'
+      : '<span class="premieres-fest-cover" aria-hidden="true"></span>';
+    var meta = [f.dates_label, f.place_label].filter(Boolean).join(" · ");
+    return '<a class="premieres-fest-row" href="' + esc(href) + '">'
+      + cover
+      + '<span class="premieres-fest-copy">'
+      + '<span class="premieres-fest-name">' + esc(f.title) + "</span>"
+      + (meta ? '<span class="premieres-fest-meta">' + esc(meta) + "</span>" : "")
+      + "</span>"
+      + '<span class="fest-status fest-status--' + esc(f.status) + '">' + esc(f.status_label) + "</span>"
+      + "</a>";
+  }
+
+  function renderPremieresTeaser(host, list) {
+    var root = host || document.getElementById("premieres-festivals");
+    var rail = list || (root && root.querySelector("#premieres-festivals-list"));
+    if (!root || !rail) return;
+    var items = teaserItems();
+    if (!items.length) {
+      root.hidden = true;
+      rail.innerHTML = "";
+      return;
+    }
+    root.hidden = false;
+    rail.innerHTML = items.map(teaserRowHtml).join("");
+  }
+
   function renderDetail(root, slug) {
     if (!root) return;
     var data = mock();
@@ -372,6 +411,7 @@
   global.MpFestivalsPage = {
     renderIndex: renderIndex,
     renderDetail: renderDetail,
+    renderPremieresTeaser: renderPremieresTeaser,
     isSubscribed: isSubscribed,
     toggleSubscribe: toggleSubscribe,
     SEO: SEO,
@@ -383,4 +423,5 @@
       global.__mpRepaintWtwFestivalsPanel();
     }
   } catch (_) {}
+  try { renderPremieresTeaser(); } catch (_) {}
 })(typeof window !== "undefined" ? window : globalThis);
