@@ -1630,23 +1630,29 @@
     return MP_POSTER_PLACEHOLDER;
   }
 
-  /** Hero: upgrade KP iphone360 (~360px) → film_big (~667px / MDS x1000). */
-  function upgradeHeroPosterUrl(src) {
-    var s = String(src || '');
-    var m = s.match(/iphone360_(\d+)\.jpg/i);
-    if (m) {
-      return '/api/public/poster/kp/st/images/film_big/' + m[1] + '.jpg';
+  /** Hero: use KP film_big for Retina; retain API artwork as an error fallback. */
+  function filmHeroPosterSources(src, kpId) {
+    var fallback = cleanPosterUrl(src);
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) {
+      var match = fallback.match(/iphone360_(\d+)\.jpg|\/film_big\/(\d+)\.jpg/i);
+      kp = match ? String(match[1] || match[2] || '') : '';
     }
-    return s;
+    var isKpArt = /(?:\/api\/public\/poster\/kp\/|avatars\.mds\.yandex\.net\/get-kinopoisk-image|st\.kp\.yandex\.net\/images\/)/i.test(fallback);
+    if (!fallback || !kp || !isKpArt || /film-poster-placeholder|no-poster/i.test(fallback)) {
+      return { src: fallback, fallback: '' };
+    }
+    var hq = '/api/public/poster/kp/st/images/film_big/' + kp + '.jpg';
+    return { src: hq, fallback: fallback === hq ? '' : fallback };
   }
 
   function resolveFilmPosterDisplay(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
-    if (next) return upgradeHeroPosterUrl(next);
+    if (next) return filmHeroPosterSources(next, kpId).src;
     var cur = currentFilmPosterFromDom();
-    if (cur) return upgradeHeroPosterUrl(cur);
+    if (cur) return filmHeroPosterSources(cur, kpId).src;
     var fallback = defaultPosterForKp(kpId);
-    if (fallback) return upgradeHeroPosterUrl(fallback);
+    if (fallback) return filmHeroPosterSources(fallback, kpId).src;
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -1674,7 +1680,9 @@
   }
 
   function applyFilmPosterEl(posterUrl, kpId) {
-    var next = upgradeHeroPosterUrl(cleanPosterUrl(posterUrl));
+    var original = cleanPosterUrl(posterUrl);
+    var sources = filmHeroPosterSources(original, kpId);
+    var next = sources.src;
     var cur = currentFilmPosterFromDom();
     if (!next) {
       if (isGoodFilmPosterUrl(cur)) {
@@ -1706,10 +1714,18 @@
       return;
     }
     if (pEl) {
+      if (sources.fallback) pEl.setAttribute('data-mp-poster-fallback', sources.fallback);
+      else pEl.removeAttribute('data-mp-poster-fallback');
       pEl.src = display;
       pEl.setAttribute('referrerpolicy', 'no-referrer');
       pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
       pEl.onerror = function () {
+        var fallback = this.getAttribute('data-mp-poster-fallback');
+        if (fallback) {
+          this.removeAttribute('data-mp-poster-fallback');
+          this.src = fallback;
+          return;
+        }
         if (global.mpPosterOnError) global.mpPosterOnError(this);
         else { this.onerror = null; this.src = MP_POSTER_PLACEHOLDER; this.classList.add('mp-poster-placeholder'); }
       };
@@ -1725,7 +1741,15 @@
   try {
     if (!global.mpPosterOnError) {
       global.mpPosterOnError = function (img) {
-        if (!img || img.dataset.mpPosterFailed === '1') return;
+        if (!img) return;
+        var fallback = String(img.getAttribute('data-mp-poster-fallback') || '').trim();
+        if (fallback) {
+          img.removeAttribute('data-mp-poster-fallback');
+          delete img.dataset.mpPosterFailed;
+          img.src = fallback;
+          return;
+        }
+        if (img.dataset.mpPosterFailed === '1') return;
         img.onerror = null;
         img.dataset.mpPosterFailed = '1';
         img.src = MP_POSTER_PLACEHOLDER;
@@ -4262,7 +4286,8 @@
 
   function buildFilmMainInnerHtml(kpId, poster, mediaSensitive, opts) {
     var kpNumeric = numericKpFilmId(kpId);
-    var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
+    var posterSources = filmHeroPosterSources(poster, kpNumeric);
+    var posterSrc = posterSources.src || resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
     var isAuthed = !!mpToken();
     var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: isAuthed, canRate: true });
@@ -4283,7 +4308,9 @@
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
         filmPosterColWithTrailerHtml(
-          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>',
+          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '"' +
+            (posterSources.fallback ? ' data-mp-poster-fallback="' + posterSources.fallback + '"' : '') +
+            ' alt="Постер" fetchpriority="high" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>',
           { showTrailerPill: showTrailerPill }
         ) +
         '<div class="hero-content">' +
@@ -6512,6 +6539,7 @@
     appOpenBannerHtml: appOpenBannerHtml,
     standaloneHeaderSearchHtml: standaloneHeaderSearchHtml,
     mpToolbarIcon: mpToolbarIcon,
+    filmHeroPosterSources: filmHeroPosterSources,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);
