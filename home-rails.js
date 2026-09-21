@@ -350,6 +350,10 @@
     var ratingBadgeHtml = userRating != null
       ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + esc(String(userRating)) + "</span>"
       : "";
+    /* Compact left chrome: date + ★ rating sit together; bell stays BR. */
+    var leftChromeHtml = (datePillHtml || ratingBadgeHtml)
+      ? '<span class="premiere-poster-chrome-left">' + datePillHtml + ratingBadgeHtml + "</span>"
+      : "";
     var attrs = siteFilmAttrs(p);
     var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(p)) || "";
     // Keep data-title-logo for hover/trailer consumers; never render logos on rail cards.
@@ -359,7 +363,7 @@
     return (
       '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
       '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">' +
-      img + datePillHtml + ratingBadgeHtml +
+      img + leftChromeHtml +
       (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
       '<div class="home-pre-card-body">' +
