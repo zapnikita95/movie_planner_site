@@ -638,6 +638,16 @@
               '<div class="mp-page-loading-spinner" aria-hidden="true"></div>' +
               '<p class="mp-page-loading-text">' + esc(label) + '</p></div>';
           }
+          function filmHeroPosterSources(poster, kpId) {
+            var fallback = String(poster || '').trim();
+            var kp = String(kpId || '').replace(/\D/g, '');
+            var isKpArt = /(?:\/api\/public\/poster\/kp\/|avatars\.mds\.yandex\.net\/get-kinopoisk-image|st\.kp\.yandex\.net\/images\/)/i.test(fallback);
+            if (!fallback || !kp || !isKpArt || /film-poster-placeholder|no-poster/i.test(fallback)) {
+              return { src: fallback, fallback: '' };
+            }
+            var hq = '/api/public/poster/kp/st/images/film_big/' + kp + '.jpg';
+            return { src: hq, fallback: fallback === hq ? '' : fallback };
+          }
           /* Paint real hero from SSR boot so weak nets see the film before film-page.js (jsDelivr) arrives. */
           function filmBootShell(boot) {
             boot = boot || {};
@@ -674,8 +684,12 @@
             var ratingBits = [];
             if (boot.rating_kp != null && boot.rating_kp !== '') ratingBits.push('КП ' + boot.rating_kp);
             if (boot.rating_imdb != null && boot.rating_imdb !== '') ratingBits.push('IMDb ' + boot.rating_imdb);
-            var posterHtml = poster
-              ? '<img class="poster" id="poster" src="' + esc(poster) + '" alt="Постер" decoding="async" referrerpolicy="no-referrer">'
+            var posterSources = filmHeroPosterSources(poster, boot.kp_id);
+            var posterHtml = posterSources.src
+              ? '<img class="poster" id="poster" src="' + esc(posterSources.src) + '"' +
+                (posterSources.fallback ? ' data-mp-poster-fallback="' + esc(posterSources.fallback) + '"' : '') +
+                ' alt="Постер" decoding="async" fetchpriority="high" referrerpolicy="no-referrer"' +
+                ' onerror="var f=this.getAttribute(\'data-mp-poster-fallback\');if(f){this.removeAttribute(\'data-mp-poster-fallback\');this.src=f}else if(window.mpPosterOnError)window.mpPosterOnError(this)">'
               : '<div class="poster poster-empty" id="poster" aria-hidden="true">🎬</div>';
             var sensCls = isAdultBoot ? ' mp-media-sensitive' : '';
             if (sensCls) {
@@ -4143,7 +4157,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260920retention7';
+        var V='20260921heroposter1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
