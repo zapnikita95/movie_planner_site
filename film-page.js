@@ -1373,6 +1373,10 @@
           '<div class="film-discovery-heading"><h2 id="film-collections-title">Фильм в подборках</h2></div>' +
           '<div class="film-collections-rail"></div>' +
         '</section>' +
+        '<section class="film-discovery-band hidden" id="film-festivals-root" aria-labelledby="film-festivals-title">' +
+          '<div class="film-discovery-heading"><h2 id="film-festivals-title">На фестивалях</h2></div>' +
+          '<div class="film-festivals-rail"></div>' +
+        '</section>' +
       '</div>'
     );
   }
@@ -5323,6 +5327,34 @@
           })
           .catch(function () {});
       }
+      /* TODO(bot): GET /api/public/film/:kp/festivals when the bot endpoint exists. */
+      function paintFilmFestivals(section, items) {
+        var rail = section.querySelector('.film-festivals-rail');
+        if (!rail || !items || !items.length) return;
+        rail.innerHTML = items.slice(0, 8).map(function (item) {
+          var slug = String(item.slug || '').trim();
+          var name = String(item.title || '').trim();
+          if (!slug || !name) return '';
+          var meta = [item.year, item.section].filter(Boolean).join(' · ');
+          return '<a class="film-collection-link" href="/whattowatch/festivals/' + encodeURIComponent(slug) + '">' +
+            '<span class="film-collection-copy"><strong>' + escapeHtml(name) + '</strong>' +
+            (meta ? '<small>' + escapeHtml(String(meta)) + '</small>' : '') + '</span>' +
+            '<span class="film-collection-arrow" aria-hidden="true">›</span></a>';
+        }).filter(Boolean).join('');
+        section.classList.toggle('hidden', !rail.innerHTML);
+      }
+      function loadFilmFestivals(attempt) {
+        var section = document.getElementById('film-festivals-root');
+        if (!section) return;
+        var mock = global.MpFestivalsMock;
+        if (mock && typeof mock.appearancesForKp === 'function') {
+          paintFilmFestivals(section, mock.appearancesForKp(kpId));
+          return;
+        }
+        if ((attempt || 0) < 40) {
+          setTimeout(function () { loadFilmFestivals((attempt || 0) + 1); }, 50);
+        }
+      }
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
         if (!root) return;
@@ -5544,6 +5576,7 @@
 
       loadPublicCast();
       loadFilmCollections();
+      loadFilmFestivals(0);
       if (!isTmdbOnly) scheduleLoadFacts();
       apiGet(publicFilmApi)
         .then(function (data) {

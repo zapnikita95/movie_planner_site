@@ -1119,6 +1119,7 @@
         sec = 'whattowatch';
         siteWtwScope = wtwState.scope;
         siteWtwCollectionCode = wtwState.code;
+        siteWtwFestivalSlug = wtwState.festivalSlug || null;
         try { sessionStorage.setItem('mp_wtw_scope', wtwState.scope); } catch (_) {}
       } else if (bootPath === '/whattowatch' || sec === 'whattowatch') {
         sec = 'whattowatch';
@@ -6014,10 +6015,17 @@
   PATH_TO_SECTION['/whattowatch'] = 'whattowatch';
   PATH_TO_SECTION['/clubs'] = 'whattowatch';
   PATH_TO_SECTION['/whattowatch/clubs'] = 'whattowatch';
+  PATH_TO_SECTION['/whattowatch/festivals'] = 'whattowatch';
 
-  function wtwPathForScope(scope, collectionCode) {
+  function wtwPathForScope(scope, collectionCode, festivalSlug) {
     if (scope === 'world') return '/whattowatch/overtheworld';
     if (scope === 'clubs') return '/whattowatch/clubs';
+    if (scope === 'festivals') {
+      const slug = festivalSlug ? String(festivalSlug) : '';
+      return slug
+        ? '/whattowatch/festivals/' + encodeURIComponent(slug)
+        : '/whattowatch/festivals';
+    }
     if (scope === 'collections') {
       const code = collectionCode ? String(collectionCode) : '';
       return code
@@ -6029,17 +6037,20 @@
 
   function wtwStateFromPath(pathname) {
     const p = (pathname || '/').replace(/\/$/, '') || '/';
-    if (p === '/whattowatch/overtheworld') return { scope: 'world', code: null };
-    if (p === '/whattowatch/clubs' || p === '/clubs') return { scope: 'clubs', code: null };
+    if (p === '/whattowatch/overtheworld') return { scope: 'world', code: null, festivalSlug: null };
+    if (p === '/whattowatch/clubs' || p === '/clubs') return { scope: 'clubs', code: null, festivalSlug: null };
+    if (p === '/whattowatch/festivals') return { scope: 'festivals', code: null, festivalSlug: null };
+    let m = p.match(/^\/whattowatch\/festivals\/([A-Za-z0-9_-]{2,64})$/);
+    if (m) return { scope: 'festivals', code: null, festivalSlug: m[1] };
     if (p === '/whattowatch/collections' || p === '/features/collections') {
-      return { scope: 'collections', code: null };
+      return { scope: 'collections', code: null, festivalSlug: null };
     }
-    let m = p.match(/^\/whattowatch\/collections\/([A-Za-z0-9_-]{2,64})$/);
-    if (m) return { scope: 'collections', code: m[1] };
+    m = p.match(/^\/whattowatch\/collections\/([A-Za-z0-9_-]{2,64})$/);
+    if (m) return { scope: 'collections', code: m[1], festivalSlug: null };
     m = p.match(/^\/features\/collections\/([A-Za-z0-9_-]{2,64})$/);
-    if (m) return { scope: 'collections', code: m[1] };
+    if (m) return { scope: 'collections', code: m[1], festivalSlug: null };
     if (p === '/whattowatch/unwatched' || p === '/whattowatch') {
-      return { scope: 'library', code: null };
+      return { scope: 'library', code: null, festivalSlug: null };
     }
     return null;
   }
@@ -6049,11 +6060,13 @@
     try {
       const path = wtwPathForScope(
         o.scope != null ? o.scope : siteWtwScope,
-        o.code !== undefined ? o.code : siteWtwCollectionCode
+        o.code !== undefined ? o.code : siteWtwCollectionCode,
+        o.festivalSlug !== undefined ? o.festivalSlug : siteWtwFestivalSlug
       );
       const url = path + window.location.search + window.location.hash;
       const st = { section: 'whattowatch', wtwScope: o.scope != null ? o.scope : siteWtwScope };
       if (o.code) st.collectionCode = o.code;
+      if (o.festivalSlug) st.festivalSlug = o.festivalSlug;
       if (o.replace) window.history.replaceState(st, '', url);
       else if (window.location.pathname !== path) window.history.pushState(st, '', url);
     } catch (_) {}
@@ -8440,11 +8453,16 @@
   function openSiteWhattowatch(opts) {
     const o = opts || {};
     const scope = o.scope;
-    if (scope === 'library' || scope === 'world' || scope === 'collections' || scope === 'clubs') {
+    if (scope === 'library' || scope === 'world' || scope === 'collections' || scope === 'clubs' || scope === 'festivals') {
       siteWtwScope = scope;
       try { sessionStorage.setItem('mp_wtw_scope', scope); } catch (_) {}
+      if (scope === 'library' || scope === 'world') {
+        try { sessionStorage.setItem('mp_wtw_pick', scope); } catch (_) {}
+      }
     }
     if (scope !== 'collections') siteWtwCollectionCode = null;
+    if (scope !== 'festivals') siteWtwFestivalSlug = null;
+    if (o.festivalSlug) siteWtwFestivalSlug = String(o.festivalSlug);
     markCabinetUserNav('whattowatch');
     showSection('whattowatch', { replace: !!o.replace, skipPush: !!o.skipPush });
   }
@@ -23087,10 +23105,65 @@
       kicker: 'ВМЕСТЕ',
       modes: [],
     },
+    festivals: {
+      key: 'festivals',
+      icon: 'ticket',
+      label: 'Фестивали',
+      scopeHint: 'Программа и даты',
+      kicker: 'АФИША',
+      modes: [],
+    },
   };
+  const SITE_WTW_HUBS = [
+    { key: 'pick', label: 'Подбор' },
+    { key: 'collections', label: 'Коллекции' },
+    { key: 'clubs', label: 'Клубы' },
+    { key: 'festivals', label: 'Фестивали' },
+  ];
   let siteWtwScope = 'library';
   let siteWtwCollectionCode = null;
+  let siteWtwFestivalSlug = null;
   let siteWtwPosterPromise = null;
+
+  function wtwHubKey(scope) {
+    if (scope === 'collections' || scope === 'clubs' || scope === 'festivals') return scope;
+    return 'pick';
+  }
+
+  function rememberWtwPickScope(scope) {
+    if (scope === 'library' || scope === 'world') {
+      try { sessionStorage.setItem('mp_wtw_pick', scope); } catch (_) {}
+    }
+  }
+
+  function lastWtwPickScope() {
+    try {
+      const saved = sessionStorage.getItem('mp_wtw_pick');
+      if (saved === 'world' || saved === 'library') return saved;
+    } catch (_) {}
+    if (siteWtwScope === 'world') return 'world';
+    return 'library';
+  }
+
+  function renderWtwHubChipsHtml(activeScope) {
+    const hub = wtwHubKey(activeScope);
+    return '<nav class="wtw-hub-chips" aria-label="Разделы Смотреть" role="tablist">'
+      + SITE_WTW_HUBS.map((h) => {
+        const on = h.key === hub;
+        return '<button type="button" class="wtw-hub-chip' + (on ? ' is-active' : '') + '" data-wtw-hub="' + h.key + '" role="tab" aria-selected="' + (on ? 'true' : 'false') + '">'
+          + escapeHtml(h.label) + '</button>';
+      }).join('')
+      + '</nav>';
+  }
+
+  function renderWtwPickToggleHtml() {
+    const libOn = siteWtwScope === 'library';
+    const worldOn = siteWtwScope === 'world';
+    return '<div class="wtw-pick-toggle" role="group" aria-label="Источник подбора">'
+      + '<button type="button" class="wtw-pick-seg' + (libOn ? ' is-active' : '') + '" data-site-wtw-scope="library" aria-pressed="' + (libOn ? 'true' : 'false') + '">Из базы</button>'
+      + '<button type="button" class="wtw-pick-seg' + (worldOn ? ' is-active' : '') + '" data-site-wtw-scope="world" aria-pressed="' + (worldOn ? 'true' : 'false') + '">Мир</button>'
+      + '</div>';
+  }
 
   function siteWtwScopeLabelHtml(scope) {
     const item = scope || {};
@@ -23432,7 +23505,7 @@
     return siteWtwModesForScope(scopeKey).map((m) => {
       const iconKey = m.icon || 'watch';
       const weight = iconKey === 'random' ? 'duotone' : 'regular';
-      return '<button type="button" class="site-wtw-mode-row site-wtw-mode-card" data-wtw-id="' + escapeHtml(m.id) + '">'
+      return '<button type="button" class="site-wtw-mode-row" data-wtw-id="' + escapeHtml(m.id) + '">'
         + '<span class="site-wtw-mode-icon">' + mpIcon(iconKey, { size: 'lg', weight: weight }) + '</span>'
         + '<span class="site-wtw-mode-text"><span class="site-wtw-mode-title">' + escapeHtml(m.title) + '</span>'
         + '<span class="site-wtw-mode-hint">' + escapeHtml(m.hint) + '</span></span>'
@@ -23460,7 +23533,7 @@
   function mountSiteEmotionPanel() {
     const root = document.getElementById('whattowatch-result');
     const modesEl = document.getElementById('site-wtw-modes');
-    const scopeEl = document.querySelector('#whattowatch-content .wtw-scope-toggle');
+    const scopeEl = document.querySelector('#whattowatch-content .wtw-pick-toggle');
     if (!root) return;
     if (typeof siteEmotionUnmount === 'function') {
       try { siteEmotionUnmount(); } catch (_) {}
@@ -23812,7 +23885,7 @@
   function mountSiteAiAssistantPanel() {
     const root = document.getElementById('whattowatch-result');
     const modesEl = document.getElementById('site-wtw-modes');
-    const scopeEl = document.querySelector('#whattowatch-content .wtw-scope-toggle');
+    const scopeEl = document.querySelector('#whattowatch-content .wtw-pick-toggle');
     if (!root) return;
     if (typeof siteEmotionUnmount === 'function') {
       try { siteEmotionUnmount(); } catch (_) {}
@@ -24264,9 +24337,14 @@
     if (!wtwSec) return;
     wtwSec.classList.toggle('whattowatch--collections-scope', siteWtwScope === 'collections');
     wtwSec.classList.toggle('whattowatch--clubs-scope', siteWtwScope === 'clubs');
+    wtwSec.classList.toggle('whattowatch--festivals-scope', siteWtwScope === 'festivals');
     wtwSec.classList.toggle(
       'whattowatch--collection-detail',
       siteWtwScope === 'collections' && !!siteWtwCollectionCode
+    );
+    wtwSec.classList.toggle(
+      'whattowatch--festival-detail',
+      siteWtwScope === 'festivals' && !!siteWtwFestivalSlug
     );
   }
 
@@ -24292,6 +24370,8 @@
       if (fromPath) {
         siteWtwScope = fromPath.scope;
         siteWtwCollectionCode = fromPath.code;
+        siteWtwFestivalSlug = fromPath.festivalSlug || null;
+        rememberWtwPickScope(siteWtwScope);
         // Canonicalize /clubs, legacy /features/collections* and bare /whattowatch
         const bootPath = (window.location.pathname || '/').replace(/\/$/, '') || '/';
         if (
@@ -24299,49 +24379,41 @@
           || bootPath === '/clubs'
           || bootPath.indexOf('/features/collections') === 0
         ) {
-          pushWtwUrl({ scope: siteWtwScope, code: siteWtwCollectionCode, replace: true });
+          pushWtwUrl({
+            scope: siteWtwScope,
+            code: siteWtwCollectionCode,
+            festivalSlug: siteWtwFestivalSlug,
+            replace: true,
+          });
         }
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
-        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs') {
+        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs' || saved === 'festivals') {
           siteWtwScope = saved;
         }
       }
     } catch (_) {}
 
     syncWtwSectionClasses();
-    if (siteWtwScope !== 'clubs') {
+    if (siteWtwScope !== 'clubs' && siteWtwScope !== 'festivals') {
       try { restoreDocumentTitle(); } catch (_) {}
     }
 
-    const lib = SITE_WTW_SCOPES.library;
-    const world = SITE_WTW_SCOPES.world;
-    const collScope = SITE_WTW_SCOPES.collections;
-    const clubsScope = SITE_WTW_SCOPES.clubs;
     const isColl = siteWtwScope === 'collections';
     const isClubs = siteWtwScope === 'clubs';
-    const hidePickers = isColl || isClubs;
+    const isFest = siteWtwScope === 'festivals';
+    const hidePickers = isColl || isClubs || isFest;
+    const isPick = !hidePickers;
     root.innerHTML =
-      '<div class="plan-mode-toggle wtw-scope-toggle">'
-      + [lib, world, collScope, clubsScope].map((scope) => {
-        const active = siteWtwScope === scope.key;
-        return '<button type="button" class="plan-mode' + (active ? ' active' : '') + '" data-site-wtw-scope="' + scope.key + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
-          + '<span class="wtw-scope-bg" aria-hidden="true"></span><span class="wtw-scope-shade" aria-hidden="true"></span>'
-          + '<span class="wtw-scope-copy">' + siteWtwScopeLabelHtml(scope) + '<span class="wtw-scope-hint">' + escapeHtml(scope.scopeHint || '') + '</span></span>'
-          + '</button>';
-      }).join('')
-      + '</div>'
+      renderWtwHubChipsHtml(siteWtwScope)
+      + (isFest ? '<div id="site-wtw-festivals-panel" class="site-wtw-festivals-panel"></div>' : '')
       + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
       + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
-      + (!hidePickers
-        ? '<div class="site-wtw-modes site-wtw-modes--' + siteWtwScope + '" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
+      + (isPick
+        ? renderWtwPickToggleHtml()
+          + '<div class="site-wtw-modes site-wtw-modes--' + siteWtwScope + '" id="site-wtw-modes">' + renderSiteWtwModesList(siteWtwScope) + '</div>'
           + '<div id="whattowatch-result" class="whattowatch-result"></div>'
         : '');
-
-    // Paint last-known posters immediately (no hardcoded FALLBACK flash), then refresh after preload.
-    const cachedWtwPosters = siteWtwReadCachedPosters();
-    if (cachedWtwPosters) siteWtwApplyScopePosters(cachedWtwPosters);
-    loadSiteWtwScopePosters();
 
     function paintWtwCollectionsPanel() {
       const panel = root.querySelector('#site-wtw-collections-panel');
@@ -24383,6 +24455,28 @@
       }
       tryPaint(0);
     }
+    function paintWtwFestivalsPanel() {
+      const panel = root.querySelector('#site-wtw-festivals-panel');
+      if (!panel || siteWtwScope !== 'festivals') return;
+      function tryPaint(attempt) {
+        try {
+          if (window.MpFestivalsPage && siteWtwFestivalSlug && typeof window.MpFestivalsPage.renderDetail === 'function') {
+            window.MpFestivalsPage.renderDetail(panel, siteWtwFestivalSlug);
+            return;
+          }
+          if (window.MpFestivalsPage && !siteWtwFestivalSlug && typeof window.MpFestivalsPage.renderIndex === 'function') {
+            window.MpFestivalsPage.renderIndex(panel);
+            return;
+          }
+          if (attempt < 240) {
+            setTimeout(function () { tryPaint(attempt + 1); }, 50);
+          } else if (panel && !panel.innerHTML.trim()) {
+            panel.innerHTML = '<div class="settings-loading">Загружаем фестивали…</div>';
+          }
+        } catch (_) {}
+      }
+      tryPaint(0);
+    }
     window.__mpRepaintWtwCollectionsPanel = function () {
       if (siteWtwScope !== 'collections') return;
       paintWtwCollectionsPanel();
@@ -24391,23 +24485,52 @@
       if (siteWtwScope !== 'clubs') return;
       paintWtwClubsPanel();
     };
+    window.__mpRepaintWtwFestivalsPanel = function () {
+      if (siteWtwScope !== 'festivals') return;
+      paintWtwFestivalsPanel();
+    };
 
+    root.querySelectorAll('[data-wtw-hub]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const hub = btn.getAttribute('data-wtw-hub');
+        if (hub === 'pick') {
+          if (wtwHubKey(siteWtwScope) === 'pick') return;
+          siteWtwScope = lastWtwPickScope();
+          siteWtwCollectionCode = null;
+          siteWtwFestivalSlug = null;
+        } else if (hub === 'collections' || hub === 'clubs' || hub === 'festivals') {
+          if (hub === 'festivals' && siteWtwScope === 'festivals' && !siteWtwFestivalSlug) return;
+          if (hub === 'collections' && siteWtwScope === 'collections' && !siteWtwCollectionCode) return;
+          if (hub === 'clubs' && siteWtwScope === 'clubs') return;
+          siteWtwScope = hub;
+          siteWtwCollectionCode = null;
+          siteWtwFestivalSlug = null;
+        } else {
+          return;
+        }
+        rememberWtwPickScope(siteWtwScope);
+        try { sessionStorage.setItem('mp_wtw_scope', siteWtwScope); } catch (_) {}
+        pushWtwUrl({ scope: siteWtwScope, code: null, festivalSlug: null, replace: false });
+        renderWhattowatchSection();
+      });
+    });
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sc = btn.getAttribute('data-site-wtw-scope');
-        if (sc !== 'library' && sc !== 'world' && sc !== 'collections' && sc !== 'clubs') return;
-        if (sc === siteWtwScope && !(sc === 'collections' && siteWtwCollectionCode)) return;
+        if (sc !== 'library' && sc !== 'world') return;
+        if (sc === siteWtwScope) return;
         siteWtwScope = sc;
-        // «Коллекции» always returns to hub list (not stuck on detail).
         siteWtwCollectionCode = null;
+        siteWtwFestivalSlug = null;
+        rememberWtwPickScope(sc);
         try { sessionStorage.setItem('mp_wtw_scope', sc); } catch (_) {}
-        pushWtwUrl({ scope: sc, code: null, replace: false });
-        // Полная перерисовка панели: иначе прошлый scope (промо «что такое», режимы) остаётся снизу.
+        pushWtwUrl({ scope: sc, code: null, festivalSlug: null, replace: false });
         renderWhattowatchSection();
       });
     });
     if (isColl) paintWtwCollectionsPanel();
     else if (isClubs) paintWtwClubsPanel();
+    else if (isFest) paintWtwFestivalsPanel();
     else bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
     try {
       if (!getToken() && window.MpPublicPromo && typeof window.MpPublicPromo.mountAtEnd === 'function') {
@@ -24432,8 +24555,36 @@
     if (!code) return;
     siteWtwScope = 'collections';
     siteWtwCollectionCode = String(code);
+    siteWtwFestivalSlug = null;
     try { sessionStorage.setItem('mp_wtw_scope', 'collections'); } catch (_) {}
-    pushWtwUrl({ scope: 'collections', code: siteWtwCollectionCode, replace: false });
+    pushWtwUrl({ scope: 'collections', code: siteWtwCollectionCode, festivalSlug: null, replace: false });
+    const cur = visibleCabinetSectionId();
+    if (cur !== 'whattowatch') {
+      showSection('whattowatch', { skipPush: true });
+    }
+    renderWhattowatchSection();
+  };
+
+  window.__mpWtwFestivalsBack = function () {
+    siteWtwScope = 'festivals';
+    siteWtwFestivalSlug = null;
+    siteWtwCollectionCode = null;
+    try { sessionStorage.setItem('mp_wtw_scope', 'festivals'); } catch (_) {}
+    try {
+      const wtw = document.getElementById('section-whattowatch');
+      if (wtw) wtw.classList.remove('whattowatch--festival-detail');
+    } catch (_) {}
+    pushWtwUrl({ scope: 'festivals', code: null, festivalSlug: null, replace: true });
+    renderWhattowatchSection();
+  };
+
+  window.__mpWtwOpenFestivalSlug = function (slug) {
+    if (!slug) return;
+    siteWtwScope = 'festivals';
+    siteWtwFestivalSlug = String(slug);
+    siteWtwCollectionCode = null;
+    try { sessionStorage.setItem('mp_wtw_scope', 'festivals'); } catch (_) {}
+    pushWtwUrl({ scope: 'festivals', code: null, festivalSlug: siteWtwFestivalSlug, replace: false });
     const cur = visibleCabinetSectionId();
     if (cur !== 'whattowatch') {
       showSection('whattowatch', { skipPush: true });
@@ -31069,6 +31220,8 @@
         if (fromPath) {
           siteWtwScope = fromPath.scope;
           siteWtwCollectionCode = fromPath.code;
+          siteWtwFestivalSlug = fromPath.festivalSlug || null;
+          rememberWtwPickScope(fromPath.scope);
           try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
         }
         if (typeof syncWtwSectionClasses === 'function') syncWtwSectionClasses();
@@ -31128,10 +31281,13 @@
           if (fromPath) {
             siteWtwScope = fromPath.scope;
             siteWtwCollectionCode = fromPath.code;
+            siteWtwFestivalSlug = fromPath.festivalSlug || null;
+            rememberWtwPickScope(fromPath.scope);
             try { sessionStorage.setItem('mp_wtw_scope', fromPath.scope); } catch (_) {}
-          } else if (siteWtwScope !== 'world' && siteWtwScope !== 'collections' && siteWtwScope !== 'clubs') {
+          } else if (siteWtwScope !== 'world' && siteWtwScope !== 'collections' && siteWtwScope !== 'clubs' && siteWtwScope !== 'festivals') {
             siteWtwScope = 'library';
             siteWtwCollectionCode = null;
+            siteWtwFestivalSlug = null;
             try { sessionStorage.setItem('mp_wtw_scope', 'library'); } catch (_) {}
           }
         }
