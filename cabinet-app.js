@@ -12101,7 +12101,25 @@
     stripEl.style.transform = 'translate3d(0,' + (-startY) + 'px,0)';
     stripEl._reelY = startY;
 
-    return wait(40)
+    function preloadReelImages() {
+      const imgs = stripEl.querySelectorAll('img');
+      const tasks = [];
+      for (let i = 0; i < imgs.length; i++) {
+        const img = imgs[i];
+        if (img.complete && img.naturalWidth > 0) continue;
+        tasks.push(new Promise(function (resolve) {
+          const done = function () { resolve(); };
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        }));
+      }
+      return Promise.race([
+        Promise.all(tasks),
+        wait(700),
+      ]);
+    }
+
+    return preloadReelImages().then(function () { return wait(30); })
       .then(function () {
         if (titleEl) titleEl.textContent = 'Крутим ленту…';
         if (subEl) subEl.textContent = 'Постеры из вашей подборки';
