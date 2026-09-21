@@ -33907,6 +33907,19 @@ a.fest-prog-title:hover { color: #ff8ab8; }
     margin-right: auto;
   }
 }
+@media (max-width: 560px) {
+  body.in-cabinet #section-whattowatch .wtw-hub-chips {
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .wtw-hub-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 12px;
+    text-align: center;
+  }
+}
 @media (max-width: 640px) {
   .fest-prog-item { flex-direction: column; }
   .fest-hero-actions .btn,

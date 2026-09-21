@@ -24514,6 +24514,12 @@
         renderWhattowatchSection();
       });
     });
+    try {
+      const activeChip = root.querySelector('.wtw-hub-chip.is-active');
+      if (activeChip && typeof activeChip.scrollIntoView === 'function') {
+        activeChip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'instant' });
+      }
+    } catch (_) {}
     root.querySelectorAll('[data-site-wtw-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const sc = btn.getAttribute('data-site-wtw-scope');
