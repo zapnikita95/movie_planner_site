@@ -12508,6 +12508,8 @@ body.film-standalone-page .cabinet a.mp-stream-btn:hover {
   border: none !important;
   color: #fff !important;
   box-shadow: 0 0 22px rgba(255, 45, 123, 0.28);
+  border-radius: 50px !important;
+  height: auto !important;
 }
 .home-dash-empty--cta .plans-empty-actions .btn.btn-secondary,
 .plans-empty-actions--compact .btn.btn-secondary {
@@ -12518,6 +12520,8 @@ body.film-standalone-page .cabinet a.mp-stream-btn:hover {
   border: 2px solid transparent !important;
   color: #eeeef0 !important;
   box-shadow: none !important;
+  border-radius: 50px !important;
+  height: auto !important;
 }
 .retention-goal-btn.btn.btn-secondary {
   background-color: transparent !important;
