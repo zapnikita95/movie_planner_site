@@ -11786,8 +11786,17 @@
     const film = daily.film || {};
     const poster = film.poster || daily.preview_poster || '';
     const dailyLabel = (film.is_series || daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
+    const claimCtas = daily.claimed && film.kp_id
+      ? ('<div class="retention-daily-ctas">'
+        + '<button type="button" class="btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">В «Посмотреть»</button>'
+        + '<button type="button" class="btn-primary retention-daily-cta" data-retention-plan-tonight>Запланировать сегодня вечером</button>'
+        + '</div>')
+      : '';
     const dailyBody = daily.claimed && film.kp_id
-      ? '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть →</span></span></button>'
+      ? ('<div class="retention-daily-claimed">'
+        + '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть →</span></span></button>'
+        + claimCtas
+        + '</div>')
       : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>Откройте рекомендацию на сегодня</strong><small>Завтра здесь будет новая</small><button type="button" class="btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
     const personalization = data.personalization || {};
     const steps = (personalization.steps || []).slice().sort(function (a, b) {
@@ -11869,6 +11878,52 @@
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
           paintHomeRetention();
         }).catch(function () { claim.disabled = false; });
+        return;
+      }
+      const watchlistBtn = e.target.closest('[data-retention-watchlist-kp]');
+      if (watchlistBtn) {
+        const kp = watchlistBtn.getAttribute('data-retention-watchlist-kp');
+        if (!kp) return;
+        watchlistBtn.disabled = true;
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
+          .then(function (res) {
+            if (!res || res.success === false) throw new Error('add');
+            showToast('Добавлено в «Посмотреть»');
+            try { loadHomeRetention(); } catch (_) {}
+          })
+          .catch(function () {
+            watchlistBtn.disabled = false;
+            showToast('Не удалось добавить', { type: 'error' });
+          });
+        return;
+      }
+      const planTonight = e.target.closest('[data-retention-plan-tonight]');
+      if (planTonight) {
+        const film = (_homeRetention && _homeRetention.daily_film && _homeRetention.daily_film.film) || {};
+        if (!film.kp_id) return;
+        if (window.MpPlanModal && typeof window.MpPlanModal.open === 'function') {
+          window.MpPlanModal.open({
+            apiBase: API_BASE,
+            getAuthHeaders: function () {
+              const h = { 'Content-Type': 'application/json' };
+              const tok = getToken();
+              if (tok) h.Authorization = 'Bearer ' + tok;
+              return h;
+            },
+            onToast: function (msg, isErr) { showToast(msg, isErr ? { type: 'error' } : {}); },
+            onSuccess: function () { try { loadHomeRetention(); } catch (_) {} },
+            film: {
+              kp_id: film.kp_id,
+              title: film.title,
+              year: film.year,
+              poster: film.poster,
+              film_id: film.film_id,
+            },
+            mode: 'home',
+          });
+        } else {
+          openFilmWithFallback(String(film.kp_id));
+        }
         return;
       }
       const dailyFilm = e.target.closest('[data-retention-film-kp]');
@@ -30978,6 +31033,12 @@
         try { openUserProfile(pathUser, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
         return;
       }
+      if (pathUser && !getToken()) {
+        if (window.MpUserPage && typeof window.MpUserPage.bootstrap === 'function') {
+          try { window.MpUserPage.bootstrap({ userId: String(pathUser) }); } catch (e) {}
+          return;
+        }
+      }
       const pathTag = filmTagIdFromPathname(pathname);
       if (pathTag && getToken()) {
         try { openFilmTagView(pathTag, { skipPush: true, skipReturnCapture: true, replace: true }); } catch (e) {}
@@ -31227,6 +31288,30 @@
         }
       }
     } else {
+      const pathUserGuest = userIdFromPathname(window.location.pathname) || userIdFromLocation();
+      if (pathUserGuest) {
+        if (window.MpUserPage && typeof window.MpUserPage.bootstrap === 'function') {
+          window.MpUserPage.bootstrap({ userId: String(pathUserGuest) });
+          handleAuthEntryDeepLinks();
+          return;
+        }
+        // Fallback: paint cabinet section-user from public API shell
+        try {
+          document.documentElement.classList.add('mp-user-boot');
+          document.body.classList.add('in-cabinet');
+          const landing = document.getElementById('landing');
+          if (landing) landing.classList.add('hidden');
+          showScreen('cabinet-readonly');
+          showSection('user', { replace: true, skipPush: true });
+          const root = document.getElementById('user-profile-root');
+          if (root && window.MpUserProfile && typeof window.MpUserProfile.mount === 'function') {
+            // public-friendly mount via hooks that tolerate no token
+            try { mountUserProfilePage(Number(pathUserGuest)); } catch (_) {}
+          }
+        } catch (_) {}
+        handleAuthEntryDeepLinks();
+        return;
+      }
       const pathStaffGuest = staffIdFromPathname(window.location.pathname);
       if (pathStaffGuest) {
         if (window.MpStaffPage) {

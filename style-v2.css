@@ -30360,6 +30360,23 @@ a.collections-author-block:hover {
 }
 .retention-daily-claim:hover,
 .retention-daily-claim:focus-visible { border-color: #ff3b91 !important; background: #ff3b91 !important; }
+
+.retention-daily-claimed { display: flex; flex-direction: column; gap: 0; }
+.retention-daily-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.retention-daily-cta {
+  flex: 1 1 140px;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 650;
+}
+@media (max-width: 720px) {
+  .retention-daily-ctas { padding: 0 12px 12px; }
+}
 .retention-goal,
 .retention-achievements { padding: 18px; }
 .retention-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
