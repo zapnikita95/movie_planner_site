@@ -30364,18 +30364,44 @@ a.collections-author-block:hover {
 .retention-daily-claimed { display: flex; flex-direction: column; gap: 0; }
 .retention-daily-ctas {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 0 16px 16px;
+  align-items: stretch;
 }
-.retention-daily-cta {
-  flex: 1 1 140px;
+/* Firm pills only — tame global 60px landing .btn-primary/.btn-secondary; one row */
+.retention-daily-ctas .btn.retention-daily-cta {
+  flex: 1 1 0;
+  min-width: 0;
+  height: auto !important;
   min-height: 40px;
-  font-size: 13px;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
   font-weight: 650;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.retention-daily-ctas .btn.btn-secondary.retention-daily-cta {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+}
+.retention-daily-ctas .btn.btn-primary.retention-daily-cta {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
 }
 @media (max-width: 720px) {
   .retention-daily-ctas { padding: 0 12px 12px; }
+  .retention-daily-ctas .btn.retention-daily-cta {
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
 }
 .retention-goal,
 .retention-achievements { padding: 18px; }
