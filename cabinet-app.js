@@ -11847,12 +11847,17 @@
       const userRatingBadge = userRating != null
         ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
         : '';
+      const datePillHtml = datePill
+        ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>'
+        : '';
+      const leftChrome = (datePillHtml || userRatingBadge)
+        ? '<span class="premiere-poster-chrome-left">' + datePillHtml + userRatingBadge + '</span>'
+        : '';
       return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs
         + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '') + '>'
         + '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">'
         + img
-        + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
-        + userRatingBadge
+        + leftChrome
         + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
@@ -30841,12 +30846,17 @@
       const userRatingBadge = userRating != null
         ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
         : '';
+      const datePillHtml = datePill
+        ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>`
+        : '';
+      const leftChrome = (datePillHtml || userRatingBadge)
+        ? `<span class="premiere-poster-chrome-left">${datePillHtml}${userRatingBadge}</span>`
+        : '';
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${mpPosterOnErrorAttr()}>` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
-          ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
+          ${leftChrome}
           ${kpBadge || ''}
-          ${userRatingBadge}
           <span data-stop-card-click="1">${bell}</span>
         </div>
         <div class="premiere-poster-tile-body">
