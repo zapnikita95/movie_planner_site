@@ -10562,8 +10562,8 @@
   const HOME_LS_ORDER = 'sections_order';
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
-  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const HOME_BLOCK_IDS = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
   const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v1:';
   let _homeDashboardCache = null;
@@ -10748,6 +10748,7 @@
   function bustHomeRailsForLibraryRev() {
     try {
       if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
+        MPHomeRails.clearRailCache('evening-from-base');
         MPHomeRails.clearRailCache('unwatched');
         MPHomeRails.clearRailCache('series-mix');
         MPHomeRails.clearRailCache('series');
@@ -10756,7 +10757,7 @@
     } catch (_) {}
     var root = document.getElementById('home-dashboard-root');
     if (root) {
-      root.querySelectorAll('[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"], [data-home-rail="recent-rated"]').forEach(function (el) {
+      root.querySelectorAll('[data-home-rail="evening-from-base"], [data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"], [data-home-rail="recent-rated"]').forEach(function (el) {
         el.removeAttribute('data-rail-mounted');
         try { el.innerHTML = ''; } catch (_) {}
       });
@@ -10845,6 +10846,7 @@
 
   const HOME_BLOCK_META = {
     plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
+    evening_from_base: { title: 'На вечер из базы', section: 'unwatched', moreLabel: 'Вся база →' },
     unwatched: { title: 'Хочу посмотреть', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
@@ -11314,6 +11316,12 @@
   }
 
   function homeRailEmptyHtml(blockId) {
+    if (blockId === 'evening_from_base') {
+      return renderHomeBlockCtaHtml(
+        '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить в базу</button> '
+        + '<button type="button" class="btn btn-small btn-secondary" data-home-show-section="whattowatch">Что посмотреть</button>'
+      );
+    }
     if (blockId === 'unwatched') {
       return renderHomeBlockCtaHtml(
         '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
@@ -11468,7 +11476,12 @@
           },
           onMeta: (meta) => {
             if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
-              blockEl.classList.add('hidden');
+              // Keep habit rails visible so emptyHtml CTA stays on screen.
+              if (blockId === 'evening_from_base' || blockId === 'unwatched' || blockId === 'series') {
+                blockEl.classList.remove('hidden');
+              } else {
+                blockEl.classList.add('hidden');
+              }
             } else if (blockEl) {
               blockEl.classList.remove('hidden');
             }
@@ -11788,8 +11801,8 @@
     const dailyLabel = (film.is_series || daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
     const claimCtas = daily.claimed && film.kp_id
       ? ('<div class="retention-daily-ctas">'
-        + '<button type="button" class="btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">В «Посмотреть»</button>'
-        + '<button type="button" class="btn-primary retention-daily-cta" data-retention-plan-tonight>Запланировать сегодня вечером</button>'
+        + '<button type="button" class="btn btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">Добавить в базу</button>'
+        + '<button type="button" class="btn btn-primary retention-daily-cta" data-retention-plan-tonight>В план</button>'
         + '</div>')
       : '';
     const dailyBody = daily.claimed && film.kp_id
@@ -11888,7 +11901,7 @@
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
           .then(function (res) {
             if (!res || res.success === false) throw new Error('add');
-            showToast('Добавлено в «Посмотреть»');
+            showToast('Добавлено в базу');
             try { loadHomeRetention(); } catch (_) {}
           })
           .catch(function () {
@@ -12055,6 +12068,15 @@
       if (!plans.length) return '';
       return '<section class="home-dash-block" data-home-block="plans">' + head
         + '<div class="home-section-body">' + renderHomePlansRailHtml(plans) + '</div></section>';
+    }
+
+    if (blockId === 'evening_from_base') {
+      if (isGuestCabinetPreview()) return '';
+      return '<section class="home-dash-block" data-home-block="evening_from_base">' + head
+        + '<div class="home-section-body">'
+        + '<div class="home-poster-rail home-rail--draggable" data-home-rail="evening-from-base" role="list"></div>'
+        + '<div class="home-rail-meta" data-home-rail-meta="evening-from-base" aria-live="polite"></div>'
+        + '</div></section>';
     }
 
     if (blockId === 'unwatched') {
@@ -12440,7 +12462,7 @@
     if (!root) return;
     (isGuestCabinetPreview()
       ? ['premieres', 'series']
-      : ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament']
+      : ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament']
     ).forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
@@ -12893,7 +12915,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Хочу посмотреть', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
+    const titles = { plans: 'Ближайшие просмотры', evening_from_base: 'На вечер из базы', unwatched: 'Хочу посмотреть', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -20743,6 +20765,7 @@
       try {
         if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
           MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('evening-from-base');
           MPHomeRails.clearRailCache('unwatched');
           MPHomeRails.clearRailCache('watched');
         }
@@ -20772,6 +20795,7 @@
       try {
         if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
           MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('evening-from-base');
           MPHomeRails.clearRailCache('unwatched');
           MPHomeRails.clearRailCache('watched');
         }
