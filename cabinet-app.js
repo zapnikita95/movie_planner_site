@@ -11756,11 +11756,17 @@
       // Title logos only in hover trailer preview — never on premiere grid/rail cards.
       const titleLogo = pickItemTitleLogo(it);
       const titleText = escapeHtml(it.title || '—');
+      let userRating = it.my_rating != null && it.my_rating !== '' ? Math.round(Number(it.my_rating)) : null;
+      if (userRating == null || !Number.isFinite(userRating) || userRating <= 0) userRating = null;
+      const userRatingBadge = userRating != null
+        ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
+        : '';
       return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs
         + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '') + '>'
         + '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">'
         + img
         + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
+        + userRatingBadge
         + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
@@ -30439,11 +30445,17 @@
       // Grid: Russian text title only — never English TMDB wordmarks on RU cards.
       const titleHtml = '<span class="premiere-poster-tile-title-text">' + escapeHtml(displayTitle) + '</span>';
       const kpBadge = siteSearchKpRatingHtml(it);
+      let userRating = it.my_rating != null && it.my_rating !== '' ? Math.round(Number(it.my_rating)) : null;
+      if (userRating == null || !Number.isFinite(userRating) || userRating <= 0) userRating = null;
+      const userRatingBadge = userRating != null
+        ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
+        : '';
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${mpPosterOnErrorAttr()}>` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
           ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
           ${kpBadge || ''}
+          ${userRatingBadge}
           <span data-stop-card-click="1">${bell}</span>
         </div>
         <div class="premiere-poster-tile-body">

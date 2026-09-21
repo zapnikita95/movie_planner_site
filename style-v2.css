@@ -20105,6 +20105,18 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   line-height: 1.35;
 }
 .home-pre-card-body { padding: 0 0 2px; }
+
+/* User rating on premiere posters (keep watched films visible; show ★ when rated) */
+.premiere-poster-media .home-rated-badge,
+.home-pre-card-poster .home-rated-badge,
+.premiere-poster-media .home-rated-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .home-rated-badge {
   position: absolute;
   right: 4px;

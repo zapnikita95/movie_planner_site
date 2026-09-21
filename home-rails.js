@@ -343,6 +343,13 @@
     var datePillHtml = datePill
       ? '<span class="premiere-poster-date-pill">' + esc(datePill) + "</span>"
       : "";
+    var userRating = p.my_rating != null && p.my_rating !== ""
+      ? Math.round(Number(p.my_rating))
+      : null;
+    if (userRating == null || !isFinite(userRating) || userRating <= 0) userRating = null;
+    var ratingBadgeHtml = userRating != null
+      ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + esc(String(userRating)) + "</span>"
+      : "";
     var attrs = siteFilmAttrs(p);
     var sensCls = (global.MpAdultMedia && global.MpAdultMedia.posterClass(p)) || "";
     // Keep data-title-logo for hover/trailer consumers; never render logos on rail cards.
@@ -352,7 +359,7 @@
     return (
       '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs + ">" +
       '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">' +
-      img + datePillHtml +
+      img + datePillHtml + ratingBadgeHtml +
       (notifyBtn ? '<span data-stop-card-click="1">' + notifyBtn + "</span>" : "") +
       "</div>" +
       '<div class="home-pre-card-body">' +
