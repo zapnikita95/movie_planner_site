@@ -512,7 +512,7 @@
                 function hubChip(label, key, active) {
                   var src = hubArt[key];
                   return '<span class="wtw-hub-chip' + (active ? ' is-active' : '') + '" style="--wtw-poster:url(\'' + src + '\')">'
-                    + '<img class="wtw-hub-chip-art" src="' + src + '" alt="" decoding="async">'
+                    + '<img class="wtw-hub-chip-art" src="' + src + '" alt="" decoding="async" onerror="this.remove()">'
                     + '<span class="wtw-hub-chip-label">' + label + '</span></span>';
                 }
                 var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'

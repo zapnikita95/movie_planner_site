@@ -23580,7 +23580,7 @@
   function siteWtwHubChipFaceHtml(hub) {
     const abs = siteWtwHubPosterUrl(hub, SITE_WTW_HUB_POSTERS[hub]);
     if (!abs) return '';
-    return '<img class="wtw-hub-chip-art" src="' + escapeHtml(abs) + '" alt="" decoding="async">';
+    return '<img class="wtw-hub-chip-art" src="' + escapeHtml(abs) + '" alt="" decoding="async" onerror="this.remove()">';
   }
 
   function renderWtwHubChipsHtml(activeScope) {
@@ -23715,6 +23715,7 @@
         art.className = 'wtw-hub-chip-art';
         art.alt = '';
         art.decoding = 'async';
+        art.addEventListener('error', function () { art.remove(); });
         chip.insertBefore(art, chip.firstChild);
       }
       if (art.getAttribute('src') !== url) art.setAttribute('src', url);
