@@ -23473,7 +23473,7 @@
     world: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10592371/20b18cde-faf5-47e3-b192-db9ae8c3d4ff/600x900',
     collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
     clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
-    festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900',
+    festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900',
   };
   const SITE_WTW_SCOPES = {
     library: {
@@ -23535,6 +23535,13 @@
     { key: 'clubs', label: 'Клубы' },
     { key: 'festivals', label: 'Фестивали' },
   ];
+  const SITE_WTW_HUB_POSTERS = {
+    pick: SITE_WTW_SCOPE_FALLBACKS.library,
+    collections: SITE_WTW_SCOPE_FALLBACKS.collections,
+    clubs: SITE_WTW_SCOPE_FALLBACKS.clubs,
+    festivals: SITE_WTW_SCOPE_FALLBACKS.festivals,
+  };
+  const SITE_WTW_LETTER_MARK = '996e145d-a771-4f85-9d4f-cd69f1313d6c';
   let siteWtwScope = 'library';
   let siteWtwCollectionCode = null;
   let siteWtwFestivalSlug = null;
@@ -23560,13 +23567,32 @@
     return 'library';
   }
 
+  function siteWtwPosterIsLetterMark(url) {
+    return String(url || '').indexOf(SITE_WTW_LETTER_MARK) >= 0;
+  }
+
+  function siteWtwHubPosterUrl(hub, raw) {
+    let next = raw || SITE_WTW_HUB_POSTERS[hub] || '';
+    if (siteWtwPosterIsLetterMark(next)) next = SITE_WTW_HUB_POSTERS[hub] || SITE_WTW_SCOPE_FALLBACKS.festivals;
+    return siteWtwAbsolutePosterUrl(next);
+  }
+
+  function siteWtwHubChipFaceHtml(hub) {
+    const abs = siteWtwHubPosterUrl(hub, SITE_WTW_HUB_POSTERS[hub]);
+    if (!abs) return '';
+    return '<img class="wtw-hub-chip-art" src="' + escapeHtml(abs) + '" alt="" decoding="async">';
+  }
+
   function renderWtwHubChipsHtml(activeScope) {
     const hub = wtwHubKey(activeScope);
     return '<nav class="wtw-hub-chips" aria-label="Разделы Смотреть" role="tablist">'
       + SITE_WTW_HUBS.map((h) => {
         const on = h.key === hub;
-        return '<button type="button" class="wtw-hub-chip' + (on ? ' is-active' : '') + '" data-wtw-hub="' + h.key + '" role="tab" aria-selected="' + (on ? 'true' : 'false') + '">'
-          + escapeHtml(h.label) + '</button>';
+        const abs = siteWtwHubPosterUrl(h.key, SITE_WTW_HUB_POSTERS[h.key]);
+        const posterStyle = abs ? ' style="--wtw-poster:url(&quot;' + escapeHtml(abs) + '&quot;)"' : '';
+        return '<button type="button" class="wtw-hub-chip' + (on ? ' is-active' : '') + '" data-wtw-hub="' + h.key + '" role="tab" aria-selected="' + (on ? 'true' : 'false') + '"' + posterStyle + '>'
+          + siteWtwHubChipFaceHtml(h.key)
+          + '<span class="wtw-hub-chip-label">' + escapeHtml(h.label) + '</span></button>';
       }).join('')
       + '</nav>';
   }
@@ -23679,10 +23705,19 @@
     Object.keys(hubMap).forEach((hub) => {
       const chip = root.querySelector('[data-wtw-hub="' + hub + '"]');
       if (!chip) return;
-      const url = siteWtwAbsolutePosterUrl(hubMap[hub]);
+      const url = siteWtwHubPosterUrl(hub, hubMap[hub]);
       if (!url) return;
       const next = 'url("' + String(url).replace(/"/g, '%22') + '")';
       chip.style.setProperty('--wtw-poster', next);
+      let art = chip.querySelector('.wtw-hub-chip-art');
+      if (!art) {
+        art = document.createElement('img');
+        art.className = 'wtw-hub-chip-art';
+        art.alt = '';
+        art.decoding = 'async';
+        chip.insertBefore(art, chip.firstChild);
+      }
+      if (art.getAttribute('src') !== url) art.setAttribute('src', url);
     });
   }
 
@@ -23705,8 +23740,14 @@
       let festCover = SITE_WTW_SCOPE_FALLBACKS.festivals;
       try {
         const mock = window.MpFestivalsMock;
-        const first = mock && typeof mock.teaserList === 'function' ? mock.teaserList()[0] : null;
-        if (first && first.cover) festCover = first.cover;
+        const teasers = mock && typeof mock.teaserList === 'function' ? mock.teaserList() : [];
+        for (let ti = 0; ti < teasers.length; ti++) {
+          const cover = teasers[ti] && teasers[ti].cover;
+          if (cover && !siteWtwPosterIsLetterMark(cover)) {
+            festCover = cover;
+            break;
+          }
+        }
       } catch (_) {}
       const posters = {
         library: siteWtwPosterFromFilm(library[0]) || SITE_WTW_SCOPE_FALLBACKS.library,
