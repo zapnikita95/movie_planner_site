@@ -5331,7 +5331,10 @@
           var peopleHtml = buildPublicCastDetailsHtml(d.director, d.actors || []);
           rail.innerHTML = peopleHtml;
           details.classList.toggle('hidden', !peopleHtml);
-          if (peopleHtml) bindPublicCastLinks(rail);
+          if (peopleHtml) {
+            bindPublicCastLinks(rail);
+            bindFilmPageSimilarRailDrag(rail);
+          }
         }
         /* COURSE_OFFERS_SYNC_V1 */
         var hero = document.querySelector('.film-hero-with-tag');

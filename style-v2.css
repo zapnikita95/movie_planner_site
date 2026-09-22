@@ -13810,8 +13810,26 @@ main.film-page .film-hero-crew {
   gap: 16px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  cursor: grab;
   padding: 1px 0 8px;
+}
+.film-people-rail::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.film-people-rail.is-dragging,
+.film-people-rail.is-dragging .film-person-card {
+  cursor: grabbing;
+}
+.film-people-rail .film-person-card,
+.film-people-rail img {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .film-person-card {
   min-width: 0;
