@@ -49,6 +49,17 @@
   var FEST_COVER_BEAT = festivalCover("BEAT|WEEKEND", "18 ГОРОДОВ · 2026", "#181326", "#B389FF", "BW");
   var FEST_COVER_ITALIAN = festivalCover("ИТАЛЬЯНСКИЕ|ИСТОРИИ", "АРХАНГЕЛЬСКОЕ · 2026", "#192819", "#FFDD5C", "IT");
 
+  // Festival-owned or organizer-published artwork. The generated covers above
+  // remain as a reliable background when an external media host is unavailable.
+  var OFFICIAL_ART_SIB = "https://nadvizh.ru/media/events_img/764/X5kZ1nO9RNVftuq4f-6438XsrmK-hd5tJ8mtZ_69-r6VcJWN19bWDoWNjrHE1kKYpaF_vwjB-_gSPLtjb.jpg";
+  var OFFICIAL_ART_FLAH = "https://www.proficinema.com/upload/iblock/375/3d3a8u4n3jtvo5mzzd5hfakpmws6dwjx.png";
+  var OFFICIAL_ART_SRETENIE = "https://images.weserv.nl/?url=festvstrecha.ru/images/bn-2026-02-18.jpg&w=1200&output=jpg";
+  var OFFICIAL_ART_EURASIA = "https://data.vb.kg/image/big/2022-12-06_12-02-16_827409.jpg";
+  var OFFICIAL_ART_KARO = "https://spb.hse.ru/data/2022/10/07/1729930238/3%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202022-10-05%20022043%20-%20%D0%9C%D0%B0%D1%80%D0%B8%D1%8F%20%D0%9C%D0%B0%D0%BA%D0%B0%D1%80%D0%BA%D0%B8%D0%BD%D0%B0.png";
+  var OFFICIAL_ART_MESSAGE = "https://www.proficinema.com/upload/medialibrary/6b6/mahp00s41zrj4w3r9p7vpzg6zf98i0bl.png";
+  var OFFICIAL_ART_BEAT = "https://design.hse.ru/system/widget_fields/field_attachments/002/539/768/large_12/Media_Keyvisual_1080x1920-3_.jpg?1762760222=";
+  var OFFICIAL_ART_ITALIAN = "https://s3.kinoteatr.ru/upload/movies/1960879/cover.jpg";
+
   function row(title, director, year, venue, kp_id, poster, screening_at) {
     return {
       title: title,
@@ -67,11 +78,12 @@
       slug: "siberia-meetings-2026",
       title: "Встречи в Сибири",
       cover: FEST_COVER_SIB,
+      official_art: OFFICIAL_ART_SIB,
       city: "Новосибирск",
       online: false,
       starts_at: "2026-09-21",
       ends_at: "2026-09-27",
-      official_url: "https://www.meetingsinsiberia.ru/",
+      official_url: "https://vpobede.ru/news/vstrechi-v-sibiri-perekrestki-kultur-i-pamyat-pokoleniy",
       collection_code: "",
       description: "Документальный фестиваль в Новосибирске. С 21 по 27 сентября 2026.",
       program: [
@@ -91,6 +103,7 @@
       slug: "flahertiana-2026",
       title: "Флаэртиана",
       cover: FEST_COVER_FLAH,
+      official_art: OFFICIAL_ART_FLAH,
       city: "Пермь",
       online: false,
       starts_at: "2026-09-25",
@@ -115,11 +128,12 @@
       slug: "sretensky-vstrecha-2026",
       title: "Сретенский «Встреча»",
       cover: FEST_COVER_SRETENIE,
+      official_art: OFFICIAL_ART_SRETENIE,
       city: "Обнинск",
       online: false,
       starts_at: "2026-09-25",
       ends_at: "2026-09-29",
-      official_url: "https://sretenie-fest.ru/",
+      official_url: "https://festvstrecha.ru/",
       collection_code: "",
       description: "Кинофестиваль «Встреча». Обнинск, с 25 по 29 сентября 2026.",
       program: [
@@ -138,11 +152,12 @@
       slug: "eurasia-doc-2026",
       title: "Евразия.DOC",
       cover: FEST_COVER_EURASIA,
+      official_art: OFFICIAL_ART_EURASIA,
       city: "Смоленск",
       online: false,
       starts_at: "2026-09-28",
       ends_at: "2026-10-04",
-      official_url: "https://eurasiadoc.ru/",
+      official_url: "https://eurasia.film/",
       collection_code: "",
       description: "Фестиваль документального кино. Смоленск, с 28 сентября 2026.",
       program: [
@@ -161,11 +176,12 @@
       slug: "karofilmart-2026",
       title: "Каро Арт",
       cover: FEST_COVER_KARO,
+      official_art: OFFICIAL_ART_KARO,
       city: "Москва",
       online: false,
       starts_at: "2026-10-14",
       ends_at: "2026-10-25",
-      official_url: "https://www.instagram.com/karofilmart/",
+      official_url: "https://karoartfestival.ru/",
       collection_code: "",
       description: "Программа Каро Арт: спектакли и кинопоказы. Москва, с 14 по 25 октября 2026.",
       program: [
@@ -187,6 +203,7 @@
       slug: "message-to-man-2026",
       title: "Послание к человеку",
       cover: FEST_COVER_MESSAGE,
+      official_art: OFFICIAL_ART_MESSAGE,
       city: "Санкт-Петербург",
       online: false,
       starts_at: "2026-10-16",
@@ -211,6 +228,7 @@
       slug: "beatfilm-2026",
       title: "Beat Weekend",
       cover: FEST_COVER_BEAT,
+      official_art: OFFICIAL_ART_BEAT,
       city: "18 городов",
       online: true,
       starts_at: "2026-09-10",
@@ -241,6 +259,7 @@
       slug: "italian-stories-2026",
       title: "Итальянские истории",
       cover: FEST_COVER_ITALIAN,
+      official_art: OFFICIAL_ART_ITALIAN,
       city: "Архангельское",
       online: false,
       starts_at: "2026-08-28",
@@ -367,6 +386,7 @@
       slug: fest.slug,
       title: fest.title,
       cover: fest.cover,
+      official_art: fest.official_art || "",
       city: fest.city,
       online: !!fest.online,
       starts_at: fest.starts_at,

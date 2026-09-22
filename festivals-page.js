@@ -194,9 +194,12 @@
   function carouselHtml(items) {
     if (!items || !items.length) return '<p class="cabinet-hint">Пока нет фестивалей в афише.</p>';
     var cards = items.map(function (f) {
-      var cover = f.cover
-        ? '<img class="fest-carousel-cover" src="' + esc(f.cover) + '" alt="" loading="lazy">'
-        : '<span class="fest-carousel-cover fest-news-cover--empty" aria-hidden="true"></span>';
+      var cover = '<span class="fest-carousel-visual"'
+        + (f.cover ? ' style="background-image:url(&quot;' + esc(f.cover) + '&quot;)"' : "") + ">"
+        + (f.official_art
+          ? '<img class="fest-carousel-cover" src="' + esc(f.official_art) + '" alt="Официальная афиша: ' + esc(f.title) + '" decoding="async" onerror="if(this.nextElementSibling)this.nextElementSibling.remove();this.remove()">'
+          : "")
+        + '<span class="fest-official-mark">Официальный материал</span></span>';
       return '<button type="button" class="fest-carousel-card" data-fest-open="' + esc(f.slug) + '">'
         + cover
         + '<span class="fest-carousel-name">' + esc(f.title) + "</span>"
@@ -318,9 +321,12 @@
   }
 
   function heroHtml(fest, subscribed) {
-    var cover = fest.cover
-      ? '<img class="fest-hero-cover" src="' + esc(fest.cover) + '" alt="">'
-      : '<div class="fest-hero-cover fest-hero-cover--empty" aria-hidden="true"></div>';
+    var cover = '<div class="fest-hero-visual"'
+      + (fest.cover ? ' style="background-image:url(&quot;' + esc(fest.cover) + '&quot;)"' : "") + ">"
+      + (fest.official_art
+        ? '<img class="fest-hero-cover" src="' + esc(fest.official_art) + '" alt="Официальная афиша: ' + esc(fest.title) + '" onerror="if(this.nextElementSibling)this.nextElementSibling.remove();this.remove()">'
+        : "")
+      + '<span class="fest-official-mark">Официальный материал</span></div>';
     var bits = [fest.dates_label, fest.place_label].filter(Boolean);
     var subLabel = subscribed ? "Вы подписаны" : "Подписаться";
     var subClass = subscribed ? "btn btn-secondary" : "btn btn-primary";

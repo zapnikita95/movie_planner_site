@@ -34246,11 +34246,22 @@ body.in-cabinet #section-whattowatch .whattowatch-result {
   gap: 14px;
   margin: 0 0 22px;
 }
-.fest-hero-cover {
+.fest-hero-visual {
   width: 100%;
   max-height: 220px;
   aspect-ratio: 16 / 9;
   border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: #16161c center / cover no-repeat;
+}
+.fest-hero-cover {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+  background: rgba(8, 8, 12, 0.62);
 }
 .fest-hero-kicker { margin: 0 0 8px; }
 .fest-hero-title {
@@ -34426,13 +34437,38 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   cursor: pointer;
   position: relative;
 }
-.fest-carousel-cover {
+.fest-carousel-visual {
   display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
-  object-fit: cover;
   border-radius: 6px;
-  background: #16161c;
+  overflow: hidden;
+  position: relative;
+  background: #16161c center / cover no-repeat;
+}
+.fest-carousel-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: rgba(8, 8, 12, 0.68);
+}
+.fest-official-mark {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: rgba(8,8,12,.78);
+  color: rgba(255,255,255,.82);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  line-height: 1;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
 .fest-carousel-name {
   display: block;

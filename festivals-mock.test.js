@@ -34,6 +34,8 @@ ok(!!Mp.getFestival("eurasia-doc-2026"), "eurasia");
 ok(!!Mp.getFestival("message-to-man-2026"), "message to man");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("data:image/svg+xml") === 0; }), "festival cards use festival identities");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("kinopoisk-image") < 0; }), "festival cards do not use movie posters");
+ok(Mp.listFestivals().every(function (f) { return /^https:\/\//.test(String(f.official_art)); }), "every festival has official artwork");
+ok(Mp.listFestivals().every(function (f) { return String(f.official_art).indexOf("kinopoisk-image") < 0; }), "official artwork is not a movie poster");
 
 var now = new Date("2026-09-21T12:00:00+03:00");
 eq(Mp.statusOf(Mp.getFestival("beatfilm-2026", now), now), "past", "beat past on Sep 21");
