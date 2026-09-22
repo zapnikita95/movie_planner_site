@@ -84,4 +84,8 @@ eq(recent.length, 3, 'recent_watched max 3');
 eq(recent[0].title, 'A', 'keeps order');
 eq(recent[0].kpId, 1, 'kp_id on recent');
 
+eq(src.indexOf('>Перейти</button>') !== -1, true, 'explicit open button');
+eq(src.indexOf('class="clubs-card" tabindex="0" role="link"') !== -1, true, 'whole card keyboard feedback');
+eq(src.indexOf('card.classList.add("is-pressed")') !== -1, true, 'pressed response is visible');
+
 console.log('clubs-page contract ok');

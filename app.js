@@ -5353,7 +5353,7 @@
   function siteTournamentNomScore(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
-      return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
+      return Number(item.cinema_month || 0); // confirmed visits only (visit_confirmed)
     }
     return Number(item[nom.field] || 0);
   }
@@ -5404,6 +5404,7 @@
   const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
   const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings'];
   let _homeDashboardCache = null;
+  let _homeRetention = null;
 
   function loadHomeSectionsOrder() {
     try {
@@ -5626,8 +5627,22 @@
         if (t) chips.push('<span class="home-poster-preview-pop-chip">' + escapeHtml(t) + '</span>');
       });
     }
-    if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
-      chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+    try {
+      if (window.MpPosterRating && window.MpPosterRating.displayPosterRating) {
+        const d = window.MpPosterRating.displayPosterRating(meta);
+        if (d.value != null && d.label) {
+          const chip = window.MpPosterRating.sourceChip
+            ? window.MpPosterRating.sourceChip(d.source, d.label)
+            : ((d.source === 'imdb' ? 'IMDb ' : 'КП ') + d.label);
+          chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">' + escapeHtml(chip) + '</span>');
+        }
+      } else if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
+    } catch (_) {
+      if (meta.rating_kp != null && !Number.isNaN(Number(meta.rating_kp))) {
+        chips.push('<span class="home-poster-preview-pop-chip home-poster-preview-pop-chip--rating">КП ' + escapeHtml(Number(meta.rating_kp).toFixed(1)) + '</span>');
+      }
     }
     return chips.join('');
   }
@@ -5918,6 +5933,142 @@
       + buttonsHtml + '</div></div>';
   }
 
+  function retentionProgressHtml(item) {
+    const current = Number(item.current || 0);
+    const target = Math.max(1, Number(item.target || 1));
+    const pct = Math.max(0, Math.min(100, Math.round((current / target) * 100)));
+    return '<div class="retention-ach-row">'
+      + '<div class="retention-ach-icon" aria-hidden="true">' + escapeHtml(item.icon || '🏅') + '</div>'
+      + '<div class="retention-ach-main"><div class="retention-ach-head"><strong>' + escapeHtml(item.name || 'Ачивка') + '</strong><span>' + current + '/' + target + '</span></div>'
+      + '<div class="retention-progress"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="retention-ach-prompt">' + escapeHtml(item.prompt || item.description || '') + '</div></div></div>';
+  }
+
+  function renderHomeRetentionHtml() {
+    const data = _homeRetention;
+    if (!data || !data.success) return '';
+    const daily = data.daily_film || {};
+    const film = daily.film || {};
+    const poster = film.poster || daily.preview_poster || '';
+    const dailyBody = daily.claimed && film.kp_id
+      ? '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '">'
+        + '<span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span>'
+        + '<span class="retention-daily-copy"><span class="retention-kicker">Фильм дня</span><strong>' + escapeHtml(film.title || 'Фильм дня') + '</strong>'
+        + '<small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть филь →</span></span></button>'
+      : '<div class="retention-daily-locked">'
+        + '<span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span>'
+        + '<div class="retention-daily-copy"><span class="retention-kicker">Фильм дня</span><strong>Откройте сегодняшний фильм</strong><small>Завтра здесь будет новый</small>'
+        + '<button type="button" class="btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
+
+    const personalization = data.personalization || {};
+    const steps = personalization.steps || [];
+    const goalHtml = Number(personalization.completed || 0) < Number(personalization.total || 0)
+      ? '<section class="retention-goal"><div class="retention-section-head"><div><span class="retention-kicker">Персонализация</span><h3>Настройте рекомендации</h3></div><b>' + Number(personalization.completed || 0) + ' из ' + Number(personalization.total || 3) + '</b></div>'
+        + '<div class="retention-goal-steps">' + steps.map(function (step) {
+          const done = Number(step.current || 0) >= Number(step.target || 1);
+          return '<div class="retention-goal-step' + (done ? ' is-done' : '') + '"><span>' + (done ? '✓' : Number(step.current || 0)) + '</span><div><strong>' + escapeHtml(step.label || '') + '</strong>'
+            + (!done && Number(step.target || 1) > 1 ? '<small>' + Number(step.current || 0) + ' / ' + Number(step.target || 1) + '</small>' : '') + '</div></div>';
+        }).join('') + '</div><button type="button" class="btn-secondary retention-goal-btn" data-retention-onboarding>Настроить рекомендации</button></section>'
+      : '';
+    const ach = data.achievement_progress || [];
+    const achHtml = ach.length
+      ? '<section class="retention-achievements"><div class="retention-section-head"><div><span class="retention-kicker">Следующие награды</span><h3>Вы уже близко</h3></div></div>' + ach.map(retentionProgressHtml).join('') + '</section>'
+      : '';
+    const dailyHtml = daily.available === false ? '' : '<section class="retention-daily">' + dailyBody + '</section>';
+    return '<div class="home-retention" data-home-retention>' + dailyHtml + goalHtml + achHtml + '</div>';
+  }
+
+  function startRetentionOnboarding() {
+    try { sessionStorage.removeItem('mp_onboard_v2_state'); } catch (_) {}
+    if (typeof window.__mpMountExtendedOnboarding === 'function') {
+      window.__mpMountExtendedOnboarding(_siteOnboardingDeps(), function () {
+        setTimeout(function () { void loadHomeRetention(); }, 400);
+      });
+    }
+  }
+
+  function showRetentionOnboardingDialog() {
+    if (document.querySelector('.retention-onboarding-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'mp-dialog-overlay retention-onboarding-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="mp-dialog-card retention-onboarding-card"><span class="retention-kicker">Точнее под ваш вкус</span><h2>Расскажите, что вам нравится</h2><p>Так мы сможем подбирать фильмы и сериалы именно под ваш вкус.</p><button type="button" class="btn-primary btn-full" data-retention-dialog-start>Настроить рекомендации</button><button type="button" class="btn-ghost btn-full" data-retention-dialog-later>Не сейчас</button></div>';
+    document.body.style.overflow = 'hidden';
+    function close(start) {
+      document.body.style.overflow = '';
+      overlay.remove();
+      if (start) startRetentionOnboarding();
+    }
+    overlay.querySelector('[data-retention-dialog-start]').addEventListener('click', function () { close(true); });
+    overlay.querySelector('[data-retention-dialog-later]').addEventListener('click', function () { close(false); });
+    document.body.appendChild(overlay);
+  }
+
+  function armRetentionOnboardingOffer() {
+    const p = _homeRetention && _homeRetention.personalization;
+    if (!p || !p.should_offer_onboarding) return;
+    const key = 'mp_retention_onboard_offer_v1';
+    const now = Date.now();
+    let state = {};
+    try { state = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) {}
+    if (!state.nextAt) {
+      state = { nextAt: now + 86400000, dismissals: 0 };
+      try { localStorage.setItem(key, JSON.stringify(state)); } catch (_) {}
+      return;
+    }
+    if (now < Number(state.nextAt || 0) || sessionStorage.getItem('mp_retention_onboard_shown') === '1') return;
+    if (window._mpRetentionOfferArmed) return;
+    window._mpRetentionOfferArmed = true;
+    function firstMeaningfulAction(e) {
+      if (!e.target.closest('button,a,[role="button"]') || e.target.closest('[data-home-retention],.retention-onboarding-overlay')) return;
+      document.removeEventListener('click', firstMeaningfulAction, true);
+      window._mpRetentionOfferArmed = false;
+      sessionStorage.setItem('mp_retention_onboard_shown', '1');
+      const dismissals = Number(state.dismissals || 0) + 1;
+      const delays = [3, 7, 30];
+      state = { dismissals: dismissals, nextAt: Date.now() + delays[Math.min(dismissals - 1, delays.length - 1)] * 86400000 };
+      try { localStorage.setItem(key, JSON.stringify(state)); } catch (_) {}
+      setTimeout(showRetentionOnboardingDialog, 500);
+    }
+    document.addEventListener('click', firstMeaningfulAction, true);
+  }
+
+  function bindHomeRetentionOnce() {
+    if (window._mpHomeRetentionBound) return;
+    window._mpHomeRetentionBound = true;
+    document.addEventListener('click', function (e) {
+      const claim = e.target.closest('[data-retention-claim]');
+      if (claim) {
+        claim.disabled = true;
+        api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' }).then(function (res) {
+          if (!res || !res.success) throw new Error('claim');
+          _homeRetention.daily_film.claimed = true;
+          _homeRetention.daily_film.film = res.film;
+          if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
+          _paintHomeDashboardBlocks();
+        }).catch(function () { claim.disabled = false; });
+        return;
+      }
+      const dailyFilm = e.target.closest('[data-retention-film-kp]');
+      if (dailyFilm) {
+        openHomeDashboardFilmTile(dailyFilm.getAttribute('data-retention-film-kp'), '');
+        return;
+      }
+      if (e.target.closest('[data-retention-onboarding]')) startRetentionOnboarding();
+    });
+  }
+
+  function loadHomeRetention() {
+    return api('/api/miniapp/retention/home', { timeoutMs: 12000 }).then(function (data) {
+      if (!data || !data.success) return;
+      _homeRetention = data;
+      _paintHomeDashboardBlocks();
+      bindHomeRetentionOnce();
+      armRetentionOnboardingOffer();
+    }).catch(function () {});
+  }
+
   function homeDashboardFilmTileFromEvent(e) {
     const tile = e.target.closest('#home-dashboard-root .home-poster-tile, #home-dashboard-root .home-pre-card');
     if (!tile || e.target.closest('[data-stop-card-click]')) return null;
@@ -6108,7 +6259,7 @@
     if (!root) return;
     const order = loadHomeSectionsOrder();
     const hidden = loadHomeSectionsHidden();
-    let html = '';
+    let html = renderHomeRetentionHtml();
     order.forEach((bid) => {
       if (bid === 'tournament') return;
       if (hidden.indexOf(bid) >= 0) return;
@@ -6200,6 +6351,7 @@
         applyHomeEmojiVisibility();
         if (hadBlocks) _patchHomeStaticBlocks();
         else _paintHomeDashboardBlocks();
+        void loadHomeRetention();
       });
   }
 
@@ -6245,7 +6397,7 @@
   function tournamentNomScoreSite(item, nom) {
     if (!item || !nom) return 0;
     if (nom.id === 'cinema_month') {
-      return Number(item.cinema_month || 0) + Number(item.tickets_month || 0);
+      return Number(item.cinema_month || 0); // confirmed visits only (visit_confirmed)
     }
     return Number(item[nom.field] || 0);
   }
@@ -8426,9 +8578,21 @@
 
   const ACH_RARITY_LABEL_RU_SITE = { common: 'Обычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная' };
 
-  function showAchievementCelebrationModal(a) {
-    if (!a || !a.id) return Promise.resolve();
-    const rare = ACH_RARITY_LABEL_RU_SITE[a.rarity] || a.rarity || '';
+  function showAchievementCelebrationModal(items) {
+    const list = (Array.isArray(items) ? items : [items]).filter(function (a) { return a && a.id; });
+    if (!list.length) return Promise.resolve();
+    const strongest = list.slice().sort(function (a, b) {
+      const rank = { common: 0, rare: 1, epic: 2, legendary: 3 };
+      return (rank[b.rarity] || 0) - (rank[a.rarity] || 0);
+    })[0];
+    const rare = ACH_RARITY_LABEL_RU_SITE[strongest.rarity] || strongest.rarity || '';
+    const rows = list.map(function (a) {
+      const rarity = ACH_RARITY_LABEL_RU_SITE[a.rarity] || a.rarity || '';
+      return '<div class="ach-celebration-row ' + escapeHtml(a.rarity || 'common') + '">'
+        + '<div class="ach-celebration-row-icon" aria-hidden="true">' + escapeHtml(a.icon || '🏅') + '</div>'
+        + '<div><h3>' + escapeHtml(a.name || 'Ачивка') + '</h3><p>' + escapeHtml(a.description || '') + '</p>'
+        + (rarity ? '<span>' + escapeHtml(rarity) + '</span>' : '') + '</div></div>';
+    }).join('');
     return new Promise(function (resolve) {
       const overlay = document.createElement('div');
       overlay.className = 'mp-dialog-overlay ach-celebration-overlay';
@@ -8436,13 +8600,14 @@
       overlay.setAttribute('aria-modal', 'true');
       document.body.style.overflow = 'hidden';
       overlay.innerHTML =
-        '<div class="mp-dialog-card ach-celebration-card">' +
-        '<div class="ach-celebration-kicker">Новая ачивка</div>' +
-        '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(a.icon || '🏅') + '</div>' +
-        '<h2 class="ach-celebration-title">' + escapeHtml(a.name || 'Ачивка') + '</h2>' +
-        '<p class="ach-celebration-desc">' + escapeHtml(a.description || '') + '</p>' +
+        '<div class="mp-dialog-card ach-celebration-card ach-celebration-card--group">' +
+        '<div class="ach-celebration-burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
+        '<div class="ach-celebration-kicker">' + (list.length > 1 ? 'Новые достижения · ' + list.length : 'Новое достижение') + '</div>' +
+        '<div class="ach-celebration-icon-wrap" aria-hidden="true">' + escapeHtml(strongest.icon || '🏅') + '</div>' +
+        '<h2 class="ach-celebration-title">' + (list.length > 1 ? 'Это твой момент' : escapeHtml(strongest.name || 'Ачивка')) + '</h2>' +
+        '<div class="ach-celebration-list">' + rows + '</div>' +
         (rare ? '<div class="ach-celebration-rarity">' + escapeHtml(rare) + '</div>' : '') +
-        '<button type="button" class="btn-primary btn-full ach-celebration-btn" id="ach-celebration-ok">Ура!</button>' +
+        '<button type="button" class="btn-primary btn-full ach-celebration-btn" id="ach-celebration-ok">Забираю!</button>' +
         '</div>';
       function close() {
         document.body.style.overflow = '';
@@ -8457,7 +8622,7 @@
         btn.disabled = true;
         api('/api/miniapp/achievements/celebration-shown', {
           method: 'POST',
-          body: JSON.stringify({ achievement_id: a.id }),
+          body: JSON.stringify({ achievement_ids: list.map(function (a) { return a.id; }) }),
         }).catch(function () {}).finally(close);
       });
       document.body.appendChild(overlay);
@@ -8470,9 +8635,7 @@
     return api('/api/miniapp/achievements/celebration-pending')
       .then(function (d) {
         const pending = (d && d.pending) || [];
-        return pending.reduce(function (chain, item) {
-          return chain.then(function () { return showAchievementCelebrationModal(item); });
-        }, Promise.resolve());
+        return showAchievementCelebrationModal(pending);
       })
       .catch(function () {});
   }
@@ -9143,8 +9306,8 @@
     const yearAttr = escapeHtml(String(item.year || ''));
     const showCinemaWatch = item.plan_type === 'cinema' || item.in_cinema === true;
     const planItems = [
-      `<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>`,
-      `<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>`,
+      `<button type="button" class="action-dropdown-item" data-plan-place="home" data-kp="${kp}" data-title="${titleAttr}">🏠 Дома</button>`,
+      `<button type="button" class="action-dropdown-item" data-plan-place="cinema" data-kp="${kp}" data-title="${titleAttr}">🎥 В кино</button>`,
       `<button type="button" class="action-dropdown-item" data-plans-action="open-add-film">＋ Добавить фильм</button>`,
     ].join('');
     const watchItems = [];
@@ -9945,23 +10108,35 @@
       }
       return;
     }
-    const goPlansItem = e.target.closest('.action-dropdown-item[data-goto-plans]');
-    if (goPlansItem) {
+    const planPlaceItem = e.target.closest('.action-dropdown-item[data-plan-place]');
+    if (planPlaceItem) {
       e.preventDefault();
       e.stopPropagation();
       closeAllActionDropdowns();
-      const filter = goPlansItem.getAttribute('data-goto-plans') || 'all';
-      showSection('plans');
-      _plansViewFilter = filter === 'home' || filter === 'cinema' ? filter : 'all';
-      const tabs = document.getElementById('plans-filter-tabs');
-      if (tabs) {
-        tabs.querySelectorAll('[data-plans-filter]').forEach((b) => {
-          const on = b.getAttribute('data-plans-filter') === _plansViewFilter;
-          b.classList.toggle('active', on);
-          b.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
+      const place = planPlaceItem.getAttribute('data-plan-place') || 'home';
+      let kp = String(planPlaceItem.getAttribute('data-kp') || '').replace(/\D/g, '');
+      let title = planPlaceItem.getAttribute('data-title') || '';
+      if (!kp) {
+        try {
+          const pathKp = typeof kpIdFromPathname === 'function'
+            ? kpIdFromPathname(window.location.pathname)
+            : '';
+          kp = String(pathKp || '').replace(/\D/g, '');
+        } catch (_) {}
       }
-      renderPlansList();
+      if (!kp) {
+        const hero = document.querySelector('#film-page-content [data-kp-id], #section-film [data-kp-id], .film-hero[data-kp-id]');
+        if (hero) kp = String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '');
+      }
+      if (!title) {
+        const tEl = document.getElementById('film-title');
+        if (tEl) title = String(tEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      }
+      if (kp && typeof openSiteFilmPlanModal === 'function') {
+        openSiteFilmPlanModal(kp, title, place === 'cinema' ? 'cinema' : 'home');
+      } else {
+        showToast(kp ? 'Форма плана недоступна' : 'Не удалось определить фильм', { type: 'error' });
+      }
       return;
     }
     const tvBtn = e.target.closest('[data-tv-launch="1"]');
@@ -11405,6 +11580,28 @@
     return list;
   }
 
+  function siteSearchKpRatingBandClass(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 4) return ' poster-kp-rating--low';
+    if (n < 5) return ' poster-kp-rating--mid';
+    if (n < 7) return ' poster-kp-rating--amber';
+    return ' poster-kp-rating--high';
+  }
+
+  function siteSearchKpRatingHtml(it) {
+    try {
+      if (window.MpPosterRating && typeof window.MpPosterRating.posterRatingHtml === 'function') {
+        return window.MpPosterRating.posterRatingHtml(it, escapeHtml);
+      }
+    } catch (_) {}
+    const raw = it && (it.rating_kp != null ? it.rating_kp : it.rating);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const label = n.toFixed(1);
+    return '<span class="poster-kp-rating' + siteSearchKpRatingBandClass(n) + '" title="Рейтинг Кинопоиска ' + escapeHtml(label) + '" aria-label="КП ' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>';
+  }
+
   function siteSearchResultCardHtml(it) {
     const poster = cleanPosterUrl(it.poster);
     const typeLabel = it.type === 'series' ? 'Сериал' : 'Фильм';
@@ -11415,7 +11612,8 @@
     const img = poster
       ? '<img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)">'
       : '';
-    const body = '<div class="home-poster-tile-img">' + img + '</div>'
+    const kpBadge = siteSearchKpRatingHtml(it);
+    const body = '<div class="home-poster-tile-img">' + img + kpBadge + '</div>'
       + '<div class="home-poster-tile-title">' + escapeHtml(it.title || '') + '</div>'
       + '<div class="home-poster-tile-year">' + escapeHtml(year) + ' · ' + escapeHtml(typeLabel) + '</div>';
     if (getToken() && !/^mp-\d+$/i.test(cat)) {
@@ -15041,6 +15239,23 @@
     }
   }
 
+  function premierePosterMetaLine(it) {
+    const year = it && it.year ? String(it.year) : '';
+    let genres = [];
+    const raw = it && it.genres;
+    if (Array.isArray(raw)) {
+      genres = raw.map((g) => (g && typeof g === 'object' ? String(g.genre || g.name || '') : String(g || '')).trim()).filter(Boolean);
+    } else {
+      genres = String(raw || '').split(/[,;|/·•]+/).map((s) => s.trim()).filter(Boolean);
+    }
+    genres = genres.slice(0, 3);
+    const genrePart = genres.join(', ');
+    if (year && genrePart) return escapeHtml(year) + ' · ' + escapeHtml(genrePart);
+    if (year) return escapeHtml(year);
+    if (genrePart) return escapeHtml(genrePart);
+    return '';
+  }
+
   function renderPremieresList() {
     const grid = document.getElementById('premieres-grid');
     if (!grid) return;
@@ -15079,7 +15294,7 @@
         </div>
         <div class="premiere-poster-tile-body">
           <div class="premiere-poster-tile-title">${escapeHtml(it.title || '')}</div>
-          ${year ? `<div class="premiere-poster-tile-meta">${year}</div>` : ''}
+          ${(() => { const cardMeta = premierePosterMetaLine(it); return cardMeta ? `<div class="premiere-poster-tile-meta" title="${cardMeta}">${cardMeta}</div>` : ''; })()}
         </div>
         ${preview}
       </div>`;

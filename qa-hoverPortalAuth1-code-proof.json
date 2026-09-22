@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "assetV": "20260916hoverPortalAuth1",
+  "htmlHasV": true,
+  "hoverPreviewPopForCardIncludesPosterPop": true,
+  "sharedPortalSelIncludesPosterPop": true,
+  "cssHidesInCardPosterPop": true,
+  "bindCallSites": [
+    {
+      "root": "root",
+      "selector": ".home-poster-tile-wrap"
+    },
+    {
+      "root": "root",
+      "selector": ".guest-discover-card--hover-preview"
+    },
+    {
+      "root": "list",
+      "selector": ".film-card-v2--hover-preview"
+    },
+    {
+      "root": "grid",
+      "selector": ".premiere-poster-tile"
+    }
+  ],
+  "surfaces": {
+    "guestDiscover": "shared bindFilmCardHoverPreviewGroup",
+    "authBaseUnwatched": "shared bindFilmCardHoverPreviewGroup",
+    "premieres": "shared bindFilmCardHoverPreviewGroup",
+    "authHomeRails": "FIXED → shared bindFilmCardHoverPreviewGroup",
+    "plansGuest": "via guest-discover cards (shared)",
+    "buzzGuestGrids": "via guest-discover cards on База/Планы (shared)",
+    "whattowatch": "no home-film-preview hover (flip cards)",
+    "homeRailsTrailerBtn": "home-rails.js play overlay only — not synopsis pop"
+  }
+}

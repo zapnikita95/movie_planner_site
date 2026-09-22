@@ -62,6 +62,8 @@ var guestHtml = Mp.buildFilmPageToolbar(guestItem, { authenticated: false });
 assert(guestHtml.indexOf('guest-watchlist-cta') !== -1, 'guest CTA present');
 assert(guestHtml.indexOf('ph-bookmark-simple') !== -1, 'guest CTA uses bookmark icon');
 assert(guestHtml.indexOf('ph-eye') !== -1, 'guest watched uses eye icon');
+assert(guestHtml.indexOf('guest-plan-btn') !== -1, 'guest can open local plan flow');
+assert(guestHtml.indexOf('ph-calendar') !== -1, 'guest plan uses calendar icon');
 assert(guestHtml.indexOf('🔔') === -1, 'guest toolbar has no bell emoji');
 assert(guestHtml.indexOf('film-icon-btn--premiere') === -1, 'no premiere btn when not upcoming');
 assert(guestHtml.indexOf('premiere-notify') === -1, 'no premiere notify action on released guest film');

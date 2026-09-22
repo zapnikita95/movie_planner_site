@@ -87,7 +87,13 @@ assert(cabSrc.indexOf('function initFilmMonetization') >= 0, 'cabinet SPA loads 
 assert((cabSrc.match(/initFilmMonetization\(/g) || []).length >= 6, 'cabinet film paints remount tickets');
 
 const routeSrc = fs.readFileSync(path.join(__dirname, 'cabinet-film-route.js'), 'utf8');
-assert(routeSrc.indexOf("BUILD = '20260911guestToolbarIcons1'") >= 0, 'thin /f/ cache-busts cabinet-app after guest toolbar + tickets');
+assert(routeSrc.indexOf("BUILD = '20260917metrikaGoals1'") >= 0, 'thin /f/ cache-busts cabinet-app after metrika monetization goals');
 assert(routeSrc.indexOf('initFilmMonetization') >= 0, 'guest /f/ onReady remounts tickets');
+
+assert(srcText.indexOf("metrikaGoal('ticket_cta_click'") >= 0, 'ticket_cta_click goal');
+assert(srcText.indexOf("metrikaGoal('streaming_affiliate_click'") >= 0, 'streaming_affiliate_click goal');
+assert(srcText.indexOf("metrikaGoal('stream_click'") >= 0, 'legacy stream_click still fired for streaming');
+assert(/trackTicketPartnerClick\s*\(/.test(srcText), 'ticket tracker helper exists');
+assert(srcText.indexOf('trackTicketPartnerClick(partner, kpId, surface)') >= 0, 'ticket binder calls ticket tracker');
 
 console.log('mp-monetization.test.js: OK');

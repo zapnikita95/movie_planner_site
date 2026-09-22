@@ -515,11 +515,12 @@
       ? '<img class="clubs-card-cover-img" src="' + esc(cover) + '" alt="" loading="lazy">'
       : '<span class="clubs-card-emoji">' + esc(emoji) + "</span>";
     var planText = plan ? "Ближайший фильм " + plan.title : "Ближайших фильмов не запланировано";
-    var ctaBtn = '<button type="button" class="clubs-card-cta"'
+    var joinBtn = kind === "open" ? "" : '<button type="button" class="clubs-card-cta"'
       + (kind === "pending" ? " disabled" : "")
       + ' data-clubs-cta="' + kind + '" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + esc(ctaLabel(kind)) + "</button>";
-    return '<article class="clubs-card" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
+    var openBtn = '<button type="button" class="clubs-card-open" data-clubs-action="open" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">Перейти</button>';
+    return '<article class="clubs-card" tabindex="0" role="link" aria-label="Перейти в киноклуб ' + esc(name) + '" data-chat-id="' + esc(String(cid)) + '" data-club-key="' + esc(String(ckey)) + '">'
       + '<div class="clubs-card-cover">' + coverInner + "</div>"
       + '<div class="clubs-card-body">'
       + '<h3 class="clubs-card-name">' + esc(name) + "</h3>"
@@ -530,13 +531,30 @@
       + '<span>' + esc(freq) + "</span>"
       + "</div>"
       + '<p class="clubs-card-plan">' + esc(planText) + "</p>"
-      + '<div class="clubs-card-actions">' + ctaBtn + "</div>"
+      + '<div class="clubs-card-actions">' + joinBtn + openBtn + "</div>"
       + "</div></article>";
   }
 
   function bindCatalog(root) {
     if (!root || root._clubsBound) return;
     root._clubsBound = true;
+    root.addEventListener("pointerdown", function (e) {
+      var card = e.target.closest(".clubs-card[data-chat-id]");
+      if (card && root.contains(card)) card.classList.add("is-pressed");
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (name) {
+      root.addEventListener(name, function () {
+        root.querySelectorAll(".clubs-card.is-pressed").forEach(function (card) { card.classList.remove("is-pressed"); });
+      }, true);
+    });
+    root.addEventListener("keydown", function (e) {
+      var card = e.target.closest(".clubs-card[data-chat-id]");
+      if (!card || e.target !== card || !root.contains(card) || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      card.classList.add("is-pressed");
+      setTimeout(function () { card.classList.remove("is-pressed"); }, 120);
+      openClub(card.getAttribute("data-club-key") || card.getAttribute("data-chat-id"));
+    });
     root.addEventListener("click", function (e) {
       var createBtn = e.target.closest("[data-clubs-action='create']");
       if (createBtn && root.contains(createBtn)) {

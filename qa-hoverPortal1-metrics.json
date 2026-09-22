@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "portaled": true,
+  "parentIsBody": true,
+  "rect": {
+    "left": 12,
+    "right": 392,
+    "top": 63,
+    "bottom": 435.4375,
+    "width": 380,
+    "height": 372.4375
+  },
+  "vw": 1440,
+  "vh": 900,
+  "sidebarRight": 0,
+  "clippedLeft": false,
+  "clippedRight": false,
+  "underSidebar": false,
+  "posterClipped": false,
+  "posterRect": {
+    "left": 25,
+    "right": 111,
+    "width": 86
+  },
+  "zIndex": "10050",
+  "position": "fixed",
+  "title": "Надежда",
+  "cardIndex": 0,
+  "cardLeft": 24
+}

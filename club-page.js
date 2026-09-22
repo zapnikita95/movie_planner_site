@@ -46,7 +46,13 @@
     pollEdits: {} ,
     comments: {},
     planPicker: null,
-    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false
+    scheduleView: "list", calendarMonth: "", scheduleDialog: null, scheduleDayKey: null, scheduleDetails: {}, scheduleDetailBusy: {}, watchedBusy: {}, leaveConfirm: false, leaveBusy: false,
+    analytics: null, analyticsBusy: false, analyticsError: "", analyticsDays: 90,
+    history: null, historyBusyLoad: false, historyError: "",
+    historyFilter: "all",
+    historyNoteEdit: null, historyBusy: {}, attendanceBusy: {},
+    onboardingForceHidden: false,
+    onboardingOpen: false
   };
   var root;
   var overlayHost;
@@ -231,9 +237,631 @@
 
   function markClubPlanWatched(fid) { fid = String(fid ? fid : ''); if (!fid) return; if (state.watchedBusy[fid]) return; state.watchedBusy[fid] = true; render(); req('/api/site/film/' + encodeURIComponent(fid) + '/watched', { method: 'POST', headers: { 'X-Movie-Planner-Library-Chat': String(state.id) }, body: JSON.stringify({ watched: true }) }).then(function(d) { if (!d) throw new Error('watch_failed'); if (d.success === false) throw new Error(d.error ? d.error : 'watch_failed'); var plans = state.club.plans ? state.club.plans : []; plans.forEach(function(p) { if (planFilmId(p) === fid) p.member_watched = true; }); toast(String.fromCharCode(1060,1080,1083,1100,1084,1086,1090,32,1086,1090,1084,1077,1095,1077,1085)); }).catch(function(e) { toast(e && e.message ? e.message : 'watch_failed', { type: 'error' }); }).then(function() { delete state.watchedBusy[fid]; render(); }); }
 
-  function clubScheduleAction(x) { return state.member ? clubPlanAction(x) : '<button type="button" class="club-mini-btn" data-club-join>' + String.fromCharCode(1042,1089,1090,1091,1087,1080,1090,1100) + '</button>'; }
+  function clubScheduleAction(x) {
+    var actions = clubTgAnnounceBtn(x) + (state.member ? clubPlanAction(x) : '');
+    return actions ? '<div class="club-schedule-actions">' + actions + '</div>' : '';
+  }
 
   function refreshClubPlanWatched() { if (!state.member) return; if (typeof global.api !== 'function') return; var plans = state.club && state.club.plans ? state.club.plans : []; var jobs = plans.map(function(p) { var fid = planFilmId(p); if (!fid) return Promise.resolve(); return req('/api/site/film/' + encodeURIComponent(fid), { headers: { 'X-Movie-Planner-Library-Chat': String(state.id) } }).then(function(d) { var f = d && d.film ? d.film : d; if (f && f.watched != null) p.member_watched = !!f.watched; }).catch(function() {}); }); Promise.all(jobs).then(function() { render(); }); }
+
+  /* MARKER clubHistAdmin1 — analytics admin-only + member history + recording filter */
+  /* MARKER clubShareCal1 — post share + ICS/Google calendar + TG announce stub */
+  /* MARKER clubCalStack1 — stacked day posters + day list dialog for multi-film days */
+
+  function calendarDayStackHtml(items) {
+    items = items || [];
+    if (!items.length) return '';
+    var n = items.length;
+    var maxLayers = Math.min(3, n);
+    var cards = '';
+    for (var li = maxLayers - 1; li >= 0; li--) {
+      var p = items[li];
+      var im = poster(p);
+      var cls = 'club-cal-stack-card club-cal-stack-layer-' + li;
+      cards += im
+        ? '<img class="' + cls + '" src="' + esc(im) + '" alt="" loading="lazy">'
+        : '<div class="' + cls + ' club-cal-stack-empty" aria-hidden="true">🎬</div>';
+    }
+    var badge = n > 1
+      ? '<span class="club-cal-stack-badge" aria-label="' + n + ' сеанса">×' + n + '</span>'
+      : '';
+    return '<div class="club-cal-stack' + (n > 1 ? ' is-multi' : ' is-single') + '" aria-hidden="true">' + cards + badge + '</div>';
+  }
+
+  function dayTitleRu(key) {
+    if (!key) return 'Сеансы';
+    try {
+      var d = new Date(String(key) + 'T12:00:00');
+      if (isNaN(d.getTime())) return 'Сеансы';
+      var label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      return 'Сеансы · ' + label;
+    } catch (_) {
+      return 'Сеансы';
+    }
+  }
+
+  function plansForDayKey(key) {
+    return schedulePlans().filter(function (item) {
+      var d = new Date(planDate(item));
+      return !isNaN(d.getTime()) && dayKey(d) === String(key || '');
+    });
+  }
+
+  function openScheduleDay(key) {
+    key = String(key || '');
+    if (!key) return;
+    var items = plansForDayKey(key);
+    if (!items.length) return;
+    if (items.length === 1) {
+      state.scheduleDayKey = null;
+      state.scheduleDialog = items[0];
+      loadPlanDetail(items[0]);
+      render();
+      return;
+    }
+    state.scheduleDialog = null;
+    state.scheduleDayKey = key;
+    render();
+  }
+
+  function closeScheduleDay() {
+    state.scheduleDayKey = null;
+    render();
+  }
+
+  function scheduleDayDialogHtml() {
+    var key = state.scheduleDayKey;
+    if (!key) return '';
+    var items = plansForDayKey(key);
+    if (!items.length) return '';
+    var rows = items.map(function (p) {
+      var im = poster(p);
+      var t = title(p);
+      var dt = planDate(p);
+      var pid = p && p.id != null ? String(p.id) : '';
+      var desc = planDescription(p, 150);
+      return '<button type="button" class="club-day-plan-row"' + (pid ? ' data-club-plan-open="' + esc(pid) + '"' : '') + '>' +
+        (im ? '<img src="' + esc(im) + '" alt="" loading="lazy">' : '<div class="club-day-plan-empty">🎬</div>') +
+        '<div class="club-day-plan-copy"><time>' + esc(fmt(dt)) + '</time><b>' + esc(t) + '</b>' +
+        (desc ? '<span class="club-day-plan-desc">' + esc(desc) + '</span>' : '') +
+        '<span>' + esc(planTypeLabel(p)) + ' · открыть подробности</span></div></button>';
+    }).join('');
+    return '<div class="club-plan-dialog-backdrop" data-club-day-close><div class="club-day-dialog" role="dialog" aria-modal="true" aria-label="' + esc(dayTitleRu(key)) + '">' +
+      '<button type="button" class="club-plan-dialog-close" data-club-day-close aria-label="Закрыть">×</button>' +
+      '<h3 class="club-day-dialog-title">' + esc(dayTitleRu(key)) + '</h3>' +
+      '<p class="club-day-dialog-hint">Выберите сеанс</p>' +
+      '<div class="club-day-plan-list">' + rows + '</div></div></div>';
+  }
+
+  /* MARKER clubOnboarding1 — sample analytics + first-open tips (client-only, no DB rows) */
+  function onboardingStorageKey() {
+    return 'mp_club_onboarding_v1_' + String(state.id || '');
+  }
+
+  function isOnboardingDismissed() {
+    if (state.onboardingForceHidden) return true;
+    try {
+      return localStorage.getItem(onboardingStorageKey()) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function dismissOnboarding() {
+    try {
+      localStorage.setItem(onboardingStorageKey(), '1');
+    } catch (_) {}
+    state.onboardingForceHidden = true;
+    state.onboardingOpen = false;
+    render();
+  }
+
+  function openOnboarding() {
+    if (!state.admin) return;
+    state.onboardingOpen = true;
+    render();
+  }
+
+  function analyticsLooksEmpty(a) {
+    if (!a || a.sample || a.demo) return true;
+    var b = a.base || {};
+    var hist = a.history || [];
+    var sessions = Number(b.sessions_count || 0);
+    if (sessions > 0) return false;
+    if (hist && hist.length) return false;
+    if (b.hall_attendance_total != null && Number(b.hall_attendance_total) > 0) return false;
+    if ((b.attendance_trend || []).some(function (p) { return p && p.attendance_count != null; })) return false;
+    return true;
+  }
+
+  function clubHasUpcomingPlans() {
+    return !!(state.club && state.club.plans && state.club.plans.length);
+  }
+
+  function shouldShowSampleData() {
+    // Real past sessions / attendance → never show samples (e.g. «Первый киноклуб»).
+    if (state.analytics && !analyticsLooksEmpty(state.analytics) && !state.analytics.sample) return false;
+    if (state.analytics && analyticsLooksEmpty(state.analytics)) return true;
+    // Before analytics loads: only if club has no films/history signal.
+    var films = state.club && state.club.films;
+    var n = Number(films);
+    if (!isNaN(n) && n > 0) return false;
+    if (films && String(films) !== '—' && String(films) !== '0') return false;
+    return true;
+  }
+
+  function shouldShowOnboarding() {
+    // This is an admin tool, not an explanation for public club visitors.
+    if (!state.id || !state.club || !state.admin) return false;
+    if (state.onboardingOpen) return true;
+    if (isOnboardingDismissed()) return false;
+    // Show once to the club author/admin while setting up an empty club.
+    if (state.analytics && !analyticsLooksEmpty(state.analytics) && !state.analytics.sample) return false;
+    return shouldShowSampleData();
+  }
+
+  function sampleBadge(label) {
+    return '<span class="club-sample-badge" title="Это пример, не данные клуба">' + esc(label || 'Пример') + '</span>';
+  }
+
+  function sampleBanner(text) {
+    return '<div class="club-sample-banner" role="note">' + sampleBadge('Так будет выглядеть') + '<p>' + esc(text) + '</p></div>';
+  }
+
+  function isoDaysAgo(n) {
+    return new Date(Date.now() - Number(n || 0) * 86400000).toISOString();
+  }
+
+  function buildSampleAnalytics() {
+    return {
+      success: true,
+      sample: true,
+      demo: true,
+      chat_id: state.id,
+      period_days: state.analyticsDays || 90,
+      base: {
+        sessions_count: 4,
+        avg_attendance: 12,
+        attendance_trend: [
+          { attendance_count: 8, plan_datetime: isoDaysAgo(60) },
+          { attendance_count: 11, plan_datetime: isoDaysAgo(45) },
+          { attendance_count: 14, plan_datetime: isoDaysAgo(30) },
+          { attendance_count: 12, plan_datetime: isoDaysAgo(14) }
+        ],
+        members_watched_total: 18,
+        hall_attendance_total: 45,
+        unique_films: 4,
+        response_rate_pct: 72,
+        nudged_count: 10,
+        responded_count: 7
+      },
+      people: {
+        active_members: 6,
+        top_members: [
+          { name: 'Аня (пример)', watched_marks: 4, user_id: 'sample1' },
+          { name: 'Игорь (пример)', watched_marks: 3, user_id: 'sample2' },
+          { name: 'Лена (пример)', watched_marks: 2, user_id: 'sample3' }
+        ],
+        newcomers: [
+          { name: 'Мария (пример)', joined_at: isoDaysAgo(10), user_id: 'sample4' }
+        ]
+      },
+      content: {
+        top_films: [
+          { title: 'Бегущий по лезвию (пример)', sessions: 1 },
+          { title: 'Амели (пример)', sessions: 1 }
+        ],
+        top_genres: [
+          { genre: 'драма', count: 2 },
+          { genre: 'фантастика', count: 1 }
+        ],
+        avg_rating_after_session: 8.2
+      },
+      extras: {
+        rsvp_fact_funnel: { available: true, label: 'RSVP 15 → пришло 12 (пример)' },
+        best_day_of_week: { available: true, label: 'Четверг · средняя явка 13 (пример)' },
+        best_time: { available: true, label: '19:00 (пример)' },
+        season_comparison: { available: true, label: 'Этот период: 4 сеанса · прошлый: 3 (пример)' },
+        no_show_among_rsvp: { available: true, label: '≈20% no-show среди RSVP (пример)' }
+      },
+      history: [
+        {
+          plan_id: 'sample-h1',
+          title: 'Бегущий по лезвию',
+          plan_datetime: isoDaysAgo(14),
+          attendance_count: 12,
+          members_watched_count: 5,
+          poster: '',
+          note: {
+            body: 'Пример заметки: обсудили финал, спорили про режиссёрскую версию.',
+            recording_url: 'https://movie-planner.ru'
+          }
+        },
+        {
+          plan_id: 'sample-h2',
+          title: 'Амели',
+          plan_datetime: isoDaysAgo(30),
+          attendance_count: 14,
+          members_watched_count: 7,
+          poster: '',
+          note: {
+            body: 'Пример: тёплый вечер, много новичков. Ссылку на запись можно добавить сюда.',
+            recording_url: ''
+          }
+        }
+      ]
+    };
+  }
+
+  function onboardingHtml() {
+    if (!shouldShowOnboarding()) return '';
+    return '<div class="club-onboard" role="presentation">' +
+      '<div class="club-onboard-card" role="dialog" aria-modal="true" aria-labelledby="club-onboard-title">' +
+      '<div class="club-onboard-head"><h2 id="club-onboard-title">Инструменты клуба</h2>' +
+      '<button type="button" class="club-onboard-close" data-club-onboard-dismiss aria-label="Закрыть">' + icon('x', { size: 'sm' }) + '</button></div>' +
+      '<p class="club-onboard-lead">После первых сеансов здесь появятся расписание, явка и история обсуждений.</p>' +
+      '<ul class="club-onboard-list">' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Аналитика</b><span>метрики и явка — только для админов; история с записями — для участников</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="schedule"><b>Расписание</b><span>список и календарь с точками сеансов</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пришло: N</b><span>явка по залу после сеанса (для админов)</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Заметка + запись</b><span>текст и ссылка на запись обсуждения</span></button></li>' +
+      '<li><button type="button" class="club-onboard-tip" data-club-onboard-tab="stats"><b>Пуш «смотрели?»</b><span>напоминание участникам отметить просмотр</span></button></li>' +
+      '</ul></div></div>';
+  }
+
+  function sampleScheduleListHtml() {
+    return '<div class="club-sample-wrap" aria-label="Примеры расписания">' +
+      sampleBanner('Так будет выглядеть расписание после того, как вы запланируете сеансы.') +
+      '<article class="club-schedule-item club-sample-card">' +
+      '<div class="club-poster-empty">🎬</div><div><div class="club-when">чт, 19:00 · ' + sampleBadge('пример') + '</div>' +
+      '<h3>Бегущий по лезвию</h3><p class="club-plan-type">Совместный просмотр (пример)</p></div></article>' +
+      '<article class="club-schedule-item club-sample-card">' +
+      '<div class="club-poster-empty">🎬</div><div><div class="club-when">вс, 18:30 · ' + sampleBadge('пример') + '</div>' +
+      '<h3>Амели</h3><p class="club-plan-type">Обсуждение (пример)</p></div></article></div>';
+  }
+
+  function sampleCalendarDotsHtml(month) {
+    // Place 2 translucent sample dots on mid-month weekdays inside current grid month.
+    var y = month.getFullYear(), m = month.getMonth();
+    var d1 = new Date(y, m, 12);
+    var d2 = new Date(y, m, 19);
+    function key(d) { return dayKey(d); }
+    return { keys: [key(d1), key(d2)] };
+  }
+
+  function loadAnalytics(force) {
+    if (!state.id || !state.admin) return;
+    if (state.analyticsBusy) return;
+    if (state.analytics && !force) return;
+    state.analyticsBusy = true;
+    state.analyticsError = '';
+    render();
+    var days = state.analyticsDays || 90;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/analytics?days=' + encodeURIComponent(days))
+      .then(function (d) {
+        if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось загрузить аналитику');
+        state.analytics = d;
+        if (d.history) state.history = { history: d.history, period_days: d.period_days || days };
+      })
+      .catch(function (e) {
+        state.analyticsError = (e && e.message) || 'Не удалось загрузить аналитику';
+        state.analytics = state.analytics || null;
+      })
+      .then(function () {
+        state.analyticsBusy = false;
+        render();
+      });
+  }
+
+  function loadHistory(force) {
+    if (!state.id || (!state.member && !state.admin)) return;
+    if (state.admin) {
+      loadAnalytics(force);
+      return;
+    }
+    if (state.historyBusyLoad) return;
+    if (state.history && !force) return;
+    state.historyBusyLoad = true;
+    state.historyError = '';
+    render();
+    var days = state.analyticsDays || 90;
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/history?days=' + encodeURIComponent(days))
+      .then(function (d) {
+        if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось загрузить историю');
+        state.history = d;
+      })
+      .catch(function (e) {
+        state.historyError = (e && e.message) || 'Не удалось загрузить историю';
+        state.history = state.history || null;
+      })
+      .then(function () {
+        state.historyBusyLoad = false;
+        render();
+      });
+  }
+
+  function sparkline(points) {
+    var vals = (points || []).map(function (p) { return p && p.attendance_count != null ? Number(p.attendance_count) : null; }).filter(function (n) { return n != null && !isNaN(n); });
+    if (vals.length < 2) return '<p class="club-analytics-empty">Нужно минимум 2 сеанса с явкой N для графика.</p>';
+    var max = Math.max.apply(null, vals.concat([1]));
+    var min = Math.min.apply(null, vals);
+    var w = 320, h = 64, pad = 4;
+    var step = (w - pad * 2) / (vals.length - 1);
+    var coords = vals.map(function (v, i) {
+      var x = pad + i * step;
+      var y = h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    return '<svg class="club-sparkline" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Динамика явки"><polyline fill="none" stroke="url(#clubSparkGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="' + coords.join(' ') + '"/><defs><linearGradient id="clubSparkGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ef1c7a"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs></svg>';
+  }
+
+  function metricCard(label, value, hint) {
+    return '<div class="club-metric"><span>' + esc(label) + '</span><b>' + esc(value == null || value === '' ? '—' : value) + '</b>' + (hint ? '<em>' + esc(hint) + '</em>' : '') + '</div>';
+  }
+
+  function historyFilterBar() {
+    var f = state.historyFilter || 'all';
+    function chip(id, label) {
+      return '<button type="button" class="btn btn-secondary" data-club-history-filter="' + id + '"' + (f === id ? ' aria-pressed="true"' : '') + '>' + label + '</button>';
+    }
+    return '<div class="club-history-filter" role="group" aria-label="Фильтр истории">' +
+      chip('all', 'Все') +
+      chip('with', 'С записью') +
+      chip('without', 'Без записи') +
+      '</div>';
+  }
+
+  function filterHistoryRows(history) {
+    var f = state.historyFilter || 'all';
+    return (history || []).filter(function (h) {
+      var url = h && h.note && h.note.recording_url;
+      var has = !!(url && String(url).trim());
+      if (f === 'with') return has;
+      if (f === 'without') return !has;
+      return true;
+    });
+  }
+
+  function historyRowsHtml(history, usingSample) {
+    var filtered = filterHistoryRows(history);
+    return filtered.map(function (h) {
+      var note = h.note || {};
+      var isSampleRow = usingSample || String(h.plan_id || '').indexOf('sample-') === 0;
+      var editing = !isSampleRow && state.historyNoteEdit && String(state.historyNoteEdit) === String(h.plan_id);
+      var busy = !!(state.historyBusy && state.historyBusy[h.plan_id]);
+      var attBusy = !!(state.attendanceBusy && state.attendanceBusy[h.plan_id]);
+      var link = note.recording_url ? '<a class="btn btn-secondary" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">' + (isSampleRow ? 'Запись (пример)' : 'Открыть запись') + '</a>' : '';
+      var noteBody = note.body ? '<p class="club-history-note">' + esc(note.body) + '</p>' : '<p class="club-analytics-empty">Заметок пока нет.</p>';
+      var adminAtt = '';
+      var adminNote = '';
+      if (state.admin && !isSampleRow) {
+        adminAtt = '<label class="club-inline-field">Пришло: N <input type="number" min="0" inputmode="numeric" data-club-att-input="' + esc(h.plan_id) + '" value="' + (h.attendance_count != null ? esc(h.attendance_count) : '') + '" placeholder="число"><button type="button" class="btn btn-primary" data-club-att-save="' + esc(h.plan_id) + '"' + (attBusy ? ' disabled' : '') + '>' + (attBusy ? '…' : 'Сохранить') + '</button></label>';
+        if (editing) {
+          adminNote = '<div class="club-note-edit">' +
+            '<label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(h.plan_id) + '" rows="3" placeholder="Что обсуждали, выводы…">' + esc(note.body || '') + '</textarea></label>' +
+            '<label class="club-field club-field-recording"><span>Ссылка на запись</span><input type="url" data-club-note-url="' + esc(h.plan_id) + '" value="' + esc(note.recording_url || '') + '" placeholder="https://…" inputmode="url" autocomplete="url"><small>Отдельное поле — URL записи обсуждения (YouTube, Zoom, Discord…)</small></label>' +
+            '<div class="club-analytics-actions"><button type="button" class="btn btn-primary" data-club-note-save="' + esc(h.plan_id) + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Сохраняем…' : 'Сохранить заметку') + '</button>' +
+            '<button type="button" class="btn btn-secondary" data-club-note-cancel="' + esc(h.plan_id) + '">Отмена</button></div></div>';
+        } else {
+          adminNote = '<button type="button" class="btn btn-secondary" data-club-note-edit="' + esc(h.plan_id) + '">' + (note.body || note.recording_url ? 'Редактировать заметку' : 'Добавить заметку') + '</button>';
+        }
+      } else if (isSampleRow) {
+        adminAtt = '<span class="club-inline-field">Пришло: N <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> ' + sampleBadge('пример') + '</span>';
+      }
+      var poster = h.poster ? '<img src="' + esc(h.poster) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>';
+      return '<article class="club-history-card' + (isSampleRow ? ' club-sample-card' : '') + (note.recording_url ? ' has-recording' : '') + '">' + poster + '<div class="club-history-copy"><div class="club-history-top"><h4>' + esc(h.title || 'Фильм') + (isSampleRow ? ' ' + sampleBadge('Пример') : '') + '</h4><time>' + esc(fmt(h.plan_datetime)) + '</time></div>' +
+        '<p class="club-history-meta">Явка N: <b>' + esc(h.attendance_count != null ? h.attendance_count : '—') + '</b> · отметок MP: <b>' + esc(String(h.members_watched_count || 0)) + '</b></p>' +
+        noteBody + '<div class="club-history-actions">' + link + adminAtt + adminNote + '</div></div></article>';
+    }).join('');
+  }
+
+  function historySectionHtml(history, usingSample, opts) {
+    opts = opts || {};
+    var title = opts.title || 'История сеансов';
+    var histRows = historyRowsHtml(history, usingSample);
+    var emptyMsg = (state.historyFilter && state.historyFilter !== 'all')
+      ? empty('Нет сеансов по фильтру', 'Смените фильтр «Все / С записью / Без записи».')
+      : empty('История пока пуста', 'Прошедшие сеансы клуба появятся здесь. Админы смогут указать «Пришло: N» и заметку со ссылкой на запись.');
+    return '<section class="club-analytics-section' + (usingSample ? ' club-sample-section' : '') + '"><div class="club-history-head"><h3>' + esc(title) + (usingSample ? ' ' + sampleBadge('Пример') : '') + '</h3>' + historyFilterBar() + '</div>' +
+      (histRows ? '<div class="club-history-list">' + histRows + '</div>' : emptyMsg) +
+      '</section>';
+  }
+
+  function analyticsPanel() {
+    if (!state.admin) {
+      return '<div class="club-analytics-locked"><h2 class="club-analytics-title">Аналитика</h2><p class="club-panel-hint">Аналитика доступна администраторам</p></div>';
+    }
+    var a = state.analytics;
+    var usingSample = false;
+    var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">Аналитика клуба</h2><p class="club-panel-hint">Сеансы за ' + esc(String(state.analyticsDays || 90)) + ' дней · явка N (зал) и отметки участников MP</p></div><div class="club-analytics-actions">' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="30"' + (state.analyticsDays === 30 ? ' aria-pressed="true"' : '') + '>30 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="90"' + (state.analyticsDays === 90 ? ' aria-pressed="true"' : '') + '>90 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="365"' + (state.analyticsDays === 365 ? ' aria-pressed="true"' : '') + '>Год</button>' +
+      '<button type="button" class="btn btn-primary" data-club-analytics-refresh' + (state.analyticsBusy ? ' disabled' : '') + '>' + (state.analyticsBusy ? 'Загрузка…' : 'Обновить') + '</button></div></div>';
+    if (state.analyticsBusy && !a) return head + '<p class="club-loading">Считаем метрики…</p>';
+    if (state.analyticsError && !a) return head + empty('Не удалось загрузить аналитику', state.analyticsError);
+    if (!a) return head + empty('Аналитика появится здесь', 'Откройте вкладку ещё раз или нажмите «Обновить».');
+    if (analyticsLooksEmpty(a) && shouldShowSampleData()) {
+      a = buildSampleAnalytics();
+      usingSample = true;
+    }
+    var b = a.base || {};
+    var people = a.people || {};
+    var content = a.content || {};
+    var extras = a.extras || {};
+    var history = a.history || [];
+    var sampleHead = usingSample ? sampleBanner('Пример аналитики нового клуба. Реальные цифры появятся после первых сеансов — это не данные участников.') : '';
+    var rate = b.response_rate_pct != null ? (b.response_rate_pct + '%') : '—';
+    var rateHint = b.nudged_count ? ('ответили ' + (b.responded_count || 0) + ' из ' + b.nudged_count + ' получивших «смотрели?»') : 'Нет данных по напоминаниям «смотрели?»';
+    var hallVs = (b.hall_attendance_total != null)
+      ? (String(b.members_watched_total || 0) + ' отметок MP · зал N суммарно ' + b.hall_attendance_total)
+      : 'Отметок MP: ' + (b.members_watched_total || 0) + (b.hall_attendance_total == null ? ' · явка N ещё не заполнена' : '');
+    var baseHtml = '<section class="club-analytics-section"><h3>База</h3><div class="club-metrics">' +
+      metricCard('Сеансов', b.sessions_count, 'за период') +
+      metricCard('Средняя явка N', b.avg_attendance, 'факт по залу') +
+      metricCard('Уникальные фильмы', b.unique_films) +
+      metricCard('Отметки «смотрели»', b.members_watched_total, hallVs) +
+      metricCard('Отклик на «смотрели?»', rate, rateHint) +
+      '</div><div class="club-analytics-chart"><h4>Динамика явки N</h4>' + sparkline(b.attendance_trend || []) + '</div></section>';
+
+    var topPeople = (people.top_members || []).map(function (m) {
+      return '<li><b>' + esc(m.name || ('Участник ' + m.user_id)) + '</b><span>' + esc(String(m.watched_marks || 0)) + ' отметок</span></li>';
+    }).join('');
+    var newcomers = (people.newcomers || []).map(function (m) {
+      return '<li><b>' + esc(m.name || ('Участник ' + m.user_id)) + '</b><span>' + esc(fmt(m.joined_at) || 'новичок') + '</span></li>';
+    }).join('');
+    var peopleHtml = '<section class="club-analytics-section"><h3>Люди</h3><div class="club-metrics">' +
+      metricCard('Активные участники', people.active_members, 'ставили отметки за период') +
+      metricCard('Новички', (people.newcomers || []).length, 'вступили за период') +
+      '</div><div class="club-analytics-cols"><div class="club-analytics-list"><h4>Топ по отметкам</h4>' +
+      (topPeople ? '<ul>' + topPeople + '</ul>' : '<p class="club-analytics-empty">Пока нет отметок участников.</p>') +
+      '</div><div class="club-analytics-list"><h4>Новички</h4>' +
+      (newcomers ? '<ul>' + newcomers + '</ul>' : '<p class="club-analytics-empty">Новых участников за период нет.</p>') +
+      '</div></div></section>';
+
+    var genres = (content.top_genres || []).map(function (g) {
+      return '<li><b>' + esc(g.genre) + '</b><span>' + esc(String(g.count)) + '</span></li>';
+    }).join('');
+    var films = (content.top_films || []).map(function (f) {
+      return '<li><b>' + esc(f.title) + '</b><span>' + esc(String(f.sessions)) + ' сеанс.</span></li>';
+    }).join('');
+    var contentHtml = '<section class="club-analytics-section"><h3>Контент</h3><div class="club-metrics">' +
+      metricCard('Средняя оценка после сеанса', content.avg_rating_after_session, 'по оценкам участников клуба') +
+      '</div><div class="club-analytics-cols"><div class="club-analytics-list"><h4>Топ фильмов</h4>' +
+      (films ? '<ul>' + films + '</ul>' : '<p class="club-analytics-empty">Мало сеансов для топа фильмов.</p>') +
+      '</div><div class="club-analytics-list"><h4>Топ жанров</h4>' +
+      (genres ? '<ul>' + genres + '</ul>' : '<p class="club-analytics-empty">Жанры появятся, когда у фильмов заполнены жанры.</p>') +
+      '</div></div></section>';
+
+    function extraCard(title, block) {
+      block = block || {};
+      var avail = !!block.available;
+      return '<div class="club-extra' + (avail ? '' : ' is-stub') + '"><h4>' + esc(title) + '</h4><p>' + esc(block.label || 'Пока недостаточно данных') + '</p></div>';
+    }
+    var extrasHtml = '<section class="club-analytics-section"><h3>Дополнительно</h3><div class="club-extras">' +
+      extraCard('RSVP → факт', extras.rsvp_fact_funnel) +
+      extraCard('Лучший день недели', extras.best_day_of_week) +
+      extraCard('Лучшее время', extras.best_time) +
+      extraCard('Сравнение периодов', extras.season_comparison) +
+      extraCard('No-show среди RSVP', extras.no_show_among_rsvp) +
+      '</div></section>';
+
+    var historyHtml = historySectionHtml(history, usingSample, { title: 'История сеансов' });
+
+    var wrapOpen = usingSample ? '<div class="club-sample-wrap" data-club-sample="analytics">' : '';
+    var wrapClose = usingSample ? '</div>' : '';
+    var baseWrapped = usingSample
+      ? baseHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>База</h3>', '<h3>База ' + sampleBadge('Пример') + '</h3>', 1)
+      : baseHtml;
+    var peopleWrapped = usingSample
+      ? peopleHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Люди</h3>', '<h3>Люди ' + sampleBadge('Пример') + '</h3>', 1)
+      : peopleHtml;
+    var contentWrapped = usingSample
+      ? contentHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Контент</h3>', '<h3>Контент ' + sampleBadge('Пример') + '</h3>', 1)
+      : contentHtml;
+    var extrasWrapped = usingSample
+      ? extrasHtml.replace('class="club-analytics-section"', 'class="club-analytics-section club-sample-section"', 1).replace('<h3>Дополнительно</h3>', '<h3>Дополнительно ' + sampleBadge('Пример') + '</h3>', 1)
+      : extrasHtml;
+
+    return head + wrapOpen + sampleHead + baseWrapped + peopleWrapped + contentWrapped + extrasWrapped + historyHtml + wrapClose;
+  }
+
+  function historyPanel() {
+    if (!state.member && !state.admin) {
+      return empty('История для участников', 'Вступите в киноклуб, чтобы видеть прошедшие сеансы, заметки и записи.');
+    }
+    if (state.admin) {
+      // Admins use history inside analytics; keep panel usable if hashed to #history.
+      var a = state.analytics;
+      if (state.analyticsBusy && !a) return '<p class="club-loading">Загружаем историю…</p>';
+      if (state.analyticsError && !a) return empty('Не удалось загрузить историю', state.analyticsError);
+      var hist = (a && a.history) || (state.history && state.history.history) || [];
+      var usingSample = false;
+      if ((!a || analyticsLooksEmpty(a)) && shouldShowSampleData()) {
+        hist = (buildSampleAnalytics().history || []);
+        usingSample = true;
+      }
+      var headA = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">История сеансов</h2><p class="club-panel-hint">Заметки и ссылки на записи. Полные метрики — во вкладке «Аналитика».</p></div></div>';
+      return headA + historySectionHtml(hist, usingSample);
+    }
+    var head = '<div class="club-analytics-toolbar"><div><h2 class="club-analytics-title">История сеансов</h2><p class="club-panel-hint">Прошедшие сеансы · заметки и ссылки на записи</p></div><div class="club-analytics-actions">' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="30"' + (state.analyticsDays === 30 ? ' aria-pressed="true"' : '') + '>30 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="90"' + (state.analyticsDays === 90 ? ' aria-pressed="true"' : '') + '>90 дн.</button>' +
+      '<button type="button" class="btn btn-secondary" data-club-analytics-days="365"' + (state.analyticsDays === 365 ? ' aria-pressed="true"' : '') + '>Год</button>' +
+      '<button type="button" class="btn btn-primary" data-club-history-refresh' + (state.historyBusyLoad ? ' disabled' : '') + '>' + (state.historyBusyLoad ? 'Загрузка…' : 'Обновить') + '</button></div></div>';
+    if (state.historyBusyLoad && !state.history) return head + '<p class="club-loading">Загружаем историю…</p>';
+    if (state.historyError && !state.history) return head + empty('Не удалось загрузить историю', state.historyError);
+    if (!state.history) return head + empty('История появится здесь', 'Откройте вкладку ещё раз или нажмите «Обновить».');
+    var histM = state.history.history || [];
+    var usingSampleM = false;
+    if ((!histM || !histM.length) && shouldShowSampleData()) {
+      histM = (buildSampleAnalytics().history || []);
+      usingSampleM = true;
+    }
+    return head + historySectionHtml(histM, usingSampleM);
+  }
+
+  function saveAttendance(planId) {
+    planId = String(planId || '');
+    if (!planId || !state.admin) return;
+    var input = (overlayHost || root).querySelector('[data-club-att-input="' + planId + '"]') || root.querySelector('[data-club-att-input="' + planId + '"]');
+    var raw = input ? input.value : '';
+    var n = raw === '' ? null : parseInt(raw, 10);
+    if (raw !== '' && (isNaN(n) || n < 0)) {
+      toast('Введите целое число ≥ 0', { type: 'error' });
+      return;
+    }
+    state.attendanceBusy[planId] = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/plans/' + encodeURIComponent(planId) + '/attendance', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendance_count: n })
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить');
+      toast('Явка N сохранена');
+      state.analytics = null;
+      state.history = null;
+      if (state.tab === 'history') loadHistory(true);
+      else loadAnalytics(true);
+    }).catch(function (e) {
+      toast((e && e.message) || 'Не удалось сохранить явку', { type: 'error' });
+    }).then(function () {
+      delete state.attendanceBusy[planId];
+      render();
+    });
+  }
+
+  function saveHistoryNote(planId) {
+    planId = String(planId || '');
+    if (!planId || !state.admin) return;
+    var host = overlayHost || root;
+    var bodyEl = host.querySelector('[data-club-note-body="' + planId + '"]') || root.querySelector('[data-club-note-body="' + planId + '"]');
+    var urlEl = host.querySelector('[data-club-note-url="' + planId + '"]') || root.querySelector('[data-club-note-url="' + planId + '"]');
+    var body = bodyEl ? bodyEl.value : '';
+    var url = urlEl ? urlEl.value : '';
+    state.historyBusy[planId] = true;
+    render();
+    req('/api/site/rooms/' + encodeURIComponent(state.id) + '/plans/' + encodeURIComponent(planId) + '/notes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: body, recording_url: url })
+    }).then(function (d) {
+      if (!d || d.success === false) throw new Error((d && (d.message || d.error)) || 'Не удалось сохранить заметку');
+      toast('Заметка сохранена');
+      state.historyNoteEdit = null;
+      state.analytics = null;
+      state.history = null;
+      if (state.tab === 'history') loadHistory(true);
+      else loadAnalytics(true);
+    }).catch(function (e) {
+      toast((e && e.message) || 'Не удалось сохранить заметку', { type: 'error' });
+    }).then(function () {
+      delete state.historyBusy[planId];
+      render();
+    });
+  }
+
 
   function calendarMonthStart(value) { var d = value ? new Date(value + "T00:00:00") : new Date(); if (isNaN(d.getTime())) d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
 
@@ -268,6 +896,249 @@
   function shareUrl(club) {
     return 'https://movie-planner.ru' + publicPath(club) + '?invite=1';
   }
+
+  function clubPageUrl(club) {
+    return 'https://movie-planner.ru' + publicPath(club || state.club);
+  }
+
+  function postDeepLink(p) {
+    var base = clubPageUrl(state.club);
+    var id = p && p.id != null ? String(p.id) : '';
+    if (!id) return base;
+    var join = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + join + 'post=' + encodeURIComponent(id);
+  }
+
+  function findPost(pid) {
+    return (state.posts || []).find(function (p) { return String(p.id) === String(pid); });
+  }
+
+  function findPlan(pid) {
+    return ((state.club && state.club.plans) || []).find(function (p) { return String(p.id || '') === String(pid || ''); });
+  }
+
+  function copyText(v, okMsg) {
+    var done = function () { toast(okMsg || 'Скопировано'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(String(v)).then(done).catch(function () { fallback(String(v), done); });
+    } else fallback(String(v), done);
+  }
+
+  function postExcerpt(p, maxLen) {
+    maxLen = maxLen || 280;
+    var titlePart = String((p && p.title) || '').trim();
+    var bodyPart = String((p && p.body) || '').replace(/\s+/g, ' ').trim();
+    var text = titlePart && bodyPart ? (titlePart + '\n' + bodyPart) : (titlePart || bodyPart);
+    if (text.length > maxLen) text = text.slice(0, maxLen - 1).trim() + '…';
+    return text;
+  }
+
+  function postAnnounceText(p) {
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var titlePart = String((p && p.title) || '').trim();
+    var bodyPart = String((p && p.body) || '').trim();
+    var lines = ['🎬 Киноклуб «' + clubName + '»', ''];
+    if (titlePart) lines.push(titlePart);
+    if (bodyPart) lines.push(bodyPart);
+    if (!titlePart && !bodyPart) lines.push('Новый пост в ленте клуба');
+    lines.push('', '🔗 ' + postDeepLink(p));
+    return lines.join('\n');
+  }
+
+  function sharePost(pid) {
+    var p = findPost(pid);
+    if (!p) return;
+    var url = postDeepLink(p);
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var excerpt = postExcerpt(p, 220);
+    var shareText = (excerpt ? excerpt + '\n\n' : '') + 'Киноклуб «' + clubName + '»';
+    if (navigator.share) {
+      navigator.share({ title: clubName, text: shareText, url: url }).catch(function () {
+        copyText(url, 'Ссылка скопирована');
+      });
+      return;
+    }
+    copyText(url, 'Ссылка скопирована');
+  }
+
+  function copyPostAnnounce(pid) {
+    var p = findPost(pid);
+    if (!p) return;
+    copyText(postAnnounceText(p), 'Анонс скопирован');
+  }
+
+  function focusDeepLinkedPost() {
+    try {
+      var params = new URLSearchParams(location.search || '');
+      var pid = params.get('post');
+      if (!pid && location.hash) {
+        var hm = String(location.hash || '').match(/^#post[_/-]?(\d+)/i);
+        if (hm) pid = hm[1];
+      }
+      if (!pid || !root) return;
+      var el = root.querySelector('[data-club-post-id="' + String(pid).replace(/"/g, '') + '"]');
+      if (!el) return;
+      el.classList.add('is-deep-linked');
+      if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (_) {}
+  }
+
+  function moscowParts(d) {
+    var fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    var parts = {};
+    fmt.formatToParts(d).forEach(function (p) { if (p.type !== 'literal') parts[p.type] = p.value; });
+    return parts;
+  }
+
+  function icsLocalStamp(d) {
+    var p = moscowParts(d);
+    return p.year + p.month + p.day + 'T' + p.hour + p.minute + p.second;
+  }
+
+  function icsEscape(s) {
+    return String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  }
+
+  function planDurationMs(p) {
+    var mins = Number(p && (p.duration_minutes || p.runtime || p.film_runtime) || 0);
+    if (!mins || mins < 30) mins = 150;
+    return mins * 60 * 1000;
+  }
+
+  function planEventTimes(p) {
+    var start = new Date(planDate(p));
+    if (isNaN(start.getTime())) return null;
+    var end = new Date(start.getTime() + planDurationMs(p));
+    return { start: start, end: end };
+  }
+
+  function buildPlanIcs(p) {
+    var times = planEventTimes(p);
+    if (!times) return '';
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var summary = title(p) + ' — ' + clubName;
+    var desc = [];
+    var pd = planDescription(p, 500);
+    if (pd) desc.push(pd);
+    desc.push('Киноклуб: ' + clubName);
+    desc.push(clubPageUrl(state.club) + '#schedule');
+    if (state.member && p.zoom_url) desc.push('Обсуждение: ' + p.zoom_url);
+    var uid = 'club-plan-' + String(p.id || icsLocalStamp(times.start)) + '@movie-planner.ru';
+    var lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Movie Planner//Cinema Club//RU',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:' + uid,
+      'DTSTAMP:' + icsLocalStamp(new Date()) ,
+      'DTSTART;TZID=Europe/Moscow:' + icsLocalStamp(times.start),
+      'DTEND;TZID=Europe/Moscow:' + icsLocalStamp(times.end),
+      'SUMMARY:' + icsEscape(summary),
+      'DESCRIPTION:' + icsEscape(desc.join(String.fromCharCode(10))),
+      'URL:' + clubPageUrl(state.club) + '#schedule',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+    return lines.join('\r\n');
+  }
+
+  function googleCalendarUrl(p) {
+    var times = planEventTimes(p);
+    if (!times) return '';
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var text = title(p) + ' — ' + clubName;
+    var details = [];
+    var pd = planDescription(p, 500);
+    if (pd) details.push(pd);
+    details.push('Киноклуб: ' + clubName);
+    details.push(clubPageUrl(state.club) + '#schedule');
+    var dates = icsLocalStamp(times.start) + '/' + icsLocalStamp(times.end);
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent(text)
+      + '&dates=' + encodeURIComponent(dates)
+      + '&details=' + encodeURIComponent(details.join('\n'))
+      + '&ctz=' + encodeURIComponent('Europe/Moscow');
+  }
+
+  function downloadPlanIcs(pid) {
+    var p = findPlan(pid);
+    if (!p) return;
+    var ics = buildPlanIcs(p);
+    if (!ics) { toast('Нет даты сеанса', { type: 'error' }); return; }
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'movie-planner-' + String(p.id || 'plan') + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (_) {} a.remove(); }, 500);
+    toast('Файл календаря скачан');
+  }
+
+  function toggleCalMenu(pid, force) {
+    if (!root) return;
+    root.querySelectorAll('[data-club-cal-menu]').forEach(function (menu) {
+      var open = String(menu.getAttribute('data-club-cal-menu')) === String(pid);
+      if (open) {
+        var next = force == null ? menu.hasAttribute('hidden') : !!force;
+        if (next) menu.removeAttribute('hidden');
+        else menu.setAttribute('hidden', '');
+      } else {
+        menu.setAttribute('hidden', '');
+      }
+    });
+  }
+
+  function planTgCaption(p) {
+    var clubName = (state.club && state.club.name) || 'Киноклуб';
+    var when = fmt(planDate(p));
+    var lines = [
+      '🎬 Анонс киноклуба «' + clubName + '»',
+      '',
+      title(p),
+      when ? ('📅 ' + when + ' (МСК)') : '',
+      planDescription(p, 320) || '',
+      '',
+      '🔗 ' + clubPageUrl(state.club) + '#schedule'
+    ].filter(function (x, i, arr) { return x !== '' || (i > 0 && arr[i - 1] !== ''); });
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+
+  function announcePlanTelegram(pid) {
+    var p = findPlan(pid);
+    if (!p) return;
+    var caption = planTgCaption(p);
+    var url = clubPageUrl(state.club) + '#schedule';
+    var share = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(caption);
+    copyText(caption, 'Текст анонса скопирован — можно вставить в Telegram');
+    try { window.open(share, '_blank', 'noopener'); } catch (_) {}
+  }
+
+  function clubCalendarControls(p) {
+    if (!p || !planDate(p) || !p.id) return '';
+    var pid = String(p.id);
+    var g = googleCalendarUrl(p);
+    return '<details class="club-cal-wrap">'
+      + '<summary>Добавить в календарь</summary>'
+      + '<div class="club-cal-menu">'
+      + '<button type="button" class="btn btn-secondary" data-club-cal-ics="' + esc(pid) + '">Скачать .ics</button>'
+      + (g ? '<a class="btn btn-secondary" href="' + esc(g) + '" target="_blank" rel="noopener noreferrer" data-club-cal-google="' + esc(pid) + '">Google Календарь</a>' : '')
+      + '</div></details>';
+  }
+
+  function clubTgAnnounceBtn(p) {
+    if (!state.admin || !p || !p.id) return '';
+    return '<button type="button" class="btn btn-secondary" data-club-plan-tg="' + esc(String(p.id))
+      + '" title="Скопирует текст и откроет шаринг Telegram (без автопостинга ботом)">Анонс в Telegram</button>';
+  }
+
 
   function maybeCanonicalize(club) {
     try {
@@ -559,7 +1430,15 @@
   function commentsToggleHtml(p) { var key = String(p.id), count = Number(p.comments_count || 0), open = !!commentState(key).open; return "<button type=\"button\" class=\"club-comments-toggle\" data-club-comments-toggle=\"" + esc(key) + "\" aria-expanded=\"" + (open ? "true" : "false") + "\" aria-label=\"Комментарии\"><span class=\"club-comments-icon\">" + icon("chat", { size: "sm" }) + "</span>" + (count ? "<span class=\"club-comments-count\">" + count + "</span>" : "") + "</button>"; }
   function commentsPanelHtml(p) { var key = String(p.id), cs = commentState(key); if (!cs.open) return ""; var out = "<div class=\"club-comments club-comments-panel\">"; if (cs.busy) out += "<div class=\"club-comments-status\">Загружаем комментарии…</div>"; else if (cs.error) out += "<div class=\"club-comments-status\">" + esc(cs.error) + "</div>"; else if (!cs.items.length) out += "<div class=\"club-comments-status\">Пока нет комментариев</div>"; else out += "<div class=\"club-comments-list\">" + cs.items.map(function(c) { var who = String(c.author_name || "Участник"), av = c.author_avatar_url || "/api/avatar/" + encodeURIComponent(String(c.author_user_id || "")) + ".jpg"; return "<div class=\"club-comment\"><img class=\"club-comment-av\" src=\"" + esc(av) + "\" alt=\"\" loading=\"lazy\"><div class=\"club-comment-main\"><div class=\"club-comment-head\"><b>" + esc(who) + "</b><span>" + esc(relativeWhen(c.created_at)) + "</span>" + (commentCanDelete(c) ? "<button type=\"button\" class=\"club-comment-del\" data-club-comment-delete=\"" + esc(c.id) + "\" data-club-comment-post=\"" + esc(key) + "\">Удалить</button>" : "") + "</div><div class=\"club-comment-body\">" + linkify(c.body) + "</div></div></div>"; }).join("") + "</div>"; if (state.member) { var draft = state.commentDrafts[key] || ""; out += "<form class=\"club-comment-compose\" data-club-comment-form=\"" + esc(key) + "\"><textarea maxlength=\"2000\" rows=\"2\" placeholder=\"Написать комментарий…\">" + esc(draft) + "</textarea><button type=\"submit\" class=\"club-mini-btn\"" + (cs.sending ? " disabled" : "") + ">" + (cs.sending ? "Отправляем…" : "Отправить") + "</button></form>"; } else out += "<div class=\"club-comments-login\">Войдите и вступите в клуб, чтобы комментировать. <button type=\"button\" data-club-comments-login>Войти</button></div>"; return out + "</div>"; }
   function pollActionHtml(p) { var poll = p && p.poll, mine = p && p.my_votes || [], editing = !!(state.pollEdits && state.pollEdits[String(p.id)]); if (!poll || !poll.options) return ""; if (mine.length && !editing) return poll.allow_change_vote ? "<button type=\"button\" class=\"club-poll-vote-btn club-poll-edit-btn\" data-club-poll-edit=\"" + esc(p.id) + "\">Изменить голос</button>" : ""; var label = mine.length ? "Сохранить голос" : "Проголосовать"; return "<button type=\"button\" class=\"club-poll-vote-btn\" data-club-poll-vote-submit=\"" + esc(p.id) + "\"" + (!state.member ? " disabled" : "") + ">" + label + "</button>"; }
-  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + commentsToggleHtml(p) + reactionHtml(p) + pollActionHtml(p) + "</div>"; }
+  function postShareHtml(p) {
+    if (!p || p.id == null) return "";
+    var pid = esc(String(p.id));
+    return "<div class=\"club-post-share\">"
+      + "<button type=\"button\" class=\"btn btn-secondary\" data-club-post-share=\"" + pid + "\">Поделиться</button>"
+      + "<button type=\"button\" class=\"btn btn-secondary\" data-club-post-announce=\"" + pid + "\">Скопировать анонс</button>"
+      + "</div>";
+  }
+  function postActionsHtml(p) { return "<div class=\"club-post-action-row\">" + commentsToggleHtml(p) + reactionHtml(p) + pollActionHtml(p) + postShareHtml(p) + "</div>"; }
 
   function toggleComments(postId) {
     var cs = commentState(postId);
@@ -987,7 +1866,43 @@
 
   function syncClubOverlays() {
     var host = ensureOverlayHost();
-    host.innerHTML = fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
+    host.innerHTML = onboardingHtml() + fabHtml() + composeHtml() + deleteConfirmHtml() + lightboxHtml() + pollSearchHtml();
+    var onboarding = host.querySelector('.club-onboard');
+    try {
+      document.body.classList.toggle('club-onboard-open', !!onboarding);
+    } catch (_) {}
+    host.onkeydown = onboarding
+      ? function (e) {
+          if (e.key !== 'Escape' && e.key !== 'Esc') return;
+          e.preventDefault();
+          dismissOnboarding();
+        }
+      : null;
+    if (onboarding) {
+      onboarding.onclick = function (e) {
+        if (e.target === onboarding) dismissOnboarding();
+      };
+      var onboardingClose = onboarding.querySelector('[data-club-onboard-dismiss]');
+      if (onboardingClose) {
+        setTimeout(function () {
+          try { onboardingClose.focus({ preventScroll: true }); } catch (_) { try { onboardingClose.focus(); } catch (_e) {} }
+        }, 0);
+      }
+    }
+    host.querySelectorAll('[data-club-onboard-dismiss]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dismissOnboarding();
+      };
+    });
+    host.querySelectorAll('[data-club-onboard-tab]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        var t = b.getAttribute('data-club-onboard-tab') || 'stats';
+        dismissOnboarding();
+        tab(t);
+      };
+    });
     // bind overlay-only controls (fab/compose/delete) — full bind also runs on root
     var fab = host.querySelector('[data-club-compose-open]');
     if (fab) fab.onclick = openCompose;
@@ -1212,18 +2127,19 @@
     var loading = key && state.scheduleDetailBusy[key] && !detail ? '<p class="club-plan-dialog-loading">Догружаем описание и актёров…</p>' : '';
     return '<div class="club-plan-dialog-backdrop" data-club-plan-close><div class="club-plan-dialog" role="dialog" aria-modal="true" aria-label="План просмотра">' +
       '<button type="button" class="club-plan-dialog-close" data-club-plan-close aria-label="Закрыть">×</button>' +
-      '<div class="club-plan-dialog-media">' + (im ? '<img class="club-plan-dialog-poster" src="' + esc(im) + '" alt="">' : '<div class="club-plan-dialog-poster club-poster-empty">🎬</div>') + '</div>' +
-      '<div class="club-plan-dialog-copy"><span class="club-plan-dialog-type">' + esc(planTypeLabel(p)) + '</span><h3>' + esc(title(film) || title(p)) + '</h3>' +
+      '<div class="club-plan-dialog-media">' + (l ? '<a href="' + esc(l) + '" aria-label="Открыть фильм">' : '') + (im ? '<img class="club-plan-dialog-poster" src="' + esc(im) + '" alt="">' : '<div class="club-plan-dialog-poster club-poster-empty">🎬</div>') + (l ? '</a>' : '') + '</div>' +
+      '<div class="club-plan-dialog-copy"><span class="club-plan-dialog-type">' + esc(planTypeLabel(p)) + '</span><h3>' + (l ? '<a href="' + esc(l) + '">' + esc(title(film) || title(p)) + '</a>' : esc(title(film) || title(p))) + '</h3>' +
       '<time>' + esc(fmt(planDate(p))) + '</time>' +
       (meta ? '<p class="club-plan-dialog-meta">' + esc(meta) + '</p>' : '') +
       (desc ? '<p class="club-plan-dialog-desc">' + esc(desc) + '</p>' : loading) +
       (castHtml ? '<div class="club-plan-dialog-facts">' + castHtml + '</div>' : '') +
-      '<div class="club-plan-dialog-actions">' + (l ? '<a class="club-mini-btn club-mini-btn-link" href="' + esc(l) + '">Открыть фильм</a>' : '') + clubPlanAction(p) + '</div>' +
+      '<div class="club-plan-dialog-actions">' + (l ? '<a class="club-mini-btn club-mini-btn-link" href="' + esc(l) + '">Открыть фильм</a>' : '') + clubCalendarControls(p) + clubTgAnnounceBtn(p) + clubPlanAction(p) + '</div>' +
       '</div></div></div>';
   }
 
   function schedule() {
     var plans = schedulePlans();
+    var showSamples = !plans.length && shouldShowSampleData();
     var rows = plans.map(function (p) {
       var im = poster(p), l = clubLink(p), t = title(p), dt = planDate(p), desc = planDescription(p);
       return "<article class=\"club-schedule-item club-schedule-item-clickable\"" + (p.id ? " data-club-plan-open=\"" + esc(p.id) + "\"" : "") + ">" + (im ? "<img src=\"" + esc(im) + "\" alt=\"\" loading=\"lazy\">" : "<div class=\"club-poster-empty\">🎬</div>") + "<div><div class=\"club-when\">" + esc(fmt(dt)) + "</div><h3>" + (l ? "<a data-club-film-link href=\"" + esc(l) + "\">" + esc(t) + "</a>" : esc(t)) + "</h3>" + (desc ? "<p class=\"club-plan-description\">" + esc(desc) + "</p>" : "") + "<p class=\"club-plan-type\">" + esc(planTypeLabel(p)) + "</p>" + (state.member && p.zoom_url ? "<p><a href=\"" + esc(p.zoom_url) + "\" rel=\"noopener\">Ссылка на обсуждение</a></p>" : "") + "</div>" + clubScheduleAction(p) + "</article>";
@@ -1233,31 +2149,98 @@
       var month = calendarMonthStart(state.calendarMonth), monthName = month.toLocaleString("ru-RU", { month: "long", year: "numeric" });
       var first = (month.getDay() + 6) % 7, days = "", byDay = {};
       plans.forEach(function (p) { var d = new Date(planDate(p)); if (!isNaN(d.getTime()) && d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()) (byDay[dayKey(d)] || (byDay[dayKey(d)] = [])).push(p); });
-      for (var i = 0; i < 42; i++) { var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], thumbs = items.slice(0, 3).map(function (p) { return poster(p) ? "<img src=\"" + esc(poster(p)) + "\" alt=\"\" loading=\"lazy\">" : ""; }).join(""); days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (thumbs ? "<div class=\"club-calendar-thumbs\">" + thumbs + "</div>" : "") + "</div>"; }
-      content = "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
-    } else { content = rows || empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь."); }
+      var sampleKeys = {};
+      if (showSamples) {
+        sampleCalendarDotsHtml(month).keys.forEach(function (k) { sampleKeys[k] = true; });
+      }
+      for (var i = 0; i < 42; i++) {
+        var day = new Date(month.getFullYear(), month.getMonth(), i - first + 1), inside = day.getMonth() === month.getMonth(), key = dayKey(day), items = byDay[key] || [], stack = calendarDayStackHtml(items);
+        var isSampleDot = !!(inside && sampleKeys[key] && !items.length);
+        days += "<div class=\"club-calendar-day" + (!inside ? " is-outside" : "") + (items.length ? " has-plans" : "") + (items.length > 1 ? " has-stack" : "") + (isSampleDot ? " has-sample-plan club-sample-day" : "") + "\"" + (items.length ? " data-club-calendar-day=\"" + esc(key) + "\"" : "") + "><span>" + day.getDate() + "</span>" + (stack || "") + (isSampleDot ? "<div class=\"club-calendar-sample-dot\" title=\"пример\">" + sampleBadge("пример") + "</div>" : "") + "</div>";
+      }
+      content = (showSamples ? sampleBanner("На календаре — пример точек сеансов. Реальные появятся после планирования.") : "") + "<div class=\"club-calendar\"><div class=\"club-calendar-head\"><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"-1\" aria-label=\"Предыдущий месяц\">‹</button><strong>" + esc(monthName.charAt(0).toUpperCase() + monthName.slice(1)) + "</strong><button type=\"button\" class=\"club-calendar-nav\" data-club-calendar-nav=\"1\" aria-label=\"Следующий месяц\">›</button></div><div class=\"club-calendar-weekdays\"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class=\"club-calendar-grid\">" + days + "</div></div>";
+    } else {
+      if (rows) content = rows;
+      else if (showSamples) content = sampleScheduleListHtml();
+      else content = empty("Расписание пока пусто", "Ближайшие планы клуба появятся здесь.");
+    }
     var listActive = state.scheduleView === "list", calActive = !listActive;
-    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDialogHtml();
+    return "<section class=\"club-panel" + (state.tab === "schedule" ? " is-active" : "") + "\" data-club-panel=\"schedule\"><div class=\"club-schedule-toolbar\" role=\"group\" aria-label=\"Вид расписания\"><button type=\"button\" class=\"club-schedule-view" + (listActive ? " is-active" : "") + "\" data-club-schedule-view=\"list\" aria-pressed=\"" + (listActive ? "true" : "false") + "\">Список</button><button type=\"button\" class=\"club-schedule-view" + (calActive ? " is-active" : "") + "\" data-club-schedule-view=\"calendar\" aria-pressed=\"" + (calActive ? "true" : "false") + "\">Календарь</button></div>" + content + "</section>" + scheduleDayDialogHtml() + scheduleDialogHtml();
+  }
+
+  function filmHistoryKey(f) {
+    var kp = planKpId(f);
+    if (kp) return 'kp:' + String(kp);
+    var fid = planFilmId(f);
+    if (fid) return 'film:' + fid;
+    return 'title:' + title(f).toLowerCase();
+  }
+
+  function filmHistoryGroups() {
+    var map = {};
+    var order = [];
+    (state.club.recent || []).forEach(function (f) {
+      var key = filmHistoryKey(f);
+      var sessions = Array.isArray(f.sessions) ? f.sessions.slice() : [];
+      if (!sessions.length && (f.watched_at || f.date || f.watched_on)) {
+        sessions.push({ plan_datetime: f.watched_at || f.date || f.watched_on });
+      }
+      map[key] = { film: f, sessions: sessions };
+      order.push(key);
+    });
+    var privateRows = state.admin
+      ? ((state.analytics && state.analytics.history) || (state.history && state.history.history) || [])
+      : ((state.history && state.history.history) || []);
+    privateRows.forEach(function (h) {
+      var key = filmHistoryKey(h);
+      if (!map[key]) {
+        map[key] = { film: h, sessions: [] };
+        order.push(key);
+      }
+      var idx = map[key].sessions.findIndex(function (s) { return String(s.plan_id || '') === String(h.plan_id || ''); });
+      if (idx >= 0) map[key].sessions[idx] = Object.assign({}, map[key].sessions[idx], h);
+      else map[key].sessions.push(h);
+    });
+    return order.map(function (key) {
+      var group = map[key];
+      group.sessions.sort(function (a, b) { return new Date(b.plan_datetime || 0).getTime() - new Date(a.plan_datetime || 0).getTime(); });
+      return group;
+    });
+  }
+
+  function filmSessionHtml(s) {
+    var note = s.note || {};
+    var pid = s.plan_id != null ? String(s.plan_id) : '';
+    var editing = state.admin && pid && String(state.historyNoteEdit || '') === pid;
+    var recording = note.recording_url ? '<a class="club-film-session-link" href="' + esc(note.recording_url) + '" target="_blank" rel="noopener noreferrer">Открыть запись</a>' : '';
+    var noteBody = note.body ? '<p>' + esc(note.body) + '</p>' : '';
+    var admin = '';
+    if (state.admin && pid) {
+      if (editing) {
+        admin = '<div class="club-note-edit club-film-note-edit"><label class="club-field"><span>Заметка к сеансу</span><textarea data-club-note-body="' + esc(pid) + '" rows="3" placeholder="Что обсуждали, выводы…">' + esc(note.body || '') + '</textarea></label>' +
+          '<label class="club-field"><span>Ссылка на запись</span><input type="url" data-club-note-url="' + esc(pid) + '" value="' + esc(note.recording_url || '') + '" placeholder="https://…" inputmode="url" autocomplete="url"></label>' +
+          '<div class="club-analytics-actions"><button type="button" class="btn btn-primary" data-club-note-save="' + esc(pid) + '">Сохранить</button><button type="button" class="btn btn-secondary" data-club-note-cancel="' + esc(pid) + '">Отмена</button></div></div>';
+      } else {
+        admin = '<button type="button" class="club-film-session-edit" data-club-note-edit="' + esc(pid) + '">' + (note.body || note.recording_url ? 'Редактировать' : 'Добавить заметку и запись') + '</button>';
+      }
+    }
+    return '<li class="club-film-session"><div><time>' + esc(fmt(s.plan_datetime || s.watched_at)) + '</time><span>' + esc(planTypeLabel(s)) + '</span></div>' + noteBody + '<div class="club-film-session-actions">' + recording + admin + '</div></li>';
   }
 
   function films() {
-    var cards = state.club.recent
-      .map(function (f) {
-        var im = poster(f);
-        var l = link(f);
-        return (
-          '<article class="club-film-card">' +
-          (im
-            ? '<img src="' + esc(im) + '" alt="" loading="lazy">'
-            : '<div class="club-film-empty">🎬</div>') +
-          '<div class="club-film-title">' +
-          (l ? '<a href="' + esc(l) + '">' + esc(title(f)) + '</a>' : esc(title(f))) +
-          '</div><div class="club-film-meta">' +
-          esc(fmt(f.watched_at || f.date || f.watched_on) || 'Просмотр клуба') +
-          '</div></article>'
-        );
-      })
-      .join('');
+    var cards = filmHistoryGroups().map(function (group) {
+      var f = group.film;
+      var im = poster(f);
+      var l = clubLink(f) || link(f);
+      var count = group.sessions.length || Number(f.sessions_count || 1);
+      var editingHere = group.sessions.some(function (s) { return String(s.plan_id || '') === String(state.historyNoteEdit || ''); });
+      return '<details class="club-film-card"' + (editingHere ? ' open' : '') + '><summary>' +
+        (im ? '<img src="' + esc(im) + '" alt="" loading="lazy">' : '<div class="club-film-empty">🎬</div>') +
+        '<span class="club-film-copy"><span class="club-film-title">' + (l ? '<a href="' + esc(l) + '">' + esc(title(f)) + '</a>' : esc(title(f))) + '</span>' +
+        '<span class="club-film-meta">' + esc(count + ' ' + (count === 1 ? 'сеанс' : (count < 5 ? 'сеанса' : 'сеансов'))) + '</span></span>' +
+        '<span class="club-film-expand">История</span></summary>' +
+        '<div class="club-film-history">' + (group.sessions.length ? '<ol>' + group.sessions.map(filmSessionHtml).join('') + '</ol>' : '<p>Дата просмотра не указана.</p>') + '</div></details>';
+    }).join('');
     return (
       '<section class="club-panel' +
       (state.tab === 'films' ? ' is-active' : '') +
@@ -1382,7 +2365,8 @@
       (state.member ? '' : '<button type="button" class="club-btn club-btn-primary" data-club-join>Вступить</button>') +
       '<button type="button" class="club-btn club-btn-ghost" data-club-share>Поделиться</button>' +
       (settings
-        ? '<button type="button" class="club-btn club-btn-ghost" data-club-tab-jump="settings">Настройки</button>'
+        ? '<button type="button" class="club-btn club-btn-ghost" data-club-onboard-open>Инструменты клуба</button>' +
+          '<button type="button" class="club-btn club-btn-ghost" data-club-tab-jump="settings">Настройки</button>'
         : '') +
       '</div></div>' +
       (c.description
@@ -1397,7 +2381,7 @@
       btn('schedule', 'Расписание') +
       btn('films', 'Фильмы') +
       btn('members', 'Участники') +
-      btn('stats', 'Статистика') +
+      (settings ? btn('stats', 'Аналитика') : (state.member ? btn('history', 'История') : '')) +
       (settings ? btn('settings', 'Настройки') : '') +
       '</nav><section class="club-panel' +
       (state.tab === 'feed' ? ' is-active' : '') +
@@ -1407,24 +2391,27 @@
       schedule() +
       films() +
       members() +
-      '<section class="club-panel' +
-      (state.tab === 'stats' ? ' is-active' : '') +
-      '" data-club-panel="stats">' +
-      (c.films
-        ? '<div class="club-highlight"><div><span>Просмотры клуба</span><b>' +
-          esc(c.films) +
-          '</b></div><div><span>Участники</span><b>' +
-          esc(c.members || '—') +
-          '</b></div></div>'
-        : empty(
-            'Статистика появится позже',
-            'Нужны подтверждённые просмотры и оценки участников клуба.'
-          )) +
-      '</section>' +
+      (settings
+        ? ('<section class="club-panel' +
+          (state.tab === 'stats' ? ' is-active' : '') +
+          '" data-club-panel="stats">' +
+          analyticsPanel() +
+          '</section>')
+        : '') +
+      ((!settings && state.member)
+        ? ('<section class="club-panel' +
+          (state.tab === 'history' ? ' is-active' : '') +
+          '" data-club-panel="history">' +
+          historyPanel() +
+          '</section>')
+        : '') +
       settingsPanel() +
       '</main></div></div>';
     bind();
+
+    if (state.tab === 'feed') setTimeout(focusDeepLinkedPost, 0);
     syncClubOverlays();
+    try { document.body.classList.toggle('club-plan-open', !!(state.scheduleDialog || state.scheduleDayKey)); } catch (_) {}
   }
 
   function login() {
@@ -1613,8 +2600,15 @@
   }
 
   function tab(t, replace) {
-    var a = ['feed', 'schedule', 'films', 'members', 'stats', 'settings'];
-    if (a.indexOf(t) < 0 || (t === 'settings' && !state.admin)) t = 'feed';
+    if (/^post[_\/-]?\d+/i.test(String(t || ''))) t = 'feed';
+    if (t === 'analytics' || t === 'analitika') t = 'stats';
+    if (t === 'istoriya' || t === 'istoria') t = 'history';
+    var a = ['feed', 'schedule', 'films', 'members', 'stats', 'history', 'settings'];
+    if (a.indexOf(t) < 0) t = 'feed';
+    if (t === 'settings' && !state.admin) t = 'feed';
+    if (t === 'stats' && !state.admin) t = state.member ? 'history' : 'feed';
+    if (t === 'history' && state.admin) t = 'stats';
+    if (t === 'history' && !state.member && !state.admin) t = 'feed';
     state.tab = t;
     try {
       history[replace ? 'replaceState' : 'pushState'](
@@ -1624,6 +2618,10 @@
       );
     } catch (_) {}
     render();
+    if (t === 'stats') loadAnalytics(false);
+    if (t === 'history') loadHistory(false);
+    if (t === 'films' && state.admin) loadAnalytics(false);
+    else if (t === 'films' && state.member) loadHistory(false);
   }
 
 
@@ -1954,7 +2952,7 @@
 
   function openPlanDialog(id) {
     var p = (state.club && state.club.plans || []).find(function (item) { return String(item.id || '') === String(id || ''); });
-    if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); }
+    if (p) { state.scheduleDayKey = null; state.scheduleDialog = p; loadPlanDetail(p); render(); }
   }
 
   function closePlanDialog() { state.scheduleDialog = null; render(); }
@@ -1972,16 +2970,92 @@
     });
     root.querySelectorAll('[data-club-calendar-nav]').forEach(function (b) { b.onclick = function () { shiftCalendar(b.getAttribute('data-club-calendar-nav')); }; });
     root.querySelectorAll('[data-club-calendar-day]').forEach(function (b) {
-      b.onclick = function () { var key = b.getAttribute('data-club-calendar-day'); var p = schedulePlans().find(function (item) { var d = new Date(planDate(item)); return !isNaN(d.getTime()) && dayKey(d) === key; }); if (p) { state.scheduleDialog = p; loadPlanDetail(p); render(); } };
+      b.onclick = function () { openScheduleDay(b.getAttribute('data-club-calendar-day')); };
+    });
+    root.querySelectorAll('[data-club-day-close]').forEach(function (b) {
+      b.onclick = function (e) { if (b.classList.contains('club-plan-dialog-backdrop') && e.target !== b) return; closeScheduleDay(); };
     });
     root.querySelectorAll('[data-club-plan-watched]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); markClubPlanWatched(b.getAttribute('data-club-plan-watched')); }; });
-    root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { if (e.target.closest && e.target.closest('a')) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
+    root.querySelectorAll('[data-club-post-share]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sharePost(b.getAttribute('data-club-post-share')); };
+    });
+    root.querySelectorAll('[data-club-post-announce]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); copyPostAnnounce(b.getAttribute('data-club-post-announce')); };
+    });
+    root.querySelectorAll('[data-club-cal-toggle]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); toggleCalMenu(b.getAttribute('data-club-cal-toggle')); };
+    });
+    root.querySelectorAll('[data-club-cal-ics]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); downloadPlanIcs(b.getAttribute('data-club-cal-ics')); toggleCalMenu(b.getAttribute('data-club-cal-ics'), false); };
+    });
+    root.querySelectorAll('[data-club-cal-google]').forEach(function (a) {
+      a.onclick = function (e) { e.stopPropagation(); toggleCalMenu(a.getAttribute('data-club-cal-google'), false); };
+    });
+    root.querySelectorAll('[data-club-plan-tg]').forEach(function (b) {
+      b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); announcePlanTelegram(b.getAttribute('data-club-plan-tg')); };
+    });
+
+    root.querySelectorAll('[data-club-plan-open]').forEach(function (b) { b.onclick = function (e) { var interactive = e.target.closest && e.target.closest('a,button,.club-cal-wrap,.club-cal-menu'); if (interactive && interactive !== b) return; openPlanDialog(b.getAttribute('data-club-plan-open')); }; });
     root.querySelectorAll('[data-club-plan-close]').forEach(function (b) { b.onclick = function (e) { if (b.classList.contains('club-plan-dialog-backdrop') && e.target !== b) return; closePlanDialog(); }; });
     root.querySelectorAll('[data-club-film-link]').forEach(function (a) { a.onclick = function () { try { history.pushState({ clubTab: 'schedule' }, '', location.pathname + location.search + '#schedule'); } catch (_) {} }; });
     root.querySelectorAll('[data-club-tab]').forEach(function (b) {
       b.onclick = function () {
         tab(b.getAttribute('data-club-tab'));
       };
+    });
+    root.querySelectorAll('[data-club-onboard-dismiss]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        dismissOnboarding();
+      };
+    });
+    root.querySelectorAll('[data-club-onboard-open]').forEach(function (b) {
+      b.onclick = openOnboarding;
+    });
+    root.querySelectorAll('[data-club-onboard-tab]').forEach(function (b) {
+      b.onclick = function (e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        var t = b.getAttribute('data-club-onboard-tab') || 'stats';
+        dismissOnboarding();
+        tab(t);
+      };
+    });
+    root.querySelectorAll('[data-club-analytics-refresh]').forEach(function (b) {
+      b.onclick = function () { loadAnalytics(true); };
+    });
+    root.querySelectorAll('[data-club-history-refresh]').forEach(function (b) {
+      b.onclick = function () { state.history = null; loadHistory(true); };
+    });
+    root.querySelectorAll('[data-club-history-filter]').forEach(function (b) {
+      b.onclick = function () {
+        var f = b.getAttribute('data-club-history-filter') || 'all';
+        if (state.historyFilter === f) return;
+        state.historyFilter = f;
+        render();
+      };
+    });
+    root.querySelectorAll('[data-club-analytics-days]').forEach(function (b) {
+      b.onclick = function () {
+        var d = parseInt(b.getAttribute('data-club-analytics-days'), 10) || 90;
+        if (state.analyticsDays === d && (state.analytics || state.history)) return;
+        state.analyticsDays = d;
+        state.analytics = null;
+        state.history = null;
+        if (state.tab === 'history') loadHistory(true);
+        else loadAnalytics(true);
+      };
+    });
+    root.querySelectorAll('[data-club-att-save]').forEach(function (b) {
+      b.onclick = function () { saveAttendance(b.getAttribute('data-club-att-save')); };
+    });
+    root.querySelectorAll('[data-club-note-edit]').forEach(function (b) {
+      b.onclick = function () { state.historyNoteEdit = b.getAttribute('data-club-note-edit'); render(); };
+    });
+    root.querySelectorAll('[data-club-note-cancel]').forEach(function (b) {
+      b.onclick = function () { state.historyNoteEdit = null; render(); };
+    });
+    root.querySelectorAll('[data-club-note-save]').forEach(function (b) {
+      b.onclick = function () { saveHistoryNote(b.getAttribute('data-club-note-save')); };
     });
     root.querySelectorAll('[data-club-tab-jump]').forEach(function (b) {
       b.onclick = function () {
@@ -2377,8 +3451,20 @@
     state.scheduleView = 'list';
     state.calendarMonth = calendarMonthKey(new Date());
     state.scheduleDialog = null;
+    state.scheduleDayKey = null;
     state.leaveConfirm = false;
     state.leaveBusy = false;
+    state.analytics = null;
+    state.analyticsBusy = false;
+    state.analyticsError = '';
+    state.history = null;
+    state.historyBusyLoad = false;
+    state.historyError = '';
+    state.historyNoteEdit = null;
+    state.historyBusy = {};
+    state.attendanceBusy = {};
+    state.onboardingForceHidden = false;
+    state.onboardingOpen = false;
     root.innerHTML = '<div class="club-loading" role="status">Загружаем киноклуб…</div>';
     syncClubOverlays();
 
@@ -2429,6 +3515,14 @@
           // one paint with club + members + posts
           render();
           refreshClubPlanWatched();
+          // Prefetch analytics so empty clubs can show sample metrics + onboarding promptly.
+          if (shouldShowSampleData()) loadAnalytics(false);
+          if (state.tab === 'stats' || state.tab === 'analytics' || state.tab === 'analitika') {
+            if (state.tab !== 'stats') state.tab = 'stats';
+            loadAnalytics(false);
+          }
+          if (state.tab === 'films' && state.admin) loadAnalytics(false);
+          else if (state.tab === 'films' && state.member) loadHistory(false);
         });
       })
       .catch(function (e) {
@@ -2446,7 +3540,13 @@
     root = document.getElementById('club-page-root');
     if (!root || !id) return;
     var h = String(location.hash || '').replace(/^#\/?/, '');
+    if (/^post[_\/-]?\d+/i.test(h)) h = 'feed';
+    if (h === 'analytics' || h === 'analitika') h = 'stats';
     state.tab = h || 'feed';
+    try {
+      var qp = new URLSearchParams(location.search || '');
+      if (qp.get('post')) state.tab = 'feed';
+    } catch (_) {}
     load(id);
   }
 

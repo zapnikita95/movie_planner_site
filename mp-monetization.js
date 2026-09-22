@@ -305,10 +305,26 @@
       has_affiliate: partner && partner.has_affiliate ? '1' : '0',
       commission_model: (partner && partner.commission_model) || 'unknown',
     };
+    /* Clear goal name for Metrika UI + keep stream_click for older dashboards. */
+    metrikaGoal('streaming_affiliate_click', params);
     metrikaGoal('stream_click', params);
     if (key === 'flex' || key === 'ivi' || key === 'tvigle' || key === '2sub' || key === 'start') {
       metrikaGoal('stream_partner_' + key, params);
     }
+  }
+
+  function trackTicketPartnerClick(partner, kpId, surface) {
+    var key = (partner && partner.key) || 'other';
+    var params = {
+      partner: key,
+      platform: key,
+      kp_id: String(kpId || ''),
+      surface: surface || 'unknown',
+      placement: 'film_tickets',
+      has_affiliate: partner && partner.has_affiliate ? '1' : '0',
+      commission_model: (partner && partner.commission_model) || 'unknown',
+    };
+    metrikaGoal('ticket_cta_click', params);
   }
 
   function ticketPartnerLogoUrl(partner) {
@@ -340,7 +356,7 @@
   function bindTicketPartnerClick(a, partner, kpId, surface) {
     a.addEventListener('click', function (e) {
       e.preventDefault();
-      trackStreamPartnerClick(partner, kpId, surface);
+      trackTicketPartnerClick(partner, kpId, surface);
       var url = partner && partner.url;
       if (url) {
         try {
@@ -565,12 +581,8 @@
     if (planWrap && !planWrap.querySelector('[data-ticket-pending="1"]')) {
       planWrap.insertBefore(buildTicketPendingBlock('toolbar'), planWrap.firstChild);
     }
-    var poster = findPosterWrap(scope);
-    if (poster && !poster.querySelector('[data-ticket-pending="1"]')) {
-      var pendingPoster = buildTicketPendingBlock('poster');
-      pendingPoster.classList.add('film-poster-ticket-stack');
-      poster.appendChild(pendingPoster);
-    }
+    /* Never mount pending skeleton on the poster — empty dark rounded square
+       flash above 2SUB (mobile) while ticket-partners loads. Toolbar-only. */
   }
 
   function ensureToolbarTicketSlot(scope) {
@@ -708,8 +720,23 @@
   }
 
   function bindPartnerIconClick(a, partner, kpId, surface) {
-    a.addEventListener('click', function () {
+    a.addEventListener('click', function (e) {
+      /* Explicit open — native target=_blank was a no-op for some users/agents
+         even when elementFromPoint hit the logo (same pattern as ticket partners). */
+      e.preventDefault();
+      e.stopPropagation();
       trackStreamPartnerClick(partner, kpId, surface);
+      var url = (partner && partner.url) || (a && a.getAttribute('href')) || '';
+      if (!url) return;
+      var win = null;
+      try {
+        win = window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (_o) {
+        win = null;
+      }
+      if (!win) {
+        try { window.location.assign(url); } catch (_l) {}
+      }
     });
   }
 
@@ -1627,6 +1654,8 @@
     mountCourseOffers: mountCourseOffers,
     mountTicketPartners: mountTicketPartners,
     metrikaGoal: metrikaGoal,
+    trackTicketPartnerClick: trackTicketPartnerClick,
+    trackStreamPartnerClick: trackStreamPartnerClick,
     fetchConfig: fetchConfig,
     collectTicketPartners: collectTicketPartners,
     extractTicketPartnersPayload: extractTicketPartnersPayload,

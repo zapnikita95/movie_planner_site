@@ -1,6 +1,6 @@
 /**
  * Shared standalone film page (/f/:kp) for guests and authenticated users.
- * MARKER:20260911guestToolbarIcons1
+ * MARKER:20260914kpHlsPlay1
  */
 (function (global) {
   'use strict';
@@ -471,7 +471,9 @@
     }
     if (slots.titleEl && titleRu) {
       var cleanTitle = titleRu.replace(/\s*\(\d{4}\)\s*$/, '').trim() || titleRu;
+      slots.titleEl.classList.remove('has-title-logo');
       slots.titleEl.textContent = cleanTitle;
+      slots.titleEl.setAttribute('data-title-text', cleanTitle);
       setFilmHeaderTitle(cleanTitle);
     }
     setReservedLine(slots.enEl, pickFilmTitleEn(film));
@@ -481,7 +483,718 @@
     if (heroTag && film && film.genres) {
       heroTag.setAttribute('data-genres', String(film.genres));
     }
+    try { syncFilmTitleLogo(scope, film, kpForTitle); } catch (_logo) {}
   }
+
+
+  function formatDigitalReleaseDisplay(iso) {
+    var s = String(iso || '').trim();
+    if (!s) return '';
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[3] + '.' + m[2] + '.' + m[1];
+    var dmy = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dmy) {
+      var dd = dmy[1].length < 2 ? '0' + dmy[1] : dmy[1];
+      var mm = dmy[2].length < 2 ? '0' + dmy[2] : dmy[2];
+      return dd + '.' + mm + '.' + dmy[3];
+    }
+    return s;
+  }
+
+  function syncFilmDigitalReleaseChip(root, film) {
+    var scope = root && root.querySelector ? root : document;
+    var hero = scope.querySelector
+      ? (scope.querySelector('.film-hero-with-tag, section.hero, .hero-content') || scope)
+      : document;
+    if (!hero || !hero.querySelector) return;
+    var slots = ensureFilmHeroMetaStack(hero);
+    var stack = slots.stack;
+    if (!stack) return;
+    var existing = stack.querySelector('.film-digital-chip, #film-digital-chip');
+    var iso = film && (film.digital_release || film.digitalRelease);
+    var label = formatDigitalReleaseDisplay(iso);
+    if (!label) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (!existing) {
+      existing = document.createElement('span');
+      existing.id = 'film-digital-chip';
+      existing.className = 'film-digital-chip chip';
+      existing.setAttribute('title', 'Цифровой релиз');
+      var metaEl = slots.metaEl;
+      if (metaEl && metaEl.parentNode === stack) metaEl.insertAdjacentElement('afterend', existing);
+      else stack.appendChild(existing);
+    }
+    existing.textContent = 'В цифре · ' + label;
+    existing.removeAttribute('hidden');
+  }
+
+  var _trailerCacheByKp = {};
+  var _titleLogoCacheByKp = {};
+
+  function resolveTitleLogoUrl(url) {
+    var u = String(url || '').trim();
+    if (!u || u === 'null' || u === 'undefined') return '';
+    // Never hotlink image.tmdb.org (blocked/slow in RU) — use apex mirror.
+    var tmdb = u.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([^/]+)\/([^/?#]+)/i);
+    if (tmdb) {
+      u = '/api/public/poster/tmdb/' + tmdb[1] + '/' + tmdb[2];
+    }
+    // Width-limited wordmarks load much faster than /original/ (often 1k+ px).
+    u = u.replace(/(\/api\/public\/poster\/tmdb\/)original(\/)/gi, '$1w500$2');
+    u = u.replace(/(\/t\/p\/)original(\/)/gi, '$1w500$2');
+    if (/^https?:\/\//i.test(u) || u.indexOf('data:') === 0) return u;
+    if (u.charAt(0) === '/') return API_BASE.replace(/\/$/, '') + u;
+    return API_BASE.replace(/\/$/, '') + '/' + u.replace(/^\.\//, '');
+  }
+
+  function prefetchTitleLogoUrl(url) {
+    var src = resolveTitleLogoUrl(url);
+    if (!src || typeof document === 'undefined') return src;
+    try {
+      if (document.querySelector('link[data-mp-title-logo="' + src.replace(/"/g, '') + '"]')) return src;
+      var link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = src;
+      link.setAttribute('data-mp-title-logo', src);
+      document.head.appendChild(link);
+    } catch (_e) {}
+    return src;
+  }
+
+  function pickTitleLogoFromFilm(film) {
+    if (!film || typeof film !== 'object') return '';
+    return resolveTitleLogoUrl(
+      film.title_logo || film.logo_url || film.titleLogo || film.logoUrl || ''
+    );
+  }
+
+  function fetchFilmTitleLogoByKp(kpId, opts) {
+    opts = opts || {};
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(null);
+    if (_titleLogoCacheByKp[kp] && !opts.force) {
+      return Promise.resolve(_titleLogoCacheByKp[kp]);
+    }
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/title-logo';
+    return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success || d.miss) {
+          _titleLogoCacheByKp[kp] = null;
+          return null;
+        }
+        var resolved = resolveTitleLogoUrl(d.title_logo || d.logo_url || d.url || '');
+        if (resolved) prefetchTitleLogoUrl(resolved);
+        var payload = resolved ? {
+          title_logo: resolved,
+          logo_url: resolved,
+          lang: d.lang || null,
+          source: d.source || null,
+          kp_id: kp,
+        } : null;
+        _titleLogoCacheByKp[kp] = payload;
+        return payload;
+      })
+      .catch(function () {
+        _titleLogoCacheByKp[kp] = null;
+        return null;
+      });
+  }
+
+  function applyFilmTitleLogo(titleEl, opts) {
+    opts = opts || {};
+    if (!titleEl) return;
+    var text = String(opts.text != null ? opts.text : (titleEl.getAttribute('data-title-text') || titleEl.textContent || '')).trim();
+    var logoUrl = resolveTitleLogoUrl(opts.logoUrl || opts.title_logo || '');
+    if (text) titleEl.setAttribute('data-title-text', text);
+    // Always reserve logo slot height so text→img swap does not shift meta/cast.
+    titleEl.classList.add('film-title-slot');
+
+    function paintTextOnly() {
+      titleEl.classList.remove('has-title-logo');
+      titleEl.classList.add('film-title-slot');
+      titleEl.textContent = text || titleEl.getAttribute('data-title-text') || '';
+    }
+
+    if (!logoUrl) {
+      paintTextOnly();
+      return;
+    }
+
+    prefetchTitleLogoUrl(logoUrl);
+    titleEl.classList.add('has-title-logo');
+    titleEl.innerHTML = '';
+    var img = document.createElement('img');
+    img.className = 'film-title-logo';
+    img.src = logoUrl;
+    img.alt = text || 'Логотип названия';
+    img.decoding = 'async';
+    img.loading = 'eager';
+    img.fetchPriority = 'high';
+    img.referrerPolicy = 'no-referrer';
+    img.width = 420;
+    img.height = 72;
+    img.addEventListener('error', function () {
+      paintTextOnly();
+    });
+    var span = document.createElement('span');
+    span.className = 'film-title-text visually-hidden';
+    span.textContent = text || '';
+    titleEl.appendChild(img);
+    titleEl.appendChild(span);
+  }
+
+  function syncFilmTitleLogo(root, film, kpHint) {
+    var scope = root && root.querySelector ? root : document;
+    var titleEl = (scope.querySelector && scope.querySelector('#film-title, .hero-content > h1'))
+      || document.getElementById('film-title');
+    if (!titleEl) return;
+    var text = String(
+      (film && (film.title || film.name)) ||
+      titleEl.getAttribute('data-title-text') ||
+      ''
+    ).replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!text) {
+      var raw = String(titleEl.textContent || '').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      if (raw && !/загрузка/i.test(raw)) text = raw;
+    }
+    var fromFilm = pickTitleLogoFromFilm(film);
+    if (fromFilm) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: fromFilm });
+      return;
+    }
+    var kp = String(
+      kpHint ||
+      (film && (film.kp_id || film.kinopoiskId || film.id)) ||
+      (scope.querySelector && (scope.querySelector('.film-hero-with-tag') || {}).getAttribute &&
+        (scope.querySelector('.film-hero-with-tag').getAttribute('data-kp-id') || '')) ||
+      ''
+    ).replace(/\D/g, '');
+    if (!kp) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: '' });
+      return;
+    }
+    // Keep text until logo resolves; avoid flash of empty hero.
+    if (text && !titleEl.classList.contains('has-title-logo')) {
+      applyFilmTitleLogo(titleEl, { text: text, logoUrl: '' });
+    }
+    fetchFilmTitleLogoByKp(kp).then(function (payload) {
+      var live = document.getElementById('film-title');
+      if (!live) return;
+      var liveKp = '';
+      try {
+        var hero = document.querySelector('.film-hero-with-tag');
+        liveKp = hero ? String(hero.getAttribute('data-kp-id') || '').replace(/\D/g, '') : '';
+      } catch (_e) {}
+      if (liveKp && liveKp !== kp) return;
+      var t = live.getAttribute('data-title-text') || text;
+      // Hero: show title logo only when RU wordmark exists (skip EN e.g. Runner).
+      var logoOk = payload && payload.title_logo && (!payload.lang || String(payload.lang).toLowerCase() === 'ru');
+      applyFilmTitleLogo(live, {
+        text: t,
+        logoUrl: logoOk ? payload.title_logo : '',
+      });
+    });
+  }
+
+
+  function youtubeNocookieEmbedUrl(youtubeId, opts) {
+    opts = opts || {};
+    var id = String(youtubeId || '').trim();
+    if (!id) return '';
+    var q = 'rel=0&modestbranding=1&playsinline=1';
+    if (opts.autoplay) q += '&autoplay=1';
+    if (opts.mute !== false && (opts.autoplay || opts.mute)) q += '&mute=1';
+    return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?' + q;
+  }
+
+  function isKpWidgetUrl(url) {
+    var u = String(url || '').trim();
+    if (!u) return false;
+    if (/\/api\/public\/kp-widget\/discovery\/trailer\/\d+/i.test(u)) return true;
+    try {
+      var host = new URL(u, (typeof location !== 'undefined' && location.href) || 'https://movie-planner.ru/').hostname || '';
+      if (/(^|\.)widgets?\.kinopoisk\.ru$/i.test(host)) return true;
+    } catch (_e) {}
+    return /widgets?\.kinopoisk\.ru/i.test(u);
+  }
+
+  /** Same-origin proxy — widgets.kinopoisk.ru sends X-Frame-Options: DENY. */
+  function publicizeKpWidgetPlayUrl(url) {
+    var raw = String(url || '').trim();
+    if (!raw) return '';
+    if (/\/api\/public\/kp-widget\/discovery\/trailer\/\d+/i.test(raw)) {
+      if (/^https?:\/\//i.test(raw)) return raw;
+      var base = String(API_BASE || '').replace(/\/$/, '');
+      return raw.charAt(0) === '/' ? base + raw : base + '/' + raw;
+    }
+    if (!isKpWidgetUrl(raw)) return '';
+    try {
+      var abs = new URL(raw, 'https://widgets.kinopoisk.ru/');
+      var parts = abs.pathname.split('/').filter(Boolean);
+      var tid = parts[parts.length - 1];
+      if (!/^\d+$/.test(tid)) return '';
+      var q = abs.search || '';
+      var base2 = String(API_BASE || '').replace(/\/$/, '');
+      return base2 + '/api/public/kp-widget/discovery/trailer/' + tid + q;
+    } catch (_e2) {
+      return '';
+    }
+  }
+
+  function normalizeKpWidgetPlayUrl(url, opts) {
+    opts = opts || {};
+    var raw = String(url || '').trim();
+    if (!isKpWidgetUrl(raw)) return '';
+    try {
+      var base = (typeof location !== 'undefined' && location.origin) || String(API_BASE || 'https://movie-planner.ru');
+      var u = new URL(raw, base);
+      u.searchParams.set('onlyPlayer', '1');
+      u.searchParams.set('cover', '1');
+      if (opts.autoplay !== false) u.searchParams.set('autoplay', '1');
+      else u.searchParams.delete('autoplay');
+      if (opts.muted !== false) u.searchParams.set('muted', '1');
+      else u.searchParams.delete('muted');
+      // Prefer path+query for same-origin proxy; keep absolute for KP host.
+      if (/\/api\/public\/kp-widget\//i.test(u.pathname)) {
+        return u.pathname + u.search;
+      }
+      return u.toString();
+    } catch (_e) {
+      var sep = raw.indexOf('?') >= 0 ? '&' : '?';
+      var extra = 'onlyPlayer=1&cover=1';
+      if (opts.autoplay !== false) extra += '&autoplay=1';
+      if (opts.muted !== false) extra += '&muted=1';
+      return raw + sep + extra;
+    }
+  }
+
+  /** Hover/RF playback: KP widget first via same-origin proxy (RU, no VPN), else YouTube. */
+  function pickTrailerPlayback(d, opts) {
+    opts = opts || {};
+    var autoplay = opts.autoplay !== false;
+    var muted = opts.muted !== false;
+    if (!d) return null;
+    var playUrl = String(d.play_url || '').trim();
+    var playKind = String(d.play_kind || '').trim();
+    var widget = String(d.widget_url || '').trim();
+    function asKp(url) {
+      var n = normalizeKpWidgetPlayUrl(url, { autoplay: autoplay, muted: muted }) || url;
+      var pub = publicizeKpWidgetPlayUrl(n) || publicizeKpWidgetPlayUrl(url);
+      if (!pub && isKpWidgetUrl(n)) pub = n;
+      if (!pub) return null;
+      // ensure muted flag matches request (API play_url often forces muted=1)
+      try {
+        var u = new URL(pub, (typeof location !== 'undefined' && location.origin) || 'https://movie-planner.ru');
+        if (muted) u.searchParams.set('muted', '1');
+        else u.searchParams.delete('muted');
+        if (autoplay) u.searchParams.set('autoplay', '1');
+        u.searchParams.set('onlyPlayer', '1');
+        u.searchParams.set('cover', '1');
+        pub = u.pathname + u.search;
+        if (/^https?:/i.test(String(API_BASE || '')) || pub.indexOf('/api/') === 0) {
+          var base = String(API_BASE || '').replace(/\/$/, '');
+          if (pub.indexOf('/api/') === 0) pub = base + pub;
+        }
+      } catch (_e) {}
+      return { kind: 'kp_widget', url: pub };
+    }
+    if (playKind === 'hls' && playUrl) {
+      return { kind: 'hls', url: playUrl.charAt(0) === '/' ? (String(API_BASE || '').replace(/\/$/, '') + playUrl) : playUrl };
+    }
+    var hls = String(d.hls_url || '').trim();
+    if (hls) {
+      return { kind: 'hls', url: hls.charAt(0) === '/' ? (String(API_BASE || '').replace(/\/$/, '') + hls) : hls };
+    }
+    if (playKind === 'kp_widget' && playUrl) {
+      var a = asKp(playUrl);
+      if (a) return a;
+    }
+    if (widget) {
+      var b = asKp(widget);
+      if (b) return b;
+    }
+    if (playUrl && playKind === 'youtube') {
+      if (autoplay && playUrl.indexOf('autoplay=1') < 0) {
+        playUrl += (playUrl.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&mute=1';
+      }
+      return { kind: 'youtube', url: playUrl };
+    }
+    var yt = String(d.youtube_id || '').trim();
+    if (yt) {
+      return {
+        kind: 'youtube',
+        url: youtubeNocookieEmbedUrl(yt, { autoplay: autoplay, mute: muted }),
+      };
+    }
+    return null;
+  }
+
+  function fetchFilmTrailerByKp(kpId, opts) {
+    opts = opts || {};
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) return Promise.resolve(null);
+    if (_trailerCacheByKp[kp] && !opts.force) {
+      return Promise.resolve(_trailerCacheByKp[kp]);
+    }
+    var q = '';
+    if (opts.title) q += (q ? '&' : '?') + 'title=' + encodeURIComponent(String(opts.title));
+    if (opts.year) q += (q ? '&' : '?') + 'year=' + encodeURIComponent(String(opts.year));
+    var url = API_BASE + '/api/public/film/' + encodeURIComponent(kp) + '/trailer' + q;
+    return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.success) return null;
+        _trailerCacheByKp[kp] = d;
+        return d;
+      })
+      .catch(function () { return null; });
+  }
+
+  function mountHlsVideo(container, url, opts) {
+    opts = opts || {};
+    var video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.playsInline = true;
+    video.controls = opts.controls !== false;
+    video.autoplay = opts.autoplay !== false;
+    video.muted = opts.muted !== false;
+    video.loop = !!opts.loop;
+    video.preload = 'auto';
+    video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;object-fit:contain;';
+    var src = String(url || '');
+    var canNative = video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL');
+    if (canNative) video.src = src;
+    else if (window.Hls && window.Hls.isSupported()) {
+      var hls = new window.Hls({ enableWorker: true });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      container._mpHls = hls;
+    } else video.src = src;
+    container.appendChild(video);
+    try { var p = video.play(); if (p && p.catch) p.catch(function () {}); } catch (_e) {}
+    return video;
+  }
+
+  function ensureHlsLib() {
+    if (window.Hls) return Promise.resolve(window.Hls);
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+      s.onload = function () { resolve(window.Hls); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function mountTrailerPlaybackEmbed(container, playback) {
+    if (!container || !playback || !playback.url) return;
+    container.innerHTML = '';
+    container.hidden = false;
+    container.removeAttribute('hidden');
+    try { if (container._mpHls) { container._mpHls.destroy(); container._mpHls = null; } } catch (_h) {}
+    if (playback.kind === 'hls') {
+      var go = function () {
+        mountHlsVideo(container, playback.url, {
+          autoplay: playback.autoplay !== false,
+          muted: playback.muted !== false,
+          controls: playback.controls !== false,
+          loop: !!playback.loop,
+        });
+      };
+      var probe = document.createElement('video');
+      var native = probe.canPlayType('application/vnd.apple.mpegurl') || probe.canPlayType('application/x-mpegURL');
+      if (native) go(); else ensureHlsLib().then(go);
+      return;
+    }
+    var iframe = document.createElement('iframe');
+    iframe.src = playback.url;
+    iframe.title = 'Трейлер';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    iframe.allowFullscreen = true;
+    iframe.setAttribute('referrerpolicy', playback.kind === 'kp_widget' ? 'origin' : 'strict-origin-when-cross-origin');
+    iframe.setAttribute('frameborder', '0');
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;';
+    container.appendChild(iframe);
+  }
+
+  function mountYoutubeTrailerEmbed(container, youtubeId) {
+    if (!container || !youtubeId) return;
+    mountTrailerPlaybackEmbed(container, {
+      kind: 'youtube',
+      url: youtubeNocookieEmbedUrl(youtubeId, { autoplay: true, mute: false }),
+    });
+  }
+
+  function closeFilmTrailerLightbox() {
+    var lb = document.getElementById('film-trailer-lightbox');
+    if (!lb) return;
+    try {
+      var frame = lb.querySelector('.film-trailer-lightbox-frame');
+      if (frame) frame.innerHTML = '';
+    } catch (_e) {}
+    lb.remove();
+    try { document.body.classList.remove('film-trailer-lightbox-open'); } catch (_b) {}
+    try { document.removeEventListener('keydown', _filmTrailerLightboxKeydown, true); } catch (_k) {}
+  }
+
+  var _filmTrailerLightboxKeydown = function (e) {
+    if (!e) return;
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      e.preventDefault();
+      closeFilmTrailerLightbox();
+    }
+  };
+
+  function openFilmTrailerLightbox(playback) {
+    if (!playback || !playback.url) return;
+    closeFilmTrailerLightbox();
+    var lb = document.createElement('div');
+    lb.id = 'film-trailer-lightbox';
+    lb.className = 'film-trailer-lightbox';
+    lb.setAttribute('role', 'dialog');
+    lb.setAttribute('aria-modal', 'true');
+    lb.setAttribute('aria-label', 'Трейлер');
+    lb.innerHTML =
+      '<button type="button" class="film-trailer-lightbox-backdrop" aria-label="Закрыть"></button>' +
+      '<div class="film-trailer-lightbox-stage">' +
+        '<button type="button" class="film-trailer-lightbox-close" aria-label="Закрыть">×</button>' +
+        '<div class="film-trailer-lightbox-frame"></div>' +
+      '</div>';
+    document.body.appendChild(lb);
+    try { document.body.classList.add('film-trailer-lightbox-open'); } catch (_b) {}
+    var frame = lb.querySelector('.film-trailer-lightbox-frame');
+    mountTrailerPlaybackEmbed(frame, playback);
+    function onClose(ev) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      closeFilmTrailerLightbox();
+    }
+    var backdrop = lb.querySelector('.film-trailer-lightbox-backdrop');
+    var closeBtn = lb.querySelector('.film-trailer-lightbox-close');
+    if (backdrop) backdrop.addEventListener('click', onClose);
+    if (closeBtn) closeBtn.addEventListener('click', onClose);
+    try { document.addEventListener('keydown', _filmTrailerLightboxKeydown, true); } catch (_k) {}
+    try { closeBtn && closeBtn.focus(); } catch (_f) {}
+  }
+
+
+  function filmPosterColWithTrailerHtml(posterWrapInnerHtml, opts) {
+    var eager = !!(opts && opts.showTrailerPill);
+    if (!eager) {
+      try {
+        var bootEarly = readMpRouteBoot();
+        if (bootEarly && bootEarly.has_trailer === true) eager = true;
+      } catch (_be) {}
+    }
+    return (
+      '<div class="film-poster-col">' +
+        posterWrapInnerHtml +
+        '<div id="film-trailer-slot" class="film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved"' +
+          (eager ? '' : ' aria-hidden="true"') + '>' +
+          '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn"' +
+            (eager ? '' : ' hidden') + '>' +
+            '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
+            '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+
+  function ensureFilmTrailerSlot(hero) {
+    if (!hero) return null;
+    // Prefer compact pill under the poster (афиша). Never expand hero-content with inline 16:9.
+    var existing = hero.querySelector('#film-trailer-slot');
+    if (existing) {
+      existing.classList.add('film-page-trailer--reserved');
+      return existing;
+    }
+    // Remove legacy inline slots that used to stretch the card.
+    try {
+      hero.querySelectorAll('.film-page-trailer, .film-modal-trailer').forEach(function (n) {
+        if (n && n.id !== 'film-trailer-slot') n.remove();
+      });
+    } catch (_rm) {}
+    var wrap = hero.querySelector('.poster-wrap');
+    var slot = document.createElement('div');
+    slot.id = 'film-trailer-slot';
+    slot.className = 'film-page-trailer film-page-trailer--under-poster film-page-trailer--reserved';
+    slot.setAttribute('aria-hidden', 'true');
+    slot.innerHTML =
+      '<button type="button" class="film-trailer-pill" id="film-trailer-play-btn" hidden>' +
+        '<span class="film-trailer-pill-ico" aria-hidden="true">▶</span>' +
+        '<span class="film-trailer-pill-label">Смотреть трейлер</span>' +
+      '</button>';
+    if (wrap && wrap.parentNode) {
+      var col = wrap.closest('.film-poster-col');
+      if (!col) {
+        col = document.createElement('div');
+        col.className = 'film-poster-col';
+        wrap.parentNode.insertBefore(col, wrap);
+        col.appendChild(wrap);
+      }
+      col.appendChild(slot);
+    } else {
+      var content = hero.querySelector('.hero-content') || hero;
+      content.appendChild(slot);
+    }
+    return slot;
+  }
+
+  function setPosterTrailerPlayControl(hero, onPlay) {
+    if (!hero) return;
+    var wrap = hero.querySelector('.poster-wrap');
+    if (!wrap) return;
+    var btn = wrap.querySelector('.film-poster-trailer-play, .film-modal-poster-play');
+    // Never show center Play on poster (mobile or desktop) — bottom
+    // «Смотреть трейлер» pill opens the trailer lightbox.
+    void onPlay;
+    if (btn) btn.remove();
+    wrap.classList.remove('has-trailer');
+  }
+
+  function revealFilmTrailerPill(slot, btn) {
+    if (btn) {
+      btn.hidden = false;
+      btn.removeAttribute('hidden');
+    }
+    if (slot) {
+      slot.removeAttribute('aria-hidden');
+      slot.classList.remove('film-page-trailer--reserved-empty');
+    }
+  }
+
+  function hideFilmTrailerPill(slot, btn) {
+    if (btn) {
+      btn.hidden = true;
+      btn.setAttribute('hidden', '');
+      btn.classList.remove('is-resolving');
+    }
+    if (slot) slot.setAttribute('aria-hidden', 'true');
+  }
+
+  function setFilmTrailerPillResolving(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('is-resolving', !!on);
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
+  function filmSaysHasTrailer(film) {
+    if (!film) return false;
+    if (film.has_trailer === true || film.hasTrailer === true) return true;
+    try {
+      var boot = readMpRouteBoot();
+      if (boot && boot.has_trailer === true) {
+        var bootKp = String(boot.kp_id || '').replace(/\D/g, '');
+        var filmKp = String(film.kp_id || film.kinopoiskId || '').replace(/\D/g, '');
+        if (!bootKp || !filmKp || bootKp === filmKp) return true;
+      }
+    } catch (_b) {}
+    return false;
+  }
+
+  function mountFilmTrailerUI(film) {
+    var kp = film && (film.kp_id || film.kinopoiskId);
+    kp = String(kp || '').replace(/\D/g, '');
+    var hero = document.querySelector('.film-hero-with-tag, #film-page-content .hero, main.film-page .hero');
+    if (!hero || !kp) return;
+    var slot = ensureFilmTrailerSlot(hero);
+    var btn = slot && slot.querySelector('#film-trailer-play-btn');
+    // Strip any legacy inline embed left from older builds.
+    try {
+      var legacyEmbed = hero.querySelector('#film-trailer-embed, .film-modal-trailer-embed');
+      if (legacyEmbed) legacyEmbed.remove();
+      var legacyModal = hero.querySelector('.film-modal-trailer:not(.film-page-trailer--under-poster)');
+      if (legacyModal && legacyModal.id !== 'film-trailer-slot') legacyModal.remove();
+    } catch (_leg) {}
+    if (film && film.digital_release) syncFilmDigitalReleaseChip(document, film);
+
+    // #1: if we already know a trailer exists, show the pill NOW — do not wait for /trailer.
+    var eager = filmSaysHasTrailer(film);
+    if (eager) revealFilmTrailerPill(slot, btn);
+    setPosterTrailerPlayControl(hero, null);
+
+    var resolveGen = (mountFilmTrailerUI._gen || 0) + 1;
+    mountFilmTrailerUI._gen = resolveGen;
+    var playbackReady = null;
+    var resolvePromise = fetchFilmTrailerByKp(kp, { title: film && film.title, year: film && film.year }).then(function (d) {
+      if (mountFilmTrailerUI._gen !== resolveGen) return null;
+      if (!d) return null;
+      if (d.digital_release) {
+        if (film) film.digital_release = film.digital_release || d.digital_release;
+        syncFilmDigitalReleaseChip(document, film || { digital_release: d.digital_release });
+      }
+      var playback = pickTrailerPlayback(d, { autoplay: true, muted: false });
+      if (!playback) return null;
+      if (playback.kind === 'youtube') {
+        playback = {
+          kind: 'youtube',
+          url: youtubeNocookieEmbedUrl(d.youtube_id, { autoplay: true, mute: false }),
+        };
+      } else if (playback.kind === 'kp_widget') {
+        playback = {
+          kind: 'kp_widget',
+          url: normalizeKpWidgetPlayUrl(playback.url || d.widget_url || d.play_url, {
+            autoplay: true,
+            muted: false,
+          }) || playback.url,
+        };
+      }
+      return playback;
+    });
+
+    function playWhenReady() {
+      if (playbackReady) {
+        openFilmTrailerLightbox(playbackReady);
+        return;
+      }
+      setFilmTrailerPillResolving(btn, true);
+      resolvePromise.then(function (playback) {
+        setFilmTrailerPillResolving(btn, false);
+        if (mountFilmTrailerUI._gen !== resolveGen) return;
+        if (!playback) {
+          hideFilmTrailerPill(slot, btn);
+          return;
+        }
+        playbackReady = playback;
+        openFilmTrailerLightbox(playback);
+      }).catch(function () {
+        setFilmTrailerPillResolving(btn, false);
+      });
+    }
+
+    if (btn) {
+      btn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        playWhenReady();
+      };
+    }
+
+    resolvePromise.then(function (playback) {
+      if (mountFilmTrailerUI._gen !== resolveGen) return;
+      if (!playback) {
+        // Only hide when we never claimed a trailer (no flash for known hits).
+        if (!eager) hideFilmTrailerPill(slot, btn);
+        else hideFilmTrailerPill(slot, btn);
+        setPosterTrailerPlayControl(hero, null);
+        return;
+      }
+      playbackReady = playback;
+      revealFilmTrailerPill(slot, btn);
+      setPosterTrailerPlayControl(hero, null);
+      try {
+        if (/#trailer/i.test(String(location.hash || ''))) playWhenReady();
+      } catch (_h) {}
+    });
+  }
+
 
   function cleanPosterUrl(src) {
     var s = String(src || '').trim();
@@ -649,6 +1362,31 @@
     );
   }
 
+  function buildFilmDiscoverySectionsHtml() {
+    return (
+      '<div class="film-discovery-bands">' +
+        '<section class="film-discovery-band hidden" id="film-cast-details" aria-labelledby="film-cast-details-title">' +
+          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Создатели и актёры</h2></div>' +
+          '<div class="film-people-rail" id="film-people-rail"></div>' +
+        '</section>' +
+        '<section class="film-discovery-band hidden" id="film-collections-root" aria-labelledby="film-collections-title">' +
+          '<div class="film-discovery-heading"><h2 id="film-collections-title">Фильм в подборках</h2></div>' +
+          '<div class="film-collections-rail"></div>' +
+        '</section>' +
+      '</div>'
+    );
+  }
+
+  function ensureFilmDiscoverySections() {
+    if (document.getElementById('film-cast-details')) return;
+    var hero = document.querySelector('.film-hero-with-tag');
+    if (!hero || !hero.parentNode) return;
+    var holder = document.createElement('div');
+    holder.innerHTML = buildFilmDiscoverySectionsHtml();
+    var bands = holder.firstElementChild;
+    if (bands) hero.parentNode.insertBefore(bands, hero.nextSibling);
+  }
+
   function bindFilmPageSimilarRailDrag(rail) {
     if (!rail || rail._mpDragScrollBound) return;
     rail._mpDragScrollBound = true;
@@ -699,6 +1437,33 @@
     rail.addEventListener('pointerup', endDrag);
     rail.addEventListener('pointercancel', endDrag);
     rail.addEventListener('lostpointercapture', endDrag);
+    // Same document/blur safety as home rails (cabinet-app mpHomeRailClearDragState).
+    // Prefer shared cabinet safety when present; else bind a local clear.
+    if (!window._mpHomeRailDragSafetyBound && !window._mpFilmSimilarRailSafetyBound) {
+      window._mpFilmSimilarRailSafetyBound = true;
+      var clearSimilarCapture = function () {
+        try {
+          if (typeof window.__mpClearHomeRailPointerState === 'function') {
+            window.__mpClearHomeRailPointerState();
+            return;
+          }
+        } catch (_g) {}
+        try {
+          document.querySelectorAll('.film-page-similar-rail, .home-rail--draggable').forEach(function (el) {
+            try { el.classList.remove('is-dragging'); } catch (_c) {}
+            if (typeof el.hasPointerCapture !== 'function' || typeof el.releasePointerCapture !== 'function') return;
+            for (var id = 0; id < 32; id++) {
+              try {
+                if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+              } catch (_r) {}
+            }
+          });
+        } catch (_e) {}
+      };
+      document.addEventListener('pointerup', clearSimilarCapture, true);
+      document.addEventListener('pointercancel', clearSimilarCapture, true);
+      window.addEventListener('blur', clearSimilarCapture);
+    }
     // Kill native image/link drag ghost that steals the gesture on posters.
     rail.addEventListener('dragstart', function (e) { e.preventDefault(); });
     rail.addEventListener('click', function (e) {
@@ -802,9 +1567,11 @@
     wrap.innerHTML = html;
     var section = wrap.firstElementChild;
     if (!section) return;
+    var discovery = pageRoot.querySelector('.film-discovery-bands');
     var promo = pageRoot.querySelector('.mp-public-promo');
     var hero = pageRoot.querySelector(':scope > section.hero, :scope > section.film-hero-with-tag, :scope > section');
-    if (promo) promo.insertAdjacentElement('beforebegin', section);
+    if (discovery) discovery.insertAdjacentElement('afterend', section);
+    else if (promo) promo.insertAdjacentElement('beforebegin', section);
     else if (hero) hero.insertAdjacentElement('afterend', section);
     else pageRoot.appendChild(section);
     section.querySelectorAll('.similar-rail-card[data-similar-kp]').forEach(function (card) {
@@ -863,13 +1630,29 @@
     return MP_POSTER_PLACEHOLDER;
   }
 
+  /** Hero: use KP film_big for Retina; retain API artwork as an error fallback. */
+  function filmHeroPosterSources(src, kpId) {
+    var fallback = cleanPosterUrl(src);
+    var kp = String(kpId || '').replace(/\D/g, '');
+    if (!kp) {
+      var match = fallback.match(/iphone360_(\d+)\.jpg|\/film_big\/(\d+)\.jpg/i);
+      kp = match ? String(match[1] || match[2] || '') : '';
+    }
+    var isKpArt = /(?:\/api\/public\/poster\/kp\/|avatars\.mds\.yandex\.net\/get-kinopoisk-image|st\.kp\.yandex\.net\/images\/)/i.test(fallback);
+    if (!fallback || !kp || !isKpArt || /film-poster-placeholder|no-poster/i.test(fallback)) {
+      return { src: fallback, fallback: '' };
+    }
+    var hq = '/api/public/poster/kp/st/images/film_big/' + kp + '.jpg';
+    return { src: hq, fallback: fallback === hq ? '' : fallback };
+  }
+
   function resolveFilmPosterDisplay(posterUrl, kpId) {
     var next = cleanPosterUrl(posterUrl);
-    if (next) return next;
+    if (next) return filmHeroPosterSources(next, kpId).src;
     var cur = currentFilmPosterFromDom();
-    if (cur) return cur;
+    if (cur) return filmHeroPosterSources(cur, kpId).src;
     var fallback = defaultPosterForKp(kpId);
-    if (fallback) return fallback;
+    if (fallback) return filmHeroPosterSources(fallback, kpId).src;
     return MP_POSTER_PLACEHOLDER;
   }
 
@@ -897,7 +1680,9 @@
   }
 
   function applyFilmPosterEl(posterUrl, kpId) {
-    var next = cleanPosterUrl(posterUrl);
+    var original = cleanPosterUrl(posterUrl);
+    var sources = filmHeroPosterSources(original, kpId);
+    var next = sources.src;
     var cur = currentFilmPosterFromDom();
     if (!next) {
       if (isGoodFilmPosterUrl(cur)) {
@@ -929,10 +1714,18 @@
       return;
     }
     if (pEl) {
+      if (sources.fallback) pEl.setAttribute('data-mp-poster-fallback', sources.fallback);
+      else pEl.removeAttribute('data-mp-poster-fallback');
       pEl.src = display;
       pEl.setAttribute('referrerpolicy', 'no-referrer');
       pEl.classList.toggle('mp-poster-placeholder', display.indexOf('film-poster-placeholder') >= 0);
       pEl.onerror = function () {
+        var fallback = this.getAttribute('data-mp-poster-fallback');
+        if (fallback) {
+          this.removeAttribute('data-mp-poster-fallback');
+          this.src = fallback;
+          return;
+        }
         if (global.mpPosterOnError) global.mpPosterOnError(this);
         else { this.onerror = null; this.src = MP_POSTER_PLACEHOLDER; this.classList.add('mp-poster-placeholder'); }
       };
@@ -948,7 +1741,15 @@
   try {
     if (!global.mpPosterOnError) {
       global.mpPosterOnError = function (img) {
-        if (!img || img.dataset.mpPosterFailed === '1') return;
+        if (!img) return;
+        var fallback = String(img.getAttribute('data-mp-poster-fallback') || '').trim();
+        if (fallback) {
+          img.removeAttribute('data-mp-poster-fallback');
+          delete img.dataset.mpPosterFailed;
+          img.src = fallback;
+          return;
+        }
+        if (img.dataset.mpPosterFailed === '1') return;
         img.onerror = null;
         img.dataset.mpPosterFailed = '1';
         img.src = MP_POSTER_PLACEHOLDER;
@@ -1846,11 +2647,11 @@
       hints.cinema_plan_id != null;
     var planLabel = formatFilmPlanCtaLabel(hints, item);
     var planItems = [
-      '<button type="button" class="action-dropdown-item" data-goto-plans="home">🏠 Дома</button>',
-      '<button type="button" class="action-dropdown-item" data-goto-plans="cinema">🎥 В кино</button>',
+      '<button type="button" class="action-dropdown-item" data-plan-place="home">🏠 Дома</button>',
+      '<button type="button" class="action-dropdown-item" data-plan-place="cinema">🎥 В кино</button>',
     ].join('');
     if (CINEMA_CLUB_TARGETS.length) {
-      planItems += '<button type="button" class="action-dropdown-item" data-goto-plans="club">🎬 Киноклуб</button>';
+      planItems += '<button type="button" class="action-dropdown-item" data-plan-place="club">🎬 Киноклуб</button>';
     }
     if (hints.has_upcoming || hints.next_plan_start_iso) {
       planItems =
@@ -2436,6 +3237,8 @@
     if (!authenticated) {
       var eyeIco = mpToolbarIcon('eye', { size: 'sm', className: 'film-icon-ico' }) ||
         '<span class="film-icon-ico" aria-hidden="true"><i class="ph ph-eye"></i></span>';
+      var planIco = mpToolbarIcon('calendar', { size: 'sm', className: 'film-icon-ico' }) ||
+        '<span class="film-icon-ico" aria-hidden="true">□</span>';
       return (
         '<div class="film-page-toolbar film-page-toolbar--guest">' +
           '<div class="film-toolbar-plan-wrap">' +
@@ -2443,13 +3246,16 @@
               id: 'guest-watchlist-cta',
               icon: 'watchlist',
               label: 'В список просмотра',
-              loginHint: true,
+              loginHint: false,
               dataAttrs: ' data-guest-watchlist="1"',
             }) +
           '</div>' +
           '<div class="film-toolbar-icons">' +
             '<button type="button" class="film-icon-btn" id="guest-watched-btn" data-guest-watched="1" aria-label="Просмотрено" title="Просмотрено">' +
               eyeIco + '<span class="film-icon-label">Просмотрено</span>' +
+            '</button>' +
+            '<button type="button" class="film-icon-btn" id="guest-plan-btn" data-guest-plan="1" aria-label="Запланировать" title="Запланировать">' +
+              planIco + '<span class="film-icon-label">В план</span>' +
             '</button>' +
             rateBtnOnly +
             shareInAppBtn +
@@ -2548,12 +3354,12 @@
         if (!wasOpen) dd.classList.add('open');
       });
     });
-    root.querySelectorAll('[data-goto-plans]').forEach(function (btn) {
+    root.querySelectorAll('[data-plan-place]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         closeFilmPlanDropdowns();
-        var place = btn.getAttribute('data-goto-plans') || 'home';
+        var place = btn.getAttribute('data-plan-place') || 'home';
         if (onPickPlace) onPickPlace(place);
       });
     });
@@ -2719,7 +3525,6 @@
     var filmCabinetRoute = !!(document.getElementById('cabinet-readonly') &&
       document.getElementById('cabinet-readonly').classList.contains('film-page-mode'));
     if (document.body && document.body.classList.contains('in-cabinet') && !filmCabinetRoute) return;
-    global.__MP_HEADER_SEARCH_BOUND = true;
     var input = document.getElementById('header-search-input');
     var dd = document.getElementById('header-search-dropdown');
     var clearBtn = document.getElementById('header-search-clear');
@@ -2734,6 +3539,9 @@
       'Оппенгеймер', 'Барби', 'Дюна', '1+1', 'Интерстеллар', 'Начало', 'Матрица', 'Нолан',
     ];
     if (!input || !dd) return;
+    /* Only mark bound after we know we will attach Enter → /search listeners */
+    global.__MP_HEADER_SEARCH_BOUND = true;
+    try { global.__mpHeaderSearchBound = true; } catch (_b) {}
     function escapeText(v) {
       return String(v || '').replace(/[&<>"']/g, function (c) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
@@ -3481,9 +4289,10 @@
     });
   }
 
-  function buildFilmMainInnerHtml(kpId, poster, mediaSensitive) {
+  function buildFilmMainInnerHtml(kpId, poster, mediaSensitive, opts) {
     var kpNumeric = numericKpFilmId(kpId);
-    var posterSrc = resolveFilmPosterDisplay(poster, kpNumeric);
+    var posterSources = filmHeroPosterSources(poster, kpNumeric);
+    var posterSrc = posterSources.src || resolveFilmPosterDisplay(poster, kpNumeric);
     var phCls = posterSrc.indexOf('film-poster-placeholder') >= 0 ? ' mp-poster-placeholder' : '';
     var isAuthed = !!mpToken();
     var toolbarHtml = buildFilmPageToolbar({ kp_id: kpNumeric }, { inBase: false, authenticated: isAuthed, canRate: true });
@@ -3493,10 +4302,22 @@
         '</button>')
       : '';
     var sensitiveCls = mediaSensitive ? ' mp-media-sensitive' : '';
+    var showTrailerPill = !!(opts && opts.showTrailerPill);
+    if (!showTrailerPill) {
+      try {
+        var bootPill = readMpRouteBoot();
+        if (bootPill && bootPill.has_trailer === true) showTrailerPill = true;
+      } catch (_bp) {}
+    }
     return (
       '<section class="hero film-hero-with-tag' + (isAuthed ? ' film-hero--authed' : '') + '" data-kp-id="' + escapeHtml(kpNumeric) + '">' +
         tagBtn +
-        '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '" alt="Постер" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+        filmPosterColWithTrailerHtml(
+          '<div class="poster-wrap' + (phCls ? ' film-poster-has-placeholder' : '') + sensitiveCls + '"><img class="poster' + phCls + '" id="poster" src="' + posterSrc + '"' +
+            (posterSources.fallback ? ' data-mp-poster-fallback="' + posterSources.fallback + '"' : '') +
+            ' alt="Постер" fetchpriority="high" referrerpolicy="no-referrer" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>',
+          { showTrailerPill: showTrailerPill }
+        ) +
         '<div class="hero-content">' +
           '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
           '<div class="film-hero-meta-stack">' +
@@ -3505,13 +4326,14 @@
             '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true" hidden></p>' +
             buildFilmExtRatingsSlotHtml(null) +
           '</div>' +
-          '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
+          '<div class="film-hero-crew hidden" id="film-cast-root" aria-hidden="true"></div>' +
           buildFilmDescWrapHtml() +
           toolbarHtml +
           buildFilmReviewsSlotHtml() +
           '<p class="status" id="hint"></p>' +
         '</div>' +
-      '</section>'
+      '</section>' +
+      buildFilmDiscoverySectionsHtml()
     );
   }
 
@@ -3638,6 +4460,18 @@
         global.MpPublicPromo.mountAfterHero(pageRoot);
       }
     } catch (_e) {}
+    // Eager trailer pill: mount as soon as boot paints (do not wait for /api/public/film).
+    try {
+      if (bootKp) {
+        mountFilmTrailerUI({
+          kp_id: bootKp,
+          title: boot.title,
+          year: boot.year,
+          has_trailer: boot.has_trailer === true,
+          digital_release: boot.digital_release || null,
+        });
+      }
+    } catch (_trBoot) {}
     // fest-/movie- keys contain years (…-2025); never treat those digits as kp_id → empty /facts wipe.
     if (descWrapBoot && meta.mode !== 'tmdb' && meta.mode !== 'fest' && meta.mode !== 'mp') {
       try {
@@ -3779,7 +4613,9 @@
           appOpenBannerHtml() +
           '<main class="film-page">' +
             '<section class="hero film-hero-with-tag">' +
-              '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>' +
+              filmPosterColWithTrailerHtml(
+                '<div class="poster-wrap film-poster-has-placeholder"><img class="poster mp-poster-placeholder" id="poster" src="' + MP_POSTER_PLACEHOLDER + '" alt="Постер" onerror="if(window.mpPosterOnError)window.mpPosterOnError(this)"></div>'
+              ) +
               '<div class="hero-content">' +
                 '<h1 id="film-title"><span class="mp-film-title-loading">Загрузка…</span></h1>' +
                 '<div class="film-hero-meta-stack">' +
@@ -3788,7 +4624,7 @@
                   '<p class="film-meta-line is-empty" id="film-meta-line" aria-hidden="true" hidden></p>' +
                   buildFilmExtRatingsSlotHtml(null) +
                 '</div>' +
-                '<div class="film-hero-crew is-loading" id="film-cast-root">' + buildFilmCastSkeletonHtml() + '</div>' +
+                '<div class="film-hero-crew hidden" id="film-cast-root" aria-hidden="true"></div>' +
                 buildFilmDescWrapHtml() +
                 buildFilmPageToolbar({ kp_id: '' }, { inBase: false, authenticated: false, canRate: true }) +
                 buildFilmReviewsSlotHtml() +
@@ -3796,6 +4632,7 @@
                 '<p class="status" id="hint"></p>' +
               '</div>' +
             '</section>' +
+            buildFilmDiscoverySectionsHtml() +
           '</main>' +
           '<aside id="film-seo-root" class="film-seo-root visually-hidden" aria-label="О фильме"></aside>' +
           '<footer class="footer">' +
@@ -3834,6 +4671,8 @@
 
       }
 
+      ensureFilmDiscoverySections();
+
       if (tokenEarly() && !forcePublic && !cabinetMode) {
         applyStandaloneAuthChrome({
           success: true,
@@ -3865,6 +4704,7 @@
       }
 
       var hint = document.getElementById('hint');
+      var publicFilmSnapshot = null;
 
       function setPageFavicon(imgUrl) {
         var url = String(imgUrl || '').trim();
@@ -4029,6 +4869,156 @@
       function rememberAction(action) {
         try { sessionStorage.setItem('mp_public_film_action', action + ':' + pathKey); } catch (_e) {}
       }
+      var GUEST_LIBRARY_KEY = 'mp_guest_library_v1';
+      var GUEST_PLANS_KEY = 'mp_guest_plans_v1';
+      var GUEST_ACTION_COUNT_KEY = 'mp_guest_action_count_v1';
+      var GUEST_NUDGE_KEY = 'mp_guest_signup_nudge_v1';
+      var guestMigrationPending = false;
+      function readGuestLibrary() {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(GUEST_LIBRARY_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(function (item) { return item && item.key; }) : [];
+        } catch (_e) { return []; }
+      }
+      function writeGuestLibrary(items) {
+        try { localStorage.setItem(GUEST_LIBRARY_KEY, JSON.stringify((items || []).slice(0, 200))); } catch (_e) {}
+      }
+      function readGuestPlans() {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(GUEST_PLANS_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(function (item) { return item && item.local_id; }) : [];
+        } catch (_e) { return []; }
+      }
+      function writeGuestPlans(items) {
+        try { localStorage.setItem(GUEST_PLANS_KEY, JSON.stringify((items || []).slice(0, 100))); } catch (_e) {}
+      }
+      function currentGuestFilm(patch) {
+        var f = publicFilmSnapshot || {};
+        var boot = readMpRouteBoot() || {};
+        return Object.assign({
+          key: pathKey,
+          kp_id: numericKpFilmId(kpId) ? Number(kpId) : null,
+          catalog_id: catalogId || null,
+          title: String(f.title || boot.title || document.getElementById('film-title') && document.getElementById('film-title').textContent || 'Фильм').trim(),
+          year: Number(f.year || boot.year || 0) || null,
+          poster: String(f.poster_url || boot.poster_url || '').trim(),
+          genres: String(f.genres || '').trim(),
+          is_series: !!f.is_series,
+          in_watchlist: true,
+          watched: false,
+          rating: 0,
+        }, patch || {});
+      }
+      function syncGuestToolbar(item) {
+        item = item || readGuestLibrary().find(function (row) { return row.key === pathKey; });
+        var addBtn = document.getElementById('guest-watchlist-cta') || document.getElementById('add-btn');
+        if (addBtn && item && item.in_watchlist) {
+          addBtn.classList.add('is-active');
+          addBtn.setAttribute('aria-label', 'В списке просмотра');
+          var label = addBtn.querySelector('.glass-cta-label, .film-icon-label');
+          if (label) label.textContent = 'В списке';
+        }
+        var watchedBtn = document.getElementById('guest-watched-btn');
+        if (watchedBtn) watchedBtn.classList.toggle('is-active', !!(item && item.watched));
+        var rating = Number(item && item.rating) || 0;
+        var rateBtn = document.getElementById('rate-toggle-btn');
+        if (rateBtn && rating) {
+          rateBtn.classList.add('film-icon-btn--rated');
+          var ico = rateBtn.querySelector('.film-icon-ico');
+          if (ico) ico.textContent = String(rating);
+        }
+        document.querySelectorAll('#rate-grid [data-rate]').forEach(function (btn) {
+          btn.classList.toggle('is-selected', Number(btn.getAttribute('data-rate')) === rating);
+        });
+      }
+      function maybeNudgeGuestSignup() {
+        var count = 0;
+        try {
+          count = Number(localStorage.getItem(GUEST_ACTION_COUNT_KEY) || 0) + 1;
+          localStorage.setItem(GUEST_ACTION_COUNT_KEY, String(count));
+          if (count < 2 || localStorage.getItem(GUEST_NUDGE_KEY) === '1') return;
+          localStorage.setItem(GUEST_NUDGE_KEY, '1');
+        } catch (_e) { return; }
+        filmPageConfirmDialog(
+          'Сохранить базу?',
+          'Сейчас она хранится только в этом браузере. Войдите, чтобы не потерять фильмы и открыть совместные списки.',
+          { confirmLabel: 'Зарегистрироваться', cancelLabel: 'Продолжить без регистрации', equalButtons: true, showClose: true }
+        ).then(function (ok) { if (ok) loginNow('guest_migrate'); });
+      }
+      function saveGuestFilm(patch, message) {
+        var items = readGuestLibrary();
+        var idx = items.findIndex(function (row) { return row.key === pathKey; });
+        var previous = idx >= 0 ? items[idx] : {};
+        var item = Object.assign(currentGuestFilm(), previous, patch || {}, { updated_at: new Date().toISOString() });
+        if (!item.added_at) item.added_at = item.updated_at;
+        if (idx >= 0) items[idx] = item; else items.unshift(item);
+        writeGuestLibrary(items);
+        syncGuestToolbar(item);
+        showPublicToast(message || 'Сохранено в этом браузере');
+        try { window.dispatchEvent(new CustomEvent('mp:guest-library-updated')); } catch (_e) {}
+        maybeNudgeGuestSignup();
+        return item;
+      }
+      function saveGuestPlan(payload) {
+        var film = currentGuestFilm({ in_watchlist: true });
+        var body = payload && payload.body || {};
+        if (!body.plan_datetime) return null;
+        var items = readGuestPlans();
+        var item = {
+          local_id: 'guest-plan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          plan_type: payload.mode === 'cinema' ? 'cinema' : 'home',
+          plan_datetime: String(body.plan_datetime),
+          key: film.key,
+          kp_id: film.kp_id,
+          catalog_id: film.catalog_id,
+          title: film.title,
+          year: film.year,
+          poster: film.poster,
+          cinema_name: String(body.cinema_name || '').trim(),
+          cinema_address: String(body.cinema_address || '').trim(),
+          created_at: new Date().toISOString(),
+        };
+        items.unshift(item);
+        writeGuestPlans(items);
+        saveGuestFilm({ in_watchlist: true }, 'План сохранён в этом браузере');
+        try { window.dispatchEvent(new CustomEvent('mp:guest-plans-updated')); } catch (_e) {}
+        return item;
+      }
+      function migrateGuestLibrary() {
+        if (!token() || guestMigrationPending) return Promise.resolve(false);
+        var items = readGuestLibrary().filter(function (item) { return Number(item.kp_id) > 0; }).slice(0, 50);
+        if (!items.length) return Promise.resolve(false);
+        guestMigrationPending = true;
+        var migrated = {};
+        var chain = Promise.resolve();
+        items.forEach(function (item) {
+          chain = chain.then(function () {
+            return fetch(apiBase + '/api/site/add-film', {
+              method: 'POST', headers: authHeaders(), body: JSON.stringify({ kp_id: Number(item.kp_id) })
+            }).then(function (r) { if (!r.ok) throw new Error('add_' + r.status); return r.json(); })
+              .then(function (added) {
+                if (!added || !added.success || !added.film_id) throw new Error('add_failed');
+                var updates = [];
+                if (item.watched) updates.push(fetch(apiBase + '/api/site/film/' + added.film_id + '/watched', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ watched: true })
+                }));
+                if (Number(item.rating) >= 1) updates.push(fetch(apiBase + '/api/site/film/' + added.film_id + '/rating', {
+                  method: 'POST', headers: authHeaders(), body: JSON.stringify({ rating: Number(item.rating) })
+                }));
+                return Promise.all(updates).then(function (responses) {
+                  if (responses.some(function (r) { return !r.ok; })) throw new Error('update_failed');
+                  migrated[item.key] = true;
+                });
+              }).catch(function () {});
+          });
+        });
+        return chain.then(function () {
+          var remaining = readGuestLibrary().filter(function (item) { return !migrated[item.key]; });
+          writeGuestLibrary(remaining);
+          if (Object.keys(migrated).length) showPublicToast('Фильмы перенесены в вашу базу');
+          return !!Object.keys(migrated).length;
+        }).finally(function () { guestMigrationPending = false; });
+      }
       function apiGet(path) {
         return fetch(apiBase + path, { method: 'GET', mode: 'cors' }).then(function (r) {
           if (!r.ok) throw new Error('api_' + r.status);
@@ -4084,6 +5074,23 @@
         }
       }
       var CAST_VISIBLE = 4;
+      function castPersonPath(entry) {
+        if (!entry) return '';
+        var path = String(entry.person_path || '').trim();
+        if (!path) {
+          var fest = String(entry.fest_person_slug || '').trim();
+          if (fest) path = '/s/fest-' + fest;
+        }
+        if (!path) {
+          var kp = String(entry.kp_person_id || '').replace(/\D/g, '');
+          if (kp) path = '/s/' + kp;
+        }
+        if (!path) {
+          var tid = String(entry.tmdb_person_id || entry.person_id || '').replace(/\D/g, '');
+          if (tid) path = '/s/tmdb-' + tid;
+        }
+        return path;
+      }
       function castPersonLink(entry) {
         if (!entry) return '';
         // KP cast uses name_ru/name_en; TMDB catalog cast uses `name`.
@@ -4091,26 +5098,10 @@
           return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
         if (!nm) return '';
-        var path = String(entry.person_path || '').trim();
-        if (!path) {
-          var fest = String(entry.fest_person_slug || '').trim();
-          if (fest) path = '/s/fest-' + fest;
-        }
-        if (!path) {
-          var kpRaw = entry.kp_person_id;
-          if (kpRaw != null && kpRaw !== '') {
-            var kp = String(kpRaw).replace(/\D/g, '');
-            if (kp) path = '/s/' + kp;
-          }
-        }
-        if (!path) {
-          var tid = String(entry.tmdb_person_id || entry.person_id || '').replace(/\D/g, '');
-          if (tid) path = '/s/tmdb-' + tid;
-        }
+        var path = castPersonPath(entry);
         if (!path) return '<span class="staff-cast-plain">' + nm + '</span>';
         var photoAttr = entry.photo ? (' data-staff-photo="' + String(entry.photo).replace(/"/g, '&quot;') + '"') : '';
-        var roleRaw = String(entry.character || entry.role || '').trim();
-        if (roleRaw.length > 72) roleRaw = roleRaw.slice(0, 69).replace(/\s+\S*$/, '') + '…';
+        var roleRaw = compactCastRoleLabel(entry.character || entry.role);
         var roleAttr = roleRaw ? (' data-staff-character="' + roleRaw.replace(/"/g, '&quot;') + '"') : '';
         var kpAttr = '';
         var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
@@ -4119,6 +5110,43 @@
         var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
         if (tmdbOnly && !kpOnly) tmdbAttr = ' data-staff-tmdb="' + tmdbOnly + '"';
         return '<a href="' + path.replace(/"/g, '') + '" class="staff-cast-link"' + kpAttr + tmdbAttr + ' data-staff-name="' + nm + '"' + photoAttr + roleAttr + '>' + nm + '</a>';
+      }
+      function compactCastRoleLabel(value) {
+        var role = String(value || '').replace(/\s+/g, ' ').trim();
+        if (!role) return '';
+        role = role.replace(/^играет\s+/i, '').split(/[;|]/)[0].trim();
+        if (/^сам(?:ого|у)\s+себя(?:\s*,.*)?$/i.test(role)) return 'Играет себя';
+        if (role.indexOf(',') > 0) role = role.split(',')[0].trim();
+        role = role.replace(/[.!?]+$/, '').trim();
+        if (role.length > 56) role = role.slice(0, 53).replace(/\s+\S*$/, '') + '…';
+        return role;
+      }
+      function buildPublicCastDetailsHtml(director, actors) {
+        var people = [];
+        if (director) {
+          people.push(Object.assign({}, director, { _mpDisplayRole: 'Режиссёр' }));
+        }
+        (actors || []).slice(0, 12).forEach(function (entry) { people.push(entry); });
+        return people.map(function (entry) {
+          var name = String(entry.name_ru || entry.name_en || entry.name || '').trim();
+          if (!name) return '';
+          var role = entry._mpDisplayRole || compactCastRoleLabel(entry.character || entry.role);
+          var path = castPersonPath(entry);
+          var photo = cleanPosterUrl(entry.photo) || '/images/person-avatar-placeholder.png';
+          var photoAttr = ' data-staff-photo="' + escapeHtml(photo) + '"';
+          var nameAttr = ' data-staff-name="' + escapeHtml(name) + '"';
+          var roleAttr = role ? ' data-staff-character="' + escapeHtml(role) + '"' : '';
+          var kpOnly = String(entry.kp_person_id || '').replace(/\D/g, '');
+          var tmdbOnly = String(entry.tmdb_person_id || (!kpOnly && entry.person_id) || '').replace(/\D/g, '');
+          var personAttr = kpOnly
+            ? ' data-staff-kp="' + kpOnly + '"'
+            : (tmdbOnly ? ' data-staff-tmdb="' + tmdbOnly + '"' : '');
+          var inner = '<img class="film-person-photo" src="' + escapeHtml(photo) + '" alt="' + escapeHtml(name) + '" loading="lazy" onerror="this.src=\'/images/person-avatar-placeholder.png\';this.onerror=null">' +
+            '<span class="film-person-copy"><strong>' + escapeHtml(name) + '</strong>' +
+            (role ? '<small>' + escapeHtml(role) + '</small>' : '') + '</span>';
+          if (!path) return '<div class="film-person-card">' + inner + '</div>';
+          return '<a class="film-person-card staff-cast-link" href="' + escapeHtml(path) + '"' + personAttr + nameAttr + photoAttr + roleAttr + '>' + inner + '</a>';
+        }).filter(Boolean).join('');
       }
       function buildPublicCastHtml(director, actors, country) {
         var parts = [];
@@ -4288,10 +5316,19 @@
         if (!roots.length || !d) return;
         var html = buildPublicCastHtml(d.director, d.actors || [], publicFilmCountry);
         roots.forEach(function (root) {
-          root.innerHTML = html || '';
-          markCastRootResolved(root, !!html);
-          if (html) bindPublicCastLinks(root);
+          root.innerHTML = '';
+          root.classList.add('hidden');
+          root.setAttribute('aria-hidden', 'true');
+          markCastRootResolved(root, false);
         });
+        var details = document.getElementById('film-cast-details');
+        var rail = document.getElementById('film-people-rail');
+        if (details && rail) {
+          var peopleHtml = buildPublicCastDetailsHtml(d.director, d.actors || []);
+          rail.innerHTML = peopleHtml;
+          details.classList.toggle('hidden', !peopleHtml);
+          if (peopleHtml) bindPublicCastLinks(rail);
+        }
         /* COURSE_OFFERS_SYNC_V1 */
         var hero = document.querySelector('.film-hero-with-tag');
         var dirKp = d.director && d.director.kp_person_id != null
@@ -4303,6 +5340,28 @@
             global.MpMonetization.mountCourseOffers(document.getElementById('film-page-content') || document.querySelector('main.film-page'), kpId);
           }
         } catch (_courseRemount) {}
+      }
+      function loadFilmCollections() {
+        var section = document.getElementById('film-collections-root');
+        if (!section || !numericKpFilmId(kpId)) return;
+        apiGet('/api/public/film/' + encodeURIComponent(kpId) + '/collections')
+          .then(function (d) {
+            var items = d && Array.isArray(d.collections) ? d.collections : [];
+            var rail = section.querySelector('.film-collections-rail');
+            if (!rail || !items.length) return;
+            rail.innerHTML = items.slice(0, 8).map(function (item) {
+              var code = String(item.short_code || '').trim();
+              var name = String(item.name || '').trim();
+              if (!code || !name) return '';
+              var count = Number(item.films_count || 0);
+              return '<a class="film-collection-link" href="/whattowatch/collections/' + encodeURIComponent(code) + '">' +
+                '<span class="film-collection-copy"><strong>' + escapeHtml(name) + '</strong>' +
+                (count ? '<small>' + count + ' фильмов и сериалов</small>' : '') + '</span>' +
+                '<span class="film-collection-arrow" aria-hidden="true">›</span></a>';
+            }).filter(Boolean).join('');
+            section.classList.toggle('hidden', !rail.innerHTML);
+          })
+          .catch(function () {});
       }
       function loadPublicCast() {
         var root = document.getElementById('film-cast-root') || document.getElementById('film-hero-cast-root');
@@ -4499,7 +5558,12 @@
         }
         place = place === 'cinema' ? 'cinema' : 'home';
         if (!token()) {
-          openStandalonePlanModal(isTmdbOnly ? { tmdb_id: Number(tmdbId), media_type: mediaType, catalog_id: catalogId, title: filmTitleForPlan() } : { kp_id: kpId, title: filmTitleForPlan() }, place, { guestMode: true, libraryChatId: targetChatId || null, onRequireAuth: function (planPayload) { rememberPendingGuestPlan(planPayload); loginNow('plan'); } });
+          var guestFilm = currentGuestFilm();
+          openStandalonePlanModal(guestFilm, place, {
+            guestMode: true,
+            libraryChatId: targetChatId || null,
+            onGuestSave: saveGuestPlan,
+          });
           return;
         }
         var extra = targetChatId ? { libraryChatId: targetChatId } : null;
@@ -4524,6 +5588,7 @@
       }
 
       loadPublicCast();
+      loadFilmCollections();
       if (!isTmdbOnly) scheduleLoadFacts();
       apiGet(publicFilmApi)
         .then(function (data) {
@@ -4536,6 +5601,7 @@
             return;
           }
           var f = data.film;
+          publicFilmSnapshot = f;
           publicFilmCountry = f.country || '';
           if (data.cast && (data.cast.director || (data.cast.actors && data.cast.actors.length))) {
             applyPublicCastPayload(data.cast);
@@ -4559,7 +5625,11 @@
           var title = titleBase;
           var tEl = document.getElementById('film-title');
           var dEl = document.getElementById('film-desc');
-          if (tEl) tEl.textContent = title;
+          if (tEl) {
+            tEl.classList.remove('has-title-logo');
+            tEl.textContent = title;
+            tEl.setAttribute('data-title-text', title);
+          }
           setFilmHeaderTitle(title);
           setFilmDescription(pickFilmDescription(f));
           // DoD: never leave hero without plot when public API already has it.
@@ -4595,7 +5665,9 @@
             }
           }
           syncFilmHeroMeta(document, f);
+          syncFilmDigitalReleaseChip(document, f);
           syncFilmExtRatings(document, f);
+          try { mountFilmTrailerUI(f); } catch (_tr) {}
           applyFilmMediaSensitive(document.querySelector('.film-page') || document.getElementById('film-page-content') || document, filmMediaSensitive(f));
 
           if (f.is_series) {
@@ -4647,6 +5719,7 @@
             }
           }
           if (hint) hint.textContent = '';
+          if (!token()) syncGuestToolbar();
           try {
             if (!token() && global.MpPublicPromo && typeof global.MpPublicPromo.mountAfterHero === 'function') {
               var promoRoot = document.getElementById('film-page-content')
@@ -4680,7 +5753,7 @@
         window.location.href = '/f/' + encodeURIComponent(pathKey);
       }
       function addCurrentFilm() {
-        if (!token()) { rememberAction('add'); loginNow('add'); return; }
+        if (!token()) { saveGuestFilm({ in_watchlist: true }, 'Добавлено в список в этом браузере'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d) return;
@@ -4694,7 +5767,7 @@
           .catch(function () { if (hint) hint.textContent = 'Ошибка сети'; });
       }
       function markWatchedCurrentFilm() {
-        if (!token()) { rememberAction('watched'); loginNow('watched'); return; }
+        if (!token()) { saveGuestFilm({ in_watchlist: true, watched: true }, 'Отмечено просмотренным в этом браузере'); return; }
         ensureFilm()
           .then(function (d) {
             if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
@@ -4725,7 +5798,12 @@
         startPlanFlow('home');
       }
       function setCurrentRating(v, anchor) {
-        if (!token()) { rememberAction('rate' + String(v)); loginNow('rate' + String(v)); return; }
+        if (!token()) {
+          saveGuestFilm({ in_watchlist: true, rating: Number(v) }, 'Оценка ' + String(v) + '/10 сохранена в браузере');
+          var guestPanel = document.getElementById('rating-expand-panel');
+          if (guestPanel) guestPanel.classList.add('hidden');
+          return;
+        }
         ensureFilm()
           .then(function (d) {
             if (!d || !d.success || !d.film_id) throw new Error('Не удалось подготовить фильм');
@@ -4774,12 +5852,21 @@
           try { sessionStorage.setItem('mp_public_film_action', 'add:' + pathKey); } catch (_e) {}
           addCurrentFilm();
         });
+        if (guestWatchlist) guestWatchlist.setAttribute('data-mp-guest-bound', '1');
         var guestWatched = document.getElementById('guest-watched-btn');
         if (guestWatched) guestWatched.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           markWatchedCurrentFilm();
         });
+        if (guestWatched) guestWatched.setAttribute('data-mp-guest-bound', '1');
+        var guestPlan = document.getElementById('guest-plan-btn');
+        if (guestPlan) guestPlan.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          planCurrentFilm();
+        });
+        if (guestPlan) guestPlan.setAttribute('data-mp-guest-bound', '1');
         var rg = document.getElementById('rate-grid');
         if (!rg) return;
         rg.querySelectorAll('[data-rate]').forEach(function (btn) {
@@ -4849,7 +5936,6 @@
           rateToggle.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            if (!token()) { rememberAction('rate'); loginNow('rate'); return; }
             togglePanel(rateToggle, ratingPanel);
           });
         }
@@ -5288,6 +6374,7 @@
         bindLogin: !cabinetMode,
         loginNow: loginNow,
         onLoginSuccess: function () {
+          migrateGuestLibrary();
           loadAuthFilmState();
           loadFilmFriendsSocialBlock();
           consumePendingAction();
@@ -5296,9 +6383,11 @@
       });
 
       loadAuthFilmState();
+      migrateGuestLibrary();
       loadFilmFriendsSocialBlock();
       consumePendingAction();
       document.addEventListener('mp:film-refresh-auth', function () {
+        migrateGuestLibrary();
         loadAuthFilmState();
         loadFilmFriendsSocialBlock();
         consumePendingAction();
@@ -5331,7 +6420,7 @@
   function filmPosterFsIgnoreEl(el) {
     if (!el || !el.closest) return true;
     return !!el.closest(
-      'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .mp-poster-fs-overlay'
+      'a, button, input, textarea, select, .film-ticket-btns, .film-poster-2sub-cta, .film-poster-ticket-stack, .film-hero-tag-btn, .film-poster-t-afisha-cta, .film-poster-trailer-play, .film-modal-poster-play, .film-modal-trailer-btn, .mp-poster-fs-overlay'
     );
   }
 
@@ -5478,6 +6567,22 @@
     bootstrap: bootstrap,
     renderFilmPage: renderFilmPage,
     parseFilmRoute: parseFilmRoute,
+    fetchFilmTrailerByKp: fetchFilmTrailerByKp,
+    fetchFilmTitleLogoByKp: fetchFilmTitleLogoByKp,
+    resolveTitleLogoUrl: resolveTitleLogoUrl,
+    prefetchTitleLogoUrl: prefetchTitleLogoUrl,
+    applyFilmTitleLogo: applyFilmTitleLogo,
+    pickTrailerPlayback: pickTrailerPlayback,
+    openFilmTrailerLightbox: openFilmTrailerLightbox,
+    closeFilmTrailerLightbox: closeFilmTrailerLightbox,
+    mountTrailerPlaybackEmbed: mountTrailerPlaybackEmbed,
+    mountHlsVideo: mountHlsVideo,
+    ensureHlsLib: ensureHlsLib,
+    publicizeKpWidgetPlayUrl: publicizeKpWidgetPlayUrl,
+    isKpWidgetUrl: isKpWidgetUrl,
+    normalizeKpWidgetPlayUrl: normalizeKpWidgetPlayUrl,
+    youtubeNocookieEmbedUrl: youtubeNocookieEmbedUrl,
+    mountFilmTrailerUI: mountFilmTrailerUI,
     buildFilmPageToolbar: buildFilmPageToolbar,
     initStandaloneSiteChrome: initStandaloneSiteChrome,
     standaloneNavHtml: standaloneNavHtml,
@@ -5488,6 +6593,7 @@
     appOpenBannerHtml: appOpenBannerHtml,
     standaloneHeaderSearchHtml: standaloneHeaderSearchHtml,
     mpToolbarIcon: mpToolbarIcon,
+    filmHeroPosterSources: filmHeroPosterSources,
     API_BASE: API_BASE,
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "title": "Надежда",
+  "portaled": true,
+  "parent": "mp-hover-portal-root",
+  "parentOk": true,
+  "zIndex": "250000",
+  "position": "fixed",
+  "rect": {
+    "left": 28,
+    "right": 448,
+    "top": 48,
+    "width": 420,
+    "height": 386.625
+  },
+  "posterRect": {
+    "left": 41,
+    "right": 127,
+    "width": 86
+  },
+  "trailerRect": {
+    "left": 41,
+    "right": 435,
+    "width": 394,
+    "height": 221.625
+  },
+  "clippedLeft": false,
+  "clippedRight": false,
+  "posterClipped": false,
+  "trailerClipped": false,
+  "efpOk": true,
+  "efpInfo": {
+    "tag": "DIV",
+    "id": "",
+    "cls": "home-film-preview home-film-preview--hover-trailer is-preview-portaled has-trail"
+  },
+  "efpPoint": {
+    "x": 34,
+    "y": 96
+  },
+  "secondNonPortaled": [],
+  "visibleCount": 1,
+  "rootExists": true,
+  "htmlOpenClass": true,
+  "cardTitle": "Надежда",
+  "cardIndex": 0,
+  "cardLeft": 24
+}
