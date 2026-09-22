@@ -57,7 +57,7 @@
   var OFFICIAL_ART_EURASIA = "https://data.vb.kg/image/big/2022-12-06_12-02-16_827409.jpg";
   var OFFICIAL_ART_KARO = "https://spb.hse.ru/data/2022/10/07/1729930238/3%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202022-10-05%20022043%20-%20%D0%9C%D0%B0%D1%80%D0%B8%D1%8F%20%D0%9C%D0%B0%D0%BA%D0%B0%D1%80%D0%BA%D0%B8%D0%BD%D0%B0.png";
   var OFFICIAL_ART_MESSAGE = "https://www.proficinema.com/upload/medialibrary/6b6/mahp00s41zrj4w3r9p7vpzg6zf98i0bl.png";
-  var OFFICIAL_ART_BEAT = "https://design.hse.ru/system/widget_fields/field_attachments/002/539/768/large_12/Media_Keyvisual_1080x1920-3_.jpg?1762760222=";
+  var OFFICIAL_ART_BEAT = "https://images.weserv.nl/?url=design.hse.ru/system/widget_fields/field_attachments/002/539/768/large_12/Media_Keyvisual_1080x1920-3_.jpg%3F1762760222%3D&w=1200&output=jpg";
   var OFFICIAL_ART_ITALIAN = "https://s3.kinoteatr.ru/upload/movies/1960879/cover.jpg";
 
   function row(title, director, year, venue, kp_id, poster, screening_at) {
