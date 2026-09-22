@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260922castDrag1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260922castDrag1">
+<link rel="preload" href="/style-v2.css?v=20260922festBrandNews2" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260922festBrandNews2">
     <script>
       (function () {
         try {
@@ -503,11 +503,12 @@
               if (content && !content.getAttribute('data-wtw-boot')) {
                 content.setAttribute('data-wtw-boot', '1');
                 var isFestBoot = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
+                var isFestDetailBoot = path.indexOf('/whattowatch/festivals/') === 0;
                 var hubArt = {
                   pick: 'https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/d9d353ab-f01a-4797-8a3a-c06457e47c06/600x900',
                   collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
                   clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
-                  festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900'
+                  festivals: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 1200%22%3E%3Crect width=%22800%22 height=%221200%22 fill=%22%23181326%22/%3E%3Ccircle cx=%22640%22 cy=%22190%22 r=%22260%22 fill=%22none%22 stroke=%22%23B389FF%22 stroke-width=%2242%22/%3E%3Ctext x=%2260%22 y=%22550%22 fill=%22white%22 font-family=%22Arial%22 font-size=%2290%22 font-weight=%22900%22%3EBEAT%3C/text%3E%3Ctext x=%2260%22 y=%22650%22 fill=%22white%22 font-family=%22Arial%22 font-size=%2290%22 font-weight=%22900%22%3EWEEKEND%3C/text%3E%3Ctext x=%2260%22 y=%221090%22 fill=%22%23B389FF%22 font-family=%22Arial%22 font-size=%2230%22 font-weight=%22700%22%3E%D0%9A%D0%98%D0%9D%D0%9E%D0%A4%D0%95%D0%A1%D0%A2%D0%98%D0%92%D0%90%D0%9B%D0%AC · 2026%3C/text%3E%3C/svg%3E'
                 };
                 function hubChip(label, key, active) {
                   var src = hubArt[key];
@@ -522,7 +523,7 @@
                   + hubChip('Фестивали', 'festivals', isFestBoot)
                   + '</nav>';
                 if (isFestBoot) {
-                  content.innerHTML = chips
+                  content.innerHTML = (isFestDetailBoot ? '' : chips)
                     + '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
                     + '<p class="clubs-loading-label">Загружаем фестивали…</p></div>';
                 } else {
@@ -4195,7 +4196,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260922castDrag1';
+        var V='20260922festBrandNews2';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

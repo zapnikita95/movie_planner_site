@@ -114,19 +114,81 @@
     return "/f/" + encodeURIComponent(String(kp));
   }
 
-  function newsStripHtml(news) {
-    if (!news || !news.length) return "";
-    var cards = news.slice(0, 6).map(function (n) {
-      var cover = n.cover
-        ? '<img class="fest-news-cover" src="' + esc(n.cover) + '" alt="" loading="lazy">'
+  function shortText(value, max) {
+    var text = String(value || "").replace(/\s+/g, " ").trim();
+    if (text.length <= max) return text;
+    return text.slice(0, Math.max(0, max - 1)).replace(/\s+\S*$/, "") + "…";
+  }
+
+  function newsDate(value) {
+    var m = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return "";
+    return String(Number(m[3])) + "." + m[2] + "." + m[1];
+  }
+
+  function newsStripHtml(news, state) {
+    var cards = (news || []).slice(0, 12).map(function (n) {
+      var cover = n.poster
+        ? '<img class="fest-news-cover" src="' + esc(n.poster) + '" alt="" loading="lazy">'
         : '<span class="fest-news-cover fest-news-cover--empty" aria-hidden="true"></span>';
-      return '<button type="button" class="fest-news-card" data-fest-open="' + esc(n.festival_slug) + '">'
+      var title = shortText(n.excerpt || n.teaser || n.film_title || "Новость фестиваля", 116);
+      var meta = [n.channel_title || n.channel_label, newsDate(n.posted_at)].filter(Boolean).join(" · ");
+      return '<a class="fest-news-card" href="' + esc(n.post_url || n.url || "#") + '" target="_blank" rel="noopener noreferrer nofollow">'
         + cover
-        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(n.title) + "</span></span></button>";
+        + '<span class="fest-news-copy"><span class="fest-news-title">' + esc(title) + "</span>"
+        + (meta ? '<span class="fest-news-meta">' + esc(meta) + "</span>" : "")
+        + "</span></a>";
     }).join("");
+    if (!cards) {
+      var message = state === "error"
+        ? "Не удалось загрузить новости. Попробуйте обновить страницу."
+        : (state === "loading" ? "Загружаем новости…" : "Свежих упоминаний фестивалей пока нет.");
+      cards = '<p class="cabinet-hint fest-news-empty">' + esc(message) + "</p>";
+    }
     return '<section class="fest-news" aria-label="Новости">'
       + '<h2 class="fest-block-title">Новости</h2>'
-      + '<div class="fest-news-rail">' + cards + "</div></section>";
+      + '<div class="fest-news-rail" data-festival-news-rail="1">' + cards + "</div></section>";
+  }
+
+  function hasFestivalMention(item) {
+    if (String(item && item.channel_kind || "").toLowerCase() === "festival") return true;
+    var text = [item && item.excerpt, item && item.teaser, item && item.film_title, item && item.channel_title]
+      .filter(Boolean).join(" ");
+    return /(кино)?фестивал|киносмотр|beat\s+(film|weekend)|флаэртиан|послани[ея]\s+к\s+человеку|встречи\s+в\s+сибири|евразия[.\s-]*doc|каро\s+арт|канн|cannes|берлинал|berlinale|венецианск|venice\s+film|sundance|tiff|торонто/i.test(text);
+  }
+
+  function buzzRequest(url) {
+    if (typeof global.fetch !== "function") return Promise.resolve({ ok: false, items: [] });
+    return global.fetch(url, { credentials: "omit", headers: { Accept: "application/json" } })
+      .then(function (response) {
+        if (!response.ok) throw new Error("buzz " + response.status);
+        return response.json();
+      })
+      .then(function (payload) {
+        return { ok: true, items: Array.isArray(payload && payload.items) ? payload.items : [] };
+      })
+      .catch(function () { return { ok: false, items: [] }; });
+  }
+
+  function loadFestivalNews() {
+    return Promise.all([
+      buzzRequest("/api/public/buzz?days=30&limit=100&view=posts"),
+      buzzRequest("/api/public/buzz?days=30&limit=100&view=posts&kind=festival"),
+    ]).then(function (results) {
+      var general = results[0];
+      var festival = results[1];
+      var merged = (festival.items || []).concat((general.items || []).filter(hasFestivalMention));
+      var seen = {};
+      var items = merged.filter(function (item) {
+        var key = String(item && (item.post_url || item.url) || "");
+        if (!key) key = [item && item.channel_title, item && item.posted_at, item && item.excerpt].join("|");
+        if (!key || seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+      items.sort(function (a, b) { return String(b.posted_at || "").localeCompare(String(a.posted_at || "")); });
+      return { ok: general.ok || festival.ok, items: items };
+    });
   }
 
   function carouselHtml(items) {
@@ -165,14 +227,20 @@
       return;
     }
     applyIndexSeo();
-    var news = data.newsFeed ? data.newsFeed() : [];
     var items = data.scheduleCarousel ? data.scheduleCarousel() : [];
     root.innerHTML = '<div class="festivals-page festivals-page--index">'
-      + '<h1 class="fest-index-title">Фестивали</h1>'
-      + newsStripHtml(news)
+      + newsStripHtml([], "loading")
       + carouselHtml(items)
       + "</div>";
     bindOpen(root);
+    loadFestivalNews().then(function (result) {
+      var rail = root.querySelector("[data-festival-news-rail]");
+      if (!rail) return;
+      var holder = document.createElement("div");
+      holder.innerHTML = newsStripHtml(result.items, result.ok ? "ready" : "error");
+      var next = holder.querySelector("[data-festival-news-rail]");
+      if (next) rail.replaceWith(next);
+    });
   }
 
   function timeLabel(iso) {

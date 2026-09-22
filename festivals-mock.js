@@ -24,6 +24,31 @@
   var COVER_MSG =
     "https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/d9d353ab-f01a-4797-8a3a-c06457e47c06/600x900";
 
+  function festivalCover(title, subtitle, bg, accent, motif) {
+    var words = String(title || "").split("|");
+    var lines = words.map(function (word, i) {
+      return '<text x="64" y="' + (500 + i * 82) + '" fill="#fff" font-family="Arial,sans-serif" font-size="62" font-weight="800" letter-spacing="-2">' + word + "</text>";
+    }).join("");
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">'
+      + '<rect width="800" height="1200" fill="' + bg + '"/>'
+      + '<circle cx="640" cy="190" r="260" fill="none" stroke="' + accent + '" stroke-width="42" opacity=".95"/>'
+      + '<path d="M-80 1020 L760 180 M40 1180 L880 340" stroke="' + accent + '" stroke-width="20" opacity=".8"/>'
+      + '<text x="64" y="410" fill="' + accent + '" font-family="Arial,sans-serif" font-size="150" font-weight="900">' + motif + "</text>"
+      + lines
+      + '<text x="64" y="1090" fill="' + accent + '" font-family="Arial,sans-serif" font-size="25" font-weight="700" letter-spacing="3">' + subtitle + "</text>"
+      + "</svg>";
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+  }
+
+  var FEST_COVER_SIB = festivalCover("ВСТРЕЧИ|В СИБИРИ", "НОВОСИБИРСК · 2026", "#101827", "#7BE7FF", "СИБ");
+  var FEST_COVER_FLAH = festivalCover("ФЛАЭРТИАНА", "ПЕРМЬ · 2026", "#142019", "#B5F23D", "ФЛА");
+  var FEST_COVER_SRETENIE = festivalCover("СРЕТЕНСКИЙ|ВСТРЕЧА", "ОБНИНСК · 2026", "#321813", "#FFB347", "ВСТ");
+  var FEST_COVER_EURASIA = festivalCover("ЕВРАЗИЯ.DOC", "СМОЛЕНСК · 2026", "#101D2F", "#FFD431", "DOC");
+  var FEST_COVER_KARO = festivalCover("КАРО АРТ", "МОСКВА · 2026", "#27102E", "#FF4BA6", "АРТ");
+  var FEST_COVER_MESSAGE = festivalCover("ПОСЛАНИЕ|К ЧЕЛОВЕКУ", "САНКТ-ПЕТЕРБУРГ · 2026", "#191919", "#FF704D", "M2M");
+  var FEST_COVER_BEAT = festivalCover("BEAT|WEEKEND", "18 ГОРОДОВ · 2026", "#181326", "#B389FF", "BW");
+  var FEST_COVER_ITALIAN = festivalCover("ИТАЛЬЯНСКИЕ|ИСТОРИИ", "АРХАНГЕЛЬСКОЕ · 2026", "#192819", "#FFDD5C", "IT");
+
   function row(title, director, year, venue, kp_id, poster, screening_at) {
     return {
       title: title,
@@ -41,7 +66,7 @@
       id: "siberia-meetings-2026",
       slug: "siberia-meetings-2026",
       title: "Встречи в Сибири",
-      cover: COVER_SIB,
+      cover: FEST_COVER_SIB,
       city: "Новосибирск",
       online: false,
       starts_at: "2026-09-21",
@@ -65,7 +90,7 @@
       id: "flahertiana-2026",
       slug: "flahertiana-2026",
       title: "Флаэртиана",
-      cover: COVER_FLAH,
+      cover: FEST_COVER_FLAH,
       city: "Пермь",
       online: false,
       starts_at: "2026-09-25",
@@ -89,7 +114,7 @@
       id: "sretensky-vstrecha-2026",
       slug: "sretensky-vstrecha-2026",
       title: "Сретенский «Встреча»",
-      cover: COVER_VENICE,
+      cover: FEST_COVER_SRETENIE,
       city: "Обнинск",
       online: false,
       starts_at: "2026-09-25",
@@ -112,7 +137,7 @@
       id: "eurasia-doc-2026",
       slug: "eurasia-doc-2026",
       title: "Евразия.DOC",
-      cover: COVER_KARO,
+      cover: FEST_COVER_EURASIA,
       city: "Смоленск",
       online: false,
       starts_at: "2026-09-28",
@@ -135,7 +160,7 @@
       id: "karofilmart-2026",
       slug: "karofilmart-2026",
       title: "Каро Арт",
-      cover: COVER_KARO,
+      cover: FEST_COVER_KARO,
       city: "Москва",
       online: false,
       starts_at: "2026-10-14",
@@ -161,7 +186,7 @@
       id: "message-to-man-2026",
       slug: "message-to-man-2026",
       title: "Послание к человеку",
-      cover: COVER_MSG,
+      cover: FEST_COVER_MESSAGE,
       city: "Санкт-Петербург",
       online: false,
       starts_at: "2026-10-16",
@@ -185,7 +210,7 @@
       id: "beatfilm-2026",
       slug: "beatfilm-2026",
       title: "Beat Weekend",
-      cover: COVER_BEAT,
+      cover: FEST_COVER_BEAT,
       city: "18 городов",
       online: true,
       starts_at: "2026-09-10",
@@ -215,7 +240,7 @@
       id: "italian-stories-2026",
       slug: "italian-stories-2026",
       title: "Итальянские истории",
-      cover: COVER_ITALIAN,
+      cover: FEST_COVER_ITALIAN,
       city: "Архангельское",
       online: false,
       starts_at: "2026-08-28",
@@ -237,10 +262,10 @@
   ];
 
   var NEWS = [
-    { id: "n-sib-open", festival_id: "siberia-meetings-2026", title: "«Встречи в Сибири» открылись в Новосибирске", cover: COVER_SIB, published_at: "2026-09-21" },
-    { id: "n-flah", festival_id: "flahertiana-2026", title: "Флаэртиана: программа Перми с 25 сентября", cover: COVER_FLAH, published_at: "2026-09-20" },
-    { id: "n-beat-close", festival_id: "beatfilm-2026", title: "Beat Weekend закрылся в 18 городах", cover: COVER_BEAT, published_at: "2026-09-20" },
-    { id: "n-karo", festival_id: "karofilmart-2026", title: "Каро Арт, афиша с 14 октября", cover: COVER_KARO, published_at: "2026-09-18" },
+    { id: "n-sib-open", festival_id: "siberia-meetings-2026", title: "«Встречи в Сибири» открылись в Новосибирске", cover: FEST_COVER_SIB, published_at: "2026-09-21" },
+    { id: "n-flah", festival_id: "flahertiana-2026", title: "Флаэртиана: программа Перми с 25 сентября", cover: FEST_COVER_FLAH, published_at: "2026-09-20" },
+    { id: "n-beat-close", festival_id: "beatfilm-2026", title: "Beat Weekend закрылся в 18 городах", cover: FEST_COVER_BEAT, published_at: "2026-09-20" },
+    { id: "n-karo", festival_id: "karofilmart-2026", title: "Каро Арт, афиша с 14 октября", cover: FEST_COVER_KARO, published_at: "2026-09-18" },
   ];
 
   var APPEARANCES = {

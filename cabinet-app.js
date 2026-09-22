@@ -23473,7 +23473,7 @@
     world: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10592371/20b18cde-faf5-47e3-b192-db9ae8c3d4ff/600x900',
     collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
     clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
-    festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900',
+    festivals: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 1200%22%3E%3Crect width=%22800%22 height=%221200%22 fill=%22%23181326%22/%3E%3Ccircle cx=%22640%22 cy=%22190%22 r=%22260%22 fill=%22none%22 stroke=%22%23B389FF%22 stroke-width=%2242%22/%3E%3Ctext x=%2260%22 y=%22550%22 fill=%22white%22 font-family=%22Arial%22 font-size=%2290%22 font-weight=%22900%22%3EBEAT%3C/text%3E%3Ctext x=%2260%22 y=%22650%22 fill=%22white%22 font-family=%22Arial%22 font-size=%2290%22 font-weight=%22900%22%3EWEEKEND%3C/text%3E%3Ctext x=%2260%22 y=%221090%22 fill=%22%23B389FF%22 font-family=%22Arial%22 font-size=%2230%22 font-weight=%22700%22%3E%D0%9A%D0%98%D0%9D%D0%9E%D0%A4%D0%95%D0%A1%D0%A2%D0%98%D0%92%D0%90%D0%9B%D0%AC · 2026%3C/text%3E%3C/svg%3E',
   };
   const SITE_WTW_SCOPES = {
     library: {
@@ -23646,7 +23646,7 @@
     return urls;
   }
 
-  const SITE_WTW_POSTER_CACHE_KEY = 'mp_wtw_scope_posters_v1';
+  const SITE_WTW_POSTER_CACHE_KEY = 'mp_wtw_scope_posters_v2';
 
   function siteWtwReadCachedPosters() {
     try {
@@ -24884,8 +24884,9 @@
     const isFest = siteWtwScope === 'festivals';
     const hidePickers = isColl || isClubs || isFest;
     const isPick = !hidePickers;
+    const isFestivalDetail = isFest && !!siteWtwFestivalSlug;
     root.innerHTML =
-      renderWtwHubChipsHtml(siteWtwScope)
+      (isFestivalDetail ? '' : renderWtwHubChipsHtml(siteWtwScope))
       + (isFest ? '<div id="site-wtw-festivals-panel" class="site-wtw-festivals-panel"></div>' : '')
       + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
       + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
