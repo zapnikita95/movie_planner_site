@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260922deskHub1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260922deskHub1">
+<link rel="preload" href="/style-v2.css?v=20260922hubPoster1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260922hubPoster1">
     <script>
       (function () {
         try {
@@ -503,11 +503,23 @@
               if (content && !content.getAttribute('data-wtw-boot')) {
                 content.setAttribute('data-wtw-boot', '1');
                 var isFestBoot = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
+                var hubArt = {
+                  pick: 'https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/d9d353ab-f01a-4797-8a3a-c06457e47c06/600x900',
+                  collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
+                  clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
+                  festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10835644/6ca9bb0e-c7c9-4705-9625-7f471535330c/600x900'
+                };
+                function hubChip(label, key, active) {
+                  var src = hubArt[key];
+                  return '<span class="wtw-hub-chip' + (active ? ' is-active' : '') + '" style="--wtw-poster:url(\'' + src + '\')">'
+                    + '<img class="wtw-hub-chip-art" src="' + src + '" alt="" decoding="async" onerror="this.remove()">'
+                    + '<span class="wtw-hub-chip-label">' + label + '</span></span>';
+                }
                 var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
-                  + '<span class="wtw-hub-chip">Подбор</span>'
-                  + '<span class="wtw-hub-chip">Коллекции</span>'
-                  + '<span class="wtw-hub-chip' + (isFestBoot ? '' : ' is-active') + '">Клубы</span>'
-                  + '<span class="wtw-hub-chip' + (isFestBoot ? ' is-active' : '') + '">Фестивали</span>'
+                  + hubChip('Подбор', 'pick', false)
+                  + hubChip('Коллекции', 'collections', false)
+                  + hubChip('Клубы', 'clubs', !isFestBoot)
+                  + hubChip('Фестивали', 'festivals', isFestBoot)
                   + '</nav>';
                 if (isFestBoot) {
                   content.innerHTML = chips
@@ -4183,7 +4195,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260922deskHub1';
+        var V='20260922hubPoster1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

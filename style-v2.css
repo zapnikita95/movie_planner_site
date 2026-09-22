@@ -33981,6 +33981,13 @@ body.in-cabinet #section-whattowatch .wtw-hub-chips {
   border-color: #ef1c7a;
   color: #fff;
 }
+.wtw-hub-chip-art {
+  display: none;
+}
+.wtw-hub-chip-label {
+  position: relative;
+  z-index: 1;
+}
 .wtw-pick-toggle {
   display: flex;
   width: 100%;
@@ -34602,6 +34609,7 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   .fest-info-list div { grid-template-columns: 1fr; gap: 2px; }
 }
 
+/* MARKER:20260922hubPoster1 — desktop hub chips: film poster behind the label. */
 /* MARKER:20260922deskHub1 — desktop: small header→nav gap, full-shell hub. */
 @media (min-width: 769px) {
   body.in-cabinet #site-header,
@@ -34659,6 +34667,9 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
     justify-self: stretch !important;
   }
   body.in-cabinet #section-whattowatch .wtw-hub-chip {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     min-height: 220px;
     padding: 18px 18px 16px;
     border-radius: 12px;
@@ -34667,11 +34678,43 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
     font-size: 22px;
     line-height: 1.15;
     letter-spacing: -0.03em;
+    background-color: #121216;
+    background-image:
+      linear-gradient(180deg, rgba(8, 8, 12, 0.06) 0%, rgba(8, 8, 12, 0.2) 46%, rgba(8, 8, 12, 0.82) 100%),
+      var(--wtw-poster, none);
+    background-size: cover;
+    background-position: center 18%;
   }
-  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(1) { background-color: #3a1a4a; }
-  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(2) { background-color: #1a3050; }
-  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(3) { background-color: #4a2030; }
-  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(4) { background-color: #3a2a12; }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip.is-active {
+    background-color: #121216;
+    background-image:
+      linear-gradient(180deg, rgba(8, 8, 12, 0.04) 0%, rgba(8, 8, 12, 0.16) 42%, rgba(8, 8, 12, 0.78) 100%),
+      var(--wtw-poster, none);
+    box-shadow: inset 0 0 0 2px #ef1c7a;
+    color: #fff;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip-art {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 18%;
+    pointer-events: none;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(8, 8, 12, 0.04) 0%, rgba(8, 8, 12, 0.12) 42%, rgba(8, 8, 12, 0.78) 100%);
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip-label {
+    z-index: 2;
+  }
   body.in-cabinet #section-whattowatch .site-wtw-festivals-panel,
   body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
   body.in-cabinet #section-whattowatch .site-wtw-clubs-panel,
