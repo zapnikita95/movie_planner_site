@@ -34150,6 +34150,17 @@ body.in-cabinet #section-whattowatch .whattowatch-result {
   flex: 0 0 auto;
   width: min(228px, 72vw);
   align-items: flex-start;
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.fest-news-card:hover,
+.fest-news-card:focus-visible {
+  opacity: 0.86;
+  transform: translateY(-2px);
+}
+.fest-news-empty {
+  margin: 0;
 }
 .fest-news-cover,
 .fest-sched-cover,
@@ -34178,6 +34189,12 @@ body.in-cabinet #section-whattowatch .whattowatch-result {
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.02em;
+}
+.fest-news-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
 }
 .fest-news-meta,
 .fest-sched-meta,
@@ -34388,14 +34405,6 @@ a.fest-prog-title:hover { color: #ff8ab8; }
 }
 body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-page-h1 {
   display: none !important;
-}
-.fest-index-title {
-  margin: 8px 0 14px;
-  font-family: Unbounded, sans-serif;
-  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
 }
 .fest-carousel {
   display: flex;
@@ -34702,6 +34711,12 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
       var(--wtw-poster, none);
     background-size: cover;
     background-position: center 18%;
+    transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:hover,
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:focus-visible {
+    transform: translateY(-4px);
+    filter: brightness(1.12);
   }
   body.in-cabinet #section-whattowatch .wtw-hub-chip.is-active {
     background-color: #121216;
