@@ -14,6 +14,7 @@ assert.doesNotMatch(page, /film-hero-crew is-loading" id="film-cast-root"/);
 assert.match(page, /data-staff-photo=/);
 assert.match(page, /data-staff-kp=/);
 assert.match(page, /data-staff-tmdb=/);
+assert.match(page, /bindPublicCastLinks\(rail\);\s*bindFilmPageSimilarRailDrag\(rail\);/);
 
 const castStyles = styles.slice(
   styles.indexOf('.film-people-rail {'),
@@ -23,6 +24,11 @@ assert.match(castStyles, /flex-direction:\s*column/);
 assert.match(castStyles, /aspect-ratio:\s*3\s*\/\s*4/);
 assert.match(castStyles, /white-space:\s*normal/);
 assert.doesNotMatch(castStyles, /text-overflow:\s*ellipsis/);
+assert.match(castStyles, /scrollbar-width:\s*none/);
+assert.match(castStyles, /-ms-overflow-style:\s*none/);
+assert.match(castStyles, /\.film-people-rail::\-webkit-scrollbar\s*\{[\s\S]*display:\s*none/);
+assert.match(castStyles, /cursor:\s*grab/);
+assert.match(castStyles, /\.film-people-rail\.is-dragging[\s\S]*cursor:\s*grabbing/);
 assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.film-collections-rail\s*\{[\s\S]*display:\s*block/);
 assert.match(styles, /\.film-collection-link\s*\{\s*width:\s*100%/);
 
@@ -37,6 +43,6 @@ assert.match(ads, /if \(!isDesktop\(\)\) \{\s*clearFilmMobileStrips\(\);\s*retur
 const consent = fs.readFileSync('cookie-consent.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(consent, /loadScriptOnce\('\/yandex-rsy\.js\?v=' \+ BUILD/);
-assert.match(index, /cookie-consent\.js\?v=20260920castcards4/);
+assert.match(index, /cookie-consent\.js\?v=20260920legal1/);
 
 console.log('film cast layout contract ok');
