@@ -23059,6 +23059,7 @@
     world: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10592371/20b18cde-faf5-47e3-b192-db9ae8c3d4ff/600x900',
     collections: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/94dd6f44-d662-4bdb-aa9f-6a08f955e642/600x900',
     clubs: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10703959/afb31142-79da-4209-9877-657521673aba/600x900',
+    festivals: 'https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/996e145d-a771-4f85-9d4f-cd69f1313d6c/600x900',
   };
   const SITE_WTW_SCOPES = {
     library: {
@@ -23118,6 +23119,7 @@
     { key: 'pick', label: 'Подбор' },
     { key: 'collections', label: 'Коллекции' },
     { key: 'clubs', label: 'Клубы' },
+    { key: 'festivals', label: 'Фестивали' },
   ];
   let siteWtwScope = 'library';
   let siteWtwCollectionCode = null;
@@ -23254,6 +23256,20 @@
       if (card.style.getPropertyValue('--wtw-poster') === next) return;
       card.style.setProperty('--wtw-poster', next);
     });
+    const hubMap = {
+      pick: (posters && posters.library) || (o.allowFallback ? SITE_WTW_SCOPE_FALLBACKS.library : ''),
+      collections: (posters && posters.collections) || (o.allowFallback ? SITE_WTW_SCOPE_FALLBACKS.collections : ''),
+      clubs: (posters && posters.clubs) || (o.allowFallback ? SITE_WTW_SCOPE_FALLBACKS.clubs : ''),
+      festivals: (posters && posters.festivals) || (o.allowFallback ? SITE_WTW_SCOPE_FALLBACKS.festivals : ''),
+    };
+    Object.keys(hubMap).forEach((hub) => {
+      const chip = root.querySelector('[data-wtw-hub="' + hub + '"]');
+      if (!chip) return;
+      const url = siteWtwAbsolutePosterUrl(hubMap[hub]);
+      if (!url) return;
+      const next = 'url("' + String(url).replace(/"/g, '%22') + '")';
+      chip.style.setProperty('--wtw-poster', next);
+    });
   }
 
   function loadSiteWtwScopePosters() {
@@ -23272,23 +23288,32 @@
       const collectionPosters = collections.reduce(function (all, item) {
         return all.concat((item && item.preview_posters) || []);
       }, []);
+      let festCover = SITE_WTW_SCOPE_FALLBACKS.festivals;
+      try {
+        const mock = window.MpFestivalsMock;
+        const first = mock && typeof mock.teaserList === 'function' ? mock.teaserList()[0] : null;
+        if (first && first.cover) festCover = first.cover;
+      } catch (_) {}
       const posters = {
         library: siteWtwPosterFromFilm(library[0]) || SITE_WTW_SCOPE_FALLBACKS.library,
         world: siteWtwPosterFromFilm(world[0]) || SITE_WTW_SCOPE_FALLBACKS.world,
         collections: siteWtwAbsolutePosterUrl(collectionPosters[0]) || SITE_WTW_SCOPE_FALLBACKS.collections,
         clubs: siteWtwPostersFromClubs(results[3])[0] || SITE_WTW_SCOPE_FALLBACKS.clubs,
+        festivals: festCover,
       };
       return Promise.all([
         siteWtwPreloadPoster(posters.library),
         siteWtwPreloadPoster(posters.world),
         siteWtwPreloadPoster(posters.collections),
         siteWtwPreloadPoster(posters.clubs),
+        siteWtwPreloadPoster(posters.festivals),
       ]).then(function (abs) {
         const ready = {
           library: abs[0] || posters.library,
           world: abs[1] || posters.world,
           collections: abs[2] || posters.collections,
           clubs: abs[3] || posters.clubs,
+          festivals: abs[4] || posters.festivals,
         };
         siteWtwWriteCachedPosters(ready);
         siteWtwApplyScopePosters(ready);
@@ -24387,7 +24412,7 @@
         }
       } else {
         const saved = sessionStorage.getItem('mp_wtw_scope');
-        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs') {
+        if (saved === 'world' || saved === 'library' || saved === 'collections' || saved === 'clubs' || saved === 'festivals') {
           siteWtwScope = saved;
         }
       }
@@ -24404,7 +24429,7 @@
     const hidePickers = isColl || isClubs || isFest;
     const isPick = !hidePickers;
     root.innerHTML =
-      (isFest ? '' : renderWtwHubChipsHtml(siteWtwScope))
+      renderWtwHubChipsHtml(siteWtwScope)
       + (isFest ? '<div id="site-wtw-festivals-panel" class="site-wtw-festivals-panel"></div>' : '')
       + (isColl ? '<div id="site-wtw-collections-panel" class="site-wtw-collections-panel"></div>' : '')
       + (isClubs ? '<div id="site-wtw-clubs-panel" class="site-wtw-clubs-panel"></div>' : '')
@@ -24497,9 +24522,10 @@
           siteWtwScope = lastWtwPickScope();
           siteWtwCollectionCode = null;
           siteWtwFestivalSlug = null;
-        } else if (hub === 'collections' || hub === 'clubs') {
+        } else if (hub === 'collections' || hub === 'clubs' || hub === 'festivals') {
           if (hub === 'collections' && siteWtwScope === 'collections' && !siteWtwCollectionCode) return;
           if (hub === 'clubs' && siteWtwScope === 'clubs') return;
+          if (hub === 'festivals' && siteWtwScope === 'festivals' && !siteWtwFestivalSlug) return;
           siteWtwScope = hub;
           siteWtwCollectionCode = null;
           siteWtwFestivalSlug = null;
@@ -24536,6 +24562,8 @@
     else if (isClubs) paintWtwClubsPanel();
     else if (isFest) paintWtwFestivalsPanel();
     else bindSiteWtwModeRows(root.querySelector('#site-wtw-modes'));
+    siteWtwApplyScopePosters(siteWtwReadCachedPosters() || {}, { allowFallback: true });
+    try { loadSiteWtwScopePosters(); } catch (_) {}
   }
 
   window.__mpWtwCollectionsBack = function () {

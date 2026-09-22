@@ -56,8 +56,8 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
 
 
-<link rel="preload" href="/style-v2.css?v=20260921retentionP0" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260921retentionP0">
+<link rel="preload" href="/style-v2.css?v=20260922festivals1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260922festivals1">
     <script>
       (function () {
         try {
@@ -505,15 +505,17 @@
               if (content && !content.getAttribute('data-wtw-boot')) {
                 content.setAttribute('data-wtw-boot', '1');
                 var isFestBoot = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
+                var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
+                  + '<span class="wtw-hub-chip">Подбор</span>'
+                  + '<span class="wtw-hub-chip">Коллекции</span>'
+                  + '<span class="wtw-hub-chip' + (isFestBoot ? '' : ' is-active') + '">Клубы</span>'
+                  + '<span class="wtw-hub-chip' + (isFestBoot ? ' is-active' : '') + '">Фестивали</span>'
+                  + '</nav>';
                 if (isFestBoot) {
-                  content.innerHTML = '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
+                  content.innerHTML = chips
+                    + '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
                     + '<p class="clubs-loading-label">Загружаем фестивали…</p></div>';
                 } else {
-                  var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
-                    + '<span class="wtw-hub-chip">Подбор</span>'
-                    + '<span class="wtw-hub-chip">Коллекции</span>'
-                    + '<span class="wtw-hub-chip is-active">Клубы</span>'
-                    + '</nav>';
                   content.innerHTML = chips
                     + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
                     + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
@@ -2937,7 +2939,7 @@
                     </div>
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch" aria-label="Смотреть">
-                    <h1 class="guest-discover-h1 whattowatch-page-h1" id="whattowatch-page-h1">Что посмотреть</h1>
+                    <h1 class="guest-discover-h1 whattowatch-page-h1 visually-hidden" id="whattowatch-page-h1">Смотреть</h1>
                     <p class="whattowatch-seo-lead visually-hidden" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди «хочу посмотреть», по эмоции, пожеланиям или из каталога. Коллекции, киноклубы и фестивали рядом.</p>
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
@@ -3035,13 +3037,18 @@
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
-                    <section id="premieres-festivals" class="premieres-festivals" hidden aria-label="Фестивали">
-                        <div class="premieres-now-playing-head">
+                    <details id="premieres-festivals" class="premieres-festivals" hidden>
+                        <summary class="premieres-festivals-summary">
                             <h3 class="premieres-now-playing-title">Фестивали</h3>
-                            <a class="btn btn-secondary btn-small" href="/whattowatch/festivals">Все фестивали</a>
+                            <span class="premieres-fest-caret" aria-hidden="true"></span>
+                        </summary>
+                        <div class="premieres-festivals-body">
+                            <div id="premieres-festivals-list" class="premieres-festivals-list"></div>
+                            <p class="premieres-festivals-more">
+                                <a class="btn btn-secondary" href="/whattowatch/festivals">Все фестивали</a>
+                            </p>
                         </div>
-                        <div id="premieres-festivals-list" class="premieres-festivals-list"></div>
-                    </section>
+                    </details>
                     <section id="premieres-now-playing" class="premieres-now-playing" hidden aria-label="Сейчас в кино">
                         <div class="premieres-now-playing-head">
                             <h3 class="premieres-now-playing-title">Сейчас в кино</h3>
@@ -4179,7 +4186,7 @@
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
 
-        var V='20260921retentionP0';
+        var V='20260922festivals1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

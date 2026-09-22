@@ -384,6 +384,10 @@
       return;
     }
     root.hidden = false;
+    if (!root.getAttribute("data-fest-ready")) {
+      root.removeAttribute("open");
+      root.setAttribute("data-fest-ready", "1");
+    }
     rail.innerHTML = items.map(teaserRowHtml).join("");
   }
 
