@@ -12499,6 +12499,42 @@ body.film-standalone-page .cabinet a.mp-stream-btn:hover {
   padding: 11px 18px;
 }
 
+/* Home empty / evening-rail empty CTAs: re-assert firm pills.
+   Later charcoal `.btn-secondary { background: rgba... }` otherwise paints flat gray. */
+.home-dash-empty--cta .plans-empty-actions .btn.btn-primary,
+.plans-empty-actions--compact .btn.btn-primary {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 0 22px rgba(255, 45, 123, 0.28);
+  border-radius: 50px !important;
+  height: auto !important;
+}
+.home-dash-empty--cta .plans-empty-actions .btn.btn-secondary,
+.plans-empty-actions--compact .btn.btn-secondary {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+  box-shadow: none !important;
+  border-radius: 50px !important;
+  height: auto !important;
+}
+.retention-goal-btn.btn.btn-secondary {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+  height: auto !important;
+  min-height: 44px;
+  border-radius: 50px !important;
+}
+
 /* What to watch cards and wizard */
 .whattowatch-result-card {
   display: grid;
@@ -12991,6 +13027,133 @@ body.film-standalone-page .cabinet a.mp-stream-btn:hover {
   76% { opacity: 1; transform: translate(-50%, -154%) scale(1.02) rotate(0); }
   100% { opacity: 0; transform: translate(-50%, -196%) scale(0.94) rotate(0); }
 }
+/* ── Coin shop sheet: warm utility, not a paywall ─────────────────────── */
+.coins-shop-backdrop {
+  position: fixed;
+  z-index: 10060;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(6, 5, 12, .72);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease;
+}
+.coins-shop-backdrop.is-open { opacity: 1; pointer-events: auto; }
+.coins-shop-sheet {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100dvh - 28px));
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid rgba(255, 181, 71, .25);
+  border-radius: 24px;
+  background: linear-gradient(150deg, #1b1620 0%, #111117 72%);
+  color: #f7f3ed;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .54), 0 0 0 1px rgba(255, 255, 255, .03) inset;
+  transform: translateY(18px) scale(.98);
+  transition: transform .2s cubic-bezier(.16, 1, .3, 1);
+  outline: none;
+}
+.coins-shop-backdrop.is-open .coins-shop-sheet { transform: translateY(0) scale(1); }
+.coins-shop-close {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+  color: #f7f3ed;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+.coins-shop-close:hover { background: rgba(255, 255, 255, .13); }
+.coins-shop-kicker {
+  margin-bottom: 4px;
+  color: #ffb547;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.coins-shop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-right: 38px;
+}
+.coins-shop-head h2 { margin: 0 0 7px; font-size: clamp(23px, 4vw, 30px); letter-spacing: -.02em; }
+.coins-shop-head p { max-width: 360px; margin: 0; color: rgba(247, 243, 237, .68); font-size: 13px; line-height: 1.45; }
+.coins-shop-balance {
+  display: grid;
+  min-width: 88px;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 12px 8px;
+  border: 1px solid rgba(255, 181, 71, .3);
+  border-radius: 15px;
+  background: rgba(255, 181, 71, .09);
+  color: #ffcf79;
+}
+.coins-shop-balance .header-coins-sprite { width: 22px; height: 22px; }
+.coins-shop-balance b { font-size: 20px; line-height: 1; }
+.coins-shop-balance small { color: rgba(255, 236, 194, .7); font-size: 10px; white-space: nowrap; }
+.coins-shop-section-label { margin: 22px 0 8px; color: rgba(247, 243, 237, .55); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.coins-shop-list { display: grid; gap: 6px; }
+.coins-shop-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .035);
+}
+.coins-shop-row-icon { display: grid; place-items: center; font-size: 20px; }
+.coins-shop-row-copy { min-width: 0; }
+.coins-shop-row-copy strong { display: block; font-size: 13px; line-height: 1.25; }
+.coins-shop-row-copy small { display: block; margin-top: 2px; overflow: hidden; color: rgba(247, 243, 237, .55); font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.coins-shop-price { display: grid; justify-items: end; gap: 2px; white-space: nowrap; }
+.coins-shop-price b { color: #ffb547; font-size: 14px; }
+.coins-shop-price small { color: rgba(255, 236, 194, .55); font-size: 10px; }
+.coins-shop-note { margin: 13px 1px 0; color: rgba(247, 243, 237, .52); font-size: 11px; line-height: 1.45; }
+.coins-shop-support {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255, 181, 71, .18);
+  border-radius: 16px;
+  background: linear-gradient(110deg, rgba(255, 181, 71, .09), rgba(255, 45, 123, .05));
+}
+.coins-shop-support-icon { font-size: 22px; line-height: 1.1; }
+.coins-shop-support-copy { min-width: 0; }
+.coins-shop-support-copy strong { font-size: 13px; }
+.coins-shop-support-copy p { margin: 4px 0 8px; color: rgba(247, 243, 237, .66); font-size: 11px; line-height: 1.45; }
+.coins-shop-support-links { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.coins-shop-support-links a { color: #ffb547; font-size: 12px; font-weight: 700; text-decoration: none; }
+.coins-shop-support-links a:hover { color: #ffd27f; text-decoration: underline; text-underline-offset: 3px; }
+body.coins-shop-open { overflow: hidden; }
+@media (max-width: 560px) {
+  .coins-shop-backdrop { padding: 0; }
+  .coins-shop-sheet { width: 100%; max-height: min(88dvh, 760px); padding: 21px 15px calc(17px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; }
+  .coins-shop-head { gap: 10px; padding-right: 36px; }
+  .coins-shop-head p { font-size: 12px; }
+  .coins-shop-balance { min-width: 74px; padding-inline: 8px; }
+  .coins-shop-row { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; padding: 8px 9px; }
+  .coins-shop-row-copy strong { font-size: 12px; }
+  .coins-shop-row-copy small { font-size: 10px; }
+}
+
 /* ── /Coins widget ───────────────────────────────────────────────────── */
 
 /* ── Friends / Social (Друзья и группы) ──────────────────────────────── */
@@ -15921,9 +16084,8 @@ body.landing-root-page #landing-root-nav.hidden {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   }
 }
-body.header-search-body-locked {
-  overflow: hidden !important;
-}
+/* Do not overflow:hidden the document here: it kills sticky header and
+   jumps the search row on focus. Marker: search-jump-stable-20260922 */
 body.header-search-dropdown-open #site-header {
   overflow: visible !important;
   z-index: 420 !important;
@@ -15964,9 +16126,11 @@ body.header-search-dropdown-open .header-search-dropdown {
 @media (max-width: 720px) {
   .header-search { margin: 8px 0 0 !important; flex-basis: 100% !important; }
   .header-search .header-search-input {
-    min-height: 40px !important;
-    line-height: 40px !important;
-    font-size: 14px !important;
+    /* 16px: iOS zooms inputs <16px and the whole header jumps. Keep 48px
+       so focus does not shrink the pill (was 40px). search-jump-stable-20260922 */
+    min-height: 48px !important;
+    line-height: 48px !important;
+    font-size: 16px !important;
   }
   .header-search {
     --search-left-lane: 44px;
@@ -20105,6 +20269,47 @@ body.guest-cabinet-preview #section-home .home-pre-card,
   line-height: 1.35;
 }
 .home-pre-card-body { padding: 0 0 2px; }
+
+/* Left chrome on premiere posters: date + ★ rating sit compactly (no full-width stretch).
+   Bug was left+right absolute on .home-rated-badge → stretched pink pill across poster. */
+.premiere-poster-chrome-left {
+  position: absolute;
+  left: 5px;
+  bottom: 5px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 34px); /* leave room for BR bell */
+  pointer-events: none;
+}
+.premiere-poster-chrome-left .premiere-poster-date-pill {
+  position: static;
+  left: auto;
+  bottom: auto;
+  flex: 0 0 auto;
+}
+.premiere-poster-chrome-left .home-rated-badge {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: 0 0 auto;
+  z-index: auto;
+  pointer-events: none;
+}
+
+/* Fallback if rating badge is not wrapped (legacy markup): never stretch via left+right */
+.premiere-poster-media > .home-rated-badge,
+.home-pre-card-poster > .home-rated-badge {
+  position: absolute;
+  left: 5px;
+  right: auto;
+  bottom: 5px;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .home-rated-badge {
   position: absolute;
   right: 4px;
@@ -24334,33 +24539,14 @@ body:not(.in-cabinet) .nyt-century-article > .nyt-ballot-list {
 }
 
 @media (max-width: 768px) {
+  /* Keep sticky. sticky→fixed + padding-top:var(--header-pinned-h) jumps the
+     search row on tap. search-jump-stable-20260922 */
   body.header-search-dropdown-open #site-header {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
     transform: none !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     overflow: visible !important;
     z-index: 500 !important;
-  }
-
-  /* Landing: content-wrapper is the scroll root (header outside / different). */
-  body.header-search-dropdown-open.landing-root-page .content-wrapper {
-    padding-top: var(--header-pinned-h, 96px);
-  }
-  /* Standalone thin shells: do NOT pad .page-shell (it owns #site-header). Padding the shell
-     with the default 140px while header is position:fixed creates a black abyss above/around
-     the header on /donations and articles. Pad in-flow main instead. */
-  body.header-search-dropdown-open.film-standalone-page .page-shell > main,
-  body.header-search-dropdown-open.article-standalone-page .page-shell > main,
-  body.header-search-dropdown-open.staff-standalone-page .page-shell > main,
-  body.header-search-dropdown-open.user-standalone-page .page-shell > main {
-    padding-top: var(--header-pinned-h, 96px);
   }
 
   body.header-search-dropdown-open .header-search-dropdown:not(.hidden) {
@@ -24637,11 +24823,6 @@ body:not(.in-cabinet) .nyt-century-article > .nyt-ballot-list {
   body.landing-root-page .header-search .header-search-input,
   body.header-search-input-focused .header-search .header-search-input {
     background: #1a1a22 !important;
-    border-radius: 8px !important;
-  }
-
-  body.landing-root-page .header-search {
-    border-radius: 8px !important;
   }
 
   body.landing-root-page #landing-root-nav {
@@ -30293,6 +30474,8 @@ a.collections-author-block:hover {
 .home-retention {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  grid-auto-rows: minmax(0, auto);
+  align-items: stretch;
   gap: 14px;
   margin: 0 0 18px;
   font-family: 'Unbounded', sans-serif;
@@ -30303,7 +30486,15 @@ a.collections-author-block:hover {
   background: #17171d;
   border-radius: 12px;
 }
-.retention-daily { grid-row: span 2; overflow: hidden; }
+.retention-daily {
+  grid-row: span 2;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 100%;
+  height: 100%;
+}
 .retention-kicker {
   display: block;
   margin-bottom: 5px;
@@ -30316,9 +30507,11 @@ a.collections-author-block:hover {
 .retention-daily-open,
 .retention-daily-locked {
   width: 100%;
+  flex: 1 1 auto;
   min-height: 236px;
+  height: 100%;
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: minmax(148px, 42%) minmax(0, 1fr);
   align-items: stretch;
   padding: 0;
   border: 0;
@@ -30327,7 +30520,15 @@ a.collections-author-block:hover {
   text-align: left;
 }
 .retention-daily-open { cursor: pointer; }
-.retention-daily-poster { position: relative; display: block; min-height: 236px; overflow: hidden; background: #0c0c10; }
+.retention-daily-poster {
+  position: relative;
+  display: block;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  overflow: hidden;
+  background: #0c0c10;
+}
 .retention-daily-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .retention-daily-poster--locked img { filter: blur(12px) saturate(.55); transform: scale(1.12); opacity: .48; }
 .retention-daily-poster--locked::after {
@@ -30344,39 +30545,223 @@ a.collections-author-block:hover {
 .retention-daily-copy strong { color: var(--text-primary); font-size: clamp(20px, 2vw, 28px); line-height: 1.12; }
 .retention-daily-copy small { margin-top: 8px; color: var(--text-muted); font-size: 13px; line-height: 1.45; }
 .retention-inline-link { margin-top: 18px; color: #ff6da6; font-weight: 750; font-size: 13px; }
-.retention-daily-claim {
+.retention-daily-claim.btn.btn-primary {
+  /* Size-tame only — paint from firm style-v2 .btn.btn-primary */
   margin-top: 18px;
   width: auto;
   max-width: 100%;
-  border: 1px solid #ef1c7a !important;
-  border-radius: 10px;
-  background: #ef1c7a !important;
-  background-image: none !important;
-  box-shadow: none !important;
+  height: auto !important;
   min-height: 44px;
-  height: auto;
-  padding: 12px 16px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 12px;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  box-shadow: 0 0 22px rgba(255, 45, 123, 0.28);
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
 }
-.retention-daily-claim:hover,
-.retention-daily-claim:focus-visible { border-color: #ff3b91 !important; background: #ff3b91 !important; }
+.retention-daily-claim.btn.btn-primary:hover,
+.retention-daily-claim.btn.btn-primary:focus-visible {
+  transform: translateY(-1px);
+}
 
-.retention-daily-claimed { display: flex; flex-direction: column; gap: 0; }
+/* «Фильм дня» horizontal reel reveal on claim */
+.retention-daily-reel {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 50% 40%, rgba(255, 90, 165, 0.18), transparent 58%),
+    radial-gradient(70% 50% at 10% 90%, rgba(109, 40, 217, 0.14), transparent 55%),
+    #101016;
+}
+.retention-daily-reel-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 14px 14px;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.retention-daily-reel-window {
+  position: relative;
+  width: 100%;
+  height: clamp(148px, 22vw, 188px);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0a0a0e;
+  isolation: isolate;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.1),
+    0 18px 40px rgba(0,0,0,.45);
+}
+.retention-daily-reel-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+.retention-daily-reel-cell {
+  flex: 0 0 auto;
+  width: clamp(96px, 14vw, 124px);
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 8px 0;
+  box-sizing: border-box;
+}
+.retention-daily-reel-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  background: #16161c;
+}
+.retention-daily-reel-hairline {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, rgba(255, 90, 165, 0.95), transparent);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+.retention-daily-reel-hairline--left { left: calc(50% - 1px - 62px); }
+.retention-daily-reel-hairline--right { left: calc(50% - 1px + 62px); }
+.retention-daily-reel-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(8, 8, 12, 0.82) 0%, transparent 18%, transparent 82%, rgba(8, 8, 12, 0.86) 100%);
+  z-index: 1;
+}
+.retention-daily-reel-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2px 10px 4px;
+  min-width: 0;
+  width: 100%;
+}
+.retention-daily-reel-title {
+  color: var(--text-primary);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.15;
+}
+.retention-daily-reel-sub {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.retention-daily-reel.is-near-miss .retention-daily-reel-window {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 0 28px rgba(255, 90, 165, 0.28),
+    0 18px 40px rgba(0,0,0,.45);
+}
+.retention-daily-reel.is-landing .retention-daily-reel-cell img {
+  filter: saturate(1.1);
+}
+.retention-daily-reel.is-done .retention-daily-reel-window::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: calc(50% - 62px);
+  width: 124px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px rgba(255, 90, 165, 0.6), 0 0 32px rgba(255, 45, 123, 0.32);
+  pointer-events: none;
+  z-index: 3;
+}
+@media (max-width: 720px) {
+  .retention-daily-reel-stage { padding: 12px 10px 10px; }
+  .retention-daily-reel-window { height: 132px; }
+  .retention-daily-reel-cell { width: 88px; padding: 6px 0; }
+  .retention-daily-reel-hairline--left { left: calc(50% - 1px - 48px); }
+  .retention-daily-reel-hairline--right { left: calc(50% - 1px + 48px); }
+  .retention-daily-reel.is-done .retention-daily-reel-window::after {
+    left: calc(50% - 48px);
+    width: 96px;
+  }
+  .retention-daily-reel-title { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .retention-daily-reel-strip { transition: none !important; animation: none !important; }
+}
+
+.retention-daily-claimed {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 100%;
+  height: 100%;
+}
 .retention-daily-ctas {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 12px 16px 16px;
+  align-items: stretch;
+  margin-top: auto;
+  flex-shrink: 0;
 }
-.retention-daily-cta {
-  flex: 1 1 140px;
+/* Firm pills only — tame global 60px landing .btn-primary/.btn-secondary; one row */
+.retention-daily-ctas .btn.retention-daily-cta {
+  flex: 1 1 0;
+  min-width: 0;
+  height: auto !important;
   min-height: 40px;
-  font-size: 13px;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
   font-weight: 650;
+  border-radius: 50px !important;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.retention-daily-ctas .btn.btn-secondary.retention-daily-cta {
+  background-color: transparent !important;
+  background-image: linear-gradient(#09090b, #09090b), var(--gradient) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
+  border: 2px solid transparent !important;
+  color: #eeeef0 !important;
+}
+.retention-daily-ctas .btn.btn-primary.retention-daily-cta {
+  background-image: none !important;
+  background: var(--cta-grad) !important;
+  border: none !important;
+  color: #fff !important;
 }
 @media (max-width: 720px) {
   .retention-daily-ctas { padding: 0 12px 12px; }
+  .retention-daily-ctas .btn.retention-daily-cta {
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
 }
 .retention-goal,
 .retention-achievements { padding: 18px; }
@@ -30434,15 +30819,21 @@ a.collections-author-block:hover {
 
 @media (max-width: 760px) {
   .home-retention { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-  .retention-daily { order: 0; }
+  .retention-daily { order: 0; height: auto; min-height: 0; }
   .retention-goal { order: 1; }
   .retention-achievements { order: 2; }
   .retention-daily-open,
-  .retention-daily-locked { grid-template-columns: 112px minmax(0,1fr); min-height: 176px; }
-  .retention-daily-poster { min-height: 176px; }
+  .retention-daily-locked {
+    grid-template-columns: 112px minmax(0,1fr);
+    min-height: 176px;
+    height: auto;
+    flex: 0 0 auto;
+  }
+  .retention-daily-poster { min-height: 176px; height: 176px; }
+  .retention-daily-claimed { height: auto; min-height: 0; }
   .retention-daily-copy { padding: 16px 14px; }
   .retention-daily-copy strong { font-size: 18px; }
-  .retention-daily-claim { min-height: 42px; margin-top: 13px; padding: 9px 12px; font-size: 12px; }
+  .retention-daily-claim.btn.btn-primary { min-height: 42px; margin-top: 13px; padding: 9px 14px !important; font-size: 12px !important; }
   .retention-goal,
   .retention-achievements { padding: 15px; }
   .retention-achievements .retention-section-head { align-items: center; }

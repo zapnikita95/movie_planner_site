@@ -334,6 +334,7 @@
     var onSuccess = opts.onSuccess || function () {};
     var guestMode = !!opts.guestMode;
     var onRequireAuth = opts.onRequireAuth || null;
+    var onGuestSave = opts.onGuestSave || null;
     var film = opts.film || {};
     var kp = String(film.kp_id || opts.kpId || '').replace(/\D/g, '');
     var fid = film.film_id != null ? Number(film.film_id) : null;
@@ -503,7 +504,7 @@
       );
 
       var guestHintHtml = guestMode
-        ? '<p class="muted small plan-guest-auth-hint">Нужно войти, чтобы сохранить план</p>'
+        ? '<p class="muted small plan-guest-auth-hint">План сохранится в этом браузере</p>'
         : '';
 
       card.innerHTML =
@@ -877,6 +878,11 @@
             if (!cName && !cAddr && cInput.trim()) body.cinema_name = cInput.trim();
             var cLat = card.querySelector('#mp-cinema-lat'); if (cLat && cLat.value) body.cinema_lat = parseFloat(cLat.value);
             var cLon = card.querySelector('#mp-cinema-lon'); if (cLon && cLon.value) body.cinema_lon = parseFloat(cLon.value);
+          }
+          if (guestMode && typeof onGuestSave === 'function') {
+            close();
+            onGuestSave({ mode: isCinema ? 'cinema' : 'home', body: body });
+            return;
           }
           if (guestMode && typeof onRequireAuth === 'function') {
             close();

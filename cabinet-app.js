@@ -2278,10 +2278,69 @@
     } catch (_) {}
   }
 
-  function showCoinsInfoToast(coins) {
+  const COINS_SHOP_SINKS = [
+    { icon: '🔮', title: 'Shazam фильма', hint: 'Найти фильм по сюжету, актёрам или атмосфере', cost: 100, suffix: 'за поиск' },
+    { icon: '🖼️', title: 'Распознать по постеру', hint: 'Определить фильм по скриншоту или афише', cost: 150, suffix: 'за распознавание' },
+    { icon: '🎲', title: 'Случайная рекомендация', hint: 'Быстрый новый вариант из каталога', cost: 30, suffix: 'за подбор' },
+    { icon: '🎟️', title: 'Прикрепить билет к сеансу', hint: 'Сохранить билет в плане похода в кино', cost: 35, suffix: 'за билет' },
+    { icon: '⏳', title: 'Следить за премьерой', hint: 'Получить напоминание о выходе фильма', cost: 20, suffix: 'за фильм' },
+    { icon: '🤖', title: 'AI-помощник', hint: 'Задать вопросы о своей базе и получить подбор', cost: 100, suffix: 'за сессию' },
+    { icon: '✨', title: 'Подбор по эмоции', hint: 'Описать настроение и получить фильмы', cost: 150, suffix: 'за подбор' },
+    { icon: '📺', title: 'Новые серии', hint: 'Подписаться на уведомления о следующем эпизоде', cost: 25, suffix: 'за сериал' },
+  ];
+
+  function closeCoinsShop() {
+    const backdrop = document.getElementById('coins-shop-backdrop');
+    if (!backdrop) return;
+    backdrop.classList.remove('is-open');
+    setTimeout(function () { try { backdrop.remove(); } catch (_) {} }, 160);
+    document.body.classList.remove('coins-shop-open');
+  }
+
+  function showCoinsShop(coins) {
+    closeCoinsShop();
     const bal = coins && coins.is_infinite ? '∞' : (coins && coins.balance != null ? coins.balance : '—');
-    const streak = coins && Number(coins.streak_days) > 0 ? ' · стрик ' + Number(coins.streak_days) + ' дн.' : '';
-    showToast('🪙 Монетки: ' + bal + streak + '. +5 за фильм, +40 за оценку. Списания: подборы, билеты, премьеры и сериалы. PRO — без списаний.', { duration: 5200 });
+    const streak = coins && Number(coins.streak_days) > 0 ? Number(coins.streak_days) : 0;
+    const backdrop = document.createElement('div');
+    backdrop.id = 'coins-shop-backdrop';
+    backdrop.className = 'coins-shop-backdrop';
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('aria-labelledby', 'coins-shop-title');
+    const rows = COINS_SHOP_SINKS.map(function (item) {
+      return '<div class="coins-shop-row">'
+        + '<span class="coins-shop-row-icon" aria-hidden="true">' + item.icon + '</span>'
+        + '<span class="coins-shop-row-copy"><strong>' + item.title + '</strong><small>' + item.hint + '</small></span>'
+        + '<span class="coins-shop-price"><b>−' + item.cost + '</b><small>🪙 ' + item.suffix + '</small></span>'
+        + '</div>';
+    }).join('');
+    backdrop.innerHTML = '<div class="coins-shop-sheet" tabindex="-1">'
+      + '<button type="button" class="coins-shop-close" data-coins-shop-close aria-label="Закрыть">×</button>'
+      + '<div class="coins-shop-kicker">Ваш кино-кошелёк</div>'
+      + '<div class="coins-shop-head"><div><h2 id="coins-shop-title">Монетки</h2><p>Тратьте их на отдельные полезные действия — без обязательной подписки.</p></div>'
+      + '<div class="coins-shop-balance"><span class="header-coins-sprite" aria-hidden="true"></span><b>' + bal + '</b><small>' + (streak ? '🔥 ' + streak + ' дн. серии' : 'ваш баланс') + '</small></div></div>'
+      + '<div class="coins-shop-section-label">На что их можно потратить</div>'
+      + '<div class="coins-shop-list">' + rows + '</div>'
+      + '<div class="coins-shop-note">Монетки начисляются за активность: +5 за добавление фильма, +10 за первую оценку, +30 за активный день и +15 за фильм дня.</div>'
+      + '<div class="coins-shop-support"><div class="coins-shop-support-icon">💛</div><div class="coins-shop-support-copy"><strong>Хотите поддержать Movie Planner?</strong><p>Тариф PRO снимает монетные лимиты и даёт бесконечный доступ к функциям. А на странице сборов можно поддержать независимое кино напрямую.</p><div class="coins-shop-support-links"><a href="/pricing">Тарифы PRO</a><a href="/donations">Сборы на Planeta</a></div></div></div>'
+      + '</div>';
+    document.body.appendChild(backdrop);
+    document.body.classList.add('coins-shop-open');
+    requestAnimationFrame(function () {
+      backdrop.classList.add('is-open');
+      const sheet = backdrop.querySelector('.coins-shop-sheet');
+      if (sheet) sheet.focus();
+    });
+    backdrop.addEventListener('click', function (event) {
+      if (event.target === backdrop || event.target.closest('[data-coins-shop-close]')) closeCoinsShop();
+    });
+    backdrop.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeCoinsShop();
+    });
+  }
+
+  function showCoinsInfoToast(coins) {
+    showCoinsShop(coins);
   }
 
   let _headerCoinsPrevNum = null;
@@ -5804,8 +5863,6 @@
     }
   }
 
-  let _headerSearchScrollLockY = 0;
-
   function isMobileHeaderSearchDropdownLayout() {
     return window.matchMedia('(max-width: 768px)').matches;
   }
@@ -5867,12 +5924,10 @@
   }
 
   function lockHeaderSearchBodyScroll() {
+    /* search-jump-stable-20260922: do not set overflow:hidden on html/body */
     if (!isMobileHeaderSearchDropdownLayout()) return;
     if (document.body.classList.contains('header-search-body-locked')) return;
-    _headerSearchScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.classList.add('header-search-body-locked');
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
     const header = document.getElementById('site-header');
     if (header) header.classList.remove('site-header--retracted');
   }
@@ -5880,9 +5935,6 @@
   function unlockHeaderSearchBodyScroll() {
     if (!document.body.classList.contains('header-search-body-locked')) return;
     document.body.classList.remove('header-search-body-locked');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    document.body.style.top = '';
   }
 
   function setHeaderSearchDropdownOpen(open) {
@@ -10580,8 +10632,22 @@
   const HOME_LS_ORDER = 'sections_order';
   const HOME_LS_HIDDEN = 'sections_hidden';
   const HOME_LS_EMOJI = 'mp_home_emoji_v1';
-  const HOME_BLOCK_IDS = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
-  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const HOME_BLOCK_IDS = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  const DEFAULT_HOME_SECTION_ORDER = ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament'];
+  /** Hide «На вечер из базы» when unwatched library is too thin for a 6–8 card rail. */
+  const EVENING_FROM_BASE_MIN_UNWATCHED = 6;
+  function homeEveningFromBaseUnwatchedCount() {
+    const counts = (_homeDashboardCache && _homeDashboardCache.counts) || {};
+    const n = Number(counts.unwatched);
+    return Number.isFinite(n) ? n : null;
+  }
+  function shouldRenderEveningFromBaseBlock() {
+    if (isGuestCabinetPreview()) return false;
+    const n = homeEveningFromBaseUnwatchedCount();
+    // Unknown count: mount shell; API/onMeta omit when pool is thin.
+    if (n == null) return true;
+    return n >= EVENING_FROM_BASE_MIN_UNWATCHED;
+  }
   const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
   const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v1:';
   let _homeDashboardCache = null;
@@ -10766,6 +10832,7 @@
   function bustHomeRailsForLibraryRev() {
     try {
       if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
+        MPHomeRails.clearRailCache('evening-from-base');
         MPHomeRails.clearRailCache('unwatched');
         MPHomeRails.clearRailCache('series-mix');
         MPHomeRails.clearRailCache('series');
@@ -10774,7 +10841,7 @@
     } catch (_) {}
     var root = document.getElementById('home-dashboard-root');
     if (root) {
-      root.querySelectorAll('[data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"], [data-home-rail="recent-rated"]').forEach(function (el) {
+      root.querySelectorAll('[data-home-rail="evening-from-base"], [data-home-rail="unwatched"], [data-home-rail="series-mix"], [data-home-rail="series"], [data-home-rail="recent-rated"]').forEach(function (el) {
         el.removeAttribute('data-rail-mounted');
         try { el.innerHTML = ''; } catch (_) {}
       });
@@ -10863,6 +10930,7 @@
 
   const HOME_BLOCK_META = {
     plans: { title: 'Ближайшие просмотры', section: 'plans', moreLabel: 'Все планы →' },
+    evening_from_base: { title: 'На вечер из базы', section: 'unwatched', moreLabel: 'Вся база →' },
     unwatched: { title: 'Хочу посмотреть', section: 'unwatched', moreLabel: 'Весь список →' },
     series: { title: 'Сериалы', section: 'series-hub', moreLabel: 'Все →' },
     premieres: { title: 'Премьеры', section: 'premieres', moreLabel: 'Все премьеры →' },
@@ -11332,6 +11400,10 @@
   }
 
   function homeRailEmptyHtml(blockId) {
+    if (blockId === 'evening_from_base') {
+      // Thin/empty library: omit the whole section — no empty CTA for this rail.
+      return '';
+    }
     if (blockId === 'unwatched') {
       return renderHomeBlockCtaHtml(
         '<button type="button" class="btn btn-small btn-primary" data-plans-action="open-add-film">Добавить фильм</button> '
@@ -11485,9 +11557,29 @@
             try { bindHomePosterRailDragScroll(container); } catch (_) {}
           },
           onMeta: (meta) => {
-            if (blockEl && meta && meta.total === 0 && meta.loaded === 0 && !meta.failed) {
-              blockEl.classList.add('hidden');
-            } else if (blockEl) {
+            if (!blockEl || !meta) return;
+            if (blockId === 'evening_from_base') {
+              const total = Number(meta.total);
+              const loaded = Number(meta.loaded || 0);
+              const thin = !meta.failed && (
+                (Number.isFinite(total) && total > 0 && total < EVENING_FROM_BASE_MIN_UNWATCHED)
+                || (loaded === 0 && (!Number.isFinite(total) || total === 0))
+              );
+              if (thin) {
+                try { blockEl.remove(); } catch (_e) { blockEl.classList.add('hidden'); }
+              } else {
+                blockEl.classList.remove('hidden');
+              }
+              return;
+            }
+            if (meta.total === 0 && meta.loaded === 0 && !meta.failed) {
+              // Keep habit rails visible so emptyHtml CTA stays on screen.
+              if (blockId === 'unwatched' || blockId === 'series') {
+                blockEl.classList.remove('hidden');
+              } else {
+                blockEl.classList.add('hidden');
+              }
+            } else {
               blockEl.classList.remove('hidden');
             }
           },
@@ -11761,11 +11853,22 @@
       // Title logos only in hover trailer preview — never on premiere grid/rail cards.
       const titleLogo = pickItemTitleLogo(it);
       const titleText = escapeHtml(it.title || '—');
+      let userRating = it.my_rating != null && it.my_rating !== '' ? Math.round(Number(it.my_rating)) : null;
+      if (userRating == null || !Number.isFinite(userRating) || userRating <= 0) userRating = null;
+      const userRatingBadge = userRating != null
+        ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
+        : '';
+      const datePillHtml = datePill
+        ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>'
+        : '';
+      const leftChrome = (datePillHtml || userRatingBadge)
+        ? '<span class="premiere-poster-chrome-left">' + datePillHtml + userRatingBadge + '</span>'
+        : '';
       return '<div class="home-pre-card" role="listitem" tabindex="0"' + attrs
         + (titleLogo ? (' data-title-logo="' + escapeHtml(titleLogo) + '"') : '') + '>'
         + '<div class="home-pre-card-poster premiere-poster-media' + sensCls + '">'
         + img
-        + (datePill ? '<span class="premiere-poster-date-pill">' + escapeHtml(datePill) + '</span>' : '')
+        + leftChrome
         + '<span data-stop-card-click="1">' + bell + '</span>'
         + '</div>'
         + '<div class="home-pre-card-body">'
@@ -11803,11 +11906,11 @@
     const daily = data.daily_film || {};
     const film = daily.film || {};
     const poster = film.poster || daily.preview_poster || '';
-    const dailyLabel = (film.is_series || daily.media_type === 'series') ? 'Сериал дня' : 'Фильм дня';
+    const dailyLabel = retentionDailyMediaLabel(daily, film);
     const claimCtas = daily.claimed && film.kp_id
       ? ('<div class="retention-daily-ctas">'
-        + '<button type="button" class="btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">В «Посмотреть»</button>'
-        + '<button type="button" class="btn-primary retention-daily-cta" data-retention-plan-tonight>Запланировать сегодня вечером</button>'
+        + '<button type="button" class="btn btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">Добавить в базу</button>'
+        + '<button type="button" class="btn btn-primary retention-daily-cta" data-retention-plan-tonight>В план</button>'
         + '</div>')
       : '';
     const dailyBody = daily.claimed && film.kp_id
@@ -11815,7 +11918,7 @@
         + '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть →</span></span></button>'
         + claimCtas
         + '</div>')
-      : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>Откройте рекомендацию на сегодня</strong><small>Завтра здесь будет новая</small><button type="button" class="btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
+      : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>Откройте рекомендацию на сегодня</strong><small>Завтра здесь будет новая</small><button type="button" class="btn btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
     const personalization = data.personalization || {};
     const steps = (personalization.steps || []).slice().sort(function (a, b) {
       const aDone = Number(a.current || 0) >= Number(a.target || 1);
@@ -11823,7 +11926,7 @@
       return Number(bDone) - Number(aDone);
     });
     const goalHtml = Number(personalization.completed || 0) < Number(personalization.total || 0)
-      ? '<section class="retention-goal"><div class="retention-section-head"><div><span class="retention-kicker">Персонализация</span><h3>Настройте рекомендации</h3></div><b>' + Number(personalization.completed || 0) + ' из ' + Number(personalization.total || 3) + '</b></div><div class="retention-goal-steps">' + steps.map(function (step, index) { const done = Number(step.current || 0) >= Number(step.target || 1); return '<div class="retention-goal-step' + (done ? ' is-done' : '') + '"><span>' + (done ? '✓' : (index + 1)) + '</span><div><strong>' + escapeHtml(step.label || '') + '</strong>' + (!done && Number(step.target || 1) > 1 ? '<small>' + Number(step.current || 0) + ' / ' + Number(step.target || 1) + '</small>' : '') + '</div></div>'; }).join('') + '</div><button type="button" class="btn-secondary retention-goal-btn" data-retention-onboarding>Настроить рекомендации</button></section>'
+      ? '<section class="retention-goal"><div class="retention-section-head"><div><span class="retention-kicker">Персонализация</span><h3>Настройте рекомендации</h3></div><b>' + Number(personalization.completed || 0) + ' из ' + Number(personalization.total || 3) + '</b></div><div class="retention-goal-steps">' + steps.map(function (step, index) { const done = Number(step.current || 0) >= Number(step.target || 1); return '<div class="retention-goal-step' + (done ? ' is-done' : '') + '"><span>' + (done ? '✓' : (index + 1)) + '</span><div><strong>' + escapeHtml(step.label || '') + '</strong>' + (!done && Number(step.target || 1) > 1 ? '<small>' + Number(step.current || 0) + ' / ' + Number(step.target || 1) + '</small>' : '') + '</div></div>'; }).join('') + '</div><button type="button" class="btn btn-secondary retention-goal-btn" data-retention-onboarding>Настроить рекомендации</button></section>'
       : '';
     const ach = data.achievement_progress || [];
     const achHtml = ach.length ? '<section class="retention-achievements"><div class="retention-section-head"><div><span class="retention-kicker">Следующие награды</span><h3>Вы уже близко</h3></div><button type="button" class="link-inline retention-all-achievements" data-home-show-section="stats">Все достижения →</button></div>' + ach.map(function (item) { const current = Number(item.current || 0); const target = Math.max(1, Number(item.target || 1)); const pct = Math.max(0, Math.min(100, Math.round(current / target * 100))); return '<div class="retention-ach-row"><div class="retention-ach-icon" aria-hidden="true">' + escapeHtml(item.icon || '🏅') + '</div><div class="retention-ach-main"><div class="retention-ach-head"><strong>' + escapeHtml(item.name || 'Ачивка') + '</strong><span>' + current + '/' + target + '</span></div><div class="retention-progress"><i style="width:' + pct + '%"></i></div><div class="retention-ach-prompt">' + escapeHtml(item.prompt || item.description || '') + '</div></div></div>'; }).join('') + '</section>' : '';
@@ -11882,20 +11985,289 @@
     document.addEventListener('click', firstAction, true);
   }
 
+  function retentionPrefersReducedMotion() {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function retentionDailyMediaLabel(daily, film) {
+    const f = film || (daily && daily.film) || {};
+    if (f.is_series === true || f.is_series === 1) return 'Сериал дня';
+    if (f.is_series === false || f.is_series === 0) return 'Фильм дня';
+    const mt = String((daily && daily.media_type) || '').toLowerCase();
+    if (mt === 'series' || mt === 'tv' || mt === 'tv_series' || mt === 'tv-show') return 'Сериал дня';
+    return 'Фильм дня';
+  }
+
+  function retentionDailyReelPosters(daily, winnerPoster) {
+    const out = [];
+    const seen = Object.create(null);
+    function push(url) {
+      const src = String(url || '').trim();
+      if (!src || seen[src]) return;
+      seen[src] = 1;
+      out.push(src);
+    }
+    const reel = (daily && Array.isArray(daily.reel_posters)) ? daily.reel_posters : [];
+    reel.forEach(push);
+    push(winnerPoster);
+    push(daily && daily.preview_poster);
+    // Pad by cycling so the strip feels like a full wheel even on thin pools.
+    if (out.length && out.length < 8) {
+      let i = 0;
+      while (out.length < 8) {
+        out.push(out[i % Math.min(out.length, 4)]);
+        i += 1;
+        if (i > 24) break;
+      }
+    }
+    return out;
+  }
+
+  function buildRetentionDailyReelStrip(posters, winnerPoster) {
+    const pool = posters.slice();
+    const win = String(winnerPoster || '').trim();
+    // Guarantee a distinct near-miss decoy immediately before the winner.
+    let decoys = pool.filter(function (p) { return p !== win; });
+    if (!decoys.length) decoys = pool.slice();
+    const decoy = decoys[Math.floor(decoys.length / 2)] || decoys[0] || win;
+    const unit = [];
+    // Mix ~8 cells ending with decoy → winner for the near-miss beat.
+    const filler = pool.filter(function (p) { return p !== win && p !== decoy; });
+    while (unit.length < 6) {
+      unit.push(filler[unit.length % Math.max(filler.length, 1)] || decoy || win);
+    }
+    unit.push(decoy);
+    unit.push(win);
+    // Triple the unit so the strip can spin through a long runway.
+    const strip = unit.concat(unit).concat(unit);
+    const loop = unit.length;
+    const nearIndex = loop + (unit.length - 2); // decoy in middle loop
+    const winIndex = loop + (unit.length - 1);  // winner right after
+    return { strip: strip, nearIndex: nearIndex, winIndex: winIndex, cellCount: unit.length };
+  }
+
+  function runRetentionDailyReelReveal(opts) {
+    const root = opts && opts.root;
+    const posters = (opts && opts.posters) || [];
+    const winnerPoster = (opts && opts.winnerPoster) || '';
+    let dailyLabel = (opts && opts.dailyLabel) || 'Фильм дня';
+    const claimPromise = (opts && opts.claimPromise) || null;
+    if (!root) return Promise.resolve();
+    try {
+      const h = root.getBoundingClientRect().height;
+      if (h > 200) root.style.minHeight = Math.round(h) + 'px';
+    } catch (_) {}
+    const built = buildRetentionDailyReelStrip(posters, winnerPoster);
+    const cellsHtml = built.strip.map(function (src, idx) {
+      return '<div class="retention-daily-reel-cell" data-reel-i="' + idx + '">'
+        + '<img src="' + escapeHtml(src) + '" alt="" decoding="async" draggable="false">'
+        + '</div>';
+    }).join('');
+    root.innerHTML = ''
+      + '<div class="retention-daily-reel" role="status" aria-live="polite" aria-busy="true">'
+      + '<div class="retention-daily-reel-stage">'
+      + '<div class="retention-daily-reel-window" aria-hidden="true">'
+      + '<div class="retention-daily-reel-strip">' + cellsHtml + '</div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--left"></div>'
+      + '<div class="retention-daily-reel-hairline retention-daily-reel-hairline--right"></div>'
+      + '<div class="retention-daily-reel-glow"></div>'
+      + '</div>'
+      + '<div class="retention-daily-reel-copy">'
+      + '<span class="retention-kicker retention-daily-reel-kicker">' + escapeHtml(dailyLabel) + '</span>'
+      + '<strong class="retention-daily-reel-title">Крутим ленту…</strong>'
+      + '<small class="retention-daily-reel-sub">Постеры из вашей подборки</small>'
+      + '</div></div></div>';
+    const stripEl = root.querySelector('.retention-daily-reel-strip');
+    const windowEl = root.querySelector('.retention-daily-reel-window');
+    const titleEl = root.querySelector('.retention-daily-reel-title');
+    const subEl = root.querySelector('.retention-daily-reel-sub');
+    const kickerEl = root.querySelector('.retention-daily-reel-kicker');
+    if (!stripEl || !windowEl) return Promise.resolve();
+
+    let claimedFilm = null;
+
+    function cellPitch() {
+      const cell = stripEl.querySelector('.retention-daily-reel-cell');
+      if (!cell) return 122;
+      const w = cell.getBoundingClientRect().width;
+      const styles = window.getComputedStyle(stripEl);
+      const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+      return (w > 0 ? w : 112) + gap;
+    }
+
+    function offsetFor(index) {
+      // Center cell index in the wide horizontal window — neighbors stay visible.
+      const pitch = cellPitch();
+      const cell = stripEl.querySelector('.retention-daily-reel-cell');
+      const cellW = cell ? cell.getBoundingClientRect().width : Math.max(96, pitch - 10);
+      const winW = windowEl.getBoundingClientRect().width || 320;
+      return Math.round(index * pitch - (winW - cellW) / 2);
+    }
+
+    function animateTo(x, duration, easing) {
+      return new Promise(function (resolve) {
+        const from = stripEl._reelX || 0;
+        stripEl._reelX = x;
+        if (typeof stripEl.animate !== 'function') {
+          stripEl.style.transform = 'translate3d(' + (-x) + 'px,0,0)';
+          setTimeout(resolve, duration);
+          return;
+        }
+        const anim = stripEl.animate(
+          [
+            { transform: 'translate3d(' + (-from) + 'px,0,0)' },
+            { transform: 'translate3d(' + (-x) + 'px,0,0)' },
+          ],
+          { duration: duration, easing: easing || 'cubic-bezier(0.15, 0.85, 0.12, 1)', fill: 'forwards' }
+        );
+        anim.onfinish = function () {
+          stripEl.style.transform = 'translate3d(' + (-x) + 'px,0,0)';
+          try { anim.cancel(); } catch (_) {}
+          resolve();
+        };
+        anim.oncancel = function () { resolve(); };
+      });
+    }
+
+    function wait(ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    function syncClaimedFilm() {
+      if (!claimPromise) return Promise.resolve(claimedFilm);
+      if (claimedFilm) return Promise.resolve(claimedFilm);
+      return claimPromise.then(function (res) {
+        if (res && res.film) {
+          claimedFilm = res.film;
+          dailyLabel = retentionDailyMediaLabel(null, claimedFilm);
+          if (kickerEl) kickerEl.textContent = dailyLabel;
+        }
+        return claimedFilm;
+      }).catch(function () { return null; });
+    }
+
+    // Start slightly into the first loop so the first paint isn't blank.
+    const startX = offsetFor(Math.max(0, built.cellCount - 4));
+    stripEl.style.transform = 'translate3d(' + (-startX) + 'px,0,0)';
+    stripEl._reelX = startX;
+
+    function preloadReelImages() {
+      const imgs = stripEl.querySelectorAll('img');
+      const tasks = [];
+      for (let i = 0; i < imgs.length; i++) {
+        const img = imgs[i];
+        if (img.complete && img.naturalWidth > 0) continue;
+        tasks.push(new Promise(function (resolve) {
+          const done = function () { resolve(); };
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        }));
+      }
+      return Promise.race([
+        Promise.all(tasks),
+        wait(700),
+      ]);
+    }
+
+    if (claimPromise) {
+      claimPromise.then(function (res) {
+        if (res && res.film) {
+          claimedFilm = res.film;
+          dailyLabel = retentionDailyMediaLabel(null, claimedFilm);
+          if (kickerEl) kickerEl.textContent = dailyLabel;
+        }
+      }).catch(function () {});
+    }
+
+    return preloadReelImages().then(function () { return wait(40); })
+      .then(function () {
+        if (titleEl) titleEl.textContent = 'Крутим ленту…';
+        if (subEl) subEl.textContent = 'Постеры из вашей подборки';
+        // Longer intentional horizontal spin; near-miss while several posters still visible.
+        return animateTo(offsetFor(built.nearIndex), 3600, 'cubic-bezier(0.08, 0.82, 0.04, 1)');
+      })
+      .then(function () {
+        if (titleEl) titleEl.textContent = 'Почти…';
+        if (subEl) subEl.textContent = 'Ещё чуть-чуть';
+        var reelNear = root.querySelector('.retention-daily-reel');
+        if (reelNear) reelNear.classList.add('is-near-miss');
+        return wait(480);
+      })
+      .then(function () {
+        return syncClaimedFilm();
+      })
+      .then(function () {
+        var reelLand = root.querySelector('.retention-daily-reel');
+        if (reelLand) { reelLand.classList.remove('is-near-miss'); reelLand.classList.add('is-landing'); }
+        var landTitle = (claimedFilm && claimedFilm.title) ? String(claimedFilm.title) : dailyLabel;
+        if (kickerEl) kickerEl.textContent = dailyLabel;
+        if (titleEl) titleEl.textContent = landTitle;
+        if (subEl) subEl.textContent = claimedFilm && claimedFilm.title ? 'Это он' : 'Фильм дня на сегодня';
+        // Nudge from decoy onto the winner — neighbors still visible until settle.
+        return animateTo(offsetFor(built.winIndex), 720, 'cubic-bezier(0.18, 1.2, 0.28, 1)');
+      })
+      .then(function () { return wait(520); })
+      .then(function () {
+        const reel = root.querySelector('.retention-daily-reel');
+        if (reel) {
+          reel.classList.add('is-done');
+          reel.setAttribute('aria-busy', 'false');
+        }
+      });
+  }
+
   function bindHomeRetentionOnce() {
+
     if (window._mpHomeRetentionBound) return;
     window._mpHomeRetentionBound = true;
     document.addEventListener('click', function (e) {
       const claim = e.target.closest('[data-retention-claim]');
       if (claim) {
+        if (claim.disabled || claim.getAttribute('aria-busy') === 'true') return;
         claim.disabled = true;
-        api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' }).then(function (res) {
+        claim.setAttribute('aria-busy', 'true');
+        const daily = (_homeRetention && _homeRetention.daily_film) || {};
+        const winnerPoster = (daily.preview_poster || (daily.film && daily.film.poster) || '');
+        const dailyLabel = retentionDailyMediaLabel(daily, daily.film);
+        const section = claim.closest('.retention-daily') || document.querySelector('.retention-daily');
+        const claimReq = api('/api/miniapp/retention/daily-film/claim', { method: 'POST', body: '{}' });
+        const reduced = retentionPrefersReducedMotion();
+        const finish = function (res) {
           if (!res || !res.success) throw new Error('claim');
+          if (!_homeRetention) _homeRetention = { success: true };
+          if (!_homeRetention.daily_film) _homeRetention.daily_film = daily;
           _homeRetention.daily_film.claimed = true;
           _homeRetention.daily_film.film = res.film;
+          _homeRetention.daily_film.media_type = (res.film && res.film.is_series) ? 'series' : 'film';
+          _homeRetention.daily_film.reel_posters = [];
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
           paintHomeRetention();
-        }).catch(function () { claim.disabled = false; });
+        };
+        const fail = function () {
+          claim.disabled = false;
+          claim.removeAttribute('aria-busy');
+          try { paintHomeRetention(); } catch (_) {}
+          showToast('Не удалось открыть фильм дня', { type: 'error' });
+        };
+        if (reduced || !section) {
+          claimReq.then(finish).catch(fail);
+          return;
+        }
+        const posters = retentionDailyReelPosters(daily, winnerPoster);
+        const reveal = runRetentionDailyReelReveal({
+          root: section,
+          posters: posters,
+          winnerPoster: winnerPoster,
+          dailyLabel: dailyLabel,
+          claimPromise: claimReq,
+        });
+        Promise.all([claimReq, reveal]).then(function (pair) {
+          finish(pair[0]);
+        }).catch(fail);
         return;
       }
       const watchlistBtn = e.target.closest('[data-retention-watchlist-kp]');
@@ -11906,7 +12278,7 @@
         api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(kp) }) })
           .then(function (res) {
             if (!res || res.success === false) throw new Error('add');
-            showToast('Добавлено в «Посмотреть»');
+            showToast('Добавлено в базу');
             try { loadHomeRetention(); } catch (_) {}
           })
           .catch(function () {
@@ -12073,6 +12445,15 @@
       if (!plans.length) return '';
       return '<section class="home-dash-block" data-home-block="plans">' + head
         + '<div class="home-section-body">' + renderHomePlansRailHtml(plans) + '</div></section>';
+    }
+
+    if (blockId === 'evening_from_base') {
+      if (!shouldRenderEveningFromBaseBlock()) return '';
+      return '<section class="home-dash-block" data-home-block="evening_from_base">' + head
+        + '<div class="home-section-body">'
+        + '<div class="home-poster-rail home-rail--draggable" data-home-rail="evening-from-base" role="list"></div>'
+        + '<div class="home-rail-meta" data-home-rail-meta="evening-from-base" aria-live="polite"></div>'
+        + '</div></section>';
     }
 
     if (blockId === 'unwatched') {
@@ -12458,12 +12839,12 @@
     if (!root) return;
     (isGuestCabinetPreview()
       ? ['premieres', 'series']
-      : ['plans', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament']
+      : ['plans', 'evening_from_base', 'unwatched', 'series', 'premieres', 'recent_ratings', 'tournament']
     ).forEach((bid) => {
       const html = renderHomeBlockHtml(bid);
       const existing = root.querySelector('[data-home-block="' + bid + '"]');
       if (!html) {
-        if (existing && isGuestCabinetPreview()) existing.remove();
+        if (existing && (isGuestCabinetPreview() || bid === 'evening_from_base')) existing.remove();
         return;
       }
       if (existing) {
@@ -12911,7 +13292,7 @@
     if (ev) ev.checked = !!em.voice;
     const listEl = document.getElementById('home-layout-section-list');
     if (!listEl) return;
-    const titles = { plans: 'Ближайшие просмотры', unwatched: 'Хочу посмотреть', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
+    const titles = { plans: 'Ближайшие просмотры', evening_from_base: 'На вечер из базы', unwatched: 'Хочу посмотреть', series: 'Сериалы', premieres: 'Премьеры', tournament: 'Турнирная таблица' };
     listEl.innerHTML = order.map((id) => {
       const vis = hidden.indexOf(id) < 0;
       const title = titles[id] || id;
@@ -13869,6 +14250,42 @@
 
   function mountGuestPlansDiscovery(listEl) {
     if (!listEl) return;
+    let localPlans = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('mp_guest_plans_v1') || '[]');
+      localPlans = Array.isArray(parsed) ? parsed.filter((item) => item && item.local_id) : [];
+    } catch (_) {}
+    if (localPlans.length) {
+      const cards = localPlans.map((item) => {
+        const href = '/f/' + encodeURIComponent(String(item.key || item.kp_id || ''));
+        const poster = cleanPosterUrl(item.poster) || posterUrl(item.kp_id);
+        const planDate = item.plan_datetime ? new Date(item.plan_datetime) : null;
+        const when = planDate && !Number.isNaN(planDate.getTime())
+          ? (planDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ', '
+            + planDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
+          : '';
+        const place = item.plan_type === 'cinema'
+          ? ('В кино' + (item.cinema_name ? (' · ' + item.cinema_name) : ''))
+          : 'Дома';
+        return '<article class="guest-discover-card">'
+          + '<a class="guest-discover-card-link" href="' + escapeHtml(href) + '">'
+          + '<div class="guest-discover-card-poster premiere-poster-media"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></div>'
+          + '<div class="guest-discover-card-meta">'
+          + '<div class="guest-discover-card-title">' + escapeHtml(item.title || 'Фильм') + '</div>'
+          + '<div class="guest-discover-card-year">' + escapeHtml([when, place].filter(Boolean).join(' · ')) + '</div>'
+          + '</div></a></article>';
+      }).join('');
+      listEl.innerHTML = '<div class="guest-discover guest-discover--plans">'
+        + '<div class="guest-discover-hero guest-discover-hero--compact">'
+        + '<div class="guest-discover-hero-copy"><h1 class="guest-discover-h1">Мои планы</h1>'
+        + '<p>Планы сохранены в этом браузере.</p></div>'
+        + '<div class="guest-discover-cta-row"><button type="button" class="btn btn-small btn-primary" data-guest-auth-cta="1">Сохранить навсегда</button>'
+        + '<a class="btn btn-small btn-secondary" href="/search">Добавить план</a></div></div>'
+        + '<div class="guest-discover-rail-title">Запланировано</div>'
+        + '<div class="guest-discover-grid" role="list">' + cards + '</div></div>';
+      bindGuestDiscoverClicksOnce(listEl);
+      return;
+    }
     listEl.innerHTML = '<div class="guest-discover"><p class="empty-hint">Подбираем фильмы…</p></div>';
     fetchGuestDiscoverRails().then(function (rails) {
       if (!isGuestCabinetPreview()) return;
@@ -20761,6 +21178,7 @@
       try {
         if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
           MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('evening-from-base');
           MPHomeRails.clearRailCache('unwatched');
           MPHomeRails.clearRailCache('watched');
         }
@@ -20790,6 +21208,7 @@
       try {
         if (window.MPHomeRails && typeof MPHomeRails.clearRailCache === 'function') {
           MPHomeRails.clearRailCache('recent-rated');
+          MPHomeRails.clearRailCache('evening-from-base');
           MPHomeRails.clearRailCache('unwatched');
           MPHomeRails.clearRailCache('watched');
         }
@@ -22697,11 +23116,6 @@
       document.body.classList.add('header-search-input-focused');
       const header = document.getElementById('site-header');
       if (header) header.classList.remove('site-header--retracted');
-      if (!document.body.classList.contains('landing-root-page')) {
-        requestAnimationFrame(function () {
-          try { wrap.scrollIntoView({ block: 'start', behavior: 'auto' }); } catch (_) {}
-        });
-      }
       const v = input.value.trim();
       if (v.length < 2 && dd) showHeaderSearchHub(dd);
       else if (v.length >= 2 && dd && dd.innerHTML) {
@@ -30606,10 +31020,21 @@
       // Grid: Russian text title only — never English TMDB wordmarks on RU cards.
       const titleHtml = '<span class="premiere-poster-tile-title-text">' + escapeHtml(displayTitle) + '</span>';
       const kpBadge = siteSearchKpRatingHtml(it);
+      let userRating = it.my_rating != null && it.my_rating !== '' ? Math.round(Number(it.my_rating)) : null;
+      if (userRating == null || !Number.isFinite(userRating) || userRating <= 0) userRating = null;
+      const userRatingBadge = userRating != null
+        ? '<span class="home-rated-badge" title="Ваша оценка">★ ' + escapeHtml(String(userRating)) + '</span>'
+        : '';
+      const datePillHtml = datePill
+        ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>`
+        : '';
+      const leftChrome = (datePillHtml || userRatingBadge)
+        ? `<span class="premiere-poster-chrome-left">${datePillHtml}${userRatingBadge}</span>`
+        : '';
       return `<div class="premiere-poster-tile"${navAttrs} data-kp="${escapeHtml(String(it.kp_id || ''))}">
         <div class="premiere-poster-media">
           ${poster ? `<img class="premiere-poster-tile-img" src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${mpPosterOnErrorAttr()}>` : '<div class="premiere-poster-tile-img premiere-poster-tile-img--ph"></div>'}
-          ${datePill ? `<span class="premiere-poster-date-pill">${escapeHtml(datePill)}</span>` : ''}
+          ${leftChrome}
           ${kpBadge || ''}
           <span data-stop-card-click="1">${bell}</span>
         </div>
