@@ -5862,8 +5862,6 @@
     }
   }
 
-  let _headerSearchScrollLockY = 0;
-
   function isMobileHeaderSearchDropdownLayout() {
     return window.matchMedia('(max-width: 768px)').matches;
   }
@@ -5925,12 +5923,10 @@
   }
 
   function lockHeaderSearchBodyScroll() {
+    /* search-jump-stable-20260922: do not set overflow:hidden on html/body */
     if (!isMobileHeaderSearchDropdownLayout()) return;
     if (document.body.classList.contains('header-search-body-locked')) return;
-    _headerSearchScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.classList.add('header-search-body-locked');
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
     const header = document.getElementById('site-header');
     if (header) header.classList.remove('site-header--retracted');
   }
@@ -5938,9 +5934,6 @@
   function unlockHeaderSearchBodyScroll() {
     if (!document.body.classList.contains('header-search-body-locked')) return;
     document.body.classList.remove('header-search-body-locked');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    document.body.style.top = '';
   }
 
   function setHeaderSearchDropdownOpen(open) {
@@ -23105,11 +23098,6 @@
       document.body.classList.add('header-search-input-focused');
       const header = document.getElementById('site-header');
       if (header) header.classList.remove('site-header--retracted');
-      if (!document.body.classList.contains('landing-root-page')) {
-        requestAnimationFrame(function () {
-          try { wrap.scrollIntoView({ block: 'start', behavior: 'auto' }); } catch (_) {}
-        });
-      }
       const v = input.value.trim();
       if (v.length < 2 && dd) showHeaderSearchHub(dd);
       else if (v.length >= 2 && dd && dd.innerHTML) {
