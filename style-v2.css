@@ -34601,3 +34601,180 @@ body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-p
   .film-festivals-rail { display: block; }
   .fest-info-list div { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* MARKER:20260922deskHub1 — desktop: small header→nav gap, full-shell hub. */
+@media (min-width: 769px) {
+  body.in-cabinet #site-header,
+  body.guest-cabinet-preview #site-header,
+  body.in-cabinet.film-standalone-page .page-shell > #site-header,
+  body.in-cabinet.staff-standalone-page .page-shell > #site-header,
+  body.in-cabinet.user-standalone-page .page-shell > #site-header {
+    margin-bottom: 0 !important;
+    padding-bottom: 6px;
+  }
+  body.in-cabinet #cabinet-readonly,
+  body.in-cabinet #cabinet-onboarding,
+  body.guest-cabinet-preview #cabinet-readonly {
+    padding-top: 12px;
+  }
+  body.in-cabinet #cabinet-readonly > .container > .cabinet-nav,
+  body.in-cabinet #cabinet-onboarding > .container > .cabinet-nav,
+  body.in-cabinet #cabinet-readonly > div > div.cabinet-nav,
+  body.in-cabinet #cabinet-onboarding > div > div.cabinet-nav {
+    margin-top: 0 !important;
+  }
+  body.guest-cabinet-preview #landing-root-nav,
+  body.in-cabinet.landing-root-page #landing-root-nav {
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+  }
+}
+
+@media (min-width: 900px) {
+  /* margin:0 auto on a column-flex child shrink-wraps the hub into a centered crumb. */
+  body.in-cabinet #cabinet-readonly > .container > .cabinet-sections,
+  body.in-cabinet #cabinet-onboarding > .container > .cabinet-sections,
+  body.guest-cabinet-preview #cabinet-readonly > .container > .cabinet-sections {
+    align-self: stretch;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  body.in-cabinet #section-whattowatch,
+  body.in-cabinet #section-whattowatch > .whattowatch-content {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chips {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 18px !important;
+    padding: 0 !important;
+    justify-self: stretch !important;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip {
+    min-height: 220px;
+    padding: 18px 18px 16px;
+    border-radius: 12px;
+    align-items: flex-end;
+    justify-content: flex-start;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(1) { background-color: #3a1a4a; }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(2) { background-color: #1a3050; }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(3) { background-color: #4a2030; }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip:nth-child(4) { background-color: #3a2a12; }
+  body.in-cabinet #section-whattowatch .site-wtw-festivals-panel,
+  body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
+  body.in-cabinet #section-whattowatch .site-wtw-clubs-panel,
+  body.in-cabinet #section-whattowatch .festivals-page,
+  body.in-cabinet #section-whattowatch .collections-page,
+  body.in-cabinet #section-whattowatch .clubs-page,
+  body.in-cabinet #section-whattowatch .site-wtw-modes,
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world,
+  body.in-cabinet #section-whattowatch .whattowatch-result,
+  body.in-cabinet #section-whattowatch .site-pick-result {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-modes[hidden],
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world[hidden],
+  body.in-cabinet #section-whattowatch .wtw-pick-toggle[hidden],
+  body.in-cabinet #section-whattowatch .site-wtw-collections-panel[hidden],
+  body.in-cabinet #section-whattowatch .site-wtw-clubs-panel[hidden],
+  body.in-cabinet #section-whattowatch .site-wtw-festivals-panel[hidden] {
+    display: none !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-modes:not([hidden]),
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world:not([hidden]) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    flex-direction: unset !important;
+    gap: 14px !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row {
+    position: relative;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    min-height: 180px !important;
+    padding: 20px 18px 16px !important;
+    border-radius: 12px !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-icon {
+    width: 44px !important;
+    height: 44px !important;
+    margin: 0 0 14px !important;
+    font-size: 28px !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-title {
+    font-size: 18px;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-arrow {
+    position: absolute !important;
+    right: 14px;
+    bottom: 12px;
+    margin: 0 !important;
+  }
+  body.in-cabinet #section-whattowatch .fest-carousel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    overflow: visible;
+  }
+  body.in-cabinet #section-whattowatch .fest-carousel-card {
+    width: auto;
+    min-width: 0;
+  }
+  body.in-cabinet #section-whattowatch .collections-discovery-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.in-cabinet #section-whattowatch .wtw-hub-chip {
+    min-height: 280px;
+    padding: 22px 22px 20px;
+    font-size: 28px;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-modes:not([hidden]),
+  body.in-cabinet #section-whattowatch .site-wtw-modes--world:not([hidden]) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  body.in-cabinet #section-whattowatch .site-wtw-mode-row {
+    min-height: 210px !important;
+  }
+  body.in-cabinet #section-whattowatch .collections-discovery-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+  body.in-cabinet #section-whattowatch .collections-discovery-card__title {
+    font-size: 22px;
+  }
+  body.in-cabinet #section-whattowatch .fest-carousel {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+  body.in-cabinet #section-whattowatch .clubs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  body.in-cabinet #section-whattowatch .clubs-card {
+    min-height: 240px;
+    grid-template-columns: minmax(168px, 220px) minmax(0, 1fr);
+  }
+}
