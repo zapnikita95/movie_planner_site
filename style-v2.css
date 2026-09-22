@@ -22678,6 +22678,7 @@ body.in-cabinet #section-whattowatch > .cabinet-hint { display: none; }
   }
   body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
   body.in-cabinet #section-whattowatch .site-wtw-clubs-panel,
+  body.in-cabinet #section-whattowatch .site-wtw-festivals-panel,
   body.in-cabinet #section-whattowatch .site-wtw-modes,
   body.in-cabinet #section-whattowatch .whattowatch-result {
     grid-column: 1 / -1;
@@ -33750,8 +33751,7 @@ html.mp-section-boot #section-club::before {
 }
 
 /* MARKER:20260918gscIntents2 — durable GSC hubs lead copy */
-.premieres-page-h1,
-.whattowatch-page-h1 {
+.premieres-page-h1 {
   margin: 8px 16px 6px;
   font-family: Unbounded, sans-serif;
   font-weight: 800;
@@ -33759,19 +33759,29 @@ html.mp-section-boot #section-club::before {
   line-height: 1.2;
   color: #f2f2f7;
 }
+body.in-cabinet #section-whattowatch .whattowatch-page-h1,
+body.in-cabinet #section-whattowatch #whattowatch-page-h1 {
+  display: none !important;
+  margin: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
 .premieres-seo-lead,
 .whattowatch-seo-lead {
-  margin: 0 16px 14px;
-  max-width: 52rem;
-  font-size: 15px;
-  line-height: 1.45;
-  color: rgba(228, 228, 236, 0.88);
+  /* Hub leads stay in DOM for SEO. Do not paint them. */
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 .premieres-seo-lead a,
 .whattowatch-seo-lead a {
-  color: #c4b5fd;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: inherit;
 }
 .cabinet-premieres .premieres-page-h1 + .premieres-seo-lead + .section-title.visually-hidden {
   position: absolute;
@@ -33927,4 +33937,667 @@ html.mp-section-boot #section-club::before {
   .clubs-card-actions { width: 100%; }
   .clubs-card-cta,
   .clubs-card-open { flex: 1 1 auto; }
+}
+
+/* MARKER:20260922festivals1 — hub chips under header, desktop poster art. */
+body.in-cabinet #section-whattowatch .wtw-hub-chips {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  max-width: min(1100px, 100%);
+  margin: 0 auto 10px;
+  padding: 4px 12px 6px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+.wtw-hub-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: #141418;
+  color: #ececf2;
+  font-family: Unbounded, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+}
+.wtw-hub-chip.is-active {
+  background: #ef1c7a;
+  border-color: #ef1c7a;
+  color: #fff;
+}
+.wtw-pick-toggle {
+  display: flex;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto 12px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #121218;
+  box-sizing: border-box;
+}
+.wtw-pick-seg {
+  flex: 1;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(244, 246, 255, 0.62);
+  font-family: Unbounded, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+}
+.wtw-pick-seg.is-active {
+  background: #1c1c24;
+  color: #fff;
+}
+body.in-cabinet #section-whattowatch .site-wtw-modes,
+body.in-cabinet #section-whattowatch .site-wtw-modes--world {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
+  gap: 6px !important;
+  width: 100%;
+  max-width: min(920px, 100%) !important;
+  margin: 0 auto 12px;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 0 !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px !important;
+  background: #141418 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row:hover,
+body.in-cabinet #section-whattowatch .site-wtw-mode-row:focus-visible {
+  transform: none !important;
+  box-shadow: none !important;
+  background: #1a1a22 !important;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-icon {
+  width: 28px !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-size: 20px !important;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-hint {
+  max-width: none;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+body.in-cabinet #section-whattowatch .site-wtw-mode-row .site-wtw-mode-arrow {
+  position: static;
+  margin-left: auto;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.35);
+}
+body.in-cabinet #section-whattowatch .site-wtw-festivals-panel,
+body.in-cabinet #section-whattowatch .site-wtw-collections-panel,
+body.in-cabinet #section-whattowatch .site-wtw-clubs-panel {
+  width: 100%;
+  max-width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+body.in-cabinet #section-whattowatch .festivals-page {
+  width: 100%;
+  max-width: min(920px, 100%);
+  margin: 0 auto;
+}
+body.in-cabinet #section-whattowatch .site-wtw-modes,
+body.in-cabinet #section-whattowatch .whattowatch-result {
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+.fest-block-title {
+  margin: 0 0 10px;
+  font-family: Unbounded, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f2f2f7;
+}
+.fest-news-rail,
+.fest-sched-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fest-news-rail {
+  flex-direction: row;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fest-news-rail::-webkit-scrollbar { display: none; }
+.fest-news-card,
+.fest-sched-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fest-news-card {
+  flex: 0 0 auto;
+  width: min(228px, 72vw);
+  align-items: flex-start;
+}
+.fest-news-cover,
+.fest-sched-cover,
+.fest-hero-cover {
+  display: block;
+  object-fit: cover;
+  background: #16161c;
+}
+.fest-news-cover {
+  width: 72px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.fest-news-copy,
+.fest-sched-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fest-news-title,
+.fest-sched-title {
+  font-family: Unbounded, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.fest-news-meta,
+.fest-sched-meta,
+.fest-hero-meta,
+.fest-about-text,
+.fest-prog-meta,
+.fest-mock-note {
+  color: rgba(244, 246, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.fest-schedule,
+.fest-news,
+.fest-subs,
+.fest-about,
+.fest-program {
+  margin: 0 0 22px;
+}
+.fest-sched-head {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 255, 0.5);
+}
+.fest-sched-cover {
+  width: 48px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.fest-sched-row.is-past {
+  opacity: 0.55;
+}
+.fest-status {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ef1c7a;
+}
+.fest-status--past { color: rgba(244, 246, 255, 0.45); }
+.fest-status--live { color: #f2f2f7; }
+.fest-hero {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 22px;
+}
+.fest-hero-cover {
+  width: 100%;
+  max-height: 220px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+}
+.fest-hero-kicker { margin: 0 0 8px; }
+.fest-hero-title {
+  margin: 0 0 8px;
+  font-family: Unbounded, sans-serif;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.fest-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.fest-hero-actions .btn,
+.fest-prog-actions .btn,
+.fest-bulk-actions .btn {
+  height: auto;
+  min-height: 44px;
+  padding: 10px 18px;
+}
+.fest-back {
+  display: inline-flex;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 246, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+}
+.fest-prog-section { margin: 0 0 18px; }
+.fest-prog-section-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(244, 246, 255, 0.55);
+}
+.fest-prog-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fest-prog-title {
+  display: block;
+  font-family: Unbounded, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #f4f4f5;
+  text-decoration: none;
+}
+a.fest-prog-title:hover { color: #ff8ab8; }
+.fest-prog-meta { display: block; margin-top: 4px; }
+.fest-prog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.fest-mock-note { display: none; }
+.fest-skel { display: flex; flex-direction: column; gap: 10px; }
+.fest-skel-card {
+  height: 72px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.fest-covers-rail,
+.fest-detail-news-rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 0 0 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fest-covers-rail::-webkit-scrollbar,
+.fest-detail-news-rail::-webkit-scrollbar { display: none; }
+.fest-cover-shot {
+  flex: 0 0 auto;
+  width: min(220px, 68vw);
+  height: 124px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #16161c;
+}
+.fest-info-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.fest-info-list div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.fest-info-list dt {
+  margin: 0;
+  color: rgba(244, 246, 255, 0.5);
+  font-weight: 700;
+}
+.fest-info-list dd { margin: 0; color: #ececf2; }
+.fest-info-list a { color: #ff8ab8; }
+.fest-prog-item {
+  align-items: center;
+}
+.fest-prog-poster {
+  width: 48px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #16161c;
+}
+.fest-people-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fest-people-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+.fest-people-name {
+  font-family: Unbounded, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.fest-people-role {
+  color: rgba(244, 246, 255, 0.55);
+  font-size: 13px;
+}
+.fest-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+body.in-cabinet #section-whattowatch.whattowatch--festivals-scope .whattowatch-page-h1 {
+  display: none !important;
+}
+.fest-index-title {
+  margin: 8px 0 14px;
+  font-family: Unbounded, sans-serif;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.fest-carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 0 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fest-carousel::-webkit-scrollbar { display: none; }
+.fest-carousel-card {
+  flex: 0 0 auto;
+  width: min(160px, 52vw);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.fest-carousel-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #16161c;
+}
+.fest-carousel-name {
+  display: block;
+  margin: 8px 0 4px;
+  font-family: Unbounded, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.fest-carousel-meta {
+  display: block;
+  color: rgba(244, 246, 255, 0.55);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.fest-carousel-card .fest-status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  margin: 0;
+  padding: 3px 6px;
+  background: #0c0c12;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+.fest-day-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+  padding: 0 0 4px;
+  scrollbar-width: none;
+}
+.fest-day-tabs::-webkit-scrollbar { display: none; }
+.fest-day-tab {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: transparent;
+  color: #ececf2;
+  font-family: Unbounded, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fest-day-tab.is-active {
+  background: #ef1c7a;
+  border-color: #ef1c7a;
+  color: #fff;
+}
+.film-fest-now {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(244, 246, 255, 0.7);
+}
+.film-fest-now a {
+  color: #ff8ab8;
+  text-decoration: none;
+}
+.film-festivals-rail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+.premieres-festivals {
+  margin: 0 0 1.25rem;
+}
+.premieres-festivals-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  list-style: none;
+  cursor: pointer;
+}
+.premieres-festivals-summary::-webkit-details-marker { display: none; }
+.premieres-festivals-summary .premieres-now-playing-title { margin: 0; }
+.premieres-fest-caret {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.premieres-festivals[open] .premieres-fest-caret {
+  transform: rotate(-135deg);
+}
+.premieres-festivals-body { padding-top: 4px; }
+.premieres-festivals-more {
+  display: flex;
+  justify-content: flex-start;
+  margin: 12px 0 0;
+}
+.premieres-festivals-list {
+  display: flex;
+  flex-direction: column;
+}
+.premieres-fest-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: inherit;
+  text-decoration: none;
+}
+.premieres-fest-row:last-child { border-bottom: 0; }
+.premieres-fest-cover {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #16161c;
+  flex-shrink: 0;
+}
+.premieres-fest-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.premieres-fest-name {
+  display: block;
+  font-family: Unbounded, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.premieres-fest-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(244, 246, 255, 0.55);
+}
+.premieres-festivals .fest-status {
+  margin-left: 8px;
+}
+@media (min-width: 901px) {
+  body.in-cabinet #section-whattowatch .wtw-hub-chips {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-column: 1 / -1;
+    gap: 10px;
+    width: 100%;
+    max-width: min(1100px, 100%);
+    margin: 0 auto 14px;
+    padding: 2px 16px 0;
+    justify-self: center;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip {
+    min-height: 92px;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background-color: #141418;
+    background-image:
+      linear-gradient(180deg, rgba(8, 8, 12, 0.18) 0%, rgba(8, 8, 12, 0.78) 100%),
+      var(--wtw-poster, none);
+    background-size: cover;
+    background-position: center;
+  }
+  body.in-cabinet #section-whattowatch .wtw-hub-chip.is-active {
+    background-color: #17141b;
+    background-image:
+      linear-gradient(180deg, rgba(8, 8, 12, 0.12) 0%, rgba(8, 8, 12, 0.7) 100%),
+      var(--wtw-poster, none);
+    box-shadow: inset 0 0 0 2px #ef1c7a;
+    border-color: transparent;
+    color: #fff;
+  }
+  body.in-cabinet #section-whattowatch .wtw-pick-toggle {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (max-width: 900px) {
+  body.in-cabinet #section-whattowatch .wtw-hub-chip {
+    background-image: none !important;
+  }
+}
+@media (max-width: 640px) {
+  .fest-prog-item { flex-direction: row; align-items: flex-start; }
+  .fest-hero-actions .btn,
+  .fest-prog-actions .btn,
+  .fest-bulk-actions .btn { width: auto; }
+  .film-festivals-rail { display: block; }
+  .fest-info-list div { grid-template-columns: 1fr; gap: 2px; }
 }

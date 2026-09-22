@@ -54,8 +54,8 @@
     <meta name="mitgo-verification" content="573bd968-eea1-4794-b73d-d8f0e98b9413" />
     <link rel="alternate" type="text/plain" href="https://movie-planner.ru/llms.txt" title="LLMs">
     <link rel="sitemap" type="application/xml" title="Sitemap" href="https://movie-planner.ru/sitemap.xml">
-<link rel="preload" href="/style-v2.css?v=20260922searchJump1" as="style">
-    <link rel="stylesheet" href="/style-v2.css?v=20260922searchJump1">
+<link rel="preload" href="/style-v2.css?v=20260922festivals1" as="style">
+    <link rel="stylesheet" href="/style-v2.css?v=20260922festivals1">
     <script>
       (function () {
         try {
@@ -97,12 +97,17 @@
           '/premieres': 'Премьеры фильмов и сериалов — календарь выхода · Movie Planner',
           '/buzz': 'В тренде · Movie Planner',
           '/whattowatch': 'Что посмотреть — подбор фильмов и сериалов · Movie Planner',
+          '/whattowatch/festivals': 'Фестивали — Movie Planner',
           '/ratings': 'Оценки и история просмотров · Movie Planner',
           '/stats': 'Статистика просмотров · Movie Planner',
           '/groups': 'Общий список фильмов с друзьями · Movie Planner'
         };
         if (routeTitles[path]) {
           try { document.title = routeTitles[path]; } catch (_) {}
+          return;
+        }
+        if (path.indexOf('/whattowatch/festivals/') === 0) {
+          try { document.title = 'Фестиваль — Movie Planner'; } catch (_) {}
           return;
         }
         if (path === '/search') {
@@ -493,20 +498,27 @@
               b.classList.remove('active');
               if (b.getAttribute('data-section') === 'whattowatch') b.classList.add('active');
             });
-            if (path === '/clubs' || path === '/whattowatch/clubs') {
+            if (path === '/clubs' || path === '/whattowatch/clubs' || path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0) {
               var content = document.getElementById('whattowatch-content');
-              if (content && !content.getAttribute('data-clubs-boot')) {
-                content.setAttribute('data-clubs-boot', '1');
-                content.innerHTML =
-                  '<div class="plan-mode-toggle wtw-scope-toggle" aria-hidden="true">'
-                  + '<span class="plan-mode">Хочу посмотреть</span>'
-                  + '<span class="plan-mode">Со всего мира</span>'
-                  + '<span class="plan-mode">Коллекции</span>'
-                  + '<span class="plan-mode active">Киноклубы</span>'
-                  + '</div>'
-                  + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
-                  + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
-                  + '<p class="clubs-loading-label">Загружаем киноклубы…</p></div>';
+              if (content && !content.getAttribute('data-wtw-boot')) {
+                content.setAttribute('data-wtw-boot', '1');
+                var isFestBoot = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
+                var chips = '<nav class="wtw-hub-chips" aria-hidden="true">'
+                  + '<span class="wtw-hub-chip">Подбор</span>'
+                  + '<span class="wtw-hub-chip">Коллекции</span>'
+                  + '<span class="wtw-hub-chip' + (isFestBoot ? '' : ' is-active') + '">Клубы</span>'
+                  + '<span class="wtw-hub-chip' + (isFestBoot ? ' is-active' : '') + '">Фестивали</span>'
+                  + '</nav>';
+                if (isFestBoot) {
+                  content.innerHTML = chips
+                    + '<div class="festivals-page"><div class="fest-skel" aria-hidden="true"><div class="fest-skel-card"></div><div class="fest-skel-card"></div></div>'
+                    + '<p class="clubs-loading-label">Загружаем фестивали…</p></div>';
+                } else {
+                  content.innerHTML = chips
+                    + '<div class="clubs-page"><p class="cabinet-hint clubs-intro">Открытые киноклубы Movie Planner.</p>'
+                    + '<div class="clubs-skel" aria-hidden="true"><div class="clubs-skel-card"></div><div class="clubs-skel-card"></div></div>'
+                    + '<p class="clubs-loading-label">Загружаем киноклубы…</p></div>';
+                }
               }
             }
           }
@@ -2925,8 +2937,8 @@
                     </div>
                 </section>
                 <section id="section-whattowatch" class="cabinet-section hidden cabinet-whattowatch" aria-label="Смотреть">
-                    <h1 class="guest-discover-h1 whattowatch-page-h1" id="whattowatch-page-h1">Что посмотреть</h1>
-                    <p class="whattowatch-seo-lead" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди <a href="/watchlist">«хочу посмотреть»</a>, по эмоции, пожеланиям или из каталога. Коллекции и киноклубы — рядом.</p>
+                    <h1 class="guest-discover-h1 whattowatch-page-h1 visually-hidden" id="whattowatch-page-h1">Смотреть</h1>
+                    <p class="whattowatch-seo-lead visually-hidden" id="whattowatch-seo-lead">Подбор фильма или сериала из очереди «хочу посмотреть», по эмоции, пожеланиям или из каталога. Коллекции, киноклубы и фестивали рядом.</p>
                     <div id="whattowatch-content" class="whattowatch-content"></div>
                 </section>
                 <section id="section-ratings" class="cabinet-section hidden">
@@ -3019,10 +3031,22 @@
                 </section>
                 <section id="section-premieres" class="cabinet-section hidden cabinet-premieres">
                     <h1 class="guest-discover-h1 premieres-page-h1">Премьеры фильмов и сериалов</h1>
-                    <p class="premieres-seo-lead">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Откройте карточку, чтобы увидеть дату выхода и добавить в <a href="/watchlist">список «хочу посмотреть»</a>.</p>
+                    <p class="premieres-seo-lead visually-hidden">Календарь выхода в российском прокате: даты премьер, «сейчас в кино» и ближайшие релизы. Карточка фильма: дата выхода и список «хочу посмотреть».</p>
                     <h2 class="section-title visually-hidden">
                     <span class="section-title-emoji" data-mp-icon="premieres"></span><span class="section-title-text">Премьеры</span></h2>
                     <p class="premieres-donations-entry"><a class="premieres-donations-pill" href="/donations">Краудфандинг фильмов</a></p>
+                    <details id="premieres-festivals" class="premieres-festivals" hidden>
+                        <summary class="premieres-festivals-summary">
+                            <h3 class="premieres-now-playing-title">Фестивали</h3>
+                            <span class="premieres-fest-caret" aria-hidden="true"></span>
+                        </summary>
+                        <div class="premieres-festivals-body">
+                            <div id="premieres-festivals-list" class="premieres-festivals-list"></div>
+                            <p class="premieres-festivals-more">
+                                <a class="btn btn-secondary" href="/whattowatch/festivals">Все фестивали</a>
+                            </p>
+                        </div>
+                    </details>
                     <section id="premieres-now-playing" class="premieres-now-playing" hidden aria-label="Сейчас в кино">
                         <div class="premieres-now-playing-head">
                             <h3 class="premieres-now-playing-title">Сейчас в кино</h3>
@@ -3089,7 +3113,7 @@
                             </select>
                         </label>
                     </div>
-                    <p class="cabinet-hint">Афиша кинопремьер России по дате выхода. Включайте напоминания, добавляйте релизы в <a href="/watchlist">список просмотра</a> и открывайте карточки фильмов.</p>
+                    <p class="cabinet-hint visually-hidden">Афиша кинопремьер России по дате выхода.</p>
                     <div id="premieres-loading" class="premieres-loading hidden">Загружаем премьеры…</div>
                     <div id="premieres-error" class="premieres-error hidden"></div>
                     <div id="premieres-grid" class="premieres-grid"></div>
@@ -4159,7 +4183,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260922searchJump1';
+        var V='20260922festivals1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
@@ -4186,6 +4210,8 @@
           'onboarding-flow.js?v=' + V,
           'collections-page.js?v=' + V,
           'clubs-page.js?v=' + V,
+          'festivals-mock.js?v=' + V,
+          'festivals-page.js?v=' + V,
           'club-page.js?v=' + V,
           'home-rails.js?v=' + V,
           'landing-articles.js?v=20260627articles1',
@@ -4224,7 +4250,10 @@
           var collPage = 'collections-page.js?v=' + V;
           var clubsPage = 'clubs-page.js?v=' + V;
           var clubPage = 'club-page.js?v=' + V;
+          var festMock = 'festivals-mock.js?v=' + V;
+          var festPage = 'festivals-page.js?v=' + V;
           var isWtwClubs = path === '/whattowatch/clubs' || path === '/clubs';
+          var isWtwFestivals = path === '/whattowatch/festivals' || path.indexOf('/whattowatch/festivals/') === 0;
           var loggedHead = [
             'mp-api-config.js?v=' + V,
             'mp-poster-rating.js?v=' + V,
@@ -4234,6 +4263,7 @@
             'home-rails.js?v=' + V,
             'avatar-crop.js?v=' + V
           ];
+          loggedHead.push(festMock, festPage);
           var loggedTail = [
             'plan-modal.js?v=' + V,
             'film-user-tags.js?v=' + V,
@@ -4253,6 +4283,8 @@
             list = ["mp-api-config.js?v=" + V, "mp-poster-rating.js?v=" + V, "header-search-scroll.js?v=" + V, "mp-icons.js?v=" + V, "page-loading.js?v=" + V, "plan-modal.js?v=" + V, "cabinet-app.js?v=" + V, clubPage, 'login-auth-rail.js?v=' + V, 'public-film-login.js?v=' + V];
           } else if (isWtwCollectionDetail) {
             list = loggedHead.concat([collPage, clubsPage, 'cabinet-app.js?v=' + V], loggedTail);
+          } else if (isWtwFestivals) {
+            list = loggedHead.concat(['cabinet-app.js?v=' + V], loggedTail, [collPage, clubsPage]);
           } else if (isWtwClubs) {
             list = loggedHead.concat([clubsPage, 'cabinet-app.js?v=' + V], loggedTail, [collPage]);
           } else {
@@ -4300,7 +4332,8 @@
             'film-user-tags.js?v=' + V,
             'film-friends-social.js?v=' + V,
             'mp-public-promo.js?v=' + V,
-            'onboarding-flow.js?v=' + V
+            'onboarding-flow.js?v=' + V,
+            'festivals-mock.js?v=' + V
           ];
         } else if (!isBuzz && !isSearch && !isClubPage && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
