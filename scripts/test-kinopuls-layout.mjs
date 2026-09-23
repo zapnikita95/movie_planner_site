@@ -5,10 +5,17 @@ for (const path of ['kinopuls/index.html','kinopuls/podbor-blogerov/index.html',
   for(const marker of ['id="site-header"','header-search-input','footer-content','footer-store-row','/film-page.js','/articles/article-chrome.js','kp-main subpage-main']) assert.ok(html.includes(marker),path+': missing '+marker);
   assert.equal((html.match(/<h1>/g)||[]).length,1);
   assert.ok(!html.includes('<header>'));
+  assert.ok(!html.includes('Обсудить релиз с Никитой'));
+  assert.ok(html.includes('/kinopuls/kinopuls-motion.js'));
 }
+const home=readFileSync(new URL('../kinopuls/index.html',import.meta.url),'utf8');
+assert.ok(!home.includes('Почему нельзя выбирать только по Telegram'));
+assert.ok(home.includes('data-kp-sequence'));
+assert.ok(!home.includes('cinema-intelligence-v1.webp'));
 const css=readFileSync(new URL('../kinopuls/kinopuls.css',import.meta.url),'utf8');
 assert.ok(css.includes('counter(step,decimal-leading-zero)'));
 assert.ok(css.includes('grid-template-columns:1fr 1fr'));
 assert.ok(css.includes('@media(max-width:700px)'));
 assert.ok(!css.includes('.header-content'));
+assert.ok(css.includes('prefers-reduced-motion:reduce'));
 console.log('Kinopuls: shared chrome, semantic headings and responsive steps OK');
