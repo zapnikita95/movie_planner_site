@@ -30,7 +30,7 @@ FOOTERS = {
                 <div class="footer-info">
                     <h3>Contact</h3>
                     <p>📍 Moscow</p>
-                    <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+                    <p>✉️ <a href="mailto:contact@movie-planner.ru">contact@movie-planner.ru</a></p>
                     <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">@zapnikita95</a></p>
                 </div>
                 <div class="footer-social">
@@ -44,7 +44,7 @@ FOOTERS = {
                     <h3>Contact</h3>
                     <p>📍 Moscow</p>
                     <p>📞 +7 (977) 613-45-08</p>
-                    <p>✉️ <a href="mailto:movie-planner-bot@yandex.com">movie-planner-bot@yandex.com</a></p>
+                    <p>✉️ <a href="mailto:contact@movie-planner.ru">contact@movie-planner.ru</a></p>
                     <p>💬 <a href="https://t.me/zapnikita95" target="_blank" rel="noopener">Questions: @zapnikita95</a></p>
                 </div>
                 <div class="footer-social">
