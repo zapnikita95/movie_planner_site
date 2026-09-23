@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 155 620 720" fill="none"><title>Попкорн Movie Planner</title>
+<!-- Vector redraw referenced to movieplanner-mobile/assets/icon.png (1024 x 1024). No embedded bitmap. -->
+<defs><g id="corn"><path d="M-25 26C-52 37-63 8-45-8C-55-31-43-55-19-54C7-56 23-32 13-12C40-19 54 1 45 19C36 36 13 30 1 23C-1 42-25 45-25 26Z" fill="#F6DEA0" stroke="#130D2D" stroke-width="11" stroke-linejoin="round"/><path d="M-42-15C-45-38-25-51-6-41C7-34 10-22 6-15C8-31-6-38-19-37C-31-38-40-28-38-12Z" fill="#FFF9D5"/><path d="M-41 9C-29 21-15 15-10 9C-1 5 9 14 15 18C4 25-8 25-16 19C-29 30-42 20-41 9Z" fill="#EAC478"/></g><clipPath id="tub"><path d="M248 445Q510 493 776 445L728 791Q725 824 692 833Q510 874 329 833Q299 826 294 797Z"/></clipPath></defs>
+<path d="M244 407C229 382 254 355 278 361C259 326 281 299 315 310C322 283 342 259 376 277C391 231 423 223 454 244C454 189 490 170 522 189C540 201 539 227 537 235C566 240 576 229 591 221C626 206 641 238 637 258C675 248 697 278 692 305C723 283 759 312 749 345C793 344 811 385 785 413L752 456H271Z" fill="#CE9B57" stroke="#130D2D" stroke-width="12" stroke-linejoin="round"/>
+<use href="#corn" transform="translate(491 222) rotate(-6) scale(1.08)"/>
+<use href="#corn" transform="translate(436 254) rotate(-14) scale(0.85)"/>
+<use href="#corn" transform="translate(362 287) rotate(-30) scale(0.85)"/>
+<use href="#corn" transform="translate(602 255) rotate(13) scale(0.98)"/>
+<use href="#corn" transform="translate(656 293) rotate(15) scale(0.8)"/>
+<use href="#corn" transform="translate(306 343) rotate(-25) scale(0.93)"/>
+<use href="#corn" transform="translate(420 321) rotate(23) scale(0.88)"/>
+<use href="#corn" transform="translate(479 332) rotate(-8) scale(0.75)"/>
+<use href="#corn" transform="translate(565 310) rotate(-20) scale(1.02)"/>
+<use href="#corn" transform="translate(609 357) rotate(27) scale(0.83)"/>
+<use href="#corn" transform="translate(718 340) rotate(20) scale(0.91)"/>
+<use href="#corn" transform="translate(761 388) rotate(30) scale(0.73)"/>
+<use href="#corn" transform="translate(267 389) rotate(-23) scale(0.8)"/>
+<use href="#corn" transform="translate(341 391) rotate(0) scale(0.93)"/>
+<use href="#corn" transform="translate(443 404) rotate(4) scale(0.83)"/>
+<use href="#corn" transform="translate(535 402) rotate(-5) scale(1.1)"/>
+<use href="#corn" transform="translate(668 398) rotate(0) scale(0.97)"/>
+<path d="M248 445Q510 493 776 445L728 791Q725 824 692 833Q510 874 329 833Q299 826 294 797Z" fill="#F4F4F3" stroke="#130D2D" stroke-width="14"/>
+<g clip-path="url(#tub)">
+<path d="M243 445H781L766 517Q509 577 257 517Z" fill="#F04D61"/>
+<path d="M249 449Q509 500 777 449L773 481Q510 529 254 480Z" fill="#A62848"/>
+<path d="M260 545Q510 601 762 545L753 596Q510 650 266 596Z" fill="#398CD0"/>
+<path d="M288 741Q510 801 738 741L732 783Q510 842 294 784Z" fill="#398CD0"/>
+<path d="M687 498L761 483L733 797Q729 822 694 833Q518 873 367 840C555 846 633 820 648 748C670 656 679 577 687 498Z" fill="#211B58" opacity=".28"/>
+<path d="M259 473L303 793Q305 815 322 819L283 484Z" fill="#FFF" opacity=".4"/>
+</g>
+<path d="M235 417Q510 483 785 417C795 425 799 446 779 452Q510 515 241 452C223 448 222 426 235 417Z" fill="#DADBE8" stroke="#130D2D" stroke-width="13" stroke-linejoin="round"/>
+<path d="M239 426Q510 486 779 426" stroke="#FFF" stroke-width="10" stroke-linecap="round"/>
+</svg>
