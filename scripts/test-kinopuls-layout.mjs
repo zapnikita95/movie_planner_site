@@ -12,6 +12,7 @@ const home=readFileSync(new URL('../kinopuls/index.html',import.meta.url),'utf8'
 assert.ok(!home.includes('Почему нельзя выбирать только по Telegram'));
 assert.ok(home.includes('data-kp-sequence'));
 assert.ok(home.includes('/images/kinopuls-popcorn.svg'));
+assert.ok(home.includes('viewBox="-12 -60 1024 320"'));
 assert.ok(!home.includes('Знаем кино.'));
 assert.ok(!home.includes('Направление развивает'));
 assert.ok(!home.includes('kp-brand-icon'));
@@ -27,4 +28,8 @@ assert.ok(!css.includes('.header-content'));
 assert.ok(css.includes('prefers-reduced-motion:reduce'));
 assert.ok(css.includes('grid-column:1/-1'));
 assert.ok(css.includes('#contact>.cta{margin-top:30px}'));
+for (const rule of css.match(/\.kp-origin-art img\{[^}]+\}/g)||[]) {
+  assert.ok(!rule.includes('width:760px'));
+  assert.ok(!rule.includes('width:520px'));
+}
 console.log('Kinopuls: shared chrome, semantic headings and responsive steps OK');
