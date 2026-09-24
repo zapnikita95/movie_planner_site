@@ -5401,13 +5401,13 @@
         var link = document.querySelector('[data-film-festival-link="1"]');
         try {
           if (global.MpFestivalsPage && typeof global.MpFestivalsPage.track === 'function') {
-            global.MpFestivalsPage.track('film_festival_badge_view', { festival_slug: first.slug, film_id: String(kpId || '') });
+            global.MpFestivalsPage.track('film_festival_badge_view', { festival_slug: first.slug, film_id: String(pathKey || kpId || '') });
           }
         } catch (_festTrack) {}
         if (link) link.addEventListener('click', function () {
           try {
             if (global.MpFestivalsPage && typeof global.MpFestivalsPage.track === 'function') {
-              global.MpFestivalsPage.track('film_festival_badge_click', { festival_slug: first.slug, film_id: String(kpId || '') });
+              global.MpFestivalsPage.track('film_festival_badge_click', { festival_slug: first.slug, film_id: String(pathKey || kpId || '') });
             }
           } catch (_festClickTrack) {}
         });
@@ -5417,7 +5417,7 @@
         if (!section) return;
         var mock = global.MpFestivalsMock;
         if (mock && typeof mock.appearancesForKp === 'function') {
-          paintFilmFestivals(section, mock.appearancesForKp(kpId));
+          paintFilmFestivals(section, mock.appearancesForKp(pathKey || kpId));
           return;
         }
         if ((attempt || 0) < 240) {
