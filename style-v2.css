@@ -13802,6 +13802,28 @@ main.film-page .film-hero-crew {
   line-height: 1.25;
   letter-spacing: 0;
 }
+.film-cast-all-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(244,114,182,.55);
+  border-radius: 8px;
+  color: #f9a8d4 !important;
+  background: rgba(244,114,182,.08);
+  text-decoration: none !important;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.film-cast-all-link:hover,
+.film-cast-all-link:focus-visible {
+  color: #fff !important;
+  border-color: #f472b6;
+  background: rgba(244,114,182,.18);
+  outline: none;
+}
 .film-people-rail {
   display: grid;
   grid-auto-flow: column;
@@ -13880,6 +13902,7 @@ main.film-page .film-hero-crew {
   .film-discovery-band { padding-top: 18px; }
   .film-discovery-heading { margin-bottom: 12px; }
   .film-discovery-heading h2 { font-size: 16px; }
+  .film-cast-all-link { min-height: 34px; padding-inline: 10px; font-size: 12px; }
   .film-people-rail { grid-auto-columns: minmax(132px, 38vw); gap: 12px; margin-right: -12px; padding-right: 12px; }
   .film-collections-rail {
     display: block;
