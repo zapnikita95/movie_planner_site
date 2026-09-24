@@ -7,6 +7,12 @@ for (const path of ['kinopuls/index.html','kinopuls/podbor-blogerov/index.html',
   assert.ok(!html.includes('<header>'));
   assert.ok(!html.includes('Обсудить релиз с Никитой'));
   assert.ok(html.includes('/kinopuls/kinopuls-motion.js'));
+  assert.ok(html.includes('20260924motion2'));
+  assert.ok(html.indexOf('class="cta"') < html.indexOf('class="kp-hero-detail"'));
+  if (path !== 'kinopuls/index.html') {
+    assert.ok(html.includes('data-kp-art'));
+    assert.ok(!/VIDEODROME|Луцай/i.test(html));
+  }
 }
 const home=readFileSync(new URL('../kinopuls/index.html',import.meta.url),'utf8');
 assert.ok(!home.includes('Почему нельзя выбирать только по Telegram'));
