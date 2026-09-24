@@ -5420,8 +5420,8 @@
           paintFilmFestivals(section, mock.appearancesForKp(kpId));
           return;
         }
-        if ((attempt || 0) < 40) {
-          setTimeout(function () { loadFilmFestivals((attempt || 0) + 1); }, 50);
+        if ((attempt || 0) < 240) {
+          setTimeout(function () { loadFilmFestivals((attempt || 0) + 1); }, 100);
         }
       }
       function loadPublicCast() {

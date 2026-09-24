@@ -4202,7 +4202,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260924africaFest2';
+        var V='20260924africaFest3';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
@@ -4337,7 +4337,12 @@
         var pageGate = null;
         if (isFilm || isStaff) {
           /* mp-icons with film-page (not deferred): guest toolbar must not paint 🔔 fallback. */
-          list = ['mp-api-config.js?v=' + V, 'mp-poster-rating.js?v=' + V];
+          list = [
+            'mp-api-config.js?v=' + V,
+            'mp-poster-rating.js?v=' + V,
+            'festivals-mock.js?v=' + V,
+            'festivals-page.js?v=' + V
+          ];
           pageGate = ['mp-icons.js?v=' + V, 'film-share-inapp.js?v=' + V, 'film-page.js?v=' + V];
           if (isStaff) pageGate.push('staff-page.js?v=' + V);
           deferred = [
@@ -4353,9 +4358,7 @@
             'film-user-tags.js?v=' + V,
             'film-friends-social.js?v=' + V,
             'mp-public-promo.js?v=' + V,
-            'onboarding-flow.js?v=' + V,
-            'festivals-mock.js?v=' + V,
-            'festivals-page.js?v=' + V
+            'onboarding-flow.js?v=' + V
           ];
         } else if (!isBuzz && !isSearch && !isClubPage && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);
