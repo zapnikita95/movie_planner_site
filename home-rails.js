@@ -243,6 +243,9 @@
     var rating = m.rating != null
       ? '<span class="home-rated-badge">★ ' + esc(String(m.rating)) + "</span>"
       : "";
+    var badge = opts.showBadge && m.badge
+      ? '<span class="home-rated-badge home-plan-badge home-evening-badge">' + esc(String(m.badge)) + "</span>"
+      : "";
     var ratedCls = opts.rated ? " home-poster-tile--rated" : "";
     var kpNav = m.kp_id != null ? String(m.kp_id).replace(/\D/g, "") : "";
     var hrefAttr = kpNav ? (' href="/f/' + encodeURIComponent(kpNav) + '"') : "";
@@ -250,7 +253,7 @@
     return (
       '<div class="home-poster-tile-wrap">' +
       '<a class="home-poster-tile' + ratedCls + '"' + hrefAttr + ' role="listitem"' + siteFilmAttrs(m) + ">" +
-      '<div class="home-poster-tile-img' + sensCls + '">' + img + rating + "</div>" +
+      '<div class="home-poster-tile-img' + sensCls + '">' + img + rating + badge + "</div>" +
       '<div class="home-poster-tile-title">' + esc(m.title || "") + "</div>" +
       '<div class="home-poster-tile-year">' + (m.year ? esc(String(m.year)) : "—") + "</div>" +
       "</a></div>"
@@ -438,6 +441,7 @@
         html = batch.map(function (m, i) {
           return posterTileHtml(m, {
             rated: railId === "recent-rated",
+            showBadge: railId === "evening-from-base",
             posterUrl: config.posterUrl,
           }, base + i);
         }).join("");
@@ -456,6 +460,7 @@
         html = batch.map(function (m, i) {
           return posterTileHtml(m, {
             rated: railId === "recent-rated",
+            showBadge: railId === "evening-from-base",
             posterUrl: config.posterUrl,
           }, i);
         }).join("");
