@@ -1366,7 +1366,9 @@
     return (
       '<div class="film-discovery-bands">' +
         '<section class="film-discovery-band hidden" id="film-cast-details" aria-labelledby="film-cast-details-title">' +
-          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Создатели и актёры</h2></div>' +
+          '<div class="film-discovery-heading"><h2 id="film-cast-details-title">Создатели и актёры</h2>' +
+            '<a class="film-cast-all-link hidden" id="film-cast-all-link" href="#">Весь состав <span aria-hidden="true">→</span></a>' +
+          '</div>' +
           '<div class="film-people-rail" id="film-people-rail"></div>' +
         '</section>' +
         '<section class="film-discovery-band hidden" id="film-collections-root" aria-labelledby="film-collections-title">' +
@@ -5331,6 +5333,11 @@
           var peopleHtml = buildPublicCastDetailsHtml(d.director, d.actors || []);
           rail.innerHTML = peopleHtml;
           details.classList.toggle('hidden', !peopleHtml);
+          var allCastLink = document.getElementById('film-cast-all-link');
+          if (allCastLink && peopleHtml && numericKpFilmId(kpId)) {
+            allCastLink.href = '/f/' + encodeURIComponent(kpId) + '/cast';
+            allCastLink.classList.remove('hidden');
+          }
           if (peopleHtml) {
             bindPublicCastLinks(rail);
             bindFilmPageSimilarRailDrag(rail);
