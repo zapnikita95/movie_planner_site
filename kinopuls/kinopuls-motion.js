@@ -7,10 +7,12 @@
   let observer, frame = 0;
   const stage = main.querySelector('.kp-motion-stage');
   const method = main.querySelector('[data-kp-sequence]');
+  const artworks = [...main.querySelectorAll('[data-kp-art]')];
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
   function update() {
     frame = 0;
     if (preference.matches) return;
+    artworks.forEach(el => el.style.setProperty('--art-progress', clamp((innerHeight * .8 - el.getBoundingClientRect().top) / innerHeight, -1, 1).toFixed(3)));
     if (stage) {
       const box = stage.getBoundingClientRect();
       const progress = clamp((innerHeight * .65 - box.top) / innerHeight, -1, 1);
@@ -31,6 +33,7 @@
     groups.forEach(el => el.classList.remove('kp-reveal', 'kp-in-view'));
     stage?.style.removeProperty('--stage-progress');
     method?.style.removeProperty('--line-progress');
+    artworks.forEach(el => el.style.removeProperty('--art-progress'));
     if (preference.matches || !('IntersectionObserver' in window)) return;
     observer = new IntersectionObserver(entries => entries.forEach(entry => {
       if (entry.isIntersecting) {

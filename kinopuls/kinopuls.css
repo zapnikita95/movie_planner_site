@@ -1,4 +1,28 @@
 /* Kinopuls content only: header and footer belong to the shared site chrome. */
+.kp-page .kp-main .kp-nav{margin-bottom:24px}
+.kp-page .kp-main .kp-hero{min-height:0;align-items:start;padding-top:8px}
+.kp-page .kp-main .kp-hero .eyebrow{margin:0 0 14px}
+.kp-page .kp-main .kp-hero h1{margin:0 0 20px}
+.kp-page .kp-main .kp-hero .lead{margin:0 0 20px}
+.kp-page .kp-main .kp-hero-detail{margin-top:26px}
+@media(max-width:700px){
+ .kp-page .kp-main.subpage-main{padding-top:18px}
+ .kp-page .kp-main .kp-nav{margin-bottom:18px;gap:18px;font-size:13px}
+ .kp-page .kp-main .kp-hero h1{font-size:28px;line-height:1.24;margin-bottom:16px}
+ .kp-page .kp-main .kp-hero h1 br{display:none}
+ .kp-page .kp-main .kp-hero h1 br::after{content:" "}
+ .kp-page .kp-main .kp-hero .lead{font-size:17px;line-height:1.45;margin-bottom:18px}
+ .kp-page .kp-main .kp-hero .eyebrow{font-size:10px;margin-bottom:12px}
+ .kp-page .kp-main .kp-hero .cta{padding:12px 20px}
+ .kp-page .kp-main .kp-cinema-art{max-width:520px;width:100%;margin:16px auto 0}
+}
+@media(prefers-reduced-motion:reduce){.kp-art-strip{transform:none!important}}
+.kp-main .kp-cinema-art{color:#61575d;min-width:0;overflow:hidden;--art-progress:0}
+.kp-cinema-art svg{display:block;width:100%;height:auto}
+.kp-art-strip{transform-origin:300px 300px;transform:translateY(calc(var(--art-progress)*-28px)) rotate(calc(-9deg + var(--art-progress)*14deg))}
+.kp-art-agency .kp-art-strip{transform:translateY(calc(var(--art-progress)*22px)) rotate(calc(8deg - var(--art-progress)*12deg))}
+.kp-main .kp-editorial-panel{background:#e6ded3;padding:40px;color:#171518}
+.kp-main .kp-editorial-panel :is(h2,p){color:#171518}
 .kp-main .kp-motion-stage{height:470px;position:relative;perspective:1100px;--stage-progress:0;pointer-events:none}
 .kp-main .kp-motion-frame{position:absolute;width:78%;height:235px;padding:26px;border:1px solid #61575d;background:#111113;transform-origin:50% 70%;will-change:transform}
 .kp-motion-frame>span{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#c4b7bf}
