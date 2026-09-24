@@ -33,6 +33,7 @@ ok(!!Mp.getFestival("sretensky-vstrecha-2026"), "sretensky");
 ok(!!Mp.getFestival("eurasia-doc-2026"), "eurasia");
 ok(!!Mp.getFestival("message-to-man-2026"), "message to man");
 ok(!!Mp.getFestival("africa-together-2026"), "africa together");
+ok(Mp.getFestival("africa-together-2026").featured === true, "africa festival is featured on the hub");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("data:image/svg+xml") === 0; }), "festival cards use festival identities");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("kinopoisk-image") < 0; }), "festival cards do not use movie posters");
 ok(Mp.listFestivals().every(function (f) { return /^https:\/\//.test(String(f.official_art)); }), "every festival has official artwork");
@@ -77,6 +78,9 @@ ok(Mp.programDays(africa).every(function (day) {
 ok(Mp.appearancesForKp("movie-1337148", now).some(function (a) {
   return a.slug === "africa-together-2026" && a.status === "upcoming";
 }), "aisha has upcoming festival badge");
+["movie-1405200", "movie-1342236", "movie-1337148", "movie-124618"].forEach(function (id) {
+  ok(Mp.appearancesForKp(id, now).some(function (a) { return a.slug === "africa-together-2026"; }), id + " is linked to africa festival");
+});
 
 var liveApps = Mp.appearancesForKp("11979853", now);
 ok(liveApps.some(function (a) { return a.status === "live" && a.slug === "siberia-meetings-2026"; }), "live badge kp");

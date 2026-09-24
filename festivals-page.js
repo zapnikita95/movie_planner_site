@@ -8,7 +8,7 @@
 
   var SEO = {
     title: "Фестивали — Movie Planner",
-    description: "Кинофестивали в Movie Planner: что идёт и что скоро, программа по дням, подписка.",
+    description: "Кинофестивали в Movie Planner: текущая афиша, ближайшие даты, фильмы по дням и подписка.",
     canonical: "https://movie-planner.ru/whattowatch/festivals",
   };
 
@@ -55,17 +55,47 @@
       if (meta) meta.setAttribute("content", SEO.description);
       var canon = document.querySelector('link[rel="canonical"]');
       if (canon) canon.setAttribute("href", SEO.canonical);
+      applySocialMeta(SEO.title, SEO.description, SEO.canonical, "https://movie-planner.ru/api/og/section/festivals.jpg?v=20260924festivalOg1");
     } catch (_) {}
+  }
+
+  function setMeta(selector, attr, value) {
+    var node = document.querySelector(selector);
+    if (!node) {
+      node = document.createElement("meta");
+      var match = selector.match(/^meta\[([^=]+)="([^"]+)"\]$/);
+      if (!match) return;
+      node.setAttribute(match[1], match[2]);
+      document.head.appendChild(node);
+    }
+    node.setAttribute(attr, value);
+  }
+
+  function applySocialMeta(title, description, url, image) {
+    setMeta('meta[property="og:title"]', "content", title);
+    setMeta('meta[property="og:description"]', "content", description);
+    setMeta('meta[property="og:url"]', "content", url);
+    setMeta('meta[property="og:image"]', "content", image);
+    setMeta('meta[name="twitter:title"]', "content", title);
+    setMeta('meta[name="twitter:description"]', "content", description);
+    setMeta('meta[name="twitter:image"]', "content", image);
   }
 
   function applyDetailSeo(fest) {
     try {
       var name = fest && fest.title ? fest.title : "Фестиваль";
-      document.title = name + " — Фестивали · Movie Planner";
+      var title = name + " — фильмы и расписание · Movie Planner";
+      var description = (fest && fest.description) || "Программа, даты, фильмы и площадки кинофестиваля.";
+      var url = "https://movie-planner.ru/whattowatch/festivals/" + encodeURIComponent((fest && fest.slug) || "");
+      var image = "https://movie-planner.ru/api/og/festival/" + encodeURIComponent((fest && fest.slug) || "festival") + ".jpg?v=20260924festivalOg1";
+      document.title = title;
       var canon = document.querySelector('link[rel="canonical"]');
       if (canon && fest && fest.slug) {
-        canon.setAttribute("href", "https://movie-planner.ru/whattowatch/festivals/" + encodeURIComponent(fest.slug));
+        canon.setAttribute("href", url);
       }
+      var meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", description);
+      applySocialMeta(title, description, url, image);
     } catch (_) {}
   }
 
@@ -228,6 +258,24 @@
       + '<div class="fest-carousel">' + cards + "</div></section>";
   }
 
+  function featuredFestivalHtml(items) {
+    var f = (items || []).find(function (item) { return item && item.featured; });
+    if (!f) return "";
+    var visualLayers = [f.official_art, f.cover].filter(Boolean).map(function (url) {
+      return 'url(&quot;' + esc(url) + '&quot;)';
+    }).join(",");
+    return '<section class="fest-feature" aria-label="Выбранный фестиваль">'
+      + '<button type="button" class="fest-feature-card" data-fest-open="' + esc(f.slug) + '">'
+      + '<span class="fest-feature-visual"' + (visualLayers ? ' style="background-image:' + visualLayers + '"' : "") + '>'
+      + (f.logo ? '<img class="fest-feature-logo" src="' + esc(f.logo) + '" alt="' + esc(f.title) + '" onerror="this.remove()">' : "")
+      + '<span class="fest-feature-status">' + esc(f.status_label) + '</span></span>'
+      + '<span class="fest-feature-copy"><span class="fest-feature-kicker">IV Международный фестиваль</span>'
+      + '<strong>' + esc(f.title) + '</strong>'
+      + '<span>' + esc([f.dates_label, f.place_label].filter(Boolean).join(" · ")) + '</span>'
+      + '<em>Открыть фестиваль <span aria-hidden="true">→</span></em></span>'
+      + '</button></section>';
+  }
+
   function bindOpen(root) {
     if (!root) return;
     root.querySelectorAll("[data-fest-open]").forEach(function (el) {
@@ -249,6 +297,7 @@
     var items = data.scheduleCarousel ? data.scheduleCarousel() : [];
     root.innerHTML = '<div class="festivals-page festivals-page--index">'
       + newsStripHtml([], "loading")
+      + featuredFestivalHtml(items)
       + carouselHtml(items)
       + "</div>";
     bindOpen(root);

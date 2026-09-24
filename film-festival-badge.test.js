@@ -17,6 +17,10 @@ ok(
   "festival lookup keeps the movie-/tv- catalog prefix"
 );
 ok(
+  film.indexOf("film-fest-overlay") >= 0 && film.indexOf(".poster-wrap") >= 0,
+  "festival badge is immediately visible over the film poster"
+);
+ok(
   film.indexOf("(attempt || 0) < 240") >= 0,
   "festival data load has a defensive retry window"
 );
