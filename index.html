@@ -3136,7 +3136,13 @@
                     <div id="buzz-section-hero" class="buzz-section-hero hidden" aria-hidden="true"></div>
                     <h2 class="section-title visually-hidden buzz-section-title">
                     <span class="section-title-emoji" data-mp-icon="trend"></span><span class="section-title-text">В тренде</span></h2>
-                    <p class="buzz-seo-lead">Что обсуждают киноканалы в Telegram и на YouTube: премьеры, разборы и упоминания фильмов.</p>
+                    <section id="buzz-festivals" class="buzz-festivals hidden" aria-labelledby="buzz-festivals-title" hidden>
+                        <div class="buzz-festivals-head">
+                            <h2 id="buzz-festivals-title">Фестивали на слуху</h2>
+                            <a href="/whattowatch/festivals">Все фестивали</a>
+                        </div>
+                        <div id="buzz-festivals-grid" class="buzz-festivals-grid"></div>
+                    </section>
                     <div class="buzz-filters" id="buzz-filters">
                         <div class="plans-filter-tabs" id="buzz-view-tabs" role="tablist" aria-label="Вид">
                             <button type="button" class="plans-filter-tab active" data-buzz-view="films" role="tab" aria-selected="true">По фильмам</button>
@@ -4196,7 +4202,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260924fullCast';
+        var V='20260924africaFest2';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,
@@ -4247,6 +4253,8 @@
             'mp-poster-rating.js?v=' + V,
             'header-search-scroll.js?v=' + V,
             'mp-icons.js?v=' + V,
+            'festivals-mock.js?v=' + V,
+            'festivals-page.js?v=' + V,
             'buzz-page.js?v=' + V,
             'telegram-open.js?v=20260602tgsafari1',
             'login-auth-rail.js?v=' + V,
@@ -4346,7 +4354,8 @@
             'film-friends-social.js?v=' + V,
             'mp-public-promo.js?v=' + V,
             'onboarding-flow.js?v=' + V,
-            'festivals-mock.js?v=' + V
+            'festivals-mock.js?v=' + V,
+            'festivals-page.js?v=' + V
           ];
         } else if (!isBuzz && !isSearch && !isClubPage && !(hasSiteSession && (isCabinetHome || path === '/'))) {
           list.push('avatar-crop.js?v=' + V);

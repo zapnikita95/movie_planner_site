@@ -39,6 +39,100 @@
     expanded: {},
   };
 
+  var FESTIVAL_WINDOW_DAYS = 30;
+
+  function festivalPulseRequest(url) {
+    return fetch(API_BASE + url, { credentials: 'omit', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : { items: [] }; })
+      .then(function (d) { return Array.isArray(d && d.items) ? d.items : []; })
+      .catch(function () { return []; });
+  }
+
+  function festivalHaystack(item) {
+    return [item && item.film_title, item && item.title, item && item.teaser, item && item.excerpt,
+      item && item.channel_title, item && item.channel_username].filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function festivalMatchesPost(fest, post) {
+    var hay = festivalHaystack(post);
+    var title = String(fest && fest.title || '').toLowerCase();
+    var compact = title.replace(/[.«»"']/g, '').replace(/\s+/g, ' ').trim();
+    if (title && (hay.indexOf(title) >= 0 || (compact && hay.indexOf(compact) >= 0))) return true;
+    if (fest && fest.slug === 'africa-together-2026' && /(африк[аи].{0,24}вместе в будущее|africanculturefestival)/i.test(hay)) return true;
+    return (fest && fest.socials || []).some(function (social) {
+      var username = String(social && social.username || '').toLowerCase().replace(/^@/, '');
+      return username && hay.indexOf(username) >= 0;
+    });
+  }
+
+  function festivalPulseCardHtml(row, nearestSlug) {
+    var f = row.festival;
+    var href = '/whattowatch/festivals/' + encodeURIComponent(f.slug || '');
+    var art = f.official_art || f.cover || '';
+    var count = Number(row.mentions || 0);
+    var meta = [f.dates_label, f.place_label].filter(Boolean).join(' · ');
+    return '<a class="buzz-festival-card" href="' + esc(href) + '" data-buzz-festival="' + esc(f.slug) + '">' +
+      '<span class="buzz-festival-art"' + (art ? ' style="background-image:url(&quot;' + esc(art) + '&quot;)"' : '') + '>' +
+        (f.logo ? '<img src="' + esc(f.logo) + '" alt="" loading="lazy">' : '') +
+        (f.slug === nearestSlug ? '<span class="buzz-festival-nearest">Ближайший</span>' : '') +
+      '</span>' +
+      '<span class="buzz-festival-copy"><strong>' + esc(f.title) + '</strong>' +
+        (meta ? '<small>' + esc(meta) + '</small>' : '') +
+        '<small>' + count + ' ' + (count === 1 ? 'упоминание' : (count > 1 && count < 5 ? 'упоминания' : 'упоминаний')) + ' за 30 дней</small>' +
+      '</span></a>';
+  }
+
+  function paintFestivalPulse(posts) {
+    var root = document.getElementById('buzz-festivals');
+    var grid = document.getElementById('buzz-festivals-grid');
+    var source = window.MpFestivalsMock;
+    if (!root || !grid || !source || typeof source.scheduleCarousel !== 'function') return;
+    var festivals = source.scheduleCarousel().filter(function (f) { return f.status === 'live' || f.status === 'upcoming'; });
+    if (!festivals.length) return;
+    var rows = festivals.map(function (fest) {
+      var matched = (posts || []).filter(function (post) { return festivalMatchesPost(fest, post); });
+      var channels = {};
+      matched.forEach(function (p) { channels[String(p.channel_username || p.channel_title || '')] = 1; });
+      return { festival: fest, mentions: matched.length, channels: Object.keys(channels).length };
+    });
+    var nearest = rows[0] && rows[0].festival.slug;
+    rows.sort(function (a, b) {
+      if (a.festival.slug === nearest) return -1;
+      if (b.festival.slug === nearest) return 1;
+      return b.mentions - a.mentions || b.channels - a.channels || String(a.festival.starts_at).localeCompare(String(b.festival.starts_at));
+    });
+    grid.innerHTML = rows.slice(0, 5).map(function (row) { return festivalPulseCardHtml(row, nearest); }).join('');
+    root.classList.remove('hidden');
+    root.removeAttribute('hidden');
+    grid.querySelectorAll('[data-buzz-festival]').forEach(function (a) {
+      a.addEventListener('click', function () {
+        try {
+          if (window.MpFestivalsPage && typeof window.MpFestivalsPage.track === 'function') {
+            window.MpFestivalsPage.track('buzz_festival_open', { festival_slug: a.getAttribute('data-buzz-festival') || '', surface: 'buzz' });
+          } else if (typeof window.ym === 'function') {
+            window.ym(110038199, 'reachGoal', 'buzz_festival_open', { festival_slug: a.getAttribute('data-buzz-festival') || '' });
+          }
+        } catch (_) {}
+      });
+    });
+  }
+
+  function loadFestivalPulse() {
+    return Promise.all([
+      festivalPulseRequest('/api/public/buzz?days=' + FESTIVAL_WINDOW_DAYS + '&limit=120&view=posts&kind=festival'),
+      festivalPulseRequest('/api/public/buzz?days=' + FESTIVAL_WINDOW_DAYS + '&limit=120&view=posts'),
+    ]).then(function (sets) {
+      var seen = {};
+      var posts = sets[0].concat(sets[1]).filter(function (p) {
+        var key = String(p && (p.post_url || p.url) || '');
+        if (!key || seen[key]) return false;
+        seen[key] = 1;
+        return true;
+      });
+      paintFestivalPulse(posts);
+    });
+  }
+
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
@@ -1048,7 +1142,10 @@
     var sec = document.getElementById('section-buzz');
     var onBuzz = sec && !sec.classList.contains('hidden');
     var path = (location.pathname || '').replace(/\/$/, '');
-    if (onBuzz || path === '/buzz' || path === '/news') load();
+    if (onBuzz || path === '/buzz' || path === '/news') {
+      load();
+      loadFestivalPulse();
+    }
   }
 
   window.mpBuzzPage = { load: load, boot: boot };
@@ -1064,6 +1161,7 @@
       bindToolbar();
       /* Silent if boot already painted — cabinet re-entry must not skeleton-strobe. */
       load({ silent: gridHasRealContent() });
+      loadFestivalPulse();
     }
   });
 })();

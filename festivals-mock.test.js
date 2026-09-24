@@ -32,6 +32,7 @@ ok(!!Mp.getFestival("siberia-meetings-2026"), "siberia");
 ok(!!Mp.getFestival("sretensky-vstrecha-2026"), "sretensky");
 ok(!!Mp.getFestival("eurasia-doc-2026"), "eurasia");
 ok(!!Mp.getFestival("message-to-man-2026"), "message to man");
+ok(!!Mp.getFestival("africa-together-2026"), "africa together");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("data:image/svg+xml") === 0; }), "festival cards use festival identities");
 ok(Mp.listFestivals().every(function (f) { return String(f.cover).indexOf("kinopoisk-image") < 0; }), "festival cards do not use movie posters");
 ok(Mp.listFestivals().every(function (f) { return /^https:\/\//.test(String(f.official_art)); }), "every festival has official artwork");
@@ -66,6 +67,16 @@ ok(liveIdx >= 0 && upIdx > liveIdx && pastIdx > upIdx, "order live → upcoming 
 var days = Mp.programDays(Mp.getFestival("karofilmart-2026"));
 ok(days.length >= 4, "karo calendar days");
 ok(days[0].items.length >= 1, "karo day has films");
+
+var africa = Mp.getFestival("africa-together-2026", now);
+ok(/^https:\/\//.test(africa.logo), "africa official logo");
+eq(Mp.programDays(africa).length, 4, "africa has four confirmed screening days");
+ok(Mp.programDays(africa).every(function (day) {
+  return day.items.every(function (item) { return item.description && item.ticket_url; });
+}), "africa screenings have descriptions and ticket links");
+ok(Mp.appearancesForKp("movie-1337148", now).some(function (a) {
+  return a.slug === "africa-together-2026" && a.status === "upcoming";
+}), "aisha has upcoming festival badge");
 
 var liveApps = Mp.appearancesForKp("11979853", now);
 ok(liveApps.some(function (a) { return a.status === "live" && a.slug === "siberia-meetings-2026"; }), "live badge kp");
