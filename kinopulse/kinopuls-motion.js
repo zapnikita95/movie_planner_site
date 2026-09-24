@@ -8,10 +8,18 @@
   const stage = main.querySelector('.kp-motion-stage');
   const method = main.querySelector('[data-kp-sequence]');
   const artworks = [...main.querySelectorAll('[data-kp-art]')];
+  const scenes = [...main.querySelectorAll('[data-kp-scene]')];
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
   function update() {
     frame = 0;
     if (preference.matches) return;
+    scenes.forEach(el => {
+      const box = el.getBoundingClientRect();
+      // Work only near the viewport; use native scroll, never scroll-jacking.
+      if (box.bottom < -100 || box.top > innerHeight + 100) return;
+      const progress = clamp((innerHeight - box.top) / (innerHeight + box.height), 0, 1);
+      el.style.setProperty('--scene-progress', progress.toFixed(4));
+    });
     artworks.forEach(el => el.style.setProperty('--art-progress', clamp((innerHeight * .8 - el.getBoundingClientRect().top) / innerHeight, -1, 1).toFixed(3)));
     if (stage) {
       const box = stage.getBoundingClientRect();
@@ -34,6 +42,7 @@
     stage?.style.removeProperty('--stage-progress');
     method?.style.removeProperty('--line-progress');
     artworks.forEach(el => el.style.removeProperty('--art-progress'));
+    scenes.forEach(el => el.style.removeProperty('--scene-progress'));
     if (preference.matches || !('IntersectionObserver' in window)) return;
     observer = new IntersectionObserver(entries => entries.forEach(entry => {
       if (entry.isIntersecting) {
