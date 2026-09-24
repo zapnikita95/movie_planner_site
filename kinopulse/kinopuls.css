@@ -1,4 +1,24 @@
 /* Kinopuls content only: header and footer belong to the shared site chrome. */
+/* Cinema scenes are original vector drawings, never measurement charts. */
+.kp-main [data-kp-backdrop]{position:relative;isolation:isolate;overflow:hidden;padding-bottom:28px}
+.kp-main [data-kp-backdrop]>:not(.kp-scene){position:relative;z-index:1}
+.kp-main .kp-scene{--scene-progress:.5;pointer-events:none;position:absolute;right:-7%;top:-45px;width:min(65%,660px);opacity:.16;z-index:0}
+.kp-main .kp-scene svg{display:block;width:100%;height:auto;overflow:visible}
+.kp-main .kp-scene-hero{position:relative;right:auto;top:auto;width:100%;opacity:1;align-self:center;overflow:hidden;padding:10px 0}
+.kp-scene .scene-rotor{transform-origin:320px 280px;transform:rotate(calc(var(--scene-progress)*95deg))}
+.kp-scene-lens .scene-rotor{transform:rotate(calc(var(--scene-progress)*-65deg)) scale(calc(.84 + var(--scene-progress)*.16))}
+.kp-scene .scene-frame{transform-origin:320px 280px}
+.kp-scene .scene-frame-0{transform:translateX(calc(var(--scene-progress)*-50px)) rotate(calc(-14deg*var(--scene-progress)))}
+.kp-scene .scene-frame-1{transform:translateY(calc(var(--scene-progress)*-22px)) rotate(calc(5deg*var(--scene-progress)))}
+.kp-scene .scene-frame-2{transform:translateX(calc(var(--scene-progress)*22px)) rotate(calc(12deg*var(--scene-progress)))}
+.kp-scene .scene-clap{transform-origin:100px 204px;transform:rotate(calc(-26deg + var(--scene-progress)*26deg))}
+.kp-scene .scene-board{transform:translateY(calc(12px - var(--scene-progress)*12px))}
+.kp-scene .scene-ticket{transform-origin:320px 280px;transform:translateX(calc(50px - var(--scene-progress)*100px)) rotate(calc(-10deg + var(--scene-progress)*20deg))}
+.kp-scene .scene-beam{transform-origin:352px 290px;transform:scaleX(calc(.25 + var(--scene-progress)*.75));opacity:calc(.25 + var(--scene-progress)*.75)}
+.kp-scene .scene-small-reel{transform-origin:150px 165px;transform:rotate(calc(var(--scene-progress)*120deg))}
+.kp-main .kp-editorial-panel .kp-scene{opacity:.15;mix-blend-mode:multiply}
+@media(max-width:700px){.kp-main [data-kp-backdrop]{padding-bottom:155px}.kp-main [data-kp-backdrop]>.kp-scene{width:280px;right:-30px;top:auto;bottom:-60px;opacity:.3}.kp-main .kp-scene-hero{max-width:530px;margin:10px auto 0}}
+@media(prefers-reduced-motion:reduce){.kp-scene :is(.scene-rotor,.scene-frame,.scene-clap,.scene-board,.scene-ticket,.scene-beam,.scene-small-reel){transform:none!important}.kp-scene .scene-beam{opacity:.5}}
 .kp-page .kp-main .kp-nav{margin-bottom:24px}
 .kp-page .kp-main .kp-hero{min-height:0;align-items:start;padding-top:8px}
 .kp-page .kp-main .kp-hero .eyebrow{margin:0 0 14px}
