@@ -48,6 +48,7 @@
   var FEST_COVER_MESSAGE = festivalCover("ПОСЛАНИЕ|К ЧЕЛОВЕКУ", "САНКТ-ПЕТЕРБУРГ · 2026", "#191919", "#FF704D", "M2M");
   var FEST_COVER_BEAT = festivalCover("BEAT|WEEKEND", "18 ГОРОДОВ · 2026", "#181326", "#B389FF", "BW");
   var FEST_COVER_ITALIAN = festivalCover("ИТАЛЬЯНСКИЕ|ИСТОРИИ", "АРХАНГЕЛЬСКОЕ · 2026", "#192819", "#FFDD5C", "IT");
+  var FEST_COVER_AFRICA = festivalCover("АФРИКА.|ВМЕСТЕ В БУДУЩЕЕ", "МОСКВА · ПЕТЕРБУРГ · 2026", "#17120D", "#E8B34B", "IV");
 
   // Festival-owned or organizer-published artwork. The generated covers above
   // remain as a reliable background when an external media host is unavailable.
@@ -59,8 +60,10 @@
   var OFFICIAL_ART_MESSAGE = "https://www.proficinema.com/upload/medialibrary/6b6/mahp00s41zrj4w3r9p7vpzg6zf98i0bl.png";
   var OFFICIAL_ART_BEAT = "https://images.weserv.nl/?url=design.hse.ru/system/widget_fields/field_attachments/002/539/768/large_12/Media_Keyvisual_1080x1920-3_.jpg%3F1762760222%3D&w=1200&output=jpg";
   var OFFICIAL_ART_ITALIAN = "https://s3.kinoteatr.ru/upload/movies/1960879/cover.jpg";
+  var OFFICIAL_ART_AFRICA = "https://static.tildacdn.com/tild6366-6165-4135-a536-396665663132/noroot.png";
+  var OFFICIAL_LOGO_AFRICA = "https://static.tildacdn.com/tild3838-6338-4261-b961-383438366166/africa_logo_ru_new1-.png";
 
-  function row(title, director, year, venue, kp_id, poster, screening_at) {
+  function row(title, director, year, venue, kp_id, poster, screening_at, description, ticket_url) {
     return {
       title: title,
       director: director || "",
@@ -69,6 +72,8 @@
       kp_id: kp_id || "",
       poster: poster || "",
       screening_at: screening_at || "",
+      description: description || "",
+      ticket_url: ticket_url || "",
     };
   }
 
@@ -167,6 +172,44 @@
             row("История бетона", "Джон Уилсон", 2025, "Смоленск", "movie-1596296", COVER_FLAH, "2026-09-28T18:00:00+03:00"),
             row("Овсянка для чемпионов", "Константин Коста", 2025, "Смоленск", "11979853", COVER_BEAT, "2026-09-30T19:00:00+03:00"),
             row("Биостанция Анива: дело длинной воли", "Александр Фёдоров", 2025, "Смоленск", "12587600", COVER_ITALIAN, "2026-10-02T18:00:00+03:00"),
+          ],
+        },
+      ],
+    },
+    {
+      id: "africa-together-2026",
+      slug: "africa-together-2026",
+      title: "Африка. Вместе в будущее",
+      cover: FEST_COVER_AFRICA,
+      official_art: OFFICIAL_ART_AFRICA,
+      logo: OFFICIAL_LOGO_AFRICA,
+      city: "Москва и Санкт-Петербург",
+      online: false,
+      starts_at: "2026-10-07",
+      ends_at: "2026-10-15",
+      official_url: "https://african-days.ru/",
+      ticket_url: "https://afisha.yandex.ru/moscow/art/places/inzhenernyi-korpus-tretiakovskoi-galerei/schedule/october-2026",
+      edition: "IV Международный фестиваль",
+      history: "Это четвёртый выпуск. В 2026 году кинопрограмма впервые идёт сразу в Москве и Санкт-Петербурге.",
+      venues: ["Третьяковская галерея, Инженерный корпус", "Кинотеатр «Иллюзион»", "Киностудия «Ленфильм»"],
+      socials: [
+        { label: "Telegram", url: "https://t.me/africanculturefestival", username: "africanculturefestival" },
+      ],
+      collection_code: "",
+      description: "Премьеры современного африканского кино, ретроспектива Усмана Сембена, выставка, лекции и встречи с авторами. С 7 по 15 октября программа пройдёт в Москве, а с 12 по 15 октября — в Санкт-Петербурге.",
+      program: [
+        {
+          section: "Российские премьеры",
+          items: [
+            row("Дети бога", "Мари-Клементин Дюсабежамбо", 2026, "Третьяковская галерея, Инженерный корпус", "movie-1405200", "/api/public/poster/tmdb/w500/qUBear4cXvzYMEx7WzpUIW8yLJ4.jpg", "2026-10-08T19:00:00+03:00", "Руандийская драма о семье и памяти после геноцида. «Золотая камера» и приз ФИПРЕССИ Каннского кинофестиваля 2026 года.", "https://afisha.yandex.ru/moscow/cinema/deti-boga-kinopokaz-tretiakovka"),
+            row("Пророк", "Ике Ланга", 2026, "Третьяковская галерея, Инженерный корпус", "movie-1342236", "/api/public/poster/tmdb/w500/vfxQkI856GJxoOCkt5MuWgWsk8U.jpg", "2026-10-09T19:00:00+03:00", "Чёрно-белый дебют из Мозамбика. Священник теряет веру и обращается к традиционной магии, чтобы вернуть её.", "https://afisha.yandex.ru/moscow/cinema/prorok-kinopokaz-tretiakovka"),
+            row("Айша не может улететь", "Морад Мостафа", 2025, "Третьяковская галерея, Инженерный корпус", "movie-1337148", "/api/public/poster/tmdb/w500/no8SXwqDhAVE8SMDILdEqS6qxh8.jpg", "2026-10-13T19:00:00+03:00", "Боди-хоррор о сомалийской мигрантке в Каире. Мировая премьера состоялась в программе «Особый взгляд» Каннского кинофестиваля 2025 года.", "https://afisha.yandex.ru/moscow/cinema/aisha-ne-mozhet-uletet-kinopokaz-tretiakovka"),
+          ],
+        },
+        {
+          section: "Классика Африки",
+          items: [
+            row("Гимба, тиран своей эпохи", "Шейк Умар Сиссоко", 1995, "Третьяковская галерея, Инженерный корпус", "movie-124618", "/api/public/poster/tmdb/w500/d9uQAa2ueKLJU5Nqq7t0gi0ty4a.jpg", "2026-10-11T17:30:00+03:00", "Политическая притча из Мали о восстании против жестокого правителя. Гран-при FESPACO 1995 года.", "https://afisha.yandex.ru/moscow/cinema/gimba-tiran-svoei-epokhi-kinopokaz-tretiakovka"),
           ],
         },
       ],
@@ -281,6 +324,7 @@
   ];
 
   var NEWS = [
+    { id: "n-africa-2026", festival_id: "africa-together-2026", title: "«Африка. Вместе в будущее» объявила кинопрограмму 2026 года", cover: FEST_COVER_AFRICA, published_at: "2026-09-24" },
     { id: "n-sib-open", festival_id: "siberia-meetings-2026", title: "«Встречи в Сибири» открылись в Новосибирске", cover: FEST_COVER_SIB, published_at: "2026-09-21" },
     { id: "n-flah", festival_id: "flahertiana-2026", title: "Флаэртиана: программа Перми с 25 сентября", cover: FEST_COVER_FLAH, published_at: "2026-09-20" },
     { id: "n-beat-close", festival_id: "beatfilm-2026", title: "Beat Weekend закрылся в 18 городах", cover: FEST_COVER_BEAT, published_at: "2026-09-20" },
@@ -288,6 +332,10 @@
   ];
 
   var APPEARANCES = {
+    "movie-1405200": [{ festival_id: "africa-together-2026", year: 2026, section: "Российские премьеры" }],
+    "movie-1342236": [{ festival_id: "africa-together-2026", year: 2026, section: "Российские премьеры" }],
+    "movie-1337148": [{ festival_id: "africa-together-2026", year: 2026, section: "Российские премьеры" }],
+    "movie-124618": [{ festival_id: "africa-together-2026", year: 2026, section: "Классика Африки" }],
     "11979853": [
       { festival_id: "siberia-meetings-2026", year: 2026, section: "Основной конкурс" },
       { festival_id: "eurasia-doc-2026", year: 2026, section: "Конкурс" },
@@ -387,11 +435,17 @@
       title: fest.title,
       cover: fest.cover,
       official_art: fest.official_art || "",
+      logo: fest.logo || "",
       city: fest.city,
       online: !!fest.online,
       starts_at: fest.starts_at,
       ends_at: fest.ends_at,
       official_url: fest.official_url,
+      ticket_url: fest.ticket_url || "",
+      edition: fest.edition || "",
+      history: fest.history || "",
+      venues: fest.venues || [],
+      socials: fest.socials || [],
       collection_code: fest.collection_code || "",
       description: fest.description,
       program: fest.program || [],
@@ -465,6 +519,8 @@
           poster: it.poster,
           screening_at: it.screening_at,
           section: sec.section || "",
+          description: it.description || "",
+          ticket_url: it.ticket_url || "",
         });
       });
     });

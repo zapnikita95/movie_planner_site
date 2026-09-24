@@ -6847,6 +6847,101 @@ body.in-cabinet #section-buzz.buzz-section--wide {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+
+.buzz-festivals {
+  margin: 26px 0 30px;
+}
+.buzz-festivals-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+.buzz-festivals-head h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.buzz-festivals-head a {
+  color: var(--text-secondary, #a9a9b3);
+  text-decoration: none;
+}
+.buzz-festivals-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.buzz-festival-card {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.buzz-festival-art {
+  position: relative;
+  display: flex;
+  min-height: 132px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  background: #151515 center / cover no-repeat;
+}
+.buzz-festival-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.28);
+}
+.buzz-festival-art img {
+  position: relative;
+  z-index: 1;
+  width: min(78%, 180px);
+  max-height: 82px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,.75));
+}
+.buzz-festival-nearest {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #ef1681;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.buzz-festival-copy {
+  display: grid;
+  gap: 3px;
+  padding-top: 8px;
+}
+.buzz-festival-copy strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.buzz-festival-copy small {
+  color: var(--text-secondary, #9999a5);
+  font-size: 12px;
+  line-height: 1.35;
+}
+@media (max-width: 1100px) {
+  .buzz-festivals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .buzz-festivals-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+  }
+  .buzz-festival-card { flex: 0 0 76vw; scroll-snap-align: start; }
+}
 @media (min-width: 640px) {
   #section-buzz.buzz-section--wide .buzz-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -34191,6 +34286,35 @@ body.in-cabinet #section-whattowatch .whattowatch-result {
   display: block;
   object-fit: cover;
   background: #16161c;
+}
+.fest-hero-logo {
+  position: absolute;
+  z-index: 3;
+  left: 24px;
+  bottom: 24px;
+  width: min(48%, 300px);
+  max-height: 116px;
+  object-fit: contain;
+  object-position: left bottom;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.75));
+}
+.fest-prog-description {
+  display: block;
+  max-width: 760px;
+  margin-top: 7px;
+  color: var(--text-secondary, #a7a7b1);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.fest-about-history {
+  max-width: 880px;
+  margin: 12px 0 0;
+  color: var(--text-primary, #f4f4f5);
+  font-size: 16px;
+  line-height: 1.55;
+}
+@media (max-width: 680px) {
+  .fest-hero-logo { left: 14px; bottom: 14px; width: 58%; max-height: 84px; }
 }
 .fest-news-cover {
   width: 72px;

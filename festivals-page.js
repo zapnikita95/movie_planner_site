@@ -33,6 +33,21 @@
     if (global.showToast) global.showToast(msg, opts);
   }
 
+  function trackFestival(eventName, meta) {
+    var payload = Object.assign({ surface: "festivals" }, meta || {});
+    try {
+      if (typeof global.ym === "function") global.ym(110038199, "reachGoal", eventName, payload);
+    } catch (_) {}
+    try {
+      if (typeof global.api === "function") {
+        global.api("/api/miniapp/analytics/event", {
+          method: "POST",
+          body: JSON.stringify({ event: eventName, meta: payload }),
+        }).catch(function () {});
+      }
+    } catch (_) {}
+  }
+
   function applyIndexSeo() {
     try {
       document.title = SEO.title;
@@ -94,6 +109,7 @@
   }
 
   function openFestival(slug) {
+    trackFestival("festival_card_open", { festival_slug: String(slug || "") });
     if (typeof global.__mpWtwOpenFestivalSlug === "function") {
       global.__mpWtwOpenFestivalSlug(slug);
       return;
@@ -266,6 +282,9 @@
     var tm = timeLabel(it && it.screening_at);
     if (tm) bits.push(tm);
     var meta = bits.length ? '<span class="fest-prog-meta">' + esc(bits.join(" · ")) + "</span>" : "";
+    var description = it && it.description
+      ? '<span class="fest-prog-description">' + esc(it.description) + "</span>"
+      : "";
     var titleHtml = href
       ? '<a class="fest-prog-title" href="' + esc(href) + '">' + title + "</a>"
       : '<span class="fest-prog-title">' + title + "</span>";
@@ -275,12 +294,13 @@
     var rk = remindKey(fest, it);
     var reminded = readJsonList(REMIND_KEY).indexOf(rk) >= 0;
     var actions = "";
-    if (kp) actions += '<button type="button" class="btn btn-primary btn-small" data-fest-add="' + esc(kp) + '">В базу</button>';
+    if (kp) actions += '<button type="button" class="btn btn-primary btn-small" data-fest-add="' + esc(kp) + '" data-fest-slug="' + esc(fest.slug) + '" data-fest-film-title="' + title + '">В базу</button>';
     actions += '<button type="button" class="btn btn-secondary btn-small" data-fest-remind="' + esc(rk) + '">'
       + (reminded ? "Напомню" : "Напомнить") + "</button>";
+    if (it && it.ticket_url) actions += '<a class="btn btn-secondary btn-small" href="' + esc(it.ticket_url) + '" target="_blank" rel="noopener noreferrer" data-fest-ticket="' + esc(kp || it.title) + '">Билеты</a>';
     return '<article class="fest-prog-item">'
       + poster
-      + '<div class="fest-prog-copy">' + titleHtml + meta + "</div>"
+      + '<div class="fest-prog-copy">' + titleHtml + meta + description + "</div>"
       + '<div class="fest-prog-actions">' + actions + "</div>"
       + "</article>";
   }
@@ -309,14 +329,23 @@
     var site = fest.official_url
       ? '<a href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Сайт</a>'
       : "";
+    var socials = (fest.socials || []).map(function (social) {
+      if (!social || !social.url) return "";
+      return '<a href="' + esc(social.url) + '" target="_blank" rel="noopener noreferrer" data-fest-social="' + esc(social.label || "social") + '">' + esc(social.label || social.url) + "</a>";
+    }).filter(Boolean).join(" · ");
+    var venues = (fest.venues || []).length ? esc(fest.venues.join(" · ")) : "";
     return '<section class="fest-about">'
       + '<h2 class="fest-block-title">О фестивале</h2>'
       + '<dl class="fest-info-list">'
+      + (fest.edition ? "<div><dt>Выпуск</dt><dd>" + esc(fest.edition) + "</dd></div>" : "")
       + (fest.dates_label ? "<div><dt>Даты</dt><dd>" + esc(fest.dates_label) + "</dd></div>" : "")
       + (fest.place_label ? "<div><dt>Город</dt><dd>" + esc(fest.place_label) + "</dd></div>" : "")
+      + (venues ? "<div><dt>Площадки</dt><dd>" + venues + "</dd></div>" : "")
       + (site ? "<div><dt>Ссылка</dt><dd>" + site + "</dd></div>" : "")
+      + (socials ? "<div><dt>Соцсети</dt><dd>" + socials + "</dd></div>" : "")
       + "</dl>"
       + (fest.description ? '<p class="fest-about-text">' + esc(fest.description) + "</p>" : "")
+      + (fest.history ? '<p class="fest-about-history">' + esc(fest.history) + "</p>" : "")
       + "</section>";
   }
 
@@ -327,11 +356,17 @@
         ? '<img class="fest-hero-cover" src="' + esc(fest.official_art) + '" alt="Официальная афиша: ' + esc(fest.title) + '" onerror="if(this.nextElementSibling)this.nextElementSibling.remove();this.remove()">'
         : "")
       + '<span class="fest-official-mark">Официальный материал</span></div>';
+    if (fest.logo) {
+      cover = cover.replace('<span class="fest-official-mark">', '<img class="fest-hero-logo" src="' + esc(fest.logo) + '" alt="Логотип фестиваля ' + esc(fest.title) + '"><span class="fest-official-mark">');
+    }
     var bits = [fest.dates_label, fest.place_label].filter(Boolean);
     var subLabel = subscribed ? "Вы подписаны" : "Подписаться";
     var subClass = subscribed ? "btn btn-secondary" : "btn btn-primary";
     var official = fest.official_url
-      ? '<a class="btn btn-secondary" href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer">Сайт</a>'
+      ? '<a class="btn btn-secondary" href="' + esc(fest.official_url) + '" target="_blank" rel="noopener noreferrer" data-fest-official="1">Сайт</a>'
+      : "";
+    var tickets = fest.ticket_url
+      ? '<a class="btn btn-secondary" href="' + esc(fest.ticket_url) + '" target="_blank" rel="noopener noreferrer" data-fest-tickets="1">Билеты и расписание</a>'
       : "";
     return '<header class="fest-hero">'
       + cover
@@ -343,6 +378,7 @@
       + '<div class="fest-hero-actions">'
       + '<button type="button" class="' + subClass + '" data-fest-subscribe="' + esc(fest.slug) + '">' + esc(subLabel) + "</button>"
       + official
+      + tickets
       + "</div></div></header>";
   }
 
@@ -364,10 +400,15 @@
       btn.disabled = true;
       btn.textContent = "Добавляем…";
     }
-    global.api("/api/site/add-film", { method: "POST", body: JSON.stringify({ kp_id: kp }) })
+    var catalogId = String(kp || "");
+    var addPayload = /^(movie|tv)-\d+$/.test(catalogId)
+      ? { catalog_id: catalogId }
+      : { kp_id: catalogId };
+    global.api("/api/site/add-film", { method: "POST", body: JSON.stringify(addPayload) })
       .then(function (r) {
         if (r && r.success) {
           toast("Фильм в базе");
+          trackFestival("festival_film_add_success", { festival_slug: btn && btn.getAttribute("data-fest-slug") || "", film_id: kp });
           if (btn) {
             btn.textContent = "В базе";
             btn.classList.remove("btn-primary");
@@ -388,6 +429,7 @@
     if (!root || !fest) return;
     var back = root.querySelector("[data-fest-back]");
     if (back) back.addEventListener("click", backToIndex);
+    trackFestival("festival_page_view", { festival_slug: fest.slug, festival_status: fest.status || "" });
     var subBtn = root.querySelector("[data-fest-subscribe]");
     if (subBtn) {
       subBtn.addEventListener("click", function () {
@@ -395,6 +437,7 @@
         subBtn.textContent = on ? "Вы подписаны" : "Подписаться";
         subBtn.className = on ? "btn btn-secondary" : "btn btn-primary";
         toast(on ? "Подписка на этом устройстве" : "Подписка снята");
+        trackFestival("festival_subscribe_toggle", { festival_slug: fest.slug, enabled: on ? 1 : 0 });
       });
     }
     root.querySelectorAll("[data-fest-day]").forEach(function (tab) {
@@ -406,10 +449,12 @@
         root.querySelectorAll("[data-fest-day-panel]").forEach(function (p) {
           p.hidden = p.getAttribute("data-fest-day-panel") !== day;
         });
+        trackFestival("festival_program_day_select", { festival_slug: fest.slug, day: day || "" });
       });
     });
     root.querySelectorAll("[data-fest-add]").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        trackFestival("festival_film_add_click", { festival_slug: fest.slug, film_id: btn.getAttribute("data-fest-add") || "", film_title: btn.getAttribute("data-fest-film-title") || "" });
         addFilmToBase(btn.getAttribute("data-fest-add"), btn);
       });
     });
@@ -418,6 +463,21 @@
         var on = toggleRemind(btn.getAttribute("data-fest-remind"));
         btn.textContent = on ? "Напомню" : "Напомнить";
         toast(on ? "Напоминание на этом устройстве" : "Напоминание снято");
+        trackFestival("festival_film_reminder_toggle", { festival_slug: fest.slug, reminder_key: btn.getAttribute("data-fest-remind") || "", enabled: on ? 1 : 0 });
+      });
+    });
+    root.querySelectorAll(".fest-prog-title[href]").forEach(function (a) {
+      a.addEventListener("click", function () {
+        trackFestival("festival_film_open", { festival_slug: fest.slug, film_url: a.getAttribute("href") || "" });
+      });
+    });
+    root.querySelectorAll("[data-fest-official], [data-fest-tickets], [data-fest-ticket], [data-fest-social]").forEach(function (a) {
+      a.addEventListener("click", function () {
+        trackFestival("festival_outbound_click", {
+          festival_slug: fest.slug,
+          target: a.hasAttribute("data-fest-official") ? "official" : a.hasAttribute("data-fest-tickets") ? "tickets" : a.hasAttribute("data-fest-ticket") ? "film_ticket" : "social",
+          href: a.getAttribute("href") || "",
+        });
       });
     });
   }
@@ -492,6 +552,7 @@
     renderPremieresTeaser: renderPremieresTeaser,
     isSubscribed: isSubscribed,
     toggleSubscribe: toggleSubscribe,
+    track: trackFestival,
     SEO: SEO,
     SUBS_KEY: SUBS_KEY,
   };
