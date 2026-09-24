@@ -3139,7 +3139,7 @@
                     <section id="buzz-festivals" class="buzz-festivals hidden" aria-labelledby="buzz-festivals-title" hidden>
                         <div class="buzz-festivals-head">
                             <h2 id="buzz-festivals-title">Фестивали на слуху</h2>
-                            <a href="/whattowatch/festivals">Все фестивали</a>
+                            <a class="buzz-festivals-all" href="/whattowatch/festivals">Все фестивали <span aria-hidden="true">→</span></a>
                         </div>
                         <div id="buzz-festivals-grid" class="buzz-festivals-grid"></div>
                     </section>
@@ -4202,7 +4202,7 @@
           || isClubPage;
         var isWtwCollectionDetail = /^\/whattowatch\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path)
           || /^\/features\/collections\/[A-Za-z0-9_-]{2,64}$/.test(path);
-        var V='20260924africaFest4';
+        var V='20260924festivalOgMobile1';
         try { window.__MP_ASSET_V = V; } catch (_assetV) {}
         var core = [
           'mp-api-config.js?v=' + V,

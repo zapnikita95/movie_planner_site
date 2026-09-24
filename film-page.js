@@ -5379,7 +5379,7 @@
       }
       /* TODO(bot): GET /api/public/film/:kp/festivals when the bot endpoint exists. */
       function paintFilmFestivals(section, items) {
-        document.querySelectorAll('.film-fest-now').forEach(function (el) { el.remove(); });
+        document.querySelectorAll('.film-fest-now, .film-fest-overlay').forEach(function (el) { el.remove(); });
         if (section) section.classList.add('hidden');
         var relevant = (items || []).filter(function (item) {
           return item && (item.status === 'live' || item.status === 'upcoming');
@@ -5390,6 +5390,10 @@
         var prefix = first.status === 'live' ? 'Сейчас на фестивале' : 'В программе фестиваля';
         var badge = '<p class="film-fest-now">' + prefix + ' · <a data-film-festival-link="1" href="/whattowatch/festivals/' +
           encodeURIComponent(first.slug) + '">' + escapeHtml(first.title) + '</a></p>';
+        var overlay = '<a class="film-fest-overlay" data-film-festival-link="1" href="/whattowatch/festivals/' +
+          encodeURIComponent(first.slug) + '"><span>' + escapeHtml(prefix) + '</span><strong>' + escapeHtml(first.title) + '</strong></a>';
+        var posterWrap = document.querySelector('.film-hero-with-tag .poster-wrap');
+        if (posterWrap) posterWrap.insertAdjacentHTML('beforeend', overlay);
         var title = document.getElementById('film-title');
         if (title) title.insertAdjacentHTML('afterend', badge);
         else if (section) {
@@ -5398,19 +5402,19 @@
           if (heading) heading.insertAdjacentHTML('afterend', badge);
           else section.insertAdjacentHTML('afterbegin', badge);
         }
-        var link = document.querySelector('[data-film-festival-link="1"]');
+        var links = document.querySelectorAll('[data-film-festival-link="1"]');
         try {
           if (global.MpFestivalsPage && typeof global.MpFestivalsPage.track === 'function') {
             global.MpFestivalsPage.track('film_festival_badge_view', { festival_slug: first.slug, film_id: String(pathKey || kpId || '') });
           }
         } catch (_festTrack) {}
-        if (link) link.addEventListener('click', function () {
+        links.forEach(function (link) { link.addEventListener('click', function () {
           try {
             if (global.MpFestivalsPage && typeof global.MpFestivalsPage.track === 'function') {
               global.MpFestivalsPage.track('film_festival_badge_click', { festival_slug: first.slug, film_id: String(pathKey || kpId || '') });
             }
           } catch (_festClickTrack) {}
-        });
+        }); });
       }
       function loadFilmFestivals(attempt) {
         var section = document.getElementById('film-festivals-root');

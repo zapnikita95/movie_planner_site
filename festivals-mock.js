@@ -180,6 +180,7 @@
       id: "africa-together-2026",
       slug: "africa-together-2026",
       title: "Африка. Вместе в будущее",
+      featured: true,
       cover: FEST_COVER_AFRICA,
       official_art: OFFICIAL_ART_AFRICA,
       logo: OFFICIAL_LOGO_AFRICA,
@@ -196,7 +197,7 @@
         { label: "Telegram", url: "https://t.me/africanculturefestival", username: "africanculturefestival" },
       ],
       collection_code: "",
-      description: "Премьеры современного африканского кино, ретроспектива Усмана Сембена, выставка, лекции и встречи с авторами. С 7 по 15 октября программа пройдёт в Москве, а с 12 по 15 октября — в Санкт-Петербурге.",
+      description: "Премьеры современного африканского кино, ретроспектива Усмана Сембена, выставка, лекции и встречи с авторами. События пройдут с 7 по 15 октября в Москве и с 12 по 15 октября — в Санкт-Петербурге.",
       program: [
         {
           section: "Российские премьеры",
@@ -436,6 +437,7 @@
       cover: fest.cover,
       official_art: fest.official_art || "",
       logo: fest.logo || "",
+      featured: !!fest.featured,
       city: fest.city,
       online: !!fest.online,
       starts_at: fest.starts_at,
