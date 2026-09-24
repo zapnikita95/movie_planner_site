@@ -10649,7 +10649,7 @@
     return n >= EVENING_FROM_BASE_MIN_UNWATCHED;
   }
   const HOME_BROWSER_CACHE_KEY_PREFIX = 'mp_home_dashboard_cache_v1:';
-  const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v1:';
+  const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v2:';
   let _homeDashboardCache = null;
   let _homeRetention = null;
   let _homeRetentionInflight = null;
@@ -11900,6 +11900,106 @@
       + buttonsHtml + '</div></div>';
   }
 
+  function retentionDayWord(value) {
+    const n = Math.abs(Number(value || 0));
+    const n100 = n % 100;
+    const n10 = n % 10;
+    if (n100 >= 11 && n100 <= 14) return 'дней';
+    if (n10 === 1) return 'день';
+    if (n10 >= 2 && n10 <= 4) return 'дня';
+    return 'дней';
+  }
+
+  function retentionMultiplierLabel(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '×1';
+    return '×' + String(Math.round(n * 100) / 100).replace('.', ',');
+  }
+
+  function retentionPromoView(reward) {
+    const promo = reward || {};
+    const rawStatus = String(promo.status || '').toLowerCase();
+    const hasCode = !!String(promo.code || '').trim();
+    if (rawStatus === 'redeemed' || rawStatus === 'used') return { cls: 'is-used', label: 'Использован' };
+    if (rawStatus === 'expired') return { cls: 'is-expired', label: 'Истёк' };
+    if (hasCode || rawStatus === 'issued' || rawStatus === 'earned' || rawStatus === 'active' || rawStatus === 'available') {
+      return { cls: 'is-issued', label: 'Получен' };
+    }
+    return { cls: 'is-pending', label: 'Впереди' };
+  }
+
+  function retentionPromoExpiryLabel(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function renderHomeStreakHtml(streakValue) {
+    const streak = streakValue || {};
+    const daysValue = Number(streak.days || 0);
+    const days = Math.max(0, Number.isFinite(daysValue) ? daysValue : 0);
+    const multiplierValue = Number(streak.multiplier || 1);
+    const multiplier = Number.isFinite(multiplierValue) && multiplierValue > 0 ? multiplierValue : 1;
+    const maxMultiplierValue = Number(streak.max_multiplier || multiplier);
+    const maxMultiplier = Math.max(multiplier, Number.isFinite(maxMultiplierValue) ? maxMultiplierValue : multiplier);
+    const todayActive = streak.today_active === true || streak.today_active === 1;
+    const prompt = String(streak.prompt || (todayActive
+      ? 'Сегодняшняя активность уже засчитана. Возвращайтесь завтра, чтобы сохранить серию.'
+      : 'Сделайте сегодня любое действие в Movie Planner, чтобы продолжить серию.'));
+    const next = (streak.next_reward && typeof streak.next_reward === 'object') ? streak.next_reward : {};
+    const currentValue = Number(next.current != null ? next.current : days);
+    const current = Math.max(0, Number.isFinite(currentValue) ? currentValue : days);
+    const targetValue = Number(next.target || next.day || Math.max(days + 1, 1));
+    const target = Math.max(1, Number.isFinite(targetValue) ? targetValue : Math.max(days + 1, 1));
+    const progress = Math.max(0, Math.min(100, Math.round(current / target * 100)));
+    const nextKind = String(next.kind || '').toLowerCase();
+    const rewardLabel = String(next.label || (nextKind === 'promo' || nextKind === 'promo_code'
+      ? 'Промокод в кино'
+      : (multiplier >= maxMultiplier ? 'Максимальный множитель уже активен' : 'Следующее усиление серии')));
+    const nextDayValue = Number(next.day || target);
+    const nextDay = Math.max(0, Number.isFinite(nextDayValue) ? nextDayValue : target);
+    const progressTitle = nextDay
+      ? rewardLabel + ' — на ' + nextDay + '-й день'
+      : rewardLabel;
+    const promos = Array.isArray(streak.promo_rewards) ? streak.promo_rewards : [];
+    const promosHtml = promos.length
+      ? '<div class="retention-streak-promos"><div class="retention-streak-promos-title">Промокоды за серию</div>'
+        + promos.map(function (promo) {
+          const view = retentionPromoView(promo);
+          const day = Math.max(0, Number(promo.milestone_day || 0));
+          const provider = String(promo.provider || '').trim();
+          const code = String(promo.code || '').trim();
+          const expires = retentionPromoExpiryLabel(promo.expires_at);
+          const title = view.cls === 'is-issued'
+            ? 'Промокод в кино'
+            : (day ? 'Промокод на ' + day + '-й день' : 'Промокод в кино');
+          const meta = [provider, expires ? ('до ' + expires) : ''].filter(Boolean).join(' · ');
+          return '<div class="retention-streak-promo ' + view.cls + '">'
+            + '<span class="retention-streak-promo-icon" aria-hidden="true">🎟️</span>'
+            + '<div class="retention-streak-promo-copy"><strong>' + escapeHtml(title) + '</strong>'
+            + (meta ? '<small>' + escapeHtml(meta) + '</small>' : '')
+            + (code ? '<code>' + escapeHtml(code) + '</code>' : '')
+            + '</div><span class="retention-streak-promo-status">' + view.label + '</span></div>';
+        }).join('') + '</div>'
+      : '';
+
+    return '<section class="retention-streak">'
+      + '<div class="retention-streak-head">'
+      + '<div class="retention-streak-identity"><span class="retention-streak-flame" aria-hidden="true">🔥</span><div>'
+      + '<span class="retention-kicker">Серия активности</span><h3>' + days + ' ' + retentionDayWord(days) + ' подряд</h3></div></div>'
+      + '<span class="retention-streak-today ' + (todayActive ? 'is-active' : 'is-waiting') + '">'
+      + (todayActive ? 'Сегодня засчитано' : 'Нужна активность сегодня') + '</span></div>'
+      + '<div class="retention-streak-body"><div class="retention-streak-main">'
+      + '<div class="retention-streak-multiplier"><b>' + retentionMultiplierLabel(multiplier) + '</b><span>к монетам</span>'
+      + '<small>максимум ' + retentionMultiplierLabel(maxMultiplier) + '</small></div>'
+      + '<div class="retention-streak-progress-wrap"><p>' + escapeHtml(prompt) + '</p>'
+      + '<div class="retention-streak-next"><strong>' + escapeHtml(progressTitle) + '</strong><span>' + current + '/' + target + '</span></div>'
+      + '<div class="retention-progress retention-streak-progress" role="progressbar" aria-label="Прогресс до следующей награды" aria-valuemin="0" aria-valuemax="' + target + '" aria-valuenow="' + Math.min(current, target) + '"><i style="width:' + progress + '%"></i></div>'
+      + '<small class="retention-streak-sources">Засчитывается активность в вебе, приложениях, Telegram-боте и расширении.</small>'
+      + '</div></div>' + promosHtml + '</div></section>';
+  }
+
   function renderHomeRetentionHtml() {
     const data = _homeRetention;
     if (!data || !data.success || isGuestCabinetPreview()) return '';
@@ -11931,7 +12031,8 @@
     const ach = data.achievement_progress || [];
     const achHtml = ach.length ? '<section class="retention-achievements"><div class="retention-section-head"><div><span class="retention-kicker">Следующие награды</span><h3>Вы уже близко</h3></div><button type="button" class="link-inline retention-all-achievements" data-home-show-section="stats">Все достижения →</button></div>' + ach.map(function (item) { const current = Number(item.current || 0); const target = Math.max(1, Number(item.target || 1)); const pct = Math.max(0, Math.min(100, Math.round(current / target * 100))); return '<div class="retention-ach-row"><div class="retention-ach-icon" aria-hidden="true">' + escapeHtml(item.icon || '🏅') + '</div><div class="retention-ach-main"><div class="retention-ach-head"><strong>' + escapeHtml(item.name || 'Ачивка') + '</strong><span>' + current + '/' + target + '</span></div><div class="retention-progress"><i style="width:' + pct + '%"></i></div><div class="retention-ach-prompt">' + escapeHtml(item.prompt || item.description || '') + '</div></div></div>'; }).join('') + '</section>' : '';
     const dailyHtml = daily.available === false ? '' : '<section class="retention-daily">' + dailyBody + '</section>';
-    return '<div class="home-retention" data-home-retention>' + dailyHtml + goalHtml + achHtml + '</div>';
+    const streakHtml = renderHomeStreakHtml(data.streak || {});
+    return '<div class="home-retention" data-home-retention>' + streakHtml + dailyHtml + goalHtml + achHtml + '</div>';
   }
 
   function paintHomeRetention() {
