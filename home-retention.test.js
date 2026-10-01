@@ -28,6 +28,7 @@ const retentionSandbox = { escapeHtml, console, Intl, Date, Number, String };
 vm.runInNewContext(
   cabinetSrc.slice(helpersStart, helpersEnd)
     + '\nthis.renderHomeStreakHtml = renderHomeStreakHtml;'
+    + '\nthis.retentionDailyFactsHtml = retentionDailyFactsHtml;'
     + '\nthis.moscowCalendarDay = moscowCalendarDay;'
     + '\nthis.homeRetentionCacheMatchesMoscowDay = homeRetentionCacheMatchesMoscowDay;',
   retentionSandbox,
@@ -86,8 +87,43 @@ assert(!regularTile.includes('home-evening-badge'), 'other rails do not render t
 assert((railSrc.match(/showBadge: railId === "evening-from-base"/g) || []).length === 2, 'badge is wired for append and prepend');
 
 const indexSrc = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
-assert(indexSrc.includes("var V='20261001dailyFilmGap2'"), 'script asset version is pinned');
-assert(indexSrc.includes('/style-v2.css?v=20261001dailyFilmGap2'), 'style asset version is pinned');
+assert(indexSrc.includes("var V='20261001dailyFacts1'"), 'script asset version is pinned');
+assert(indexSrc.includes('/style-v2.css?v=20261001dailyFacts1'), 'style asset version is pinned');
+
+const factsHtml = retentionSandbox.retentionDailyFactsHtml({
+  rating_kp: 8.2,
+  rating_imdb: 8.3,
+  year: 2009,
+  film_length: 96,
+  age_rating: '0+',
+  country: 'США',
+  genres: 'мультфильм, драма, комедия, приключения, семейный',
+  director: 'Пит Доктер & <script>',
+});
+assert(factsHtml.includes('Кинопоиск') && factsHtml.includes('8,2'), 'renders Kinopoisk rating from the payload');
+assert(factsHtml.includes('IMDb') && factsHtml.includes('8,3'), 'renders IMDb rating from the payload');
+assert(factsHtml.includes('96 мин'), 'renders runtime');
+assert(factsHtml.includes('0+'), 'renders age rating');
+assert(factsHtml.includes('США'), 'renders country');
+assert(factsHtml.includes('мультфильм, драма'), 'renders genres');
+assert(factsHtml.includes('Пит Доктер &amp; &lt;script&gt;'), 'escapes a long director name');
+assert(!factsHtml.includes('<script>'), 'director markup is escaped');
+
+const sparseFacts = retentionSandbox.retentionDailyFactsHtml({
+  year: 2009,
+  rating_kp: 0,
+  rating_imdb: null,
+  genres: ['комедия'],
+  director: { name_ru: 'Пит Доктер' },
+});
+assert(!sparseFacts.includes('IMDb') && !sparseFacts.includes('Кинопоиск'), 'missing or zero ratings are omitted');
+assert(sparseFacts.includes('>2009<') && sparseFacts.includes('Пит Доктер') && sparseFacts.includes('комедия'), 'year, director object, and genre list still render');
+assert(retentionSandbox.retentionDailyFactsHtml({}) === '', 'a film with no facts renders no grid');
+assert(retentionSandbox.retentionDailyFactsHtml({
+  series_stats: { seasons_count: 2, episodes_total: 16 },
+}).includes('2 сезона') && retentionSandbox.retentionDailyFactsHtml({
+  series_stats: { seasons_count: 2, episodes_total: 16 },
+}).includes('16 серий'), 'series counts render when the payload has them');
 
 // 2026-09-30 20:30 UTC = 23:30 Moscow (still the 30th). 21:30 UTC = 00:30 Moscow on the 1st.
 assert(retentionSandbox.moscowCalendarDay(new Date('2026-09-30T20:30:00Z')) === '2026-09-30', 'moscow day stays on the 30th before midnight');
@@ -111,5 +147,12 @@ assert(cssSrc.includes('.retention-daily-claimed { gap: 14px; }'), 'mobile keeps
 assert(cssSrc.includes('.retention-daily-ctas { padding: 0 12px 0; margin: 0; }'), 'mobile CTA row has no padding under the pills');
 assert(cssSrc.includes('.retention-daily-ctas .btn.btn-primary.retention-daily-cta'), 'primary pill paint stays on .btn.btn-primary');
 assert(cssSrc.includes('.retention-daily-ctas .btn.btn-secondary.retention-daily-cta'), 'secondary pill paint stays on .btn.btn-secondary');
+assert(cssSrc.includes('.retention-daily-facts { display: none; }'), 'facts grid is hidden until the desktop breakpoint');
+assert(cssSrc.includes('@media (min-width: 761px)') && cssSrc.includes('.retention-daily-copy.has-facts .retention-daily-meta { display: none; }'), 'desktop hides the short meta line when the facts grid is present');
+assert(cssSrc.includes('-webkit-line-clamp: 2'), 'long fact values clamp inside the cell');
+assert(cssSrc.includes('minmax(0, 1fr)'), 'fact columns cannot grow past the card');
+assert(cabinetSrc.includes('class="btn btn-secondary retention-daily-cta"'), 'watchlist button stays btn-secondary');
+assert(cabinetSrc.includes('class="btn btn-primary retention-daily-cta"'), 'plan button stays btn-primary');
+assert(cabinetSrc.includes('retention-daily-copy\' + (factsHtml ? \' has-facts\' : \'\')'), 'facts class is added only when cells exist');
 
 console.log('home-retention.test.js: OK');

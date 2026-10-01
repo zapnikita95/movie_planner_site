@@ -30786,10 +30786,65 @@ a.collections-author-block:hover {
   font: 900 54px/1 var(--font-display, inherit);
   background: rgba(8,8,12,.2);
 }
-.retention-daily-copy { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 22px; min-width: 0; }
-.retention-daily-copy strong { color: var(--text-primary); font-size: clamp(20px, 2vw, 28px); line-height: 1.12; }
-.retention-daily-copy small { margin-top: 8px; color: var(--text-muted); font-size: 13px; line-height: 1.45; }
+.retention-daily-copy { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 22px; min-width: 0; overflow: hidden; }
+.retention-daily-copy strong { color: var(--text-primary); font-size: clamp(20px, 2vw, 28px); line-height: 1.12; max-width: 100%; overflow-wrap: anywhere; }
+.retention-daily-copy small { margin-top: 8px; color: var(--text-muted); font-size: 13px; line-height: 1.45; max-width: 100%; overflow-wrap: anywhere; }
+.retention-daily-facts { display: none; }
 .retention-inline-link { margin-top: 18px; color: #ff6da6; font-weight: 750; font-size: 13px; }
+@media (min-width: 761px) {
+  .retention-daily-copy.has-facts { justify-content: flex-start; }
+  .retention-daily-copy.has-facts .retention-daily-meta { display: none; }
+  .retention-daily-copy.has-facts .retention-inline-link { margin-top: 12px; }
+  .retention-daily-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-top: 14px;
+    box-sizing: border-box;
+  }
+  .retention-daily-fact {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .retention-daily-fact--wide { grid-column: 1 / -1; }
+  .retention-daily-fact-k {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .retention-daily-fact-v {
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.3;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
 .retention-daily-claim.btn.btn-primary {
   /* Size-tame only — paint from firm style-v2 .btn.btn-primary */
   margin-top: 18px;
