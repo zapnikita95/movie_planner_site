@@ -4917,10 +4917,11 @@
   }
 
   function fetchAchievementProgressSnapshot(token, force) {
-    if (!force && _homeRetention && Array.isArray(_homeRetention.achievement_progress)) {
+    if (!force && _homeRetention && Array.isArray(_homeRetention.achievement_progress)
+        && homeRetentionCacheMatchesMoscowDay(null, _homeRetentionMskDay)) {
       return Promise.resolve(_homeRetention.achievement_progress.map(function (item) { return Object.assign({}, item); }));
     }
-    return apiOnce('/api/miniapp/retention/home', { timeoutMs: 12000 }, token).then(function (res) {
+    return apiOnce('/api/miniapp/retention/home', { timeoutMs: 12000, cache: 'no-store' }, token).then(function (res) {
       const body = res && res.body;
       return body && body.success && Array.isArray(body.achievement_progress) ? body.achievement_progress : [];
     }).catch(function () { return []; });
@@ -10652,6 +10653,7 @@
   const HOME_RETENTION_SESSION_CACHE_KEY_PREFIX = 'mp_home_retention_cache_v2:';
   let _homeDashboardCache = null;
   let _homeRetention = null;
+  let _homeRetentionMskDay = '';
   let _homeRetentionInflight = null;
 
   function homeBrowserCacheKey() {
@@ -10678,7 +10680,13 @@
     if (!key) return null;
     try {
       const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
-      if (!cached || !cached.data || Date.now() - Number(cached.savedAt || 0) > 15 * 60 * 1000) return null;
+      if (!cached || !cached.data) return null;
+      // 15 minutes is enough to flash yesterday's film after Moscow midnight.
+      if (!homeRetentionCacheMatchesMoscowDay(cached.savedAt, cached.mskDay)) {
+        try { sessionStorage.removeItem(key); } catch (_) {}
+        return null;
+      }
+      if (Date.now() - Number(cached.savedAt || 0) > 15 * 60 * 1000) return null;
       return cached.data;
     } catch (_) { return null; }
   }
@@ -10686,7 +10694,49 @@
   function writeHomeRetentionSessionCache(data) {
     const key = homeRetentionSessionCacheKey();
     if (!key) return;
-    try { sessionStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: data })); } catch (_) {}
+    const day = moscowCalendarDay(new Date());
+    if (day) _homeRetentionMskDay = day;
+    try { sessionStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), mskDay: day, data: data })); } catch (_) {}
+  }
+
+  function dropHomeRetentionIfMoscowDayRolled() {
+    if (!_homeRetention) return false;
+    if (homeRetentionCacheMatchesMoscowDay(null, _homeRetentionMskDay)) return false;
+    _homeRetention = null;
+    _homeRetentionMskDay = '';
+    return true;
+  }
+
+  function msUntilNextMoscowMidnight() {
+    const now = Date.now();
+    const moscowOffsetMs = 3 * 60 * 60 * 1000;
+    const moscowNow = new Date(now + moscowOffsetMs);
+    const nextMidnightUtc = Date.UTC(
+      moscowNow.getUTCFullYear(),
+      moscowNow.getUTCMonth(),
+      moscowNow.getUTCDate() + 1,
+      0, 0, 0, 0
+    );
+    return Math.max(1500, nextMidnightUtc - moscowOffsetMs - now + 750);
+  }
+
+  function armHomeRetentionMoscowDayRefresh() {
+    if (window._mpHomeRetentionDayArm) return;
+    window._mpHomeRetentionDayArm = true;
+    function onMoscowDay() {
+      if (!dropHomeRetentionIfMoscowDayRolled()) return;
+      try { loadHomeRetention(); } catch (_) {}
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') onMoscowDay();
+    });
+    function schedule() {
+      setTimeout(function () {
+        onMoscowDay();
+        schedule();
+      }, msUntilNextMoscowMidnight());
+    }
+    schedule();
   }
 
   function writeHomeDashboardBrowserCache(payload) {
@@ -11900,6 +11950,41 @@
       + buttonsHtml + '</div></div>';
   }
 
+  /** Calendar YYYY-MM-DD in Europe/Moscow. Daily film must not cross this boundary. */
+  function moscowCalendarDay(date) {
+    const d = date instanceof Date ? date : new Date(typeof date === 'number' ? date : Date.now());
+    if (Number.isNaN(d.getTime())) return '';
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(d);
+      let y = '';
+      let m = '';
+      let day = '';
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i].type === 'year') y = parts[i].value;
+        else if (parts[i].type === 'month') m = parts[i].value;
+        else if (parts[i].type === 'day') day = parts[i].value;
+      }
+      if (y && m && day) return y + '-' + m + '-' + day;
+    } catch (_) {}
+    const shifted = new Date(d.getTime() + 3 * 60 * 60 * 1000);
+    return shifted.toISOString().slice(0, 10);
+  }
+
+  function homeRetentionCacheMatchesMoscowDay(savedAt, mskDay) {
+    const today = moscowCalendarDay(new Date());
+    if (!today) return false;
+    const stamped = mskDay ? String(mskDay) : '';
+    const savedDay = (savedAt != null && savedAt !== '') ? moscowCalendarDay(new Date(Number(savedAt))) : '';
+    if (stamped && stamped !== today) return false;
+    if (savedDay && savedDay !== today) return false;
+    return !!(stamped || savedDay);
+  }
+
   function retentionDayWord(value) {
     const n = Math.abs(Number(value || 0));
     const n100 = n % 100;
@@ -12345,6 +12430,8 @@
           _homeRetention.daily_film.film = res.film;
           _homeRetention.daily_film.media_type = (res.film && res.film.is_series) ? 'series' : 'film';
           _homeRetention.daily_film.reel_posters = [];
+          if (!_homeRetentionMskDay) _homeRetentionMskDay = moscowCalendarDay(new Date());
+          writeHomeRetentionSessionCache(_homeRetention);
           if (res.rewarded) showToast('+' + Number(res.rewarded) + ' монет за фильм дня');
           paintHomeRetention();
         };
@@ -12426,13 +12513,15 @@
   function loadHomeRetention() {
     if (isGuestCabinetPreview()) return Promise.resolve();
     if (_homeRetentionInflight) return _homeRetentionInflight;
-    _homeRetentionInflight = api('/api/miniapp/retention/home', { timeoutMs: 12000 }).then(function (data) {
+    _homeRetentionInflight = api('/api/miniapp/retention/home', { timeoutMs: 12000, cache: 'no-store' }).then(function (data) {
       if (!data || !data.success) return;
       _homeRetention = data;
+      _homeRetentionMskDay = moscowCalendarDay(new Date());
       writeHomeRetentionSessionCache(data);
       paintHomeRetention();
       bindHomeRetentionOnce();
       armRetentionOnboardingOffer();
+      armHomeRetentionMoscowDayRefresh();
     }).catch(function () {}).finally(function () { _homeRetentionInflight = null; });
     return _homeRetentionInflight;
   }
@@ -12839,11 +12928,14 @@
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
     if (_homeDashInflight) return _homeDashInflight;
 
+    dropHomeRetentionIfMoscowDayRolled();
     if (!_homeRetention && !isGuestCabinetPreview()) {
       _homeRetention = readHomeRetentionSessionCache();
       if (_homeRetention) {
+        _homeRetentionMskDay = moscowCalendarDay(new Date());
         paintHomeRetention();
         bindHomeRetentionOnce();
+        armHomeRetentionMoscowDayRefresh();
       }
     }
     void loadHomeRetention();
