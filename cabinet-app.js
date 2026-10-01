@@ -12085,6 +12085,86 @@
       + '</div></div>' + promosHtml + '</div></section>';
   }
 
+  function retentionJoinFact(value) {
+    if (value == null || value === false) return '';
+    if (Array.isArray(value)) {
+      const parts = [];
+      for (let i = 0; i < value.length; i++) {
+        const part = retentionJoinFact(value[i]);
+        if (part) parts.push(part);
+      }
+      return parts.join(', ');
+    }
+    if (typeof value === 'object') {
+      return retentionJoinFact(value.name_ru || value.nameRu || value.name || value.title_ru || value.title || '');
+    }
+    const text = String(value).replace(/\s+/g, ' ').trim();
+    if (!text || text === 'Не указан' || text === 'null' || text === 'undefined' || text === '—') return '';
+    return text;
+  }
+
+  function retentionFactRating(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    return n.toFixed(1).replace('.', ',');
+  }
+
+  function retentionFactAge(film) {
+    const raw = film.age_rating || film.rating_age || film.ratingAgeLimits || film.ageRating || '';
+    const s = String(raw == null ? '' : raw).trim();
+    if (!s || s === 'null' || s === 'undefined') return '';
+    const plus = s.match(/\d+\+/);
+    if (plus) return plus[0];
+    const digits = s.match(/(\d+)/);
+    return digits ? (digits[1] + '+') : '';
+  }
+
+  function retentionFactRuntime(film) {
+    const candidates = [film.duration_min, film.film_length, film.runtime, film.runtime_min, film.length];
+    for (let i = 0; i < candidates.length; i++) {
+      const dur = Number(candidates[i]);
+      if (Number.isFinite(dur) && dur > 0) return Math.round(dur) + ' мин';
+    }
+    return '';
+  }
+
+  function retentionFactSeries(film) {
+    const stats = film.series_stats || (film.series_progress && film.series_progress.series_stats) || null;
+    if (!stats) return '';
+    const seasons = Number(stats.seasons_count || 0);
+    const episodes = Number(stats.episodes_total || 0);
+    const bits = [];
+    if (seasons > 0) bits.push(seasons + ' ' + (seasons % 10 === 1 && seasons % 100 !== 11 ? 'сезон' : (seasons % 10 >= 2 && seasons % 10 <= 4 && (seasons % 100 < 12 || seasons % 100 > 14) ? 'сезона' : 'сезонов')));
+    if (episodes > 0) bits.push(episodes + ' ' + (episodes % 10 === 1 && episodes % 100 !== 11 ? 'серия' : (episodes % 10 >= 2 && episodes % 10 <= 4 && (episodes % 100 < 12 || episodes % 100 > 14) ? 'серии' : 'серий')));
+    return bits.join(', ');
+  }
+
+  function retentionDailyFactsHtml(film) {
+    const f = film || {};
+    const cells = [];
+    function add(label, value, wide) {
+      const text = retentionJoinFact(value);
+      if (!text) return;
+      cells.push(
+        '<span class="retention-daily-fact' + (wide ? ' retention-daily-fact--wide' : '') + '">'
+        + '<span class="retention-daily-fact-k">' + escapeHtml(label) + '</span>'
+        + '<span class="retention-daily-fact-v">' + escapeHtml(text) + '</span>'
+        + '</span>'
+      );
+    }
+    add('Кинопоиск', retentionFactRating(f.rating_kp != null ? f.rating_kp : f.rating));
+    add('IMDb', retentionFactRating(f.rating_imdb));
+    add('Год', f.year);
+    add('Время', retentionFactRuntime(f));
+    add('Возраст', retentionFactAge(f));
+    add('Страна', f.country || f.countries || f.country_ru || f.production_countries);
+    add('Сериал', retentionFactSeries(f), true);
+    add('Жанры', f.genres || f.genre, true);
+    add('Режиссёр', f.director || f.directors, true);
+    if (!cells.length) return '';
+    return '<span class="retention-daily-facts">' + cells.join('') + '</span>';
+  }
+
   function renderHomeRetentionHtml() {
     const data = _homeRetention;
     if (!data || !data.success || isGuestCabinetPreview()) return '';
@@ -12092,6 +12172,7 @@
     const film = daily.film || {};
     const poster = film.poster || daily.preview_poster || '';
     const dailyLabel = retentionDailyMediaLabel(daily, film);
+    const factsHtml = retentionDailyFactsHtml(film);
     const claimCtas = daily.claimed && film.kp_id
       ? ('<div class="retention-daily-ctas">'
         + '<button type="button" class="btn btn-secondary retention-daily-cta" data-retention-watchlist-kp="' + escapeHtml(String(film.kp_id)) + '">Добавить в базу</button>'
@@ -12100,7 +12181,7 @@
       : '';
     const dailyBody = daily.claimed && film.kp_id
       ? ('<div class="retention-daily-claimed">'
-        + '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small>' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small><span class="retention-inline-link">Открыть →</span></span></button>'
+        + '<button type="button" class="retention-daily-open" data-retention-film-kp="' + escapeHtml(String(film.kp_id)) + '"><span class="retention-daily-poster"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><span class="retention-daily-copy' + (factsHtml ? ' has-facts' : '') + '"><span class="retention-kicker">' + dailyLabel + '</span><strong>' + escapeHtml(film.title || dailyLabel) + '</strong><small class="retention-daily-meta">' + escapeHtml([film.year, film.genres].filter(Boolean).join(' · ')) + '</small>' + factsHtml + '<span class="retention-inline-link">Открыть →</span></span></button>'
         + claimCtas
         + '</div>')
       : '<div class="retention-daily-locked"><span class="retention-daily-poster retention-daily-poster--locked"><img src="' + escapeHtml(poster) + '" alt="" loading="lazy" decoding="async"></span><div class="retention-daily-copy"><span class="retention-kicker">' + dailyLabel + '</span><strong>Откройте рекомендацию на сегодня</strong><small>Завтра здесь будет новая</small><button type="button" class="btn btn-primary retention-daily-claim" data-retention-claim>Открыть и получить +' + Number(daily.reward || 0) + ' монет</button></div></div>';
