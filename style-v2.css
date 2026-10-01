@@ -30737,6 +30737,8 @@ a.collections-author-block:hover {
   align-self: stretch;
   min-height: 100%;
   height: 100%;
+  /* Beat mobile `section { padding: 40px 20px }` — that inset is a void under the pills. */
+  padding: 0;
 }
 .retention-kicker {
   display: block;
@@ -30958,7 +30960,8 @@ a.collections-author-block:hover {
 .retention-daily-claimed {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  /* Air under the poster (the taller column). Nothing below the pills. */
+  gap: 14px;
   flex: 1 1 auto;
   min-height: 100%;
   height: 100%;
@@ -30967,9 +30970,9 @@ a.collections-author-block:hover {
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 0 16px 0;
   align-items: stretch;
-  margin-top: 0;
+  margin: 0;
   flex-shrink: 0;
 }
 /* Firm pills only — tame global 60px landing .btn-primary/.btn-secondary; one row */
@@ -31000,8 +31003,8 @@ a.collections-author-block:hover {
   color: #fff !important;
 }
 @media (max-width: 720px) {
-  .retention-daily-claimed { gap: 24px; }
-  .retention-daily-ctas { padding: 0 12px 16px; }
+  .retention-daily-claimed { gap: 14px; }
+  .retention-daily-ctas { padding: 0 12px 0; margin: 0; }
   .retention-daily-ctas .btn.retention-daily-cta {
     font-size: 12px !important;
     padding: 8px 10px !important;
