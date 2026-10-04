@@ -13003,12 +13003,337 @@
     });
   }
 
+  let _homeFriendsActivity = null;
+  let _homeFriendsInflight = null;
+  const HOME_FRIEND_REACTION_OPTIONS = [
+    ['highfive', '🙌'], ['star', '⭐'], ['party', '🎉'], ['fire', '🔥'],
+    ['heart', '❤️'], ['laugh', '😂'], ['wow', '😮'], ['eyes', '👀'],
+  ];
+
+  function homeFriendFilmFromItem(item) {
+    item = item || {};
+    const film = item.film || {};
+    return {
+      film_id: film.film_id != null ? film.film_id : item.film_id,
+      kp_id: film.kp_id != null ? film.kp_id : item.kp_id,
+      title: film.title || item.film_title || item.title || 'Фильм',
+      year: film.year || item.year || '',
+      poster: film.poster || film.poster_url || item.poster || item.poster_url || '',
+      genres: film.genres || item.genres || '',
+    };
+  }
+
+  function homeFriendActivityReason(item) {
+    const reason = String((item && (item.reason || item.insight_type || item.category)) || '').toLowerCase();
+    const rating = Number(item && (item.rating != null ? item.rating : item.value));
+    const gap = Number(item && (item.rating_gap != null ? item.rating_gap : item.gap));
+    if (reason === 'rating_gap' || (Number.isFinite(gap) && Math.abs(gap) >= 3)) {
+      return { cls: 'gap', label: 'Вы сильно разошлись в оценках' };
+    }
+    if (reason === 'friend_liked_unseen' || reason === 'unseen') {
+      return { cls: 'unseen', label: 'Вы не смотрели, а другу понравилось' };
+    }
+    if (reason === 'high_rating' || (Number.isFinite(rating) && rating >= 8)) {
+      return { cls: 'high', label: 'Высокая оценка друга' };
+    }
+    return { cls: 'activity', label: 'Новое у друзей' };
+  }
+
+  function homeFriendReactionButton(entry, item, activityKey, reactionCounts) {
+    const selected = String(item.my_reaction || '') === entry[0];
+    const count = Number(reactionCounts[entry[0]] || 0);
+    return '<button type="button" class="home-friend-social-btn' + (selected ? ' is-active' : '') + '" data-home-activity-reaction="' + escapeHtml(entry[0]) + '" data-activity-key="' + escapeHtml(String(activityKey)) + '" aria-label="Поставить реакцию ' + escapeHtml(entry[1]) + '"><span>' + escapeHtml(entry[1]) + '</span><b>' + (count || '') + '</b></button>';
+  }
+
+  function renderHomeFriendActivityCard(item) {
+    item = item || {};
+    const film = homeFriendFilmFromItem(item);
+    const person = item.friend_name || item.name || item.user_name || 'Друг';
+    const reason = homeFriendActivityReason(item);
+    const rating = item.rating != null ? item.rating : item.value;
+    const eventType = String(item.event_type || item.type || 'rating');
+    const activityKey = item.activity_key || '';
+    const ownerComment = String(item.owner_comment || item.rating_comment || '').trim();
+    if (eventType !== 'rating') return '';
+    const actionText = 'оценил' + (/а$/.test(String(person)) ? 'а' : '')
+      + (rating != null ? ' на ' + escapeHtml(String(rating)) + '/10' : ' фильм');
+    const hasFilm = !!film.kp_id;
+    const inBase = item.viewer_in_library === true || item.in_my_library === true || item.in_library === true || (item.viewer_state && item.viewer_state.in_library === true);
+    const ctas = hasFilm && !inBase
+      ? '<button type="button" class="home-friend-cta" data-home-friend-add="' + escapeHtml(String(film.kp_id)) + '">Добавить в базу</button>'
+      : '';
+    const reactionCounts = {};
+    (Array.isArray(item.reactions) ? item.reactions : []).forEach(function (rx) {
+      const key = String((rx && rx.reaction) || '');
+      if (key) reactionCounts[key] = (reactionCounts[key] || 0) + 1;
+    });
+    const shown = HOME_FRIEND_REACTION_OPTIONS.slice(0, 3);
+    const extra = HOME_FRIEND_REACTION_OPTIONS.slice(3);
+    const social = activityKey ? '<div class="home-friend-social" aria-label="Реакции и комментарии">'
+      + '<div class="home-friend-social-reactions">'
+      + shown.map(function (entry) { return homeFriendReactionButton(entry, item, activityKey, reactionCounts); }).join('')
+      + '<div class="home-friend-social-more"><button type="button" class="home-friend-social-btn home-friend-more-btn" aria-expanded="false" aria-haspopup="menu" aria-label="Ещё реакции">…</button>'
+      + '<div class="home-friend-reaction-pop" role="menu" hidden>'
+      + extra.map(function (entry) { return homeFriendReactionButton(entry, item, activityKey, reactionCounts); }).join('')
+      + '</div></div></div>'
+      + '<button type="button" class="home-friend-social-btn home-friend-comment-btn" data-home-activity-comments="' + escapeHtml(String(activityKey)) + '" aria-label="Открыть комментарии"><span>💬</span><b data-home-comment-count>' + escapeHtml(String(Number(item.comments_count || 0) || '')) + '</b></button></div>' : '';
+    return '<article class="home-friend-card home-friend-card--' + reason.cls + '" data-activity-card="' + escapeHtml(String(activityKey)) + '">'
+      + '<header class="home-friend-card-header"><div class="home-friend-avatar" data-home-friend-avatar data-user-id="' + escapeHtml(String(item.user_id || item.friend_id || '')) + '" data-photo-url="' + escapeHtml(String(item.photo_url || item.avatar_url || '')) + '" data-person-name="' + escapeHtml(person) + '">' + escapeHtml(avatarInitial(person)) + '</div>'
+      + '<div class="home-friend-card-summary"><span class="home-friend-reason">' + escapeHtml(reason.label) + '</span><p><strong>' + escapeHtml(person) + '</strong> ' + actionText + '</p></div></header>'
+      + '<div class="home-friend-card-main">'
+      + (hasFilm ? '<button type="button" class="home-friend-film-title" data-home-friend-open="' + escapeHtml(String(film.kp_id)) + '">' + escapeHtml(film.title) + (film.year ? ' · ' + escapeHtml(String(film.year)) : '') + '</button>' : '')
+      + (ownerComment ? '<blockquote class="home-friend-owner-comment">' + escapeHtml(ownerComment) + '</blockquote>' : '')
+      + social
+      + (ctas ? '<div class="home-friend-ctas">' + ctas + '</div>' : '')
+      + '</div></article>';
+  }
+
+  function hydrateHomeFriendAvatars(root) {
+    (root || document).querySelectorAll('[data-home-friend-avatar]').forEach(function (el) {
+      setAvatarEl(el, el.getAttribute('data-photo-url') || '', el.getAttribute('data-person-name') || 'Друг', el.getAttribute('data-user-id') || '');
+    });
+  }
+
+  function paintHomeFriendsActivity() {
+    const root = document.getElementById('home-friends-activity-root');
+    if (!root) return;
+    if (isGuestCabinetPreview()) { root.innerHTML = ''; return; }
+    const data = _homeFriendsActivity || {};
+    const items = (Array.isArray(data.items) ? data.items : (Array.isArray(data.activity) ? data.activity : []))
+      .filter(function (item) { return String((item && item.event_type) || 'rating') === 'rating'; });
+    const hasFriends = data.has_friends != null ? !!data.has_friends
+      : data.friends_count != null ? Number(data.friends_count) > 0
+      : items.length > 0;
+    if (!hasFriends) {
+      root.innerHTML = '<section class="home-friends-empty"><div><h3>Кино лучше обсуждать вместе</h3><p>Здесь можно разделить впечатления о кино с друзьями</p></div><button type="button" class="btn btn-primary" data-home-invite-friends>Пригласить друзей</button></section>';
+      return;
+    }
+    const feedHtml = items.length
+      ? '<div class="home-friend-feed">' + items.slice(0, 4).map(renderHomeFriendActivityCard).join('') + '</div>'
+      : '<p class="home-friend-quiet">Друзья пока ничего нового не отметили — самое время порекомендовать им фильм.</p>';
+    root.innerHTML = '<section class="home-friends-block"><div class="home-dash-head"><h3 class="home-dash-h">Активность друзей</h3><button type="button" class="link-inline home-dash-more" data-home-open-full-feed>Вся лента →</button></div>'
+      + feedHtml + '</section>';
+    hydrateHomeFriendAvatars(root);
+  }
+
+  function loadHomeFriendsActivity() {
+    if (isGuestCabinetPreview()) {
+      paintHomeFriendsActivity();
+      return Promise.resolve();
+    }
+    if (_homeFriendsActivity) paintHomeFriendsActivity();
+    if (_homeFriendsInflight) return _homeFriendsInflight;
+    _homeFriendsInflight = api('/api/friends/activity?limit=24', { timeoutMs: 10000 }).catch(function () { return null; }).then(function (result) {
+      _homeFriendsActivity = result || {};
+      paintHomeFriendsActivity();
+      bindHomeFriendsActivityOnce();
+    }).finally(function () { _homeFriendsInflight = null; });
+    return _homeFriendsInflight;
+  }
+
+  function openHomeActivityComments(activityKey) {
+    if (!activityKey) return;
+    const existing = document.getElementById('home-activity-comments-overlay');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'home-activity-comments-overlay';
+    overlay.className = 'modal-overlay home-activity-comments-overlay';
+    overlay.innerHTML = '<div class="home-activity-comments-dialog" role="dialog" aria-modal="true" aria-labelledby="home-activity-comments-title">'
+      + '<button type="button" class="home-activity-comments-close" aria-label="Закрыть">×</button>'
+      + '<h3 id="home-activity-comments-title">Обсудить с друзьями</h3><div class="home-activity-comments-list" aria-live="polite"><p class="cabinet-hint">Загружаем…</p></div>'
+      + '<form class="home-activity-comments-form"><textarea class="input-primary" maxlength="300" rows="3" placeholder="Что думаете об этом фильме?" required></textarea><div class="home-activity-comments-form-foot"><small><span data-home-comment-chars>0</span>/300</small><button type="submit" class="home-activity-comment-submit">Отправить</button></div></form></div>';
+    document.body.appendChild(overlay);
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const viewport = window.visualViewport;
+    const syncVisibleViewport = function () {
+      if (!overlay.isConnected) return;
+      overlay.style.top = Math.max(0, viewport ? viewport.offsetTop || 0 : 0) + 'px';
+      overlay.style.height = Math.max(1, viewport ? viewport.height || window.innerHeight : window.innerHeight) + 'px';
+      overlay.style.bottom = 'auto';
+    };
+    const close = function () {
+      if (viewport) {
+        viewport.removeEventListener('resize', syncVisibleViewport);
+        viewport.removeEventListener('scroll', syncVisibleViewport);
+      }
+      window.removeEventListener('resize', syncVisibleViewport);
+      overlay.remove();
+      document.body.style.overflow = previousBodyOverflow;
+    };
+    syncVisibleViewport();
+    if (viewport) {
+      viewport.addEventListener('resize', syncVisibleViewport);
+      viewport.addEventListener('scroll', syncVisibleViewport);
+    }
+    window.addEventListener('resize', syncVisibleViewport);
+    overlay.querySelector('.home-activity-comments-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+    const field = overlay.querySelector('textarea');
+    const charCount = overlay.querySelector('[data-home-comment-chars]');
+    field.addEventListener('input', function () { charCount.textContent = String(field.value.length); });
+    field.addEventListener('focus', function () {
+      setTimeout(function () { syncVisibleViewport(); field.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 80);
+    });
+    const list = overlay.querySelector('.home-activity-comments-list');
+    function paintComments(data) {
+      const comments = (data && (data.items || data.comments)) || [];
+      list.innerHTML = comments.length ? comments.map(function (comment) {
+        const who = comment.author_name || comment.name || 'Друг';
+        return '<div class="home-activity-comment"><strong>' + escapeHtml(who) + '</strong><p>' + escapeHtml(comment.body || comment.text || '') + '</p></div>';
+      }).join('') : '<p class="cabinet-hint">Начните обсуждение первым</p>';
+    }
+    const endpoint = '/api/friends/activity/comments?activity_key=' + encodeURIComponent(String(activityKey));
+    api(endpoint, { timeoutMs: 10000 }).then(paintComments).catch(function () {
+      list.innerHTML = '<p class="cabinet-hint">Не удалось загрузить комментарии</p>';
+    });
+    overlay.querySelector('.home-activity-comments-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const body = String(field.value || '').trim();
+      const button = overlay.querySelector('[type="submit"]');
+      if (!body) return;
+      button.disabled = true;
+      api('/api/friends/activity/comments', { method: 'POST', body: JSON.stringify({ activity_key: activityKey, body: body }) })
+        .then(function (data) {
+          field.value = '';
+          charCount.textContent = '0';
+          document.querySelectorAll('[data-activity-card="' + CSS.escape(String(activityKey)) + '"] [data-home-comment-count]').forEach(function (el) {
+            const current = Number(el.textContent || 0);
+            el.textContent = String(Number((data && data.comments_count) || 0) || current + 1);
+          });
+          showToast('Комментарий опубликован');
+          return api(endpoint, { timeoutMs: 10000 }).then(paintComments).catch(function () { paintComments(data); });
+        })
+        .catch(function () { showToast('Не удалось отправить комментарий', { type: 'error' }); })
+        .finally(function () { button.disabled = false; });
+    });
+  }
+
+  function closeHomeFriendReactionPops() {
+    document.querySelectorAll('.home-friend-reaction-pop').forEach(function (pop) {
+      pop.hidden = true;
+    });
+    document.querySelectorAll('.home-friend-more-btn[aria-expanded="true"]').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('.home-friend-card.is-reactions-open').forEach(function (card) {
+      card.classList.remove('is-reactions-open');
+    });
+  }
+
+  function placeHomeFriendReactionPop(btn, pop) {
+    const margin = 6;
+    const btnRect = btn.getBoundingClientRect();
+    pop.style.left = '0px';
+    pop.style.top = '0px';
+    const popRect = pop.getBoundingClientRect();
+    let left = btnRect.left;
+    let top = btnRect.bottom + margin;
+    if (left + popRect.width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - popRect.width - 8);
+    }
+    if (top + popRect.height > window.innerHeight - 8 && btnRect.top - popRect.height - margin >= 8) {
+      top = btnRect.top - popRect.height - margin;
+    }
+    pop.style.left = Math.round(left) + 'px';
+    pop.style.top = Math.round(top) + 'px';
+  }
+
+  function repositionOpenHomeFriendReactionPops() {
+    document.querySelectorAll('.home-friend-reaction-pop').forEach(function (pop) {
+      if (pop.hidden) return;
+      const btn = pop.parentElement && pop.parentElement.querySelector('.home-friend-more-btn');
+      if (btn) placeHomeFriendReactionPop(btn, pop);
+    });
+  }
+
+  function bindHomeFriendsActivityOnce() {
+    if (window._mpHomeFriendsActivityBound) return;
+    window._mpHomeFriendsActivityBound = true;
+    window.addEventListener('resize', repositionOpenHomeFriendReactionPops);
+    window.addEventListener('scroll', repositionOpenHomeFriendReactionPops, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeHomeFriendReactionPops();
+    });
+    document.addEventListener('click', function (e) {
+      const more = e.target.closest('.home-friend-more-btn');
+      const inPop = e.target.closest('.home-friend-reaction-pop');
+      if (more) {
+        e.preventDefault();
+        const pop = more.parentElement && more.parentElement.querySelector('.home-friend-reaction-pop');
+        const wasOpen = !!(pop && !pop.hidden);
+        closeHomeFriendReactionPops();
+        if (!wasOpen && pop) {
+          pop.hidden = false;
+          more.setAttribute('aria-expanded', 'true');
+          const card = more.closest('.home-friend-card');
+          if (card) card.classList.add('is-reactions-open');
+          placeHomeFriendReactionPop(more, pop);
+        }
+        return;
+      }
+      if (!inPop) closeHomeFriendReactionPops();
+      const invite = e.target.closest('[data-home-invite-friends]');
+      if (invite) { e.preventDefault(); void shareFriendInviteLink(); return; }
+      const fullFeed = e.target.closest('[data-home-open-full-feed]');
+      if (fullFeed) { e.preventDefault(); void _openFriendsActivity(); return; }
+      const reaction = e.target.closest('[data-home-activity-reaction]');
+      if (reaction) {
+        e.preventDefault();
+        if (reaction.disabled) return;
+        const activityKey = reaction.getAttribute('data-activity-key') || '';
+        const reactionKey = reaction.getAttribute('data-home-activity-reaction') || '';
+        reaction.disabled = true;
+        api('/api/friends/activity/react', { method: 'POST', body: JSON.stringify({ activity_key: activityKey, reaction: reactionKey }) })
+          .then(function () {
+            document.querySelectorAll('[data-activity-card]').forEach(function (card) {
+              if (card.getAttribute('data-activity-card') !== activityKey) return;
+              const next = card.querySelector('[data-home-activity-reaction="' + reactionKey + '"]');
+              const prev = card.querySelector('[data-home-activity-reaction].is-active');
+              if (prev && prev !== next) {
+                prev.classList.remove('is-active');
+                const prevCount = prev.querySelector('b');
+                prevCount.textContent = String(Math.max(0, Number(prevCount.textContent || 0) - 1) || '');
+              }
+              if (next && next !== prev) {
+                next.classList.add('is-active');
+                const nextCount = next.querySelector('b');
+                nextCount.textContent = String(Number(nextCount.textContent || 0) + 1);
+              }
+            });
+          })
+          .catch(function () { showToast('Не удалось поставить реакцию', { type: 'error' }); })
+          .finally(function () { reaction.disabled = false; });
+        return;
+      }
+      const discuss = e.target.closest('[data-home-activity-comments]');
+      if (discuss) { e.preventDefault(); closeHomeFriendReactionPops(); openHomeActivityComments(discuss.getAttribute('data-home-activity-comments')); return; }
+      const open = e.target.closest('[data-home-friend-open]');
+      if (open) {
+        e.preventDefault();
+        closeHomeFriendReactionPops();
+        openFilmWithFallback(open.getAttribute('data-home-friend-open'));
+        return;
+      }
+      const add = e.target.closest('[data-home-friend-add]');
+      if (add) {
+        e.preventDefault();
+        if (add.disabled) return;
+        add.disabled = true;
+        api('/api/site/add-film', { method: 'POST', body: JSON.stringify({ kp_id: Number(add.getAttribute('data-home-friend-add')) }) })
+          .then(function (res) { if (!res || res.success === false) throw new Error('add'); add.textContent = 'Добавлено ✓'; showToast('Добавлено в базу'); })
+          .catch(function () { add.disabled = false; showToast('Не удалось добавить', { type: 'error' }); });
+      }
+    });
+  }
+
   function renderHomeDashboardFromCache() {
     const root = document.getElementById('home-dashboard-root');
     const secHome = document.getElementById('section-home');
     if (!root || !secHome || secHome.classList.contains('hidden')) return;
     if (_homeDashInflight) return _homeDashInflight;
 
+    void loadHomeFriendsActivity();
     dropHomeRetentionIfMoscowDayRolled();
     if (!_homeRetention && !isGuestCabinetPreview()) {
       _homeRetention = readHomeRetentionSessionCache();
